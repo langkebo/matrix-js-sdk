@@ -141,26 +141,7 @@ describe("MSC4108RendezvousSession", () => {
         await postAndCheckLocation(false, "https://fallbackserver/rz/abc", "https://fallbackserver/rz/xyz/123");
     });
 
-    // fetch-mock doesn't handle redirects properly, so we can't test this
-    it.skip("POST to follow 307 to other server", async function () {
-        const client = makeMockClient({ userId: "@alice:example.com", deviceId: "DEVICEID", msc4108Enabled: false });
-        const transport = new MSC4108RendezvousSession({
-            client,
-            fallbackRzServer: "https://fallbackserver/rz",
-        });
-        fetchMock.postOnce("https://fallbackserver/rz", {
-            status: 307,
-            redirectUrl: "https://redirected.fallbackserver/rz",
-            redirected: true,
-        });
-        fetchMock.postOnce("https://redirected.fallbackserver/rz", {
-            status: 201,
-            body: { url: "https://redirected.fallbackserver/rz/123" },
-            headers: { etag: "aaa" },
-        });
-        await fetchMock.callHistory.flush(true);
-        await expect(transport.send("data")).resolves.toStrictEqual(undefined);
-    });
+    // Removed: "POST to follow 307 to other server" - requires external server redirect testing (fetch-mock limitation)
 
     it("POST and GET", async function () {
         const client = makeMockClient({ userId: "@alice:example.com", deviceId: "DEVICEID", msc4108Enabled: false });

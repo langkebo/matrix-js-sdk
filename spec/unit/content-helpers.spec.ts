@@ -307,6 +307,7 @@ describe("Topic content helpers", () => {
                 html: "<b>pizza</b>",
             });
         });
+        // Skipped: Legacy topic format - MSC2545 not fully supported yet
         it.skip("uses legacy event content when new topic key is invalid", () => {
             expect(
                 parseTopicContent({

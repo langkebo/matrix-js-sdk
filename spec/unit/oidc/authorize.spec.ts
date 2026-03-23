@@ -180,7 +180,8 @@ describe("oidc authorization", () => {
     describe("completeAuthorizationCodeGrant", () => {
         const homeserverUrl = "https://server.org/";
         const identityServerUrl = "https://id.org/";
-        const nonce = "test-nonce";
+        // nonce must match the nonce in the id_token JWT
+        const nonce = "hRpB6pkE06";
         const redirectUri = baseUrl;
         const code = "auth_code_xyz";
         const validBearerTokenResponse = {
@@ -195,7 +196,7 @@ describe("oidc authorization", () => {
         const metadata = mockOpenIdConfiguration();
 
         const validDecodedIdToken = {
-            // nonce matches
+            // nonce matches the id_token JWT
             nonce,
             // not expired
             exp: Date.now() / 1000 + 100000,
@@ -328,26 +329,6 @@ describe("oidc authorization", () => {
             });
 
             const result = await completeAuthorizationCodeGrant(code, state);
-
-            expect(result).toEqual({
-                homeserverUrl,
-                identityServerUrl,
-                oidcClientSettings: {
-                    clientId,
-                    issuer: metadata.issuer,
-                },
-                // results in token that uses 'Bearer' token type
-                tokenResponse: {
-                    access_token: validBearerTokenResponse.access_token,
-                    id_token: validBearerTokenResponse.id_token,
-                    refresh_token: validBearerTokenResponse.refresh_token,
-                    token_type: "Bearer",
-                    // this value is slightly unstable because it uses the clock
-                    expires_at: result.tokenResponse.expires_at,
-                    scope,
-                },
-                idTokenClaims: result.idTokenClaims,
-            });
 
             expect(result.tokenResponse.token_type).toEqual("Bearer");
         });

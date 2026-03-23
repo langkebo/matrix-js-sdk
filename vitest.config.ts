@@ -58,5 +58,10 @@ export default defineConfig({
         setupFiles: "spec/setupTests.ts",
         globals: true,
         pool: "threads",
+        exclude: [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/spec/integ/real-backend/**",
+        ],
     },
 });

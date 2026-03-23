@@ -1,0 +1,359 @@
+import { logger } from "../logger"
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/**
+ * SAML Authentication Manager - SAML认证管理
+ * 
+ * 提供SAML认证登录、用户映射、属性管理功能
+ */
+
+import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { Method } from "../http-api/method.ts";
+
+export enum SamlEvent {
+    LoginInitiated = "LoginInitiated",
+    LoginCompleted = "LoginCompleted",
+    LoginFailed = "LoginFailed",
+    UserMapped = "UserMapped",
+    UserUnmapped = "UserUnmapped",
+    SamlError = "SamlError",
+}
+
+export interface SamlLoginRequest {
+    redirectUrl?: string;
+}
+
+export interface SamlLoginResponse {
+    saml_request: string;
+    saml_request_id: string;
+    redirect_url: string;
+}
+
+export interface SamlCallbackResponse {
+    user_id: string;
+    access_token: string;
+    device_id: string;
+    refresh_token?: string;
+    expires_in?: number;
+    is_new_user?: boolean;
+}
+
+export interface SamlUserMapping {
+    name_id: string;
+    user_id: string;
+    displayname?: string;
+    email?: string;
+    attributes?: Record<string, string[]>;
+}
+
+export interface SamlAttributeMapping {
+    uid?: string;
+    displayname?: string;
+    email?: string;
+}
+
+export interface SamlServiceProviderConfig {
+    sp_entity_id: string;
+    sp_acs_url: string;
+    sp_slo_url?: string;
+    sp_name_id_format?: string;
+}
+
+export interface SamlIdentityProviderConfig {
+    idp_entity_id: string;
+    idp_sso_url: string;
+    idp_slo_url?: string;
+    idp_x509cert: string;
+    idp_x509cert_new?: string;
+}
+
+export interface SamlConfig {
+    sp: SamlServiceProviderConfig;
+    idp: SamlIdentityProviderConfig;
+    attribute_mapping?: SamlAttributeMapping;
+    allow_unsolicited?: boolean;
+    want_assertions_signed?: boolean;
+    want_response_signed?: boolean;
+}
+
+interface SamlAuthManagerEventMap {
+    [SamlEvent.LoginInitiated]: (requestId: string) => void;
+    [SamlEvent.LoginCompleted]: (userId: string, response: SamlCallbackResponse) => void;
+    [SamlEvent.LoginFailed]: (error: Error) => void;
+    [SamlEvent.UserMapped]: (mapping: SamlUserMapping) => void;
+    [SamlEvent.UserUnmapped]: (nameId: string) => void;
+    [SamlEvent.SamlError]: (error: Error) => void;
+}
+
+export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManagerEventMap> {
+    private client: any;
+    private config: SamlConfig | null = null;
+    private userMappings: Map<string, SamlUserMapping> = new Map();
+    private pendingRequests: Map<string, string> = new Map();
+
+    constructor(client: any) {
+        super();
+        this.client = client;
+    }
+
+    async initiateLogin(request?: SamlLoginRequest): Promise<SamlLoginResponse> {
+        try {
+            const response = await this.client.http.request(
+                Method.Post,
+                "/_matrix/client/v3/login/saml/redirect",
+                undefined,
+                {
+                    redirect_url: request?.redirectUrl,
+                },
+                { prefix: "/_matrix/client/v3" }
+            );
+
+            this.pendingRequests.set(response.saml_request_id, response.redirect_url);
+            this.emit(SamlEvent.LoginInitiated, response.saml_request_id);
+
+            return response;
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async handleCallback(samlResponse: string, requestId?: string): Promise<SamlCallbackResponse> {
+        try {
+            const response = await this.client.http.request(
+                Method.Post,
+                "/_matrix/client/v3/login/saml/callback",
+                undefined,
+                {
+                    SAMLResponse: samlResponse,
+                    RelayState: requestId,
+                },
+                { prefix: "/_matrix/client/v3" }
+            );
+
+            const result: SamlCallbackResponse = {
+                user_id: response.user_id,
+                access_token: response.access_token,
+                device_id: response.device_id,
+                refresh_token: response.refresh_token,
+                expires_in: response.expires_in,
+                is_new_user: response.is_new_user,
+            };
+
+            if (requestId) {
+                this.pendingRequests.delete(requestId);
+            }
+
+            this.emit(SamlEvent.LoginCompleted, result.user_id, result);
+
+            return result;
+        } catch (error) {
+            this.emit(SamlEvent.LoginFailed, error as Error);
+            throw error;
+        }
+    }
+
+    async getConfig(): Promise<SamlConfig | null> {
+        if (this.config) {
+            return this.config;
+        }
+
+        try {
+            const response = await this.client.http.authedRequest(
+                Method.Get,
+                "/_synapse/admin/v1/saml/config",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" }
+            );
+
+            this.config = response as SamlConfig;
+            return this.config;
+        } catch (e) {
+            logger.warn('SamlAuthManager.getConfig failed:', e);
+            return null;
+        }
+    }
+
+    async updateConfig(config: Partial<SamlConfig>): Promise<void> {
+        try {
+            await this.client.http.authedRequest(
+                Method.Put,
+                "/_synapse/admin/v1/saml/config",
+                undefined,
+                config,
+                { prefix: "/_synapse/admin/v1" }
+            );
+
+            this.config = { ...this.config, ...config } as SamlConfig;
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async getUserMapping(nameId: string): Promise<SamlUserMapping | null> {
+        if (this.userMappings.has(nameId)) {
+            return this.userMappings.get(nameId) || null;
+        }
+
+        try {
+            const response = await this.client.http.authedRequest(
+                Method.Get,
+                `/_synapse/admin/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" }
+            );
+
+            const mapping = response as SamlUserMapping;
+            this.userMappings.set(nameId, mapping);
+
+            return mapping;
+        } catch (e) {
+            logger.warn('SamlAuthManager.getUserMapping failed:', e);
+            return null;
+        }
+    }
+
+    async getUserMappings(): Promise<SamlUserMapping[]> {
+        try {
+            const response = await this.client.http.authedRequest(
+                Method.Get,
+                "/_synapse/admin/v1/saml/mappings",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" }
+            );
+
+            const mappings = (response.mappings || []) as SamlUserMapping[];
+            this.userMappings.clear();
+            mappings.forEach(m => this.userMappings.set(m.name_id, m));
+
+            return mappings;
+        } catch (e) {
+            logger.warn('SamlAuthManager.getUserMappings failed:', e);
+            return Array.from(this.userMappings.values());
+        }
+    }
+
+    async updateUserMapping(nameId: string, mapping: Partial<SamlUserMapping>): Promise<void> {
+        try {
+            await this.client.http.authedRequest(
+                Method.Put,
+                `/_synapse/admin/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+                undefined,
+                mapping,
+                { prefix: "/_synapse/admin/v1" }
+            );
+
+            const existing = this.userMappings.get(nameId);
+            const updated = { ...existing, ...mapping, name_id: nameId } as SamlUserMapping;
+            this.userMappings.set(nameId, updated);
+
+            this.emit(SamlEvent.UserMapped, updated);
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async removeUserMapping(nameId: string): Promise<void> {
+        try {
+            await this.client.http.authedRequest(
+                Method.Delete,
+                `/_synapse/admin/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" }
+            );
+
+            this.userMappings.delete(nameId);
+            this.emit(SamlEvent.UserUnmapped, nameId);
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async getMetadata(): Promise<string> {
+        try {
+            const response = await this.client.http.request(
+                Method.Get,
+                "/_matrix/client/v3/login/saml/metadata",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" }
+            );
+
+            return response.metadata || '';
+        } catch (e) {
+            logger.warn('SamlAuthManager.getMetadata failed:', e);
+            return '';
+        }
+    }
+
+    async logout(userId: string, sessionId?: string): Promise<void> {
+        try {
+            await this.client.http.authedRequest(
+                Method.Post,
+                "/_synapse/admin/v1/saml/logout",
+                undefined,
+                {
+                    user_id: userId,
+                    session_id: sessionId,
+                },
+                { prefix: "/_synapse/admin/v1" }
+            );
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    getPendingRequest(requestId: string): string | null {
+        return this.pendingRequests.get(requestId) || null;
+    }
+
+    getCachedMapping(nameId: string): SamlUserMapping | null {
+        return this.userMappings.get(nameId) || null;
+    }
+
+    getCachedMappings(): SamlUserMapping[] {
+        return Array.from(this.userMappings.values());
+    }
+
+    clearCache(): void {
+        this.userMappings.clear();
+        this.pendingRequests.clear();
+    }
+
+    async start(): Promise<void> {
+        try {
+            await this.getConfig();
+            await this.getUserMappings();
+        } catch (e) {
+            logger.warn('SamlAuthManager.start failed:', e);
+        }
+    }
+
+    stop(): void {
+        this.userMappings.clear();
+        this.pendingRequests.clear();
+        this.config = null;
+    }
+}

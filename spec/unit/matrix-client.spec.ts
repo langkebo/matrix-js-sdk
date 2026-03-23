@@ -1807,95 +1807,14 @@ describe("MatrixClient", function () {
             await didSyncPromise;
         });
 
-        // Disabled because now `startClient` makes a legit call to `/versions`
-        // And those tests are really unhappy about it... Not possible to figure
-        // out what a good resolution would look like
-        it.skip("should transition ERROR -> CATCHUP after /sync if prev failed", async () => {
-            const expectedStates: [string, string | null][] = [];
-            acceptKeepalives = false;
-            httpLookups = [];
-            httpLookups.push(PUSH_RULES_RESPONSE);
-            httpLookups.push(FILTER_RESPONSE);
-            httpLookups.push({
-                method: "GET",
-                path: "/sync",
-                error: { errcode: "NOPE_NOPE_NOPE" },
-            });
-            httpLookups.push({
-                method: "GET",
-                path: KEEP_ALIVE_PATH,
-                error: { errcode: "KEEPALIVE_FAIL" },
-            });
-            httpLookups.push({
-                method: "GET",
-                path: KEEP_ALIVE_PATH,
-                data: {},
-            });
-            httpLookups.push({
-                method: "GET",
-                path: "/sync",
-                data: SYNC_DATA,
-            });
-
-            expectedStates.push(["RECONNECTING", null]);
-            expectedStates.push(["ERROR", "RECONNECTING"]);
-            expectedStates.push(["CATCHUP", "ERROR"]);
-            const didSyncPromise = new Promise<void>((resolve) => {
-                client.on(ClientEvent.Sync, syncChecker(expectedStates, resolve));
-            });
-            await client.startClient();
-            await didSyncPromise;
-        });
+        // Note: ERROR state transition tests removed due to /versions API complexity
+        // The existing tests cover the main sync state transitions
 
         // eslint-disable-next-line @vitest/expect-expect
         it("should transition PREPARED -> SYNCING after /sync", async () => {
             const expectedStates: [string, string | null][] = [];
             expectedStates.push(["PREPARED", null]);
             expectedStates.push(["SYNCING", "PREPARED"]);
-            const didSyncPromise = new Promise<void>((resolve) => {
-                client.on(ClientEvent.Sync, syncChecker(expectedStates, resolve));
-            });
-            await client.startClient();
-            await didSyncPromise;
-        });
-
-        it.skip("should transition SYNCING -> ERROR after a failed /sync", async () => {
-            acceptKeepalives = false;
-            const expectedStates: [string, string | null][] = [];
-            httpLookups.push({
-                method: "GET",
-                path: "/sync",
-                error: { errcode: "NONONONONO" },
-            });
-            httpLookups.push({
-                method: "GET",
-                path: KEEP_ALIVE_PATH,
-                error: { errcode: "KEEPALIVE_FAIL" },
-            });
-
-            expectedStates.push(["PREPARED", null]);
-            expectedStates.push(["SYNCING", "PREPARED"]);
-            expectedStates.push(["RECONNECTING", "SYNCING"]);
-            expectedStates.push(["ERROR", "RECONNECTING"]);
-            const didSyncPromise = new Promise<void>((resolve) => {
-                client.on(ClientEvent.Sync, syncChecker(expectedStates, resolve));
-            });
-            await client.startClient();
-            await didSyncPromise;
-        });
-
-        it.skip("should transition ERROR -> SYNCING after /sync if prev failed", async () => {
-            const expectedStates: [string, string | null][] = [];
-            httpLookups.push({
-                method: "GET",
-                path: "/sync",
-                error: { errcode: "NONONONONO" },
-            });
-            httpLookups.push(SYNC_RESPONSE);
-
-            expectedStates.push(["PREPARED", null]);
-            expectedStates.push(["SYNCING", "PREPARED"]);
-            expectedStates.push(["ERROR", "SYNCING"]);
             const didSyncPromise = new Promise<void>((resolve) => {
                 client.on(ClientEvent.Sync, syncChecker(expectedStates, resolve));
             });
@@ -1912,37 +1831,6 @@ describe("MatrixClient", function () {
             expectedStates.push(["PREPARED", null]);
             expectedStates.push(["SYNCING", "PREPARED"]);
             expectedStates.push(["SYNCING", "SYNCING"]);
-            const didSyncPromise = new Promise<void>((resolve) => {
-                client.on(ClientEvent.Sync, syncChecker(expectedStates, resolve));
-            });
-            await client.startClient();
-            await didSyncPromise;
-        });
-
-        it.skip("should transition ERROR -> ERROR if keepalive keeps failing", async () => {
-            acceptKeepalives = false;
-            const expectedStates: [string, string | null][] = [];
-            httpLookups.push({
-                method: "GET",
-                path: "/sync",
-                error: { errcode: "NONONONONO" },
-            });
-            httpLookups.push({
-                method: "GET",
-                path: KEEP_ALIVE_PATH,
-                error: { errcode: "KEEPALIVE_FAIL" },
-            });
-            httpLookups.push({
-                method: "GET",
-                path: KEEP_ALIVE_PATH,
-                error: { errcode: "KEEPALIVE_FAIL" },
-            });
-
-            expectedStates.push(["PREPARED", null]);
-            expectedStates.push(["SYNCING", "PREPARED"]);
-            expectedStates.push(["RECONNECTING", "SYNCING"]);
-            expectedStates.push(["ERROR", "RECONNECTING"]);
-            expectedStates.push(["ERROR", "ERROR"]);
             const didSyncPromise = new Promise<void>((resolve) => {
                 client.on(ClientEvent.Sync, syncChecker(expectedStates, resolve));
             });
@@ -1984,8 +1872,6 @@ describe("MatrixClient", function () {
             await client.startClient();
             expect(httpLookups.length).toBe(0);
         });
-
-        it.skip("should be able to peek into a room using peekInRoom", function () {});
     });
 
     describe("getPresence", function () {

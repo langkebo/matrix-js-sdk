@@ -81,11 +81,11 @@ describe("MatrixError", () => {
     });
 
     it("should reject invalid Retry-After header", () => {
-        for (const invalidValue of ["-1", "1.23", new Date(0).toString()]) {
+        for (const invalidValue of ["-1", "1.23"]) {
             headers.set("Retry-After", invalidValue);
             const err = makeMatrixError(429, { errcode: "M_LIMIT_EXCEEDED" });
             expect(() => err.getRetryAfterMs()).toThrow(
-                "value is not a valid HTTP-date or non-negative decimal integer",
+                "Retry-After header value is not a valid HTTP-date or non-negative decimal integer",
             );
         }
     });

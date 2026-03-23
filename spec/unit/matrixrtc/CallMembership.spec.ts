@@ -334,13 +334,8 @@ describe("CallMembership", () => {
             }).toThrow();
         });
 
-        it.skip("considers memberships unexpired if local age low enough", () => {
-            // TODO link prev event
-        });
-
-        it.skip("considers memberships expired if local age large enough", () => {
-            // TODO link prev event
-        });
+        // Removed: Empty placeholder tests for membership expiration logic
+        // TODO: Implement when matrixrtc membership expiration is needed
 
         describe("getTransport", () => {
             it("gets the correct active transport with oldest_membership", () => {

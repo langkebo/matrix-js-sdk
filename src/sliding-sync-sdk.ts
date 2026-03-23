@@ -542,12 +542,12 @@ export class SlidingSyncSdk {
 
     private async processRoomData(client: MatrixClient, room: Room, roomData: MSC3575RoomData): Promise<void> {
         roomData = ensureNameEvent(client, room.roomId, roomData);
-        const stateEvents = mapEvents(this.client, room.roomId, roomData.required_state);
+        const stateEvents = mapEvents(this.client, room.roomId, roomData.required_state ?? []);
         // Prevent events from being decrypted ahead of time
         // this helps large account to speed up faster
         // room::decryptCriticalEvent is in charge of decrypting all the events
         // required for a client to function properly
-        let timelineEvents = mapEvents(this.client, room.roomId, roomData.timeline, false);
+        let timelineEvents = mapEvents(this.client, room.roomId, roomData.timeline ?? [], false);
         const ephemeralEvents: MatrixEvent[] = []; // TODO this.mapSyncEventsFormat(joinObj.ephemeral);
 
         // TODO: handle threaded / beacon events
@@ -590,7 +590,7 @@ export class SlidingSyncSdk {
             timelineEvents = newEvents;
             if (oldEvents.length > 0) {
                 // old events are scrollback, insert them now
-                room.addEventsToTimeline(oldEvents, true, false, room.getLiveTimeline(), roomData.prev_batch);
+                room.addEventsToTimeline(oldEvents, true, false, room.getLiveTimeline(), roomData.prev_batch ?? undefined);
             }
         }
 
@@ -957,6 +957,9 @@ function ensureNameEvent(client: MatrixClient, roomId: string, roomData: MSC3575
     // sliding sync clients should just read the "name" field.
     if (!roomData.name) {
         return roomData;
+    }
+    if (!roomData.required_state) {
+        roomData.required_state = [];
     }
     for (const stateEvent of roomData.required_state) {
         if (stateEvent.type === EventType.RoomName && stateEvent.state_key === "") {

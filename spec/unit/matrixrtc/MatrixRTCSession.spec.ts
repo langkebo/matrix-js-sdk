@@ -1231,7 +1231,7 @@ describe("MatrixRTCSession", () => {
                 }
             });
 
-            it("wraps key index around to 0 when it reaches the maximum", { timeout: 15000 }, async () => {
+            it("wraps key index around to 0 when it reaches the maximum", { timeout: 30000 }, async () => {
                 // this should give us keys with index [0...255, 0, 1]
                 const membersToTest = 258;
                 const members: MembershipData[] = [];

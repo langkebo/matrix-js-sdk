@@ -813,19 +813,7 @@ describe("Room", function () {
             ];
         });
 
-        // XXX: This test was previously not running and it is broken
-        it.skip("should copy state from previous timeline", async function () {
-            await room.addLiveEvents([events[0], events[1]], { addToState: false });
-            expect(room.getLiveTimeline().getEvents().length).toEqual(2);
-            room.resetLiveTimeline("sometoken", "someothertoken");
-
-            await room.addLiveEvents([events[2]], { addToState: false });
-            const oldState = room.getLiveTimeline().getState(EventTimeline.BACKWARDS);
-            const newState = room.getLiveTimeline().getState(EventTimeline.FORWARDS);
-            expect(room.getLiveTimeline().getEvents().length).toEqual(1);
-            expect(oldState?.getStateEvents(EventType.RoomName, "")).toEqual(events[1]);
-            expect(newState?.getStateEvents(EventType.RoomName, "")).toEqual(events[2]);
-        });
+        // Removed: "should copy state from previous timeline" - test was broken and not running
 
         it("should reset the legacy timeline fields", async function () {
             await room.addLiveEvents([events[0], events[1]], { addToState: false });

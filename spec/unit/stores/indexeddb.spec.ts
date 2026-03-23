@@ -18,12 +18,26 @@ limitations under the License.
  * @vitest-environment happy-dom
  */
 
+import { describe, it, expect, afterEach, vi } from "vitest";
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 
 import { IndexedDBStore, type IStateEventWithRoomId, MemoryStore, User, UserEvent } from "../../../src";
 import { emitPromise } from "../../test-utils/test-utils";
 import { type LocalIndexedDBStoreBackend } from "../../../src/store/indexeddb-local-backend";
+
+// Create a mock localStorage for tests
+const mockLocalStorage = (() => {
+    let store: Record<string, string> = {};
+    return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => { store[key] = value; },
+        removeItem: (key: string) => { delete store[key]; },
+        clear: () => { store = {}; },
+        get length() { return Object.keys(store).length; },
+        key: (index: number) => Object.keys(store)[index] || null,
+    };
+})();
 
 describe("IndexedDBStore", () => {
     afterEach(() => {
@@ -35,7 +49,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         await store.startup();
 
@@ -118,7 +132,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "db3",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         let userCreated = false;
         let presenceEventEmitted = false;
@@ -159,7 +173,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
 
         await expect(store.getPendingEvents(roomId)).resolves.toEqual([]);
@@ -168,16 +182,16 @@ describe("IndexedDBStore", () => {
         expect(MemoryStore.prototype.setPendingEvents).not.toHaveBeenCalled();
         await expect(store.getPendingEvents(roomId)).resolves.toEqual(events);
         expect(MemoryStore.prototype.getPendingEvents).not.toHaveBeenCalled();
-        expect(localStorage.getItem("mx_pending_events_" + roomId)).toBe(JSON.stringify(events));
+        expect(mockLocalStorage.getItem("mx_pending_events_" + roomId)).toBe(JSON.stringify(events));
         await store.setPendingEvents(roomId, []);
-        expect(localStorage.getItem("mx_pending_events_" + roomId)).toBeNull();
+        expect(mockLocalStorage.getItem("mx_pending_events_" + roomId)).toBeNull();
     });
 
     it("should resolve isNewlyCreated to true if no database existed initially", async () => {
         const store = new IndexedDBStore({
             indexedDB,
             dbName: "db1",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         await store.startup();
 
@@ -188,14 +202,14 @@ describe("IndexedDBStore", () => {
         let store = new IndexedDBStore({
             indexedDB,
             dbName: "db2",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         await store.startup();
 
         store = new IndexedDBStore({
             indexedDB,
             dbName: "db2",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         await store.startup();
 
@@ -219,7 +233,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB,
             dbName: "db3",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         await store.startup();
 
@@ -230,7 +244,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
         });
         await store.startup();
 
@@ -255,7 +269,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
             workerFactory: () => new MockWorker() as Worker,
         });
         store.startup();
@@ -270,7 +284,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
             workerFactory: () => worker,
         });
         store.startup();
@@ -308,7 +322,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
             workerFactory: () => worker,
         });
         await expect(store.startup()).rejects.toThrow("Test");
@@ -333,7 +347,7 @@ describe("IndexedDBStore", () => {
         const store = new IndexedDBStore({
             indexedDB: indexedDB,
             dbName: "database",
-            localStorage,
+            localStorage: mockLocalStorage as unknown as Storage,
             workerFactory: () => worker,
         });
         await store.startup();

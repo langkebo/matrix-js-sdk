@@ -1,0 +1,387 @@
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/**
+ * External Service Integration Manager - 外部服务集成管理
+ *
+ * 提供第三方外部服务的注册、管理和健康检查功能
+ * 对应后端 API (管理端):
+ * - GET /_synapse/admin/v1/external_services - 获取外部服务列表
+ * - POST /_synapse/admin/v1/external_services - 注册外部服务
+ * - GET /_synapse/admin/v1/external_services/{as_id}/health - 获取服务健康状态
+ * - POST /_synapse/admin/v1/external_services/{as_id}/health/check - 检查服务健康
+ * - DELETE /_synapse/admin/v1/external_services/{as_id} - 注销外部服务
+ * - GET /_synapse/admin/v1/external_services/health - 获取所有服务健康状态
+ */
+
+import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { Method } from "../http-api/method.ts";
+import { logger } from "../logger.ts";
+import { MatrixClient } from "../client.ts";
+
+const ADMIN_PREFIX = "/_synapse/admin/v1";
+
+export enum ExternalServiceEvent {
+    ServiceRegistered = "ServiceRegistered",
+    ServiceUnregistered = "ServiceUnregistered",
+    ServiceHealthChanged = "ServiceHealthChanged",
+    Error = "Error",
+}
+
+export type ExternalServiceType =
+    | "trendradar"
+    | "openclaw"
+    | "generic_webhook"
+    | "webhook"
+    | "irc_bridge"
+    | "irc"
+    | "slack_bridge"
+    | "slack"
+    | "discord_bridge"
+    | "discord"
+    | "custom";
+
+export interface IExternalService {
+    asId: string;
+    serviceType: string;
+    serviceId: string;
+    displayName: string;
+    isEnabled: boolean;
+    isHealthy: boolean;
+    createdTs: number;
+}
+
+export interface IExternalServiceHealth {
+    serviceId: string;
+    serviceType: string;
+    isHealthy: boolean;
+    lastCheckTs: number;
+    lastSuccessTs?: number;
+    lastError?: string;
+    consecutiveFailures: number;
+}
+
+export interface IRegisterExternalServiceRequest {
+    serviceType: string;
+    serviceId: string;
+    displayName: string;
+    webhookUrl?: string;
+    apiKey?: string;
+    config?: Record<string, any>;
+}
+
+export interface IHealthCheckResult {
+    asId: string;
+    isHealthy: boolean;
+}
+
+interface ExternalServiceManagerEventMap {
+    [ExternalServiceEvent.ServiceRegistered]: (service: IExternalService) => void;
+    [ExternalServiceEvent.ServiceUnregistered]: (asId: string) => void;
+    [ExternalServiceEvent.ServiceHealthChanged]: (asId: string, isHealthy: boolean) => void;
+    [ExternalServiceEvent.Error]: (error: Error) => void;
+}
+
+export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEvent, ExternalServiceManagerEventMap> {
+    private client: MatrixClient;
+    private servicesCache: Map<string, IExternalService> = new Map();
+
+    constructor(client: MatrixClient) {
+        super();
+        this.client = client;
+    }
+
+    /**
+     * Register a new external service
+     * POST /_synapse/admin/v1/external_services
+     */
+    public async registerService(request: IRegisterExternalServiceRequest): Promise<IExternalService> {
+        try {
+            const response = await this.client.http.authedRequest<any>(
+                Method.Post,
+                `${ADMIN_PREFIX}/external_services`,
+                undefined,
+                {
+                    service_type: request.serviceType,
+                    service_id: request.serviceId,
+                    display_name: request.displayName,
+                    webhook_url: request.webhookUrl,
+                    api_key: request.apiKey,
+                    config: request.config,
+                }
+            );
+
+            const service: IExternalService = {
+                asId: response.as_id,
+                serviceType: response.service_type,
+                serviceId: response.service_id,
+                displayName: response.display_name,
+                isEnabled: response.is_enabled ?? true,
+                isHealthy: response.is_healthy ?? true,
+                createdTs: response.created_ts,
+            };
+
+            this.servicesCache.set(service.asId, service);
+            this.emit(ExternalServiceEvent.ServiceRegistered, service);
+
+            return service;
+        } catch (error) {
+            logger.error("ExternalServiceManager.registerService failed:", error);
+            this.emit(ExternalServiceEvent.Error, error as Error);
+            throw error;
+        }
+    }
+
+    /**
+     * List all registered external services
+     * GET /_synapse/admin/v1/external_services
+     */
+    public async listServices(serviceType?: string): Promise<IExternalService[]> {
+        try {
+            const queryParams = serviceType ? { service_type: serviceType } : undefined;
+
+            const response = await this.client.http.authedRequest<any[]>(
+                Method.Get,
+                `${ADMIN_PREFIX}/external_services`,
+                queryParams
+            );
+
+            const services: IExternalService[] = response.map(s => ({
+                asId: s.as_id,
+                serviceType: s.service_type,
+                serviceId: s.service_id,
+                displayName: s.display_name,
+                isEnabled: s.is_enabled ?? true,
+                isHealthy: s.is_healthy ?? true,
+                createdTs: s.created_ts,
+            }));
+
+            services.forEach(s => this.servicesCache.set(s.asId, s));
+
+            return services;
+        } catch (error) {
+            logger.error("ExternalServiceManager.listServices failed:", error);
+            return Array.from(this.servicesCache.values());
+        }
+    }
+
+    /**
+     * Get health status for a specific service
+     * GET /_synapse/admin/v1/external_services/{as_id}/health
+     */
+    public async getServiceHealth(asId: string): Promise<IExternalServiceHealth | null> {
+        if (!asId) {
+            throw new Error("Service ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<any>(
+                Method.Get,
+                `${ADMIN_PREFIX}/external_services/${encodeURIComponent(asId)}/health`
+            );
+
+            return {
+                serviceId: response.service_id,
+                serviceType: response.service_type,
+                isHealthy: response.is_healthy ?? false,
+                lastCheckTs: response.last_check_ts,
+                lastSuccessTs: response.last_success_ts,
+                lastError: response.last_error,
+                consecutiveFailures: response.consecutive_failures ?? 0,
+            };
+        } catch (error) {
+            logger.warn(`ExternalServiceManager.getServiceHealth failed for ${asId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Check health for a specific service (trigger a fresh check)
+     * POST /_synapse/admin/v1/external_services/{as_id}/health/check
+     */
+    public async checkServiceHealth(asId: string): Promise<IHealthCheckResult> {
+        if (!asId) {
+            throw new Error("Service ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<any>(
+                Method.Post,
+                `${ADMIN_PREFIX}/external_services/${encodeURIComponent(asId)}/health/check`
+            );
+
+            return {
+                asId: response.as_id,
+                isHealthy: response.is_healthy ?? false,
+            };
+        } catch (error) {
+            logger.error(`ExternalServiceManager.checkServiceHealth failed for ${asId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Unregister an external service
+     * DELETE /_synapse/admin/v1/external_services/{as_id}
+     */
+    public async unregisterService(asId: string): Promise<void> {
+        if (!asId) {
+            throw new Error("Service ID is required");
+        }
+
+        try {
+            await this.client.http.authedRequest(
+                Method.Delete,
+                `${ADMIN_PREFIX}/external_services/${encodeURIComponent(asId)}`
+            );
+
+            this.servicesCache.delete(asId);
+            this.emit(ExternalServiceEvent.ServiceUnregistered, asId);
+        } catch (error) {
+            logger.error(`ExternalServiceManager.unregisterService failed for ${asId}:`, error);
+            this.emit(ExternalServiceEvent.Error, error as Error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get health status for all services
+     * GET /_synapse/admin/v1/external_services/health
+     */
+    public async getAllHealthStatus(): Promise<IExternalServiceHealth[]> {
+        try {
+            const response = await this.client.http.authedRequest<any[]>(
+                Method.Get,
+                `${ADMIN_PREFIX}/external_services/health`
+            );
+
+            return response.map(s => ({
+                serviceId: s.service_id,
+                serviceType: s.service_type,
+                isHealthy: s.is_healthy ?? false,
+                lastCheckTs: s.last_check_ts,
+                lastSuccessTs: s.last_success_ts,
+                lastError: s.last_error,
+                consecutiveFailures: s.consecutive_failures ?? 0,
+            }));
+        } catch (error) {
+            logger.error("ExternalServiceManager.getAllHealthStatus failed:", error);
+            return [];
+        }
+    }
+
+    /**
+     * Register a TrendRadar service
+     */
+    public async registerTrendRadarService(
+        serviceId: string,
+        displayName: string,
+        webhookUrl?: string,
+        apiKey?: string
+    ): Promise<IExternalService> {
+        return this.registerService({
+            serviceType: "trendradar",
+            serviceId,
+            displayName,
+            webhookUrl,
+            apiKey,
+        });
+    }
+
+    /**
+     * Register an OpenClaw service
+     */
+    public async registerOpenClawService(
+        serviceId: string,
+        displayName: string,
+        webhookUrl?: string,
+        apiKey?: string
+    ): Promise<IExternalService> {
+        return this.registerService({
+            serviceType: "openclaw",
+            serviceId,
+            displayName,
+            webhookUrl,
+            apiKey,
+        });
+    }
+
+    /**
+     * Register a generic webhook service
+     */
+    public async registerWebhookService(
+        serviceId: string,
+        displayName: string,
+        webhookUrl: string,
+        apiKey?: string
+    ): Promise<IExternalService> {
+        return this.registerService({
+            serviceType: "generic_webhook",
+            serviceId,
+            displayName,
+            webhookUrl,
+            apiKey,
+        });
+    }
+
+    /**
+     * Get a cached service by ID
+     */
+    public getCachedService(asId: string): IExternalService | undefined {
+        return this.servicesCache.get(asId);
+    }
+
+    /**
+     * Get all cached services
+     */
+    public getCachedServices(): IExternalService[] {
+        return Array.from(this.servicesCache.values());
+    }
+
+    /**
+     * Clear the services cache
+     */
+    public clearCache(): void {
+        this.servicesCache.clear();
+    }
+
+    /**
+     * Check if a service is registered
+     */
+    public async isServiceRegistered(asId: string): Promise<boolean> {
+        const cached = this.servicesCache.get(asId);
+        if (cached) {
+            return true;
+        }
+
+        const services = await this.listServices();
+        return services.some(s => s.asId === asId);
+    }
+}
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getExternalServiceManager(): ExternalServiceManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getExternalServiceManager = function (): ExternalServiceManager {
+        return new ExternalServiceManager(this);
+    };
+}
+
+export default ExternalServiceManager;

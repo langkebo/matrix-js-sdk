@@ -22,14 +22,28 @@ import "fake-indexeddb/auto";
 import { IndexedDBCryptoStore, LocalStorageCryptoStore, MemoryCryptoStore } from "../../../../src";
 import { type CryptoStore, MigrationState, SESSION_BATCH_SIZE } from "../../../../src/crypto/store/base";
 
+// Create a mock localStorage for tests
+const mockLocalStorage = (() => {
+    let store: Record<string, string> = {};
+    return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => { store[key] = value; },
+        removeItem: (key: string) => { delete store[key]; },
+        clear: () => { store = {}; },
+        get length() { return Object.keys(store).length; },
+        key: (index: number) => Object.keys(store)[index] || null,
+    };
+})();
+
 describe.each([
     ["IndexedDBCryptoStore", () => new IndexedDBCryptoStore(globalThis.indexedDB, "tests")],
-    ["LocalStorageCryptoStore", () => new LocalStorageCryptoStore(localStorage)],
+    ["LocalStorageCryptoStore", () => new LocalStorageCryptoStore(mockLocalStorage as unknown as Storage)],
     ["MemoryCryptoStore", () => new MemoryCryptoStore()],
 ])("CryptoStore tests for %s", function (name, dbFactory) {
     let store: CryptoStore;
 
     beforeEach(async () => {
+        mockLocalStorage.clear();
         store = dbFactory();
     });
 

@@ -89,15 +89,15 @@ export interface MSC3575SlidingSyncRequest {
  * (and also a flag to note what format the hero came from).
  */
 export interface MSC4186Hero {
-    user_id: string;
-    displayname?: string;
-    avatar_url?: string;
+    user_id: string
+    displayname?: string
+    avatar_url?: string
 }
 
 export interface MSC3575RoomData {
-    name: string;
-    required_state: IStateEvent[];
-    timeline: (IRoomEvent | IStateEvent)[];
+    name?: string;
+    required_state?: IStateEvent[];
+    timeline?: (IRoomEvent | IStateEvent)[];
     heroes?: MSC4186Hero[];
     notification_count?: number;
     highlight_count?: number;
@@ -107,7 +107,7 @@ export interface MSC3575RoomData {
     initial?: boolean;
     limited?: boolean;
     is_dm?: boolean;
-    prev_batch?: string;
+    prev_batch?: string | null;
     num_live?: number;
     bump_stamp?: number;
 }
