@@ -23,7 +23,7 @@ limitations under the License.
 import { logger } from "../logger";
 import { MatrixError } from "../http-api/errors";
 import { MatrixClient } from "../client";
-import { PushRuleKind } from "../@types/PushRules";
+import { PushRuleKind, PushRuleActionName } from "../@types/PushRules";
 
 export interface PushRule {
     rule_id: string;
@@ -91,6 +91,7 @@ export interface PushCapabilities {
 /**
  * Push 错误类
  */
+export { PushRuleActionName } from "../@types/PushRules";
 export class PushError extends Error {
     constructor(
         message: string,

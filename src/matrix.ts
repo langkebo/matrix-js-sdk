@@ -86,7 +86,7 @@ export type { RoomSummary } from "./client";
 export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
 export { DirectMessageManager } from "./dm";
 export { PushManager } from "./push";
-export { SpaceManager } from "./space";
+export { SpaceManager, type Space, type SpaceChild, type SpaceMember, type SpaceHierarchy, type CreateSpaceOptions, type UpdateSpaceOptions, type AddChildOptions } from "./space";
 export { FriendManager } from "./friend";
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
