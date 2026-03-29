@@ -106,6 +106,14 @@
         "./timeline-window": {
             "import": "./lib/timeline-window.js",
             "types": "./lib/timeline-window.d.ts"
+        },
+        "./src/manager-extensions": {
+            "import": "./lib/manager-extensions/index.js",
+            "types": "./lib/manager-extensions/index.d.ts"
+        },
+        "./src/telemetry": {
+            "import": "./lib/telemetry/index.js",
+            "types": "./lib/telemetry/index.d.ts"
         }
     },
     "sideEffects": false,
