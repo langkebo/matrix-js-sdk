@@ -83,6 +83,11 @@ export * from "./models/event-status";
 export * from "./models/profile-keys";
 export * from "./models/related-relations";
 export type { RoomSummary } from "./client";
+export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
+export { DirectMessageManager } from "./dm";
+export { PushManager } from "./push";
+export { SpaceManager } from "./space";
+export { FriendManager } from "./friend";
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
 export type { LoginResponse } from "./@types/auth";
@@ -119,6 +124,12 @@ export type { ISSOFlow as SSOFlow, LoginFlow } from "./@types/auth";
 export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as HierarchyRoom } from "./@types/spaces";
 export { LocationAssetType } from "./@types/location";
 export { DebugLogger } from "./logger";
+export {
+    extendMatrixClientWithManagers,
+    isManagerExtensionsInitialized,
+    resetManagerExtensions,
+    type ManagerExtensionsOptions,
+} from "./manager-extensions";
 
 let cryptoStoreFactory = (): CryptoStore => new MemoryCryptoStore();
 

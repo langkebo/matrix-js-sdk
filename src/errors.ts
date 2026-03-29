@@ -85,3 +85,54 @@ export class UnsupportedStickyEventsEndpointError extends Error {
         this.name = "UnsupportedStickyEventsEndpointError";
     }
 }
+
+/**
+ * Base class for SDK errors
+ */
+export class SdkError extends Error {
+    public constructor(
+        message: string,
+        public readonly code: string,
+        public readonly statusCode: number,
+        public readonly cause?: unknown,
+    ) {
+        super(message);
+        this.name = this.constructor.name;
+    }
+}
+
+/**
+ * Authentication error - thrown when token is invalid or expired
+ */
+export class AuthError extends SdkError {
+    public constructor(message: string, cause?: unknown) {
+        super(message, "AUTH_ERROR", 401, cause);
+    }
+}
+
+/**
+ * Not found error - thrown when resource does not exist
+ */
+export class NotFoundError extends SdkError {
+    public constructor(message: string, cause?: unknown) {
+        super(message, "NOT_FOUND", 404, cause);
+    }
+}
+
+/**
+ * Retryable error - thrown when request can be retried (network errors, timeouts)
+ */
+export class RetryableError extends SdkError {
+    public constructor(message: string, cause?: unknown) {
+        super(message, "RETRYABLE", 0, cause);
+    }
+}
+
+/**
+ * API error - general API error
+ */
+export class ApiError extends SdkError {
+    public constructor(message: string, code: string = "API_ERROR", statusCode: number = 0, cause?: unknown) {
+        super(message, code, statusCode, cause);
+    }
+}

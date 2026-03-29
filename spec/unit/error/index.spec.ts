@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, it, expect, vi } from "vitest";
+
 import {
     SDKError,
     ErrorCodes,
@@ -126,7 +127,7 @@ describe("withErrorHandling", () => {
 
         try {
             await withErrorHandling(fn, undefined, onError);
-        } catch (e) {
+        } catch {
             // Expected to throw
         }
 
@@ -146,7 +147,7 @@ describe("withErrorHandling", () => {
 
         try {
             await withErrorHandling(fn, undefined, onError);
-        } catch (e) {
+        } catch {
             // Expected to throw
         }
 

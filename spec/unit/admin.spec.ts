@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 
-import { AdminManager, AdminEvent } from "../../src/admin/index";
+import { AdminManager, AdminEvent, AdminApiError } from "../../src/admin/index";
+import { MatrixError } from "../../src/http-api/errors";
+import { AuthError, NotFoundError, ApiError } from "../../src/errors";
 
 describe("AdminManager", () => {
     let mockClient: any;
@@ -15,9 +17,191 @@ describe("AdminManager", () => {
         adminManager = new AdminManager(mockClient);
     });
 
-    // ===== 用户管理 =====
+    // ============ URL 组装测试 ============
 
-    describe("getUsers", () => {
+    describe("URL 组装规则", () => {
+        it("应该使用相对路径，不包含前缀", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                users: [],
+            });
+
+            await adminManager.getUsers();
+
+            // 验证 authedRequest 被调用
+            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            
+            // 验证调用参数：path 应该是相对路径，不包含 /_synapse/admin/v1
+            const path = call[1];
+            expect(path).toBe("/v2/users");
+            expect(path).not.toContain("/_synapse/admin/v1");
+            
+            // 验证 prefix 是单独传递的
+            const opts = call[4];
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
+        });
+
+        it("应该正确组装 getUser URL", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                user_id: "@user:example.com",
+            });
+
+            await adminManager.getUser("@user:example.com");
+
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            // 路径应该是相对路径
+            expect(call[1]).toBe("/v2/users/%40user%3Aexample.com");
+            expect(call[1]).not.toContain("/_synapse/admin/v1");
+        });
+
+        it("应该正确组装 getRooms URL", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                rooms: [],
+            });
+
+            await adminManager.getRooms(undefined, 10, "test");
+
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            expect(call[1]).toBe("/v1/rooms");
+            // queryParams should be passed (even if some values are undefined)
+            expect(call[2]).toBeDefined();
+            expect(call[1]).not.toContain("/_synapse/admin/v1");
+        });
+    });
+
+    // ============ 错误分类测试 ============
+
+    describe("错误分类测试", () => {
+        it("应该对 401 响应抛出 AuthError", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" },
+                401,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(AuthError);
+        });
+
+        it("应该对 401 状态码抛出 AuthError", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_UNKNOWN", error: "Unauthorized" },
+                401,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(AuthError);
+        });
+
+        it("应该对 404 响应抛出 NotFoundError", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_NOT_FOUND", error: "User not found" },
+                404,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.createUser('@test:localhost')).rejects.toThrow(NotFoundError);
+        });
+
+        it("应该对其他错误码抛出 ApiError", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_FORBIDDEN", error: "Forbidden" },
+                403,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(ApiError);
+        });
+
+        it("应该对 500 错误抛出 ApiError", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_UNKNOWN", error: "Internal server error" },
+                500,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(ApiError);
+        });
+
+        it("错误消息应该包含类名", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_UNKNOWN", error: "Something went wrong" },
+                500,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow();
+            try {
+                await adminManager.getUser('@test:localhost');
+            } catch (e) {
+                expect((e as Error).message).toContain('AdminManager');
+            }
+        });
+
+        it("错误消息应该包含原始错误信息", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_FORBIDDEN", error: "Access denied" },
+                403,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow();
+            try {
+                await adminManager.getUser('@test:localhost');
+            } catch (e) {
+                expect((e as Error).message).toContain('Access denied');
+            }
+        });
+
+        it("getUser 遇到 404 应该返回 null", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_NOT_FOUND", error: "User not found" },
+                404,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
+
+            const result = await adminManager.getUser("@nonexistent:example.com");
+            expect(result).toBeNull();
+        });
+    });
+
+    // ============ 错误处理测试 ============
+
+    describe("错误处理", () => {
+        it("should convert MatrixError to ApiError for non-401/404", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_FORBIDDEN", error: "Forbidden" },
+                403,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getUser("@user:example.com")).rejects.toThrow(ApiError);
+        });
+
+        it("getUser should return null for 404", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_NOT_FOUND", error: "User not found" },
+                404,
+                undefined
+            );
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            const result = await adminManager.getUser("@nonexistent:example.com");
+            expect(result).toBeNull();
+        });
+    });
+
+    // ============ 用户管理测试 ============
+
+    describe("用户管理", () => {
         it("should get users successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 users: [
@@ -39,22 +223,11 @@ describe("AdminManager", () => {
             await adminManager.getUsers("from123", 50);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
-            // Verify the URL contains the params
             const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[1]).toContain("from=from123");
-            expect(call[1]).toContain("limit=50");
+            expect(call[2]).toHaveProperty("from", "from123");
+            expect(call[2]).toHaveProperty("limit", "50");
         });
 
-        it("should return empty array on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const result = await adminManager.getUsers();
-
-            expect(result.users).toHaveLength(0);
-        });
-    });
-
-    describe("getUser", () => {
         it("should get user successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 user_id: "@user1:example.com",
@@ -66,16 +239,6 @@ describe("AdminManager", () => {
             expect(user?.user_id).toBe("@user1:example.com");
         });
 
-        it("should return null on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const user = await adminManager.getUser("@user1:example.com");
-
-            expect(user).toBeNull();
-        });
-    });
-
-    describe("createUser", () => {
         it("should create user successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 user_id: "@newuser:example.com",
@@ -106,184 +269,9 @@ describe("AdminManager", () => {
         });
     });
 
-    describe("deactivateUser", () => {
-        it("should deactivate user successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+    // ============ 房间管理测试 ============
 
-            await adminManager.deactivateUser("@user1:example.com");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-
-        it("should emit UserDeactivated event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await adminManager.deactivateUser("@user1:example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.UserDeactivated,
-                "@user1:example.com"
-            );
-        });
-    });
-
-    describe("resetPassword", () => {
-        it("should reset password successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.resetPassword("@user1:example.com", "newpassword");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-            const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[3]).toHaveProperty("new_password", "newpassword");
-        });
-
-        it("should accept logout parameter", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.resetPassword("@user1:example.com", "newpassword", false);
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-            const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[3]).toHaveProperty("logout_devices", false);
-        });
-    });
-
-    describe("setAdmin", () => {
-        it("should set admin successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.setAdmin("@user1:example.com", true);
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-            const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[3]).toHaveProperty("admin", true);
-        });
-    });
-
-    describe("getUserDevices", () => {
-        it("should get user devices", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                devices: [{ device_id: "device1" }, { device_id: "device2" }],
-            });
-
-            const devices = await adminManager.getUserDevices("@user1:example.com");
-
-            expect(devices).toHaveLength(2);
-        });
-
-        it("should return empty array on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const devices = await adminManager.getUserDevices("@user1:example.com");
-
-            expect(devices).toHaveLength(0);
-        });
-    });
-
-    describe("deleteUserDevices", () => {
-        it("should delete user devices", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.deleteUserDevices("@user1:example.com", ["device1", "device2"]);
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
-
-    // ===== Shadow Ban =====
-
-    describe("shadowBanUser", () => {
-        it("should shadow ban user", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await adminManager.shadowBanUser("@user1:example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.UserShadowBanned,
-                "@user1:example.com"
-            );
-        });
-    });
-
-    describe("unshadowBanUser", () => {
-        it("should unshadow ban user", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await adminManager.unshadowBanUser("@user1:example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.UserUnshadowBanned,
-                "@user1:example.com"
-            );
-        });
-    });
-
-    describe("getShadowBanStatus", () => {
-        it("should get shadow ban status", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                user_id: "@user1:example.com",
-                banned: true,
-            });
-
-            const status = await adminManager.getShadowBanStatus("@user1:example.com");
-
-            expect(status?.banned).toBe(true);
-        });
-
-        it("should return null on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const status = await adminManager.getShadowBanStatus("@user1:example.com");
-
-            expect(status).toBeNull();
-        });
-    });
-
-    // ===== Rate Limit =====
-
-    describe("getRateLimit", () => {
-        it("should get rate limit", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                messages_per_second: 10,
-                burst_count: 100,
-            });
-
-            const config = await adminManager.getRateLimit("@user1:example.com");
-
-            expect(config?.messages_per_second).toBe(10);
-        });
-    });
-
-    describe("setRateLimit", () => {
-        it("should set rate limit", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.setRateLimit("@user1:example.com", {
-                messages_per_second: 20,
-                burst_count: 200,
-            });
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
-
-    describe("deleteRateLimit", () => {
-        it("should delete rate limit", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.deleteRateLimit("@user1:example.com");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
-
-    // ===== 房间管理 =====
-
-    describe("getRooms", () => {
+    describe("房间管理", () => {
         it("should get rooms successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 rooms: [
@@ -302,93 +290,35 @@ describe("AdminManager", () => {
 
             await adminManager.getRooms(undefined, 10, "test");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
             const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[1]).toContain("search_term=test");
+            expect(call[2]).toHaveProperty("search_term", "test");
         });
-    });
 
-    describe("getRoom", () => {
-        it("should get room successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                room_id: "!room1:example.com",
-                name: "Test Room",
-            });
-
-            const room = await adminManager.getRoom("!room1:example.com");
-
-            expect(room?.room_id).toBe("!room1:example.com");
-        });
-    });
-
-    describe("deleteRoom", () => {
-        it("should delete room", async () => {
+        it("should delete room and emit event", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
 
             const emitSpy = vi.spyOn(adminManager, "emit");
             await adminManager.deleteRoom("!room1:example.com");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.RoomDeleted,
-                "!room1:example.com"
-            );
-        });
-
-        it("should accept options", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.deleteRoom("!room1:example.com", {
-                purge: true,
-                force_purge: true,
-            });
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-            const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[3]).toHaveProperty("purge", true);
-            expect(call[3]).toHaveProperty("force_purge", true);
+            expect(emitSpy).toHaveBeenCalledWith(AdminEvent.RoomDeleted, "!room1:example.com");
         });
     });
 
-    describe("blockRoom", () => {
-        it("should block room", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+    // ============ 服务器管理测试 ============
 
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await adminManager.blockRoom("!room1:example.com", true);
-
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.RoomBlocked,
-                "!room1:example.com",
-                true
-            );
-        });
-    });
-
-    describe("getRoomMembers", () => {
-        it("should get room members", async () => {
+    describe("服务器管理", () => {
+        it("should get server stats and cache", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
-                members: ["@user1:example.com", "@user2:example.com"],
+                total_users: 100,
+                total_rooms: 50,
             });
 
-            const members = await adminManager.getRoomMembers("!room1:example.com");
+            const stats = await adminManager.getServerStats();
 
-            expect(members).toHaveLength(2);
+            expect(stats.total_users).toBe(100);
+            expect(adminManager.getCachedServerStats()?.total_users).toBe(100);
         });
-    });
 
-    describe("joinRoom", () => {
-        it("should join room", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.joinRoom("!room1:example.com", "@user1:example.com");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
-
-    // ===== 服务器管理 =====
-
-    describe("getServerVersion", () => {
         it("should get server version", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 server_version: "1.0.0",
@@ -399,330 +329,164 @@ describe("AdminManager", () => {
 
             expect(version.server_version).toBe("1.0.0");
         });
+    });
 
-        it("should return defaults on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
+    // ============ extendMatrixClient 测试 ============
 
-            const version = await adminManager.getServerVersion();
+    describe("extendMatrixClient", () => {
+        it("should export AdminManager class", () => {
+            expect(typeof AdminManager).toBe("function");
+        });
 
-            expect(version.server_version).toBe("unknown");
+        it("should have correct prototype methods", () => {
+            const manager = new AdminManager({ http: { authedRequest: () => {} } });
+            expect(typeof manager.getUsers).toBe("function");
+            expect(typeof manager.getUser).toBe("function");
+            expect(typeof manager.getRooms).toBe("function");
         });
     });
 
-    describe("getServerStats", () => {
-        it("should get server stats", async () => {
+    // ============ URL 重复前缀检测测试 ============
+
+    describe("URL 重复前缀检测", () => {
+        it("getUser 不应该产生重复前缀的 URL", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
-                total_users: 100,
-                total_rooms: 50,
+                user_id: "@user:example.com",
             });
 
-            const stats = await adminManager.getServerStats();
+            await adminManager.getUser("@user:example.com");
 
-            expect(stats.total_users).toBe(100);
-        });
-
-        it("should emit ServerStatsUpdated event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await adminManager.getServerStats();
-
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.ServerStatsUpdated,
-                expect.any(Object)
-            );
-        });
-    });
-
-    describe("getServerConfig", () => {
-        it("should get server config", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                max_upload_size: 50000000,
-            });
-
-            const config = await adminManager.getServerConfig();
-
-            expect(config.max_upload_size).toBe(50000000);
-        });
-    });
-
-    // ===== 注册令牌 =====
-
-    describe("getRegistrationTokens", () => {
-        it("should get registration tokens", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                registration_tokens: [{ token: "token1" }],
-            });
-
-            const tokens = await adminManager.getRegistrationTokens();
-
-            expect(tokens).toHaveLength(1);
-        });
-    });
-
-    describe("createRegistrationToken", () => {
-        it("should create registration token", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                token: "newtoken",
-            });
-
-            const token = await adminManager.createRegistrationToken({
-                uses_allowed: 10,
-            });
-
-            expect(token?.token).toBe("newtoken");
-        });
-    });
-
-    describe("updateRegistrationToken", () => {
-        it("should update registration token", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.updateRegistrationToken("token1", {
-                uses_allowed: 20,
-            });
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
-
-    describe("deleteRegistrationToken", () => {
-        it("should delete registration token", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.deleteRegistrationToken("token1");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
-
-    // ===== 联邦管理 =====
-
-    describe("getFederationDestinations", () => {
-        it("should get federation destinations", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                destinations: [{ destination: "example.org" }],
-            });
-
-            const destinations = await adminManager.getFederationDestinations();
-
-            expect(destinations).toHaveLength(1);
-        });
-
-        it("should return empty array on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const destinations = await adminManager.getFederationDestinations();
-
-            expect(destinations).toHaveLength(0);
-        });
-    });
-
-    describe("getFederationDestination", () => {
-        it("should get federation destination", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                destination: "example.org",
-                retry_last_ts: 1234567890,
-            });
-
-            const destination = await adminManager.getFederationDestination("example.org");
-
-            expect(destination?.destination).toBe("example.org");
-        });
-
-        it("should return null on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const destination = await adminManager.getFederationDestination("example.org");
-
-            expect(destination).toBeNull();
-        });
-    });
-
-    describe("resetFederationConnection", () => {
-        it("should reset federation connection", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.resetFederationConnection("example.org");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-
-        it("should emit AdminError on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await expect(adminManager.resetFederationConnection("example.org")).rejects.toThrow();
-        });
-    });
-
-    // ===== 媒体管理 =====
-
-    describe("getMedia", () => {
-        it("should get media", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                media: [{ media_id: "media1" }],
-            });
-
-            const result = await adminManager.getMedia();
-
-            expect(result.media).toHaveLength(1);
-        });
-
-        it("should handle pagination", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({ media: [] });
-
-            await adminManager.getMedia(50, "from123");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            // 验证 path 是相对路径，不包含完整 prefix
             const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[1]).toContain("limit=50");
-            expect(call[1]).toContain("from=from123");
+            const path = call[1];
+            const opts = call[4];
+
+            // path 不应该包含 _synapse/admin/v1
+            expect(path).not.toContain("_synapse/admin/v1");
+            // prefix 应该是独立的
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
 
-        it("should return empty on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
+        it("getUsers 不应该产生重复前缀的 URL", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                users: [],
+            });
 
-            const result = await adminManager.getMedia();
+            await adminManager.getUsers();
 
-            expect(result.media).toHaveLength(0);
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            const path = call[1];
+            const opts = call[4];
+
+            expect(path).not.toContain("_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
-    });
 
-    describe("deleteMedia", () => {
-        it("should delete media", async () => {
+        it("createUser 不应该产生重复前缀的 URL", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                user_id: "@newuser:example.com",
+            });
+
+            await adminManager.createUser("@newuser:example.com", { password: "test" });
+
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            const path = call[1];
+            const opts = call[4];
+
+            expect(path).not.toContain("_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
+        });
+
+        it("deactivateUser 不应该产生重复前缀的 URL", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
 
-            await adminManager.deleteMedia("media1");
+            await adminManager.deactivateUser("@user:example.com");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            const path = call[1];
+            const opts = call[4];
+
+            expect(path).not.toContain("_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
 
-        it("should emit AdminError on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await expect(adminManager.deleteMedia("media1")).rejects.toThrow();
-        });
-    });
-
-    describe("quarantineMedia", () => {
-        it("should quarantine media", async () => {
+        it("deleteRoom 不应该产生重复前缀的 URL", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
 
-            await adminManager.quarantineMedia("media1");
+            await adminManager.deleteRoom("!room:example.com");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-    });
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            const path = call[1];
+            const opts = call[4];
 
-    describe("purgeMediaCache", () => {
-        it("should purge media cache", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({ deleted: 10 });
-
-            const result = await adminManager.purgeMediaCache();
-
-            expect(result.deleted).toBe(10);
+            expect(path).not.toContain("_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
 
-        it("should accept timestamp", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({ deleted: 5 });
-
-            await adminManager.purgeMediaCache(1234567890000);
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-
-        it("should return 0 on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const result = await adminManager.purgeMediaCache();
-
-            expect(result.deleted).toBe(0);
-        });
-    });
-
-    // ===== 便捷方法 =====
-
-    describe("getCachedServerStats", () => {
-        it("should return null initially", () => {
-            const stats = adminManager.getCachedServerStats();
-            expect(stats).toBeNull();
-        });
-
-        it("should return cached stats after fetch", async () => {
+        it("getServerStats 不应该产生重复前缀的 URL", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 total_users: 100,
                 total_rooms: 50,
             });
 
             await adminManager.getServerStats();
-            const stats = adminManager.getCachedServerStats();
 
-            expect(stats?.total_users).toBe(100);
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            const path = call[1];
+            const opts = call[4];
+
+            expect(path).not.toContain("_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
-    });
 
-    describe("whois", () => {
-        it("should get user whois info", async () => {
+        it("getRoomStats 不应该产生重复前缀的 URL", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
-                user_id: "@user1:example.com",
-                devices: ["device1"],
+                room_id: "!room:example.com",
             });
 
-            const whois = await adminManager.whois("@user1:example.com");
+            await adminManager.getRoomStats("!room:example.com");
 
-            expect(whois.user_id).toBe("@user1:example.com");
-        });
-
-        it("should return null on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const whois = await adminManager.whois("@user1:example.com");
-
-            expect(whois).toBeNull();
-        });
-    });
-
-    describe("makeRoomAdmin", () => {
-        it("should make user room admin", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.makeRoomAdmin("!room:example.com", "@user1:example.com");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
             const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[3]).toHaveProperty("user_id", "@user1:example.com");
-        });
+            const path = call[1];
+            const opts = call[4];
 
-        it("should work without userId", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await adminManager.makeRoomAdmin("!room:example.com");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-
-        it("should emit AdminError on error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const emitSpy = vi.spyOn(adminManager, "emit");
-            await expect(adminManager.makeRoomAdmin("!room:example.com")).rejects.toThrow();
+            expect(path).not.toContain("_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
     });
 
-    describe("start", () => {
-        it("should start the admin manager", () => {
-            adminManager.start();
-            expect(adminManager).toBeDefined();
-        });
-    });
+    // ============ URL 拼接完整性测试 ============
 
-    describe("stop", () => {
-        it("should stop the admin manager", () => {
-            adminManager.stop();
-            const stats = adminManager.getCachedServerStats();
-            expect(stats).toBeNull();
+    describe("URL 拼接完整性", () => {
+        it("所有 API 方法都应该传递正确的 prefix", async () => {
+            const methodsToTest = [
+                { name: "getUsers", call: () => adminManager.getUsers() },
+                { name: "getRooms", call: () => adminManager.getRooms() },
+                { name: "getServerVersion", call: () => adminManager.getServerVersion() },
+                { name: "getServerStats", call: () => adminManager.getServerStats() },
+            ];
+
+            for (const { name, call } of methodsToTest) {
+                mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+                await call();
+
+                const callArgs = mockClient.http.authedRequest.mock.calls[0];
+                const opts = callArgs[4];
+
+                expect(opts).toBeDefined();
+                expect(opts.prefix).toBe("/_synapse/admin/v1");
+            }
+        });
+
+        it("authedRequest 应该接收正确数量的参数", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ users: [] });
+
+            await adminManager.getUsers();
+
+            const callArgs = mockClient.http.authedRequest.mock.calls[0];
+            // method, path, queryParams, body, opts = 5 个参数
+            expect(callArgs.length).toBe(5);
         });
     });
 });

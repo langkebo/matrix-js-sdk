@@ -49,19 +49,21 @@ describe("Login Tests", () => {
     });
 
     test("should be able to use access token for authenticated requests", async () => {
+      let loginResult;
+
       if (!loggedInClient) {
         const client = createClient({
           baseUrl: TestConfig.baseUrl
         });
         const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-        const result = await client.login("m.login.password", {
+        loginResult = await client.login("m.login.password", {
           user: username,
           password: TestConfig.testUser.password
         });
         loggedInClient = client;
-        expect(result.access_token).toBeTruthy();
       }
 
+      expect(loginResult?.access_token ?? loggedInClient?.getAccessToken()).toBeTruthy();
       const accessToken = loggedInClient.getAccessToken();
       expect(accessToken).toBeTruthy();
 

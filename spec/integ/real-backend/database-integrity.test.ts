@@ -7,6 +7,7 @@
  * Run with: npx tsx spec/integ/real-backend/database-integrity.test.ts
  */
 
+import { describe, beforeAll, afterAll, test, expect } from 'vitest';
 import { DatabaseVerifier } from './DatabaseVerifier';
 
 describe('Database Integrity Tests', () => {
@@ -44,27 +45,29 @@ describe('Database Integrity Tests', () => {
   describe('TIMESTAMP Field Type Validation', () => {
     test('users table should use BIGINT for timestamp fields, not TIMESTAMP', async () => {
       const columns = ['created_ts', 'updated_ts', 'last_seen_ts'];
+      const dataTypes: Array<string | null> = [];
 
       for (const col of columns) {
         const dataType = await dbVerifier.getColumnType('users', col);
         console.log(`users.${col}: ${dataType}`);
-        if (dataType) {
-          expect(dataType).toBe('bigint');
-        }
+        dataTypes.push(dataType);
       }
+
+      expect(dataTypes.every((dataType) => dataType === 'bigint')).toBe(true);
     });
 
     test('user_directory table should use BIGINT for timestamp fields', async () => {
       const columns = await dbVerifier.getTableColumns('user_directory');
       const tsColumns = columns.filter(c => c.endsWith('_ts'));
+      const dataTypes: Array<string | null> = [];
 
       for (const col of tsColumns) {
         const dataType = await dbVerifier.getColumnType('user_directory', col);
         console.log(`user_directory.${col}: ${dataType}`);
-        if (dataType) {
-          expect(dataType).toBe('bigint');
-        }
+        dataTypes.push(dataType);
       }
+
+      expect(dataTypes.every((dataType) => dataType === 'bigint')).toBe(true);
     });
 
     test('NO user tables should have TIMESTAMP type columns (except system tables)', async () => {

@@ -11,7 +11,7 @@ import { PushRuleKind, PushRuleActionName } from "../../../src/@types/PushRules.
 import { TestConfig } from "./TestConfig";
 
 let client: MatrixClient | null = null;
-let testResults: { name: string; passed: boolean; error?: string }[] = [];
+const testResults: { name: string; passed: boolean; error?: string }[] = [];
 let testRoomId: string | null = null;
 
 async function runTest(name: string, fn: () => Promise<void>): Promise<void> {

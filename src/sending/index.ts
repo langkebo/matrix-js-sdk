@@ -25,68 +25,61 @@ import { MatrixClient } from "../client";
 export class SendingManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Send event
-     */
-    public async sendEvent(roomId: string, eventType: string, content: any, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendEvent(roomId, eventType, content, opts);
+    public async sendEvent(
+        roomId: string,
+        eventType: string,
+        content: any,
+        txnId?: string,
+    ): Promise<any>;
+    public async sendEvent(
+        roomId: string,
+        threadId: string | null,
+        eventType: string,
+        content: any,
+        txnId?: string,
+    ): Promise<any>;
+    public async sendEvent(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendEvent(roomId, ...args);
     }
 
-    /**
-     * Send message
-     */
-    public async sendMessage(roomId: string, content: any, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendMessage(roomId, content, opts);
+    public async sendMessage(roomId: string, content: any, txnId?: string): Promise<any>;
+    public async sendMessage(roomId: string, threadId: string | null, content: any, txnId?: string): Promise<any>;
+    public async sendMessage(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendMessage(roomId, ...args);
     }
 
-    /**
-     * Send text message
-     */
-    public async sendTextMessage(roomId: string, text: string, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendTextMessage(roomId, text, opts);
+    public async sendTextMessage(roomId: string, text: string, txnId?: string): Promise<any>;
+    public async sendTextMessage(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<any>;
+    public async sendTextMessage(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendTextMessage(roomId, ...args);
     }
 
-    /**
-     * Send html message
-     */
-    public async sendHtmlMessage(roomId: string, body: string, html: string, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendHtmlMessage(roomId, body, html, opts);
+    public async sendHtmlMessage(roomId: string, body: string, html: string): Promise<any>;
+    public async sendHtmlMessage(roomId: string, threadId: string | null, body: string, html: string): Promise<any>;
+    public async sendHtmlMessage(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendHtmlMessage(roomId, ...args);
     }
 
-    /**
-     * Send emote
-     */
-    public async sendEmote(roomId: string, text: string, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendEmote(roomId, text, opts);
+    public async sendEmote(roomId: string, text: string, txnId?: string): Promise<any>;
+    public async sendEmote(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<any>;
+    public async sendEmote(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendEmoteMessage(roomId, ...args);
     }
 
-    /**
-     * Send notice
-     */
-    public async sendNotice(roomId: string, body: string, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendNotice(roomId, body, opts);
+    public async sendNotice(roomId: string, body: string, txnId?: string): Promise<any>;
+    public async sendNotice(roomId: string, threadId: string | null, body: string, txnId?: string): Promise<any>;
+    public async sendNotice(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendNotice(roomId, ...args);
     }
 
-    /**
-     * Send image
-     */
-    public async sendImage(roomId: string, url: string, info?: any, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendImage(roomId, url, info, opts);
+    public async sendImage(roomId: string, url: string, info?: any, text?: string): Promise<any>;
+    public async sendImage(roomId: string, threadId: string | null, url: string, info?: any, text?: string): Promise<any>;
+    public async sendImage(roomId: string, ...args: any[]): Promise<any> {
+        return (this.client as any).sendImageMessage(roomId, ...args);
     }
 
-    /**
-     * Send file
-     */
-    public async sendFile(roomId: string, content: any, info?: any, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendFile(roomId, content, info, opts);
+    public async sendFile(roomId: string, content: any, txnId?: string): Promise<any> {
+        return (this.client as any).sendMessage(roomId, content, txnId);
     }
 }
 

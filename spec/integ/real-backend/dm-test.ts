@@ -8,7 +8,7 @@ import { TestConfig } from "./TestConfig";
 
 let clientA: MatrixClient | null = null;
 let clientB: MatrixClient | null = null;
-let testResults: { name: string; passed: boolean; error?: string }[] = [];
+const testResults: { name: string; passed: boolean; error?: string }[] = [];
 let testDmRoomId: string | null = null;
 
 async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
@@ -23,7 +23,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
     }
 }
 
-async function login(user: { userId: string, password: string }): Promise<MatrixClient> {
+async function login(user: { userId: string; password: string }): Promise<MatrixClient> {
     const testClient = createClient({ baseUrl: TestConfig.baseUrl });
     const username = user.userId.replace("@", "").split(":")[0];
     const result = await testClient.login("m.login.password", {

@@ -10,7 +10,7 @@ import { createClient, type MatrixClient } from "../../../src/matrix";
 import { TestConfig } from "./TestConfig";
 
 let client: MatrixClient | null = null;
-let testResults: { name: string; passed: boolean; error?: string }[] = [];
+const testResults: { name: string; passed: boolean; error?: string }[] = [];
 
 async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
     try {
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
     
     await runTest("getThirdPartyProtocols", async () => {
         try {
-            const protocols = await client!.getThirdPartyProtocols();
+            const protocols = await client!.getThirdpartyProtocols();
         } catch (e: any) {
             console.log("    ⚠️ Third party protocols not available");
         }
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
     
     await runTest("getThirdPartyUser", async () => {
         try {
-            const user = await client!.getThirdPartyUser("test-protocol", {
+            const user = await client!.getThirdpartyUser("test-protocol", {
                 userid: "test-user"
             });
         } catch (e: any) {
@@ -109,8 +109,8 @@ async function main(): Promise<void> {
     
     await runTest("getThirdPartyLocation", async () => {
         try {
-            const location = await client!.getThirdPartyLocation("test-protocol", {
-                uri: "test-uri"
+            const location = await client!.getThirdpartyLocation("test-protocol", {
+                searchFields: ["uri"]
             });
         } catch (e: any) {
             console.log("    ⚠️ Third party location not available");

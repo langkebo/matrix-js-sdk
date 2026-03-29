@@ -1010,15 +1010,14 @@ export class SyncApi {
         this.failedSyncCount++;
         this.syncOpts.logger.debug("Number of consecutive failed sync requests:", this.failedSyncCount);
 
+        let delay = 0;
+        if (err.errcode === "M_LIMIT_EXCEEDED") {
+            delay = err.getRetryAfterMs() || 5000;
+            this.syncOpts.logger.debug("Sync rate limited, waiting for %s ms", delay);
+        }
+
         this.syncOpts.logger.debug("Starting keep-alive");
-        // Note that we do *not* mark the sync connection as
-        // lost yet: we only do this if a keepalive poke
-        // fails, since long lived HTTP connections will
-        // go away sometimes and we shouldn't treat this as
-        // erroneous. We set the state to 'reconnecting'
-        // instead, so that clients can observe this state
-        // if they wish.
-        const keepAlivePromise = this.startKeepAlives();
+        const keepAlivePromise = this.startKeepAlives(delay);
 
         this.currentSyncRequest = undefined;
         // Transition from RECONNECTING to ERROR after a given number of failed syncs

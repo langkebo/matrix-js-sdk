@@ -29,10 +29,9 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
+import { AdminPrefix } from "../http-api/prefix.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client.ts";
-
-const ADMIN_PREFIX = "/_synapse/admin/v1";
 
 export enum ExternalServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -112,7 +111,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             const response = await this.client.http.authedRequest<any>(
                 Method.Post,
-                `${ADMIN_PREFIX}/external_services`,
+                `${AdminPrefix.V1}/external_services`,
                 undefined,
                 {
                     service_type: request.serviceType,
@@ -155,7 +154,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
 
             const response = await this.client.http.authedRequest<any[]>(
                 Method.Get,
-                `${ADMIN_PREFIX}/external_services`,
+                `${AdminPrefix.V1}/external_services`,
                 queryParams
             );
 
@@ -190,7 +189,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             const response = await this.client.http.authedRequest<any>(
                 Method.Get,
-                `${ADMIN_PREFIX}/external_services/${encodeURIComponent(asId)}/health`
+                `${AdminPrefix.V1}/external_services/${encodeURIComponent(asId)}/health`
             );
 
             return {
@@ -220,7 +219,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             const response = await this.client.http.authedRequest<any>(
                 Method.Post,
-                `${ADMIN_PREFIX}/external_services/${encodeURIComponent(asId)}/health/check`
+                `${AdminPrefix.V1}/external_services/${encodeURIComponent(asId)}/health/check`
             );
 
             return {
@@ -245,7 +244,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `${ADMIN_PREFIX}/external_services/${encodeURIComponent(asId)}`
+                `${AdminPrefix.V1}/external_services/${encodeURIComponent(asId)}`
             );
 
             this.servicesCache.delete(asId);
@@ -265,7 +264,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             const response = await this.client.http.authedRequest<any[]>(
                 Method.Get,
-                `${ADMIN_PREFIX}/external_services/health`
+                `${AdminPrefix.V1}/external_services/health`
             );
 
             return response.map(s => ({

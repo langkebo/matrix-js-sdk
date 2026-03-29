@@ -1183,7 +1183,7 @@ export class GroupCall extends TypedEventEmitter<
         onCallFeedsChanged();
     }
 
-    private disposeCall(call: MatrixCall, hangupReason: CallErrorCode): void {
+    private disposeCall(call: MatrixCall): void {
         const opponentMemberId = getCallUserId(call);
         const opponentDeviceId = call.getOpponentDeviceId()!;
 
@@ -1296,7 +1296,7 @@ export class GroupCall extends TypedEventEmitter<
 
         // Sanity check that this call is in fact in the map
         if (deviceMap?.get(call.getOpponentDeviceId()!) === call) {
-            this.disposeCall(call, call.hangupReason as CallErrorCode);
+            this.disposeCall(call);
             deviceMap.delete(call.getOpponentDeviceId()!);
             if (deviceMap.size === 0) this.calls.delete(opponentUserId);
             this.emit(GroupCallEvent.CallsChanged, this.calls);

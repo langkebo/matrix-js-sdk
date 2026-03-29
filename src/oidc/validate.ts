@@ -83,6 +83,51 @@ const requiredArrayValue = (wellKnown: Record<string, unknown>, key: string, val
     }
     return true;
 };
+const isSecureUrl = (value: string, { allowQuery }: { allowQuery?: boolean } = {}): boolean => {
+    try {
+        const url = new URL(value);
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return false;
+        }
+        if (!url.hostname || url.username || url.password || url.hash) {
+            return false;
+        }
+        if (!allowQuery && url.search) {
+            return false;
+        }
+        return true;
+    } catch {
+        return false;
+    }
+};
+const requiredUrlProperty = (
+    wellKnown: Record<string, unknown>,
+    key: string,
+    options?: { allowQuery?: boolean },
+): boolean => {
+    if (!requiredStringProperty(wellKnown, key)) {
+        return false;
+    }
+    if (!isSecureUrl(wellKnown[key] as string, options)) {
+        logger.error(`Invalid URL property: ${key}`);
+        return false;
+    }
+    return true;
+};
+const optionalUrlProperty = (
+    wellKnown: Record<string, unknown>,
+    key: string,
+    options?: { allowQuery?: boolean },
+): boolean => {
+    if (!optionalStringProperty(wellKnown, key)) {
+        return false;
+    }
+    if (wellKnown[key] && !isSecureUrl(wellKnown[key] as string, options)) {
+        logger.error(`Invalid URL property: ${key}`);
+        return false;
+    }
+    return true;
+};
 
 /**
  * Validates OAuth 2.0 auth metadata as defined by
@@ -99,13 +144,13 @@ export const validateAuthMetadata = (authMetadata: unknown): ValidatedAuthMetada
     }
 
     const isInvalid = [
-        requiredStringProperty(authMetadata, "issuer"),
-        requiredStringProperty(authMetadata, "authorization_endpoint"),
-        requiredStringProperty(authMetadata, "token_endpoint"),
-        requiredStringProperty(authMetadata, "revocation_endpoint"),
-        optionalStringProperty(authMetadata, "registration_endpoint"),
-        optionalStringProperty(authMetadata, "account_management_uri"),
-        optionalStringProperty(authMetadata, "device_authorization_endpoint"),
+        requiredUrlProperty(authMetadata, "issuer"),
+        requiredUrlProperty(authMetadata, "authorization_endpoint", { allowQuery: true }),
+        requiredUrlProperty(authMetadata, "token_endpoint", { allowQuery: true }),
+        requiredUrlProperty(authMetadata, "revocation_endpoint", { allowQuery: true }),
+        optionalUrlProperty(authMetadata, "registration_endpoint", { allowQuery: true }),
+        optionalUrlProperty(authMetadata, "account_management_uri", { allowQuery: true }),
+        optionalUrlProperty(authMetadata, "device_authorization_endpoint", { allowQuery: true }),
         optionalStringArrayProperty(authMetadata, "account_management_actions_supported"),
         requiredArrayValue(authMetadata, "response_types_supported", "code"),
         requiredArrayValue(authMetadata, "grant_types_supported", OAuthGrantType.AuthorizationCode),
@@ -213,9 +258,9 @@ export function validateStoredUserState(userState: unknown): asserts userState i
         throw new Error(OidcError.MissingOrInvalidStoredState);
     }
     const isInvalid = [
-        requiredStringProperty(userState, "homeserverUrl"),
+        requiredUrlProperty(userState, "homeserverUrl"),
         requiredStringProperty(userState, "nonce"),
-        optionalStringProperty(userState, "identityServerUrl"),
+        optionalUrlProperty(userState, "identityServerUrl"),
     ].some((isValid) => !isValid);
 
     if (isInvalid) {

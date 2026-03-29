@@ -34,6 +34,7 @@ import { Method } from "../http-api/index.ts";
 import { MatrixClient } from "../client.ts";
 
 const CLIENT_PREFIX_V1 = { prefix: "/_matrix/client/v1" };
+const CLIENT_PREFIX_V3 = { prefix: "/_matrix/client/v3" };
 
 export enum BurnAfterReadEvent {
     MessageSent = "MessageSent",
@@ -43,54 +44,54 @@ export enum BurnAfterReadEvent {
 }
 
 export interface IBurnAfterReadMessage {
-    eventId: string;
-    roomId: string;
+    event_id: string;
+    room_id: string;
     sender: string;
     content: any;
-    sentAt: number;
-    readAt?: number;
-    burnedAt?: number;
-    expiresIn?: number;
-    expiresAt?: number;
-    deleteAt?: number;
+    sent_at: number;
+    read_at?: number;
+    burned_at?: number;
+    expires_in?: number;
+    expires_at?: number;
+    delete_at?: number;
 }
 
 export interface IBurnAfterReadConfig {
     enabled: boolean;
-    burnAfterMs?: number;
-    defaultExpireTime?: number;
-    maxExpireTime?: number;
-    allowedRoomTypes?: string[];
+    burn_after_ms?: number;
+    default_expire_time?: number;
+    max_expire_time?: number;
+    allowed_room_types?: string[];
 }
 
 export interface IBurnSettings {
     enabled: boolean;
-    burnAfterMs: number;
+    burn_after_ms: number;
 }
 
 export interface IBurnStats {
-    totalBurned: number;
-    totalPending: number;
-    roomsWithBurnEnabled: number;
+    total_burned: number;
+    total_pending: number;
+    rooms_with_burn_enabled: number;
 }
 
 export interface IBurnPendingEvent {
-    eventId: string;
-    createdAt: number;
-    deleteAt: number;
+    event_id: string;
+    created_at: number;
+    delete_at: number;
 }
 
 export interface ISendBurnAfterReadMessageRequest {
-    roomId: string;
+    room_id: string;
     content: any;
-    expiresIn?: number;
+    expires_in?: number;
     msgtype?: string;
 }
 
 export interface IBurnAfterReadMessageResponse {
-    eventId: string;
-    expiresIn: number;
-    expiresAt: number;
+    event_id: string;
+    expires_in: number;
+    expires_at: number;
 }
 
 interface BurnAfterReadManagerEventMap {
@@ -111,9 +112,9 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
         this.client = client;
         this.config = {
             enabled: config?.enabled ?? true,
-            defaultExpireTime: config?.defaultExpireTime ?? 30000,
-            maxExpireTime: config?.maxExpireTime ?? 86400000,
-            allowedRoomTypes: config?.allowedRoomTypes,
+            default_expire_time: config?.default_expire_time ?? 60000,
+            max_expire_time: config?.max_expire_time ?? 86400000,
+            allowed_room_types: config?.allowed_room_types,
         };
     }
 
@@ -122,11 +123,11 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * PUT /_matrix/client/v1/rooms/{room_id}/burn
      */
     public async enableBurn(roomId: string, burnAfterMs?: number): Promise<IBurnSettings> {
-        const burnMs = burnAfterMs ?? this.config.defaultExpireTime ?? 30000;
+        const burnMs = burnAfterMs ?? this.config.default_expire_time ?? 60000;
 
         const response = await this.client.http.authedRequest(
             Method.Put,
-            `/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/burn`,
+            `/rooms/${encodeURIComponent(roomId)}/burn`,
             undefined,
             { enabled: true, burn_after_ms: burnMs },
             CLIENT_PREFIX_V1,
@@ -134,7 +135,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
 
         return {
             enabled: response.enabled ?? true,
-            burnAfterMs: response.burn_after_ms ?? burnMs,
+            burn_after_ms: response.burn_after_ms ?? burnMs,
         };
     }
 
@@ -145,7 +146,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
     public async disableBurn(roomId: string): Promise<IBurnSettings> {
         const response = await this.client.http.authedRequest(
             Method.Put,
-            `/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/burn`,
+            `/rooms/${encodeURIComponent(roomId)}/burn`,
             undefined,
             { enabled: false },
             CLIENT_PREFIX_V1,
@@ -153,7 +154,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
 
         return {
             enabled: response.enabled ?? false,
-            burnAfterMs: response.burn_after_ms ?? 60000,
+            burn_after_ms: response.burn_after_ms ?? 60000,
         };
     }
 
@@ -164,7 +165,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
     public async getBurnSettings(roomId: string): Promise<IBurnSettings> {
         const response = await this.client.http.authedRequest(
             Method.Get,
-            `/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/burn`,
+            `/rooms/${encodeURIComponent(roomId)}/burn`,
             undefined,
             undefined,
             CLIENT_PREFIX_V1,
@@ -172,7 +173,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
 
         return {
             enabled: response.enabled ?? false,
-            burnAfterMs: response.burn_after_ms ?? 60000,
+            burn_after_ms: response.burn_after_ms ?? 60000,
         };
     }
 
@@ -183,28 +184,23 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
     public async getPendingBurns(roomId: string): Promise<IBurnPendingEvent[]> {
         const response = await this.client.http.authedRequest(
             Method.Get,
-            `/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/burn/pending`,
+            `/rooms/${encodeURIComponent(roomId)}/burn/pending`,
             undefined,
             undefined,
             CLIENT_PREFIX_V1,
         );
 
-        const events = response.events || [];
-        return events.map((e: any) => ({
-            eventId: e.event_id,
-            createdAt: e.created_at,
-            deleteAt: e.delete_at,
-        }));
+        return response.events || [];
     }
 
     /**
      * Mark message as read (triggers burn timer)
      * POST /_matrix/client/v1/rooms/{room_id}/burn/{event_id}
      */
-    public async markBurnRead(roomId: string, eventId: string): Promise<{ success: boolean; willDeleteAt: number }> {
+    public async markBurnRead(roomId: string, eventId: string): Promise<{ success: boolean; will_delete_at: number }> {
         const response = await this.client.http.authedRequest(
             Method.Post,
-            `/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
             undefined,
             undefined,
             CLIENT_PREFIX_V1,
@@ -212,7 +208,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
 
         return {
             success: response.success ?? true,
-            willDeleteAt: response.will_delete_at,
+            will_delete_at: response.will_delete_at,
         };
     }
 
@@ -223,7 +219,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
     public async cancelBurn(roomId: string, eventId: string): Promise<{ success: boolean }> {
         const response = await this.client.http.authedRequest(
             Method.Delete,
-            `/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
             undefined,
             undefined,
             CLIENT_PREFIX_V1,
@@ -238,17 +234,19 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * Set global burn configuration
      * PUT /_matrix/client/v1/user/burn/config
      */
-    public async setBurnConfig(defaultBurnMs: number): Promise<{ defaultBurnMs: number }> {
+    public async setBurnConfig(defaultBurnMs: number): Promise<{ default_burn_ms: number }> {
         const response = await this.client.http.authedRequest(
             Method.Put,
-            "/_matrix/client/v1/user/burn/config",
+            "/user/burn/config",
             undefined,
             { default_burn_ms: defaultBurnMs },
             CLIENT_PREFIX_V1,
         );
 
+        this.config.default_expire_time = response.default_burn_ms ?? defaultBurnMs;
+
         return {
-            defaultBurnMs: response.default_burn_ms ?? defaultBurnMs,
+            default_burn_ms: response.default_burn_ms ?? defaultBurnMs,
         };
     }
 
@@ -259,16 +257,16 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
     public async getBurnStats(): Promise<IBurnStats> {
         const response = await this.client.http.authedRequest(
             Method.Get,
-            "/_matrix/client/v1/user/burn/stats",
+            "/user/burn/stats",
             undefined,
             undefined,
             CLIENT_PREFIX_V1,
         );
 
         return {
-            totalBurned: response.total_burned ?? 0,
-            totalPending: response.total_pending ?? 0,
-            roomsWithBurnEnabled: response.rooms_with_burn_enabled ?? 0,
+            total_burned: response.total_burned ?? 0,
+            total_pending: response.total_pending ?? 0,
+            rooms_with_burn_enabled: response.rooms_with_burn_enabled ?? 0,
         };
     }
 
@@ -281,14 +279,14 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
             throw new Error("Burn after read is disabled");
         }
 
-        if (!request.roomId) {
+        if (!request.room_id) {
             throw new Error("Room ID is required");
         }
 
-        const expiresIn = request.expiresIn ?? this.config.defaultExpireTime ?? 30000;
+        const expiresIn = request.expires_in ?? this.config.default_expire_time ?? 60000;
 
-        if (this.config.maxExpireTime && expiresIn > this.config.maxExpireTime) {
-            throw new Error(`Expire time exceeds maximum allowed (${this.config.maxExpireTime}ms)`);
+        if (this.config.max_expire_time && expiresIn > this.config.max_expire_time) {
+            throw new Error(`Expire time exceeds maximum allowed (${this.config.max_expire_time}ms)`);
         }
 
         try {
@@ -301,23 +299,23 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
 
             const response = await this.client.http.authedRequest(
                 Method.Put,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(request.roomId)}/send/m.room.message/${Date.now()}`,
+                `/rooms/${encodeURIComponent(request.room_id)}/send/m.room.message/${Date.now()}`,
                 undefined,
                 content,
-                { prefix: "/_matrix/client/v3" },
+                CLIENT_PREFIX_V3,
             );
 
             const eventId = response.event_id;
             const now = Date.now();
 
             const message: IBurnAfterReadMessage = {
-                eventId,
-                roomId: request.roomId,
+                event_id: eventId,
+                room_id: request.room_id,
                 sender: this.client.getUserId(),
                 content: request.content,
-                sentAt: now,
-                expiresIn,
-                expiresAt: now + expiresIn,
+                sent_at: now,
+                expires_in: expiresIn,
+                expires_at: now + expiresIn,
             };
 
             this.messages.set(eventId, message);
@@ -326,9 +324,9 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
             this.scheduleBurn(eventId, expiresIn);
 
             return {
-                eventId,
-                expiresIn,
-                expiresAt: message.expiresAt!,
+                event_id: eventId,
+                expires_in: expiresIn,
+                expires_at: message.expires_at!,
             };
         } catch (error) {
             this.emit(BurnAfterReadEvent.BurnError, "", error as Error);
@@ -343,12 +341,12 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
         }
 
         const now = Date.now();
-        message.readAt = now;
+        message.read_at = now;
 
         this.emit(BurnAfterReadEvent.MessageRead, eventId, now);
 
-        if (message.expiresIn) {
-            this.scheduleBurn(eventId, message.expiresIn);
+        if (message.expires_in) {
+            this.scheduleBurn(eventId, message.expires_in);
         }
     }
 
@@ -361,14 +359,14 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(message.roomId)}/redact/${encodeURIComponent(eventId)}/${Date.now()}`,
+                `/rooms/${encodeURIComponent(message.room_id)}/redact/${encodeURIComponent(eventId)}/${Date.now()}`,
                 undefined,
                 { reason: "Burn after read" },
-                { prefix: "/_matrix/client/v3" },
+                CLIENT_PREFIX_V3,
             );
 
             const now = Date.now();
-            message.burnedAt = now;
+            message.burned_at = now;
 
             this.clearBurnTimer(eventId);
             this.emit(BurnAfterReadEvent.MessageBurned, eventId, now);
@@ -384,7 +382,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
         const messages = Array.from(this.messages.values());
 
         if (roomId) {
-            return messages.filter((m) => m.roomId === roomId);
+            return messages.filter((m) => m.room_id === roomId);
         }
 
         return messages;
@@ -401,8 +399,8 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
         }
 
         this.clearBurnTimer(eventId);
-        message.expiresAt = undefined;
-        message.expiresIn = undefined;
+        message.expires_at = undefined;
+        message.expires_in = undefined;
     }
 
     public async extendBurnTime(eventId: string, additionalTime: number): Promise<void> {
@@ -411,14 +409,14 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
             throw new Error("Message not found");
         }
 
-        const newExpiresIn = (message.expiresIn || 0) + additionalTime;
+        const newExpiresIn = (message.expires_in || 0) + additionalTime;
 
-        if (this.config.maxExpireTime && newExpiresIn > this.config.maxExpireTime) {
-            throw new Error(`Extended time exceeds maximum allowed (${this.config.maxExpireTime}ms)`);
+        if (this.config.max_expire_time && newExpiresIn > this.config.max_expire_time) {
+            throw new Error(`Extended time exceeds maximum allowed (${this.config.max_expire_time}ms)`);
         }
 
-        message.expiresIn = newExpiresIn;
-        message.expiresAt = Date.now() + newExpiresIn;
+        message.expires_in = newExpiresIn;
+        message.expires_at = Date.now() + newExpiresIn;
 
         this.clearBurnTimer(eventId);
         this.scheduleBurn(eventId, newExpiresIn);
@@ -452,6 +450,10 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
         return { ...this.config };
     }
 
+    public getBurnConfig(): IBurnAfterReadConfig {
+        return this.getConfig();
+    }
+
     public getCachedMessages(): IBurnAfterReadMessage[] {
         return Array.from(this.messages.values());
     }
@@ -462,17 +464,24 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
 
     public async enableBurnAfterRead(roomId: string, expireTime?: number): Promise<void> {
         this.config.enabled = true;
-        if (expireTime) {
-            this.config.defaultExpireTime = expireTime;
+        if (expireTime !== undefined) {
+            this.config.default_expire_time = expireTime;
         }
+        await this.enableBurn(roomId, expireTime);
     }
 
-    public async disableBurnAfterRead(_roomId: string): Promise<void> {
+    public async disableBurnAfterRead(roomId: string): Promise<void> {
         this.config.enabled = false;
+        await this.disableBurn(roomId);
     }
 
-    public async isBurnEnabled(_roomId: string): Promise<boolean> {
-        return this.config.enabled;
+    public async isBurnEnabled(roomId: string): Promise<boolean> {
+        try {
+            const settings = await this.getBurnSettings(roomId);
+            return settings.enabled;
+        } catch {
+            return this.config.enabled;
+        }
     }
 
     public async getPendingLocalBurns(roomId: string): Promise<IBurnAfterReadMessage[]> {

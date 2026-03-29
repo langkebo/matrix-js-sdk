@@ -46,3 +46,10 @@ export enum MediaPrefix {
      */
     V3 = "/_matrix/media/v3",
 }
+
+export enum AdminPrefix {
+    /**
+     * A constant representing the URI path for Synapse Admin API endpoints versioned at v1.
+     */
+    V1 = "/_synapse/admin/v1",
+}

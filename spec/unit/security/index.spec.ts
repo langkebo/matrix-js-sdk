@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { SecurityManager } from "../../../src/security/index";
 
 describe("SecurityManager", () => {
@@ -31,10 +32,12 @@ describe("SecurityManager", () => {
             http: {
                 authedRequest: vi.fn(),
             },
-            getDevices: vi.fn().mockResolvedValue([
-                { deviceId: "DEVICE_1", displayName: "Device 1" },
-                { deviceId: "DEVICE_2", displayName: "Device 2" },
-            ]),
+            getDevices: vi.fn().mockResolvedValue({
+                devices: [
+                    { device_id: "DEVICE_1", display_name: "Device 1" },
+                    { device_id: "DEVICE_2", display_name: "Device 2" },
+                ],
+            }),
         };
         manager = new SecurityManager(mockClient as any);
     });
@@ -107,15 +110,19 @@ describe("SecurityManager", () => {
 
     describe("listLoginFailures", () => {
         it("should return list of login failures", async () => {
-            const failures = [
-                { timestamp: 1234567890, ip: "192.168.1.1", userAgent: "Mozilla/5.0" },
-                { timestamp: 1234567891, ip: "192.168.1.2" },
-            ];
-            mockClient.http.authedRequest.mockResolvedValueOnce({ failures });
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                failures: {
+                    "2009-02-13T23:31:30.000Z": [{ ip: "192.168.1.1", userAgent: "Mozilla/5.0" }],
+                    "2009-02-13T23:31:31.000Z": [{ ip: "192.168.1.2" }],
+                },
+            });
 
             const result = await manager.listLoginFailures();
 
-            expect(result).toEqual(failures);
+            expect(result).toEqual([
+                { timestamp: 1234567890000, ip: "192.168.1.1", userAgent: "Mozilla/5.0" },
+                { timestamp: 1234567891000, ip: "192.168.1.2", userAgent: undefined },
+            ]);
         });
 
         it("should return empty array when API fails", async () => {
@@ -136,7 +143,7 @@ describe("SecurityManager", () => {
         });
 
         it("should return isSecure false when no devices", async () => {
-            mockClient.getDevices.mockResolvedValueOnce([]);
+            mockClient.getDevices.mockResolvedValueOnce({ devices: [] });
 
             const result = await manager.checkSessionSecurity();
 

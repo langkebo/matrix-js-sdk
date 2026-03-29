@@ -277,6 +277,62 @@ describe("AutoDiscovery", function () {
         ]);
     });
 
+    it("should return FAIL_ERROR when .well-known has an invalid base_url for m.homeserver (embedded credentials)", () => {
+        const httpBackend = getHttpBackend();
+        httpBackend.when("GET", "/.well-known/matrix/client").respond(200, {
+            "m.homeserver": {
+                base_url: "https://user:pass@example.org",
+            },
+        });
+        return Promise.all([
+            httpBackend.flushAllExpected(),
+            AutoDiscovery.findClientConfig("example.org").then((conf) => {
+                const expected = {
+                    "m.homeserver": {
+                        state: "FAIL_ERROR",
+                        error: AutoDiscovery.ERROR_INVALID_HS_BASE_URL,
+                        base_url: null,
+                    },
+                    "m.identity_server": {
+                        state: "PROMPT",
+                        error: null,
+                        base_url: null,
+                    },
+                };
+
+                expect(conf).toEqual(expected);
+            }),
+        ]);
+    });
+
+    it("should return FAIL_ERROR when .well-known has an invalid base_url for m.homeserver (query string)", () => {
+        const httpBackend = getHttpBackend();
+        httpBackend.when("GET", "/.well-known/matrix/client").respond(200, {
+            "m.homeserver": {
+                base_url: "https://example.org?via=attacker",
+            },
+        });
+        return Promise.all([
+            httpBackend.flushAllExpected(),
+            AutoDiscovery.findClientConfig("example.org").then((conf) => {
+                const expected = {
+                    "m.homeserver": {
+                        state: "FAIL_ERROR",
+                        error: AutoDiscovery.ERROR_INVALID_HS_BASE_URL,
+                        base_url: null,
+                    },
+                    "m.identity_server": {
+                        state: "PROMPT",
+                        error: null,
+                        base_url: null,
+                    },
+                };
+
+                expect(conf).toEqual(expected);
+            }),
+        ]);
+    });
+
     it(
         "should return FAIL_ERROR when .well-known has an invalid base_url for " +
             "m.homeserver (verification failure: 404)",

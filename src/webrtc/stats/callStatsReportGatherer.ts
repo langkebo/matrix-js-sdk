@@ -48,7 +48,7 @@ export class CallStatsReportGatherer {
         this.trackStats = new MediaTrackStatsHandler(new MediaSsrcHandler(), new MediaTrackHandler(pc));
     }
 
-    public async processStats(groupCallId: string, localUserId: string): Promise<CallStatsReportSummary> {
+    public async processStats(_groupCallId: string, _localUserId: string): Promise<CallStatsReportSummary> {
         const summary = {
             isFirstCollection: this.previousStatsReport === undefined,
             receivedMedia: 0,
@@ -66,7 +66,7 @@ export class CallStatsReportGatherer {
                         this.currentStatsReport = typeof report?.result === "function" ? report.result() : report;
 
                         try {
-                            this.processStatsReport(groupCallId, localUserId);
+                            this.processStatsReport();
                         } catch (error) {
                             this.handleError(error);
                             return summary;
@@ -95,7 +95,7 @@ export class CallStatsReportGatherer {
         return Promise.resolve(summary);
     }
 
-    private processStatsReport(groupCallId: string, localUserId: string): void {
+    private processStatsReport(): void {
         const byteSentStatsReport: ByteSentStatsReport = new Map<TrackID, ByteSend>() as ByteSentStatsReport;
         byteSentStatsReport.callId = this.callId;
         byteSentStatsReport.opponentMemberId = this.opponentMemberId;

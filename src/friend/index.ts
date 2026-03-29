@@ -24,9 +24,11 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixError } from "../http-api/errors.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
-import type { MatrixClient } from "../client.ts";
+import { MatrixClient } from "../client.ts";
+import { AuthError, NotFoundError, RetryableError, ApiError, SdkError } from "../errors";
 
 export enum FriendEvent {
     Invited = "Invited",
@@ -47,28 +49,42 @@ export enum FriendEvent {
 }
 
 export interface Friend {
-    userId: string;
+    user_id: string;
     reason?: string;
     since?: number;
-    displayName?: string;
-    avatarUrl?: string;
+    display_name?: string;
+    avatar_url?: string;
     note?: string;
-    status?: string;
-    dmRoomId?: string;
+    status?: "favorite" | "normal" | "blocked" | "hidden" | string;
+    dm_room_id?: string;
 }
 
 export interface FriendRequest {
-    userId: string;
+    user_id: string;
     reason?: string;
-    status: "pending" | "accepted" | "rejected";
+    status: "pending" | "accepted" | "rejected" | "cancelled";
     timestamp?: number;
-    displayName?: string;
-    avatarUrl?: string;
+    display_name?: string;
+    avatar_url?: string;
     message?: string;
     direction?: 'incoming' | 'outgoing';
 }
 
-export type FriendStatus = "pending" | "accepted" | "rejected";
+export enum FriendRelationshipStatus {
+    Favorite = "favorite",
+    Normal = "normal",
+    Blocked = "blocked",
+    Hidden = "hidden",
+}
+
+export enum FriendRequestStatus {
+    Pending = "pending",
+    Accepted = "accepted",
+    Rejected = "rejected",
+    Cancelled = "cancelled",
+}
+
+export type FriendStatus = "pending" | "accepted" | "rejected" | "cancelled" | "favorite" | "normal" | "blocked" | "hidden";
 
 export interface FriendGroups {
     [groupId: string]: {
@@ -120,6 +136,24 @@ interface IFriendSuggestionsResponse {
     total?: number;
 }
 
+const FRIEND_RELATIONSHIP_STATUSES = new Set<string>(Object.values(FriendRelationshipStatus));
+const FRIEND_REQUEST_STATUSES = new Set<string>(Object.values(FriendRequestStatus));
+
+function normalizeFriend(friend: Friend): Friend {
+    const status = friend.status;
+    return {
+        ...friend,
+        status: status && FRIEND_RELATIONSHIP_STATUSES.has(status) ? status : FriendRelationshipStatus.Normal,
+    };
+}
+
+function normalizeFriendRequest(request: FriendRequest): FriendRequest {
+    return {
+        ...request,
+        status: FRIEND_REQUEST_STATUSES.has(request.status) ? request.status : FriendRequestStatus.Pending,
+    };
+}
+
 export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerEventMap> {
     private client: MatrixClient;
     private friendListRoomId: string | null = null;
@@ -134,6 +168,20 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         this.client = client;
     }
 
+    private normalizeError(error: unknown, method: string): SdkError {
+        const err = error as Error;
+        if (error instanceof MatrixError) {
+            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
+                return new AuthError(`FriendManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            }
+            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
+                return new NotFoundError(`FriendManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            }
+            return new ApiError(`FriendManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode, error.httpStatus, error);
+        }
+        return new ApiError(`FriendManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+    }
+
     private async ensureFriendListRoom(): Promise<string> {
         if (this.friendListRoomId) {
             return this.friendListRoomId;
@@ -142,10 +190,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendListResponse>(
                 Method.Get,
-                "/_matrix/client/v3/friend_room",
+                "/friend_room",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             
             if (response.room_id) {
@@ -158,10 +206,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         const createResponse = await this.client.http.authedRequest<IFriendListResponse>(
             Method.Post,
-            "/_matrix/client/v3/friend_room/create",
+            "/friend_room/create",
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
         
         this.friendListRoomId = createResponse.room_id ?? null;
@@ -177,14 +225,14 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/_matrix/client/v3/friend_room/request",
+            "/friend_room/request",
             undefined,
             { user_id: userId, reason },
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         const request: FriendRequest = {
-            userId,
+            user_id: userId,
             reason,
             status: "pending",
             timestamp: Date.now(),
@@ -201,10 +249,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/_matrix/client/v3/friend_room/accept",
+            "/friend_room/accept",
             undefined,
             { user_id: userId },
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         const request = this.incomingRequests.get(userId);
@@ -214,8 +262,9 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         }
         
         this.friends.set(userId, {
-            userId,
+            user_id: userId,
             since: Date.now(),
+            status: FriendRelationshipStatus.Normal,
         });
         
         this.emit(FriendEvent.Accepted, userId);
@@ -229,10 +278,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/_matrix/client/v3/friend_room/reject",
+            "/friend_room/reject",
             undefined,
             { user_id: userId },
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         this.incomingRequests.delete(userId);
@@ -246,10 +295,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/_matrix/client/v3/friend_room/cancel",
+            "/friend_room/cancel",
             undefined,
             { user_id: userId },
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         this.outgoingRequests.delete(userId);
@@ -263,10 +312,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Delete,
-            `/_matrix/client/v3/friend_room/friends/${encodeURIComponent(userId)}`,
+            `/friend_room/friends/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         this.friends.delete(userId);
@@ -278,20 +327,19 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendsResponse>(
                 Method.Get,
-                "/_matrix/client/v3/friend_room/friends",
+                "/friend_room/friends",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
-            const friends: Friend[] = response.friends || [];
+            const friends = (response.friends || []).map(normalizeFriend);
             this.friends.clear();
-            friends.forEach(f => this.friends.set(f.userId, f));
+            friends.forEach(f => this.friends.set(f.user_id, f));
             
             return friends;
         } catch (e) {
-            logger.warn("FriendManager.getFriends failed:", e);
-            return Array.from(this.friends.values());
+            throw this.normalizeError(e, 'getFriends');
         }
     }
 
@@ -299,20 +347,19 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendRequestsResponse>(
                 Method.Get,
-                "/_matrix/client/v3/friend_room/requests/incoming",
+                "/friend_room/requests/incoming",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
-            const requests: FriendRequest[] = response.requests || [];
+            const requests = (response.requests || []).map(normalizeFriendRequest);
             this.incomingRequests.clear();
-            requests.forEach(r => this.incomingRequests.set(r.userId, r));
+            requests.forEach(r => this.incomingRequests.set(r.user_id, r));
             
             return requests;
         } catch (e) {
-            logger.warn("FriendManager.getIncomingRequests failed:", e);
-            return Array.from(this.incomingRequests.values());
+            throw this.normalizeError(e, 'getIncomingRequests');
         }
     }
 
@@ -320,20 +367,19 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendRequestsResponse>(
                 Method.Get,
-                "/_matrix/client/v3/friend_room/requests/outgoing",
+                "/friend_room/requests/outgoing",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
-            const requests: FriendRequest[] = response.requests || [];
+            const requests = (response.requests || []).map(normalizeFriendRequest);
             this.outgoingRequests.clear();
-            requests.forEach(r => this.outgoingRequests.set(r.userId, r));
+            requests.forEach(r => this.outgoingRequests.set(r.user_id, r));
             
             return requests;
         } catch (e) {
-            logger.warn("FriendManager.getOutgoingRequests failed:", e);
-            return Array.from(this.outgoingRequests.values());
+            throw this.normalizeError(e, 'getOutgoingRequests');
         }
     }
 
@@ -341,16 +387,15 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendSuggestionsResponse>(
                 Method.Get,
-                "/_matrix/client/v3/friend_room/suggestions",
+                "/friend_room/suggestions",
                 { limit },
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
-            return response.suggestions || [];
+            return (response.suggestions || []).map(normalizeFriend);
         } catch (e) {
-            logger.warn("FriendManager.getFriendSuggestions failed:", e);
-            return [];
+            throw this.normalizeError(e, 'getFriendSuggestions');
         }
     }
 
@@ -367,27 +412,26 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendGroupsResponse>(
                 Method.Get,
-                "/_matrix/client/v3/friend_room/groups",
+                "/friend_room/groups",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             this.groups = response.groups || {};
             return this.groups;
         } catch (e) {
-            logger.warn("FriendManager.getFriendGroups failed:", e);
-            return this.groups;
+            throw this.normalizeError(e, 'getFriendGroups');
         }
     }
 
     async createFriendGroup(name: string): Promise<string> {
         const response = await this.client.http.authedRequest<ICreateGroupResponse>(
             Method.Post,
-            "/_matrix/client/v3/friend_room/groups",
+            "/friend_room/groups",
             undefined,
             { name },
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         const groupId = response.group_id;
@@ -399,10 +443,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async addToFriendGroup(groupId: string, userId: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Put,
-            `/_matrix/client/v3/friend_room/groups/${groupId}/users/${encodeURIComponent(userId)}`,
+            `/friend_room/groups/${groupId}/users/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         if (this.groups[groupId]) {
@@ -415,10 +459,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async removeFromFriendGroup(groupId: string, userId: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Delete,
-            `/_matrix/client/v3/friend_room/groups/${groupId}/users/${encodeURIComponent(userId)}`,
+            `/friend_room/groups/${groupId}/users/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         if (this.groups[groupId]) {
@@ -429,10 +473,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async deleteFriendGroup(groupId: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Delete,
-            `/_matrix/client/v3/friend_room/groups/${groupId}`,
+            `/friend_room/groups/${groupId}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
 
         delete this.groups[groupId];
@@ -441,10 +485,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async setFriendDisplayName(userId: string, displayName: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Put,
-            `/_matrix/client/v3/friend_room/friends/${encodeURIComponent(userId)}/displayname`,
+            `/friend_room/friends/${encodeURIComponent(userId)}/displayname`,
             undefined,
             { displayname: displayName },
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
     }
 
@@ -478,7 +522,18 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
     async getFriendInfo(userId: string): Promise<Friend | null> {
         const friends = await this.getFriends();
-        return friends.find(f => f.userId === userId) || null;
+        return friends.find(f => f.user_id === userId) || null;
+    }
+
+    getFriendCount(): number {
+        return this.friends.size;
+    }
+
+    async sync(): Promise<void> {
+        await this.getFriends();
+        await this.getIncomingRequests();
+        await this.getOutgoingRequests();
+        this.emit(FriendEvent.SyncComplete);
     }
 
     async start(): Promise<void> {
@@ -503,3 +558,17 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         this.initialized = false;
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getFriendManager(): FriendManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getFriendManager = function (): FriendManager {
+        return new FriendManager(this);
+    };
+}
+
+export default extendMatrixClient;

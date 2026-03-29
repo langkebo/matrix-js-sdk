@@ -2,7 +2,7 @@ module.exports = {
     plugins: ["matrix-org", "import", "jsdoc", "n", "@vitest"],
     extends: ["plugin:matrix-org/babel", "plugin:import/typescript"],
     parserOptions: {
-        project: ["./tsconfig.json"],
+        project: ["./tsconfig.eslint.json"],
     },
     env: {
         browser: true,
@@ -146,8 +146,6 @@ module.exports = {
                 // These need a bit more work before we can enable
                 // "jsdoc/check-param-names": "error",
                 // "jsdoc/check-indentation": "error",
-                // Disable .ts extension requirement for compatibility
-                "n/file-extension-in-import": "off",
                 "no-extra-boolean-cast": "error",
             },
         },
@@ -184,6 +182,13 @@ module.exports = {
                         ],
                     },
                 ],
+            },
+        },
+        {
+            files: ["spec/integ/real-backend/**/*.ts"],
+            rules: {
+                "no-console": "off",
+                "@typescript-eslint/no-unused-vars": "off",
             },
         },
         {

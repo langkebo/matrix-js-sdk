@@ -6,11 +6,11 @@
  * 运行: npx tsx spec/integ/real-backend/step7-search.test.ts
  */
 
-import { createClient, type MatrixClient } from "../../../src/matrix";
+import { createClient, type MatrixClient, MsgType } from "../../../src/matrix";
 import { TestConfig } from "./TestConfig";
 
 let client: MatrixClient | null = null;
-let testResults: { name: string; passed: boolean; error?: string }[] = [];
+const testResults: { name: string; passed: boolean; error?: string }[] = [];
 let testRoomId: string | null = null;
 
 async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     // 发送测试消息
     console.log("3. 发送测试消息...");
     await client!.sendMessage(testRoomId, {
-        msgtype: "m.text",
+        msgtype: MsgType.Text,
         body: "Hello search test"
     });
     console.log("   ✅ 消息已发送\n");
@@ -108,7 +108,7 @@ async function main(): Promise<void> {
     
     await runTest("getFilter", async () => {
         try {
-            const filter = await client!.getFilter(client!.getUserId() || "", "test-filter-id");
+            const filter = await client!.getFilter(client!.getUserId() || "", "test-filter-id", true);
         } catch (e: any) {
             console.log("    ⚠️ Get filter not available");
         }
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
     
     await runTest("sync (initial)", async () => {
         try {
-            const result = await client!.sync({}, "");
+            const result = await (client as any).sync({}, "");
         } catch (e: any) {
             console.log("    ⚠️ Sync not available");
         }
@@ -127,7 +127,7 @@ async function main(): Promise<void> {
     
     await runTest("sync (增量)", async () => {
         try {
-            const result = await client!.sync({}, "test-token");
+            const result = await (client as any).sync({}, "test-token");
         } catch (e: any) {
             console.log("    ⚠️ Sync with token not available");
         }
@@ -237,7 +237,7 @@ async function main(): Promise<void> {
     
     await runTest("getIdentityServerAccessToken", async () => {
         try {
-            const token = client!.getIdentityServerAccessToken();
+            const token = (client as any).getIdentityServerAccessToken();
         } catch (e: any) {
             console.log("    ⚠️ Identity access token not available");
         }
@@ -245,7 +245,7 @@ async function main(): Promise<void> {
     
     await runTest("requestIdentity3pidOwnership", async () => {
         try {
-            await client!.requestIdentity3pidOwnership("test", "test");
+            await (client as any).requestIdentity3pidOwnership("test", "test");
         } catch (e: any) {
             console.log("    ⚠️ Request 3pid ownership not available");
         }
@@ -253,7 +253,7 @@ async function main(): Promise<void> {
     
     await runTest("lookupThreePids", async () => {
         try {
-            await client!.lookupThreePids([]);
+            await client!.lookupThreePid("email", "test@example.com", "test-access-token");
         } catch (e: any) {
             console.log("    ⚠️ Lookup three pids not available");
         }

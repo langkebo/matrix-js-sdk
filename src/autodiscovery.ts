@@ -400,6 +400,7 @@ export class AutoDiscovery {
 
             if (!parsed?.hostname) return false;
             if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+            if (parsed.username || parsed.password || parsed.search || parsed.hash) return false;
 
             const port = parsed.port ? `:${parsed.port}` : "";
             const path = parsed.pathname ? parsed.pathname : "";

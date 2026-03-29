@@ -65,6 +65,10 @@ export class RoomListManager {
         return (this.client as any).getRoom(roomId);
     }
 
+    public getMyRooms(): Promise<{ rooms: any[]; total: number }> {
+        return (this.client as any).getMyRooms();
+    }
+
     /**
      * Remove room
      */

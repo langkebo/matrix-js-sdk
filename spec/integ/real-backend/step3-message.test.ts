@@ -11,7 +11,7 @@ import { MsgType } from "../../../src/@types/event.ts";
 import { TestConfig } from "./TestConfig";
 
 let client: MatrixClient | null = null;
-let testResults: { name: string; passed: boolean; error?: string }[] = [];
+const testResults: { name: string; passed: boolean; error?: string }[] = [];
 let testRoomId: string | null = null;
 let testEventId: string | null = null;
 

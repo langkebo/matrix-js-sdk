@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { AIModule, AITool, AINewsResult, getAIModule, createAIModule } from "../../../src/ai/index";
+
+import { AIModule, getAIModule, createAIModule, type AITool } from "../../../src/ai/index";
 
 describe("AIModule", () => {
     let module: AIModule;
@@ -24,7 +25,7 @@ describe("AIModule", () => {
     beforeEach(() => {
         module = new AIModule();
         fetchMock = vi.fn();
-        global.fetch = fetchMock;
+        globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
     });
 
     afterEach(() => {

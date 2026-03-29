@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { GlobalLogoutManager } from "../../../src/auth/global-logout";
 
 describe("GlobalLogoutManager", () => {
@@ -32,10 +33,12 @@ describe("GlobalLogoutManager", () => {
             http: {
                 authedRequest: vi.fn().mockResolvedValue({}),
             },
-            getDevices: vi.fn().mockResolvedValue([
-                { deviceId: "DEVICE_1", displayName: "Device 1" },
-                { deviceId: "DEVICE_2", displayName: "Device 2" },
-            ]),
+            getDevices: vi.fn().mockResolvedValue({
+                devices: [
+                    { device_id: "DEVICE_1", display_name: "Device 1" },
+                    { device_id: "DEVICE_2", display_name: "Device 2" },
+                ],
+            }),
             deviceId: "DEVICE_1",
         };
         manager = new GlobalLogoutManager(mockClient as any);
@@ -85,9 +88,9 @@ describe("GlobalLogoutManager", () => {
         });
 
         it("should not call http if only one device", async () => {
-            mockClient.getDevices.mockResolvedValueOnce([
-                { deviceId: "DEVICE_1", displayName: "Device 1" },
-            ]);
+            mockClient.getDevices.mockResolvedValueOnce({
+                devices: [{ device_id: "DEVICE_1", display_name: "Device 1" }],
+            });
 
             await manager.logoutOtherDevices();
 

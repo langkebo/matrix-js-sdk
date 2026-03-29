@@ -1,4 +1,3 @@
-import { MatrixClient } from "../client";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -20,11 +19,20 @@ limitations under the License.
  * 
  * 提供服务器管理功能，包括用户管理、房间管理、服务器配置等
  * 对接后端: synapse-rust/src/web/routes/admin/
+ * 
+ * ⚠️ URL 组装规则：
+ * - HTTP 层执行 baseUrl + prefix + path 三段拼接
+ * - 使用 prefix 时，path 只传相对路径（不带前缀）
+ * - 例如：baseUrl=https://server.com + prefix=/_synapse/admin/v1 + path=/users
+ *   结果: https://server.com/_synapse/admin/v1/users
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { Method } from "../http-api/method";
 import { logger } from "../logger";
+import { MatrixError } from "../http-api/errors";
+import { MatrixClient } from "../client";
+import { AuthError, NotFoundError, ApiError } from "../errors";
 
 export enum AdminEvent {
     UserCreated = "UserCreated",
@@ -45,7 +53,7 @@ export interface UserInfo {
     admin?: boolean;
     deactivated?: boolean;
     suspended?: boolean;
-    creation_ts?: number;
+    created_ts?: number;
     last_seen_ts?: number;
     last_seen_ip?: string;
     user_type?: string;
@@ -62,7 +70,7 @@ export interface RoomInfo {
     joined_local_members?: number;
     invited_members?: number;
     version?: string;
-    creation_ts?: number;
+    created_ts?: number;
     join_rules?: string;
     public?: boolean;
     guest_access?: string;
@@ -97,7 +105,7 @@ export interface RegistrationToken {
     uses_allowed?: number;
     pending?: number;
     completed?: number;
-    expiry_time?: number;
+    expiry_ts?: number;
     created_ts?: number;
 }
 
@@ -107,6 +115,43 @@ export interface FederationDestination {
     retry_interval?: number;
     failure_ts?: number;
     last_successful_stream_ordering?: number;
+}
+
+export interface RoomStats {
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    member_count?: number;
+    message_count?: number;
+    last_message_ts?: number;
+    is_encrypted?: boolean;
+    admin_count?: number;
+    created_ts?: number;
+}
+
+export interface AdminRegisterResponse {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    device_id: string;
+    user_id: string;
+    home_server: string;
+}
+
+/**
+ * Admin API 错误类
+ */
+export class AdminApiError extends Error {
+    constructor(
+        message: string,
+        public readonly code: string,
+        public readonly statusCode: number,
+        public readonly details?: Record<string, unknown>
+    ) {
+        super(message);
+        this.name = "AdminApiError";
+    }
 }
 
 interface AdminManagerEventMap {
@@ -120,7 +165,15 @@ interface AdminManagerEventMap {
     [AdminEvent.AdminError]: (error: Error) => void;
 }
 
-const ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
+/**
+ * Admin Manager - 管理员 API 封装
+ * 
+ * ⚠️ 重要：URL 组装规则
+ * prefix 配置为 "/_synapse/admin/v1"，path 只传相对路径
+ * 正确: prefix="/_synapse/admin/v1", path="/users"
+ * 错误: prefix="/_synapse/admin/v1", path="/_synapse/admin/v2/users" (会导致重复前缀)
+ */
+const ADMIN_PREFIX = "/_synapse/admin/v1";
 
 export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEventMap> {
     private client: any;
@@ -131,406 +184,377 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         this.client = client;
     }
 
+    /**
+     * 发起带前缀的 Admin API 请求
+     * 
+     * @param method - HTTP 方法
+     * @param path - 相对路径（不带前缀）
+     * @param queryParams - 查询参数
+     * @param body - 请求体
+     * @returns 响应数据
+     */
+    private async adminRequest<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string | string[]>,
+        body?: unknown,
+        methodName?: string
+    ): Promise<T> {
+        try {
+            return await this.client.http.authedRequest(
+                method,
+                path,
+                queryParams ?? {},
+                body,
+                { prefix: ADMIN_PREFIX }
+            ) as Promise<T>;
+        } catch (err) {
+            if (err instanceof MatrixError) {
+                const name = methodName ?? 'unknown';
+                if (err.httpStatus === 401 || err.errcode === 'M_UNKNOWN_TOKEN') {
+                    throw new AuthError(`AdminManager.${name} failed: ${err.message ?? 'Unknown error'}`, err);
+                }
+                if (err.httpStatus === 404 || err.errcode === 'M_NOT_FOUND') {
+                    throw new NotFoundError(`AdminManager.${name} failed: ${err.message ?? 'Unknown error'}`, err);
+                }
+                throw new ApiError(`AdminManager.${name} failed: ${err.message ?? 'Unknown error'}`, err.errcode ?? 'UNKNOWN', err.httpStatus ?? 0, err);
+            }
+            throw err;
+        }
+    }
+
     // ===== 用户管理 =====
 
+    /**
+     * 获取用户列表（支持分页）
+     */
     async getUsers(from?: string, limit?: number): Promise<{ users: UserInfo[]; next_token?: string }> {
-        try {
-            const params = new URLSearchParams();
-            if (from) params.set('from', from);
-            if (limit) params.set('limit', String(limit));
-            
-            const query = params.toString() ? `?${params.toString()}` : '';
-            
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                `/_synapse/admin/v2/users${query}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
+        const queryParams: Record<string, string> = {};
+        if (from) queryParams["from"] = from;
+        if (limit) queryParams["limit"] = String(limit);
 
-            return {
-                users: response.users || [],
-                next_token: response.next_token,
-            };
-        } catch (e) {
-            logger.warn('AdminManager.getUsers failed:', e);
-            return { users: [] };
-        }
+        const response = await this.adminRequest<{ users: UserInfo[]; next_token?: string }>(
+            Method.Get,
+            "/v2/users",
+            Object.keys(queryParams).length > 0 ? queryParams : undefined
+        );
+
+        return {
+            users: response.users || [],
+            next_token: response.next_token,
+        };
     }
 
+    /**
+     * 获取单个用户信息
+     */
     async getUser(userId: string): Promise<UserInfo | null> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<UserInfo>(
                 Method.Get,
-                `/_synapse/admin/v2/users/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                `/v2/users/${encodeURIComponent(userId)}`
             );
-            return response as UserInfo;
         } catch (e) {
-            logger.warn('AdminManager.getUser failed:', e);
-            return null;
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
     }
 
+    /**
+     * 创建新用户
+     */
     async createUser(userId: string, options?: {
         password?: string;
         displayname?: string;
         admin?: boolean;
         deactivated?: boolean;
-    }): Promise<UserInfo | null> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Put,
-                `/_synapse/admin/v2/users/${encodeURIComponent(userId)}`,
-                undefined,
-                options || {},
-                ADMIN_PREFIX
-            );
+    }): Promise<UserInfo> {
+        const user = await this.adminRequest<UserInfo>(
+            Method.Put,
+            `/v2/users/${encodeURIComponent(userId)}`,
+            undefined,
+            options || {}
+        );
 
-            const user = response as UserInfo;
-            this.emit(AdminEvent.UserCreated, userId, user);
-            return user;
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        this.emit(AdminEvent.UserCreated, userId, user);
+        return user;
     }
 
+    /**
+     * 停用用户
+     */
     async deactivateUser(userId: string, erase?: boolean): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/deactivate/${encodeURIComponent(userId)}`,
-                undefined,
-                { erase: erase ?? false },
-                ADMIN_PREFIX
-            );
-            this.emit(AdminEvent.UserDeactivated, userId);
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/deactivate/${encodeURIComponent(userId)}`,
+            undefined,
+            { erase: erase ?? false }
+        );
+        this.emit(AdminEvent.UserDeactivated, userId);
     }
 
+    /**
+     * 重置用户密码
+     */
     async resetPassword(userId: string, newPassword: string, logout?: boolean): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/reset_password/${encodeURIComponent(userId)}`,
-                undefined,
-                { new_password: newPassword, logout_devices: logout ?? true },
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/reset_password/${encodeURIComponent(userId)}`,
+            undefined,
+            { new_password: newPassword, logout_devices: logout ?? true }
+        );
     }
 
+    /**
+     * 设置用户管理员权限
+     */
     async setAdmin(userId: string, admin: boolean): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Put,
-                `/_synapse/admin/v2/users/${encodeURIComponent(userId)}`,
-                undefined,
-                { admin },
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Put,
+            `/v2/users/${encodeURIComponent(userId)}`,
+            undefined,
+            { admin }
+        );
     }
 
+    /**
+     * 获取用户的设备列表
+     */
     async getUserDevices(userId: string): Promise<any[]> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                `/_synapse/admin/v2/users/${encodeURIComponent(userId)}/devices`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            return response.devices || [];
-        } catch (e) {
-            logger.warn('AdminManager.getUserDevices failed:', e);
-            return [];
-        }
+        const response = await this.adminRequest<{ devices: any[] }>(
+            Method.Get,
+            `/v2/users/${encodeURIComponent(userId)}/devices`
+        );
+        return response.devices || [];
     }
 
+    /**
+     * 删除用户的设备
+     */
     async deleteUserDevices(userId: string, deviceIds: string[]): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v2/users/${encodeURIComponent(userId)}/delete_devices`,
-                undefined,
-                { devices: deviceIds },
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v2/users/${encodeURIComponent(userId)}/delete_devices`,
+            undefined,
+            { devices: deviceIds }
+        );
     }
 
     // ===== Shadow Ban =====
 
+    /**
+     * 对用户实施影子封禁
+     */
     async shadowBanUser(userId: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/users/${encodeURIComponent(userId)}/shadow_ban`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            this.emit(AdminEvent.UserShadowBanned, userId);
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/users/${encodeURIComponent(userId)}/shadow_ban`
+        );
+        this.emit(AdminEvent.UserShadowBanned, userId);
     }
 
+    /**
+     * 取消用户的影子封禁
+     */
     async unshadowBanUser(userId: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/_synapse/admin/v1/users/${encodeURIComponent(userId)}/shadow_ban`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            this.emit(AdminEvent.UserUnshadowBanned, userId);
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/users/${encodeURIComponent(userId)}/shadow_ban`
+        );
+        this.emit(AdminEvent.UserUnshadowBanned, userId);
     }
 
+    /**
+     * 获取用户的影子封禁状态
+     */
     async getShadowBanStatus(userId: string): Promise<ShadowBanStatus | null> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<ShadowBanStatus>(
                 Method.Get,
-                `/_synapse/admin/v1/users/${encodeURIComponent(userId)}/shadow_ban`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                `/v1/users/${encodeURIComponent(userId)}/shadow_ban`
             );
-            return response as ShadowBanStatus;
         } catch (e) {
-            logger.warn('AdminManager.getShadowBanStatus failed:', e);
-            return null;
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
     }
 
     // ===== Rate Limit =====
 
+    /**
+     * 获取用户的速率限制配置
+     */
     async getRateLimit(userId: string): Promise<RateLimitConfig | null> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<RateLimitConfig>(
                 Method.Get,
-                `/_synapse/admin/v1/users/${encodeURIComponent(userId)}/rate_limit`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                `/v1/users/${encodeURIComponent(userId)}/rate_limit`
             );
-            return response as RateLimitConfig;
         } catch (e) {
-            logger.warn('AdminManager.getRateLimit failed:', e);
-            return null;
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
     }
 
+    /**
+     * 设置用户的速率限制配置
+     */
     async setRateLimit(userId: string, config: RateLimitConfig): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Put,
-                `/_synapse/admin/v1/users/${encodeURIComponent(userId)}/rate_limit`,
-                undefined,
-                config,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Put,
+            `/v1/users/${encodeURIComponent(userId)}/rate_limit`,
+            undefined,
+            config
+        );
     }
 
+    /**
+     * 删除用户的速率限制配置（使用默认配置）
+     */
     async deleteRateLimit(userId: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/_synapse/admin/v1/users/${encodeURIComponent(userId)}/rate_limit`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/users/${encodeURIComponent(userId)}/rate_limit`
+        );
     }
 
     // ===== 房间管理 =====
 
+    /**
+     * 获取房间列表（支持分页和搜索）
+     */
     async getRooms(from?: string, limit?: number, searchTerm?: string): Promise<{ rooms: RoomInfo[]; next_token?: string }> {
-        try {
-            const params = new URLSearchParams();
-            if (from) params.set('from', from);
-            if (limit) params.set('limit', String(limit));
-            if (searchTerm) params.set('search_term', searchTerm);
-            
-            const query = params.toString() ? `?${params.toString()}` : '';
-            
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                `/_synapse/admin/v1/rooms${query}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
+        const queryParams: Record<string, string> = {};
+        if (from) queryParams["from"] = from;
+        if (limit) queryParams["limit"] = String(limit);
+        if (searchTerm) queryParams["search_term"] = searchTerm;
 
-            return {
-                rooms: response.rooms || [],
-                next_token: response.next_token,
-            };
-        } catch (e) {
-            logger.warn('AdminManager.getRooms failed:', e);
-            return { rooms: [] };
-        }
+        const response = await this.adminRequest<{ rooms: RoomInfo[]; next_token?: string }>(
+            Method.Get,
+            "/v1/rooms",
+            Object.keys(queryParams).length > 0 ? queryParams : undefined
+        );
+
+        return {
+            rooms: response.rooms || [],
+            next_token: response.next_token,
+        };
     }
 
+    /**
+     * 获取单个房间信息
+     */
     async getRoom(roomId: string): Promise<RoomInfo | null> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<RoomInfo>(
                 Method.Get,
-                `/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                `/v1/rooms/${encodeURIComponent(roomId)}`
             );
-            return response as RoomInfo;
         } catch (e) {
-            logger.warn('AdminManager.getRoom failed:', e);
-            return null;
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
     }
 
+    /**
+     * 删除房间
+     */
     async deleteRoom(roomId: string, options?: {
         purge?: boolean;
         force_purge?: boolean;
     }): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}`,
-                undefined,
-                options || {},
-                ADMIN_PREFIX
-            );
-            this.emit(AdminEvent.RoomDeleted, roomId);
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/rooms/${encodeURIComponent(roomId)}`,
+            undefined,
+            options || {}
+        );
+        this.emit(AdminEvent.RoomDeleted, roomId);
     }
 
+    /**
+     * 封禁/解封房间
+     */
     async blockRoom(roomId: string, block: boolean): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}/block`,
-                undefined,
-                { block },
-                ADMIN_PREFIX
-            );
-            this.emit(AdminEvent.RoomBlocked, roomId, block);
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/block`,
+            undefined,
+            { block }
+        );
+        this.emit(AdminEvent.RoomBlocked, roomId, block);
     }
 
+    /**
+     * 获取房间成员列表
+     */
     async getRoomMembers(roomId: string): Promise<string[]> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                `/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}/members`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            return response.members || [];
-        } catch (e) {
-            logger.warn('AdminManager.getRoomMembers failed:', e);
-            return [];
-        }
+        const response = await this.adminRequest<{ members: string[] }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/members`
+        );
+        return response.members || [];
     }
 
+    /**
+     * 强制用户加入房间（管理员操作）
+     */
     async joinRoom(roomId: string, userId: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/join/${encodeURIComponent(roomId)}`,
-                undefined,
-                { user_id: userId },
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/join/${encodeURIComponent(roomId)}`,
+            undefined,
+            { user_id: userId }
+        );
     }
 
     // ===== 服务器管理 =====
 
+    /**
+     * 获取服务器版本信息
+     */
     async getServerVersion(): Promise<{ server_version: string; python_version: string }> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<{ server_version: string; python_version: string }>(
                 Method.Get,
-                '/_synapse/admin/v1/server_version',
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                "/v1/server_version"
             );
-            return response as { server_version: string; python_version: string };
         } catch (e) {
             logger.warn('AdminManager.getServerVersion failed:', e);
             return { server_version: 'unknown', python_version: 'unknown' };
         }
     }
 
+    /**
+     * 获取服务器统计信息
+     */
     async getServerStats(): Promise<ServerStats> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                '/_synapse/admin/v1/statistics',
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            this.serverStats = response as ServerStats;
-            this.emit(AdminEvent.ServerStatsUpdated, this.serverStats);
-            return this.serverStats;
-        } catch (e) {
-            logger.warn('AdminManager.getServerStats failed:', e);
-            return {};
-        }
+        const stats = await this.adminRequest<ServerStats>(
+            Method.Get,
+            "/v1/statistics"
+        );
+        this.serverStats = stats;
+        this.emit(AdminEvent.ServerStatsUpdated, this.serverStats);
+        return this.serverStats;
     }
 
-    async getServerConfig(): Promise<Record<string, any>> {
+    /**
+     * 获取服务器配置
+     */
+    async getServerConfig(): Promise<Record<string, unknown>> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<Record<string, unknown>>(
                 Method.Get,
-                '/_synapse/admin/v1/config',
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                "/v1/config"
             );
-            return response as Record<string, any>;
         } catch (e) {
             logger.warn('AdminManager.getServerConfig failed:', e);
             return {};
@@ -539,233 +563,274 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
 
     // ===== 注册令牌 =====
 
+    /**
+     * 获取注册令牌列表
+     */
     async getRegistrationTokens(): Promise<RegistrationToken[]> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                '/_synapse/admin/v1/registration_tokens',
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            return response.registration_tokens || [];
-        } catch (e) {
-            logger.warn('AdminManager.getRegistrationTokens failed:', e);
-            return [];
-        }
+        const response = await this.adminRequest<{ registration_tokens: RegistrationToken[] }>(
+            Method.Get,
+            "/v1/registration_tokens"
+        );
+        return response.registration_tokens || [];
     }
 
+    /**
+     * 创建注册令牌
+     */
     async createRegistrationToken(options?: {
         token?: string;
         uses_allowed?: number;
-        expiry_time?: number;
-    }): Promise<RegistrationToken | null> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Post,
-                '/_synapse/admin/v1/registration_tokens',
-                undefined,
-                options || {},
-                ADMIN_PREFIX
-            );
-            return response as RegistrationToken;
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        expiry_ts?: number;
+    }): Promise<RegistrationToken> {
+        return await this.adminRequest<RegistrationToken>(
+            Method.Post,
+            "/v1/registration_tokens",
+            undefined,
+            options || {}
+        );
     }
 
+    /**
+     * 更新注册令牌
+     */
     async updateRegistrationToken(token: string, options: {
         uses_allowed?: number;
-        expiry_time?: number;
+        expiry_ts?: number;
     }): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/registration_tokens/${encodeURIComponent(token)}`,
-                undefined,
-                options,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/registration_tokens/${encodeURIComponent(token)}`,
+            undefined,
+            options
+        );
     }
 
+    /**
+     * 删除注册令牌
+     */
     async deleteRegistrationToken(token: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/_synapse/admin/v1/registration_tokens/${encodeURIComponent(token)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/registration_tokens/${encodeURIComponent(token)}`
+        );
     }
 
     // ===== 联邦管理 =====
 
+    /**
+     * 获取联邦目的地列表
+     */
     async getFederationDestinations(): Promise<FederationDestination[]> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                '/_synapse/admin/v1/federation/destinations',
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-            return response.destinations || [];
-        } catch (e) {
-            logger.warn('AdminManager.getFederationDestinations failed:', e);
-            return [];
-        }
+        const response = await this.adminRequest<{ destinations: FederationDestination[] }>(
+            Method.Get,
+            "/v1/federation/destinations"
+        );
+        return response.destinations || [];
     }
 
+    /**
+     * 获取单个联邦目的地状态
+     */
     async getFederationDestination(destination: string): Promise<FederationDestination | null> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest<FederationDestination>(
                 Method.Get,
-                `/_synapse/admin/v1/federation/destinations/${encodeURIComponent(destination)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                `/v1/federation/destinations/${encodeURIComponent(destination)}`
             );
-            return response as FederationDestination;
         } catch (e) {
-            logger.warn('AdminManager.getFederationDestination failed:', e);
-            return null;
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
     }
 
+    /**
+     * 重置联邦连接
+     */
     async resetFederationConnection(destination: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/federation/destinations/${encodeURIComponent(destination)}/reset_connection`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/federation/destinations/${encodeURIComponent(destination)}/reset_connection`
+        );
     }
 
     // ===== 媒体管理 =====
 
+    /**
+     * 获取媒体列表
+     */
     async getMedia(limit?: number, from?: string): Promise<{ media: any[]; next_token?: string }> {
-        try {
-            const params = new URLSearchParams();
-            if (limit) params.set('limit', String(limit));
-            if (from) params.set('from', from);
-            
-            const query = params.toString() ? `?${params.toString()}` : '';
-            
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                `/_synapse/admin/v1/media${query}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
+        const queryParams: Record<string, string> = {};
+        if (limit) queryParams["limit"] = String(limit);
+        if (from) queryParams["from"] = from;
 
-            return {
-                media: response.media || [],
-                next_token: response.next_token,
-            };
-        } catch (e) {
-            logger.warn('AdminManager.getMedia failed:', e);
-            return { media: [] };
-        }
+        const response = await this.adminRequest<{ media: any[]; next_token?: string }>(
+            Method.Get,
+            "/v1/media",
+            Object.keys(queryParams).length > 0 ? queryParams : undefined
+        );
+
+        return {
+            media: response.media || [],
+            next_token: response.next_token,
+        };
     }
 
+    /**
+     * 删除单个媒体
+     */
     async deleteMedia(mediaId: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/_synapse/admin/v1/media/${encodeURIComponent(mediaId)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/media/${encodeURIComponent(mediaId)}`
+        );
     }
 
+    /**
+     * 隔离媒体（防止下载）
+     */
     async quarantineMedia(mediaId: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/media/quarantine/${encodeURIComponent(mediaId)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
-            );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/v1/media/quarantine/${encodeURIComponent(mediaId)}`
+        );
     }
 
+    /**
+     * 清理媒体缓存
+     */
     async purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }> {
-        try {
-            const response = await this.client.http.authedRequest(
-                Method.Post,
-                '/_synapse/admin/v1/purge_media_cache',
-                undefined,
-                beforeTs ? { before_ts: beforeTs } : {},
-                ADMIN_PREFIX
-            );
-            return { deleted: response.deleted || 0 };
-        } catch (e) {
-            logger.warn('AdminManager.purgeMediaCache failed:', e);
-            return { deleted: 0 };
-        }
+        const response = await this.adminRequest<{ deleted: number }>(
+            Method.Post,
+            "/v1/purge_media_cache",
+            undefined,
+            beforeTs ? { before_ts: beforeTs } : {}
+        );
+        return { deleted: response.deleted || 0 };
     }
 
     // ===== 便捷方法 =====
 
+    /**
+     * 获取缓存的服务器统计
+     */
     getCachedServerStats(): ServerStats | null {
         return this.serverStats;
     }
 
-    async whois(userId: string): Promise<any> {
+    /**
+     * 获取用户的 WHOIS 信息
+     */
+    async whois(userId: string): Promise<any | null> {
         try {
-            const response = await this.client.http.authedRequest(
+            return await this.adminRequest(
                 Method.Get,
-                `/_synapse/admin/v1/whois/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX
+                `/v1/whois/${encodeURIComponent(userId)}`
             );
-            return response;
         } catch (e) {
-            logger.warn('AdminManager.whois failed:', e);
-            return null;
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
     }
 
+    /**
+     * 使某个用户成为房间的管理员
+     */
     async makeRoomAdmin(roomId: string, userId?: string): Promise<void> {
+        await this.adminRequest(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/make_room_admin`,
+            undefined,
+            userId ? { user_id: userId } : {}
+        );
+    }
+
+    // ===== 房间统计 =====
+
+    /**
+     * 获取房间统计数据
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间统计信息
+     */
+    async getRoomStats(roomId: string): Promise<RoomStats | null> {
         try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}/make_room_admin`,
-                undefined,
-                userId ? { user_id: userId } : {},
-                ADMIN_PREFIX
+            return await this.adminRequest<RoomStats>(
+                Method.Get,
+                `/v1/room_stats/${encodeURIComponent(roomId)}`
             );
-        } catch (error) {
-            this.emit(AdminEvent.AdminError, error as Error);
-            throw error;
+        } catch (e) {
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
         }
+    }
+
+    // ===== 管理员注册 =====
+
+    /**
+     * 获取管理员注册 Nonce
+     *
+     * @returns Nonce 字符串
+     */
+    async registerNonce(): Promise<string> {
+        const response = await this.adminRequest<{ nonce: string }>(
+            Method.Get,
+            "/v1/register/nonce"
+        );
+        return response.nonce;
+    }
+
+    /**
+     * 管理员注册新用户
+     *
+     * @param options - 注册选项
+     * @param options.username - 用户名
+     * @param options.password - 密码
+     * @param options.admin - 是否为管理员
+     * @param options.displayname - 显示名称
+     * @param options.nonce - Nonce (可选，如果未提供会自动获取)
+     * @param options.mac - HMAC-SHA256 签名 (可选)
+     * @returns 注册响应
+     */
+    async adminRegister(options: {
+        username: string;
+        password: string;
+        admin?: boolean;
+        displayname?: string;
+        nonce?: string;
+        mac?: string;
+    }): Promise<AdminRegisterResponse> {
+        let nonce = options.nonce;
+        if (!nonce) {
+            nonce = await this.registerNonce();
+        }
+
+        const body: Record<string, unknown> = {
+            nonce,
+            username: options.username,
+            password: options.password,
+            admin: options.admin ?? false,
+        };
+
+        if (options.displayname) {
+            body.displayname = options.displayname;
+        }
+
+        if (options.mac) {
+            body.mac = options.mac;
+        }
+
+        return await this.adminRequest<AdminRegisterResponse>(
+            Method.Post,
+            "/v1/register",
+            undefined,
+            body
+        );
     }
 
     start(): void {
@@ -777,12 +842,16 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     }
 }
 
+// Type declaration for MatrixClient extension
 declare module "../client.ts" {
     interface MatrixClient {
         getAdminManager(): AdminManager;
     }
 }
 
+/**
+ * 扩展 MatrixClient 原型
+ */
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAdminManager = function (): AdminManager {
         return new AdminManager(this);

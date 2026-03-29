@@ -1029,7 +1029,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
      * Configure this call from a hangup or reject event. Used by MatrixClient.
      * @param event - The m.call.hangup event
      */
-    public initWithHangup(event: MatrixEvent): void {
+    public initWithHangup(_event: MatrixEvent): void {
         // perverse as it may seem, sometimes we want to instantiate a call with a
         // hangup message (because when getting the state of the room on load, events
         // come in reverse order and we want to remember that a call has been hung up)
@@ -1815,7 +1815,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         }
     };
 
-    private onIceGatheringStateChange = (event: Event): void => {
+    private onIceGatheringStateChange = (_event: Event): void => {
         logger.debug(
             `Call ${this.callId} onIceGatheringStateChange() ice gathering state changed to ${
                 this.peerConn!.iceGatheringState
@@ -2462,7 +2462,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         }
     };
 
-    public onAnsweredElsewhere = (msg: MCallAnswer): void => {
+    public onAnsweredElsewhere = (_msg: MCallAnswer): void => {
         logger.debug(`Call ${this.callId} onAnsweredElsewhere() running`);
         this.terminate(CallParty.Remote, CallErrorCode.AnsweredElsewhere, true);
     };
@@ -2978,7 +2978,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         return Boolean(this.peerConn);
     }
 
-    public initStats(stats: GroupCallStats, peerId = "unknown"): void {
+    public initStats(stats: GroupCallStats): void {
         this.stats = stats;
         this.stats.start();
     }

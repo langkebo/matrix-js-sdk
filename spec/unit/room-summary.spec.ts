@@ -14,6 +14,12 @@ describe("RoomSummaryManager", () => {
                 name: "Test Room",
                 member_count: 5,
             }),
+            getRoomSummaryMembers: vi.fn().mockResolvedValue([
+                { user_id: "@alice:example.com", membership: "join" },
+            ]),
+            getRoomSummaryStats: vi.fn().mockResolvedValue({
+                joined_members: 5,
+            }),
             getRoomHierarchy: vi.fn().mockResolvedValue({
                 rooms: [],
             }),
@@ -52,6 +58,20 @@ describe("RoomSummaryManager", () => {
         it("should get room hierarchy", async () => {
             const hierarchy = await summaryManager.getRoomHierarchy("!space:example.com");
             expect(hierarchy).toBeDefined();
+        });
+    });
+
+    describe("getRoomSummaryMembers", () => {
+        it("should get room summary members", async () => {
+            const members = await summaryManager.getRoomSummaryMembers("!room:example.com");
+            expect(members).toEqual([{ user_id: "@alice:example.com", membership: "join" }]);
+        });
+    });
+
+    describe("getRoomSummaryStats", () => {
+        it("should get room summary stats", async () => {
+            const stats = await summaryManager.getRoomSummaryStats("!room:example.com");
+            expect(stats).toEqual({ joined_members: 5 });
         });
     });
 

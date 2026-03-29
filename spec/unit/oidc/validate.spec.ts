@@ -17,7 +17,12 @@ limitations under the License.
 import { jwtDecode } from "jwt-decode";
 
 import { logger } from "../../../src/logger";
-import { type ValidatedAuthMetadata, validateIdToken, validateAuthMetadata } from "../../../src/oidc/validate";
+import {
+    type ValidatedAuthMetadata,
+    validateIdToken,
+    validateAuthMetadata,
+    validateStoredUserState,
+} from "../../../src/oidc/validate";
 import { OidcError } from "../../../src/oidc/error";
 
 vi.mock("jwt-decode");
@@ -94,8 +99,10 @@ describe("validateOIDCIssuerWellKnown", () => {
     it.each<TestCase>([
         ["authorization_endpoint", undefined],
         ["authorization_endpoint", { not: "a string" }],
+        ["authorization_endpoint", "https://user:pass@test.org/authorize"],
         ["token_endpoint", undefined],
         ["token_endpoint", { not: "a string" }],
+        ["token_endpoint", "https://authorize.org/token#fragment"],
         ["registration_endpoint", { not: "a string" }],
         ["response_types_supported", undefined],
         ["response_types_supported", "not an array"],
@@ -114,6 +121,19 @@ describe("validateOIDCIssuerWellKnown", () => {
             [key]: value,
         };
         expect(() => validateAuthMetadata(wk)).toThrow(OidcError.OpSupport);
+    });
+
+    it("should allow query parameters on endpoint URLs", () => {
+        expect(
+            validateAuthMetadata({
+                ...validWk,
+                authorization_endpoint: "https://test.org/authorize?foo=bar",
+            }),
+        ).toEqual(
+            expect.objectContaining({
+                authorization_endpoint: "https://test.org/authorize?foo=bar",
+            }),
+        );
     });
 });
 
@@ -226,3 +246,36 @@ describe("validateIdToken()", () => {
         expect(() => validateIdToken(idToken, issuer, clientId, nonce)).not.toThrow();
     });
 });
+
+describe("validateStoredUserState()", () => {
+    beforeEach(() => {
+        vi.spyOn(logger, "error")
+            .mockClear()
+            .mockImplementation(() => {});
+    });
+
+    it("should accept valid stored user state", () => {
+        expect(() =>
+            validateStoredUserState({
+                homeserverUrl: "https://matrix.example.org",
+                identityServerUrl: "https://identity.example.org",
+                nonce: "nonce",
+            }),
+        ).not.toThrow();
+    });
+
+    it.each<Record<string, string>>([
+        {
+            homeserverUrl: "https://user:pass@matrix.example.org",
+            nonce: "nonce",
+        },
+        {
+            homeserverUrl: "https://matrix.example.org",
+            identityServerUrl: "https://identity.example.org#fragment",
+            nonce: "nonce",
+        },
+    ])("should reject stored user state with invalid URLs", (userState) => {
+        expect(() => validateStoredUserState(userState)).toThrow(new Error(OidcError.MissingOrInvalidStoredState));
+    });
+});
+

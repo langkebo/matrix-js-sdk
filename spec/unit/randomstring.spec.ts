@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { decodeBase64 } from "../../src/base64";
 import { describe, it, expect, afterEach, vi } from "vitest";
+
+import { decodeBase64 } from "../../src/base64";
 import {
     secureRandomString,
     secureRandomBase64Url,

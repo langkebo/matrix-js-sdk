@@ -1610,7 +1610,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 `${args.cryptoDatabasePrefix ?? RUST_SDK_STORE_PREFIX}::matrix-sdk-crypto`,
                 `${args.cryptoDatabasePrefix ?? RUST_SDK_STORE_PREFIX}::matrix-sdk-crypto-meta`,
             ]) {
-                const prom = new Promise((resolve, reject) => {
+                const prom = new Promise((resolve) => {
                     this.logger.info(`Removing IndexedDB instance ${dbname}`);
                     const req = indexedDB.deleteDatabase(dbname);
                     req.onsuccess = (_): void => {
@@ -1626,7 +1626,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                         this.logger.warn(`Failed to remove IndexedDB instance ${dbname}:`, e);
                         resolve(0);
                     };
-                    req.onblocked = (e): void => {
+                    req.onblocked = (): void => {
                         this.logger.info(`cannot yet remove IndexedDB instance ${dbname}`);
                     };
                 });
@@ -5593,7 +5593,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                                 this.pushRules = result;
                                 reject(err);
                             })
-                            .catch((err2) => {
+                            .catch(() => {
                                 reject(err);
                             });
                     });
@@ -6088,7 +6088,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         // XXX: Intended private, used in code
         const primTypes = ["boolean", "string", "number"];
         const serializableOpts = Object.entries(this.clientOpts!)
-            .filter(([key, value]) => {
+            .filter(([, value]) => {
                 return primTypes.includes(typeof value);
             })
             .reduce<Record<string, any>>((obj, [key, value]) => {
@@ -7875,7 +7875,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Promise which resolves: result object. Rejects: with
      *     an error response ({@link MatrixError}).
      */
-    public uploadKeysRequest(content: IUploadKeysRequest, opts?: void): Promise<IKeysUploadResponse> {
+    public uploadKeysRequest(content: IUploadKeysRequest, _opts?: void): Promise<IKeysUploadResponse> {
         return this.http.authedRequest(Method.Post, "/keys/upload", undefined, content);
     }
 
@@ -8733,19 +8733,101 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      */
     public async getRoomSummary(roomIdOrAlias: string, via?: string[]): Promise<RoomSummary> {
         const paramOpts = {
-            prefix: "/_matrix/client/unstable/im.nheko.summary",
+            prefix: ClientPrefix.V3,
         };
         try {
-            const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
+            const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
             return await this.http.authedRequest(Method.Get, path, { via }, undefined, paramOpts);
         } catch (e) {
-            if (e instanceof MatrixError && e.errcode === "M_UNRECOGNIZED") {
-                const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
-                return await this.http.authedRequest(Method.Get, path, { via }, undefined, paramOpts);
-            } else {
-                throw e;
-            }
+            const unstableOpts = {
+                prefix: "/_matrix/client/unstable/im.nheko.summary",
+            };
+            const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
+            return await this.http.authedRequest(Method.Get, path, { via }, undefined, unstableOpts);
         }
+    }
+
+    public async getRoomSummaryMembers(roomId: string): Promise<any[]> {
+        const path = utils.encodeUri("/rooms/$roomid/summary/members", { $roomid: roomId });
+        return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    public async getRoomSummaryStats(roomId: string): Promise<any> {
+        const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
+        return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    /**
+     * Get all rooms for the current user, including join, invite, and leave status.
+     * Custom endpoint for synapse-rust.
+     */
+    public async getMyRooms(): Promise<{ rooms: any[]; total: number }> {
+        return await this.http.authedRequest(Method.Get, "/my_rooms", undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    /**
+     * Create a secure key backup (synapse-rust specific).
+     */
+    public async createSecureBackup(passphraseHash: string): Promise<{ backup_id: string }> {
+        return await this.http.authedRequest(
+            Method.Post,
+            "/keys/backup/secure",
+            undefined,
+            { passphrase_hash: passphraseHash },
+            { prefix: ClientPrefix.V3 },
+        );
+    }
+
+    /**
+     * Get secure key backup info (synapse-rust specific).
+     */
+    public async getSecureBackup(backupId: string): Promise<any> {
+        const path = utils.encodeUri("/keys/backup/secure/$backupId", { $backupId: backupId });
+        return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    /**
+     * Verify secure key backup passphrase (synapse-rust specific).
+     */
+    public async verifySecureBackupPassphrase(backupId: string, passphraseHash: string): Promise<{ valid: boolean }> {
+        const path = utils.encodeUri("/keys/backup/secure/$backupId/verify", { $backupId: backupId });
+        return await this.http.authedRequest(
+            Method.Post,
+            path,
+            undefined,
+            { passphrase_hash: passphraseHash },
+            { prefix: ClientPrefix.V3 },
+        );
+    }
+
+    /**
+     * Store keys in secure backup (synapse-rust specific).
+     */
+    public async storeSecureBackupKeys(backupId: string, keys: any): Promise<void> {
+        const path = utils.encodeUri("/keys/backup/secure/$backupId/keys", { $backupId: backupId });
+        await this.http.authedRequest(Method.Post, path, undefined, { keys }, { prefix: ClientPrefix.V3 });
+    }
+
+    /**
+     * Restore keys from secure backup (synapse-rust specific).
+     */
+    public async restoreSecureBackup(backupId: string, passphraseHash: string): Promise<{ keys: any }> {
+        const path = utils.encodeUri("/keys/backup/secure/$backupId/restore", { $backupId: backupId });
+        return await this.http.authedRequest(
+            Method.Post,
+            path,
+            undefined,
+            { passphrase_hash: passphraseHash },
+            { prefix: ClientPrefix.V3 },
+        );
     }
 
     /**

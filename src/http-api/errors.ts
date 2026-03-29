@@ -61,12 +61,24 @@ export class HTTPError extends Error {
      * @see {@link safeGetRetryAfterMs} for a version of this check that doesn't throw.
      */
     public getRetryAfterMs(): number | null {
-        const retryAfter = this.httpHeaders?.get("Retry-After");
+        const retryAfter = this.httpHeaders?.get("Retry-After") || 
+                          this.httpHeaders?.get("x-ratelimit-after") ||
+                          this.httpHeaders?.get("x-retry-after-ms");
         if (retryAfter != null) {
             if (/^\d+$/.test(retryAfter)) {
-                const ms = Number.parseInt(retryAfter) * 1000;
+                let ms = Number.parseInt(retryAfter);
+                // If it's x-ratelimit-after or Retry-After, it might be in seconds.
+                // If it's x-retry-after-ms, it's in ms.
+                // Standard Retry-After is seconds.
+                const isMs = this.httpHeaders?.has("x-retry-after-ms") || 
+                           (this.httpHeaders?.has("x-ratelimit-after") && ms > 10000); 
+                
+                if (!isMs) {
+                    ms *= 1000;
+                }
+
                 if (!Number.isFinite(ms)) {
-                    throw new Error("Retry-After header integer value is too large");
+                    throw new Error("Retry-After header value is too large");
                 }
                 return ms;
             }
