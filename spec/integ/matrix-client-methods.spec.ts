@@ -978,7 +978,7 @@ describe("MatrixClient", function () {
                 pushers: [],
             };
 
-            const prom = client.getPushers();
+            const prom = client.getPushManager().getPushers();
             httpBackend.when("GET", "/_matrix/client/versions").respond(200, {});
             httpBackend.when("GET", "/pushers").respond(200, response);
             await httpBackend.flush("");
@@ -1012,7 +1012,7 @@ describe("MatrixClient", function () {
                 devices: [],
             };
 
-            const prom = client.getDevices();
+            const prom = client.getDeviceManager().getDevices();
             httpBackend.when("GET", "/devices").respond(200, response);
             await httpBackend.flush("");
             expect(await prom).toStrictEqual(response);
@@ -1028,7 +1028,7 @@ describe("MatrixClient", function () {
                 last_seen_ts: 1,
             };
 
-            const prom = client.getDevice("DEADBEEF");
+            const prom = client.getDeviceManager().getDevice("DEADBEEF");
             httpBackend.when("GET", "/devices/DEADBEEF").respond(200, response);
             await httpBackend.flush("");
             expect(await prom).toStrictEqual(response);
@@ -1767,7 +1767,7 @@ describe("MatrixClient", function () {
         it("should respond with a valid room summary object", () => {
             httpBackend.when("GET", prefix + suffix).respond(200, roomSummary);
 
-            const prom = client.getRoomSummary(roomId).then((response) => {
+            const prom = client.getRoomSummaryManager().getRoomSummary(roomId).then((response) => {
                 expect(response).toEqual(roomSummary);
             });
 
@@ -1779,7 +1779,7 @@ describe("MatrixClient", function () {
             httpBackend.when("GET", prefix + suffix).respond(errorUnrecogStatus, errorUnrecogBody);
             httpBackend.when("GET", deprecatedPrefix + deprecatedSuffix).respond(200, roomSummary);
 
-            const prom = client.getRoomSummary(roomId).then((response) => {
+            const prom = client.getRoomSummaryManager().getRoomSummary(roomId).then((response) => {
                 expect(response).toEqual(roomSummary);
             });
 
@@ -1791,7 +1791,7 @@ describe("MatrixClient", function () {
             httpBackend.when("GET", prefix + suffix).respond(errorUnrecogStatus, errorUnrecogBody);
             httpBackend.when("GET", deprecatedPrefix + deprecatedSuffix).respond(errorUnrecogStatus, errorUnrecogBody);
 
-            const prom = client.getRoomSummary(roomId).then(
+            const prom = client.getRoomSummaryManager().getRoomSummary(roomId).then(
                 function (response) {
                     throw Error("request not failed");
                 },
@@ -1810,7 +1810,7 @@ describe("MatrixClient", function () {
             httpBackend.when("GET", prefix + "rooms/notAroom/summary").respond(errorBadreqStatus, errorBadreqBody);
             httpBackend.when("GET", deprecatedPrefix + "summary/notAroom").respond(errorBadreqStatus, errorBadreqBody);
 
-            const prom = client.getRoomSummary("notAroom").then(
+            const prom = client.getRoomSummaryManager().getRoomSummary("notAroom").then(
                 function (response) {
                     throw Error("request not failed");
                 },

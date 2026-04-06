@@ -27,7 +27,6 @@ import {
     recursiveMapToObject,
     simpleRetryOperation,
     stringToBase,
-    sortEventsByLatestContentTimestamp,
     safeSet,
     MapWithDefault,
     globToRegexp,
@@ -36,7 +35,6 @@ import {
 } from "../../src/utils";
 import { logger } from "../../src/logger";
 import { mkMessage } from "../test-utils/test-utils";
-import { makeBeaconEvent } from "../test-utils/beacon";
 import { ReceiptType } from "../../src/@types/read_receipts";
 
 describe("utils", function () {
@@ -566,33 +564,6 @@ describe("utils", function () {
                     aSubThing: "something",
                 },
             });
-        });
-    });
-
-    describe("sortEventsByLatestContentTimestamp", () => {
-        const roomId = "!room:server";
-        const userId = "@user:server";
-        const eventWithoutContentTimestamp = mkMessage({ room: roomId, user: userId, event: true });
-        // m.beacon events have timestamp in content
-        const beaconEvent1 = makeBeaconEvent(userId, { timestamp: 1648804528557 });
-        const beaconEvent2 = makeBeaconEvent(userId, { timestamp: 1648804528558 });
-        const beaconEvent3 = makeBeaconEvent(userId, { timestamp: 1648804528000 });
-        const beaconEvent4 = makeBeaconEvent(userId, { timestamp: 0 });
-
-        it("sorts events with timestamps as later than events without", () => {
-            expect(
-                [beaconEvent4, eventWithoutContentTimestamp, beaconEvent1].sort(
-                    utils.sortEventsByLatestContentTimestamp,
-                ),
-            ).toEqual([beaconEvent1, beaconEvent4, eventWithoutContentTimestamp]);
-        });
-
-        it("sorts by content timestamps correctly", () => {
-            expect([beaconEvent1, beaconEvent2, beaconEvent3].sort(sortEventsByLatestContentTimestamp)).toEqual([
-                beaconEvent2,
-                beaconEvent1,
-                beaconEvent3,
-            ]);
         });
     });
 

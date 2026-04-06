@@ -60,7 +60,6 @@ import { EventType } from "./@types/event.ts";
 import { type IPushRules } from "./@types/PushRules.ts";
 import { type IMarkerFoundOptions, RoomStateEvent } from "./models/room-state.ts";
 import { RoomMemberEvent } from "./models/room-member.ts";
-import { BeaconEvent } from "./models/beacon.ts";
 import { type IEventsResponse } from "./@types/requests.ts";
 import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync.ts";
 import { Feature, ServerSupport } from "./feature.ts";
@@ -599,7 +598,9 @@ export class SyncApi {
     private getPushRules = async (): Promise<void> => {
         try {
             this.syncOpts.logger.debug("Getting push rules...");
-            const result = await this.client.getPushRules();
+            const result = this.client.getPushManager ?
+                await this.client.getPushManager().getPushRules() :
+                await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
             this.syncOpts.logger.debug("Got push rules");
 
             this.client.pushRules = result;
@@ -1129,7 +1130,7 @@ export class SyncApi {
                 // (see sync) before syncing over the network.
                 if (accountDataEvent.getType() === EventType.PushRules) {
                     const rules = accountDataEvent.getContent<IPushRules>();
-                    client.setPushRules(rules);
+                    client.pushRules = rules;
                 }
                 const prevEvent = prevEventsMap[accountDataEvent.getType()!];
                 client.emit(ClientEvent.AccountData, accountDataEvent, prevEvent);
@@ -1700,10 +1701,12 @@ export class SyncApi {
                     displayname: user.displayName,
                 });
             } else {
-                promise = client.getProfileInfo(member.userId);
+                promise = client.getProfileManager ?
+                    client.getProfileManager().getProfileInfo(member.userId) :
+                    client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(Method.Get, `/profile/${encodeURIComponent(member.userId)}`);
             }
             promise.then(
-                function (info) {
+                function (info: { avatar_url?: string; displayname?: string }) {
                     // slightly naughty by doctoring the invite event but this means all
                     // the code paths remain the same between invite/join display name stuff
                     // which is a worthy trade-off for some minor pollution.
@@ -1717,7 +1720,7 @@ export class SyncApi {
                     // fire listeners
                     member.setMembershipEvent(inviteEvent, room.currentState);
                 },
-                function (err) {
+                function (err: Error) {
                     // OH WELL.
                 },
             );
@@ -1855,7 +1858,6 @@ export class SyncApi {
             timelineWasEmpty,
             addToState: stateAfterEventList === undefined,
         });
-        this.client.processBeaconEvents(room, timelineEventList);
     }
 
     /**
@@ -1934,10 +1936,6 @@ export function _createAndReEmitRoom(client: MatrixClient, roomId: string, opts:
         RoomStateEvent.Members,
         RoomStateEvent.NewMember,
         RoomStateEvent.Update,
-        BeaconEvent.New,
-        BeaconEvent.Update,
-        BeaconEvent.Destroy,
-        BeaconEvent.LivenessChange,
     ]);
 
     // We need to add a listener for RoomState.members in order to hook them

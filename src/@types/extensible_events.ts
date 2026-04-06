@@ -16,7 +16,12 @@ limitations under the License.
 
 import { type EitherAnd, NamespacedValue, UnstableValue } from "matrix-events-sdk";
 
-import { isProvided } from "../extensible_events_v1/utilities.ts";
+/**
+ * Utility to check if a value is provided (not null or undefined)
+ */
+function isProvided(value: any): boolean {
+    return value !== null && value !== undefined;
+}
 
 // Types and utilities for MSC1767: Extensible events (version 1) in Matrix
 

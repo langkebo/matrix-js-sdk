@@ -2605,7 +2605,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     public async transfer(targetUserId: string): Promise<void> {
         // Fetch the target user's global profile info: their room avatar / displayname
         // could be different in whatever room we share with them.
-        const profileInfo = await this.client.getProfileInfo(targetUserId);
+        const profileInfo = await this.client.getProfileManager().getProfileInfo(targetUserId);
 
         const replacementId = genCallID();
 
@@ -2630,9 +2630,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
      */
     public async transferToCall(transferTargetCall: MatrixCall): Promise<void> {
         const targetUserId = transferTargetCall.getOpponentMember()?.userId;
-        const targetProfileInfo = targetUserId ? await this.client.getProfileInfo(targetUserId) : undefined;
+        const targetProfileInfo = targetUserId ? await this.client.getProfileManager().getProfileInfo(targetUserId) : undefined;
         const opponentUserId = this.getOpponentMember()?.userId;
-        const transfereeProfileInfo = opponentUserId ? await this.client.getProfileInfo(opponentUserId) : undefined;
+        const transfereeProfileInfo = opponentUserId ? await this.client.getProfileManager().getProfileInfo(opponentUserId) : undefined;
 
         const newCallId = genCallID();
 

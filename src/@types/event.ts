@@ -40,7 +40,6 @@ import {
 } from "./state_events.ts";
 import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../webrtc/groupCall.ts";
 import { type MSC3089EventContent } from "../models/MSC3089Branch.ts";
-import { type M_BEACON, type M_BEACON_INFO, type MBeaconEventContent, type MBeaconInfoEventContent } from "./beacon.ts";
 import { type EmptyObject } from "./common.ts";
 import { type ReactionEventContent, type RoomMessageEventContent, type StickerEventContent } from "./events.ts";
 import {
@@ -59,7 +58,6 @@ import {
     type EncryptionKeysEventContent,
     type ICallNotifyContent,
 } from "../matrixrtc/types.ts";
-import { type M_POLL_END, type M_POLL_START, type PollEndEventContent, type PollStartEventContent } from "./polls.ts";
 import { type RtcMembershipData, type SessionMembershipData } from "../matrixrtc/CallMembership.ts";
 import { type LocalNotificationSettings } from "./local_notifications.ts";
 import { type IPushRules } from "./PushRules.ts";
@@ -351,9 +349,6 @@ export interface TimelineEvents {
     [EventType.CallNotify]: ICallNotifyContent;
     [EventType.RTCNotification]: IRTCNotificationContent;
     [EventType.RTCDecline]: IRTCDeclineContent;
-    [M_BEACON.name]: MBeaconEventContent;
-    [M_POLL_START.name]: PollStartEventContent;
-    [M_POLL_END.name]: PollEndEventContent;
     [EventType.RTCMembership]: RtcMembershipData | { msc4354_sticky_key: string };
     [key: string]: unknown;
 }
@@ -394,9 +389,6 @@ export interface StateEvents {
     [EventType.RTCMembership]: RtcMembershipData | EmptyObject;
     // MSC3089
     [UNSTABLE_MSC3089_BRANCH.name]: MSC3089EventContent;
-
-    // MSC3672
-    [M_BEACON_INFO.name]: MBeaconInfoEventContent;
 
     [key: string]: unknown;
 }

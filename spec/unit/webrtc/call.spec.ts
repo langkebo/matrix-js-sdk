@@ -148,7 +148,9 @@ describe("Call", function () {
                 },
             } as unknown as Room;
         };
-        client.client.getProfileInfo = vi.fn();
+        client.client.getProfileManager = vi.fn().mockReturnValue({
+            getProfileInfo: vi.fn(),
+        });
 
         call = new MatrixCall({
             client: client.client,
@@ -1426,7 +1428,7 @@ describe("Call", function () {
         const BOB_AVATAR_URL = "avatar.bob.foo";
 
         beforeEach(() => {
-            vi.mocked(client.client.getProfileInfo).mockImplementation(async (userId) => {
+            vi.mocked(client.client.getProfileManager().getProfileInfo).mockImplementation(async (userId) => {
                 if (userId === ALICE_USER_ID) {
                     return {
                         displayname: ALICE_DISPLAY_NAME,

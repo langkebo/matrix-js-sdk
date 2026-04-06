@@ -36,7 +36,7 @@ import { logger } from "../logger.ts";
 import { PushRuleKind, PushRuleAction, PushRuleActionName, IPushRule, IPushRules, PushRuleCondition } from "../@types/PushRules";
 import { MatrixError } from "../http-api/errors.ts";
 
-export { IPushRules } from "../@types/PushRules";
+export type { IPushRules } from "../@types/PushRules";
 
 export enum PushEvent {
     PushersUpdated = "PushersUpdated",

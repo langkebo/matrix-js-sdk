@@ -215,10 +215,12 @@ describe("MSC3089Branch", () => {
                     return fileEvent;
                 },
             }) as EventTimelineSet;
-        client.mxcUrlToHttp = (mxc: string) => {
-            expect(mxc).toEqual("mxc://" + mxcLatter);
-            return `https://example.org/_matrix/media/v1/download/${mxcLatter}`;
-        };
+        client.getProfileManager = vi.fn().mockReturnValue({
+            mxcUrlToHttp: (mxc: string) => {
+                expect(mxc).toEqual("mxc://" + mxcLatter);
+                return `https://example.org/_matrix/media/v1/download/${mxcLatter}`;
+            },
+        });
         client.decryptEventIfNeeded = () => Promise.resolve();
 
         const res = await branch.getFileInfo();
@@ -241,10 +243,12 @@ describe("MSC3089Branch", () => {
                     return fileEvent;
                 },
             }) as EventTimelineSet;
-        client.mxcUrlToHttp = (mxc: string) => {
-            expect(mxc).toEqual("mxc://" + mxcLatter);
-            return `https://example.org/_matrix/media/v1/download/${mxcLatter}`;
-        };
+        client.getProfileManager = vi.fn().mockReturnValue({
+            mxcUrlToHttp: (mxc: string) => {
+                expect(mxc).toEqual("mxc://" + mxcLatter);
+                return `https://example.org/_matrix/media/v1/download/${mxcLatter}`;
+            },
+        });
         client.decryptEventIfNeeded = () => Promise.resolve();
 
         const res = await branch.getFileEvent();

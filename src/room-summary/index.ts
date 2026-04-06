@@ -34,6 +34,7 @@ import { Body } from "../http-api/interface.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError, SdkError } from "../errors.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { encodeUri, type QueryDict } from "../utils.ts";
+import * as utils from "../utils.ts";
 
 interface CacheEntry<T> {
     value: T;
@@ -433,8 +434,9 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取房间摘要
-     * 
+     *
      * @param roomIdOrAlias - 房间 ID 或别名
+     * @param via - The list of servers which know about the room if only an ID was provided
      * @param forceRefresh - 是否强制刷新缓存
      * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
      * @returns 房间摘要
@@ -443,7 +445,8 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
      * @throws {ApiError} 当 API 调用失败时
      */
     public async getRoomSummary(
-        roomIdOrAlias: string, 
+        roomIdOrAlias: string,
+        via?: string[],
         forceRefresh = false,
         throwOnError = false
     ): Promise<RoomSummary | null> {
@@ -455,14 +458,27 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
 
         try {
-            const clientSummary = await this.client.getRoomSummary(roomIdOrAlias);
-            if (clientSummary) {
-                const summary = this.convertClientSummary(clientSummary);
-                this.summaryCache.set(roomIdOrAlias, summary);
-                this.emit(RoomSummaryEvent.Updated, roomIdOrAlias, summary);
-                return summary;
+            // Direct API call instead of using deleted client method
+            const paramOpts = {
+                prefix: ClientPrefix.V3,
+            };
+            let clientSummary;
+            try {
+                const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
+                clientSummary = await this.client.http.authedRequest(Method.Get, path, via ? { via } : undefined, undefined, paramOpts);
+            } catch (e) {
+                // Try unstable endpoint as fallback
+                const unstableOpts = {
+                    prefix: "/_matrix/client/unstable/im.nheko.summary",
+                };
+                const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
+                clientSummary = await this.client.http.authedRequest(Method.Get, path, via ? { via } : undefined, undefined, unstableOpts);
             }
-            return null;
+
+            const summary = this.convertClientSummary(clientSummary);
+            this.summaryCache.set(roomIdOrAlias, summary);
+            this.emit(RoomSummaryEvent.Updated, roomIdOrAlias, summary);
+            return summary;
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, 'getRoomSummary');
@@ -496,7 +512,11 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
 
         try {
-            const members = await this.client.getRoomSummaryMembers(roomId);
+            // Direct API call instead of using deleted client method
+            const path = utils.encodeUri("/rooms/$roomid/summary/members", { $roomid: roomId });
+            const members = await this.client.http.authedRequest<RoomSummaryMember[]>(Method.Get, path, undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             this.memberCache.set(roomId, members);
             this.emit(RoomSummaryEvent.MembersUpdated, roomId, members);
             return members;
@@ -533,7 +553,11 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
 
         try {
-            const stats = await this.client.getRoomSummaryStats(roomId);
+            // Direct API call instead of using deleted client method
+            const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
+            const stats = await this.client.http.authedRequest<RoomStats>(Method.Get, path, undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             if (stats) {
                 this.statsCache.set(roomId, stats);
                 this.emit(RoomSummaryEvent.StatsUpdated, roomId, stats);

@@ -150,7 +150,7 @@ export class MSC3089Branch {
         const event = await this.getFileEvent();
 
         const file = event.getOriginalContent()["file"];
-        const httpUrl = this.client.mxcUrlToHttp(file["url"]);
+        const httpUrl = this.client.getProfileManager().mxcUrlToHttp(file["url"]);
 
         if (!httpUrl) {
             throw new Error(`No HTTP URL available for ${file["url"]}`);

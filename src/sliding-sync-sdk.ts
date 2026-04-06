@@ -20,6 +20,7 @@ import { logger } from "./logger.ts";
 import { promiseMapSeries } from "./utils.ts";
 import { EventTimeline } from "./models/event-timeline.ts";
 import { ClientEvent, type IStoredClientOpts, type MatrixClient } from "./client.ts";
+import { ProfileManager } from "./profile/index.ts";
 import {
     type ISyncStateData,
     SyncState,
@@ -39,7 +40,7 @@ import {
     type ISyncResponse,
     type ReceivedToDeviceMessage,
 } from "./sync-accumulator.ts";
-import { MatrixError } from "./http-api/index.ts";
+import { MatrixError, Method } from "./http-api/index.ts";
 import {
     type Extension,
     ExtensionState,
@@ -229,7 +230,7 @@ class ExtensionAccountData implements Extension<ExtensionAccountDataRequest, Ext
             // (see sync) before syncing over the network.
             if (accountDataEvent.getType() === EventType.PushRules) {
                 const rules = accountDataEvent.getContent<IPushRules>();
-                this.client.setPushRules(rules);
+                this.client.pushRules = rules;
             }
             const prevEvent = prevEventsMap[accountDataEvent.getType()];
             this.client.emit(ClientEvent.AccountData, accountDataEvent, prevEvent);
@@ -830,14 +831,14 @@ export class SlidingSyncSdk {
             member.requestedProfileInfo = true;
             // try to get a cached copy first.
             const user = client.getUser(member.userId);
-            let promise: ReturnType<MatrixClient["getProfileInfo"]>;
+            let promise: ReturnType<ProfileManager["getProfileInfo"]>;
             if (user) {
                 promise = Promise.resolve({
                     avatar_url: user.avatarUrl,
                     displayname: user.displayName,
                 });
             } else {
-                promise = client.getProfileInfo(member.userId);
+                promise = client.getProfileManager().getProfileInfo(member.userId);
             }
             promise.then(
                 function (info) {
@@ -870,25 +871,33 @@ export class SlidingSyncSdk {
      */
     public async sync(): Promise<void> {
         this.syncOpts.logger.debug("Sliding sync init loop");
+        console.log("[SlidingSyncSdk] sync() called, isGuest:", this.client.isGuest());
 
         //   1) We need to get push rules so we can check if events should bing as we get
         //      them from /sync.
         while (!this.client.isGuest()) {
             try {
                 this.syncOpts.logger.debug("Getting push rules...");
-                const result = await this.client.getPushRules();
+                console.log("[SlidingSyncSdk] Getting push rules, hasGetPushManager:", !!this.client.getPushManager);
+                const result = this.client.getPushManager ?
+                    await this.client.getPushManager().getPushRules() :
+                    await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
                 this.syncOpts.logger.debug("Got push rules");
+                console.log("[SlidingSyncSdk] Got push rules successfully");
                 this.client.pushRules = result;
                 break;
             } catch (err) {
                 this.syncOpts.logger.error("Getting push rules failed", err);
+                console.error("[SlidingSyncSdk] Getting push rules failed:", err);
                 if (this.shouldAbortSync(<MatrixError>err)) {
+                    console.log("[SlidingSyncSdk] Aborting sync due to error");
                     return;
                 }
             }
         }
 
         // start syncing
+        console.log("[SlidingSyncSdk] Starting slidingSync.start()");
         await this.slidingSync.start();
     }
 

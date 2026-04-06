@@ -51,7 +51,6 @@ import { type MatrixClient, PendingEventOrdering } from "../client.ts";
 import { type GuestAccess, type HistoryVisibility, type JoinRule, type ResizeMethod } from "../@types/partials.ts";
 import { Filter, type IFilterDefinition } from "../filter.ts";
 import { type RoomState, RoomStateEvent, type RoomStateEventHandlerMap } from "./room-state.ts";
-import { BeaconEvent, type BeaconEventHandlerMap } from "./beacon.ts";
 import {
     FILTER_RELATED_BY_REL_TYPES,
     FILTER_RELATED_BY_SENDERS,
@@ -71,7 +70,6 @@ import {
 import { type IStateEventWithRoomId } from "../@types/search.ts";
 import { RelationsContainer } from "./relations-container.ts";
 import { ReadReceipt, synthesizeReceipt } from "./read-receipt.ts";
-import { isPollEvent, Poll, PollEvent } from "./poll.ts";
 import { RoomReceipts } from "./room-receipts.ts";
 import { compareEventOrdering } from "./compare-event-ordering.ts";
 import { KnownMembership, type Membership } from "../@types/membership.ts";
@@ -173,12 +171,7 @@ export type RoomEmittedEvents =
     | ThreadEvent.Update
     | ThreadEvent.NewReply
     | ThreadEvent.Delete
-    | MatrixEventEvent.BeforeRedaction
-    | BeaconEvent.New
-    | BeaconEvent.Update
-    | BeaconEvent.Destroy
-    | BeaconEvent.LivenessChange
-    | PollEvent.New;
+    | MatrixEventEvent.BeforeRedaction;
 
 export type RoomEventHandlerMap = {
     /**
@@ -314,11 +307,6 @@ export type RoomEventHandlerMap = {
      */
     [RoomEvent.Summary]: (summary: IRoomSummary) => void;
     [ThreadEvent.New]: (thread: Thread, toStartOfTimeline: boolean) => void;
-    /**
-     * Fires when a new poll instance is added to the room state
-     * @param poll - the new poll
-     */
-    [PollEvent.New]: (poll: Poll) => void;
 } & Pick<ThreadHandlerMap, ThreadEvent.Update | ThreadEvent.NewReply | ThreadEvent.Delete> &
     EventTimelineSetHandlerMap &
     Pick<MatrixEventHandlerMap, MatrixEventEvent.BeforeRedaction> &
@@ -330,9 +318,7 @@ export type RoomEventHandlerMap = {
         | RoomStateEvent.NewMember
         | RoomStateEvent.Update
         | RoomStateEvent.Marker
-        | BeaconEvent.New
-    > &
-    Pick<BeaconEventHandlerMap, BeaconEvent.Update | BeaconEvent.Destroy | BeaconEvent.LivenessChange>;
+    >;
 
 export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     public readonly reEmitter: TypedReEmitter<RoomEmittedEvents, RoomEventHandlerMap>;
@@ -349,7 +335,6 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
      */
     private unthreadedReceipts = new Map<string, Receipt>();
     private readonly timelineSets: EventTimelineSet[];
-    public readonly polls: Map<string, Poll> = new Map<string, Poll>();
 
     /**
      * Empty array if the timeline sets have not been initialised. After initialisation:
@@ -1327,10 +1312,6 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 RoomStateEvent.NewMember,
                 RoomStateEvent.Update,
                 RoomStateEvent.Marker,
-                BeaconEvent.New,
-                BeaconEvent.Update,
-                BeaconEvent.Destroy,
-                BeaconEvent.LivenessChange,
             ]);
             this.reEmitter.reEmit(this.currentState, [
                 RoomStateEvent.Events,
@@ -1338,10 +1319,6 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 RoomStateEvent.NewMember,
                 RoomStateEvent.Update,
                 RoomStateEvent.Marker,
-                BeaconEvent.New,
-                BeaconEvent.Update,
-                BeaconEvent.Destroy,
-                BeaconEvent.LivenessChange,
             ]);
         }
     }
@@ -2217,70 +2194,6 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         this.on(ThreadEvent.Update, this.onThreadUpdate);
         this.on(ThreadEvent.Delete, this.onThreadDelete);
         this.threadsReady = true;
-    }
-
-    /**
-     * Process a list of poll events.
-     *
-     * @param events - List of events
-     */
-    public async processPollEvents(events: MatrixEvent[]): Promise<void> {
-        for (const event of events) {
-            try {
-                // Continue if the event is a clear text, non-poll event.
-                if (!event.isEncrypted() && !isPollEvent(event)) continue;
-
-                /**
-                 * Try to decrypt the event. Promise resolution does not guarantee a successful decryption.
-                 * Retry is handled in {@link processPollEvent}.
-                 */
-                await this.client.decryptEventIfNeeded(event);
-                this.processPollEvent(event);
-            } catch (err) {
-                logger.warn("Error processing poll event", event.getId(), err);
-            }
-        }
-    }
-
-    /**
-     * Processes poll events:
-     * If the event has a decryption failure, it will listen for decryption and tries again.
-     * If it is a poll start event (`m.poll.start`),
-     * it creates and stores a Poll model and emits a PollEvent.New event.
-     * If the event is related to a poll, it will add it to the poll.
-     * Noop for other cases.
-     *
-     * @param event - Event that could be a poll event
-     */
-    private async processPollEvent(event: MatrixEvent): Promise<void> {
-        if (event.isDecryptionFailure()) {
-            event.once(MatrixEventEvent.Decrypted, (maybeDecryptedEvent: MatrixEvent) => {
-                this.processPollEvent(maybeDecryptedEvent);
-            });
-            return;
-        }
-
-        if (M_POLL_START.matches(event.getType())) {
-            try {
-                const poll = new Poll(event, this.client, this);
-                this.polls.set(event.getId()!, poll);
-                this.emit(PollEvent.New, poll);
-
-                // remove the poll when redacted
-                event.once(MatrixEventEvent.BeforeRedaction, (redactedEvent: MatrixEvent) => {
-                    this.polls.delete(redactedEvent.getId()!);
-                });
-            } catch {}
-            // poll creation can fail for malformed poll start events
-            return;
-        }
-
-        const relationEventId = event.relationEventId;
-
-        if (relationEventId && this.polls.has(relationEventId)) {
-            const poll = this.polls.get(relationEventId);
-            poll?.onNewRelation(event);
-        }
     }
 
     /**

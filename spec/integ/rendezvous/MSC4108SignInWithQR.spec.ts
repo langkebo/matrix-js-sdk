@@ -166,7 +166,7 @@ describe("MSC4108SignInWithQR", () => {
         it("should be able to connect with opponent and share verificationUri", async () => {
             await Promise.all([ourLogin.negotiateProtocols(), opponentLogin.negotiateProtocols()]);
 
-            vi.mocked(client.getDevice).mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND" }, 404));
+            vi.mocked(client.getDeviceManager().getDevice).mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND" }, 404));
 
             await Promise.all([
                 expect(ourLogin.deviceAuthorizationGrant()).resolves.toEqual({
@@ -189,7 +189,7 @@ describe("MSC4108SignInWithQR", () => {
         it("should abort if device already exists", async () => {
             await Promise.all([ourLogin.negotiateProtocols(), opponentLogin.negotiateProtocols()]);
 
-            vi.mocked(client.getDevice).mockResolvedValue({} as IMyDevice);
+            vi.mocked(client.getDeviceManager().getDevice).mockResolvedValue({} as IMyDevice);
 
             await Promise.all([
                 expect(ourLogin.deviceAuthorizationGrant()).rejects.toThrow("Specified device ID already exists"),
@@ -239,7 +239,7 @@ describe("MSC4108SignInWithQR", () => {
             // @ts-ignore
             await opponentLogin.receive();
 
-            vi.mocked(client.getDevice).mockResolvedValue({} as IMyDevice);
+            vi.mocked(client.getDeviceManager().getDevice).mockResolvedValue({} as IMyDevice);
 
             const secrets = {
                 cross_signing: { master_key: "mk", user_signing_key: "usk", self_signing_key: "ssk" },
@@ -275,7 +275,7 @@ describe("MSC4108SignInWithQR", () => {
             await opponentLogin.send({
                 type: PayloadType.Success,
             });
-            vi.mocked(client.getDevice).mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND" }, 404));
+            vi.mocked(client.getDeviceManager().getDevice).mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND" }, 404));
 
             const ourProm = ourLogin.shareSecrets();
             await expect(ourProm).rejects.toThrow("New device not found");
@@ -292,7 +292,7 @@ describe("MSC4108SignInWithQR", () => {
             await opponentLogin.send({
                 type: PayloadType.Success,
             });
-            vi.mocked(client.getDevice).mockRejectedValue(
+            vi.mocked(client.getDeviceManager().getDevice).mockRejectedValue(
                 new MatrixError({ errcode: "M_UNKNOWN", error: "The message" }, 500),
             );
 
@@ -329,7 +329,7 @@ describe("MSC4108SignInWithQR", () => {
             await opponentLogin.receive();
 
             const deviceResolvers = Promise.withResolvers<IMyDevice>();
-            vi.mocked(client.getDevice).mockReturnValue(deviceResolvers.promise);
+            vi.mocked(client.getDeviceManager().getDevice).mockReturnValue(deviceResolvers.promise);
 
             ourLogin.cancel(MSC4108FailureReason.UserCancelled).catch(() => {});
             deviceResolvers.resolve({} as IMyDevice);

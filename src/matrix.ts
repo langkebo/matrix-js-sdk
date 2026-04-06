@@ -31,12 +31,10 @@ export * from "./autodiscovery";
 export * from "./sync-accumulator";
 export * from "./errors";
 export * from "./base64";
-export * from "./models/beacon";
 export * from "./models/event";
 export * from "./models/room";
 export * from "./models/event-timeline";
 export * from "./models/event-timeline-set";
-export * from "./models/poll";
 export * from "./models/room-member";
 export * from "./models/room-state";
 export * from "./models/thread";
@@ -65,17 +63,13 @@ export * from "./@types/PushRules";
 export * from "./@types/partials";
 export * from "./@types/requests";
 export * from "./@types/search";
-export * from "./@types/beacon";
 export * from "./@types/topic";
-export * from "./@types/location";
 export * from "./@types/threepids";
 export * from "./@types/auth";
-export * from "./@types/polls";
 export type * from "./@types/local_notifications";
 export type * from "./@types/registration";
 export * from "./@types/read_receipts";
 export type * from "./@types/crypto";
-export * from "./@types/extensible_events";
 export type * from "./@types/IIdentityServerProvider";
 export * from "./@types/membership";
 export * from "./models/room-summary";
@@ -156,7 +150,6 @@ export { LocalStorageErrors, localStorageErrorsEventsEmitter } from "./store/loc
 export { IdentityProviderBrand, SSOAction } from "./@types/auth";
 export type { ISSOFlow as SSOFlow, LoginFlow } from "./@types/auth";
 export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as HierarchyRoom } from "./@types/spaces";
-export { LocationAssetType } from "./@types/location";
 export { DebugLogger } from "./logger";
 export {
     extendMatrixClientWithManagers,

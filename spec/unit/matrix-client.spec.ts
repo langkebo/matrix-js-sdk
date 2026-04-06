@@ -45,8 +45,6 @@ import { EventStatus, type IContent, MatrixEvent } from "../../src/models/event"
 import { Preset } from "../../src/@types/partials";
 import { ReceiptType } from "../../src/@types/read_receipts";
 import * as testUtils from "../test-utils/test-utils";
-import { makeBeaconInfoContent } from "../../src/content-helpers";
-import { M_BEACON_INFO } from "../../src/@types/beacon";
 import {
     ClientPrefix,
     ConditionKind,
@@ -70,7 +68,6 @@ import {
     UpdateDelayedEventAction,
 } from "../../src";
 import { supportsMatrixCall } from "../../src/webrtc/call";
-import { makeBeaconEvent } from "../test-utils/beacon";
 import {
     IGNORE_INVITES_ACCOUNT_EVENT_KEY,
     POLICIES_ACCOUNT_EVENT_TYPE,
@@ -416,16 +413,16 @@ describe("MatrixClient", function () {
     describe("mxcUrlToHttp", () => {
         it("should call getHttpUriForMxc", () => {
             const mxc = "mxc://server/example";
-            expect(client.mxcUrlToHttp(mxc)).toBe(getHttpUriForMxc(client.baseUrl, mxc));
-            expect(client.mxcUrlToHttp(mxc, 32)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32));
-            expect(client.mxcUrlToHttp(mxc, 32, 46)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32, 46));
-            expect(client.mxcUrlToHttp(mxc, 32, 46, "scale")).toBe(
+            expect(client.getProfileManager().mxcUrlToHttp(mxc)).toBe(getHttpUriForMxc(client.baseUrl, mxc));
+            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32));
+            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32, 46));
+            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale")).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale"),
             );
-            expect(client.mxcUrlToHttp(mxc, 32, 46, "scale", false, true)).toBe(
+            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale", false, true)).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale", false, true),
             );
-            expect(client.mxcUrlToHttp(mxc, 32, 46, "scale", false, true, true)).toBe(
+            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale", false, true, true)).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale", false, true, true),
             );
         });
@@ -1886,7 +1883,7 @@ describe("MatrixClient", function () {
                     },
                 },
             ];
-            client.getPresence(userId);
+            client.getPresenceManager().getPresence(userId);
             expect(httpLookups.length).toEqual(0);
         });
     });
@@ -2189,71 +2186,6 @@ describe("MatrixClient", function () {
                 rpEvent,
                 ReceiptType.ReadPrivate,
             );
-        });
-    });
-
-    describe("beacons", () => {
-        const roomId = "!room:server.org";
-        const content = makeBeaconInfoContent(100, true);
-
-        beforeEach(() => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({});
-        });
-
-        it("creates new beacon info", async () => {
-            await client.unstable_createLiveBeacon(roomId, content);
-
-            // event type combined
-            const expectedEventType = M_BEACON_INFO.name;
-            const [method, path, queryParams, requestContent] = vi.mocked(client.http.authedRequest).mock.calls[0];
-            expect(method).toBe("PUT");
-            expect(path).toEqual(
-                `/rooms/${encodeURIComponent(roomId)}/state/` +
-                    `${encodeURIComponent(expectedEventType)}/${encodeURIComponent(userId)}`,
-            );
-            expect(queryParams).toBeFalsy();
-            expect(requestContent).toEqual(content);
-        });
-
-        it("updates beacon info with specific event type", async () => {
-            await client.unstable_setLiveBeacon(roomId, content);
-
-            // event type combined
-            const [, path, , requestContent] = vi.mocked(client.http.authedRequest).mock.calls[0];
-            expect(path).toEqual(
-                `/rooms/${encodeURIComponent(roomId)}/state/` +
-                    `${encodeURIComponent(M_BEACON_INFO.name)}/${encodeURIComponent(userId)}`,
-            );
-            expect(requestContent).toEqual(content);
-        });
-
-        describe("processBeaconEvents()", () => {
-            it("does nothing when events is falsy", () => {
-                const room = new Room(roomId, client, userId);
-                const roomStateProcessSpy = vi.spyOn(room.currentState, "processBeaconEvents");
-
-                client.processBeaconEvents(room, undefined);
-                expect(roomStateProcessSpy).not.toHaveBeenCalled();
-            });
-
-            it("does nothing when events is of length 0", () => {
-                const room = new Room(roomId, client, userId);
-                const roomStateProcessSpy = vi.spyOn(room.currentState, "processBeaconEvents");
-
-                client.processBeaconEvents(room, []);
-                expect(roomStateProcessSpy).not.toHaveBeenCalled();
-            });
-
-            it("calls room states processBeaconEvents with events", () => {
-                const room = new Room(roomId, client, userId);
-                const roomStateProcessSpy = vi.spyOn(room.currentState, "processBeaconEvents");
-
-                const messageEvent = testUtils.mkMessage({ room: roomId, user: userId, event: true });
-                const beaconEvent = makeBeaconEvent(userId);
-
-                client.processBeaconEvents(room, [messageEvent, beaconEvent]);
-                expect(roomStateProcessSpy).toHaveBeenCalledWith([messageEvent, beaconEvent], client);
-            });
         });
     });
 
@@ -3902,7 +3834,8 @@ describe("MatrixClient", function () {
 
                 setNotifsResponse();
 
-                client.setPushRules(pushRules);
+                // Mock push rules - PushManager doesn't have setPushRules, it fetches from server
+                vi.spyOn(client.getPushManager(), 'getPushRules').mockResolvedValue(pushRules);
             });
 
             it("should throw when trying to paginate forwards", () => {
@@ -3986,13 +3919,13 @@ describe("MatrixClient", function () {
         });
 
         it("should make correct request to set pusher", async () => {
-            const result = await client.setPusher(pusher);
+            const result = await client.getPushManager().setPusher(pusher);
             expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/pushers/set", undefined, pusher);
             expect(result).toEqual({});
         });
 
         it("should make correct request to remove pusher", async () => {
-            const result = await client.removePusher(pusher.pushkey, pusher.app_id);
+            const result = await client.getPushManager().removePusher(pusher.pushkey, pusher.app_id);
             expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/pushers/set", undefined, {
                 pushkey: pusher.pushkey,
                 app_id: pusher.app_id,

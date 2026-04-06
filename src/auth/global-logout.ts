@@ -40,8 +40,8 @@ export class GlobalLogoutManager {
      * 对应 API: GET /_matrix/client/v3/devices
      */
     public async getActiveSessions(): Promise<Device[]> {
-        const response = await this.client.getDevices();
-        return response.devices.map(d => ({
+        const devices = await this.client.getDeviceManager().getDevices();
+        return devices.map((d) => ({
             deviceId: d.device_id,
             displayName: d.display_name,
             lastSeenTs: d.last_seen_ts,

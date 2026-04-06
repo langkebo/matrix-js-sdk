@@ -18,6 +18,8 @@ import { type MatrixError } from "./errors.ts";
 import { type Logger } from "../logger.ts";
 import { type QueryDict } from "../utils.ts";
 
+export type RequestPriority = "high" | "low" | "auto";
+
 export type Body = Record<string, any> | BodyInit;
 
 /**
@@ -101,6 +103,10 @@ export interface BaseRequestOpts {
      */
     localTimeoutMs?: number;
     keepAlive?: boolean; // defaults to false
+    /**
+     * Request priority for fetch API (e.g., 'high', 'low', 'auto')
+     */
+    priority?: RequestPriority;
     /**
      * By default, we will:
      *

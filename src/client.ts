@@ -83,7 +83,6 @@ import { getHttpUriForMxc } from "./content-repo.ts";
 import { SearchResult } from "./models/search-result.ts";
 import { type IIdentityServerProvider } from "./@types/IIdentityServerProvider.ts";
 import { type MatrixScheduler } from "./scheduler.ts";
-import { type BeaconEvent, type BeaconEventHandlerMap } from "./models/beacon.ts";
 import { type AuthDict } from "./interactive-auth.ts";
 import {
     type IMinimalEvent,
@@ -212,7 +211,6 @@ import {
     ThreadFilterType,
     threadFilterTypeToFilter,
 } from "./models/thread.ts";
-import { M_BEACON_INFO, type MBeaconInfoEventContent } from "./@types/beacon.ts";
 import { NamespacedValue, UnstableValue } from "./NamespacedValue.ts";
 import { ToDeviceMessageQueue } from "./ToDeviceMessageQueue.ts";
 import { type ToDeviceBatch, type ToDevicePayload } from "./models/ToDeviceMessage.ts";
@@ -1352,8 +1350,7 @@ export type EmittedEvents =
     | GroupCallEventHandlerEvent.Ended
     | GroupCallEventHandlerEvent.Participants
     | HttpApiEvent.SessionLoggedOut
-    | HttpApiEvent.NoConsent
-    | BeaconEvent;
+    | HttpApiEvent.NoConsent;
 
 export type ClientEventHandlerMap = {
     [ClientEvent.Sync]: (state: SyncState, prevState: SyncState | null, data?: ISyncStateData) => void;
@@ -1377,8 +1374,7 @@ export type ClientEventHandlerMap = {
     CallEventHandlerEventHandlerMap &
     GroupCallEventHandlerEventHandlerMap &
     CallEventHandlerMap &
-    HttpApiEventHandlerMap &
-    BeaconEventHandlerMap;
+    HttpApiEventHandlerMap;
 
 const SSO_ACTION_PARAM = new UnstableValue("action", "org.matrix.msc3824.action");
 
@@ -2861,30 +2857,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
      */
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    public async unstable_createLiveBeacon(
-        roomId: Room["roomId"],
-        beaconInfoContent: MBeaconInfoEventContent,
-    ): Promise<ISendEventResponse> {
-        return this.unstable_setLiveBeacon(roomId, beaconInfoContent);
-    }
-
-    /**
-     * Upsert a live beacon event
-     * using a specific m.beacon_info.* event variable type
-     * @param roomId - string
-     * @returns
-     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
-     * @see MatrixSafetyError
-     */
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    public async unstable_setLiveBeacon(
-        roomId: string,
-        beaconInfoContent: MBeaconInfoEventContent,
-    ): Promise<ISendEventResponse> {
-        return this.sendStateEvent(roomId, M_BEACON_INFO.name, beaconInfoContent, this.getUserId()!);
-    }
-
     /**
      * Send a Matrix timeline event.
      * @param roomId The room to send to.
@@ -4141,7 +4113,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             undefined,
             {
                 prefix: MediaPrefix.V3,
-                priority: "low",
             },
         );
         this.urlPreviewCache.set(key, resp);
@@ -4508,112 +4479,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return event.getPushDetails();
     }
 
-    /**
-     * @param info - The kind of info to set (e.g. 'avatar_url')
-     * @param data - The JSON object to set.
-     * @returns
-     * @returns Rejects: with an error response.
-     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
-     * @see MatrixSafetyError
-     * @deprecated Use `client.getProfileManager().setProfileInfo(info, data)` instead.
-     *             This method will be removed in a future version.
-     *             The ProfileManager provides caching and event emission.
-     */
-    // eslint-disable-next-line camelcase
-    public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
-    public setProfileInfo(info: "displayname", data: { displayname: string }): Promise<EmptyObject>;
-    public setProfileInfo(info: "avatar_url" | "displayname", data: object): Promise<EmptyObject> {
-        const path = utils.encodeUri("/profile/$userId/$info", {
-            $userId: this.credentials.userId!,
-            $info: info,
-        });
-        return this.http.authedRequest(Method.Put, path, undefined, data);
-    }
-
-    /**
-     * @returns Promise which resolves: `{}` an empty object.
-     * @returns Rejects: with an error response.
-     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
-     * @see MatrixSafetyError
-     * @deprecated Use `client.getProfileManager().setDisplayName(name)` instead.
-     *             This method will be removed in a future version.
-     *             The ProfileManager provides caching and event emission.
-     */
-    public async setDisplayName(name: string): Promise<EmptyObject> {
-        const prom = await this.setProfileInfo("displayname", { displayname: name });
-        // XXX: synthesise a profile update for ourselves because Synapse is broken and won't
-        const user = this.getUser(this.getUserId()!);
-        if (user) {
-            user.displayName = name;
-            user.emit(UserEvent.DisplayName, user.events.presence, user);
-        }
-        return prom;
-    }
-
-    /**
-     * @returns Promise which resolves: `{}` an empty object.
-     * @returns Rejects: with an error response.
-     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
-     * @see MatrixSafetyError
-     * @deprecated Use `client.getProfileManager().setAvatarUrl(url)` instead.
-     *             This method will be removed in a future version.
-     *             The ProfileManager provides caching and event emission.
-     */
-    public async setAvatarUrl(url: string): Promise<EmptyObject> {
-        const prom = await this.setProfileInfo("avatar_url", { avatar_url: url });
-        // XXX: synthesise a profile update for ourselves because Synapse is broken and won't
-        const user = this.getUser(this.getUserId()!);
-        if (user) {
-            user.avatarUrl = url;
-            user.emit(UserEvent.AvatarUrl, user.events.presence, user);
-        }
-        return prom;
-    }
-
-    /**
-     * Turn an MXC URL into an HTTP one. <strong>This method is experimental and
-     * may change.</strong>
-     * @param mxcUrl - The MXC URL
-     * @param width - The desired width of the thumbnail.
-     * @param height - The desired height of the thumbnail.
-     * @param resizeMethod - The thumbnail resize method to use, either
-     * "crop" or "scale".
-     * @param allowDirectLinks - If true, return any non-mxc URLs
-     * directly. Fetching such URLs will leak information about the user to
-     * anyone they share a room with. If false, will return null for such URLs.
-     * @param allowRedirects - If true, the caller supports the URL being 307 or
-     * 308 redirected to another resource upon request. If false, redirects
-     * are not expected. Implied `true` when `useAuthentication` is `true`.
-     * @param useAuthentication - If true, the caller supports authenticated
-     * media and wants an authentication-required URL. Note that server support
-     * for authenticated media will *not* be checked - it is the caller's responsibility
-     * to do so before calling this function. Note also that `useAuthentication`
-     * implies `allowRedirects`. Defaults to false (unauthenticated endpoints).
-     * @returns the avatar URL or null.
-     * @deprecated Use `client.getProfileManager().mxcUrlToHttp()` instead.
-     *             This method will be removed in a future version.
-     *             The ProfileManager provides a unified interface for profile-related operations.
-     */
-    public mxcUrlToHttp(
-        mxcUrl: string,
-        width?: number,
-        height?: number,
-        resizeMethod?: string,
-        allowDirectLinks?: boolean,
-        allowRedirects?: boolean,
-        useAuthentication?: boolean,
-    ): string | null {
-        return getHttpUriForMxc(
-            this.baseUrl,
-            mxcUrl,
-            width,
-            height,
-            resizeMethod,
-            allowDirectLinks,
-            allowRedirects,
-            useAuthentication,
-        );
-    }
 
     /**
      * Specify the set_presence value to be used for subsequent calls to the Sync API.
@@ -4625,42 +4490,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.syncApi?.setPresence(presence);
     }
 
-    /**
-     * @param opts - Options to apply
-     * @returns Promise which resolves
-     * @returns Rejects: with an error response.
-     * @throws If 'presence' isn't a valid presence enum value.
-     * @deprecated Use `client.getPresenceManager().setPresence(opts)` instead.
-     *             This method will be removed in a future version.
-     *             The PresenceManager provides caching and event emission.
-     */
-    public async setPresence(opts: IPresenceOpts): Promise<void> {
-        const path = utils.encodeUri("/presence/$userId/status", {
-            $userId: this.credentials.userId!,
-        });
-
-        const validStates = ["offline", "online", "unavailable"];
-        if (validStates.indexOf(opts.presence) === -1) {
-            throw new Error("Bad presence value: " + opts.presence);
-        }
-        await this.http.authedRequest(Method.Put, path, undefined, opts);
-    }
-
-    /**
-     * @param userId - The user to get presence for
-     * @returns Promise which resolves: The presence state for this user.
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPresenceManager().getPresence(userId)` instead.
-     *             This method will be removed in a future version.
-     *             The PresenceManager provides caching and event emission.
-     */
-    public getPresence(userId: string): Promise<IStatusResponse> {
-        const path = utils.encodeUri("/presence/$userId/status", {
-            $userId: userId,
-        });
-
-        return this.http.authedRequest(Method.Get, path);
-    }
 
     /**
      * Retrieve older messages from the given room and put them in the timeline.
@@ -4723,7 +4552,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     const [timelineEvents, threadedEvents, unknownRelations] =
                         room.partitionThreadedEvents(matrixEvents);
 
-                    this.processAggregatedTimelineEvents(room, timelineEvents);
                     room.addEventsToTimeline(timelineEvents, true, true, room.getLiveTimeline());
                     this.processThreadEvents(room, threadedEvents, true);
                     unknownRelations.forEach((event) => room.relations.aggregateChildEvent(event));
@@ -4865,7 +4693,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         timelineSet.addEventsToTimeline(timelineEvents, true, false, timeline, res.start);
         // The target event is not in a thread but process the contextual events, so we can show any threads around it.
         this.processThreadEvents(timelineSet.room, threadedEvents, true);
-        this.processAggregatedTimelineEvents(timelineSet.room, timelineEvents);
         unknownRelations.forEach((event) => timelineSet.relations.aggregateChildEvent(event));
 
         // There is no guarantee that the event ended up in "timeline" (we might have switched to a neighbouring
@@ -4951,7 +4778,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 }
                 timeline.setPaginationToken(resOlder.next_batch ?? null, Direction.Backward);
                 timeline.setPaginationToken(resNewer.next_batch ?? null, Direction.Forward);
-                this.processAggregatedTimelineEvents(timelineSet.room, events);
 
                 // There is no guarantee that the event ended up in "timeline" (we might have switched to a neighbouring
                 // timeline) - so check the room's index again. On the other hand, there's no guarantee the event ended up
@@ -5008,7 +4834,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 }
                 timeline.setPaginationToken(resOlder.next_batch ?? null, Direction.Backward);
                 timeline.setPaginationToken(null, Direction.Forward);
-                this.processAggregatedTimelineEvents(timelineSet.room, events);
 
                 return timeline;
             }
@@ -5268,7 +5093,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     // in the notification timeline set
                     const timelineSet = eventTimeline.getTimelineSet();
                     timelineSet.addEventsToTimeline(matrixEvents, backwards, false, eventTimeline, token);
-                    this.processAggregatedTimelineEvents(timelineSet.room, matrixEvents);
 
                     // if we've hit the end of the timeline, we need to stop trying to
                     // paginate. We need to keep the 'forwards' token though, to make sure
@@ -5311,7 +5135,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
                     const timelineSet = eventTimeline.getTimelineSet();
                     timelineSet.addEventsToTimeline(matrixEvents, backwards, false, eventTimeline, token);
-                    this.processAggregatedTimelineEvents(room, matrixEvents);
                     this.processThreadRoots(room, matrixEvents, backwards);
 
                     // if we've hit the end of the timeline, we need to stop trying to
@@ -5365,7 +5188,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                             mapper(await this.fetchRoomEvent(eventTimeline.getRoomId() ?? "", thread.id));
                         timelineSet.addEventsToTimeline([originalEvent], true, false, eventTimeline, null);
                     }
-                    this.processAggregatedTimelineEvents(timelineSet.room, matrixEvents);
 
                     // if we've hit the end of the timeline, we need to stop trying to
                     // paginate. We need to keep the 'forwards' token though, to make sure
@@ -5403,7 +5225,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     const timelineSet = eventTimeline.getTimelineSet();
                     const [timelineEvents, , unknownRelations] = room.partitionThreadedEvents(matrixEvents);
                     timelineSet.addEventsToTimeline(timelineEvents, backwards, false, eventTimeline, token);
-                    this.processAggregatedTimelineEvents(room, timelineEvents);
                     this.processThreadRoots(
                         room,
                         timelineEvents.filter((it) => it.getServerAggregatedRelation(THREAD_RELATION_TYPE.name)),
@@ -5754,20 +5575,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         if (!mute) {
             // Remove the rule only if it is a muting rule
             if (hasDontNotifyRule) {
-                promise = this.deletePushRule(scope, PushRuleKind.RoomSpecific, roomPushRule!.rule_id);
+                promise = this.getPushManager().deletePushRule(scope, PushRuleKind.RoomSpecific, roomPushRule!.rule_id);
             }
         } else {
             if (!roomPushRule) {
-                promise = this.addPushRule(scope, PushRuleKind.RoomSpecific, roomId, {
+                promise = this.getPushManager().createPushRule(scope, PushRuleKind.RoomSpecific, roomId, {
                     actions: [PushRuleActionName.DontNotify],
                 });
             } else if (!hasDontNotifyRule) {
                 // Remove the existing one before setting the mute push rule
                 // This is a workaround to SYN-590 (Push rule update fails)
                 const doneResolvers = Promise.withResolvers<void>();
-                this.deletePushRule(scope, PushRuleKind.RoomSpecific, roomPushRule.rule_id)
+                this.getPushManager().deletePushRule(scope, PushRuleKind.RoomSpecific, roomPushRule.rule_id)
                     .then(() => {
-                        this.addPushRule(scope, PushRuleKind.RoomSpecific, roomId, {
+                        this.getPushManager().createPushRule(scope, PushRuleKind.RoomSpecific, roomId, {
                             actions: [PushRuleActionName.DontNotify],
                         })
                             .then(() => {
@@ -5790,7 +5611,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 // Update this.pushRules when the operation completes
                 promise!
                     .then(() => {
-                        this.getPushRules()
+                        this.getPushManager().getPushRules()
                             .then((result) => {
                                 this.pushRules = result;
                                 resolve();
@@ -5802,7 +5623,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     .catch((err: Error) => {
                         // Update it even if the previous operation fails. This can help the
                         // app to recover when push settings has been modified from another client
-                        this.getPushRules()
+                        this.getPushManager().getPushRules()
                             .then((result) => {
                                 this.pushRules = result;
                                 reject(err);
@@ -7524,26 +7345,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.http.getCurrentUploads();
     }
 
-    /**
-     * @param userId - The user to get profile info for.
-     * @param info - The kind of info to retrieve (e.g. 'displayname',
-     * 'avatar_url').
-     * @returns Promise which resolves: TODO
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getProfileManager().getProfileInfo()` instead.
-     *             This method will be removed in a future version.
-     *             The ProfileManager provides caching and a unified interface for profile operations.
-     */
-    public getProfileInfo(
-        userId: string,
-        info?: string,
-        // eslint-disable-next-line camelcase
-    ): Promise<{ avatar_url?: string; displayname?: string }> {
-        const path = info
-            ? utils.encodeUri("/profile/$userId/$info", { $userId: userId, $info: info })
-            : utils.encodeUri("/profile/$userId", { $userId: userId });
-        return this.http.authedRequest(Method.Get, path);
-    }
 
     /**
      * Determine if the server supports extended profiles, as described by MSC4133.
@@ -7827,162 +7628,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.http.authedRequest<EmptyObject>(Method.Post, path, undefined, data);
     }
 
-    /**
-     * Gets all devices recorded for the logged-in user
-     * @returns Promise which resolves: result object
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getDeviceManager().getDevices()` instead.
-     *             This method will be removed in a future version.
-     *             The DeviceManager provides caching, retry logic, and event emission.
-     */
-    public getDevices(): Promise<{ devices: IMyDevice[] }> {
-        return this.http.authedRequest(Method.Get, "/devices");
-    }
 
-    /**
-     * Gets specific device details for the logged-in user
-     * @param deviceId -  device to query
-     * @returns Promise which resolves: result object
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getDeviceManager().getDevice(deviceId)` instead.
-     *             This method will be removed in a future version.
-     *             The DeviceManager provides caching and better error handling.
-     */
-    public getDevice(deviceId: string): Promise<IMyDevice> {
-        const path = utils.encodeUri("/devices/$device_id", {
-            $device_id: deviceId,
-        });
-        return this.http.authedRequest(Method.Get, path);
-    }
-
-    /**
-     * Update the given device
-     *
-     * @param deviceId -  device to update
-     * @param body -       body of request
-     * @returns Promise which resolves: to an empty object `{}`
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getDeviceManager().updateDevice(deviceId, body)` or
-     *             `client.getDeviceManager().setDeviceDetails(deviceId, body)` instead.
-     *             This method will be removed in a future version.
-     *             The DeviceManager provides caching and event emission.
-     */
-    // eslint-disable-next-line camelcase
-    public setDeviceDetails(deviceId: string, body: { display_name: string }): Promise<EmptyObject> {
-        const path = utils.encodeUri("/devices/$device_id", {
-            $device_id: deviceId,
-        });
-
-        return this.http.authedRequest(Method.Put, path, undefined, body);
-    }
-
-    /**
-     * Delete the given device
-     *
-     * @param deviceId -  device to delete
-     * @param auth - Optional. Auth data to supply for User-Interactive auth.
-     * @returns Promise which resolves: result object
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getDeviceManager().deleteDevice(deviceId, auth)` instead.
-     *             This method will be removed in a future version.
-     *             The DeviceManager provides current device protection and event emission.
-     */
-    public deleteDevice(deviceId: string, auth?: AuthDict): Promise<EmptyObject> {
-        const path = utils.encodeUri("/devices/$device_id", {
-            $device_id: deviceId,
-        });
-
-        const body: Body = {};
-
-        if (auth) {
-            body.auth = auth;
-        }
-
-        return this.http.authedRequest(Method.Delete, path, undefined, body);
-    }
-
-    /**
-     * Delete multiple device
-     *
-     * @param devices - IDs of the devices to delete
-     * @param auth - Optional. Auth data to supply for User-Interactive auth.
-     * @returns Promise which resolves: result object
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getDeviceManager().deleteDevices(devices)` instead.
-     *             This method will be removed in a future version.
-     *             The DeviceManager provides current device protection and event emission.
-     */
-    public deleteMultipleDevices(devices: string[], auth?: AuthDict): Promise<EmptyObject> {
-        const body: Body = { devices };
-
-        if (auth) {
-            body.auth = auth;
-        }
-
-        const path = "/delete_devices";
-        return this.http.authedRequest(Method.Post, path, undefined, body);
-    }
-
-    /**
-     * Gets all pushers registered for the logged-in user
-     *
-     * @returns Promise which resolves: Array of objects representing pushers
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().getPushers()` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching, retry logic, and event emission.
-     */
-    public async getPushers(): Promise<{ pushers: IPusher[] }> {
-        const response = await this.http.authedRequest<{ pushers: IPusher[] }>(Method.Get, "/pushers");
-
-        // Migration path for clients that connect to a homeserver that does not support
-        // MSC3881 yet, see https://github.com/matrix-org/matrix-spec-proposals/blob/kerry/remote-push-toggle/proposals/3881-remote-push-notification-toggling.md#migration
-        if (!(await this.doesServerSupportUnstableFeature("org.matrix.msc3881"))) {
-            response.pushers = response.pushers.map((pusher) => {
-                if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
-                    pusher[PUSHER_ENABLED.name] = true;
-                }
-                return pusher;
-            });
-        }
-
-        return response;
-    }
-
-    /**
-     * Adds a new pusher or updates an existing pusher
-     *
-     * @param pusher - Object representing a pusher
-     * @returns Promise which resolves: Empty json object on success
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().setPusher(pusher)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public setPusher(pusher: IPusherRequest): Promise<EmptyObject> {
-        const path = "/pushers/set";
-        return this.http.authedRequest(Method.Post, path, undefined, pusher);
-    }
-
-    /**
-     * Removes an existing pusher
-     * @param pushKey - pushkey of pusher to remove
-     * @param appId - app_id of pusher to remove
-     * @returns Promise which resolves: Empty json object on success
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().removePusher(pushKey, appId)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public removePusher(pushKey: string, appId: string): Promise<EmptyObject> {
-        const path = "/pushers/set";
-        const body = {
-            pushkey: pushKey,
-            app_id: appId,
-            kind: null, // marks pusher for removal
-        };
-        return this.http.authedRequest(Method.Post, path, undefined, body);
-    }
 
     /**
      * Persists local notification settings
@@ -7997,113 +7643,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.setAccountData(key, notificationSettings);
     }
 
-    /**
-     * Get the push rules for the account from the server.
-     * @returns Promise which resolves to the push rules.
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().getPushRules()` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public getPushRules(): Promise<IPushRules> {
-        return this.http.authedRequest<IPushRules>(Method.Get, "/pushrules/").then((rules: IPushRules) => {
-            this.setPushRules(rules);
-            return this.pushRules!;
-        });
-    }
-
-    /**
-     * Update the push rules for the account. This should be called whenever
-     * updated push rules are available.
-     * @deprecated Use `client.getPushManager().setPushRules(rules)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public setPushRules(rules: IPushRules): void {
-        // Fix-up defaults, if applicable.
-        this.pushRules = PushProcessor.rewriteDefaultRules(this.logger, rules, this.getUserId()!);
-        // Pre-calculate any necessary caches.
-        this.pushProcessor.updateCachedPushRuleKeys(this.pushRules);
-    }
-
-    /**
-     * @returns Promise which resolves: an empty object `{}`
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().addPushRule(scope, kind, ruleId, body)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public addPushRule(
-        scope: string,
-        kind: PushRuleKind,
-        ruleId: Exclude<string, RuleId>,
-        body: Pick<IPushRule, "actions" | "conditions" | "pattern">,
-    ): Promise<EmptyObject> {
-        // NB. Scope not uri encoded because devices need the '/'
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId", {
-            $kind: kind,
-            $ruleId: ruleId,
-        });
-        return this.http.authedRequest(Method.Put, path, undefined, body);
-    }
-
-    /**
-     * @returns Promise which resolves: an empty object `{}`
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().deletePushRule(scope, kind, ruleId)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public deletePushRule(scope: string, kind: PushRuleKind, ruleId: Exclude<string, RuleId>): Promise<EmptyObject> {
-        // NB. Scope not uri encoded because devices need the '/'
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId", {
-            $kind: kind,
-            $ruleId: ruleId,
-        });
-        return this.http.authedRequest(Method.Delete, path);
-    }
-
-    /**
-     * Enable or disable a push notification rule.
-     * @returns Promise which resolves: to an empty object `{}`
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().setPushRuleEnabled(scope, kind, ruleId, enabled)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public setPushRuleEnabled(
-        scope: string,
-        kind: PushRuleKind,
-        ruleId: RuleId | string,
-        enabled: boolean,
-    ): Promise<EmptyObject> {
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId/enabled", {
-            $kind: kind,
-            $ruleId: ruleId,
-        });
-        return this.http.authedRequest(Method.Put, path, undefined, { enabled: enabled });
-    }
-
-    /**
-     * Set the actions for a push notification rule.
-     * @returns Promise which resolves: to an empty object `{}`
-     * @returns Rejects: with an error response.
-     * @deprecated Use `client.getPushManager().setPushRuleActions(scope, kind, ruleId, actions)` instead.
-     *             This method will be removed in a future version.
-     *             The PushManager provides caching and event emission.
-     */
-    public setPushRuleActions(
-        scope: string,
-        kind: PushRuleKind,
-        ruleId: RuleId | string,
-        actions: PushRuleAction[],
-    ): Promise<EmptyObject> {
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId/actions", {
-            $kind: kind,
-            $ruleId: ruleId,
-        });
-        return this.http.authedRequest(Method.Put, path, undefined, { actions: actions });
-    }
 
     /**
      * Perform a server-side search.
@@ -9079,60 +8618,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.canSupport.get(Feature.IntentionalMentions) !== ServerSupport.Unsupported;
     }
 
-    /**
-     * Fetches the summary of a room as defined by an initial version of MSC3266 and implemented in Synapse
-     * Proposed at https://github.com/matrix-org/matrix-doc/pull/3266
-     * @param roomIdOrAlias - The ID or alias of the room to get the summary of.
-     * @param via - The list of servers which know about the room if only an ID was provided.
-     * @deprecated Use `client.getRoomSummaryManager().getRoomSummary(roomIdOrAlias, via)` instead.
-     *             This method will be removed in a future version.
-     *             The RoomSummaryManager provides caching and event emission.
-     */
-    public async getRoomSummary(roomIdOrAlias: string, via?: string[]): Promise<RoomSummary> {
-        const paramOpts = {
-            prefix: ClientPrefix.V3,
-        };
-        try {
-            const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
-            return await this.http.authedRequest(Method.Get, path, { via }, undefined, paramOpts);
-        } catch (e) {
-            const unstableOpts = {
-                prefix: "/_matrix/client/unstable/im.nheko.summary",
-            };
-            const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
-            return await this.http.authedRequest(Method.Get, path, { via }, undefined, unstableOpts);
-        }
-    }
-
-    /**
-     * Get room summary members
-     * @param roomId - The room ID
-     * @returns Array of room summary members (RoomSummaryMember[])
-     * @deprecated Use `client.getRoomSummaryManager().getRoomSummaryMembers(roomId)` instead.
-     *             This method will be removed in a future version.
-     *             The RoomSummaryManager provides caching and event emission.
-     */
-    public async getRoomSummaryMembers(roomId: string): Promise<any[]> {
-        const path = utils.encodeUri("/rooms/$roomid/summary/members", { $roomid: roomId });
-        return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
-            prefix: ClientPrefix.V3,
-        });
-    }
-
-    /**
-     * Get room summary stats
-     * @param roomId - The room ID
-     * @returns Room summary statistics
-     * @deprecated Use `client.getRoomSummaryManager().getRoomSummaryStats(roomId)` instead.
-     *             This method will be removed in a future version.
-     *             The RoomSummaryManager provides caching and event emission.
-     */
-    public async getRoomSummaryStats(roomId: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
-        return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
-            prefix: ClientPrefix.V3,
-        });
-    }
 
     /**
      * Get all rooms for the current user, including join, invite, and leave status.
@@ -9248,25 +8733,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public processThreadRoots(room: Room, threadedEvents: MatrixEvent[], toStartOfTimeline: boolean): void {
         if (!this.supportsThreads()) return;
         room.processThreadRoots(threadedEvents, toStartOfTimeline);
-    }
-
-    public processBeaconEvents(room?: Room, events?: MatrixEvent[]): void {
-        this.processAggregatedTimelineEvents(room, events);
-    }
-
-    /**
-     * Calls aggregation functions for event types that are aggregated
-     * Polls and location beacons
-     * @param room - room the events belong to
-     * @param events - timeline events to be processed
-     * @returns
-     */
-    public processAggregatedTimelineEvents(room?: Room, events?: MatrixEvent[]): void {
-        if (!events?.length) return;
-        if (!room) return;
-
-        room.currentState.processBeaconEvents(events, this);
-        room.processPollEvents(events);
     }
 
     /**

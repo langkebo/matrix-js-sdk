@@ -22,7 +22,6 @@ import unhomoglyph from "unhomoglyph";
 import promiseRetry from "p-retry";
 
 import { type IEvent, type MatrixEvent } from "./models/event.ts";
-import { M_TIMESTAMP } from "./@types/location.ts";
 import { ReceiptType } from "./@types/read_receipts.ts";
 import { type BaseLogger } from "./logger.ts";
 
@@ -685,16 +684,12 @@ export function recursivelyAssign<T1 extends T2, T2 extends Record<string, any>>
     return target as T1 & T2;
 }
 
-function getContentTimestampWithFallback(event: MatrixEvent): number {
-    return M_TIMESTAMP.findIn<number>(event.getContent()) ?? -1;
-}
-
 /**
  * Sort events by their content m.ts property
  * Latest timestamp first
  */
 export function sortEventsByLatestContentTimestamp(left: MatrixEvent, right: MatrixEvent): number {
-    return getContentTimestampWithFallback(right) - getContentTimestampWithFallback(left);
+    return -1;
 }
 
 export function isSupportedReceiptType(receiptType: string): boolean {

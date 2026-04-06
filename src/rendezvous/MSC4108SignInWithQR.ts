@@ -277,7 +277,7 @@ export class MSC4108SignInWithQR {
 
                 let deviceAlreadyExists = true;
                 try {
-                    await this.client?.getDevice(expectingNewDeviceId);
+                    await this.client?.getDeviceManager().getDevice(expectingNewDeviceId);
                 } catch (err: MatrixError | unknown) {
                     if (err instanceof MatrixError && err.httpStatus === 404) {
                         deviceAlreadyExists = false;
@@ -370,7 +370,7 @@ export class MSC4108SignInWithQR {
             do {
                 // is the device visible via the Homeserver?
                 try {
-                    const device = await this.client?.getDevice(this.expectingNewDeviceId);
+                    const device = await this.client?.getDeviceManager().getDevice(this.expectingNewDeviceId);
 
                     if (device) {
                         // if so, return the secrets

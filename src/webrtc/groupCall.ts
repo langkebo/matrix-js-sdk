@@ -1635,8 +1635,8 @@ export class GroupCall extends TypedEventEmitter<
      * devices, and our own device (if we know we haven't entered).
      */
     public async cleanMemberState(): Promise<void> {
-        const { devices: myDevices } = await this.client.getDevices();
-        const deviceMap = new Map<string, IMyDevice>(myDevices.map((d) => [d.device_id, d]));
+        const myDevices = await this.client.getDeviceManager().getDevices();
+        const deviceMap = new Map<string, IMyDevice>(myDevices.map((d: IMyDevice) => [d.device_id, d]));
 
         // updateDevices takes care of filtering out inactive devices for us
         await this.updateDevices((devices) => {

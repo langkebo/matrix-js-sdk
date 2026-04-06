@@ -1615,9 +1615,9 @@ describe("Group Call", function () {
             );
             await groupCall.create();
 
-            mockClient.getDevices = async () => ({
-                devices: [bobWeb, bobDesktop, bobDesktopOffline, bobDesktopNeverOnline],
-            });
+            mockClient.getDeviceManager = () => ({
+                getDevices: async () => [bobWeb, bobDesktop, bobDesktopOffline, bobDesktopNeverOnline],
+            } as any);
         });
 
         afterEach(() => groupCall.leave());

@@ -131,15 +131,14 @@ export class SecurityManager {
         const issues: string[] = [];
         let isSecure = true;
 
-        const devicesResponse = await this.client.getDevices();
-        const devices = devicesResponse.devices;
+        const devices = await this.client.getDeviceManager().getDevices();
 
         if (!devices || devices.length === 0) {
             issues.push("No devices found");
             isSecure = false;
         }
 
-        const hasVerifiedDevices = devices.some(d => {
+        const hasVerifiedDevices = devices.some((d) => {
             return true;
         });
 

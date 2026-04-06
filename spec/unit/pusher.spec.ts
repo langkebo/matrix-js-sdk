@@ -54,16 +54,16 @@ describe("Pushers", () => {
                 ],
             });
 
-            const promise = client.getPushers();
+            const promise = client.getPushManager().getPushers();
 
             await httpBackend.flushAllExpected();
             await flushPromises();
 
             const response = await promise;
 
-            expect(response.pushers[0][PUSHER_ENABLED.name]).toBe(true);
-            expect(response.pushers[1][PUSHER_ENABLED.name]).toBe(true);
-            expect(response.pushers[2][PUSHER_ENABLED.name]).toBe(false);
+            expect((response[0] as any)[PUSHER_ENABLED.name]).toBe(true);
+            expect((response[1] as any)[PUSHER_ENABLED.name]).toBe(true);
+            expect((response[2] as any)[PUSHER_ENABLED.name]).toBe(false);
         });
     });
 });

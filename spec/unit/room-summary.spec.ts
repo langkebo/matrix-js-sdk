@@ -11,33 +11,21 @@ describe("RoomSummaryManager", () => {
     let authedRequest: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        authedRequest = vi.fn().mockResolvedValue({});
+        authedRequest = vi.fn().mockResolvedValue({
+            room_id: "!room:example.com",
+            name: "Test Room",
+            join_rule: "invite",
+            history_visibility: "shared",
+            guest_access: "forbidden",
+            is_direct: false,
+            is_space: false,
+            is_encrypted: false,
+            member_count: 5,
+            joined_member_count: 5,
+            invited_member_count: 0,
+            heroes: [],
+        });
         mockClient = {
-            getRoomSummary: vi.fn().mockResolvedValue({
-                room_id: "!room:example.com",
-                name: "Test Room",
-                join_rule: "invite",
-                history_visibility: "shared",
-                guest_access: "forbidden",
-                is_direct: false,
-                is_space: false,
-                is_encrypted: false,
-                member_count: 5,
-                joined_member_count: 5,
-                invited_member_count: 0,
-                heroes: [],
-            } as RoomSummary),
-            getRoomSummaryMembers: vi.fn().mockResolvedValue([
-                { user_id: "@alice:example.com", membership: "join", is_hero: false },
-            ] as RoomSummaryMember[]),
-            getRoomSummaryStats: vi.fn().mockResolvedValue({
-                room_id: "!room:example.com",
-                total_events: 100,
-                total_state_events: 50,
-                total_messages: 40,
-                total_media: 10,
-                storage_size: 1024,
-            } as RoomStats),
             getRoomHierarchy: vi.fn().mockResolvedValue({
                 rooms: [],
             }),
@@ -69,7 +57,7 @@ describe("RoomSummaryManager", () => {
         });
 
         it("should return null for error", async () => {
-            mockClient.getRoomSummary.mockRejectedValueOnce(new Error("Not found"));
+            authedRequest.mockRejectedValue(new Error("Not found"));
             const summary = await summaryManager.getRoomSummary("!unknown:example.com");
             expect(summary).toBeNull();
         });
@@ -84,11 +72,17 @@ describe("RoomSummaryManager", () => {
 
     describe("getRoomSummaryMembers", () => {
         it("should get room summary members", async () => {
+            authedRequest.mockResolvedValueOnce([
+                { user_id: "@alice:example.com", membership: "join", is_hero: false },
+            ]);
             const members = await summaryManager.getRoomSummaryMembers("!room:example.com");
             expect(members).toEqual([{ user_id: "@alice:example.com", membership: "join", is_hero: false }]);
         });
-        
+
         it("should return RoomSummaryMember[] type", async () => {
+            authedRequest.mockResolvedValueOnce([
+                { user_id: "@alice:example.com", membership: "join", is_hero: false },
+            ]);
             const members = await summaryManager.getRoomSummaryMembers("!room:example.com");
             expect(Array.isArray(members)).toBe(true);
             if (members.length > 0) {
@@ -101,6 +95,14 @@ describe("RoomSummaryManager", () => {
 
     describe("getRoomSummaryStats", () => {
         it("should get room summary stats", async () => {
+            authedRequest.mockResolvedValueOnce({
+                room_id: "!room:example.com",
+                total_events: 100,
+                total_state_events: 50,
+                total_messages: 40,
+                total_media: 10,
+                storage_size: 1024,
+            });
             const stats = await summaryManager.getRoomSummaryStats("!room:example.com");
             expect(stats).toEqual({
                 room_id: "!room:example.com",
@@ -111,8 +113,16 @@ describe("RoomSummaryManager", () => {
                 storage_size: 1024,
             });
         });
-        
+
         it("should return RoomStats type with required fields", async () => {
+            authedRequest.mockResolvedValueOnce({
+                room_id: "!room:example.com",
+                total_events: 100,
+                total_state_events: 50,
+                total_messages: 40,
+                total_media: 10,
+                storage_size: 1024,
+            });
             const stats = await summaryManager.getRoomSummaryStats("!room:example.com");
             expect(stats).toHaveProperty("room_id");
             expect(stats).toHaveProperty("total_events");

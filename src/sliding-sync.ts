@@ -588,6 +588,8 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
      * Start syncing with the server. Blocks until stopped.
      */
     public async start(): Promise<void> {
+        logger.debug("SlidingSync.start() called");
+        console.log("[SlidingSync] start() called, proxyBaseUrl:", this.proxyBaseUrl);
         this.abortController = new AbortController();
 
         let currentPos: string | undefined;
@@ -606,6 +608,8 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                     clientTimeout: this.timeoutMS + BUFFER_PERIOD_MS,
                     extensions: await this.getExtensionRequest(currentPos === undefined),
                 };
+                console.log("[SlidingSync] Sending request, lists:", JSON.stringify(reqLists));
+                logger.debug("SlidingSync sending request");
                 // check if we are (un)subscribing to a room and modify request this one time for it
                 const newSubscriptions = difference(this.desiredRoomSubscriptions, this.confirmedRoomSubscriptions);
                 const unsubscriptions = difference(this.confirmedRoomSubscriptions, this.desiredRoomSubscriptions);
