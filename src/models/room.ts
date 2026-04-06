@@ -100,6 +100,11 @@ interface IOpts {
      */
     timelineSupport?: boolean;
     lazyLoadMembers?: boolean;
+    /**
+     * Maximum number of events to keep in timeline cache.
+     * Default: 1000 events
+     */
+    maxTimelineEvents?: number;
 }
 
 export interface IRecommendedVersion {
@@ -440,6 +445,13 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     private stickyEvents = new RoomStickyEventsStore();
 
     /**
+     * Maximum number of events to keep in timeline cache per room
+     * Can be configured via opts.maxTimelineEvents
+     * Default: 1000 events
+     */
+    private readonly maxTimelineEvents: number;
+
+    /**
      * Construct a new Room.
      *
      * <p>For a room, we store an ordered sequence of timelines, which may or may not
@@ -476,6 +488,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         this.reEmitter = new TypedReEmitter(this);
 
         opts.pendingEventOrdering = opts.pendingEventOrdering || PendingEventOrdering.Chronological;
+        this.maxTimelineEvents = opts.maxTimelineEvents ?? 1000;
 
         this.name = roomId;
         this.normalizedName = roomId;
@@ -3068,6 +3081,30 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         Object.entries(eventsByThread).forEach(([threadId, threadEvents]) => {
             this.addThreadedEvents(threadId, threadEvents, false);
         });
+
+        // Cleanup old events if timeline exceeds max size
+        this.cleanupOldEvents();
+    }
+
+    /**
+     * Cleanup old events from timeline if cache exceeds maxTimelineEvents
+     * This prevents memory leaks in long-running sessions with active rooms
+     */
+    private cleanupOldEvents(): void {
+        const liveTimeline = this.getLiveTimeline();
+        const events = liveTimeline.getEvents();
+
+        if (events.length > this.maxTimelineEvents) {
+            const eventsToRemove = events.length - this.maxTimelineEvents;
+            // Remove oldest events from the beginning of the timeline
+            events.splice(0, eventsToRemove);
+
+            // Log cleanup for monitoring
+            logger.debug(
+                `[Room ${this.roomId}] Cleaned up ${eventsToRemove} old events, ` +
+                `timeline now has ${events.length} events`
+            );
+        }
     }
 
     public partitionThreadedEvents(
