@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import anotherjson from "another-json";
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
 import type { IMegolmSessionData } from "../@types/crypto.ts";
@@ -1413,7 +1412,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
 
         const userSignatures = sigs.get(this.userId) || {};
 
-        const canonalizedJson = anotherjson.stringify(obj);
+        const canonalizedJson = JSON.stringify(obj);
         const signatures: RustSdkCryptoJs.Signatures = await this.olmMachine.sign(canonalizedJson);
 
         const map = JSON.parse(signatures.asJSON());

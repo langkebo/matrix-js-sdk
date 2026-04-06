@@ -18,7 +18,6 @@ limitations under the License.
  * This is an internal module.
  */
 
-import unhomoglyph from "unhomoglyph";
 import promiseRetry from "p-retry";
 
 import { type IEvent, type MatrixEvent } from "./models/event.ts";
@@ -315,13 +314,12 @@ export function isNumber(value: any): value is number {
 
 /**
  * Removes zero width chars, diacritics and whitespace from the string
- * Also applies an unhomoglyph on the string, to prevent similar looking chars
  * @param str - the string to remove hidden characters from
  * @returns a string with the hidden characters removed
  */
 export function removeHiddenChars(str: string): string {
     if (typeof str === "string") {
-        return unhomoglyph(str.normalize("NFD").replace(removeHiddenCharsRegex, ""));
+        return str.normalize("NFD").replace(removeHiddenCharsRegex, "");
     }
     return "";
 }

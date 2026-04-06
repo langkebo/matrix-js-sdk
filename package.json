@@ -152,7 +152,6 @@
     "dependencies": {
         "@babel/runtime": "^7.28.6",
         "@matrix-org/matrix-sdk-crypto-wasm": "^17.1.0",
-        "another-json": "^0.2.0",
         "bs58": "^6.0.0",
         "content-type": "^1.0.5",
         "jwt-decode": "^4.0.0",
@@ -162,7 +161,6 @@
         "oidc-client-ts": "^3.4.1",
         "p-retry": "^7.1.1",
         "sdp-transform": "^3.0.0",
-        "unhomoglyph": "^1.0.6",
         "uuid": "^13.0.0"
     },
     "devDependencies": {
