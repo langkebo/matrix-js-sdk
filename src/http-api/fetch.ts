@@ -46,6 +46,10 @@ export class FetchHttpApi<O extends IHttpOpts> {
         if (!opts.onlyData) {
             throw new Error("Constructing FetchHttpApi without `onlyData=true` is no longer supported.");
         }
+        this.validateBaseUrl(opts.baseUrl, "baseUrl");
+        if (opts.idBaseUrl) {
+            this.validateBaseUrl(opts.idBaseUrl, "idBaseUrl");
+        }
         opts.useAuthorizationHeader = opts.useAuthorizationHeader ?? true;
 
         this.tokenRefresher = new TokenRefresher(opts);
@@ -68,6 +72,9 @@ export class FetchHttpApi<O extends IHttpOpts> {
      * @param url - The new base url
      */
     public setIdBaseUrl(url?: string): void {
+        if (url) {
+            this.validateBaseUrl(url, "idBaseUrl");
+        }
         this.opts.idBaseUrl = url;
     }
 
@@ -362,6 +369,7 @@ export class FetchHttpApi<O extends IHttpOpts> {
      */
     public getUrl(path: string, queryParams?: QueryDict, prefix?: string, baseUrl?: string): URL {
         const baseUrlWithFallback = baseUrl ?? this.opts.baseUrl;
+        this.validateBaseUrl(baseUrlWithFallback, "baseUrl");
         const baseUrlWithoutTrailingSlash = baseUrlWithFallback.endsWith("/")
             ? baseUrlWithFallback.slice(0, -1)
             : baseUrlWithFallback;
@@ -373,5 +381,26 @@ export class FetchHttpApi<O extends IHttpOpts> {
         }
 
         return url;
+    }
+
+    private validateBaseUrl(url: string, optionName: "baseUrl" | "idBaseUrl"): void {
+        let parsedUrl: URL;
+        try {
+            parsedUrl = new URL(url);
+        } catch {
+            throw new Error(`Invalid ${optionName}: ${url}`);
+        }
+
+        if (parsedUrl.protocol === "https:") {
+            return;
+        }
+
+        if (parsedUrl.protocol === "http:" && this.opts.allowInsecureHttp) {
+            return;
+        }
+
+        throw new Error(
+            `Insecure ${optionName} is not allowed: ${url}. Use HTTPS or set allowInsecureHttp=true for local development.`,
+        );
     }
 }

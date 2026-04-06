@@ -2,7 +2,7 @@
 
 exports[`MatrixHttpApi > should return expected object from \`getContentUri\` 1`] = `
 {
-  "base": "http://baseUrl",
+  "base": "https://baseUrl",
   "params": {
     "access_token": "token",
   },

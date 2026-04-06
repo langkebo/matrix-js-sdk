@@ -23,6 +23,12 @@ limitations under the License.
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client";
+
+const VOICE_R0_PREFIX = "/_matrix/client/r0";
+const VOICE_V1_PREFIX = "/_matrix/client/v1";
 
 export enum VoiceEvent {
     StateChanged = "StateChanged",
@@ -306,15 +312,15 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
 
         try {
             const response = await this.client.http.authedRequest(
-                'POST' as any,
-                '/_matrix/client/v3/voice/convert',
+                Method.Post,
+                "/voice/convert",
                 undefined,
                 {
                     input_url: inputUrl,
                     output_format: outputFormat,
                     bitrate,
                 },
-                { prefix: '/_matrix/client/v3' }
+                { prefix: VOICE_R0_PREFIX }
             );
 
             return {
@@ -333,15 +339,15 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
 
         try {
             const response = await this.client.http.authedRequest(
-                'POST' as any,
-                '/_matrix/client/v3/voice/optimize',
+                Method.Post,
+                "/voice/optimize",
                 undefined,
                 {
                     input_url: inputUrl,
                     quality,
                     target_size: targetSize,
                 },
-                { prefix: '/_matrix/client/v3' }
+                { prefix: VOICE_R0_PREFIX }
             );
 
             return {
@@ -361,15 +367,15 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
 
         try {
             const response = await this.client.http.authedRequest(
-                'POST' as any,
-                '/_matrix/client/v3/voice/transcribe',
+                Method.Post,
+                "/voice/transcription",
                 undefined,
                 {
                     audio_url: audioUrl,
                     language,
                     model,
                 },
-                { prefix: '/_matrix/client/v3' }
+                { prefix: VOICE_V1_PREFIX }
             );
 
             return {
@@ -402,17 +408,9 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
         }
 
         try {
-            const response = await this.client.http.authedRequest(
-                'GET' as any,
-                `/_matrix/client/v3/voice/waveform`,
-                { url: mxcUrl },
-                undefined,
-                { prefix: '/_matrix/client/v3' }
-            );
-
-            const waveform = response.waveform || [];
+            const blob = await this.downloadVoiceMessage(mxcUrl);
+            const waveform = await this.generateWaveform(blob);
             this.waveformCache.set(mxcUrl, waveform);
-            
             return waveform;
         } catch (e) {
             logger.warn('VoiceMessageManager.getWaveform failed:', e);
@@ -560,3 +558,17 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
         this.emit(VoiceEvent.StateChanged, 'stopped');
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getVoiceManager(): VoiceMessageManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getVoiceManager = function (): VoiceMessageManager {
+        return new VoiceMessageManager(this);
+    };
+}
+
+export default extendMatrixClient;

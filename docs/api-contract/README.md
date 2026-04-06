@@ -1,69 +1,58 @@
-# Matrix-JS-SDK API 契约文档
+# Matrix JS SDK API 契约目录
 
-> 本目录包含 SDK 与后端的统一接口契约文档
+> 本目录以 `synapse-rust` 当前磁盘代码为准，按“装配入口 -> 路由模块 -> 处理器/提取器”重审。
 
-## 目录结构
+## 审查基线
 
-```
-docs/
-├── api-contract/
-│   ├── auth.md          # 认证 API 契约
-│   ├── room.md          # 房间 API 契约
-│   ├── dm.md            # 私聊 API 契约
-│   ├── friend.md        # 好友管理 API 契约
-│   ├── admin.md         # 管理员 API 契约
-│   ├── space.md         # 空间 API 契约
-│   ├── push.md          # 推送 API 契约
-│   ├── sync.md          # 同步 API 契约
-│   ├── template.md      # 契约模板
-│   ├── VERIFICATION_REPORT.md  # 一致性验证报告
-│   └── CHANGELOG.md     # 变更日志
-```
+- 主装配入口: `synapse-rust/src/web/routes/assembly.rs`
+- 管理端装配入口: `synapse-rust/src/web/routes/admin/mod.rs`
+- 联邦装配入口: `synapse-rust/src/web/routes/federation.rs`
+- 认证提取器: `synapse-rust/src/web/routes/extractors/auth.rs`
+- 条件挂载模块: `SAML`、`OIDC`
 
-## 模块契约索引
+## 文档索引
 
-| 模块 | 契约文件 | API 数量 | 状态 |
-|------|----------|----------|------|
-| Auth | [auth.md](./auth.md) | 5 | ✅ 完整 |
-| Room | [room.md](./room.md) | 11 | ✅ 完整 |
-| DM | [dm.md](./dm.md) | 4 | ✅ 完整 |
-| Friend | [friend.md](./friend.md) | 15+ | ✅ 完整 |
-| Admin | [admin.md](./admin.md) | 20+ | ✅ 完整 |
-| Space | [space.md](./space.md) | 6 | ✅ 完整 |
-| Push | [push.md](./push.md) | 8 | ✅ 完整 |
-| Sync | [sync.md](./sync.md) | 6 | ✅ 完整 |
-| **总计** | | **75+** | |
+| 文档 | 范围 | 说明 |
+|------|------|------|
+| `auth.md` | 认证、账户、目录、公开发现端点 | 覆盖 `assembly.rs` 中 auth/account/directory 顶层路由 |
+| `account-data.md` | 用户级/房间级 account data 与 filter | 覆盖 `account_data.rs` |
+| `admin.md` | `/_synapse/admin/*` | 覆盖用户、房间、媒体、安全、通知、令牌、联邦、报表、保留策略 |
+| `device.md` | 设备管理与设备列表变更 | 覆盖 `device.rs` |
+| `e2ee.md` | 核心 E2EE、设备信任、to-device | 覆盖 `e2ee_routes.rs` |
+| `key-backup.md` | Room key backup / recover / import-export / secure backup | 覆盖 `key_backup.rs` 与 `e2ee_routes.rs` 中 secure backup 路由 |
+| `media.md` | Media API 与配额接口 | 覆盖 `media.rs` |
+| `presence.md` | Presence 状态与 presence list | 覆盖 `presence.rs` |
+| `room.md` | Room 主链路与扩展房间端点 | 覆盖 `room.rs` 的 `r0/v1/v3` 路由树 |
+| `room-summary.md` | Room Summary 读写与内部汇总接口 | 覆盖 `room_summary.rs` |
+| `sync.md` | Sync / Events / Joined Rooms / Sliding Sync | 覆盖 `sync.rs` 与 `sliding_sync.rs` |
+| `push.md` | Pushers / Push Rules / Notifications | 覆盖 `push.rs` |
+| `space.md` | Space CRUD / 层级 / 树路径 | 覆盖 `space.rs` |
+| `dm.md` | DM 创建、direct map、DM 伙伴查询 | 覆盖 `dm.rs` |
+| `friend.md` | 好友、好友请求、分组 | 覆盖 `friend_room.rs` |
+| `verification.md` | SAS/二维码设备校验 | 覆盖 `verification_routes.rs` |
+| `federation.md` | Matrix Federation public/protected 路由 | 覆盖 `federation.rs` |
+| `backend-route-inventory.md` | 已挂载后端路由总表 | 用于补足未单独拆文档的模块 |
+| `VERIFICATION_REPORT.md` | 文档与代码交叉验证说明 | 记录审查方法、已覆盖范围、明确排除项 |
+| `CHANGELOG.md` | 本轮契约修订记录 | 记录重审日期与范围 |
 
-## 使用说明
+## 文档约束
 
-### 契约条目格式
+- 只记录“当前已挂载并可达”的外部路由，不把未挂载文件当成可用 API。
+- 路径与 HTTP 方法以 `Router::route()` / `nest()` / `merge()` 为准。
+- 认证要求以 `AuthenticatedUser`、`AdminUser`、`OptionalAuthenticatedUser` 与联邦中间件为准。
+- 对复杂响应体，只记录代码中稳定可见的字段；若由 service 直接序列化返回，会在备注中标明。
+- 版本兼容路由必须拆开描述，不把 `v1` / `r0` / `v3` 混写为一个虚构端点。
 
-每个 API 契约包含：
-- **后端路由**: Rust 路由路径
-- **HTTP 方法**: GET/POST/PUT/DELETE
-- **SDK 方法**: TypeScript 方法名
-- **SDK 模块**: 所属 Manager
-- **请求参数**: 类型与说明
-- **响应结构**: 返回类型
-- **状态码**: 成功/错误码
-- **对应关系**: 后端/SDK/前端实现位置
+## 当前明确排除
 
-### 验证契约
+以下路由文件存在实现，但当前未在主装配入口挂载，不计入“可达 API 契约”：
 
-```bash
-# 检查契约与代码一致性
-cd /Users/ljf/Desktop/hu/matrix-js-sdk
-pnpm lint:types
+- `synapse-rust/src/web/routes/openclaw.rs`
+- `synapse-rust/src/web/routes/key_rotation.rs`
+- `synapse-rust/src/web/routes/websocket.rs`
 
-# 运行测试
-cd /Users/ljf/Desktop/hu/matrix-js-sdk
-pnpm test -- --run
-```
+## 使用方式
 
-## 更新流程
-
-1. 后端 API 变更 → 更新对应契约文档
-2. SDK 方法变更 → 同步更新契约文档
-3. 运行测试验证一致性
-4. 记录变更到 changelog.md
-5. 运行 `pnpm lint:types` 确保无类型错误
+- 先看对应模块文档，再用 `backend-route-inventory.md` 复核完整覆盖。
+- 后端新增路由时，先更新总表，再补充模块文档。
+- 只要处理器修改了 `Json(...)`、`json!(...)` 或 DTO 字段，就要同步修订契约文档。

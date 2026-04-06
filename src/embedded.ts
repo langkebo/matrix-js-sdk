@@ -458,14 +458,14 @@ export class RoomWidgetClient extends MatrixClient {
         return { event_id: response.event_id! };
     }
 
-    public async sendStateEvent(
+    public async sendStateEvent<K extends keyof StateEvents>(
         roomId: string,
-        eventType: string,
-        content: any,
+        eventType: K,
+        content: StateEvents[K],
         stateKey = "",
     ): Promise<ISendEventResponse> {
         const response = await this.widgetApi
-            .sendStateEvent(eventType, stateKey, content, roomId)
+            .sendStateEvent(eventType as string, stateKey, content, roomId)
             .catch(timeoutToConnectionError);
         if (response.event_id === undefined) {
             throw new Error("'event_id' absent from response to an event request");
@@ -493,7 +493,7 @@ export class RoomWidgetClient extends MatrixClient {
 
         const response = await this.widgetApi
             .sendStateEvent(
-                eventType,
+                eventType as string,
                 stateKey,
                 content,
                 roomId,

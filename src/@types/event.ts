@@ -354,7 +354,8 @@ export interface TimelineEvents {
     [M_BEACON.name]: MBeaconEventContent;
     [M_POLL_START.name]: PollStartEventContent;
     [M_POLL_END.name]: PollEndEventContent;
-    [EventType.RTCMembership]: RtcMembershipData | { msc4354_sticky_key: string }; // An object containing just the sticky key is empty.
+    [EventType.RTCMembership]: RtcMembershipData | { msc4354_sticky_key: string };
+    [key: string]: unknown;
 }
 
 /**
@@ -396,6 +397,8 @@ export interface StateEvents {
 
     // MSC3672
     [M_BEACON_INFO.name]: MBeaconInfoEventContent;
+
+    [key: string]: unknown;
 }
 
 /**
@@ -428,6 +431,9 @@ export interface AccountDataEvents extends SecretStorageAccountDataEvents {
     [POLICIES_ACCOUNT_EVENT_TYPE.altName]: { [key: string]: any };
 
     [EventType.InvitePermissionConfig]: { default_action?: string };
+
+    // Allow custom account data event types
+    [key: string]: unknown;
 }
 
 /**

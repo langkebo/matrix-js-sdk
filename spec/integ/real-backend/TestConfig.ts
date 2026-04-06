@@ -10,14 +10,14 @@ export const TestConfig = {
 
     // 测试用户配置
     testUser: {
-        userId: "@testuser4:cjystx.top",
+        userId: "@sdk_testuser:localhost",
         password: "Test@123",
         deviceId: "TEST_DEVICE"
     },
 
     // 辅助用户
     secondaryUser: {
-        userId: "@testuser5:cjystx.top",
+        userId: "@sdk_testuser2:localhost",
         password: "Test@123"
     },
     

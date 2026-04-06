@@ -1,0 +1,474 @@
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/**
+ * Secure Backup Manager - 安全备份管理
+ * 
+ * 提供口令驱动的安全备份功能
+ * 对应后端: synapse-rust/src/web/routes/e2ee_routes.rs
+ * 
+ * 后端端点:
+ * - POST /keys/backup/secure
+ * - GET /keys/backup/secure/{backup_id}
+ * - DELETE /keys/backup/secure/{backup_id}
+ * - POST /keys/backup/secure/{backup_id}/keys
+ * - POST /keys/backup/secure/{backup_id}/restore
+ * - POST /keys/backup/secure/{backup_id}/verify
+ */
+
+import { MatrixClient } from "../client";
+import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixError } from "../http-api/errors.ts";
+import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
+import { logger } from "../logger.ts";
+
+export interface SecureBackupAuthData {
+    public_key?: string;
+    signatures?: Record<string, Record<string, string>>;
+    [key: string]: unknown;
+}
+
+export interface SecureBackupInfo {
+    backup_id: string;
+    version: string;
+    algorithm: string;
+    auth_data: SecureBackupAuthData;
+    key_count: number;
+}
+
+export interface SessionKey {
+    room_id: string;
+    session_id: string;
+    session_key: string;
+}
+
+export interface SecureBackupKeysResponse {
+    key_count: number;
+}
+
+export interface SecureBackupRestoreResponse {
+    success: boolean;
+    key_count: number;
+    message?: string;
+}
+
+export interface SecureBackupVerifyResponse {
+    valid: boolean;
+}
+
+interface CacheEntry<T> {
+    value: T;
+    timestamp: number;
+}
+
+class LRUCache<T> {
+    private cache = new Map<string, CacheEntry<T>>();
+    private readonly maxSize: number;
+    private readonly ttl: number;
+    private hits = 0;
+    private misses = 0;
+
+    constructor(maxSize: number, ttl: number) {
+        this.maxSize = maxSize;
+        this.ttl = ttl;
+    }
+
+    get(key: string): T | undefined {
+        const entry = this.cache.get(key);
+        if (!entry) {
+            this.misses++;
+            return undefined;
+        }
+
+        if (Date.now() - entry.timestamp > this.ttl) {
+            this.cache.delete(key);
+            this.misses++;
+            return undefined;
+        }
+
+        this.hits++;
+        this.cache.delete(key);
+        this.cache.set(key, entry);
+        return entry.value;
+    }
+
+    set(key: string, value: T): void {
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        } else if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) {
+                this.cache.delete(firstKey);
+            }
+        }
+
+        this.cache.set(key, {
+            value,
+            timestamp: Date.now(),
+        });
+    }
+
+    delete(key: string): boolean {
+        return this.cache.delete(key);
+    }
+
+    clear(): void {
+        this.cache.clear();
+        this.hits = 0;
+        this.misses = 0;
+    }
+
+    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
+        const total = this.hits + this.misses;
+        return {
+            size: this.cache.size,
+            hits: this.hits,
+            misses: this.misses,
+            hitRate: total > 0 ? this.hits / total : 0,
+        };
+    }
+}
+
+export class SecureBackupManager {
+    private client: MatrixClient;
+    private backupCache: LRUCache<SecureBackupInfo>;
+    private readonly maxRetries = 3;
+    private readonly retryDelay = 1000;
+
+    private requestStats = {
+        total: 0,
+        successful: 0,
+        failed: 0,
+        retried: 0,
+    };
+
+    constructor(client: MatrixClient) {
+        this.client = client;
+        this.backupCache = new LRUCache<SecureBackupInfo>(10, 5 * 60 * 1000);
+    }
+
+    /**
+     * 创建安全备份
+     * POST /_matrix/client/v3/keys/backup/secure
+     */
+    async createSecureBackup(passphrase: string): Promise<SecureBackupInfo> {
+        try {
+            const result = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SecureBackupInfo>(
+                    Method.Post,
+                    "/keys/backup/secure",
+                    undefined,
+                    { passphrase },
+                    { prefix: ClientPrefix.V3 }
+                );
+            }, "createSecureBackup");
+
+            this.backupCache.set(result.backup_id, result);
+            return result;
+        } catch (error) {
+            throw this.normalizeError(error, "createSecureBackup");
+        }
+    }
+
+    /**
+     * 获取安全备份
+     * GET /_matrix/client/v3/keys/backup/secure/{backup_id}
+     */
+    async getSecureBackup(backupId: string, forceRefresh = false): Promise<SecureBackupInfo> {
+        if (!forceRefresh) {
+            const cached = this.backupCache.get(backupId);
+            if (cached) {
+                return cached;
+            }
+        }
+
+        try {
+            const result = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SecureBackupInfo>(
+                    Method.Get,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 }
+                );
+            }, "getSecureBackup");
+
+            this.backupCache.set(backupId, result);
+            return result;
+        } catch (error) {
+            throw this.normalizeError(error, "getSecureBackup");
+        }
+    }
+
+    /**
+     * 删除安全备份
+     * DELETE /_matrix/client/v3/keys/backup/secure/{backup_id}
+     */
+    async deleteSecureBackup(backupId: string): Promise<void> {
+        try {
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Delete,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 }
+                );
+            }, "deleteSecureBackup");
+
+            this.backupCache.delete(backupId);
+        } catch (error) {
+            throw this.normalizeError(error, "deleteSecureBackup");
+        }
+    }
+
+    /**
+     * 添加密钥到安全备份
+     * POST /_matrix/client/v3/keys/backup/secure/{backup_id}/keys
+     */
+    async addKeysToSecureBackup(
+        backupId: string,
+        passphrase: string,
+        sessionKeys: SessionKey[]
+    ): Promise<SecureBackupKeysResponse> {
+        try {
+            const result = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SecureBackupKeysResponse>(
+                    Method.Post,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}/keys`,
+                    undefined,
+                    { passphrase, session_keys: sessionKeys },
+                    { prefix: ClientPrefix.V3 }
+                );
+            }, "addKeysToSecureBackup");
+
+            this.backupCache.delete(backupId);
+            return result;
+        } catch (error) {
+            throw this.normalizeError(error, "addKeysToSecureBackup");
+        }
+    }
+
+    /**
+     * 从安全备份恢复
+     * POST /_matrix/client/v3/keys/backup/secure/{backup_id}/restore
+     */
+    async restoreFromSecureBackup(backupId: string, passphrase: string): Promise<SecureBackupRestoreResponse> {
+        try {
+            const result = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SecureBackupRestoreResponse>(
+                    Method.Post,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}/restore`,
+                    undefined,
+                    { passphrase },
+                    { prefix: ClientPrefix.V3 }
+                );
+            }, "restoreFromSecureBackup");
+
+            return result;
+        } catch (error) {
+            throw this.normalizeError(error, "restoreFromSecureBackup");
+        }
+    }
+
+    /**
+     * 验证安全备份
+     * POST /_matrix/client/v3/keys/backup/secure/{backup_id}/verify
+     */
+    async verifySecureBackup(backupId: string, passphrase: string): Promise<SecureBackupVerifyResponse> {
+        try {
+            const result = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SecureBackupVerifyResponse>(
+                    Method.Post,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}/verify`,
+                    undefined,
+                    { passphrase },
+                    { prefix: ClientPrefix.V3 }
+                );
+            }, "verifySecureBackup");
+
+            return result;
+        } catch (error) {
+            throw this.normalizeError(error, "verifySecureBackup");
+        }
+    }
+
+    clearCache(): void {
+        this.backupCache.clear();
+    }
+
+    getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
+        return this.backupCache.getStats();
+    }
+
+    getRequestStats(): typeof this.requestStats {
+        return { ...this.requestStats };
+    }
+
+    resetRequestStats(): void {
+        this.requestStats = {
+            total: 0,
+            successful: 0,
+            failed: 0,
+            retried: 0,
+        };
+    }
+
+    private async withRetry<T>(
+        requestFn: () => Promise<T>,
+        method: string,
+        retries = this.maxRetries
+    ): Promise<T> {
+        let lastError: unknown;
+        const startTime = Date.now();
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const result = await requestFn();
+                this.recordRequest(true, attempt > 0);
+
+                if (attempt > 0) {
+                    logger.info(`SecureBackupManager.${method} succeeded after ${attempt} retries`, {
+                        method,
+                        attempts: attempt + 1,
+                        duration: Date.now() - startTime,
+                    });
+                }
+
+                return result;
+            } catch (error: unknown) {
+                lastError = error;
+
+                if (!this.isRetryableError(error)) {
+                    this.recordRequest(false, false);
+                    this.emitMetric('api_error', method, {
+                        error: this.getErrorType(error),
+                        attempt: attempt + 1,
+                        retryable: false
+                    });
+                    throw error;
+                }
+
+                if (attempt < retries) {
+                    const delay = this.retryDelay * Math.pow(2, attempt);
+                    logger.warn(`SecureBackupManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
+                        method,
+                        attempt: attempt + 1,
+                        maxAttempts: retries + 1,
+                        delay,
+                        error: this.getErrorType(error),
+                    });
+
+                    this.emitMetric('api_retry', method, {
+                        attempt: attempt + 1,
+                        delay,
+                        error: this.getErrorType(error)
+                    });
+
+                    await this.sleep(delay);
+                }
+            }
+        }
+
+        this.recordRequest(false, true);
+        const duration = Date.now() - startTime;
+        this.emitMetric('api_failure', method, {
+            attempts: retries + 1,
+            duration,
+            error: this.getErrorType(lastError)
+        });
+
+        throw lastError;
+    }
+
+    private recordRequest(success: boolean, retried: boolean): void {
+        this.requestStats.total++;
+        if (success) {
+            this.requestStats.successful++;
+        } else {
+            this.requestStats.failed++;
+        }
+        if (retried) {
+            this.requestStats.retried++;
+        }
+    }
+
+    private isRetryableError(error: unknown): boolean {
+        if (error instanceof MatrixError) {
+            const retryableCodes = [
+                "M_LIMIT_EXCEEDED",
+                "M_SERVER_UNAVAILABLE",
+            ];
+            const retryableStatus = [429, 500, 502, 503, 504];
+            return (
+                retryableCodes.includes(error.errcode ?? "") ||
+                retryableStatus.includes(error.httpStatus ?? 0)
+            );
+        }
+        return false;
+    }
+
+    private normalizeError(error: unknown, method: string): SdkError {
+        const err = error as Error;
+        if (error instanceof MatrixError) {
+            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
+                return new AuthError(`SecureBackupManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            }
+            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
+                return new NotFoundError(`SecureBackupManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            }
+            return new ApiError(`SecureBackupManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
+        }
+        return new ApiError(`SecureBackupManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+    }
+
+    private getErrorType(error: unknown): string {
+        if (error instanceof MatrixError) {
+            return error.errcode ?? `http_${error.httpStatus}`;
+        }
+        if (error instanceof Error) {
+            return error.name ?? "UnknownError";
+        }
+        return "UnknownError";
+    }
+
+    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
+        try {
+            logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
+        } catch {
+            // 忽略监控发送错误，不影响主流程
+        }
+    }
+
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getSecureBackupManager(): SecureBackupManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getSecureBackupManager = function (): SecureBackupManager {
+        return new SecureBackupManager(this);
+    };
+}
+
+export default extendMatrixClient;

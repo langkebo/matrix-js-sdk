@@ -17,6 +17,8 @@ import { createClient, type MatrixClient } from "../../../src/matrix";
 import { CrossSigningKey } from "../../../src/crypto-api/index.ts";
 import { TestConfig } from "./TestConfig";
 
+declare const process: { exit: (code?: number) => never };
+
 let clientA: MatrixClient | null = null;
 let clientB: MatrixClient | null = null;
 const testResults: { name: string; passed: boolean; error?: string }[] = [];
@@ -37,6 +39,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
 async function login(user: { userId: string; password: string; deviceId?: string }): Promise<MatrixClient> {
     const testClient = createClient({ 
         baseUrl: TestConfig.baseUrl,
+        allowInsecureHttp: true,
         deviceId: user.deviceId
     });
     const username = user.userId.replace("@", "").split(":")[0];

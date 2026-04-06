@@ -50,7 +50,7 @@ describe("RoomKeyTransport", () => {
             },
         };
         room = makeMockRoom([membershipTemplate]);
-        client = new MatrixClient({ baseUrl: "base_url" });
+        client = new MatrixClient({ baseUrl: "https://example.org" });
         client.matrixRTC.start();
         transport = new RoomKeyTransport(room, client, statistics, {
             getChild: vi.fn().mockReturnValue(mockLogger),

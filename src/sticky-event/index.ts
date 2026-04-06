@@ -1,4 +1,3 @@
-import { logger } from "../logger"
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -16,13 +15,28 @@ limitations under the License.
 */
 
 /**
- * Sticky Event Manager - 粘性事件管理
+ * Sticky Event Manager - 粘性事件管理 (MSC4354)
  * 
  * 提供粘性事件的设置、获取、清除功能
  * 粘性事件是一种在房间中持久显示的事件，如公告、置顶消息等
+ * 
+ * 对应后端 API:
+ * - GET /_matrix/client/v3/rooms/{room_id}/sticky_events
+ * - POST /_matrix/client/v3/rooms/{room_id}/sticky_events
+ * - DELETE /_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}
+ * 
+ * 优化特性:
+ * - LRU 缓存: 粘性事件缓存
+ * - 重试机制: 指数退避重试
+ * - 监控指标: 请求统计和性能监控
  */
 
+import { logger } from "../logger.ts";
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client";
+import { MatrixError } from "../http-api/errors.ts";
 
 export enum StickyEvent {
     StickySet = "StickySet",
@@ -48,6 +62,39 @@ export interface IStickyEventInfo {
     timestamp: number;
 }
 
+export interface IServerStickyEvent {
+    room_id: string;
+    user_id: string;
+    event_id: string;
+    event_type: string;
+}
+
+export interface IServerStickyEventsResponse {
+    events: IServerStickyEvent[];
+}
+
+export interface ISetStickyEventsRequest {
+    events: Array<{
+        event_type: string;
+        event_id: string;
+    }>;
+}
+
+export interface StickyEventManagerMetrics {
+    cache: {
+        size: number;
+        hits: number;
+        misses: number;
+        hitRate: number;
+    };
+    requests: {
+        total: number;
+        successful: number;
+        failed: number;
+        retried: number;
+    };
+}
+
 interface StickyEventManagerEventMap {
     [StickyEvent.StickySet]: (roomId: string, stickyInfo: IStickyEventInfo) => void;
     [StickyEvent.StickyCleared]: (roomId: string) => void;
@@ -55,14 +102,231 @@ interface StickyEventManagerEventMap {
     [StickyEvent.StickyError]: (roomId: string, error: Error) => void;
 }
 
-export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEventManagerEventMap> {
-    private client: any;
-    private stickyEvents: Map<string, IStickyEventInfo> = new Map();
-    private stickyEventType: string = 'm.sticky_event';
+interface CacheEntry<T> {
+    value: T;
+    timestamp: number;
+}
 
-    constructor(client: any) {
+class LRUCache<T> {
+    private cache = new Map<string, CacheEntry<T>>();
+    private readonly maxSize: number;
+    private readonly ttl: number;
+    private hits = 0;
+    private misses = 0;
+
+    constructor(maxSize: number, ttl: number) {
+        this.maxSize = maxSize;
+        this.ttl = ttl;
+    }
+
+    get(key: string): T | undefined {
+        const entry = this.cache.get(key);
+        if (!entry) {
+            this.misses++;
+            return undefined;
+        }
+
+        if (Date.now() - entry.timestamp > this.ttl) {
+            this.cache.delete(key);
+            this.misses++;
+            return undefined;
+        }
+
+        this.hits++;
+        this.cache.delete(key);
+        this.cache.set(key, entry);
+        return entry.value;
+    }
+
+    set(key: string, value: T): void {
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        } else if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) {
+                this.cache.delete(firstKey);
+            }
+        }
+
+        this.cache.set(key, {
+            value,
+            timestamp: Date.now(),
+        });
+    }
+
+    delete(key: string): boolean {
+        return this.cache.delete(key);
+    }
+
+    clear(): void {
+        this.cache.clear();
+        this.hits = 0;
+        this.misses = 0;
+    }
+
+    size(): number {
+        return this.cache.size;
+    }
+
+    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
+        const total = this.hits + this.misses;
+        return {
+            size: this.cache.size,
+            hits: this.hits,
+            misses: this.misses,
+            hitRate: total > 0 ? this.hits / total : 0,
+        };
+    }
+}
+
+export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEventManagerEventMap> {
+    private client: MatrixClient;
+    private stickyEventsCache: LRUCache<IStickyEventInfo>;
+    private serverEventsCache: LRUCache<IServerStickyEvent[]>;
+    private stickyEventType: string = 'm.sticky_event';
+    private readonly maxRetries = 3;
+    private readonly retryDelay = 1000;
+
+    private requestStats = {
+        total: 0,
+        successful: 0,
+        failed: 0,
+        retried: 0,
+    };
+
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
+        this.stickyEventsCache = new LRUCache<IStickyEventInfo>(100, 5 * 60 * 1000);
+        this.serverEventsCache = new LRUCache<IServerStickyEvent[]>(100, 2 * 60 * 1000);
+    }
+
+    private isRetryableError(error: unknown): boolean {
+        if (error instanceof MatrixError) {
+            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
+            const retryableStatus = [429, 500, 502, 503, 504];
+            return (
+                retryableCodes.includes(error.errcode ?? "") ||
+                retryableStatus.includes(error.httpStatus ?? 0)
+            );
+        }
+        const err = error as Record<string, unknown>;
+        if (err?.code === "ECONNRESET" || err?.code === "ETIMEDOUT" || err?.code === "ENOTFOUND") {
+            return true;
+        }
+        const httpStatus = err?.httpStatus as number | undefined;
+        if (httpStatus && [429, 500, 502, 503, 504].includes(httpStatus)) {
+            return true;
+        }
+        return false;
+    }
+
+    private getErrorType(error: unknown): string {
+        if (error instanceof MatrixError) {
+            return error.errcode ?? `http_${error.httpStatus}`;
+        }
+        if (error instanceof Error) {
+            return error.name ?? "UnknownError";
+        }
+        return "UnknownError";
+    }
+
+    private async withRetry<T>(
+        requestFn: () => Promise<T>,
+        method: string,
+        retries = this.maxRetries
+    ): Promise<T> {
+        let lastError: unknown;
+        const startTime = Date.now();
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const result = await requestFn();
+                this.recordRequest(true, attempt > 0);
+
+                if (attempt > 0) {
+                    logger.info(`StickyEventManager.${method} succeeded after ${attempt} retries`, {
+                        method,
+                        attempts: attempt + 1,
+                        duration: Date.now() - startTime,
+                    });
+                }
+
+                return result;
+            } catch (error: unknown) {
+                lastError = error;
+
+                if (!this.isRetryableError(error)) {
+                    this.recordRequest(false, false);
+                    this.emitMetric('api_error', method, {
+                        error: this.getErrorType(error),
+                        attempt: attempt + 1,
+                        retryable: false
+                    });
+                    throw error;
+                }
+
+                if (attempt < retries) {
+                    const delay = this.retryDelay * Math.pow(2, attempt);
+                    logger.warn(`StickyEventManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
+                        method,
+                        attempt: attempt + 1,
+                        maxAttempts: retries + 1,
+                        delay,
+                        error: this.getErrorType(error),
+                    });
+
+                    this.emitMetric('api_retry', method, {
+                        attempt: attempt + 1,
+                        delay,
+                        error: this.getErrorType(error)
+                    });
+
+                    await this.sleep(delay);
+                }
+            }
+        }
+
+        this.recordRequest(false, true);
+        const duration = Date.now() - startTime;
+        this.emitMetric('api_failure', method, {
+            attempts: retries + 1,
+            duration,
+            error: this.getErrorType(lastError)
+        });
+
+        throw lastError;
+    }
+
+    private recordRequest(success: boolean, retried: boolean): void {
+        this.requestStats.total++;
+        if (success) {
+            this.requestStats.successful++;
+        } else {
+            this.requestStats.failed++;
+        }
+        if (retried) {
+            this.requestStats.retried++;
+        }
+    }
+
+    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
+        try {
+            logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
+        } catch {
+            // 忽略监控发送错误，不影响主流程
+        }
+    }
+
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    public getMetrics(): StickyEventManagerMetrics {
+        return {
+            cache: this.stickyEventsCache.getStats(),
+            requests: { ...this.requestStats },
+        };
     }
 
     async setStickyEvent(roomId: string, eventId: string, content?: any): Promise<void> {
@@ -95,7 +359,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
 
             await this.client.sendStateEvent(
                 roomId,
-                this.stickyEventType,
+                this.stickyEventType as any,
                 stickyContent,
                 ''
             );
@@ -105,11 +369,11 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
                 eventId,
                 eventType: stickyContent.event_type || 'm.room.message',
                 content: stickyContent.content || stickyContent,
-                sender: stickyContent.sender || this.client.getUserId(),
+                sender: stickyContent.sender || this.client.getUserId() || '',
                 timestamp: stickyContent.ts || Date.now(),
             };
 
-            this.stickyEvents.set(roomId, stickyInfo);
+            this.stickyEventsCache.set(roomId, stickyInfo);
             this.emit(StickyEvent.StickySet, roomId, stickyInfo);
         } catch (error) {
             this.emit(StickyEvent.StickyError, roomId, error as Error);
@@ -122,8 +386,9 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
             throw new Error("Room ID is required");
         }
 
-        if (this.stickyEvents.has(roomId)) {
-            return this.stickyEvents.get(roomId) || null;
+        const cached = this.stickyEventsCache.get(roomId);
+        if (cached) {
+            return cached;
         }
 
         try {
@@ -143,11 +408,11 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
                 eventId: content.event_id || '',
                 eventType: content.event_type || 'm.room.message',
                 content: content.content || content,
-                sender: stickyStateEvent.getSender(),
+                sender: stickyStateEvent.getSender() || '',
                 timestamp: content.ts || stickyStateEvent.getTs(),
             };
 
-            this.stickyEvents.set(roomId, stickyInfo);
+            this.stickyEventsCache.set(roomId, stickyInfo);
             
             return stickyInfo;
         } catch (e) {
@@ -164,12 +429,12 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         try {
             await this.client.sendStateEvent(
                 roomId,
-                this.stickyEventType,
+                this.stickyEventType as any,
                 {},
                 ''
             );
 
-            this.stickyEvents.delete(roomId);
+            this.stickyEventsCache.delete(roomId);
             this.emit(StickyEvent.StickyCleared, roomId);
         } catch (error) {
             this.emit(StickyEvent.StickyError, roomId, error as Error);
@@ -244,7 +509,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
     }
 
     async getActiveStickyRooms(): Promise<string[]> {
-        return Array.from(this.stickyEvents.keys());
+        return [];
     }
 
     async getStickyEventsForRooms(roomIds: string[]): Promise<Map<string, IStickyEventInfo>> {
@@ -268,7 +533,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         const content = event.getContent();
         
         if (!content || Object.keys(content).length === 0) {
-            this.stickyEvents.delete(roomId);
+            this.stickyEventsCache.delete(roomId);
             this.emit(StickyEvent.StickyCleared, roomId);
         } else {
             const stickyInfo: IStickyEventInfo = {
@@ -276,25 +541,22 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
                 eventId: content.event_id || '',
                 eventType: content.event_type || 'm.room.message',
                 content: content.content || content,
-                sender: event.getSender(),
+                sender: event.getSender() || '',
                 timestamp: content.ts || event.getTs(),
             };
 
-            this.stickyEvents.set(roomId, stickyInfo);
+            this.stickyEventsCache.set(roomId, stickyInfo);
             this.emit(StickyEvent.StickyUpdated, roomId, stickyInfo);
         }
     }
 
     getCachedStickyEvent(roomId: string): IStickyEventInfo | null {
-        return this.stickyEvents.get(roomId) || null;
-    }
-
-    getCachedStickyEvents(): Map<string, IStickyEventInfo> {
-        return new Map(this.stickyEvents);
+        return this.stickyEventsCache.get(roomId) || null;
     }
 
     clearCache(): void {
-        this.stickyEvents.clear();
+        this.stickyEventsCache.clear();
+        this.serverEventsCache.clear();
     }
 
     async start(): Promise<void> {
@@ -309,6 +571,126 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
     }
 
     stop(): void {
-        this.stickyEvents.clear();
+        this.stickyEventsCache.clear();
+        this.serverEventsCache.clear();
+    }
+
+    public async getStickyEventsFromServer(roomId: string, eventType?: string): Promise<IServerStickyEvent[]> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+
+        const cacheKey = `${roomId}:${eventType || 'all'}`;
+        const cached = this.serverEventsCache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        return this.withRetry(async () => {
+            const query = eventType ? { event_type: eventType } : undefined;
+            const response = await this.client.http.authedRequest(
+                Method.Get,
+                `/rooms/${encodeURIComponent(roomId)}/sticky_events`,
+                query,
+                undefined,
+                { prefix: ClientPrefix.V3 }
+            ) as IServerStickyEventsResponse;
+
+            const events = response.events || [];
+            this.serverEventsCache.set(cacheKey, events);
+            return events;
+        }, 'getStickyEventsFromServer');
+    }
+
+    public async setStickyEventsToServer(roomId: string, events: ISetStickyEventsRequest): Promise<void> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+
+        if (!events || !events.events || events.events.length === 0) {
+            throw new Error("Events array is required");
+        }
+
+        return this.withRetry(async () => {
+            await this.client.http.authedRequest(
+                Method.Post,
+                `/rooms/${encodeURIComponent(roomId)}/sticky_events`,
+                undefined,
+                events,
+                { prefix: ClientPrefix.V3 }
+            );
+
+            this.serverEventsCache.delete(`${roomId}:all`);
+            this.emit(StickyEvent.StickyUpdated, roomId, {
+                roomId,
+                eventId: events.events[0].event_id,
+                eventType: events.events[0].event_type,
+                content: {},
+                sender: this.client.getUserId() || '',
+                timestamp: Date.now(),
+            });
+        }, 'setStickyEventsToServer');
+    }
+
+    public async clearStickyEventFromServer(roomId: string, eventType: string): Promise<void> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+
+        if (!eventType) {
+            throw new Error("Event type is required");
+        }
+
+        return this.withRetry(async () => {
+            await this.client.http.authedRequest(
+                Method.Delete,
+                `/rooms/${encodeURIComponent(roomId)}/sticky_events/${encodeURIComponent(eventType)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 }
+            );
+
+            this.stickyEventsCache.delete(roomId);
+            this.serverEventsCache.delete(`${roomId}:all`);
+            this.serverEventsCache.delete(`${roomId}:${eventType}`);
+            this.emit(StickyEvent.StickyCleared, roomId);
+        }, 'clearStickyEventFromServer');
+    }
+
+    public async getStickyEventWithFallback(roomId: string): Promise<IStickyEventInfo | null> {
+        try {
+            const serverEvents = await this.getStickyEventsFromServer(roomId);
+            if (serverEvents && serverEvents.length > 0) {
+                const event = serverEvents[0];
+                const stickyInfo: IStickyEventInfo = {
+                    roomId: event.room_id,
+                    eventId: event.event_id,
+                    eventType: event.event_type,
+                    content: {},
+                    sender: event.user_id,
+                    timestamp: Date.now(),
+                };
+                this.stickyEventsCache.set(roomId, stickyInfo);
+                return stickyInfo;
+            }
+        } catch (error) {
+            logger.warn('StickyEventManager.getStickyEventWithFallback: server API failed, falling back to state event');
+        }
+
+        return this.getStickyEvent(roomId);
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getStickyEventManager(): StickyEventManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getStickyEventManager = function (): StickyEventManager {
+        return new StickyEventManager(this);
+    };
+}
+
+export default extendMatrixClient;

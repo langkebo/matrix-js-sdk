@@ -1,0 +1,2848 @@
+{
+  "metadata": {
+    "source_file": "synapse-rust/scripts/test/api-integration_test.sh",
+    "total_tests": 584,
+    "generated_at": "2026-04-02",
+    "description": "API inventory extracted from integration test file"
+  },
+  "modules": {
+    "Authentication & Account": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/login",
+          "method": "POST",
+          "params": {
+            "body": ["type", "user", "password", "device_id"]
+          },
+          "response_fields": ["user_id", "device_id", "access_token", "refresh_token"],
+          "test_name": "Login"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/register",
+          "method": "POST",
+          "params": {
+            "body": ["username", "password", "auth"]
+          },
+          "response_fields": ["access_token", "user_id", "device_id", "refresh_token"],
+          "test_name": "Register User v3"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/account/whoami",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["user_id"],
+          "test_name": "WhoAmI"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/refresh",
+          "method": "POST",
+          "params": {
+            "body": ["refresh_token"]
+          },
+          "response_fields": ["access_token", "refresh_token"],
+          "test_name": "Refresh Token"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/account/3pid",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["threepids"],
+          "test_name": "Get 3PID Bindings"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/register/nonce",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["nonce"],
+          "test_name": "Admin Register Nonce"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/register",
+          "method": "POST",
+          "params": {
+            "body": ["nonce", "username", "password", "admin", "mac"]
+          },
+          "response_fields": ["access_token", "user_id"],
+          "test_name": "Admin Register User"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/login/sso/redirect",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "SSO Login"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/login/sso/userinfo",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "SSO User Info"
+        }
+      ]
+    },
+    "Room Management": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/createRoom",
+          "method": "POST",
+          "params": {
+            "body": ["name", "topic", "preset", "room_type"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Create Room"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/state",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room State"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/state/m.room.topic",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id"],
+            "body": ["topic"]
+          },
+          "response_fields": ["event_id"],
+          "test_name": "Set Room Topic"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/invite",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Invite User"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/join/{room_id}",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Join Room"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/leave",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Leave Room"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/kick",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_id", "reason"]
+          },
+          "response_fields": [],
+          "test_name": "Kick User"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/ban",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_id", "reason"]
+          },
+          "response_fields": [],
+          "test_name": "Ban User"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/unban",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Unban User"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/joined_members",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["joined"],
+          "test_name": "Joined Members"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/members",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"],
+            "query": ["not_limit"]
+          },
+          "response_fields": ["chunk"],
+          "test_name": "Get Members"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/membership/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "user_id"]
+          },
+          "response_fields": ["chunk", "membership"],
+          "test_name": "Get Membership"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/directory/room/{room_alias}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_alias"],
+            "body": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Set Room Alias"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/directory/room/{room_alias}",
+          "method": "GET",
+          "params": {
+            "path": ["room_alias"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Get Room Alias"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/upgrade",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["new_version"]
+          },
+          "response_fields": ["replacement_room"],
+          "test_name": "Upgrade Room"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/version",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_version"],
+          "test_name": "Get Room Version"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/joined_rooms",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["joined_rooms"],
+          "test_name": "Joined Rooms"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/my_rooms",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["rooms"],
+          "test_name": "My Rooms"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id", "event_id", "txn_id"],
+            "body": ["reason"]
+          },
+          "response_fields": ["event_id"],
+          "test_name": "Redact Event"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/typing/{user_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id", "user_id"],
+            "body": ["typing", "timeout"]
+          },
+          "response_fields": [],
+          "test_name": "Room Typing"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/read_markers",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["fully_read", "read"]
+          },
+          "response_fields": [],
+          "test_name": "Room Read Markers"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/invite_blocklist",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["blocklist"],
+          "test_name": "Get Invite Blocklist"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/invite_blocklist",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_ids"]
+          },
+          "response_fields": [],
+          "test_name": "Set Invite Blocklist"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/invite_allowlist",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["allowlist"],
+          "test_name": "Get Invite Allowlist"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/invite_allowlist",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_ids"]
+          },
+          "response_fields": [],
+          "test_name": "Set Invite Allowlist"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/retention",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Retention Policy"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/invites",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Invites"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/vault_data",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Vault Data"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/vault_data",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Set Vault Data"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/pinned_events",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Pinned Events"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Permissions"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/state/m.room.tombstone",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Tombstone"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/external_ids",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room External IDs"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/directory/list/room/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Visibility"
+        }
+      ]
+    },
+    "Messages & Events": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/send/m.room.message/{txn_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id", "txn_id"],
+            "body": ["msgtype", "body"]
+          },
+          "response_fields": ["event_id"],
+          "test_name": "Send Message"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/messages",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"],
+            "query": ["limit", "dir"]
+          },
+          "response_fields": ["chunk"],
+          "test_name": "Room Messages"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/context/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": ["context", "event"],
+          "test_name": "Room Context"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/event/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Event"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Relations"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id", "rel_type"]
+          },
+          "response_fields": [],
+          "test_name": "Get Relation Types"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id", "rel_type"]
+          },
+          "response_fields": [],
+          "test_name": "Get Aggregation"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/report/{event_id}",
+          "method": "POST",
+          "params": {
+            "path": ["room_id", "event_id"],
+            "body": ["reason", "score"]
+          },
+          "response_fields": [],
+          "test_name": "Report Event"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/receipts/{receipt_type}/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "receipt_type", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Receipts"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/receipt/{receipt_type}/{event_id}",
+          "method": "POST",
+          "params": {
+            "path": ["room_id", "receipt_type", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Post Receipt"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/timestamp_to_event",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"],
+            "body": ["stream_ordering", "ts"]
+          },
+          "response_fields": [],
+          "test_name": "Timestamp to Event"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/hierarchy",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["hierarchy", "rooms", "next_batch"],
+          "test_name": "Room Hierarchy"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/search",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["search"]
+          },
+          "response_fields": [],
+          "test_name": "Room Search"
+        }
+      ]
+    },
+    "Profile": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/profile/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["displayname"],
+          "test_name": "Get Profile"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/profile/{user_id}/displayname",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id"],
+            "body": ["displayname"]
+          },
+          "response_fields": [],
+          "test_name": "Update Displayname"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/profile/{user_id}/avatar_url",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["avatar_url"],
+          "test_name": "Get Avatar URL"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/profile/{user_id}/avatar_url",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id"],
+            "body": ["avatar_url"]
+          },
+          "response_fields": [],
+          "test_name": "Set Avatar URL"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/profile/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Profile v1"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/profile/{user_id}/displayname",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id"],
+            "body": ["displayname"]
+          },
+          "response_fields": [],
+          "test_name": "Set Profile v1"
+        }
+      ]
+    },
+    "Media": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/media/config",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["m.upload.size"],
+          "test_name": "Media Config"
+        },
+        {
+          "endpoint": "/_matrix/media/v3/upload",
+          "method": "POST",
+          "params": {
+            "header": ["Content-Type"]
+          },
+          "response_fields": ["content_uri"],
+          "test_name": "Media Upload"
+        },
+        {
+          "endpoint": "/_matrix/media/v3/download/{server_name}/{media_id}",
+          "method": "GET",
+          "params": {
+            "path": ["server_name", "media_id"]
+          },
+          "response_fields": [],
+          "test_name": "Media Download"
+        },
+        {
+          "endpoint": "/_matrix/media/v3/thumbnail/{server_name}/{media_id}",
+          "method": "GET",
+          "params": {
+            "path": ["server_name", "media_id"],
+            "query": ["width", "height"]
+          },
+          "response_fields": [],
+          "test_name": "Media Thumbnail"
+        },
+        {
+          "endpoint": "/_matrix/media/v3/config",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["m.upload.size"],
+          "test_name": "Media Config v3"
+        },
+        {
+          "endpoint": "/_matrix/media/r0/config",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["m.upload.size"],
+          "test_name": "Media Config r0"
+        },
+        {
+          "endpoint": "/_matrix/media/r0/upload",
+          "method": "POST",
+          "params": {
+            "header": ["Content-Type"]
+          },
+          "response_fields": ["content_uri"],
+          "test_name": "Media Upload r0"
+        },
+        {
+          "endpoint": "/_matrix/media/v1/config",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["m.upload.size"],
+          "test_name": "Media Config v1"
+        }
+      ]
+    },
+    "Device Management": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/devices",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["devices"],
+          "test_name": "List Devices"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/devices/{device_id}",
+          "method": "GET",
+          "params": {
+            "path": ["device_id"]
+          },
+          "response_fields": ["device_id"],
+          "test_name": "Get Device"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/devices/{device_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["device_id"],
+            "body": ["display_name"]
+          },
+          "response_fields": [],
+          "test_name": "Update Device"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/devices/{device_id}",
+          "method": "DELETE",
+          "params": {
+            "path": ["device_id"]
+          },
+          "response_fields": [],
+          "test_name": "Delete Device"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/devices",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["devices"],
+          "test_name": "List Devices r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/delete_devices",
+          "method": "POST",
+          "params": {
+            "body": ["devices"]
+          },
+          "response_fields": [],
+          "test_name": "Delete Devices r0"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/device_trust",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["devices"],
+          "test_name": "Device Trust"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/device_trust/{device_id}",
+          "method": "GET",
+          "params": {
+            "path": ["device_id"]
+          },
+          "response_fields": [],
+          "test_name": "Device Trust by ID"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/device_verification/request",
+          "method": "POST",
+          "params": {
+            "body": ["new_device_id", "method"]
+          },
+          "response_fields": ["request_token", "status"],
+          "test_name": "Device Verification Request"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/device_verification/respond",
+          "method": "POST",
+          "params": {
+            "body": ["request_token", "approved"]
+          },
+          "response_fields": ["success"],
+          "test_name": "Device Verification Respond"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/device_verification/status/{request_token}",
+          "method": "GET",
+          "params": {
+            "path": ["request_token"]
+          },
+          "response_fields": ["status"],
+          "test_name": "Device Verification Status"
+        }
+      ]
+    },
+    "E2EE Keys": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/keys/upload",
+          "method": "POST",
+          "params": {
+            "body": ["one_time_keys", "device_keys"]
+          },
+          "response_fields": ["one_time_key_counts"],
+          "test_name": "Upload Keys"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/query",
+          "method": "POST",
+          "params": {
+            "body": ["device_keys"]
+          },
+          "response_fields": ["device_keys", "failures"],
+          "test_name": "Query Keys"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/claim",
+          "method": "POST",
+          "params": {
+            "body": ["one_time_keys"]
+          },
+          "response_fields": ["one_time_keys", "failures"],
+          "test_name": "Claim Keys"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/changes",
+          "method": "GET",
+          "params": {
+            "query": ["from", "to"]
+          },
+          "response_fields": ["changed", "left"],
+          "test_name": "Get Keys Changes"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/signatures/upload",
+          "method": "POST",
+          "params": {
+            "body": ["signatures"]
+          },
+          "response_fields": [],
+          "test_name": "Keys Upload Signature"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/device_signing/upload",
+          "method": "POST",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Keys Device Signing Upload"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/keys/upload",
+          "method": "POST",
+          "params": {
+            "body": ["one_time_keys"]
+          },
+          "response_fields": ["one_time_key_counts"],
+          "test_name": "Keys Upload r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/keys/query",
+          "method": "POST",
+          "params": {
+            "body": ["device_keys"]
+          },
+          "response_fields": ["device_keys", "failures"],
+          "test_name": "Keys Query r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/keys/claim",
+          "method": "POST",
+          "params": {
+            "body": ["one_time_keys"]
+          },
+          "response_fields": ["one_time_keys", "failures"],
+          "test_name": "Keys Claim r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/keys/changes",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["changed", "left"],
+          "test_name": "Keys Changes r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/keys/device_signing/upload",
+          "method": "POST",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Keys Device Signing Upload r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/keys/signatures/upload",
+          "method": "POST",
+          "params": {
+            "body": ["signatures"]
+          },
+          "response_fields": [],
+          "test_name": "Keys Signatures Upload r0"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/security/summary",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Security Summary"
+        }
+      ]
+    },
+    "Key Backup": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/version",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["versions"],
+          "test_name": "Get Key Backup Versions"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/version",
+          "method": "POST",
+          "params": {
+            "body": ["algorithm", "auth_data"]
+          },
+          "response_fields": ["version"],
+          "test_name": "Create Key Backup"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/version/{version}",
+          "method": "DELETE",
+          "params": {
+            "path": ["version"]
+          },
+          "response_fields": [],
+          "test_name": "Delete Key Backup Version"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/backup",
+          "method": "PUT",
+          "params": {
+            "body": ["rooms"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Backup"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/backup",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get Room Keys Backup"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/{room_id}/session/{session_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "session_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Key"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/{room_id}/session/{session_id}",
+          "method": "DELETE",
+          "params": {
+            "path": ["room_id", "session_id"]
+          },
+          "response_fields": [],
+          "test_name": "Delete Room Key"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/request",
+          "method": "POST",
+          "params": {
+            "body": ["algorithm", "room_id", "session_id", "request_type"]
+          },
+          "response_fields": [],
+          "test_name": "Create Room Key Request"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/request",
+          "method": "GET",
+          "params": {
+            "query": ["status"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Key Requests"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/room_keys/request/{request_id}",
+          "method": "DELETE",
+          "params": {
+            "path": ["request_id"]
+          },
+          "response_fields": [],
+          "test_name": "Delete Room Key Request"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/backup/secure",
+          "method": "POST",
+          "params": {
+            "body": ["passphrase"]
+          },
+          "response_fields": ["backup_id"],
+          "test_name": "Keys Backup Secure"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/backup/secure/{backup_id}",
+          "method": "GET",
+          "params": {
+            "path": ["backup_id"]
+          },
+          "response_fields": ["backup_id", "algorithm"],
+          "test_name": "Keys Backup Secure by ID"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/backup/secure/{backup_id}/keys",
+          "method": "POST",
+          "params": {
+            "path": ["backup_id"],
+            "body": ["passphrase", "session_keys"]
+          },
+          "response_fields": ["key_count"],
+          "test_name": "Keys Backup Secure Keys"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/backup/secure/{backup_id}/restore",
+          "method": "POST",
+          "params": {
+            "path": ["backup_id"],
+            "body": ["passphrase"]
+          },
+          "response_fields": ["success", "key_count"],
+          "test_name": "Keys Backup Secure Restore"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/keys/backup/secure/{backup_id}/verify",
+          "method": "POST",
+          "params": {
+            "path": ["backup_id"],
+            "body": ["passphrase"]
+          },
+          "response_fields": ["valid"],
+          "test_name": "Keys Backup Secure Verify"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/version",
+          "method": "POST",
+          "params": {
+            "body": ["algorithm", "auth_data"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Version Create"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/version",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Room Keys Version Get"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/keys",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Room Keys Keys Get"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/keys/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Keys Room Get"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "session_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Keys Room Session Get"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id", "session_id"],
+            "body": ["key", "algorithm"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Keys Room Session Put"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/backup",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Room Keys Backup Get"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/backup",
+          "method": "PUT",
+          "params": {
+            "body": ["backup"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Backup Put"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/room_keys/version/{version}",
+          "method": "DELETE",
+          "params": {
+            "path": ["version"]
+          },
+          "response_fields": [],
+          "test_name": "Room Keys Version Delete"
+        }
+      ]
+    },
+    "Admin API": {
+      "apis": [
+        {
+          "endpoint": "/_synapse/admin/v1/users",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["users"],
+          "test_name": "Admin List Users"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["name"],
+          "test_name": "Admin User Details"
+        },
+        {
+          "endpoint": "/_synapse/admin/v2/users/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["user_id"],
+          "test_name": "Admin Get User v2"
+        },
+        {
+          "endpoint": "/_synapse/admin/v2/users/{user_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id"],
+            "body": ["password", "deactivated"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Update User v2"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/user_sessions/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["sessions"],
+          "test_name": "Admin User Sessions"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/user_stats",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["total_users"],
+          "test_name": "Admin User Stats"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/devices",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["devices"],
+          "test_name": "Admin User Devices"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/devices/delete",
+          "method": "POST",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["devices_deleted"],
+          "test_name": "Admin Delete Devices"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/password",
+          "method": "POST",
+          "params": {
+            "path": ["user_id"],
+            "body": ["new_password"]
+          },
+          "response_fields": [],
+          "test_name": "Admin User Password"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/admin",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id"],
+            "body": ["admin"]
+          },
+          "response_fields": ["success"],
+          "test_name": "Admin Set User Admin"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/deactivate",
+          "method": "POST",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Deactivate User"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/evict",
+          "method": "POST",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Evict User"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/shadow_ban",
+          "method": "POST",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Shadow Ban User"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/tokens",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["tokens"],
+          "test_name": "Admin List User Tokens"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/rooms",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["rooms"],
+          "test_name": "Admin User Rooms"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/rate_limit",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Rate Limit"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/account/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["user_id"],
+          "test_name": "Admin Account Details"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/users/{user_id}/pushers",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["pushers", "total"],
+          "test_name": "List Pushers"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["rooms"],
+          "test_name": "Admin List Rooms"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Admin Room Details"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/members",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["members"],
+          "test_name": "Admin Room Members"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/messages",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["chunk"],
+          "test_name": "Admin Room Messages"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/block",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["block"]
+          },
+          "response_fields": ["block"],
+          "test_name": "Admin Room Block"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/unblock",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["block"],
+          "test_name": "Admin Room Unblock"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/state",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["state"],
+          "test_name": "Admin Room State"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}",
+          "method": "DELETE",
+          "params": {
+            "path": ["room_id"],
+            "body": ["new_room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Room Delete"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/make_admin",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Room Make Admin"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/room_stats/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Admin Room Stats"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/search",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"],
+            "body": ["search_term"]
+          },
+          "response_fields": ["results"],
+          "test_name": "Admin Room Search"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/listings",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Admin Room Listings"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/aliases",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Admin List Room Aliases"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/reports",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["reports", "total"],
+          "test_name": "Get Room Reports"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/forward_extremities",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["forward_extremities"],
+          "test_name": "Room Forward Extremities"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/event_context/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": ["event"],
+          "test_name": "Admin Room Event"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/rooms/{room_id}/token_sync",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_id", "results", "total"],
+          "test_name": "Admin Room Token Sync"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/shutdown_room",
+          "method": "POST",
+          "params": {
+            "body": ["room_id", "user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Shutdown Room"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/statistics",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Admin Statistics"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/server_version",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Admin Version"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/background_updates",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "List Background Updates"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/event_reports",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "List Event Reports"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/registration_tokens",
+          "method": "GET",
+          "params": {
+            "query": ["active"]
+          },
+          "response_fields": ["registration_tokens"],
+          "test_name": "List Registration Tokens"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/registration_tokens",
+          "method": "POST",
+          "params": {
+            "body": ["uses_allowed", "expiry_time"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Create Registration Token"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/send_server_notice",
+          "method": "POST",
+          "params": {
+            "body": ["user_id", "content"]
+          },
+          "response_fields": ["event_id", "room_id", "notice_id"],
+          "test_name": "Send Server Notice"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/media/quota",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get Media Quota"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/destinations",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["destinations"],
+          "test_name": "Admin Federation Destinations"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/destinations/{destination}",
+          "method": "GET",
+          "params": {
+            "path": ["destination"]
+          },
+          "response_fields": ["destination"],
+          "test_name": "Admin Federation Destination Details"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/resolve",
+          "method": "POST",
+          "params": {
+            "body": ["server_name"]
+          },
+          "response_fields": ["server_name"],
+          "test_name": "Admin Federation Resolve"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/rewrite",
+          "method": "POST",
+          "params": {
+            "body": ["from", "to"]
+          },
+          "response_fields": ["rewritten"],
+          "test_name": "Admin Federation Rewrite"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/blacklist",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["blacklist"],
+          "test_name": "Admin Federation Blacklist"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/blacklist/{server}",
+          "method": "POST",
+          "params": {
+            "path": ["server"],
+            "body": ["reason"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Add Federation Blacklist"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/blacklist/{server}",
+          "method": "DELETE",
+          "params": {
+            "path": ["server"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Remove Federation Blacklist"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/cache/clear",
+          "method": "POST",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Admin Federation Cache Clear"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/federation/destinations/{destination}/reset_connection",
+          "method": "POST",
+          "params": {
+            "path": ["destination"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Reset Federation Connection"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/spaces",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["spaces"],
+          "test_name": "Admin List Spaces"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/spaces/{space_id}/rooms",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": ["rooms"],
+          "test_name": "Admin Space Rooms"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/spaces/{space_id}/stats",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": ["space_id", "member_count"],
+          "test_name": "Admin Space Stats"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/spaces/{space_id}/users",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": ["users"],
+          "test_name": "Admin Space Users"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/purge_history",
+          "method": "POST",
+          "params": {
+            "body": ["room_id", "before_ts"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Purge History"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/retention/policy",
+          "method": "POST",
+          "params": {
+            "body": ["max_lifetime", "min_lifetime"]
+          },
+          "response_fields": [],
+          "test_name": "Admin Set Retention Policy"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/audit/events",
+          "method": "GET",
+          "params": {
+            "query": ["from", "limit"]
+          },
+          "response_fields": [],
+          "test_name": "Admin List Audit Events"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/feature-flags",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["flags", "total"],
+          "test_name": "Get Feature Flags"
+        },
+        {
+          "endpoint": "/_synapse/admin/v1/appservices",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "List App Services"
+        }
+      ]
+    },
+    "Space API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/createRoom",
+          "method": "POST",
+          "params": {
+            "body": ["name", "preset", "room_type"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Create Space"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/children",
+          "method": "POST",
+          "params": {
+            "path": ["space_id"],
+            "body": ["room_id", "via_servers", "suggested"]
+          },
+          "response_fields": [],
+          "test_name": "Add Space Child"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/public",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get Public Spaces"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/user",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get User Spaces"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/members",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Space Members"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/state",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Space State"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/children",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"],
+            "query": ["limit"]
+          },
+          "response_fields": [],
+          "test_name": "Get Space Children"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/hierarchy",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": [],
+          "test_name": "Space Hierarchy"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/hierarchy/v1",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": [],
+          "test_name": "Space Hierarchy v1"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/summary/with_children",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": [],
+          "test_name": "Space Summary with Children"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/{space_id}/tree_path",
+          "method": "GET",
+          "params": {
+            "path": ["space_id"]
+          },
+          "response_fields": [],
+          "test_name": "Space Tree Path"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/search",
+          "method": "GET",
+          "params": {
+            "query": ["search_term"]
+          },
+          "response_fields": [],
+          "test_name": "Space Search"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/statistics",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Space Statistics"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/spaces/room/{room_id}/parents",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Space Room Parents"
+        }
+      ]
+    },
+    "Thread API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v1/rooms/{room_id}/threads",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["threads"],
+          "test_name": "Get Threads"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/thread/{thread_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "thread_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Thread"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/threads",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get User Threads"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/rooms/{room_id}/threads/search",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"],
+            "query": ["q"]
+          },
+          "response_fields": [],
+          "test_name": "Thread Search"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/rooms/{room_id}/threads/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Thread ID"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads",
+          "method": "GET",
+          "params": {
+            "path": ["user_id", "room_id"]
+          },
+          "response_fields": [],
+          "test_name": "User Threads"
+        }
+      ]
+    },
+    "DM API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/create_dm",
+          "method": "POST",
+          "params": {
+            "body": ["user_id"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Create DM"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/direct",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["rooms"],
+          "test_name": "Get Direct Rooms"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/direct/{room_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id"],
+            "body": ["users"]
+          },
+          "response_fields": [],
+          "test_name": "Update Direct Room"
+        }
+      ]
+    },
+    "Push API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/pushrules",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["global"],
+          "test_name": "Get Push Rules"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/pushrules/global",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["global"],
+          "test_name": "Get Push Rules Global"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/pushers/set",
+          "method": "POST",
+          "params": {
+            "body": ["pushkey", "kind", "app_id", "app_display_name", "device_display_name", "lang", "data"]
+          },
+          "response_fields": [],
+          "test_name": "Set Pusher"
+        }
+      ]
+    },
+    "Presence API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/presence/{user_id}/status",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id"],
+            "body": ["presence", "status_msg"]
+          },
+          "response_fields": [],
+          "test_name": "Update Presence"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/presence/{user_id}/status",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["presence"],
+          "test_name": "Get Presence"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/presence/list",
+          "method": "POST",
+          "params": {
+            "body": ["subscribe"]
+          },
+          "response_fields": ["presences"],
+          "test_name": "Presence Subscribe"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/presence/list/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["presences"],
+          "test_name": "List Presences"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/presence/{user_id}/status",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Presence v1"
+        }
+      ]
+    },
+    "Sync & Filter": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/sync",
+          "method": "GET",
+          "params": {
+            "query": ["timeout", "filter"]
+          },
+          "response_fields": ["next_batch", "rooms"],
+          "test_name": "Sync"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/filter",
+          "method": "POST",
+          "params": {
+            "path": ["user_id"],
+            "body": ["room"]
+          },
+          "response_fields": ["filter_id"],
+          "test_name": "Create Filter"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/filter/{filter_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id", "filter_id"]
+          },
+          "response_fields": ["room"],
+          "test_name": "Get Filter"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/events",
+          "method": "GET",
+          "params": {
+            "query": ["roomId"]
+          },
+          "response_fields": ["chunk"],
+          "test_name": "Events"
+        }
+      ]
+    },
+    "Account Data": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/account_data/{type}",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Set User Account Data"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/account_data/{type}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Get User Account Data"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id", "room_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Set Room Account Data"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id", "room_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Account Data"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/user/{user_id}/account_data/{type}",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Set User Account Data r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/user/{user_id}/account_data/{type}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Get User Account Data r0"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id", "room_id", "type"]
+          },
+          "response_fields": [],
+          "test_name": "Set Room Account Data r0"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/account_data/",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["account_data"],
+          "test_name": "Get All User Account Data"
+        }
+      ]
+    },
+    "Room Tags": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}",
+          "method": "PUT",
+          "params": {
+            "path": ["user_id", "room_id", "tag"]
+          },
+          "response_fields": [],
+          "test_name": "Add Room Tag"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags",
+          "method": "GET",
+          "params": {
+            "path": ["user_id", "room_id"]
+          },
+          "response_fields": ["tags"],
+          "test_name": "Get Room Tags"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}",
+          "method": "DELETE",
+          "params": {
+            "path": ["user_id", "room_id", "tag"]
+          },
+          "response_fields": [],
+          "test_name": "Remove Room Tag"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/tags",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Global Tags"
+        }
+      ]
+    },
+    "Room Summary": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["room_id"],
+          "test_name": "Room Summary"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/stats",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["total_events", "room_id"],
+          "test_name": "Room Summary Stats"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/members",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Summary Members"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/state",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Summary State"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Summary Heroes"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Summary Stats Recalculate"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/sync",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Summary Sync"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/summary/unread/clear",
+          "method": "POST",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Room Summary Unread Clear"
+        }
+      ]
+    },
+    "Public Rooms & Directory": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/publicRooms",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["chunk"],
+          "test_name": "Public Rooms"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user_directory/search",
+          "method": "POST",
+          "params": {
+            "body": ["search_term", "limit"]
+          },
+          "response_fields": ["results", "limited"],
+          "test_name": "User Directory"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/user_directory/profiles/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "User Directory Profile"
+        }
+      ]
+    },
+    "Search": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/search",
+          "method": "POST",
+          "params": {
+            "body": ["search_categories"]
+          },
+          "response_fields": [],
+          "test_name": "Search v3"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/search_rooms",
+          "method": "POST",
+          "params": {
+            "body": ["search_term", "limit"]
+          },
+          "response_fields": [],
+          "test_name": "Search Rooms"
+        }
+      ]
+    },
+    "OpenID Token": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/user/{user_id}/openid/request_token",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["access_token", "expires_in"],
+          "test_name": "Request OpenID Token"
+        }
+      ]
+    },
+    "Well-Known": {
+      "apis": [
+        {
+          "endpoint": "/.well-known/matrix/client",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["m.homeserver"],
+          "test_name": "Well-Known Client"
+        },
+        {
+          "endpoint": "/.well-known/matrix/server",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["m.server"],
+          "test_name": "Well-Known Server"
+        },
+        {
+          "endpoint": "/.well-known/openid-configuration",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["issuer"],
+          "test_name": "Well-Known OIDC"
+        },
+        {
+          "endpoint": "/.well-known/matrix/federation",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Federation Discovery"
+        }
+      ]
+    },
+    "Server Version": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/versions",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["versions"],
+          "test_name": "Server Version"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/version",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["server_version"],
+          "test_name": "Server Version r0"
+        },
+        {
+          "endpoint": "/health",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Health endpoint"
+        }
+      ]
+    },
+    "Capabilities": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/capabilities",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["capabilities"],
+          "test_name": "Capabilities"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/rooms/{room_id}/capabilities",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Room Capabilities"
+        }
+      ]
+    },
+    "VoIP": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/voip/config",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["turn_servers"],
+          "test_name": "VoIP Config"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/voip/turnServer",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["uris"],
+          "test_name": "VoIP TURN Server"
+        }
+      ]
+    },
+    "Friend API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v1/friends",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["friends"],
+          "test_name": "Get Friends"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/request",
+          "method": "POST",
+          "params": {
+            "body": ["user_id"]
+          },
+          "response_fields": ["request_id", "status"],
+          "test_name": "Friend Request"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/requests/incoming",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["requests"],
+          "test_name": "Incoming Friend Requests"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/requests/outgoing",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get Outgoing Friend Requests"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/groups",
+          "method": "POST",
+          "params": {
+            "body": ["name"]
+          },
+          "response_fields": ["id", "name"],
+          "test_name": "Create Friend Group"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/groups",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["groups"],
+          "test_name": "List Friend Groups"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/groups/{group_id}",
+          "method": "GET",
+          "params": {
+            "path": ["group_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Group Details"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/groups/{group_id}/name",
+          "method": "PUT",
+          "params": {
+            "path": ["group_id"],
+            "body": ["name"]
+          },
+          "response_fields": [],
+          "test_name": "Rename Friend Group"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/groups/{group_id}/friends",
+          "method": "GET",
+          "params": {
+            "path": ["group_id"]
+          },
+          "response_fields": ["friends"],
+          "test_name": "Get Group Friends"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/friends/{user_id}/groups",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["groups"],
+          "test_name": "Get User Groups"
+        }
+      ]
+    },
+    "SendToDevice": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/sendToDevice/{event_type}/{txn_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["event_type", "txn_id"],
+            "body": ["messages"]
+          },
+          "response_fields": [],
+          "test_name": "Send To Device"
+        },
+        {
+          "endpoint": "/_matrix/client/r0/sendToDevice/{event_type}/{txn_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["event_type", "txn_id"],
+            "body": ["messages"]
+          },
+          "response_fields": [],
+          "test_name": "SendToDevice r0"
+        }
+      ]
+    },
+    "Federation API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/federation/v1/version",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["version"],
+          "test_name": "Federation Version"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/backfill/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"],
+            "query": ["limit"]
+          },
+          "response_fields": ["origin", "origin_server_ts"],
+          "test_name": "Federation Backfill"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/event/{event_id}",
+          "method": "GET",
+          "params": {
+            "path": ["event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Get Event"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/event_auth/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Event Auth"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/get_joining_rules/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Get Joining Rules"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/keys/query",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Federation Keys Query"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/keys/claim",
+          "method": "POST",
+          "params": {
+            "body": ["one_time_keys"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Keys Claim"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/keys/upload",
+          "method": "POST",
+          "params": {
+            "body": ["one_time_keys"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Keys Upload"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/make_join/{room_id}/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Make Join"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/make_leave/{room_id}/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id", "user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Make Leave"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/members/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Members"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/publicRooms",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["chunk"],
+          "test_name": "Federation Public Rooms"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/query/directory/room/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Query Directory"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/query/profile/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Query Profile"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/room_auth/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Room Auth"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/state/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["state", "auth_chain"],
+          "test_name": "Federation State"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/state_ids/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": ["state_ids", "pdu_events"],
+          "test_name": "Federation State IDs"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/user/devices/{user_id}",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": ["devices", "user_id"],
+          "test_name": "Federation User Devices"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/openid/userinfo",
+          "method": "GET",
+          "params": {
+            "query": ["access_token"]
+          },
+          "response_fields": ["sub"],
+          "test_name": "Federation OpenID Userinfo"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/groups/{group_id}",
+          "method": "GET",
+          "params": {
+            "path": ["group_id"]
+          },
+          "response_fields": ["profile", "user"],
+          "test_name": "Federation Groups"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/hierarchy/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Hierarchy"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/timestamp_to_event/{room_id}",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Timestamp to Event"
+        },
+        {
+          "endpoint": "/_matrix/federation/v2/invite/{room_id}/{event_id}",
+          "method": "POST",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation v2 Invite"
+        },
+        {
+          "endpoint": "/_matrix/federation/v2/send_join/{room_id}/{event_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation v2 Send Join"
+        },
+        {
+          "endpoint": "/_matrix/federation/v2/send_leave/{room_id}/{event_id}",
+          "method": "PUT",
+          "params": {
+            "path": ["room_id", "event_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation v2 Send Leave"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/thirdparty/invite",
+          "method": "POST",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Federation Thirdparty Invite"
+        },
+        {
+          "endpoint": "/_matrix/federation/v1/knock/{room_id}/{user_id}",
+          "method": "POST",
+          "params": {
+            "path": ["room_id", "user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Federation Knock"
+        }
+      ]
+    },
+    "Identity Service": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/identity/v1/store-invite",
+          "method": "POST",
+          "params": {
+            "body": ["medium", "address"]
+          },
+          "response_fields": [],
+          "test_name": "Identity Store Invite"
+        },
+        {
+          "endpoint": "/_matrix/identity/v1/keys/pubkey",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Identity Get Published Keys"
+        },
+        {
+          "endpoint": "/_matrix/identity/v1/lookup",
+          "method": "POST",
+          "params": {
+            "body": ["addresses"]
+          },
+          "response_fields": [],
+          "test_name": "Identity Lookup"
+        },
+        {
+          "endpoint": "/_matrix/identity/v1/requestToken",
+          "method": "POST",
+          "params": {
+            "body": ["email", "client_secret", "send_attempt"]
+          },
+          "response_fields": [],
+          "test_name": "Identity Request"
+        }
+      ]
+    },
+    "Thirdparty Protocols": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v3/thirdparty/protocols",
+          "method": "GET",
+          "params": {},
+          "response_fields": ["irc"],
+          "test_name": "Get Thirdparty Protocols"
+        },
+        {
+          "endpoint": "/_matrix/client/v3/thirdparty/protocol/{protocol}",
+          "method": "GET",
+          "params": {
+            "path": ["protocol"]
+          },
+          "response_fields": ["user_fields", "location_fields"],
+          "test_name": "Get Thirdparty Protocol"
+        }
+      ]
+    },
+    "Widget API": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v1/widgets",
+          "method": "POST",
+          "params": {
+            "body": ["room_id", "widget_type", "url", "name", "data"]
+          },
+          "response_fields": ["widget"],
+          "test_name": "Create Widget"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/widgets/{widget_id}/config",
+          "method": "GET",
+          "params": {
+            "path": ["widget_id"]
+          },
+          "response_fields": ["widget_id", "room_id"],
+          "test_name": "Widget Config"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config",
+          "method": "GET",
+          "params": {
+            "path": ["room_id"]
+          },
+          "response_fields": [],
+          "test_name": "Jitsi Config"
+        }
+      ]
+    },
+    "App Service": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/app/v1/{path}",
+          "method": "GET",
+          "params": {
+            "path": ["path"]
+          },
+          "response_fields": [],
+          "test_name": "App Service Query"
+        }
+      ]
+    },
+    "Rendezvous": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v1/rendezvous",
+          "method": "POST",
+          "params": {
+            "body": ["intent", "transport"]
+          },
+          "response_fields": ["session_id"],
+          "test_name": "Create Rendezvous Session"
+        },
+        {
+          "endpoint": "/_matrix/client/v1/rendezvous/{session_id}",
+          "method": "GET",
+          "params": {
+            "path": ["session_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get Rendezvous Session"
+        }
+      ]
+    },
+    "Client Config": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v1/config/client",
+          "method": "GET",
+          "params": {},
+          "response_fields": [],
+          "test_name": "Get Client Config"
+        }
+      ]
+    },
+    "User Appservice": {
+      "apis": [
+        {
+          "endpoint": "/_matrix/client/v1/user/{user_id}/appservice",
+          "method": "GET",
+          "params": {
+            "path": ["user_id"]
+          },
+          "response_fields": [],
+          "test_name": "Get User Appservice"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "total_apis": 350,
+    "by_module": {
+      "Authentication & Account": 9,
+      "Room Management": 35,
+      "Messages & Events": 13,
+      "Profile": 6,
+      "Media": 8,
+      "Device Management": 11,
+      "E2EE Keys": 13,
+      "Key Backup": 26,
+      "Admin API": 70,
+      "Space API": 14,
+      "Thread API": 6,
+      "DM API": 3,
+      "Push API": 3,
+      "Presence API": 5,
+      "Sync & Filter": 4,
+      "Account Data": 9,
+      "Room Tags": 4,
+      "Room Summary": 8,
+      "Public Rooms & Directory": 3,
+      "Search": 2,
+      "OpenID Token": 1,
+      "Well-Known": 4,
+      "Server Version": 3,
+      "Capabilities": 2,
+      "VoIP": 2,
+      "Friend API": 10,
+      "SendToDevice": 2,
+      "Federation API": 27,
+      "Identity Service": 4,
+      "Thirdparty Protocols": 2,
+      "Widget API": 3,
+      "App Service": 1,
+      "Rendezvous": 2,
+      "Client Config": 1,
+      "User Appservice": 1
+    }
+  }
+}

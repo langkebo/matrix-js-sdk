@@ -20,7 +20,14 @@ limitations under the License.
  * 提供房间密钥分享相关功能
  */
 
-import { MatrixClient } from "../client";
+import {
+    type ICreateRoomKeyRequest,
+    type IGetRoomKeyRequestsQuery,
+    type IRoomKeyRequestCreateResponse,
+    type IRoomKeyRequestsResponse,
+    MatrixClient,
+} from "../client";
+import { type EmptyObject } from "../@types/common";
 
 export class RoomKeySharingManager {
     constructor(private client: MatrixClient) {}
@@ -36,9 +43,33 @@ export class RoomKeySharingManager {
     /**
      * Request room key
      */
-    public async requestRoomKey(roomId: string, eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).requestRoomKey(roomId, eventId);
+    public async requestRoomKey(
+        roomId: string,
+        sessionId: string,
+        algorithm = "m.megolm.v1.aes-sha2",
+        requestType = "request",
+    ): Promise<IRoomKeyRequestCreateResponse> {
+        const request: ICreateRoomKeyRequest = {
+            algorithm,
+            room_id: roomId,
+            session_id: sessionId,
+            request_type: requestType,
+        };
+        return this.client.requestRoomKey(request);
+    }
+
+    /**
+     * List room key requests
+     */
+    public async getRoomKeyRequests(query: IGetRoomKeyRequestsQuery = {}): Promise<IRoomKeyRequestsResponse> {
+        return this.client.getRoomKeyRequests(query);
+    }
+
+    /**
+     * Delete room key request
+     */
+    public async deleteRoomKeyRequest(requestId: string): Promise<EmptyObject> {
+        return this.client.deleteRoomKeyRequest(requestId);
     }
 
     /**

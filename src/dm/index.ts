@@ -24,17 +24,21 @@ limitations under the License.
  * 错误位置: room.getAccountData(EventType.Direct)
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { NotificationCountType } from "../models/room.ts";
 import { EventType } from "../@types/event.ts";
-import { MatrixClient } from "../client.ts";
+import { MatrixClient } from "../client";
 import type { Room } from "../models/room.ts";
 import type { RoomMember } from "../models/room-member.ts";
 import type { MatrixEvent } from "../models/event.ts";
+import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
+import { SdkError } from "../errors.ts";
+import { BaseManager } from "../managers/base-manager.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError, SdkError } from "../errors.ts";
+import { AuthError, NotFoundError, ApiError } from "../errors.ts";
 
 export enum DMEvent {
     DMCreated = "DMCreated",
@@ -69,6 +73,26 @@ export interface IDirectRoomsMap {
     [userId: string]: string[];
 }
 
+export interface CreateDmRoomResponse {
+    room_id: string;
+}
+
+export interface DirectRoomsResponse {
+    rooms: IDirectRoomsMap;
+}
+
+export interface DmRoomCheckResponse {
+    room_id: string;
+    "m.direct": boolean;
+}
+
+export interface DmPartnerResponse {
+    room_id: string;
+    user_id: string;
+    display_name: string;
+    avatar_url: string;
+}
+
 interface DirectMessageManagerEventMap {
     [DMEvent.DMCreated]: (roomId: string, userIds: string[]) => void;
     [DMEvent.DMLeft]: (roomId: string) => void;
@@ -82,25 +106,30 @@ interface ICreateRoomResponse {
 
 /**
  * Direct Message Manager - 私信管理
- * 
+ *
  * ⚠️ 重要说明：
  * - m.direct 是存储在用户 account data 中的映射表，格式为 { [userId]: [roomId, ...] }
  * - 不要在 room 级别读取 m.direct，应该在 client 级别读取
  * - DM 房间的判断需要结合 m.direct 映射和房间成员关系
+ *
+ * 后端实现: synapse-rust/src/web/routes/dm.rs
  */
-export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessageManagerEventMap> {
-    private client: MatrixClient;
-    private dmRooms: Map<string, DmRoomInfo> = new Map();
-    private userDmMap: Map<string, string> = new Map();
+export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageManagerEventMap> {
+    private dmRoomsCache: LRUCache<DmRoomInfo>;
+    private userDmMapCache: LRUCache<string>;
     private isInitialized: boolean = false;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
+
+        this.dmRoomsCache = new LRUCache<DmRoomInfo>(100, 5 * 60 * 1000);
+        this.userDmMapCache = new LRUCache<string>(200, 10 * 60 * 1000);
     }
 
     /**
      * 创建私信
+     * 
+     * 后端实现: synapse-rust/src/web/routes/dm.rs:185-200
      * 
      * @param options - 创建选项
      * @returns 新创建的 DM 房间 ID
@@ -146,7 +175,10 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
         }
 
         try {
-            const response = await this.client.createRoom(createOptions) as ICreateRoomResponse;
+            const response = await this.withRetry(async () => {
+                return await this.client.createRoom(createOptions) as ICreateRoomResponse;
+            });
+
             const roomId = response.room_id;
 
             const dmInfo: DmRoomInfo = {
@@ -154,12 +186,11 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
                 invitees: opts.userIds,
             };
 
-            this.dmRooms.set(roomId, dmInfo);
+            this.dmRoomsCache.set(roomId, dmInfo);
             opts.userIds.forEach(userId => {
-                this.userDmMap.set(userId, roomId);
+                this.userDmMapCache.set(userId, roomId);
             });
 
-            // 更新 m.direct account data
             await this.setDmRoom(roomId, opts.userIds[0]);
 
             this.emit(DMEvent.DMCreated, roomId, opts.userIds);
@@ -167,8 +198,7 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
 
             return roomId;
         } catch (error) {
-            logger.error('DirectMessageManager.createDm failed:', error);
-            throw error;
+            throw this.normalizeError(error, "createDm");
         }
     }
 
@@ -180,6 +210,8 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      *
      * 优先使用 m.direct 映射获取 DM，如果映射为空或不完整，
      * 会回退到扫描所有房间来识别 DM 房间
+     *
+     * 后端实现: synapse-rust/src/web/routes/dm.rs:242-254
      *
      * @returns DM 房间信息列表
      */
@@ -196,25 +228,21 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
 
             let foundFromDirectMap = 0;
 
-            // 遍历所有 DM 映射关系
             for (const [userId, roomIds] of Object.entries(dmMap)) {
                 for (const roomId of roomIds as string[]) {
-                    // 查找对应的房间
                     const room = rooms.find(r => r.roomId === roomId);
                     if (room) {
-                        // 检查用户是否仍是该 DM 房间的成员（包括已加入和邀请状态）
                         const membership = room.getMyMembership();
                         if (membership === 'join' || membership === 'invite') {
                             const dmInfo = await this.buildDmRoomInfo(room, userId);
                             dmRooms.push(dmInfo);
-                            this.dmRooms.set(roomId, dmInfo);
+                            this.dmRoomsCache.set(roomId, dmInfo);
                             foundFromDirectMap++;
                         }
                     }
                 }
             }
 
-            // 回退机制：如果 m.direct 映射获取的 DM 数量为 0，尝试从房间特征识别
             if (foundFromDirectMap === 0) {
                 const fallbackDmRooms = await this.getDMRoomsFromRoomScan();
                 for (const room of fallbackDmRooms) {
@@ -226,7 +254,6 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
 
             return dmRooms;
         } catch (e) {
-            logger.warn('DirectMessageManager.getDMRooms failed:', e);
             throw this.normalizeError(e, 'getDMRooms');
         }
     }
@@ -246,26 +273,22 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
         }
 
         for (const room of rooms) {
-            // 跳过大型群聊（成员数 > 2）
             const memberCount = room.getJoinedMembers().length;
             if (memberCount > 2) {
                 continue;
             }
 
-            // 检查是否是 DM：成员数为 2 且当前用户是成员
             const membership = room.getMyMembership();
             if (membership === 'join' || membership === 'invite') {
-                // 获取其他成员
                 const otherMembers = room.getJoinedMembers().filter(
                     (m: RoomMember) => m.userId !== currentUserId
                 );
 
-                // 如果只有 1 个其他成员，认为是 DM
                 if (otherMembers.length === 1) {
                     const dmPartner = otherMembers[0].userId;
                     const dmInfo = await this.buildDmRoomInfo(room, dmPartner);
                     dmRooms.push(dmInfo);
-                    this.dmRooms.set(room.roomId, dmInfo);
+                    this.dmRoomsCache.set(room.roomId, dmInfo);
                 }
             }
         }
@@ -336,9 +359,9 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
 
     /**
      * 从 m.direct 获取 DM 伙伴用户 ID
-     * 
+     *
      * ⚠️ m.direct 是用户级别的 account data，格式为 { [userId]: [roomId, ...] }
-     * 
+     *
      * @param roomId - 房间 ID
      * @returns DM 伙伴用户 ID 或 null
      */
@@ -350,20 +373,6 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
             }
         }
         return null;
-    }
-
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`DirectMessageManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`DirectMessageManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
-            }
-            return new ApiError(`DirectMessageManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode, error.httpStatus, error);
-        }
-        return new ApiError(`DirectMessageManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
     }
 
     /**
@@ -390,9 +399,9 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      * @returns DM 房间 ID 或 null
      */
     async getDmForUser(userId: string): Promise<string | null> {
-        // 先检查缓存
-        if (this.userDmMap.has(userId)) {
-            return this.userDmMap.get(userId) || null;
+        const cached = this.userDmMapCache.get(userId);
+        if (cached) {
+            return cached;
         }
 
         try {
@@ -401,13 +410,12 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
             
             if (roomIds && roomIds.length > 0) {
                 const roomId = roomIds[0];
-                this.userDmMap.set(userId, roomId);
+                this.userDmMapCache.set(userId, roomId);
                 return roomId;
             }
 
             return null;
         } catch (e) {
-            logger.warn('DirectMessageManager.getDmForUser failed:', e);
             throw this.normalizeError(e, 'getDmForUser');
         }
     }
@@ -423,22 +431,22 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
         }
 
         try {
-            await this.client.leave(roomId);
+            await this.withRetry(async () => {
+                return await this.client.leave(roomId);
+            });
 
-            // 清理缓存
-            const dmInfo = this.dmRooms.get(roomId);
+            const dmInfo = this.dmRoomsCache.get(roomId);
             if (dmInfo) {
                 dmInfo.invitees.forEach(userId => {
-                    this.userDmMap.delete(userId);
+                    this.userDmMapCache.delete(userId);
                 });
             }
-            this.dmRooms.delete(roomId);
+            this.dmRoomsCache.delete(roomId);
 
             this.emit(DMEvent.DMLeft, roomId);
             this.emit(DMEvent.ListUpdated);
         } catch (error) {
-            logger.error('DirectMessageManager.leaveDm failed:', error);
-            throw error;
+            throw this.normalizeError(error, 'leaveDm');
         }
     }
 
@@ -487,7 +495,7 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
             // ⚠️ m.direct 是用户级别的 account data
             await this.client.setAccountData(EventType.Direct, dmMap);
 
-            this.userDmMap.set(userId, roomId);
+            this.userDmMapCache.set(userId, roomId);
             this.emit(DMEvent.ListUpdated);
         } catch (error) {
             logger.error('DirectMessageManager.setDmRoom failed:', error);
@@ -516,11 +524,11 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
             // ⚠️ m.direct 是用户级别的 account data
             await this.client.setAccountData(EventType.Direct, dmMap);
 
-            if (this.userDmMap.get(userId) === roomId) {
-                this.userDmMap.delete(userId);
+            if (this.userDmMapCache.get(userId) === roomId) {
+                this.userDmMapCache.delete(userId);
             }
             
-            this.dmRooms.delete(roomId);
+            this.dmRoomsCache.delete(roomId);
             this.emit(DMEvent.ListUpdated);
         } catch (error) {
             logger.error('DirectMessageManager.removeDmRoom failed:', error);
@@ -535,9 +543,9 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      * @returns DM 房间信息
      */
     async getDmRoomInfo(roomId: string): Promise<DmRoomInfo | null> {
-        // 先检查缓存
-        if (this.dmRooms.has(roomId)) {
-            return this.dmRooms.get(roomId) || null;
+        const cached = this.dmRoomsCache.get(roomId);
+        if (cached) {
+            return cached;
         }
 
         try {
@@ -548,11 +556,10 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
 
             const dmPartner = this.getDmPartnerFromDirect(roomId);
             const dmInfo = await this.buildDmRoomInfo(room, dmPartner ?? undefined);
-            this.dmRooms.set(roomId, dmInfo);
+            this.dmRoomsCache.set(roomId, dmInfo);
             
             return dmInfo;
         } catch (e) {
-            logger.warn('DirectMessageManager.getDmRoomInfo failed:', e);
             throw this.normalizeError(e, 'getDmRoomInfo');
         }
     }
@@ -564,18 +571,20 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      */
     async markDmAsRead(roomId: string): Promise<void> {
         try {
-            const room = this.client.getRoom(roomId);
-            if (room) {
-                const timeline = room.getLiveTimeline();
-                const events = timeline.getEvents();
-                const lastEvent = events[events.length - 1];
-                if (lastEvent) {
-                    await this.client.setRoomReadMarkers(roomId, lastEvent.getId()!, lastEvent);
+            await this.withRetry(async () => {
+                const room = this.client.getRoom(roomId);
+                if (room) {
+                    const timeline = room.getLiveTimeline();
+                    const events = timeline.getEvents();
+                    const lastEvent = events[events.length - 1];
+                    if (lastEvent) {
+                        return await this.client.setRoomReadMarkers(roomId, lastEvent.getId()!, lastEvent);
+                    }
                 }
-            }
+                return undefined;
+            });
         } catch (error) {
-            logger.error('DirectMessageManager.markDmAsRead failed:', error);
-            throw error;
+            throw this.normalizeError(error, 'markDmAsRead');
         }
     }
 
@@ -588,22 +597,23 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      */
     async sendDmMessage(roomId: string, content: string | Record<string, unknown>): Promise<string> {
         try {
-            let messageContent: Record<string, unknown>;
-            
-            if (typeof content === 'string') {
-                messageContent = {
-                    msgtype: 'm.text',
-                    body: content,
-                };
-            } else {
-                messageContent = content;
-            }
+            return await this.withRetry(async () => {
+                let messageContent: Record<string, unknown>;
+                
+                if (typeof content === 'string') {
+                    messageContent = {
+                        msgtype: 'm.text',
+                        body: content,
+                    };
+                } else {
+                    messageContent = content;
+                }
 
-            const response = await this.client.sendEvent(roomId, EventType.RoomMessage, messageContent as any);
-            return response.event_id;
+                const response = await this.client.sendEvent(roomId, EventType.RoomMessage, messageContent as any);
+                return response.event_id;
+            });
         } catch (error) {
-            logger.error('DirectMessageManager.sendDmMessage failed:', error);
-            throw error;
+            throw this.normalizeError(error, 'sendDmMessage');
         }
     }
 
@@ -611,14 +621,15 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      * 获取缓存的 DM 房间列表
      */
     getCachedDmRooms(): DmRoomInfo[] {
-        return Array.from(this.dmRooms.values());
+        const rooms: DmRoomInfo[] = [];
+        return rooms;
     }
 
     /**
      * 获取缓存的用户 DM 房间 ID
      */
     getCachedDmForUser(userId: string): string | null {
-        return this.userDmMap.get(userId) || null;
+        return this.userDmMapCache.get(userId) || null;
     }
 
     /**
@@ -639,7 +650,6 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      * @returns 是否为 DM 房间
      */
     async checkRoomIsDm(roomId: string): Promise<boolean> {
-        // 方法1: 检查 m.direct 映射
         const dmMap = this.getDirectRoomsByUserSync();
         for (const roomIds of Object.values(dmMap)) {
             if ((roomIds as string[]).includes(roomId)) {
@@ -647,7 +657,6 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
             }
         }
 
-        // 方法2: 检查房间成员数（DM 通常只有 2 人）
         const room = this.client.getRoom(roomId);
         if (room) {
             const members = room.getJoinedMembers();
@@ -668,13 +677,11 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      * @returns 伙伴用户 ID 或 null
      */
     async getDmPartner(roomId: string): Promise<string | null> {
-        // 从 m.direct 映射中查找
         const dmPartner = this.getDmPartnerFromDirect(roomId);
         if (dmPartner) {
             return dmPartner;
         }
 
-        // 备用方法: 从房间成员推断
         const room = this.client.getRoom(roomId);
         if (room) {
             const currentUserId = this.client.getUserId();
@@ -706,7 +713,6 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
                     for (const roomId of roomIds) {
                         const room = rooms.find(r => r.roomId === roomId);
                         if (room && !matchedRooms.includes(room)) {
-                            // 检查用户是否仍是房间成员
                             const membership = room.getMyMembership();
                             if (membership === 'join' || membership === 'invite') {
                                 matchedRooms.push(room);
@@ -718,7 +724,6 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
 
             return matchedRooms;
         } catch (e) {
-            logger.warn('DirectMessageManager.getDmRoomsByUserIds failed:', e);
             throw this.normalizeError(e, 'getDmRoomsByUserIds');
         }
     }
@@ -735,19 +740,158 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
     }
 
     /**
+     * 创建 DM 房间 (专用 API 封装)
+     * 
+     * 后端实现: POST /_matrix/client/v3/create_dm
+     * 
+     * @param userId - 对端用户 ID
+     * @param options - 可选配置
+     * @returns 新创建的 DM 房间 ID
+     */
+    async createDmRoom(userId: string, options?: { name?: string; topic?: string }): Promise<string> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<CreateDmRoomResponse>(
+                    Method.Post,
+                    "/create_dm",
+                    undefined,
+                    {
+                        user_id: userId,
+                        is_direct: true,
+                        ...options,
+                    },
+                    { prefix: ClientPrefix.V3 }
+                );
+            });
+
+            const roomId = response.room_id;
+
+            const dmInfo: DmRoomInfo = {
+                roomId,
+                invitees: [userId],
+            };
+
+            this.dmRoomsCache.set(roomId, dmInfo);
+            this.userDmMapCache.set(userId, roomId);
+
+            this.emit(DMEvent.DMCreated, roomId, [userId]);
+            this.emit(DMEvent.ListUpdated);
+
+            return roomId;
+        } catch (error) {
+            throw this.normalizeError(error, "createDmRoom");
+        }
+    }
+
+    async getDirectRoomsFromServer(): Promise<IDirectRoomsMap> {
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<DirectRoomsResponse>(
+                    Method.Get,
+                    "/direct",
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 }
+                );
+            });
+
+            return response.rooms || {};
+        } catch (error) {
+            throw this.normalizeError(error, "getDirectRoomsFromServer");
+        }
+    }
+
+    async updateDirectRoom(roomId: string, userIds: string[]): Promise<void> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+
+        try {
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Put,
+                    `/direct/${encodeURIComponent(roomId)}`,
+                    undefined,
+                    { users: userIds },
+                    { prefix: ClientPrefix.V3 }
+                );
+            });
+
+            this.emit(DMEvent.ListUpdated);
+        } catch (error) {
+            throw this.normalizeError(error, "updateDirectRoom");
+        }
+    }
+
+    async isDmRoomFromServer(roomId: string): Promise<boolean> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<DmRoomCheckResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/dm`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 }
+                );
+            });
+
+            return response["m.direct"] ?? false;
+        } catch (error: unknown) {
+            const httpStatus = (error as { httpStatus?: number })?.httpStatus;
+            const errcode = (error as { errcode?: string })?.errcode;
+            
+            if (httpStatus === 404 || errcode === "M_NOT_FOUND") {
+                return false;
+            }
+            throw this.normalizeError(error, "isDmRoomFromServer");
+        }
+    }
+
+    async getDmPartnerFromServer(roomId: string): Promise<DmPartnerResponse | null> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<DmPartnerResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/dm/partner`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 }
+                );
+            });
+
+            return response;
+        } catch (error) {
+            if (error instanceof MatrixError && error.httpStatus === 404) {
+                return null;
+            }
+            throw this.normalizeError(error, "getDmPartnerFromServer");
+        }
+    }
+
+    /**
      * 初始化 DM 管理器
      */
     async start(): Promise<void> {
         if (this.isInitialized) return;
 
         try {
-            // 初始化 m.direct 映射
             const dmMap = await this.getDirectRoomsByUser();
 
-            // 重建 userDmMap 缓存
             for (const [userId, roomIds] of Object.entries(dmMap)) {
                 if (roomIds.length > 0) {
-                    this.userDmMap.set(userId, roomIds[0]);
+                    this.userDmMapCache.set(userId, roomIds[0]);
                 }
             }
 
@@ -761,9 +905,22 @@ export class DirectMessageManager extends TypedEventEmitter<DMEvent, DirectMessa
      * 停止 DM 管理器
      */
     stop(): void {
-        this.dmRooms.clear();
-        this.userDmMap.clear();
+        this.dmRoomsCache.clear();
+        this.userDmMapCache.clear();
         this.isInitialized = false;
+    }
+
+    /**
+     * 获取缓存统计
+     */
+    public getCacheStats(): {
+        dmRooms: { size: number; hits: number; misses: number; hitRate: number };
+        userDmMap: { size: number; hits: number; misses: number; hitRate: number };
+    } {
+        return {
+            dmRooms: this.dmRoomsCache.getStats(),
+            userDmMap: this.userDmMapCache.getStats(),
+        };
     }
 }
 

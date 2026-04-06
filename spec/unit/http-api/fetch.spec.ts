@@ -36,6 +36,8 @@ import { type Logger } from "../../../src/logger";
 describe("FetchHttpApi", () => {
     const baseUrl = "http://baseUrl";
     const idBaseUrl = "http://idBaseUrl";
+    const secureBaseUrl = "https://baseUrl";
+    const secureIdBaseUrl = "https://idBaseUrl";
     const prefix = ClientPrefix.V3;
     const tokenInactiveError = new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Token is not active" }, 401);
 
@@ -45,7 +47,13 @@ describe("FetchHttpApi", () => {
 
     it("should support aborting multiple times", () => {
         const fetchFn = makeMockFetchFn();
-        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            fetchFn,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
 
         api.request(Method.Get, "/foo");
         api.request(Method.Get, "/baz");
@@ -69,21 +77,34 @@ describe("FetchHttpApi", () => {
     it("should fall back to global fetch if fetchFn not provided", () => {
         const spy = (globalThis.fetch = vi.fn());
         expect(spy).not.toHaveBeenCalled();
-        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
         api.fetch("test");
         expect(spy).toHaveBeenCalled();
     });
 
     it("should update identity server base url", () => {
-        const api = new FetchHttpApi<IHttpOpts>(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
+        const api = new FetchHttpApi<IHttpOpts>(new TypedEventEmitter<any, any>(), {
+            baseUrl: secureBaseUrl,
+            prefix,
+            onlyData: true,
+        });
         expect(api.opts.idBaseUrl).toBeUndefined();
-        api.setIdBaseUrl("https://id.foo.bar");
-        expect(api.opts.idBaseUrl).toBe("https://id.foo.bar");
+        api.setIdBaseUrl(secureIdBaseUrl);
+        expect(api.opts.idBaseUrl).toBe(secureIdBaseUrl);
     });
 
     describe("idServerRequest", () => {
         it("should throw if no idBaseUrl", () => {
-            const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
+            const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+                baseUrl: secureBaseUrl,
+                prefix,
+                onlyData: true,
+            });
             expect(() => api.idServerRequest(Method.Get, "/test", {}, IdentityPrefix.V2)).toThrow(
                 "No identity server base URL set",
             );
@@ -97,6 +118,7 @@ describe("FetchHttpApi", () => {
                 prefix,
                 fetchFn,
                 onlyData: true,
+                allowInsecureHttp: true,
             });
             api.idServerRequest(Method.Get, "/test", { foo: "bar", via: ["a", "b"] }, IdentityPrefix.V2);
             expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("foo")).toBe("bar");
@@ -111,6 +133,7 @@ describe("FetchHttpApi", () => {
                 prefix,
                 fetchFn,
                 onlyData: true,
+                allowInsecureHttp: true,
             });
             const params = { foo: "bar", via: ["a", "b"] };
             api.idServerRequest(Method.Post, "/test", params, IdentityPrefix.V2);
@@ -126,6 +149,7 @@ describe("FetchHttpApi", () => {
                 prefix,
                 fetchFn,
                 onlyData: true,
+                allowInsecureHttp: true,
             });
             api.idServerRequest(Method.Post, "/test", {}, IdentityPrefix.V2, "token");
             expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>).Authorization).toBe("Bearer token");
@@ -138,14 +162,70 @@ describe("FetchHttpApi", () => {
                 new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                     baseUrl,
                     prefix,
+                    allowInsecureHttp: true,
                 }),
         ).toThrow("Constructing FetchHttpApi without `onlyData=true` is no longer supported.");
+    });
+
+    it("should reject insecure baseUrl by default", () => {
+        expect(
+            () =>
+                new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+                    baseUrl,
+                    prefix,
+                    onlyData: true,
+                }),
+        ).toThrow(`Insecure baseUrl is not allowed: ${baseUrl}. Use HTTPS or set allowInsecureHttp=true for local development.`);
+    });
+
+    it("should allow insecure baseUrl when allowInsecureHttp is enabled", () => {
+        expect(
+            () =>
+                new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+                    baseUrl,
+                    prefix,
+                    onlyData: true,
+                    allowInsecureHttp: true,
+                }),
+        ).not.toThrow();
+    });
+
+    it("should reject insecure idBaseUrl by default", () => {
+        expect(
+            () =>
+                new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+                    baseUrl: secureBaseUrl,
+                    idBaseUrl,
+                    prefix,
+                    onlyData: true,
+                }),
+        ).toThrow(
+            `Insecure idBaseUrl is not allowed: ${idBaseUrl}. Use HTTPS or set allowInsecureHttp=true for local development.`,
+        );
+    });
+
+    it("should reject insecure override baseUrl in getUrl without allowInsecureHttp", () => {
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl: secureBaseUrl,
+            prefix,
+            onlyData: true,
+        });
+
+        expect(() => api.getUrl("/terms", undefined, undefined, baseUrl)).toThrow(
+            `Insecure baseUrl is not allowed: ${baseUrl}. Use HTTPS or set allowInsecureHttp=true for local development.`,
+        );
     });
 
     it("should set an Accept header, and parse the response as JSON, by default", async () => {
         const result = { a: 1 };
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue(result) });
-        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            fetchFn,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
         await expect(api.requestOtherUrl(Method.Get, "http://url")).resolves.toBe(result);
         expect(fetchFn.mock.calls[0][1].headers.Accept).toBe("application/json");
     });
@@ -153,7 +233,13 @@ describe("FetchHttpApi", () => {
     it("should not set an Accept header, and should return text if json=false", async () => {
         const text = "418 I'm a teapot";
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, text: vi.fn().mockResolvedValue(text) });
-        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            fetchFn,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
         await expect(
             api.requestOtherUrl(Method.Get, "http://url", undefined, {
                 json: false,
@@ -165,7 +251,13 @@ describe("FetchHttpApi", () => {
     it("should not set an Accept header, and should return a blob, if rawResponseBody is true", async () => {
         const blob = new Blob(["blobby"]);
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, blob: vi.fn().mockResolvedValue(blob) });
-        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            fetchFn,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
         await expect(
             api.requestOtherUrl(Method.Get, "http://url", undefined, {
                 rawResponseBody: true,
@@ -180,6 +272,7 @@ describe("FetchHttpApi", () => {
             prefix,
             fetchFn: vi.fn(),
             onlyData: true,
+            allowInsecureHttp: true,
         });
         await expect(
             api.requestOtherUrl(Method.Get, "http://url", undefined, { rawResponseBody: false, json: true }),
@@ -195,6 +288,7 @@ describe("FetchHttpApi", () => {
             accessToken: "token",
             useAuthorizationHeader: false,
             onlyData: true,
+            allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path");
         expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBe("token");
@@ -208,6 +302,7 @@ describe("FetchHttpApi", () => {
             fetchFn,
             accessToken: "token",
             onlyData: true,
+            allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path");
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer token");
@@ -221,6 +316,7 @@ describe("FetchHttpApi", () => {
             fetchFn,
             accessToken: "token",
             onlyData: true,
+            allowInsecureHttp: true,
         });
         api.request(Method.Get, "/path");
         expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBeFalsy();
@@ -236,6 +332,7 @@ describe("FetchHttpApi", () => {
             accessToken: "token",
             useAuthorizationHeader: true,
             onlyData: true,
+            allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path", { access_token: "123" });
         expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBeFalsy();
@@ -251,6 +348,7 @@ describe("FetchHttpApi", () => {
             accessToken: "token",
             useAuthorizationHeader: false,
             onlyData: true,
+            allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path", { access_token: "RealToken" });
         expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBe("RealToken");
@@ -265,6 +363,7 @@ describe("FetchHttpApi", () => {
             accessToken: "token",
             useAuthorizationHeader: true,
             onlyData: true,
+            allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path", undefined, undefined, {
             headers: { Authorization: "Bearer RealToken" },
@@ -274,7 +373,13 @@ describe("FetchHttpApi", () => {
 
     it("should not override Accept header", async () => {
         const fetchFn = makeMockFetchFn();
-        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            fetchFn,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
         await api.authedRequest(Method.Get, "/path", undefined, undefined, {
             headers: { Accept: "text/html" },
         });
@@ -297,7 +402,7 @@ describe("FetchHttpApi", () => {
             ),
         });
         const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
-        const api = new FetchHttpApi(emitter, { baseUrl, prefix, fetchFn, onlyData: true });
+        const api = new FetchHttpApi(emitter, { baseUrl, prefix, fetchFn, onlyData: true, allowInsecureHttp: true });
 
         await Promise.all([
             emitPromise(emitter, HttpApiEvent.NoConsent),
@@ -309,7 +414,7 @@ describe("FetchHttpApi", () => {
         it("should not include token if unset", async () => {
             const fetchFn = makeMockFetchFn();
             const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
-            const api = new FetchHttpApi(emitter, { baseUrl, prefix, fetchFn, onlyData: true });
+            const api = new FetchHttpApi(emitter, { baseUrl, prefix, fetchFn, onlyData: true, allowInsecureHttp: true });
             await api.authedRequest(Method.Post, "/account/password");
             expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>).Authorization).toBeUndefined();
         });
@@ -359,6 +464,7 @@ describe("FetchHttpApi", () => {
                             accessToken,
                             refreshToken,
                             onlyData: true,
+                            allowInsecureHttp: true,
                         });
                         await expect(api.authedRequest(Method.Post, "/account/password")).rejects.toThrow(
                             unknownTokenErr,
@@ -382,6 +488,7 @@ describe("FetchHttpApi", () => {
                             accessToken,
                             refreshToken,
                             onlyData: true,
+                            allowInsecureHttp: true,
                         });
                         await expect(api.authedRequest(Method.Post, "/account/password")).rejects.toThrow(
                             unknownTokenErr,
@@ -404,6 +511,7 @@ describe("FetchHttpApi", () => {
                             accessToken,
                             refreshToken,
                             onlyData: true,
+                            allowInsecureHttp: true,
                         });
                         await expect(api.authedRequest(Method.Post, "/account/password")).rejects.toThrow(
                             new TokenRefreshError(unknownTokenErr),
@@ -433,6 +541,7 @@ describe("FetchHttpApi", () => {
                             accessToken,
                             refreshToken,
                             onlyData: true,
+                            allowInsecureHttp: true,
                         });
                         const result = await api.authedRequest(Method.Post, "/account/password", undefined, undefined, {
                             headers: {},
@@ -477,6 +586,7 @@ describe("FetchHttpApi", () => {
                             accessToken,
                             refreshToken,
                             onlyData: true,
+                            allowInsecureHttp: true,
                         });
                         await expect(api.authedRequest(Method.Post, "/account/password")).rejects.toThrowError(
                             unknownTokenErr,
@@ -533,6 +643,7 @@ describe("FetchHttpApi", () => {
                             accessToken,
                             refreshToken,
                             onlyData: true,
+                            allowInsecureHttp: true,
                         });
                         await expect(api.authedRequest(Method.Post, "/account/password")).rejects.toThrowError(
                             unknownTokenErr,
@@ -550,10 +661,16 @@ describe("FetchHttpApi", () => {
     describe("getUrl()", () => {
         const localBaseUrl = "http://baseurl";
         const baseUrlWithTrailingSlash = "http://baseurl/";
-        const makeApi = (thisBaseUrl = baseUrl): FetchHttpApi<any> => {
+            const makeApi = (thisBaseUrl = baseUrl): FetchHttpApi<any> => {
             const fetchFn = vi.fn();
             const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
-            return new FetchHttpApi(emitter, { baseUrl: thisBaseUrl, prefix, fetchFn, onlyData: true });
+                return new FetchHttpApi(emitter, {
+                    baseUrl: thisBaseUrl,
+                    prefix,
+                    fetchFn,
+                    onlyData: true,
+                    allowInsecureHttp: true,
+                });
         };
 
         type TestParams = {
@@ -612,6 +729,7 @@ describe("FetchHttpApi", () => {
                     fetchFn,
                     onlyData: true,
                     extraParams,
+                    allowInsecureHttp: true,
                 });
             };
 
@@ -665,7 +783,13 @@ describe("FetchHttpApi", () => {
             it("should work when extraParams is undefined", () => {
                 const fetchFn = vi.fn();
                 const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
-                const api = new FetchHttpApi(emitter, { baseUrl: localBaseUrl, prefix, fetchFn, onlyData: true });
+                const api = new FetchHttpApi(emitter, {
+                    baseUrl: localBaseUrl,
+                    prefix,
+                    fetchFn,
+                    onlyData: true,
+                    allowInsecureHttp: true,
+                });
 
                 const queryParams = { userId: "123" };
                 const result = api.getUrl("/test", queryParams);
@@ -699,6 +823,7 @@ describe("FetchHttpApi", () => {
             fetchFn,
             logger: mockLogger,
             onlyData: true,
+            allowInsecureHttp: true,
         });
         const prom = api.requestOtherUrl(Method.Get, "https://server:8448/some/path?query=param#fragment");
         vi.advanceTimersByTime(1234);
@@ -746,6 +871,7 @@ describe("FetchHttpApi", () => {
             accessToken: "ACCESS_TOKEN",
             refreshToken: "REFRESH_TOKEN",
             onlyData: true,
+            allowInsecureHttp: true,
         });
 
         const prom1 = api.authedRequest(Method.Get, "/path1");
@@ -802,6 +928,7 @@ describe("FetchHttpApi", () => {
             accessToken: "ACCESS_TOKEN",
             refreshToken: "REFRESH_TOKEN",
             onlyData: true,
+            allowInsecureHttp: true,
         });
 
         const prom1 = api.authedRequest(Method.Get, "/path1");

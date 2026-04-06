@@ -43,7 +43,7 @@ export class UrlPreviewManager {
      * Clear URL preview cache
      */
     public clearUrlPreviewCache(): void {
-        this.client.urlPreviewCache = {};
+        this.client.urlPreviewCache.clear();
     }
 }
 

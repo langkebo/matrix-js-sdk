@@ -23,6 +23,7 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
 
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -112,10 +113,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Post,
-                "/_synapse/admin/v1/application_services",
+                "/application_services",
                 undefined,
                 request,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const service: ApplicationService = {
@@ -148,10 +149,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                `/_synapse/admin/v1/application_services/${encodeURIComponent(serviceId)}`,
+                `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const service = response as ApplicationService;
@@ -168,10 +169,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Put,
-                `/_synapse/admin/v1/application_services/${encodeURIComponent(serviceId)}`,
+                `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
                 request,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const existing = this.services.get(serviceId);
@@ -195,10 +196,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             await this._client.http.authedRequest(
                 Method.Delete,
-                `/_synapse/admin/v1/application_services/${encodeURIComponent(serviceId)}`,
+                `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             this.services.delete(serviceId);
@@ -213,10 +214,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                "/_synapse/admin/v1/application_services",
+                "/application_services",
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const services = (response.application_services || []) as ApplicationService[];
@@ -233,10 +234,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                "/_matrix/client/v3/appservice/user",
+                "/appservice/user",
                 { user_id: userId },
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return response.exists === true;
@@ -249,10 +250,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                "/_matrix/client/v3/appservice/alias",
+                "/appservice/alias",
                 { alias },
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return response.exists === true;
@@ -267,10 +268,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
             
             await this._client.http.authedRequest(
                 Method.Post,
-                `/_synapse/admin/v1/application_services/${encodeURIComponent(serviceId)}/ping`,
+                `/application_services/${encodeURIComponent(serviceId)}/ping`,
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             return { duration: Date.now() - startTime };
@@ -284,10 +285,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/thirdparty/protocol/${encodeURIComponent(protocol)}`,
+                `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return response as ApplicationServiceProtocol;
@@ -301,10 +302,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                "/_matrix/client/v3/thirdparty/protocols",
+                "/thirdparty/protocols",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return Object.keys(response || {});
@@ -318,10 +319,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/thirdparty/user/${encodeURIComponent(protocol)}`,
+                `/thirdparty/user/${encodeURIComponent(protocol)}`,
                 fields,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return response as ApplicationServiceUser[];
@@ -335,10 +336,10 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const response = await this._client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/thirdparty/location/${encodeURIComponent(protocol)}`,
+                `/thirdparty/location/${encodeURIComponent(protocol)}`,
                 fields,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return response;

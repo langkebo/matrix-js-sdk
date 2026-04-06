@@ -2338,6 +2338,258 @@ describe("MatrixClient", function () {
         });
     });
 
+    describe("e2ee contract alignment", () => {
+        beforeEach(() => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({});
+        });
+
+        it("uses v3 prefix for uploadDeviceSigningKeys", async () => {
+            await client.uploadDeviceSigningKeys(undefined, {
+                master_key: {
+                    user_id: "@alice:bar",
+                    usage: ["master"],
+                    keys: { "ed25519:device": "abc" },
+                    signatures: {},
+                },
+                self_signing_key: {
+                    user_id: "@alice:bar",
+                    usage: ["self_signing"],
+                    keys: { "ed25519:self": "def" },
+                    signatures: {},
+                },
+                user_signing_key: {
+                    user_id: "@alice:bar",
+                    usage: ["user_signing"],
+                    keys: { "ed25519:user": "ghi" },
+                    signatures: {},
+                },
+            });
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/device_signing/upload");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toMatchObject({
+                master_key: expect.any(Object),
+                self_signing_key: expect.any(Object),
+                user_signing_key: expect.any(Object),
+            });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("uses v3 prefix for requestRoomKey", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({ request_id: "req-1" });
+
+            await client.requestRoomKey({
+                algorithm: "m.megolm.v1.aes-sha2",
+                room_id: "!room:example.org",
+                session_id: "sess-1",
+                request_type: "request",
+            });
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/room_keys/request");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                algorithm: "m.megolm.v1.aes-sha2",
+                room_id: "!room:example.org",
+                session_id: "sess-1",
+                request_type: "request",
+            });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("uses query params for getRoomKeyRequests", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({ requests: [] });
+
+            await client.getRoomKeyRequests({
+                status: "pending",
+                room_id: "!room:example.org",
+                session_id: "sess-1",
+                limit: 10,
+            });
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("GET");
+            expect(path).toBe("/room_keys/request");
+            expect(queryParams).toEqual({
+                status: "pending",
+                room_id: "!room:example.org",
+                session_id: "sess-1",
+                limit: 10,
+            });
+            expect(requestContent).toBeUndefined();
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("uses encoded v3 path for deleteRoomKeyRequest", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({});
+
+            await client.deleteRoomKeyRequest("req/with/slash");
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("DELETE");
+            expect(path).toBe("/room_keys/request/req%2Fwith%2Fslash");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toBeUndefined();
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("uses v1 prefix for startDeviceSigningVerification by default", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-1",
+                method: "sas",
+                key_agreement_protocol: ["curve25519-hkdf-sha256"],
+                hash: ["sha256"],
+                short_authentication_string: ["emoji"],
+            });
+
+            await client.startDeviceSigningVerification({
+                from_device: "DEVICE",
+                to_user: "@bob:example.org",
+                to_device: "BOBDEVICE",
+                method: "sas",
+            });
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/device_signing/verify_start");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                from_device: "DEVICE",
+                to_user: "@bob:example.org",
+                to_device: "BOBDEVICE",
+                method: "sas",
+            });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
+        });
+
+        it("supports r0 prefix for acceptDeviceSigningVerification", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-1",
+                method: "sas",
+                key_agreement_protocol: ["curve25519-hkdf-sha256"],
+                hash: ["sha256"],
+                short_authentication_string: ["emoji"],
+            });
+
+            await client.acceptDeviceSigningVerification(
+                {
+                    transaction_id: "txn-1",
+                    key_agreement_protocol: "curve25519-hkdf-sha256",
+                    hash: "sha256",
+                },
+                "r0",
+            );
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("PUT");
+            expect(path).toBe("/keys/device_signing/verify_accept");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                transaction_id: "txn-1",
+                key_agreement_protocol: "curve25519-hkdf-sha256",
+                hash: "sha256",
+            });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+        });
+
+        it("sends contract-compliant payload for createSecureBackup", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                backup_id: "backup-1",
+                version: "1",
+                algorithm: "m.megolm.v1.aes-sha2",
+                auth_data: {},
+                key_count: 0,
+            });
+
+            await client.createSecureBackup("plain-passphrase");
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/backup/secure");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({ passphrase: "plain-passphrase" });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("sends contract-compliant payload for verifySecureBackupPassphrase", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({ valid: true });
+
+            await client.verifySecureBackupPassphrase("backup-1", "plain-passphrase");
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/backup/secure/backup-1/verify");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({ passphrase: "plain-passphrase" });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("sends contract-compliant payload for storeSecureBackupKeys", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({ key_count: 1 });
+
+            await client.storeSecureBackupKeys("backup-1", "plain-passphrase", [
+                {
+                    room_id: "!room:example.org",
+                    session_id: "sess1",
+                    session_key: "abc",
+                    first_message_index: 0,
+                    forwarded_count: 0,
+                    is_verified: true,
+                },
+            ]);
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/backup/secure/backup-1/keys");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                passphrase: "plain-passphrase",
+                session_keys: [
+                    {
+                        room_id: "!room:example.org",
+                        session_id: "sess1",
+                        session_key: "abc",
+                        first_message_index: 0,
+                        forwarded_count: 0,
+                        is_verified: true,
+                    },
+                ],
+            });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("sends contract-compliant payload for restoreSecureBackup", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                success: true,
+                key_count: 1,
+                message: "ok",
+            });
+
+            await client.restoreSecureBackup("backup-1", "plain-passphrase");
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/backup/secure/backup-1/restore");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({ passphrase: "plain-passphrase" });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+
+        it("calls deleteSecureBackup with the secure backup path", async () => {
+            await client.deleteSecureBackup("backup-1");
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("DELETE");
+            expect(path).toBe("/keys/backup/secure/backup-1");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toBeUndefined();
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+        });
+    });
+
     describe("getLocalAliases", () => {
         it("should call the right endpoint", async () => {
             const response = {
@@ -2563,10 +2815,10 @@ describe("MatrixClient", function () {
             client.sendStateEvent = function (roomId, type, content) {
                 const room = this.getRoom(roomId) as WrappedRoom;
                 const state: Map<string, any> = room._state;
-                let store = state.get(type);
+                let store = state.get(type as string);
                 if (!store) {
                     store = {};
-                    state.set(type, store);
+                    state.set(type as string, store);
                 }
                 const eventId = `$event-${Math.random()}:example.org`;
                 store[eventId] = {

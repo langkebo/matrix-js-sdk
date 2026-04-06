@@ -31,6 +31,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { Method } from "../http-api/method";
 import { logger } from "../logger";
 import { MatrixError } from "../http-api/errors";
+import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { AuthError, NotFoundError, ApiError } from "../errors";
 
@@ -176,10 +177,10 @@ interface AdminManagerEventMap {
 const ADMIN_PREFIX = "/_synapse/admin/v1";
 
 export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private serverStats: ServerStats | null = null;
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
@@ -197,7 +198,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         method: Method,
         path: string,
         queryParams?: Record<string, string | string[]>,
-        body?: unknown,
+        body?: Body,
         methodName?: string
     ): Promise<T> {
         try {
@@ -288,7 +289,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async deactivateUser(userId: string, erase?: boolean): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/v1/deactivate/${encodeURIComponent(userId)}`,
+            `/users/${encodeURIComponent(userId)}/deactivate`,
             undefined,
             { erase: erase ?? false }
         );
@@ -301,7 +302,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async resetPassword(userId: string, newPassword: string, logout?: boolean): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/v1/reset_password/${encodeURIComponent(userId)}`,
+            `/users/${encodeURIComponent(userId)}/password`,
             undefined,
             { new_password: newPassword, logout_devices: logout ?? true }
         );
@@ -336,7 +337,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async deleteUserDevices(userId: string, deviceIds: string[]): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/v2/users/${encodeURIComponent(userId)}/delete_devices`,
+            `/users/${encodeURIComponent(userId)}/devices/delete`,
             undefined,
             { devices: deviceIds }
         );
@@ -447,7 +448,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         };
     }
 
-    /**
+    /*
      * 获取单个房间信息
      */
     async getRoom(roomId: string): Promise<RoomInfo | null> {
@@ -710,6 +711,548 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         return { deleted: response.deleted || 0 };
     }
 
+    // ===== 房间高级管理 =====
+
+    /**
+     * 获取房间状态事件
+     */
+    async getRoomState(roomId: string): Promise<{ state: any[] }> {
+        const response = await this.adminRequest<{ state: any[] }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/state`
+        );
+        return { state: response.state || [] };
+    }
+
+    /**
+     * 获取房间消息
+     */
+    async getRoomMessages(roomId: string, options?: {
+        limit?: number;
+        from?: string;
+        dir?: 'f' | 'b';
+    }): Promise<{ chunk: any[]; start?: string; end?: string }> {
+        const queryParams: Record<string, string> = {};
+        if (options?.limit) queryParams["limit"] = String(options.limit);
+        if (options?.from) queryParams["from"] = options.from;
+        if (options?.dir) queryParams["dir"] = options.dir;
+
+        return await this.adminRequest<{ chunk: any[]; start?: string; end?: string }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/messages`,
+            Object.keys(queryParams).length > 0 ? queryParams : undefined
+        );
+    }
+
+    /**
+     * 获取房间别名
+     */
+    async getRoomAliases(roomId: string): Promise<{ aliases: string[] }> {
+        return await this.adminRequest<{ aliases: string[] }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/aliases`
+        );
+    }
+
+    /**
+     * 获取房间版本
+     */
+    async getRoomVersion(roomId: string): Promise<{ room_id: string; room_version: string } | null> {
+        try {
+            return await this.adminRequest<{ room_id: string; room_version: string }>(
+                Method.Get,
+                `/v1/rooms/${encodeURIComponent(roomId)}/version`
+            );
+        } catch (e) {
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 获取房间封禁状态
+     */
+    async getRoomBlockStatus(roomId: string): Promise<{ block: boolean; blocked_at?: number }> {
+        return await this.adminRequest<{ block: boolean; blocked_at?: number }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/block`
+        );
+    }
+
+    /**
+     * 解封房间
+     */
+    async unblockRoom(roomId: string): Promise<void> {
+        await this.adminRequest(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/unblock`
+        );
+    }
+
+    /**
+     * 清除房间历史
+     */
+    async purgeRoomHistory(roomId: string, options?: {
+        purge_up_to_ts?: number;
+    }): Promise<{ success: boolean; deleted_events: number }> {
+        return await this.adminRequest<{ success: boolean; deleted_events: number }>(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/purge_history`,
+            undefined,
+            options || {}
+        );
+    }
+
+    /**
+     * 清除房间（保留房间但清除数据）
+     */
+    async purgeRoom(roomId: string): Promise<{ purge_id: string; success: boolean }> {
+        return await this.adminRequest<{ purge_id: string; success: boolean }>(
+            Method.Post,
+            "/v1/purge_room",
+            undefined,
+            { room_id: roomId }
+        );
+    }
+
+    /**
+     * 关闭房间（踢出所有成员并关闭）
+     */
+    async shutdownRoom(roomId: string): Promise<{
+        kicked_users: string[];
+        failed_to_kick_users: string[];
+        closed_room: boolean;
+    }> {
+        return await this.adminRequest<{
+            kicked_users: string[];
+            failed_to_kick_users: string[];
+            closed_room: boolean;
+        }>(
+            Method.Post,
+            "/v1/shutdown_room",
+            undefined,
+            { room_id: roomId }
+        );
+    }
+
+    // ===== 房间成员管理 =====
+
+    /**
+     * 强制用户加入房间
+     */
+    async forceJoinRoom(roomId: string, userId: string): Promise<{ user_id: string; room_id: string; membership: string }> {
+        return await this.adminRequest<{ user_id: string; room_id: string; membership: string }>(
+            Method.Put,
+            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`
+        );
+    }
+
+    /**
+     * 强制用户离开房间
+     */
+    async forceLeaveRoom(roomId: string, userId: string): Promise<{ user_id: string; room_id: string; removed: boolean }> {
+        return await this.adminRequest<{ user_id: string; room_id: string; removed: boolean }>(
+            Method.Delete,
+            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`
+        );
+    }
+
+    /**
+     * 封禁用户
+     */
+    async banUser(roomId: string, userId: string, reason?: string): Promise<{ user_id: string; room_id: string; membership: string }> {
+        return await this.adminRequest<{ user_id: string; room_id: string; membership: string }>(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/ban/${encodeURIComponent(userId)}`,
+            undefined,
+            reason ? { reason } : {}
+        );
+    }
+
+    /**
+     * 解封用户
+     */
+    async unbanUser(roomId: string, userId: string): Promise<{ user_id: string; room_id: string; unbanned: boolean }> {
+        return await this.adminRequest<{ user_id: string; room_id: string; unbanned: boolean }>(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`
+        );
+    }
+
+    /**
+     * 踢出用户
+     */
+    async kickUser(roomId: string, userId: string, reason?: string): Promise<{ user_id: string; room_id: string; kicked: boolean }> {
+        return await this.adminRequest<{ user_id: string; room_id: string; kicked: boolean }>(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/kick/${encodeURIComponent(userId)}`,
+            undefined,
+            reason ? { reason } : {}
+        );
+    }
+
+    // ===== 房间列表管理 =====
+
+    /**
+     * 获取房间列表状态
+     */
+    async getRoomListings(roomId: string): Promise<{ room_id: string; public: boolean; in_directory: boolean }> {
+        return await this.adminRequest<{ room_id: string; public: boolean; in_directory: boolean }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings`
+        );
+    }
+
+    /**
+     * 设置房间为公开
+     */
+    async setRoomPublic(roomId: string): Promise<{ room_id: string; public: boolean }> {
+        return await this.adminRequest<{ room_id: string; public: boolean }>(
+            Method.Put,
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`
+        );
+    }
+
+    /**
+     * 设置房间为私有
+     */
+    async setRoomPrivate(roomId: string): Promise<{ room_id: string; public: boolean }> {
+        return await this.adminRequest<{ room_id: string; public: boolean }>(
+            Method.Delete,
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`
+        );
+    }
+
+    // ===== 房间搜索与事件 =====
+
+    /**
+     * 搜索房间消息
+     */
+    async searchRoomMessages(roomId: string, searchTerm: string, options?: {
+        limit?: number;
+        start_date?: number;
+        end_date?: number;
+    }): Promise<{ results: any[]; count: number }> {
+        return await this.adminRequest<{ results: any[]; count: number }>(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/search`,
+            undefined,
+            { search_term: searchTerm, ...options }
+        );
+    }
+
+    /**
+     * 搜索所有房间
+     */
+    async searchAllRooms(options?: {
+        search_term?: string;
+        limit?: number;
+        offset?: number;
+        order_by?: string;
+        is_public?: boolean;
+        is_encrypted?: boolean;
+    }): Promise<{ results: any[]; count: number; total: number }> {
+        return await this.adminRequest<{ results: any[]; count: number; total: number }>(
+            Method.Post,
+            "/v1/rooms/search",
+            undefined,
+            options || {}
+        );
+    }
+
+    /**
+     * 获取事件上下文
+     */
+    async getEventContext(roomId: string, eventId: string): Promise<{
+        event: any;
+        events_before: any[];
+        events_after: any[];
+    }> {
+        return await this.adminRequest<{
+            event: any;
+            events_before: any[];
+            events_after: any[];
+        }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`
+        );
+    }
+
+    /**
+     * 获取房间前向极值
+     */
+    async getRoomForwardExtremities(roomId: string): Promise<{ room_id: string; forward_extremities: number }> {
+        return await this.adminRequest<{ room_id: string; forward_extremities: number }>(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/forward_extremities`
+        );
+    }
+
+    // ===== 空间管理 =====
+
+    /**
+     * 获取所有空间
+     */
+    async getSpaces(): Promise<{ spaces: any[]; total: number }> {
+        return await this.adminRequest<{ spaces: any[]; total: number }>(
+            Method.Get,
+            "/v1/spaces"
+        );
+    }
+
+    /**
+     * 获取单个空间
+     */
+    async getSpace(spaceId: string): Promise<any | null> {
+        try {
+            return await this.adminRequest<any>(
+                Method.Get,
+                `/v1/spaces/${encodeURIComponent(spaceId)}`
+            );
+        } catch (e) {
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 删除空间
+     */
+    async deleteSpace(spaceId: string): Promise<{ deleted: boolean }> {
+        return await this.adminRequest<{ deleted: boolean }>(
+            Method.Delete,
+            `/v1/spaces/${encodeURIComponent(spaceId)}`
+        );
+    }
+
+    /**
+     * 获取空间成员
+     */
+    async getSpaceUsers(spaceId: string): Promise<{ users: string[]; total: number }> {
+        return await this.adminRequest<{ users: string[]; total: number }>(
+            Method.Get,
+            `/v1/spaces/${encodeURIComponent(spaceId)}/users`
+        );
+    }
+
+    /**
+     * 获取空间房间
+     */
+    async getSpaceRooms(spaceId: string): Promise<{ rooms: string[]; total: number }> {
+        return await this.adminRequest<{ rooms: string[]; total: number }>(
+            Method.Get,
+            `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`
+        );
+    }
+
+    /**
+     * 获取空间统计
+     */
+    async getSpaceStats(spaceId: string): Promise<{
+        space_id: string;
+        member_count: number;
+        child_room_count: number;
+    }> {
+        return await this.adminRequest<{
+            space_id: string;
+            member_count: number;
+            child_room_count: number;
+        }>(
+            Method.Get,
+            `/v1/spaces/${encodeURIComponent(spaceId)}/stats`
+        );
+    }
+
+    // ===== 用户批量操作 =====
+
+    /**
+     * 批量创建用户
+     */
+    async batchCreateUsers(users: Array<{
+        username: string;
+        password?: string;
+        displayname?: string;
+        admin?: boolean;
+    }>): Promise<{ created: string[]; failed: string[]; total: number }> {
+        return await this.adminRequest<{ created: string[]; failed: string[]; total: number }>(
+            Method.Post,
+            "/v1/users/batch",
+            undefined,
+            { users }
+        );
+    }
+
+    /**
+     * 批量停用用户
+     */
+    async batchDeactivateUsers(users: string[], erase?: boolean): Promise<{ deactivated: string[]; total: number }> {
+        return await this.adminRequest<{ deactivated: string[]; total: number }>(
+            Method.Post,
+            "/v1/users/batch_deactivate",
+            undefined,
+            { users, erase }
+        );
+    }
+
+    // ===== 用户会话管理 =====
+
+    /**
+     * 获取用户会话
+     */
+    async getUserSessions(userId: string): Promise<{
+        user_id: string;
+        sessions: any[];
+        total: number;
+    }> {
+        return await this.adminRequest<{
+            user_id: string;
+            sessions: any[];
+            total: number;
+        }>(
+            Method.Get,
+            `/v1/user_sessions/${encodeURIComponent(userId)}`
+        );
+    }
+
+    /**
+     * 使所有用户会话失效
+     */
+    async invalidateUserSessions(userId: string): Promise<{
+        invalidated: boolean;
+        sessions_removed: number;
+    }> {
+        return await this.adminRequest<{
+            invalidated: boolean;
+            sessions_removed: number;
+        }>(
+            Method.Post,
+            `/v1/user_sessions/${encodeURIComponent(userId)}/invalidate`
+        );
+    }
+
+    // ===== 账户管理 =====
+
+    /**
+     * 获取账户详情
+     */
+    async getAccountDetails(userId: string): Promise<{
+        name: string;
+        user_id: string;
+        displayname?: string;
+        admin: boolean;
+        deactivated: boolean;
+        creation_ts: number;
+        device_count: number;
+        room_count: number;
+    } | null> {
+        try {
+            return await this.adminRequest<any>(
+                Method.Get,
+                `/v1/account/${encodeURIComponent(userId)}`
+            );
+        } catch (e) {
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 更新账户
+     */
+    async updateAccount(userId: string, options: {
+        displayname?: string;
+        avatar_url?: string;
+        admin?: boolean;
+    }): Promise<{ user_id: string; updated: boolean }> {
+        return await this.adminRequest<{ user_id: string; updated: boolean }>(
+            Method.Post,
+            `/v1/account/${encodeURIComponent(userId)}`,
+            undefined,
+            options
+        );
+    }
+
+    /**
+     * 获取用户统计
+     */
+    async getUserStats(userId: string): Promise<{
+        user_id: string;
+        rooms_joined: number;
+        messages_sent: number;
+        last_seen_ts?: number;
+        creation_ts: number;
+        is_admin: boolean;
+    }> {
+        return await this.adminRequest<any>(
+            Method.Get,
+            `/v1/users/${encodeURIComponent(userId)}/stats`
+        );
+    }
+
+    /**
+     * 获取用户房间
+     */
+    async getUserRooms(userId: string): Promise<{ rooms: string[] }> {
+        return await this.adminRequest<{ rooms: string[] }>(
+            Method.Get,
+            `/v1/users/${encodeURIComponent(userId)}/rooms`
+        );
+    }
+
+    /**
+     * 以用户身份登录
+     */
+    async loginAsUser(userId: string): Promise<{
+        access_token: string;
+        device_id: string;
+        user_id: string;
+    }> {
+        return await this.adminRequest<{
+            access_token: string;
+            device_id: string;
+            user_id: string;
+        }>(
+            Method.Post,
+            `/v1/users/${encodeURIComponent(userId)}/login`
+        );
+    }
+
+    /**
+     * 登出用户所有设备
+     */
+    async logoutUserDevices(userId: string): Promise<{ devices_deleted: number }> {
+        return await this.adminRequest<{ devices_deleted: number }>(
+            Method.Post,
+            `/v1/users/${encodeURIComponent(userId)}/logout`
+        );
+    }
+
+    /**
+     * 驱逐用户（从所有房间移除）
+     */
+    async evictUser(userId: string): Promise<{
+        user_id: string;
+        rooms_evicted: number;
+        rooms: string[];
+        failures: any[];
+    }> {
+        return await this.adminRequest<{
+            user_id: string;
+            rooms_evicted: number;
+            rooms: string[];
+            failures: any[];
+        }>(
+            Method.Post,
+            `/v1/users/${encodeURIComponent(userId)}/evict`
+        );
+    }
+
     // ===== 便捷方法 =====
 
     /**
@@ -742,7 +1285,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async makeRoomAdmin(roomId: string, userId?: string): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/make_room_admin`,
+            `/v1/rooms/${encodeURIComponent(roomId)}/make_admin`,
             undefined,
             userId ? { user_id: userId } : {}
         );
@@ -751,10 +1294,25 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     // ===== 房间统计 =====
 
     /**
+     * 获取所有房间统计
+     */
+    async getAllRoomStats(): Promise<{
+        total_rooms: number;
+        encrypted_rooms: number;
+        public_rooms: number;
+        total_messages: number;
+        total_members: number;
+        active_rooms: number;
+        average_messages_per_room: number;
+    }> {
+        return await this.adminRequest<any>(
+            Method.Get,
+            "/v1/room_stats"
+        );
+    }
+
+    /**
      * 获取房间统计数据
-     *
-     * @param roomId - 房间 ID
-     * @returns 房间统计信息
      */
     async getRoomStats(roomId: string): Promise<RoomStats | null> {
         try {
@@ -774,8 +1332,6 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
 
     /**
      * 获取管理员注册 Nonce
-     *
-     * @returns Nonce 字符串
      */
     async registerNonce(): Promise<string> {
         const response = await this.adminRequest<{ nonce: string }>(
@@ -787,15 +1343,6 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
 
     /**
      * 管理员注册新用户
-     *
-     * @param options - 注册选项
-     * @param options.username - 用户名
-     * @param options.password - 密码
-     * @param options.admin - 是否为管理员
-     * @param options.displayname - 显示名称
-     * @param options.nonce - Nonce (可选，如果未提供会自动获取)
-     * @param options.mac - HMAC-SHA256 签名 (可选)
-     * @returns 注册响应
      */
     async adminRegister(options: {
         username: string;
@@ -834,7 +1381,6 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     }
 
     start(): void {
-        // Initialization if needed
     }
 
     stop(): void {

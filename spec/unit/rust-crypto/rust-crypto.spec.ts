@@ -74,6 +74,7 @@ import { E2EKeyReceiver } from "../../test-utils/E2EKeyReceiver";
 import { E2EKeyResponder } from "../../test-utils/E2EKeyResponder";
 import { OutgoingRequestsManager } from "../../../src/rust-crypto/OutgoingRequestsManager";
 import { ClientEvent, type ClientEventHandlerMap } from "../../../src/client";
+import { type IContent } from "../../../src/models/event";
 import { type Curve25519AuthData } from "../../../src/crypto-api/keybackup";
 import encryptAESSecretStorageItem from "../../../src/utils/encryptAESSecretStorageItem.ts";
 import { type CryptoStore, type SecretStorePrivateKeys } from "../../../src/crypto/store/base";
@@ -594,6 +595,7 @@ describe("RustCrypto", () => {
             rustCrypto = await makeTestRustCrypto(
                 new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                     baseUrl: "http://server/",
+                    allowInsecureHttp: true,
                     prefix: "",
                     onlyData: true,
                 }),
@@ -705,6 +707,7 @@ describe("RustCrypto", () => {
         const rustCrypto = await makeTestRustCrypto(
             new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                 baseUrl: "http://server/",
+                allowInsecureHttp: true,
                 prefix: "",
                 onlyData: true,
             }),
@@ -1219,6 +1222,7 @@ describe("RustCrypto", () => {
             rustCrypto = await makeTestRustCrypto(
                 new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                     baseUrl: "http://server/",
+                    allowInsecureHttp: true,
                     prefix: "",
                     onlyData: true,
                 }),
@@ -1309,6 +1313,7 @@ describe("RustCrypto", () => {
             rustCrypto = await makeTestRustCrypto(
                 new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                     baseUrl: "http://server/",
+                    allowInsecureHttp: true,
                     prefix: "",
                     onlyData: true,
                 }),
@@ -1558,6 +1563,7 @@ describe("RustCrypto", () => {
             rustCrypto = await makeTestRustCrypto(
                 new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                     baseUrl: "http://server/",
+                    allowInsecureHttp: true,
                     prefix: "",
                     onlyData: true,
                 }),
@@ -2124,6 +2130,7 @@ describe("RustCrypto", () => {
             rustCrypto = await makeTestRustCrypto(
                 new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                     baseUrl: "http://server/",
+                    allowInsecureHttp: true,
                     prefix: "",
                     onlyData: true,
                 }),
@@ -2392,6 +2399,7 @@ describe("RustCrypto", () => {
 
             const http = new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
                 baseUrl: "http://server/",
+                allowInsecureHttp: true,
                 prefix: "",
                 onlyData: true,
             });
@@ -2581,6 +2589,7 @@ describe("RustCrypto", () => {
 function makeMatrixHttpApi(): MatrixHttpApi<IHttpOpts & { onlyData: true }> {
     return new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
         baseUrl: "http://server/",
+        allowInsecureHttp: true,
         prefix: "",
         onlyData: true,
         fetchFn: fetchMock.fetchHandler,
@@ -2625,7 +2634,7 @@ class DummyAccountDataClient
     public async getAccountDataFromServer<K extends keyof AccountDataEvents>(
         eventType: K,
     ): Promise<AccountDataEvents[K] | null> {
-        const ret = this.storage.get(eventType);
+        const ret = this.storage.get(eventType as string);
 
         if (eventType) {
             return ret;
@@ -2634,16 +2643,19 @@ class DummyAccountDataClient
         }
     }
 
-    public async setAccountData(eventType: string, content: any): Promise<EmptyObject> {
-        this.storage.set(eventType, content);
+    public async setAccountData<K extends keyof AccountDataEvents>(
+        eventType: K,
+        content: AccountDataEvents[K] | Record<string, never>,
+    ): Promise<EmptyObject> {
+        this.storage.set(eventType as string, content);
         this.emit(
             ClientEvent.AccountData,
             new MatrixEvent({
-                content,
-                type: eventType,
+                content: content as IContent,
+                type: eventType as string,
             }),
         );
-        return {};
+        return {} as EmptyObject;
     }
 }
 

@@ -48,10 +48,19 @@ if (env["GITHUB_ACTIONS"] !== undefined) {
 
 export default defineConfig({
     test: {
+        testTimeout: 10000,
+        hookTimeout: 10000,
+        teardownTimeout: 10000,
         coverage: {
             provider: "v8",
             include: ["src/**/*"],
-            reporter: "lcov",
+            reporter: ["lcov", "text"],
+            thresholds: {
+                lines: 70,
+                functions: 70,
+                branches: 60,
+                statements: 70,
+            },
         },
         environment: "node",
         reporters,

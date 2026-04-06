@@ -19,12 +19,17 @@ import type { RoomMember } from "./models/room-member";
 
 interface MatrixClientExtensionMethods {
     // ============ Account & Profile ============
+    getAccountManager(): import("./account/index").AccountManager;
+    getAccountDataManager(): import("./account-data/index").AccountDataManager;
     getProfileManager(): import("./profile/index").ProfileManager;
     getAuthManager(): import("./auth/index").AuthManager;
     getCredentialsManager(): import("./credentials/index").CredentialsManager;
-    getDeviceManager(): import("./device-management/index").DeviceManager;
+    getDeviceManager(): import("./device/index").DeviceManager;
+    getGlobalLogoutManager(): import("./auth/global-logout").GlobalLogoutManager;
+    getUserManager(): import("./user/index").UserManager;
 
     // ============ Room Management ============
+    getRoomManager(): import("./room/index").RoomManager;
     getRoomCreationManager(): import("./room-creation/index").RoomCreationManager;
     getRoomJoiningManager(): import("./room-joining/index").RoomJoiningManager;
     getRoomSettingsManager(): import("./room-settings/index").RoomSettingsManager;
@@ -50,6 +55,7 @@ interface MatrixClientExtensionMethods {
     getRoomAccountDataManager(): import("./room-account-data/index").RoomAccountDataManager;
 
     // ============ Messaging & Events ============
+    getMessageManager(): import("./message/index").MessageManager;
     getSendingManager(): import("./sending/index").SendingManager;
     getSendingQueueManager(): import("./sending-queue/index").SendingQueueManager;
     getEventManager(): import("./event/index").EventManager;
@@ -91,6 +97,7 @@ interface MatrixClientExtensionMethods {
     getNotificationsLegacyManager(): import("./notifications-legacy/index").NotificationsLegacyManager;
 
     // ============ Crypto & Security ============
+    getCryptoKeysManager(): import("./crypto-keys/index").CryptoKeysManager;
     getCryptoEncryptionManager(): import("./crypto-encryption/index").CryptoEncryptionManager;
     getCryptoAlgorithmsManager(): import("./crypto-algorithms/index").CryptoAlgorithmsManager;
     getCryptoBackupManager(): import("./crypto-backup/index").CryptoBackupManager;
@@ -102,6 +109,7 @@ interface MatrixClientExtensionMethods {
     getKeyClaimManager(): import("./key-claim/index").KeyClaimManager;
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getEncryptionRotationManager(): import("./encryption-rotation/index").EncryptionRotationManager;
+    getSecurityManager(): import("./security/index").SecurityManager;
 
     // ============ Sessions & Tokens ============
     getSessionsManager(): import("./sessions/index").SessionsManager;
@@ -109,8 +117,11 @@ interface MatrixClientExtensionMethods {
     getOtrManager(): import("./otr/index").OtrManager;
 
     // ============ Server & Network ============
+    getCapabilitiesManager(): import("./capabilities/index").CapabilitiesManager;
     getDiscoveryManager(): import("./discovery/index").DiscoveryManager;
     getDirectoryManager(): import("./directory/index").DirectoryManager;
+    getExternalServiceManager(): import("./external-service/index").ExternalServiceManager;
+    getFederationManager(): import("./federation/index").FederationManager;
     getServerCapabilitiesManager(): import("./server-capabilities/index").ServerCapabilitiesManager;
     getHttpManager(): import("./http/index").HttpManager;
     getTurnServerManager(): import("./turn-server/index").TurnServerManager;
@@ -130,9 +141,10 @@ interface MatrixClientExtensionMethods {
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
     getReportingManager(): import("./reporting/index").ReportingManager;
-    getBannedUsersManager(): import("./banned-users/index").BannedUsersManager;
+    getInviteBlocklistManager(): import("./invite-blocklist/index").InviteBlocklistManager;
 
     // ============ Content & Media ============
+    getMediaManager(): import("./media/index").MediaManager;
     getMediaQuotaManager(): import("./media-quota/index").MediaQuotaManager;
     getContentScanManager(): import("./content-scan/index").ContentScanManager;
 
@@ -150,7 +162,6 @@ interface MatrixClientExtensionMethods {
     // ============ Other Features ============
     getThirdPartyManager(): import("./thirdparty/index").ThirdPartyManager;
     getUrlPreviewManager(): import("./url-preview/index").UrlPreviewManager;
-    getIgnoredUsersManager(): import("./ignored-users/index").IgnoredUsersManager;
     getGuestManager(): import("./guest/index").GuestManager;
     getCaptchaManager(): import("./captcha/index").CaptchaManager;
     getRetentionManager(): import("./retention/index").RetentionManager;
@@ -165,13 +176,13 @@ interface MatrixClientExtensionMethods {
     getEditionsManager(): import("./editions/index").EditionsManager;
     getPendingActionsManager(): import("./pending-actions/index").PendingActionsManager;
     getReadReceiptsManager(): import("./read-receipts/index").ReadReceiptsManager;
-    getKeyBackupManager(): import("./key-backup-management/index").KeyBackupManager;
+    getKeyBackupManager(): import("./key-backup/index").KeyBackupManager;
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
+    getRenderingManager(): import("./rendering/index").RenderingManager;
     getStickyEventManager(): import("./sticky-event/index").StickyEventManager;
     getVoiceManager(): import("./voice/index").VoiceMessageManager;
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
-    getWaitingRoomManager(): import("./waiting-room/index").WaitingRoomManager;
 }
 
 // ============ 模块扩展声明 ============
@@ -201,8 +212,8 @@ export type MatrixClientExtensions = MatrixClient;
  * 2. 实现 extendMatrixClient() 函数：
  * ```typescript
  * export function extendMatrixClient(): void {
- *     MatrixClient.prototype.getYourManager = function(): YourManager {
- *         return new YourManager(this);
+ *     MatrixClient.prototype.exampleManagerGetter = function(): ExampleManager {
+ *         return new ExampleManager(this);
  *     };
  * }
  * export default extendMatrixClient;
@@ -210,7 +221,7 @@ export type MatrixClientExtensions = MatrixClient;
  * 
  * 3. 在本文件中添加类型声明：
  * ```typescript
- * getYourManager(): import("./<module>/index").YourManager;
+ * exampleManagerGetter(): import("./<module>/index").ExampleManager;
  * ```
  * 
  * 4. ⚠️ 重要：在实际使用前必须调用 extendMatrixClient()

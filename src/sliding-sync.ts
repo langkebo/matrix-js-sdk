@@ -555,6 +555,22 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
     }
 
     /**
+     * Destroy this SlidingSync instance, cleaning up all resources.
+     * This should be called when the instance is no longer needed.
+     */
+    public destroy(): void {
+        this.stop();
+        this.lists.clear();
+        this.desiredRoomSubscriptions.clear();
+        this.confirmedRoomSubscriptions.clear();
+        this.customSubscriptions.clear();
+        this.roomIdToCustomSubscription.clear();
+        this.extensions = {};
+        this.pendingReq = undefined;
+        this.abortController = undefined;
+    }
+
+    /**
      * Re-setup this connection e.g in the event of an expired session.
      */
     private resetup(): void {

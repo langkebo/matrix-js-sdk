@@ -61,10 +61,10 @@ describe("SDK alignment managers", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(
                 expect.anything(),
-                "/friend_room/friends",
+                "/friends",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v1" }),
             );
             expect(friends[0]?.status).toBe(FriendRelationshipStatus.Normal);
         });

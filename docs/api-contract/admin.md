@@ -1,420 +1,166 @@
-# Admin 模块 API 契约
-
-> 管理员相关 API 的 SDK 与后端接口契约
-
-## 用户列表 / List Users
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_synapse/admin/v1/users` (v1) / `/_synapse/admin/v2/users` (v2) |
-| HTTP 方法 | GET |
-| SDK 方法 | `adminManager.getUsers(from?, limit?)` |
-| SDK 模块 | `matrix-js-sdk/src/admin/index.ts` |
-| 认证要求 | 是 (Admin Token) |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `from` | `string` | 否 | 分页偏移 (v2 使用 `from`，v1 使用 `offset`) |
-| `limit` | `number` | 否 | 每页数量 (默认 100) |
-| `offset` | `number` | 否 | 分页偏移 (v1 专用) |
-| `name` | `string` | 否 | 用户名搜索 (v2 专用) |
-
-### 响应结构
-
-```typescript
-interface ListUsersResponse {
-    users: UserInfo[];
-    total: number;
-    next_token?: string;  // v2 专用，v1 不返回
-}
-
-interface UserInfo {
-    user_id?: string;      // v2 返回
-    name?: string;         // v1 返回用户名
-    displayname?: string;
-    avatar_url?: string;
-    admin?: boolean;
-    deactivated?: boolean;
-    is_guest?: boolean;
-    user_type?: string;
-    creation_ts?: number;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 非管理员用户 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/admin/user.rs` (`get_users` / `get_users_v2`)
-- **SDK 封装**: `matrix-js-sdk/src/admin/index.ts` (`AdminManager.getUsers()`)
-- **前端调用**: `hula/src/services/matrix/MatrixAdminService.ts` (`adminService.getUsers()`)
-
----
-
-## 用户信息 / Get User
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_synapse/admin/v1/users/{user_id}` (v1) / `/_synapse/admin/v2/users/{user_id}` (v2) |
-| HTTP 方法 | GET |
-| SDK 方法 | `adminManager.getUser(userId)` |
-| SDK 模块 | `matrix-js-sdk/src/admin/index.ts` |
-| 认证要求 | 是 (Admin Token) |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `user_id` | `string` | 是 | 用户 ID，URL 路径参数，需编码 |
-
-### 响应结构
-
-```typescript
-interface GetUserResponse {
-    user_id: string;
-    name?: string;
-    displayname?: string;
-    avatar_url?: string;
-    admin?: boolean;
-    deactivated?: boolean;
-    is_guest?: boolean;
-    user_type?: string;
-    creation_ts?: number;
-    devices?: DeviceInfo[];    // v2 返回
-    threepids?: any[];          // v2 返回
-    external_ids?: any[];       // v2 返回
-}
-
-interface DeviceInfo {
-    device_id: string;
-    display_name?: string;
-    last_seen_ts?: number;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 非管理员用户 |
-| 404 | 用户不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/admin/user.rs` (`get_user` / `get_user_v2`)
-- **SDK 封装**: `matrix-js-sdk/src/admin/index.ts` (`AdminManager.getUser()`)
-- **前端调用**: `hula/src/services/matrix/MatrixAdminService.ts` (`adminService.getUser()`)
-
----
-
-## 房间统计 / Room Statistics
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_synapse/admin/v1/room_stats/{room_id}` |
-| HTTP 方法 | GET |
-| SDK 方法 | `adminManager.getRoomStats(roomId)` |
-| SDK 模块 | `matrix-js-sdk/src/admin/index.ts` |
-| 认证要求 | 是 (Admin Token) |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID，URL 路径参数，需编码 |
-
-### 响应结构
-
-```typescript
-interface RoomStatsResponse {
-    room_id: string;
-    name?: string;
-    topic?: string;
-    avatar_url?: string;
-    member_count?: number;
-    message_count?: number;
-    last_message_ts?: number;
-    is_encrypted?: boolean;
-    admin_count?: number;
-    created_ts?: number;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 非管理员用户 |
-| 404 | 房间不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/admin/room.rs` (`get_single_room_stats`)
-- **SDK 封装**: `matrix-js-sdk/src/admin/index.ts` (`AdminManager.getRoomStats()`)
-- **前端调用**: `hula/src/services/matrix/MatrixAdminService.ts` (未直接使用)
-
----
-
-## 删除房间 / Delete Room
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_synapse/admin/v1/rooms/{room_id}` |
-| HTTP 方法 | DELETE |
-| SDK 方法 | `adminManager.deleteRoom(roomId, options?)` |
-| SDK 模块 | `matrix-js-sdk/src/admin/index.ts` |
-| 认证要求 | 是 (Admin Token) |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID，URL 路径参数，需编码 |
-| `options.purge` | `boolean` | 否 | 是否彻底清除 (默认 false) |
-| `options.force_purge` | `boolean` | 否 | 是否强制清除 (默认 false) |
-
-### 响应结构
-
-```typescript
-interface DeleteRoomResponse {
-    room_id: string;
-    deleted: boolean;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 删除成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 非管理员用户 |
-| 404 | 房间不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/admin/room.rs` (`delete_room`)
-- **SDK 封装**: `matrix-js-sdk/src/admin/index.ts` (`AdminManager.deleteRoom()`)
-- **前端调用**: `hula/src/services/matrix/MatrixAdminService.ts` (`adminService.deleteRoom()`)
-
----
-
-## 用户注册 Nonce / Registration Nonce
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_synapse/admin/v1/register/nonce` |
-| HTTP 方法 | GET |
-| SDK 方法 | `adminManager.registerNonce()` |
-| SDK 模块 | `matrix-js-sdk/src/admin/index.ts` |
-| 认证要求 | 否 (但仅限 localhost 或配置 allow_external_access) |
-
-### 请求参数
-
-无。
-
-### 响应结构
-
-```typescript
-interface NonceResponse {
-    nonce: string;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 400 | 管理员注册未启用或 shared_secret 未配置 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/admin/register.rs` (`get_nonce`)
-- **SDK 封装**: `matrix-js-sdk/src/admin/index.ts` (`AdminManager.registerNonce()`)
-- **前端调用**: 无
-
----
-
-## 管理员注册 / Admin Register
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_synapse/admin/v1/register` |
-| HTTP 方法 | POST |
-| SDK 方法 | `adminManager.adminRegister(options)` |
-| SDK 模块 | `matrix-js-sdk/src/admin/index.ts` |
-| 认证要求 | 否 (HMAC-SHA256 签名验证) |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `nonce` | `string` | 是 | 从 `/register/nonce` 获取的随机数 |
-| `username` | `string` | 是 | 用户名 (1-255 字符) |
-| `password` | `string` | 是 | 密码 (8-512 字符) |
-| `admin` | `boolean` | 是 | 是否为管理员 |
-| `displayname` | `string` | 否 | 显示名称 |
-| `mac` | `string` | 是 | HMAC-SHA256 签名 |
-| `user_type` | `string` | 否 | 用户类型 |
-
-### HMAC 签名计算
-
-```
-message = nonce + "\x00" + username + "\x00" + password + "\x00" + admin_flag + "\x00" + user_type
-mac = HMAC-SHA256(shared_secret, message).hex()
-```
-
-其中 `admin_flag` 为:
-- 管理员: `"admin\x00\x00\x00"`
-- 非管理员: `"notadmin"`
-
-### 响应结构
-
-```typescript
-interface AdminRegisterResponse {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-    device_id: string;
-    user_id: string;
-    home_server: string;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 注册成功 |
-| 400 | 参数错误、nonce 无效、HMAC 验证失败、用户已存在 |
-| 401 | 需要额外认证 |
-| 403 | 非管理员用户 (已存在管理员时) |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/admin/register.rs` (`register`)
-- **SDK 封装**: `matrix-js-sdk/src/admin/index.ts` (`AdminManager.adminRegister()`)
-- **前端调用**: 无
-
----
-
-## 附录：SDK AdminManager 完整方法列表
-
-### 用户管理
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getUsers(from?, limit?)` | `/_synapse/admin/v1/v2/users` | 获取用户列表 | ✅ |
-| `getUser(userId)` | `/_synapse/admin/v1/v2/users/{user_id}` | 获取用户信息 | ✅ |
-| `createUser(userId, options)` | `/_synapse/admin/v1/v2/users/{user_id}` | 创建用户 | ✅ |
-| `deactivateUser(userId)` | `/_synapse/admin/v1/deactivate/{user_id}` | 停用用户 | ✅ |
-| `resetPassword(userId, password)` | `/_synapse/admin/v1/reset_password/{user_id}` | 重置密码 | ✅ |
-| `setAdmin(userId, admin)` | `/_synapse/admin/v1/v2/users/{user_id}` | 设置管理员权限 | ✅ |
-| `getUserDevices(userId)` | `/_synapse/admin/v1/v2/users/{user_id}/devices` | 获取用户设备列表 | ✅ |
-| `deleteUserDevices(userId, deviceIds)` | `/_synapse/admin/v1/v2/users/{user_id}/delete_devices` | 删除用户设备 | ✅ |
-
-### Shadow Ban
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `shadowBanUser(userId)` | `/_synapse/admin/v1/users/{user_id}/shadow_ban` | 影子封禁用户 | ✅ |
-| `unshadowBanUser(userId)` | `DELETE /_synapse/admin/v1/users/{user_id}/shadow_ban` | 取消影子封禁 | ✅ |
-| `getShadowBanStatus(userId)` | `/_synapse/admin/v1/users/{user_id}/shadow_ban` | 获取影子封禁状态 | ✅ |
-
-### Rate Limit
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getRateLimit(userId)` | `/_synapse/admin/v1/users/{user_id}/rate_limit` | 获取用户速率限制 | ✅ |
-| `setRateLimit(userId, config)` | `/_synapse/admin/v1/users/{user_id}/rate_limit` | 设置用户速率限制 | ✅ |
-| `deleteRateLimit(userId)` | `DELETE /_synapse/admin/v1/users/{user_id}/rate_limit` | 删除用户速率限制 | ✅ |
-
-### 房间管理
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getRooms(from?, limit?, searchTerm?)` | `/_synapse/admin/v1/rooms` | 获取房间列表 | ✅ |
-| `getRoom(roomId)` | `/_synapse/admin/v1/rooms/{room_id}` | 获取房间信息 | ✅ |
-| `deleteRoom(roomId, options?)` | `DELETE /_synapse/admin/v1/rooms/{room_id}` | 删除房间 | ✅ |
-| `blockRoom(roomId, block)` | `/_synapse/admin/v1/rooms/{room_id}/block` | 封禁/解封房间 | ✅ |
-| `getRoomMembers(roomId)` | `/_synapse/admin/v1/rooms/{room_id}/members` | 获取房间成员列表 | ✅ |
-| `joinRoom(roomId, userId)` | `/_synapse/admin/v1/join/{room_id}` | 强制用户加入房间 | ✅ |
-| `getRoomStats(roomId)` | `/_synapse/admin/v1/room_stats/{room_id}` | 获取房间统计 | ✅ 新增 |
-| `makeRoomAdmin(roomId, userId?)` | `/_synapse/admin/v1/rooms/{room_id}/make_room_admin` | 设置房间管理员 | ✅ |
-
-### 服务器管理
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getServerVersion()` | `/_synapse/admin/v1/server_version` | 获取服务器版本 | ✅ |
-| `getServerStats()` | `/_synapse/admin/v1/statistics` | 获取服务器统计 | ✅ |
-| `getServerConfig()` | `/_synapse/admin/v1/config` | 获取服务器配置 | ✅ |
-| `whois(userId)` | `/_synapse/admin/v1/whois/{user_id}` | 获取用户 WHOIS | ✅ |
-
-### 注册令牌
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getRegistrationTokens()` | `/_synapse/admin/v1/registration_tokens` | 获取注册令牌列表 | ✅ |
-| `createRegistrationToken(options)` | `/_synapse/admin/v1/registration_tokens` | 创建注册令牌 | ✅ |
-| `updateRegistrationToken(token, options)` | `POST /_synapse/admin/v1/registration_tokens/{token}` | 更新注册令牌 | ✅ |
-| `deleteRegistrationToken(token)` | `DELETE /_synapse/admin/v1/registration_tokens/{token}` | 删除注册令牌 | ✅ |
-
-### 管理员注册
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `registerNonce()` | `/_synapse/admin/v1/register/nonce` | 获取注册 Nonce | ✅ 新增 |
-| `adminRegister(options)` | `/_synapse/admin/v1/register` | 管理员注册用户 | ✅ 新增 |
-
-### 媒体管理
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getMedia(limit?, from?)` | `/_synapse/admin/v1/media` | 获取媒体列表 | ✅ |
-| `deleteMedia(mediaId)` | `DELETE /_synapse/admin/v1/media/{media_id}` | 删除媒体 | ✅ |
-| `quarantineMedia(mediaId)` | `/_synapse/admin/v1/media/quarantine/{media_id}` | 隔离媒体 | ✅ |
-| `purgeMediaCache(beforeTs?)` | `/_synapse/admin/v1/purge_media_cache` | 清理媒体缓存 | ✅ |
-
-### 联邦管理
-
-| 方法 | 路由 | 说明 | 状态 |
-|------|------|------|------|
-| `getFederationDestinations()` | `/_synapse/admin/v1/federation/destinations` | 获取联邦目的地列表 | ✅ |
-| `getFederationDestination(destination)` | `/_synapse/admin/v1/federation/destinations/{destination}` | 获取联邦目的地状态 | ✅ |
-| `resetFederationConnection(destination)` | `/_synapse/admin/v1/federation/destinations/{destination}/reset_connection` | 重置联邦连接 | ✅ |
-
----
-
-## 版本历史
-
-| 版本 | 日期 | 变更内容 |
-|------|------|----------|
-| v1.0.0 | 2026-03-29 | 初始版本，包含 Admin API 契约文档 |
-| v1.1.0 | 2026-03-29 | 新增 `getRoomStats()`, `registerNonce()`, `adminRegister()` 方法 |
+# Admin 模块契约
+
+> 审查来源: `synapse-rust/src/web/routes/admin/mod.rs` 及其子模块
+
+## 认证要求
+
+- 管理端大多数端点使用 `AdminUser` 提取器，要求有效管理员 token。
+- `/_synapse/admin/v1/register/nonce` 与 `/_synapse/admin/v1/register` 为管理员注册特例，不走普通管理员 token。
+
+## 用户管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/_synapse/admin/v1/users` | v1 用户列表 |
+| GET | `/_synapse/admin/v1/users/{user_id}` | v1 用户详情 |
+| DELETE | `/_synapse/admin/v1/users/{user_id}` | 删除用户 |
+| PUT | `/_synapse/admin/v1/users/{user_id}/admin` | 设置管理员 |
+| POST | `/_synapse/admin/v1/users/{user_id}/evict` | 从全部房间逐出用户 |
+| POST | `/_synapse/admin/v1/users/{user_id}/deactivate` | 停用用户 |
+| POST | `/_synapse/admin/v1/users/{user_id}/password` | 重置密码 |
+| GET | `/_synapse/admin/v1/users/{user_id}/rooms` | 查看用户房间 |
+| POST | `/_synapse/admin/v1/users/{user_id}/login` | 以用户身份登录 |
+| POST | `/_synapse/admin/v1/users/{user_id}/logout` | 登出用户全部设备 |
+| GET | `/_synapse/admin/v1/users/{user_id}/devices` | 查看用户设备 |
+| POST | `/_synapse/admin/v1/users/{user_id}/devices/delete` | 批量删除用户设备 |
+| DELETE | `/_synapse/admin/v1/users/{user_id}/devices/{device_id}` | 删除单设备 |
+| POST | `/_synapse/admin/v1/users/{user_id}/devices/{device_id}/delete` | 删除单设备兼容路由 |
+| GET | `/_synapse/admin/v2/users` | v2 用户列表 |
+| GET | `/_synapse/admin/v2/users/{user_id}` | v2 用户详情 |
+| PUT | `/_synapse/admin/v2/users/{user_id}` | v2 创建或更新用户 |
+| GET | `/_synapse/admin/v1/user_stats` | 用户统计列表 |
+| GET | `/_synapse/admin/v1/users/{user_id}/stats` | 单用户统计 |
+| POST | `/_synapse/admin/v1/users/batch` | 批量创建用户 |
+| POST | `/_synapse/admin/v1/users/batch_deactivate` | 批量停用用户 |
+| GET | `/_synapse/admin/v1/user_sessions/{user_id}` | 查询会话 |
+| POST | `/_synapse/admin/v1/user_sessions/{user_id}/invalidate` | 失效会话 |
+| GET | `/_synapse/admin/v1/account/{user_id}` | 账户详情 |
+| POST | `/_synapse/admin/v1/account/{user_id}` | 更新账户详情 |
+
+## 房间与 Space 管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/_synapse/admin/v1/rooms` | 房间列表 |
+| GET/DELETE | `/_synapse/admin/v1/rooms/{room_id}` | 房间详情 / 删除房间 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/delete` | 兼容删除房间 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/members` | 房间成员 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/state` | 房间状态 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/messages` | 房间消息 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/aliases` | 房间别名 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/version` | 房间版本 |
+| POST/GET | `/_synapse/admin/v1/rooms/{room_id}/block` | 封禁 / 查询封禁状态 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/unblock` | 解封房间 |
+| POST/PUT | `/_synapse/admin/v1/rooms/{room_id}/make_admin` | 设置房间管理员 |
+| POST | `/_synapse/admin/v1/purge_history` | 清理历史 |
+| POST | `/_synapse/admin/v1/purge_room` | 清空房间 |
+| POST | `/_synapse/admin/v1/shutdown_room` | 关闭房间 |
+| GET | `/_synapse/admin/v1/spaces` | space 列表 |
+| GET/DELETE | `/_synapse/admin/v1/spaces/{space_id}` | space 详情 / 删除 |
+| GET | `/_synapse/admin/v1/spaces/{space_id}/users` | space 用户 |
+| GET | `/_synapse/admin/v1/spaces/{space_id}/rooms` | space 房间 |
+| GET | `/_synapse/admin/v1/spaces/{space_id}/stats` | space 统计 |
+| GET | `/_synapse/admin/v1/room_stats` | 房间统计列表 |
+| GET | `/_synapse/admin/v1/room_stats/{room_id}` | 单房间统计 |
+| PUT/DELETE | `/_synapse/admin/v1/rooms/{room_id}/members/{user_id}` | 加入 / 移除成员 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/ban/{user_id}` | 封禁指定用户 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/ban` | 封禁请求体指定用户 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/unban/{user_id}` | 解封指定用户 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/kick/{user_id}` | 踢出指定用户 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/kick` | 踢出请求体指定用户 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/listings` | 房间公开列表项 |
+| PUT/DELETE | `/_synapse/admin/v1/rooms/{room_id}/listings/public` | 设置/移除公开列表 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/event_context/{event_id}` | 事件上下文 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/token_sync` | token 同步 |
+| POST | `/_synapse/admin/v1/rooms/{room_id}/search` | 房间内搜索 |
+| POST | `/_synapse/admin/v1/rooms/search` | 全局房间搜索 |
+| GET | `/_synapse/admin/v1/rooms/{room_id}/forward_extremities` | extremities |
+
+## 安全、通知、媒体、服务器
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST/DELETE | `/_synapse/admin/v1/users/{user_id}/shadow_ban` | 影子封禁 / 解封 |
+| GET/PUT/DELETE | `/_synapse/admin/v1/users/{user_id}/rate_limit` | 用户限速 |
+| GET/POST/DELETE | `/_synapse/admin/v1/users/{user_id}/override_ratelimit` | 覆盖限速 |
+| POST/GET/PUT/DELETE | `/_synapse/admin/v1/notifications...` | 系统通知 CRUD |
+| POST | `/_synapse/admin/v1/send_server_notice` | 发送 server notice |
+| GET | `/_synapse/admin/v1/server_notices` | notice 列表 |
+| GET/PUT | `/_synapse/admin/v1/users/{user_id}/notification` | 用户通知设置 |
+| GET/DELETE | `/_synapse/admin/v1/users/{user_id}/pushers...` | 管理用户 pushers |
+| GET/DELETE | `/_synapse/admin/v1/media...` | 管理媒体与用户媒体 |
+| GET | `/_synapse/admin/info` | 管理端信息 |
+| GET | `/_synapse/admin/v1/server_version` | 服务器版本 |
+| POST | `/_synapse/admin/v1/purge_media_cache` | 清理媒体缓存 |
+| POST | `/_synapse/admin/v1/restart` | 重启 |
+| GET | `/_synapse/admin/v1/statistics` | 服务器统计 |
+| GET | `/_synapse/admin/v1/status` | 服务器状态 |
+| GET | `/_synapse/admin/v1/whois/{user_id}` | whois |
+| GET | `/_synapse/admin/v1/health` | 健康检查 |
+| GET | `/_synapse/admin/v1/config` | 配置 |
+| GET | `/_synapse/admin/v1/experimental_features` | 实验特性 |
+| GET | `/_synapse/admin/v1/backups` | 备份信息 |
+| GET/PUT | `/_synapse/admin/v1/saml/config` | 读取/更新 SAML 配置 |
+| GET | `/_synapse/admin/v1/saml/mappings` | SAML 用户映射列表 |
+| GET/PUT/DELETE | `/_synapse/admin/v1/saml/mapping/{name_id}` | 单个 SAML 映射管理 |
+| POST | `/_synapse/admin/v1/saml/logout` | 发起 SAML 登出 |
+| GET/POST | `/_synapse/admin/v1/application_services` | 应用服务列表 / 注册应用服务 |
+| GET/PUT/DELETE | `/_synapse/admin/v1/application_services/{service_id}` | 查询 / 更新 / 删除应用服务 |
+| POST | `/_synapse/admin/v1/application_services/{service_id}/ping` | Ping 应用服务 |
+
+## 令牌、联邦、审计、报表、保留策略、管理员注册
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET/POST | `/_synapse/admin/v1/registration_tokens` | 注册令牌列表/创建 |
+| GET/DELETE/POST | `/_synapse/admin/v1/registration_tokens/{token}` | 查看/删除/更新令牌 |
+| GET/POST | `/_synapse/admin/v1/audit/events` | 审计事件列表/记录 |
+| GET | `/_synapse/admin/v1/audit/events/{event_id}` | 审计详情 |
+| GET | `/_synapse/admin/v1/federation/blacklist` | 获取联邦黑名单 |
+| POST | `/_synapse/admin/v1/federation/blacklist/add` | 添加到联邦黑名单 |
+| POST | `/_synapse/admin/v1/federation/blacklist/remove` | 从联邦黑名单移除 |
+| GET | `/_synapse/admin/v1/federation/destinations` | 获取联邦目的地列表 |
+| GET | `/_synapse/admin/v1/federation/status/{server_name}` | 获取联邦服务器状态 |
+| POST | `/_synapse/admin/v1/federation/disconnect/{server_name}` | 断开联邦连接 |
+| POST | `/_synapse/admin/v1/federation/reconnect/{server_name}` | 重连联邦服务器 |
+| GET/DELETE | `/_synapse/admin/v1/reports...` | 举报与房间举报 |
+| GET/POST | `/_synapse/admin/v1/retention/policy...` | retention 策略 |
+| POST | `/_synapse/admin/v1/retention/run` | 执行保留策略任务 |
+| GET | `/_synapse/admin/v1/retention/status` | retention 状态 |
+| GET | `/_synapse/admin/v1/register/nonce` | 管理员注册 nonce |
+| POST | `/_synapse/admin/v1/register` | 管理员注册用户 |
+
+## 用户 Admin 状态与登录失败
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/_synapse/admin/v1/users/{user_id}/admin` | 检查用户是否是管理员 |
+| PUT | `/_synapse/admin/v1/users/{user_id}/admin` | 设置用户管理员状态 |
+| GET | `/_synapse/admin/v1/account_status/{user_id}` | 获取用户账户状态（锁定/暂停/验证） |
+| GET | `/_synapse/admin/v1/login/failures` | 获取登录失败记录 |
+| POST | `/_synapse/admin/v1/deactivate/{user_id}` | 停用用户（兼容路由） |
+
+## 常见响应
+
+- 列表接口: `users`、`rooms`、`spaces`、`reports`、`notifications` 等数组
+- 统计接口: `total`、计数或统计对象
+- 写接口: 通常返回空对象、状态对象或刚创建的资源标识
+- 管理员注册:
+  - `nonce` 接口返回 `{ "nonce": "..." }`
+  - `register` 返回登录结果，包含 `access_token` `user_id` `device_id` 等
+
+## 代码定位
+
+- 聚合入口: `synapse-rust/src/web/routes/admin/mod.rs`
+- 用户: `admin/user.rs`
+- 房间: `admin/room.rs`
+- 安全: `admin/security.rs`
+- 通知: `admin/notification.rs`
+- 媒体: `admin/media.rs`
+- 服务器: `admin/server.rs`
+- 令牌: `admin/token.rs`
+- 联邦: `admin/federation.rs`
+- 审计: `admin/audit.rs`
+- 报表: `admin/report.rs`
+- 保留策略: `admin/retention.rs`
+- 注册: `admin/register.rs`

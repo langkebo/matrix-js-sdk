@@ -170,6 +170,33 @@ export class AccountManager {
     }
 
     /**
+     * Logout from all devices
+     */
+    public async logoutAll(stopClient = false): Promise<EmptyObject> {
+        if (stopClient) {
+            this.client.stopClient();
+            this.client.http.abort();
+        }
+
+        return this.client.http.authedRequest(Method.Post, "/logout/all");
+    }
+
+    /**
+     * Submit email verification token for registration
+     */
+    public async submitEmailToken(
+        sid: string,
+        clientSecret: string,
+        token: string,
+    ): Promise<{ success: boolean }> {
+        return this.client.http.request(Method.Post, "/register/email/submitToken", undefined, {
+            sid,
+            client_secret: clientSecret,
+            token,
+        });
+    }
+
+    /**
      * Deactivate account
      */
     public deactivateAccount(

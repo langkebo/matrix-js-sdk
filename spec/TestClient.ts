@@ -59,6 +59,7 @@ export class TestClient implements IE2EKeyReceiver, ISyncResponder {
 
         const fullOptions: ICreateClientOpts = {
             baseUrl: "http://" + userId?.slice(1).replace(":", ".") + ".test.server",
+            allowInsecureHttp: true,
             userId: userId,
             accessToken: accessToken,
             deviceId: deviceId,

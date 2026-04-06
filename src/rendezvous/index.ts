@@ -22,4 +22,7 @@ export * from "./RendezvousFailureReason.ts";
 export * from "./RendezvousIntent.ts";
 export type * from "./RendezvousTransport.ts";
 export * from "./transports/index.ts";
+
+export * from "./RendezvousManager.ts";
+export { extendMatrixClient } from "./RendezvousManager.ts";
 export * from "./channels/index.ts";

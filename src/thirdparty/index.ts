@@ -1,4 +1,5 @@
 import { logger } from "../logger"
+import { MatrixClient } from "../client";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -228,3 +229,17 @@ export class ThirdPartyManager {
     start(): void {}
     stop(): void {}
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getThirdPartyManager(): ThirdPartyManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getThirdPartyManager = function (): ThirdPartyManager {
+        return new ThirdPartyManager(this);
+    };
+}
+
+export default extendMatrixClient;

@@ -1,152 +1,77 @@
-import "../../src/key-backup/index";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { KeyBackupManager } from "../../src/key-backup/index";
+import { KeyBackupManager, type BackupVersionInfo, type RoomKeyBackup } from "../../src/key-backup/index";
+import { Method } from "../../src/http-api/method.ts";
+import { ClientPrefix } from "../../src/http-api/prefix.ts";
 
-describe("KeyBackupManager Integration Tests", () => {
+describe("KeyBackupManager", () => {
+    let authedRequest: ReturnType<typeof vi.fn>;
     let keyBackupManager: KeyBackupManager;
-    const mockClient: any = {};
 
     beforeEach(() => {
-        // Setup mock client
-        mockClient.getCapabilities = vi.fn().mockResolvedValue({
-            "m.key_backup": {
-                available: true,
-                enabled: true,
-                etag: '"123"',
-                version: "1",
-            },
-        });
-
-        mockClient.createKeyBackup = vi.fn().mockResolvedValue({
-            version: "1",
-            algorithm: "m.megolm_backup.v1",
-        });
-
-        mockClient.getKeyBackupInfo = vi.fn().mockResolvedValue({
-            version: "1",
-            algorithm: "m.megolm_backup.v1",
-            auth_data: {
-                public_key: "test_key",
-            },
-            count: 100,
-            etag: '"100"',
-        });
-
-        mockClient.getKeyBackupVersions = vi.fn().mockResolvedValue({
-            "1": {
-                version: "1",
-                algorithm: "m.megolm_backup.v1",
-                created_on: "2024-01-01T00:00:00Z",
-            },
-        });
-
-        mockClient.getKeyBackupSession = vi.fn().mockResolvedValue({
-            session_data: {
-                algorithm: "m.megolm.v1.curve25519-aes-sha2",
-                ciphertext: "test_ciphertext",
-                mac: "test_mac",
-            },
-        });
-
-        mockClient.putKeyBackupSession = vi.fn().mockResolvedValue({});
-
-        mockClient.deleteKeyBackup = vi.fn().mockResolvedValue({});
-
-        mockClient.getKeyBackupKeys = vi.fn().mockResolvedValue({
-            rooms: {
-                "!room:example.com": {
-                    sessions: {
-                        session1: { session_data: "data1" },
-                        session2: { session_data: "data2" },
-                    },
-                },
-            },
-        });
-
-        keyBackupManager = new KeyBackupManager(mockClient);
+        authedRequest = vi.fn();
+        keyBackupManager = new KeyBackupManager({ http: { authedRequest } } as any);
     });
 
-    describe("Backup Creation Flow", () => {
-        it("should check if backup is available", async () => {
-            const caps = await keyBackupManager.getCapabilities();
-            expect(caps.available).toBe(true);
-            expect(caps.enabled).toBe(true);
-        });
+    it("getBackupVersions calls /room_keys/version", async () => {
+        const versions: BackupVersionInfo[] = [{ version: "1", algorithm: "m.megolm_backup.v1", auth_data: {} }];
+        authedRequest.mockResolvedValueOnce({ versions });
 
-        it("should create new backup", async () => {
-            const backup = await keyBackupManager.createBackup("m.megolm_backup.v1", {
-                public_key: "test_key",
-            });
-            expect(backup.version).toBe("1");
-        });
+        const result = await keyBackupManager.getBackupVersions();
 
-        it("should get backup info", async () => {
-            const info = await keyBackupManager.getBackupInfo();
-            expect(info?.version).toBe("1");
-            expect(info?.algorithm).toBe("m.megolm_backup.v1");
-            expect(info?.count).toBe(100);
+        expect(result).toEqual({ versions });
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/version", undefined, undefined, {
+            prefix: ClientPrefix.V3,
         });
     });
 
-    describe("Key Backup and Restore", () => {
-        it("should backup keys", async () => {
-            await keyBackupManager.backupKeys("!room:example.com", "session1", {
-                algorithm: "m.megolm.v1.curve25519-aes-sha2",
-                ciphertext: "test",
-                mac: "test_mac",
-            });
-            expect(mockClient.putKeyBackupSession).toHaveBeenCalled();
-        });
+    it("createBackupVersion calls POST /room_keys/version", async () => {
+        authedRequest.mockResolvedValueOnce({ version: "1" });
 
-        it("should retrieve backed up keys", async () => {
-            const keys = await keyBackupManager.getBackupKeys("!room:example.com", "session1");
-            expect(keys).toBeDefined();
-            expect(mockClient.getKeyBackupSession).toHaveBeenCalledWith("1", "!room:example.com", "session1");
-        });
+        const result = await keyBackupManager.createBackupVersion("m.megolm_backup.v1", { public_key: "test_key" });
 
-        it("should check if keys exist", async () => {
-            const exists = await keyBackupManager.checkKeys("!room:example.com", "session1");
-            expect(exists).toBe(true);
-        });
+        expect(result).toEqual({ version: "1" });
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/room_keys/version",
+            undefined,
+            { algorithm: "m.megolm_backup.v1", auth_data: { public_key: "test_key" } },
+            { prefix: ClientPrefix.V3 },
+        );
+    });
 
-        it("should return false for non-existent keys", async () => {
-            mockClient.getKeyBackupSession.mockRejectedValueOnce(new Error("Not found"));
-            const exists = await keyBackupManager.checkKeys("!room:example.com", "nonexistent");
-            expect(exists).toBe(false);
+    it("getBackupVersion calls GET /room_keys/version/{version}", async () => {
+        const versionInfo: BackupVersionInfo = { version: "1", algorithm: "m.megolm_backup.v1", auth_data: {} };
+        authedRequest.mockResolvedValueOnce(versionInfo);
+
+        const result = await keyBackupManager.getBackupVersion("1");
+
+        expect(result).toEqual(versionInfo);
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/version/1", undefined, undefined, {
+            prefix: ClientPrefix.V3,
         });
     });
 
-    describe("Backup Management", () => {
-        it("should get all backup versions", async () => {
-            const versions = await keyBackupManager.getBackupVersions();
-            expect(versions).toHaveLength(1);
-            expect(versions[0].version).toBe("1");
-        });
+    it("deleteBackupVersion calls DELETE /room_keys/version/{version}", async () => {
+        authedRequest.mockResolvedValueOnce({ deleted: true, version: "1" });
 
-        it("should delete backup", async () => {
-            await keyBackupManager.deleteBackup("1");
-            expect(mockClient.deleteKeyBackup).toHaveBeenCalledWith("1");
-        });
+        const result = await keyBackupManager.deleteBackupVersion("1");
 
-        it("should restore backup", async () => {
-            const result = await keyBackupManager.restoreBackup();
-            expect(result).toBeDefined();
-            expect(result.total).toBeGreaterThanOrEqual(0);
+        expect(result).toEqual({ deleted: true, version: "1" });
+        expect(authedRequest).toHaveBeenCalledWith(Method.Delete, "/room_keys/version/1", undefined, undefined, {
+            prefix: ClientPrefix.V3,
         });
     });
 
-    describe("Error Handling", () => {
-        it("should handle unavailable backup", async () => {
-            mockClient.getCapabilities.mockResolvedValueOnce({});
-            const caps = await keyBackupManager.getCapabilities();
-            expect(caps.available).toBe(false);
-        });
+    it("getAllBackupKeys calls GET /room_keys/keys", async () => {
+        const keys: RoomKeyBackup = { rooms: {}, etag: '"1"' };
+        authedRequest.mockResolvedValueOnce(keys);
 
-        it("should handle no backup versions", async () => {
-            mockClient.getKeyBackupVersions.mockResolvedValueOnce({});
-            const info = await keyBackupManager.getBackupInfo();
-            expect(info).toBeNull();
+        const result = await keyBackupManager.getAllBackupKeys();
+
+        expect(result).toEqual(keys);
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/keys", undefined, undefined, {
+            prefix: ClientPrefix.V3,
         });
     });
 });

@@ -1747,9 +1747,10 @@ describe("MatrixClient", function () {
             "im.nheko.summary.encryption": "algo",
         };
 
-        const prefix = "/_matrix/client/unstable/im.nheko.summary/";
-        const suffix = `summary/${encodedRoomId}`;
-        const deprecatedSuffix = `rooms/${encodedRoomId}/summary`;
+        const prefix = "/_matrix/client/v3/";
+        const suffix = `rooms/${encodedRoomId}/summary`;
+        const deprecatedPrefix = "/_matrix/client/unstable/im.nheko.summary/";
+        const deprecatedSuffix = `summary/${encodedRoomId}`;
 
         const errorUnrecogStatus = 404;
         const errorUnrecogBody = {
@@ -1776,7 +1777,7 @@ describe("MatrixClient", function () {
 
         it("should allow fallback to the deprecated endpoint", () => {
             httpBackend.when("GET", prefix + suffix).respond(errorUnrecogStatus, errorUnrecogBody);
-            httpBackend.when("GET", prefix + deprecatedSuffix).respond(200, roomSummary);
+            httpBackend.when("GET", deprecatedPrefix + deprecatedSuffix).respond(200, roomSummary);
 
             const prom = client.getRoomSummary(roomId).then((response) => {
                 expect(response).toEqual(roomSummary);
@@ -1788,7 +1789,7 @@ describe("MatrixClient", function () {
 
         it("should respond to unsupported path with error", () => {
             httpBackend.when("GET", prefix + suffix).respond(errorUnrecogStatus, errorUnrecogBody);
-            httpBackend.when("GET", prefix + deprecatedSuffix).respond(errorUnrecogStatus, errorUnrecogBody);
+            httpBackend.when("GET", deprecatedPrefix + deprecatedSuffix).respond(errorUnrecogStatus, errorUnrecogBody);
 
             const prom = client.getRoomSummary(roomId).then(
                 function (response) {
@@ -1806,7 +1807,8 @@ describe("MatrixClient", function () {
         });
 
         it("should respond to invalid path arguments with error", () => {
-            httpBackend.when("GET", prefix).respond(errorBadreqStatus, errorBadreqBody);
+            httpBackend.when("GET", prefix + "rooms/notAroom/summary").respond(errorBadreqStatus, errorBadreqBody);
+            httpBackend.when("GET", deprecatedPrefix + "summary/notAroom").respond(errorBadreqStatus, errorBadreqBody);
 
             const prom = client.getRoomSummary("notAroom").then(
                 function (response) {
@@ -1826,7 +1828,7 @@ describe("MatrixClient", function () {
 
     describe("getDomain", () => {
         it("should return null if no userId is set", () => {
-            const client = new MatrixClient({ baseUrl: "http://localhost" });
+            const client = new MatrixClient({ baseUrl: "https://localhost" });
             expect(client.getDomain()).toBeNull();
         });
 
@@ -1837,7 +1839,7 @@ describe("MatrixClient", function () {
 
     describe("getUserIdLocalpart", () => {
         it("should return null if no userId is set", () => {
-            const client = new MatrixClient({ baseUrl: "http://localhost" });
+            const client = new MatrixClient({ baseUrl: "https://localhost" });
             expect(client.getUserIdLocalpart()).toBeNull();
         });
 
@@ -1851,7 +1853,7 @@ describe("MatrixClient", function () {
         it("should set room push rule to muted", async () => {
             const roomId = "!roomId:server";
             const client = new MatrixClient({
-                baseUrl: "http://localhost",
+                baseUrl: "https://localhost",
                 fetchFn: httpBackend.fetchFn as typeof globalThis.fetch,
             });
             client.pushRules = {

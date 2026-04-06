@@ -23,6 +23,8 @@ limitations under the License.
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
 
 export enum WidgetEvent {
     WidgetAdded = "WidgetAdded",
@@ -324,11 +326,11 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
         try {
             const response = await this.client.http.authedRequest(
-                'GET' as any,
-                `/_matrix/client/v3/rooms/${roomId}/widgets/${widgetId}/capabilities`,
+                Method.Get,
+                `/rooms/${roomId}/widgets/${widgetId}/capabilities`,
                 undefined,
                 undefined,
-                { prefix: '/_matrix/client/v3' }
+                { prefix: ClientPrefix.V3 }
             );
 
             return {
@@ -349,14 +351,14 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
 
         try {
             const response = await this.client.http.authedRequest(
-                'POST' as any,
-                `/_matrix/client/v3/rooms/${roomId}/widgets/${widgetId}/send`,
+                Method.Post,
+                `/rooms/${roomId}/widgets/${widgetId}/send`,
                 undefined,
                 {
                     ...message,
                     request_id: requestId,
                 },
-                { prefix: '/_matrix/client/v3' }
+                { prefix: ClientPrefix.V3 }
             );
 
             return {

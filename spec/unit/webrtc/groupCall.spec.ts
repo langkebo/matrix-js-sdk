@@ -29,6 +29,7 @@ import {
 import { RoomStateEvent } from "../../../src/models/room-state";
 import { GroupCall, GroupCallEvent, GroupCallState, GroupCallStatsReportEvent } from "../../../src/webrtc/groupCall";
 import { type IMyDevice, MatrixClient } from "../../../src/client";
+import { type IContent } from "../../../src/models/event";
 import {
     FAKE_CONF_ID,
     FAKE_DEVICE_ID_1,
@@ -1446,7 +1447,7 @@ describe("Group Call", function () {
         let client: MatrixClient;
 
         beforeEach(() => {
-            client = new MatrixClient({ baseUrl: "base_url", userId: "my_user_id" });
+            client = new MatrixClient({ baseUrl: "https://example.org", userId: "my_user_id" });
 
             vi.spyOn(client, "sendStateEvent").mockResolvedValue({} as any);
         });
@@ -1586,10 +1587,10 @@ describe("Group Call", function () {
                             [
                                 new MatrixEvent({
                                     event_id: eventId,
-                                    type: eventType,
+                                    type: eventType as string,
                                     room_id: roomId,
                                     sender: FAKE_USER_ID_2,
-                                    content,
+                                    content: content as IContent,
                                     state_key: stateKey,
                                 }),
                             ],

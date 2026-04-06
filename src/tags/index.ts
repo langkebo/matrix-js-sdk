@@ -68,7 +68,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
             const userId = this.client.getUserId();
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags`,
+                `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -99,7 +99,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
             await this.client.http.authedRequest(
                 Method.Put,
-                `/_matrix/client/v3/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
+                `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
                 undefined,
                 body,
                 { prefix: ClientPrefix.V3 }
@@ -127,7 +127,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
             
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/_matrix/client/v3/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
+                `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }

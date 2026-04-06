@@ -13,7 +13,7 @@ extendRoomListClient();
 const ALLOWED_FRIEND_STATUSES = new Set<string>(Object.values(FriendRelationshipStatus));
 
 async function login(): Promise<MatrixClient> {
-    const testClient = createClient({ baseUrl: TestConfig.baseUrl });
+    const testClient = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
     const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
     const result = await testClient.login("m.login.password", {
         user: username,

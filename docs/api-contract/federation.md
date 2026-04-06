@@ -1,0 +1,86 @@
+# Federation 模块契约
+
+> 审查来源: `synapse-rust/src/web/routes/federation.rs`
+
+## 认证模型
+
+- Public federation 路由无需联邦签名中间件。
+- Protected federation 路由统一套用 `federation_auth_middleware`，要求 `Authorization: X-Matrix ...` 签名认证。
+- 这组接口不使用普通客户端 access token。
+
+## Public Federation
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/_matrix/federation/v2/server` | 获取服务端签名 key |
+| GET | `/_matrix/key/v2/server` | 获取服务端签名 key |
+| GET | `/_matrix/federation/v2/query/{server_name}/{key_id}` | key 查询 |
+| GET | `/_matrix/key/v2/query/{server_name}/{key_id}` | key 查询 |
+| GET | `/_matrix/federation/v1/version` | 联邦版本信息 |
+| GET | `/_matrix/federation/v1` | 联邦发现信息 |
+| GET | `/_matrix/federation/v1/publicRooms` | 联邦公开房间列表 |
+| GET | `/_matrix/federation/v1/hierarchy/{room_id}` | 房间层级 |
+| GET | `/_matrix/federation/v1/query/destination` | 目的地查询 |
+| GET | `/_matrix/federation/v1/room/{room_id}/{event_id}` | 获取房间事件 |
+
+## Protected Federation
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/_matrix/federation/v1/members/{room_id}` | 获取成员 |
+| GET | `/_matrix/federation/v1/members/{room_id}/joined` | 获取已加入成员 |
+| GET | `/_matrix/federation/v1/user/devices/{user_id}` | 获取用户设备 |
+| GET | `/_matrix/federation/v1/room_auth/{room_id}` | 获取房间鉴权事件 |
+| PUT | `/_matrix/federation/v1/knock/{room_id}/{user_id}` | federation knock |
+| POST | `/_matrix/federation/v1/thirdparty/invite` | 第三方邀请 |
+| GET | `/_matrix/federation/v1/get_joining_rules/{room_id}` | 获取 join 规则 |
+| PUT | `/_matrix/federation/v2/invite/{room_id}/{event_id}` | v2 invite |
+| PUT | `/_matrix/federation/v1/send/{txn_id}` | 发送联邦事务 |
+| GET | `/_matrix/federation/v1/make_join/{room_id}/{user_id}` | make join |
+| GET | `/_matrix/federation/v1/make_leave/{room_id}/{user_id}` | make leave |
+| PUT | `/_matrix/federation/v1/send_join/{room_id}/{event_id}` | send join v1 |
+| PUT | `/_matrix/federation/v2/send_join/{room_id}/{event_id}` | send join v2 |
+| PUT | `/_matrix/federation/v1/send_leave/{room_id}/{event_id}` | send leave v1 |
+| PUT | `/_matrix/federation/v2/send_leave/{room_id}/{event_id}` | send leave v2 |
+| PUT | `/_matrix/federation/v1/invite/{room_id}/{event_id}` | invite v1 |
+| POST | `/_matrix/federation/v1/get_missing_events/{room_id}` | 获取缺失事件 |
+| GET | `/_matrix/federation/v1/timestamp_to_event/{room_id}` | 时间戳转事件 |
+| GET | `/_matrix/federation/v1/get_event_auth/{room_id}/{event_id}` | 事件鉴权链 |
+| GET | `/_matrix/federation/v1/query/auth` | query auth |
+| GET | `/_matrix/federation/v1/event_auth` | event auth |
+| GET | `/_matrix/federation/v1/state/{room_id}` | 房间状态 |
+| GET | `/_matrix/federation/v1/event/{event_id}` | 事件详情 |
+| GET | `/_matrix/federation/v1/state_ids/{room_id}` | 状态 ID 列表 |
+| GET | `/_matrix/federation/v1/query/directory/room/{room_id}` | 目录查询 |
+| GET | `/_matrix/federation/v1/query/profile/{user_id}` | profile 查询 |
+| GET | `/_matrix/federation/v1/backfill/{room_id}` | backfill |
+| POST | `/_matrix/federation/v1/keys/claim` | claim keys |
+| POST | `/_matrix/federation/v1/keys/query` | query keys |
+| POST | `/_matrix/federation/v1/keys/upload` | upload keys |
+| POST | `/_matrix/federation/v2/key/clone` | key clone |
+| POST | `/_matrix/federation/v2/user/keys/query` | user keys query |
+| POST | `/_matrix/federation/v1/publicRooms` | 联邦公开房间查询 |
+| GET | `/_matrix/federation/v1/query/directory` | 目录查询 |
+| GET | `/_matrix/federation/v1/openid/userinfo` | OpenID userinfo |
+| GET | `/_matrix/federation/v1/media/download/{server_name}/{media_id}` | 联邦媒体下载 |
+| GET | `/_matrix/federation/v1/media/thumbnail/{server_name}/{media_id}` | 联邦缩略图 |
+| PUT | `/_matrix/federation/v1/exchange_third_party_invite/{room_id}` | 交换第三方邀请 |
+| GET | `/_matrix/federation/v1/groups/{group_id}` | 兼容 communities/groups |
+
+## 代码中可见稳定响应
+
+- `version` 与发现端点返回版本、服务名、能力说明
+- key/server 端点返回服务端签名 key 结构
+- 大多数 protected 端点返回房间状态、事件、事务处理结果或密钥对象
+
+## 常见状态码
+
+| 状态码 | 说明 |
+|--------|------|
+| `200` | 请求成功 |
+| `401` / `403` | 联邦签名认证失败 |
+| `404` | 房间、事件、媒体或资源不存在 |
+
+## 代码定位
+
+- 路由与处理器: `synapse-rust/src/web/routes/federation.rs`

@@ -121,7 +121,7 @@ export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerE
             const userId = this.client.getUserId();
             const response = await this.client.http.authedRequest(
                 Method.Post,
-                `/_matrix/client/v3/user/${encodeURIComponent(userId)}/filter`,
+                `/user/${encodeURIComponent(userId)}/filter`,
                 undefined,
                 definition,
                 { prefix: ClientPrefix.V3 }
@@ -160,7 +160,7 @@ export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerE
             const userId = this.client.getUserId();
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/user/${encodeURIComponent(userId)}/filter/${encodeURIComponent(filterId)}`,
+                `/user/${encodeURIComponent(userId)}/filter/${encodeURIComponent(filterId)}`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -184,7 +184,7 @@ export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerE
             const userId = this.client.getUserId();
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/_matrix/client/v3/user/${encodeURIComponent(userId)}/filter/${encodeURIComponent(filterId)}`,
+                `/user/${encodeURIComponent(userId)}/filter/${encodeURIComponent(filterId)}`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }

@@ -22,7 +22,7 @@ type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 vi.useFakeTimers();
 
 describe("MatrixHttpApi", () => {
-    const baseUrl = "http://baseUrl";
+    const baseUrl = "https://baseUrl";
     const prefix = ClientPrefix.V3;
 
     let upload: Promise<UploadResponse>;

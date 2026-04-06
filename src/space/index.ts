@@ -17,19 +17,39 @@ limitations under the License.
 /**
  * Space Manager - Space 空间管理
  *
- * 提供 Space 相关的 API 封装，包括：
- * - 创建/更新/删除 Space
- * - 获取 Space 信息和层级结构
- * - 管理 Space 子房间
- * - 获取用户的所有 Space
+ * 契约基线：docs/api-contract/space.md
+ * 目标：统一通过 `/spaces/*` HTTP 路由封装核心读写能力，
+ * 同时保留少量向后兼容的聚合方法。
  *
- * 对接后端: synapse-rust/src/web/routes/space.rs
+ * 优化特性:
+ * - LRU 缓存: Space 数据缓存
+ * - 重试机制: 指数退避重试
+ * - 监控指标: 请求统计和性能监控
+ * - 事件系统: TypedEventEmitter
  */
 
 import { MatrixClient } from "../client";
-import { EventType } from "../@types/event";
 import { MatrixError } from "../http-api/errors";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { Body } from "../http-api/interface";
 import { AuthError, NotFoundError, RetryableError, ApiError, SdkError } from "../errors";
+import { encodeUri, type QueryDict } from "../utils";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { logger } from "../logger";
+
+type JsonObject = Record<string, unknown>;
+
+export enum SpaceEvent {
+    SpaceCreated = "SpaceCreated",
+    SpaceUpdated = "SpaceUpdated",
+    SpaceDeleted = "SpaceDeleted",
+    ChildAdded = "ChildAdded",
+    ChildRemoved = "ChildRemoved",
+    MemberJoined = "MemberJoined",
+    MemberLeft = "MemberLeft",
+    SpaceError = "SpaceError",
+}
 
 export interface Space {
     space_id: string;
@@ -37,26 +57,31 @@ export interface Space {
     name?: string;
     topic?: string;
     avatar_url?: string;
-    creator: string;
-    join_rule: string;
-    is_public: boolean;
-    created_ts: number;
+    creator?: string;
+    join_rule?: string;
+    visibility?: string;
+    is_public?: boolean;
+    created_ts?: number;
+    [key: string]: unknown;
 }
 
 export interface SpaceChild {
     space_id: string;
     room_id: string;
     via_servers: string[];
-    sender: string;
-    is_suggested: boolean;
-    added_ts: number;
+    sender?: string;
+    is_suggested?: boolean;
+    added_ts?: number;
+    order?: string;
+    [key: string]: unknown;
 }
 
 export interface SpaceMember {
     space_id: string;
     user_id: string;
-    membership: string;
-    joined_ts: number;
+    membership?: string;
+    joined_ts?: number;
+    [key: string]: unknown;
 }
 
 export interface SpaceHierarchy {
@@ -65,372 +90,585 @@ export interface SpaceHierarchy {
     members: SpaceMember[];
 }
 
+export interface SpaceListResponse {
+    chunk?: Space[];
+    spaces?: Space[];
+    rooms?: Space[];
+    next_batch?: string;
+    prev_batch?: string;
+    total_room_count_estimate?: number;
+    [key: string]: unknown;
+}
+
+export interface SpaceHierarchyPage {
+    rooms?: unknown[];
+    next_batch?: string;
+    [key: string]: unknown;
+}
+
+export interface SpaceStatistics {
+    total_spaces?: number;
+    public_spaces?: number;
+    private_spaces?: number;
+    joined_spaces?: number;
+    [key: string]: unknown;
+}
+
+export interface SpaceQueryOptions extends QueryDict {
+    limit?: number;
+    from?: string;
+    since?: string;
+    max_depth?: number;
+    suggested_only?: boolean;
+    server?: string;
+    search_term?: string;
+}
+
 export interface CreateSpaceOptions {
-    name: string;
+    room_id?: string;
+    name?: string;
     topic?: string;
     avatar_url?: string;
+    join_rule?: string;
     visibility?: "public" | "private";
+    is_public?: boolean;
     parent_space_id?: string;
 }
 
 export interface UpdateSpaceOptions {
     name?: string;
     topic?: string;
+    avatar_url?: string;
+    join_rule?: string;
+    visibility?: "public" | "private";
+    is_public?: boolean;
 }
 
 export interface AddChildOptions {
     room_id: string;
     via_servers?: string[];
+    order?: string;
     suggested?: boolean;
 }
 
-export class SpaceManager {
+export interface SpaceManagerMetrics {
+    cache: { size: number; hits: number; misses: number; hitRate: number };
+    requests: { total: number; successful: number; failed: number; retried: number };
+}
+
+interface SpaceManagerEventMap {
+    [SpaceEvent.SpaceCreated]: (space: Space) => void;
+    [SpaceEvent.SpaceUpdated]: (space: Space) => void;
+    [SpaceEvent.SpaceDeleted]: (spaceId: string) => void;
+    [SpaceEvent.ChildAdded]: (spaceId: string, roomId: string) => void;
+    [SpaceEvent.ChildRemoved]: (spaceId: string, roomId: string) => void;
+    [SpaceEvent.MemberJoined]: (spaceId: string, userId: string) => void;
+    [SpaceEvent.MemberLeft]: (spaceId: string, userId: string) => void;
+    [SpaceEvent.SpaceError]: (error: Error) => void;
+}
+
+interface CacheEntry<T> { value: T; timestamp: number; }
+
+class LRUCache<T> {
+    private cache = new Map<string, CacheEntry<T>>();
+    private readonly maxSize: number;
+    private readonly ttl: number;
+    private hits = 0;
+    private misses = 0;
+
+    constructor(maxSize: number, ttl: number) {
+        this.maxSize = maxSize;
+        this.ttl = ttl;
+    }
+
+    get(key: string): T | undefined {
+        const entry = this.cache.get(key);
+        if (!entry) { this.misses++; return undefined; }
+        if (Date.now() - entry.timestamp > this.ttl) {
+            this.cache.delete(key);
+            this.misses++;
+            return undefined;
+        }
+        this.hits++;
+        this.cache.delete(key);
+        this.cache.set(key, entry);
+        return entry.value;
+    }
+
+    set(key: string, value: T): void {
+        if (this.cache.has(key)) { this.cache.delete(key); }
+        else if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) this.cache.delete(firstKey);
+        }
+        this.cache.set(key, { value, timestamp: Date.now() });
+    }
+
+    delete(key: string): boolean { return this.cache.delete(key); }
+    clear(): void { this.cache.clear(); this.hits = 0; this.misses = 0; }
+    size(): number { return this.cache.size; }
+    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
+        const total = this.hits + this.misses;
+        return { size: this.cache.size, hits: this.hits, misses: this.misses, hitRate: total > 0 ? this.hits / total : 0 };
+    }
+}
+
+export class SpaceManager extends TypedEventEmitter<SpaceEvent, SpaceManagerEventMap> {
     private client: MatrixClient;
-    private cache: Map<string, { data: Space[]; expiry: number }> = new Map();
-    private static readonly CACHE_TTL = 5 * 60 * 1000;
+    private cache: LRUCache<Space[]>;
+    private spaceCache: LRUCache<Space>;
+    private readonly maxRetries = 3;
+    private readonly retryDelay = 1000;
+    private requestStats = { total: 0, successful: 0, failed: 0, retried: 0 };
 
     constructor(client: MatrixClient) {
+        super();
         this.client = client;
+        this.cache = new LRUCache<Space[]>(50, 5 * 60 * 1000);
+        this.spaceCache = new LRUCache<Space>(100, 5 * 60 * 1000);
     }
 
-    /**
-     * 创建 Space
-     *
-     * @param options - 创建选项
-     * @returns 创建的 Space 信息
-     */
+    private isRetryableError(error: unknown): boolean {
+        if (error instanceof MatrixError) {
+            return ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE", "M_UNKNOWN"].includes(error.errcode ?? "") ||
+                [429, 502, 503, 504].includes(error.httpStatus ?? 0);
+        }
+        const err = error as Record<string, unknown>;
+        return ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
+            [429, 500, 502, 503, 504].includes(err?.httpStatus as number);
+    }
+
+    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
+        let lastError: unknown;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const result = await requestFn();
+                this.recordRequest(true, attempt > 0);
+                return result;
+            } catch (error: unknown) {
+                lastError = error;
+                if (!this.isRetryableError(error)) {
+                    this.recordRequest(false, false);
+                    throw this.normalizeError(error, method);
+                }
+                if (attempt < retries) {
+                    const delay = this.retryDelay * Math.pow(2, attempt);
+                    logger.warn(`SpaceManager.${method} failed, retrying in ${delay}ms`);
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+        }
+        this.recordRequest(false, true);
+        throw this.normalizeError(lastError, method);
+    }
+
+    private recordRequest(success: boolean, retried: boolean): void {
+        this.requestStats.total++;
+        if (success) this.requestStats.successful++;
+        else this.requestStats.failed++;
+        if (retried) this.requestStats.retried++;
+    }
+
+    public getMetrics(): SpaceManagerMetrics {
+        return { cache: this.cache.getStats(), requests: { ...this.requestStats } };
+    }
+
     async createSpace(options: CreateSpaceOptions): Promise<Space> {
-        const room = await this.client.createRoom({
-            name: options.name,
-            topic: options.topic,
-            ...(options.avatar_url && { avatar_url: options.avatar_url }),
-        });
-
-        const spaceId = room.room_id;
-        if (!spaceId) {
-            throw new Error("No room_id returned from createRoom");
-        }
-
-        if (options.parent_space_id) {
-            await this.addChild(options.parent_space_id, {
-                room_id: spaceId,
-                via_servers: [this.client.getDomain() ?? "localhost"],
-            });
-        }
-
+        const response = await this.withRetry(async () => {
+            return await this.request<JsonObject>(Method.Post, "/spaces", undefined, options);
+        }, 'createSpace');
         this.clearCache();
-        return this.getSpace(spaceId);
+        const space = this.normalizeSpace(response);
+        this.emit(SpaceEvent.SpaceCreated, space);
+        return space;
     }
 
-    /**
-     * 获取 Space 信息
-     *
-     * @param spaceId - Space ID
-     * @returns Space 信息
-     */
     async getSpace(spaceId: string): Promise<Space> {
-        const room = this.client.getRoom(spaceId);
-        if (!room) {
-            throw new Error(`Space not found: ${spaceId}`);
-        }
+        const cached = this.spaceCache.get(spaceId);
+        if (cached) return cached;
 
-        const nameEvent = room.currentState.getStateEvents(EventType.RoomName);
-        const topicEvent = room.currentState.getStateEvents(EventType.RoomTopic);
-        const createEvent = room.currentState.getStateEvents(EventType.RoomCreate);
-        const joinRulesEvent = room.currentState.getStateEvents(EventType.RoomJoinRules);
-
-        const name = nameEvent?.[0]?.getContent()?.name as string | undefined;
-        const topic = topicEvent?.[0]?.getContent()?.topic as string | undefined;
-        const avatar_url = room.currentState.getStateEvents(EventType.RoomAvatar)?.[0]?.getContent()?.url as string | undefined;
-        const creator = (createEvent?.[0]?.getContent() as Record<string, unknown>)?.creator as string || "";
-        const join_rule = (joinRulesEvent?.[0]?.getContent() as Record<string, unknown>)?.join_rule as string || "invite";
-
-        return {
-            space_id: spaceId,
-            room_id: spaceId,
-            name: name || room.name,
-            topic: topic,
-            avatar_url: avatar_url,
-            creator: creator,
-            join_rule: join_rule,
-            is_public: join_rule === "public",
-            created_ts: Date.now(),
-        };
+        const response = await this.withRetry(async () => {
+            return await this.request<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId", spaceId));
+        }, 'getSpace');
+        const space = this.normalizeSpace(response, spaceId);
+        this.spaceCache.set(spaceId, space);
+        return space;
     }
 
-    /**
-     * 更新 Space 信息
-     *
-     * @param spaceId - Space ID
-     * @param options - 更新选项
-     * @returns 更新后的 Space 信息
-     */
     async updateSpace(spaceId: string, options: UpdateSpaceOptions): Promise<Space> {
-        if (options.name !== undefined) {
-            await this.client.setRoomName(spaceId, options.name);
-        }
-        if (options.topic !== undefined) {
-            await this.client.setRoomTopic(spaceId, options.topic);
-        }
-
+        const response = await this.withRetry(async () => {
+            return await this.request<JsonObject>(Method.Put, this.spacePath("/spaces/$spaceId", spaceId), undefined, options);
+        }, 'updateSpace');
         this.clearCache();
-        return this.getSpace(spaceId);
+        let space: Space;
+        if (Object.keys(response ?? {}).length === 0) {
+            space = await this.getSpace(spaceId);
+        } else {
+            space = this.normalizeSpace(response, spaceId);
+        }
+        this.emit(SpaceEvent.SpaceUpdated, space);
+        return space;
     }
 
-    /**
-     * 删除 Space
-     *
-     * @param spaceId - Space ID
-     */
     async deleteSpace(spaceId: string): Promise<void> {
-        await this.client.leave(spaceId);
+        await this.withRetry(async () => {
+            await this.request(Method.Delete, this.spacePath("/spaces/$spaceId", spaceId));
+        }, 'deleteSpace');
         this.clearCache();
+        this.emit(SpaceEvent.SpaceDeleted, spaceId);
     }
 
-    /**
-     * 获取 Space 的子房间
-     *
-     * @param spaceId - Space ID
-     * @returns 子房间列表
-     */
-    async getSpaceChildren(spaceId: string): Promise<SpaceChild[]> {
-        const room = this.client.getRoom(spaceId);
-        if (!room) {
-            return [];
+    async getPublicSpaces(options: SpaceQueryOptions = {}): Promise<SpaceListResponse> {
+        const response = await this.withRetry(async () => {
+            return await this.request<SpaceListResponse>(Method.Get, "/spaces/public", options);
+        }, 'getPublicSpaces');
+        return this.normalizeSpaceListResponse(response);
+    }
+
+    async searchSpaces(query: string, limit: number = 10): Promise<Space[]> {
+        const response = await this.withRetry(async () => {
+            return await this.request<SpaceListResponse>(Method.Get, "/spaces/search", {
+                search_term: query,
+                limit,
+            });
+        }, 'searchSpaces');
+        return this.extractSpaces(response);
+    }
+
+    async getSpaceStatistics(): Promise<SpaceStatistics> {
+        return this.withRetry(async () => {
+            return await this.request<SpaceStatistics>(Method.Get, "/spaces/statistics");
+        }, 'getSpaceStatistics');
+    }
+
+    async getUserSpaces(forceRefresh = false): Promise<Space[]> {
+        const cacheKey = "user_spaces";
+        if (!forceRefresh) {
+            const cached = this.cache.get(cacheKey);
+            if (cached) return cached;
         }
 
-        const childEvents = room.currentState.getStateEvents(EventType.SpaceChild);
-
-        return childEvents
-            .map((event) => {
-                const content = event.getContent() as Record<string, unknown>;
-                return {
-                    space_id: spaceId,
-                    room_id: event.getStateKey() || "",
-                    via_servers: (content.via as string[]) || [],
-                    sender: event.getSender() || "",
-                    is_suggested: (content.suggested as boolean) || false,
-                    added_ts: event.getTs(),
-                };
-            });
+        const response = await this.withRetry(async () => {
+            return await this.request<SpaceListResponse>(Method.Get, "/spaces/user");
+        }, 'getUserSpaces');
+        const spaces = this.extractSpaces(response);
+        this.cache.set(cacheKey, spaces);
+        return spaces;
     }
 
-    /**
-     * 添加子房间到 Space
-     *
-     * @param spaceId - Space ID
-     * @param options - 添加选项
-     */
+    async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
+        const response = await this.withRetry(async () => {
+            return await this.request<JsonObject | SpaceChild[]>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/children", spaceId),
+                options,
+            );
+        }, 'getSpaceChildren');
+        return this.extractChildren(response, spaceId);
+    }
+
     async addChild(spaceId: string, options: AddChildOptions): Promise<void> {
-        const content = {
-            via: options.via_servers || [this.client.getDomain() ?? "localhost"],
-            suggested: options.suggested ?? false,
-        };
-
-        await this.client.sendStateEvent(
-            spaceId,
-            EventType.SpaceChild,
-            content,
-            options.room_id
-        );
-
-        this.clearCache();
-    }
-
-    /**
-     * 从 Space 移除子房间
-     *
-     * @param spaceId - Space ID
-     * @param roomId - 要移除的房间 ID
-     */
-    async removeChild(spaceId: string, roomId: string): Promise<void> {
-        await this.client.sendStateEvent(
-            spaceId,
-            EventType.SpaceChild,
-            {},
-            roomId
-        );
-        this.clearCache(spaceId);
-    }
-
-    /**
-     * 获取 Space 的成员列表
-     *
-     * @param spaceId - Space ID
-     * @returns 成员列表
-     */
-    async getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
-        const room = this.client.getRoom(spaceId);
-        if (!room) {
-            return [];
-        }
-
-        const members: SpaceMember[] = [];
-        const joinedMembers = room.getJoinedMembers();
-
-        for (const member of joinedMembers) {
-            members.push({
-                space_id: spaceId,
-                user_id: member.userId,
-                membership: "joined",
-                joined_ts: Date.now(),
+        await this.withRetry(async () => {
+            await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
+                room_id: options.room_id,
+                via_servers: options.via_servers,
+                order: options.order,
+                suggested: options.suggested,
             });
-        }
-
-        return members;
+        }, 'addChild');
+        this.clearCache();
+        this.emit(SpaceEvent.ChildAdded, spaceId, options.room_id);
     }
 
-    /**
-     * 获取 Space 层级结构（包含子房间和成员）
-     *
-     * @param spaceId - Space ID
-     * @returns 层级结构
-     */
+    async removeChild(spaceId: string, roomId: string): Promise<void> {
+        await this.withRetry(async () => {
+            await this.request(
+                Method.Delete,
+                encodeUri("/spaces/$spaceId/children/$roomId", { $spaceId: spaceId, $roomId: roomId }),
+            );
+        }, 'removeChild');
+        this.clearCache();
+        this.emit(SpaceEvent.ChildRemoved, spaceId, roomId);
+    }
+
+    async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceMember[]> {
+        const response = await this.withRetry(async () => {
+            return await this.request<JsonObject | SpaceMember[]>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/members", spaceId),
+                options,
+            );
+        }, 'getSpaceMembers');
+        return this.extractMembers(response, spaceId);
+    }
+
+    async getSpaceRooms(spaceId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
+        const response = await this.withRetry(async () => {
+            return await this.request<SpaceListResponse>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/rooms", spaceId),
+                options,
+            );
+        }, 'getSpaceRooms');
+        return this.extractSpaces(response);
+    }
+
+    async getSpaceState(spaceId: string): Promise<unknown[]> {
+        const response = await this.withRetry(async () => {
+            return await this.request<unknown[] | { events?: unknown[] }>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/state", spaceId),
+            );
+        }, 'getSpaceState');
+        if (Array.isArray(response)) return response;
+        return Array.isArray(response.events) ? response.events : [];
+    }
+
+    async inviteToSpace(spaceId: string, userId: string, body: JsonObject = {}): Promise<void> {
+        await this.withRetry(async () => {
+            await this.request(Method.Post, this.spacePath("/spaces/$spaceId/invite", spaceId), undefined, {
+                user_id: userId,
+                ...body,
+            });
+        }, 'inviteToSpace');
+    }
+
+    async joinSpace(spaceId: string, body: JsonObject = {}): Promise<JsonObject> {
+        const result = await this.withRetry(async () => {
+            return await this.request<JsonObject>(Method.Post, this.spacePath("/spaces/$spaceId/join", spaceId), undefined, body);
+        }, 'joinSpace');
+        this.emit(SpaceEvent.MemberJoined, spaceId, this.client.getUserId() || "");
+        return result;
+    }
+
+    async leaveSpace(spaceId: string, body: JsonObject = {}): Promise<void> {
+        await this.withRetry(async () => {
+            await this.request(Method.Post, this.spacePath("/spaces/$spaceId/leave", spaceId), undefined, body);
+        }, 'leaveSpace');
+        this.clearCache();
+        this.emit(SpaceEvent.MemberLeft, spaceId, this.client.getUserId() || "");
+    }
+
     async getSpaceHierarchy(spaceId: string): Promise<SpaceHierarchy> {
         const [space, children, members] = await Promise.all([
             this.getSpace(spaceId),
             this.getSpaceChildren(spaceId),
             this.getSpaceMembers(spaceId),
         ]);
-
         return { space, children, members };
     }
 
-    /**
-     * 获取用户的所有 Space
-     *
-     * @returns 用户作为成员的 Space 列表
-     */
-    async getUserSpaces(): Promise<Space[]> {
-        const cacheKey = "user_spaces";
-        const cached = this.cache.get(cacheKey);
-        if (cached && cached.expiry > Date.now()) {
-            return cached.data;
-        }
-
-        const rooms = this.client.getRooms();
-        const spaces: Space[] = [];
-
-        for (const room of rooms) {
-            const myMembership = room.getMyMembership();
-            if (myMembership === "join" || myMembership === "invite") {
-                const childEvents = room.currentState.getStateEvents(EventType.SpaceChild);
-                if (childEvents && childEvents.length > 0) {
-                    spaces.push({
-                        space_id: room.roomId,
-                        room_id: room.roomId,
-                        name: room.name,
-                        topic: "",
-                        avatar_url: undefined,
-                        creator: "",
-                        join_rule: room.getJoinRule() || "invite",
-                        is_public: room.getJoinRule() === "public",
-                        created_ts: Date.now(),
-                    });
-                }
-            }
-        }
-
-        this.cache.set(cacheKey, { data: spaces, expiry: Date.now() + SpaceManager.CACHE_TTL });
-        return spaces;
+    async getSpaceHierarchyPage(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
+        return this.withRetry(async () => {
+            return await this.request<SpaceHierarchyPage>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/hierarchy", spaceId),
+                options,
+            );
+        }, 'getSpaceHierarchyPage');
     }
 
-    /**
-     * 搜索 Spaces
-     *
-     * @param query - 搜索关键词
-     * @param limit - 返回数量限制
-     * @returns 匹配的 Space 列表
-     */
-    async searchSpaces(query: string, limit: number = 10): Promise<Space[]> {
-        const allSpaces = await this.getUserSpaces();
-        const lowerQuery = query.toLowerCase();
-        return allSpaces
-            .filter(
-                (space) =>
-                    space.name?.toLowerCase().includes(lowerQuery) ||
-                    space.topic?.toLowerCase().includes(lowerQuery)
-            )
-            .slice(0, limit);
+    async getSpaceHierarchyV1(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
+        return this.withRetry(async () => {
+            return await this.request<SpaceHierarchyPage>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/hierarchy/v1", spaceId),
+                options,
+            );
+        }, 'getSpaceHierarchyV1');
     }
 
-    /**
-     * 检查房间是否是 Space
-     *
-     * @param roomId - 房间 ID
-     * @returns 是否是 Space
-     */
+    async getSpaceSummary(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
+        return this.withRetry(async () => {
+            return await this.request<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId/summary", spaceId), options);
+        }, 'getSpaceSummary');
+    }
+
+    async getSpaceSummaryWithChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
+        return this.withRetry(async () => {
+            return await this.request<JsonObject>(
+                Method.Get,
+                this.spacePath("/spaces/$spaceId/summary/with_children", spaceId),
+                options,
+            );
+        }, 'getSpaceSummaryWithChildren');
+    }
+
+    async getSpaceTreePath(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
+        return this.withRetry(async () => {
+            return await this.request<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId/tree_path", spaceId), options);
+        }, 'getSpaceTreePath');
+    }
+
+    async getRoomSpace(roomId: string): Promise<Space> {
+        const response = await this.withRetry(async () => {
+            return await this.request<JsonObject>(
+                Method.Get,
+                encodeUri("/spaces/room/$roomId", { $roomId: roomId }),
+            );
+        }, 'getRoomSpace');
+        return this.normalizeSpace(response);
+    }
+
+    async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
+        const response = await this.withRetry(async () => {
+            return await this.request<SpaceListResponse>(
+                Method.Get,
+                encodeUri("/spaces/room/$roomId/parents", { $roomId: roomId }),
+                options,
+            );
+        }, 'getRoomParentSpaces');
+        return this.extractSpaces(response);
+    }
+
     async isSpace(roomId: string): Promise<boolean> {
-        const room = this.client.getRoom(roomId);
-        if (!room) {
-            return false;
+        try {
+            await this.getRoomSpace(roomId);
+            return true;
+        } catch (error) {
+            if (error instanceof NotFoundError) return false;
+            const room = this.client.getRoom(roomId);
+            return room?.isSpaceRoom?.() ?? false;
         }
-        const childEvents = room.currentState.getStateEvents(EventType.SpaceChild);
-        return childEvents && childEvents.length > 0;
     }
 
-    /**
-     * 获取 Space 的统计信息
-     *
-     * @param spaceId - Space ID
-     * @returns 统计信息
-     */
-    async getSpaceStats(spaceId: string): Promise<{
-        memberCount: number;
-        childCount: number;
-    }> {
+    async getSpaceStats(spaceId: string): Promise<{ memberCount: number; childCount: number }> {
         const [members, children] = await Promise.all([
             this.getSpaceMembers(spaceId),
             this.getSpaceChildren(spaceId),
         ]);
+        return { memberCount: members.length, childCount: children.length };
+    }
 
+    private async request<T>(
+        method: Method,
+        path: string,
+        queryParams?: QueryDict,
+        body?: Body,
+    ): Promise<T> {
+        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    private spacePath(pathTemplate: string, spaceId: string): string {
+        return encodeUri(pathTemplate, { $spaceId: spaceId });
+    }
+
+    private normalizeSpaceListResponse(response: SpaceListResponse): SpaceListResponse {
+        return { ...response, chunk: this.extractSpaces(response) };
+    }
+
+    private extractSpaces(response: unknown): Space[] {
+        if (Array.isArray(response)) return response.map((item) => this.normalizeSpace(item as JsonObject));
+        const payload = response as JsonObject;
+        const rawList = payload.spaces ?? payload.chunk ?? payload.rooms ?? [];
+        if (!Array.isArray(rawList)) return [];
+        return rawList.map((item) => this.normalizeSpace(item as JsonObject));
+    }
+
+    private extractChildren(response: unknown, spaceId: string): SpaceChild[] {
+        if (Array.isArray(response)) return response.map((item) => this.normalizeChild(item as JsonObject, spaceId));
+        const payload = response as JsonObject;
+        const rawList = payload.children ?? payload.chunk ?? payload.rooms ?? [];
+        if (!Array.isArray(rawList)) return [];
+        return rawList.map((item) => this.normalizeChild(item as JsonObject, spaceId));
+    }
+
+    private extractMembers(response: unknown, spaceId: string): SpaceMember[] {
+        if (Array.isArray(response)) return response.map((item) => this.normalizeMember(item as JsonObject, spaceId));
+        const payload = response as JsonObject;
+        const rawList = payload.members ?? payload.chunk ?? [];
+        if (!Array.isArray(rawList)) return [];
+        return rawList.map((item) => this.normalizeMember(item as JsonObject, spaceId));
+    }
+
+    private normalizeSpace(space: JsonObject = {}, fallbackId = ""): Space {
+        const roomId = this.asString(space.room_id) || this.asString(space.space_id) || fallbackId;
+        const joinRule = this.asString(space.join_rule);
+        const visibility = this.asString(space.visibility);
         return {
-            memberCount: members.length,
-            childCount: children.length,
+            ...space,
+            space_id: this.asString(space.space_id) || roomId,
+            room_id: roomId,
+            name: this.asString(space.name),
+            topic: this.asString(space.topic),
+            avatar_url: this.asString(space.avatar_url),
+            creator: this.asString(space.creator),
+            join_rule: joinRule,
+            visibility,
+            is_public: this.asBoolean(space.is_public) ?? (visibility === "public" || joinRule === "public"),
+            created_ts: this.asNumber(space.created_ts),
         };
+    }
+
+    private normalizeChild(child: JsonObject = {}, spaceId: string): SpaceChild {
+        return {
+            ...child,
+            space_id: spaceId,
+            room_id: this.asString(child.room_id) || this.asString(child.child_room_id) || "",
+            via_servers: this.asStringArray(child.via_servers ?? child.via),
+            sender: this.asString(child.sender),
+            is_suggested: this.asBoolean(child.is_suggested ?? child.suggested),
+            added_ts: this.asNumber(child.added_ts ?? child.created_ts),
+            order: this.asString(child.order),
+        };
+    }
+
+    private normalizeMember(member: JsonObject = {}, spaceId: string): SpaceMember {
+        return {
+            ...member,
+            space_id: spaceId,
+            user_id: this.asString(member.user_id) ?? "",
+            membership: this.asString(member.membership),
+            joined_ts: this.asNumber(member.joined_ts ?? member.created_ts),
+        };
+    }
+
+    private asString(value: unknown): string | undefined { return typeof value === "string" ? value : undefined; }
+    private asNumber(value: unknown): number | undefined { return typeof value === "number" ? value : undefined; }
+    private asBoolean(value: unknown): boolean | undefined { return typeof value === "boolean" ? value : undefined; }
+    private asStringArray(value: unknown): string[] {
+        return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
     }
 
     private normalizeError(error: unknown, method: string): SdkError {
         const err = error as Error;
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`SpaceManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`SpaceManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`SpaceManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
+                return new NotFoundError(`SpaceManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            return new ApiError(`SpaceManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode, error.httpStatus, error);
+            if (this.isRetryableError(error)) {
+                return new RetryableError(`SpaceManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            return new ApiError(
+                `SpaceManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error.errcode,
+                error.httpStatus,
+                error,
+            );
         }
-        return new ApiError(`SpaceManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        return new ApiError(`SpaceManager.${method} failed: ${err?.message ?? String(error)}`, "UNKNOWN", 0, error);
     }
 
-    private clearCache(spaceId?: string): void {
-        if (spaceId) {
-            this.cache.delete(`space:${spaceId}`);
-        } else {
-            this.cache.clear();
-        }
+    private clearCache(): void {
+        this.cache.clear();
+        this.spaceCache.clear();
     }
 
-    start(): void {
-        this.clearCache();
-    }
-
-    stop(): void {
-        this.clearCache();
-    }
+    start(): void { this.clearCache(); }
+    stop(): void { this.clearCache(); }
 }
 
 declare module "../client.ts" {
-    interface MatrixClient {
-        getSpaceManager(): SpaceManager;
-    }
+    interface MatrixClient { getSpaceManager(): SpaceManager; }
 }
 
 export function extendMatrixClient(): void {
-    MatrixClient.prototype.getSpaceManager = function (): SpaceManager {
-        return new SpaceManager(this);
-    };
+    MatrixClient.prototype.getSpaceManager = function (): SpaceManager { return new SpaceManager(this); };
 }
 
 export default extendMatrixClient;

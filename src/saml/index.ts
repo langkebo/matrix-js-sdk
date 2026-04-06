@@ -23,6 +23,8 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client";
 
 export enum SamlEvent {
     LoginInitiated = "LoginInitiated",
@@ -114,12 +116,12 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.request(
                 Method.Post,
-                "/_matrix/client/v3/login/saml/redirect",
+                "/login/saml/redirect",
                 undefined,
                 {
                     redirect_url: request?.redirectUrl,
                 },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             this.pendingRequests.set(response.saml_request_id, response.redirect_url);
@@ -136,13 +138,13 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.request(
                 Method.Post,
-                "/_matrix/client/v3/login/saml/callback",
+                "/login/saml/callback",
                 undefined,
                 {
                     SAMLResponse: samlResponse,
                     RelayState: requestId,
                 },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             const result: SamlCallbackResponse = {
@@ -175,10 +177,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                "/_synapse/admin/v1/saml/config",
+                "/saml/config",
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             this.config = response as SamlConfig;
@@ -193,10 +195,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             await this.client.http.authedRequest(
                 Method.Put,
-                "/_synapse/admin/v1/saml/config",
+                "/saml/config",
                 undefined,
                 config,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             this.config = { ...this.config, ...config } as SamlConfig;
@@ -214,10 +216,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_synapse/admin/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+                `/saml/mapping/${encodeURIComponent(nameId)}`,
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const mapping = response as SamlUserMapping;
@@ -234,10 +236,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                "/_synapse/admin/v1/saml/mappings",
+                "/saml/mappings",
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const mappings = (response.mappings || []) as SamlUserMapping[];
@@ -255,10 +257,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             await this.client.http.authedRequest(
                 Method.Put,
-                `/_synapse/admin/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+                `/saml/mapping/${encodeURIComponent(nameId)}`,
                 undefined,
                 mapping,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             const existing = this.userMappings.get(nameId);
@@ -276,10 +278,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/_synapse/admin/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+                `/saml/mapping/${encodeURIComponent(nameId)}`,
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
 
             this.userMappings.delete(nameId);
@@ -294,10 +296,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.request(
                 Method.Get,
-                "/_matrix/client/v3/login/saml/metadata",
+                "/login/saml/metadata",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: ClientPrefix.V3 }
             );
 
             return response.metadata || '';
@@ -311,13 +313,13 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                "/_synapse/admin/v1/saml/logout",
+                "/saml/logout",
                 undefined,
                 {
                     user_id: userId,
                     session_id: sessionId,
                 },
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: AdminPrefix.V1 }
             );
         } catch (error) {
             this.emit(SamlEvent.SamlError, error as Error);
@@ -357,3 +359,17 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         this.config = null;
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getSamlAuthManager(): SamlAuthManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getSamlAuthManager = function (): SamlAuthManager {
+        return new SamlAuthManager(this);
+    };
+}
+
+export default extendMatrixClient;

@@ -7,7 +7,10 @@
  */
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
+import { extendMatrixClientWithManagers } from "../../../src/manager-extensions";
 import { TestConfig } from "./TestConfig";
+
+declare const process: { exit: (code?: number) => never };
 
 let client: MatrixClient | null = null;
 const testResults: { name: string; passed: boolean; error?: string }[] = [];
@@ -27,7 +30,8 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
 
 async function login(): Promise<MatrixClient> {
     const testClient = createClient({
-        baseUrl: TestConfig.baseUrl
+        baseUrl: TestConfig.baseUrl,
+        allowInsecureHttp: true,
     });
     
     const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
@@ -46,6 +50,8 @@ async function main(): Promise<void> {
     console.log("\n========================================");
     console.log("Step 9: 预定功能、加密轮换与数据管理模块测试");
     console.log("========================================\n");
+
+    await extendMatrixClientWithManagers();
     
     console.log("1. 登录测试...");
     client = await login();

@@ -1,4 +1,5 @@
 import { logger } from "../logger"
+import { MatrixClient } from "../client";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -135,3 +136,17 @@ export class TypingManager {
         this.clearAllTimers();
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getTypingManager(): TypingManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getTypingManager = function (): TypingManager {
+        return new TypingManager(this);
+    };
+}
+
+export default extendMatrixClient;

@@ -22,6 +22,8 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { Method } from "../http-api/method.ts";
+import { MediaPrefix } from "../http-api/prefix.ts";
 
 export interface MediaQuota {
     upload_size_limit: number;
@@ -32,6 +34,16 @@ export interface StorageUsage {
     quota: number;
     used: number;
     limit: number;
+}
+
+export interface QuotaAlert {
+    alert_id: string;
+    alert_type: string;
+    threshold_percent: number;
+    current_usage_bytes: number;
+    limit_bytes: number;
+    created_ts: number;
+    message?: string;
 }
 
 /**
@@ -163,6 +175,21 @@ export class MediaQuotaManager {
         }
         
         return totalSize;
+    }
+
+    /**
+     * 获取配额告警
+     * GET /_matrix/media/v1/quota/alerts
+     */
+    public async getQuotaAlerts(): Promise<QuotaAlert[]> {
+        const response = await this.client.http.authedRequest<{ alerts: QuotaAlert[] }>(
+            Method.Get,
+            "/media/quota/alerts",
+            undefined,
+            undefined,
+            { prefix: MediaPrefix.V1 },
+        );
+        return response.alerts || [];
     }
 }
 

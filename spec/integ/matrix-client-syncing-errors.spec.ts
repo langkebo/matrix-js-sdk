@@ -75,7 +75,7 @@ describe("MatrixClient syncing errors", () => {
 
     beforeEach(() => {
         client = createClient({
-            baseUrl: "http://tocal.test.server",
+            baseUrl: "https://tocal.test.server",
             userId: selfUserId,
             accessToken: selfAccessToken,
             deviceId: "myDevice",

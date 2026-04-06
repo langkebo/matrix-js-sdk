@@ -9,6 +9,8 @@
 
 import { DatabaseVerifier } from './DatabaseVerifier';
 
+declare const process: { exit: (code?: number) => never };
+
 class TestRunner {
   private dbVerifier: DatabaseVerifier;
   private passed = 0;

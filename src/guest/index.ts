@@ -19,15 +19,23 @@ limitations under the License.
  * Guest Manager - 访客管理
  * 
  * 提供访客账户注册和登录功能
+ * 
+ * 对应后端 API:
+ * - POST /_matrix/client/v3/register/guest
+ * - GET /_matrix/client/v3/account/guest
+ * - POST /_matrix/client/v3/account/guest/upgrade
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client";
 
 export enum GuestEvent {
     GuestRegistered = "GuestRegistered",
     GuestLoggedIn = "GuestLoggedIn",
+    GuestUpgraded = "GuestUpgraded",
+    GuestInfoReceived = "GuestInfoReceived",
     GuestError = "GuestError",
 }
 
@@ -58,9 +66,34 @@ export interface IGuestInfo {
     expiresAt?: number;
 }
 
+export interface IServerGuestInfo {
+    user_id: string;
+    device_id: string;
+    is_guest: boolean;
+    created_at?: number;
+}
+
+export interface IServerGuestInfoResponse {
+    guest: IServerGuestInfo;
+}
+
+export interface IUpgradeGuestRequest {
+    username?: string;
+    password: string;
+    auth?: any;
+}
+
+export interface IUpgradeGuestResponse {
+    user_id: string;
+    access_token?: string;
+    device_id?: string;
+}
+
 interface GuestManagerEventMap {
     [GuestEvent.GuestRegistered]: (guestInfo: IGuestInfo) => void;
     [GuestEvent.GuestLoggedIn]: (guestInfo: IGuestInfo) => void;
+    [GuestEvent.GuestUpgraded]: (userId: string) => void;
+    [GuestEvent.GuestInfoReceived]: (guestInfo: IServerGuestInfo) => void;
     [GuestEvent.GuestError]: (error: Error) => void;
 }
 
@@ -91,7 +124,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
             const response = await this.client.http.request(
                 Method.Post,
-                "/_matrix/client/v3/register",
+                "/register",
                 undefined,
                 body,
                 { prefix: ClientPrefix.V3 }
@@ -131,7 +164,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
             const response = await this.client.http.request(
                 Method.Post,
-                "/_matrix/client/v3/login",
+                "/login",
                 undefined,
                 body,
                 { prefix: ClientPrefix.V3 }
@@ -200,7 +233,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
             await this.client.http.authedRequest(
                 Method.Post,
-                "/_matrix/client/v3/account/password",
+                "/account/password",
                 undefined,
                 body,
                 { prefix: ClientPrefix.V3 }
@@ -259,15 +292,23 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
     async canJoinRoom(roomIdOrAlias: string): Promise<boolean> {
         try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                `/_matrix/client/v3/join/${encodeURIComponent(roomIdOrAlias)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            );
+            if (!roomIdOrAlias) {
+                return false;
+            }
 
-            return !!response.room_id;
+            if (roomIdOrAlias.startsWith("#")) {
+                const response = await this.client.http.authedRequest(
+                    Method.Get,
+                    `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 }
+                );
+                return !!response?.room_id;
+            }
+
+            // For room IDs, avoid probing join semantics with a non-standard GET request.
+            return !!this.client.getRoom?.(roomIdOrAlias);
         } catch (e) {
             return false;
         }
@@ -290,7 +331,115 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         return true;
     }
 
+    public async getGuestInfoFromServer(): Promise<IServerGuestInfo> {
+        try {
+            const response = await this.client.http.authedRequest(
+                Method.Get,
+                "/account/guest",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 }
+            ) as IServerGuestInfoResponse;
+
+            const guestInfo = response.guest;
+            this.emit(GuestEvent.GuestInfoReceived, guestInfo);
+
+            return guestInfo;
+        } catch (error) {
+            logger.warn("GuestManager.getGuestInfoFromServer failed:", error);
+            throw error;
+        }
+    }
+
+    public async upgradeGuestAccountOnServer(request: IUpgradeGuestRequest): Promise<IUpgradeGuestResponse> {
+        if (!this.guestInfo && !this.client.getUserId()) {
+            throw new Error("No guest account to upgrade");
+        }
+
+        try {
+            const body: Record<string, any> = {
+                password: request.password,
+            };
+
+            if (request.username) {
+                body.username = request.username;
+            }
+
+            if (request.auth) {
+                body.auth = request.auth;
+            }
+
+            const response = await this.client.http.authedRequest(
+                Method.Post,
+                "/account/guest/upgrade",
+                undefined,
+                body,
+                { prefix: ClientPrefix.V3 }
+            ) as IUpgradeGuestResponse;
+
+            this.guestInfo = null;
+            this.emit(GuestEvent.GuestUpgraded, response.user_id);
+
+            return response;
+        } catch (error) {
+            this.emit(GuestEvent.GuestError, error as Error);
+            throw error;
+        }
+    }
+
+    public async registerGuestOnServer(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
+        try {
+            const body: Record<string, any> = {};
+
+            if (deviceId) {
+                body.device_id = deviceId;
+            }
+
+            if (initialDeviceDisplayName) {
+                body.initial_device_display_name = initialDeviceDisplayName;
+            }
+
+            const response = await this.client.http.request(
+                Method.Post,
+                "/register/guest",
+                undefined,
+                body,
+                { prefix: ClientPrefix.V3 }
+            ) as IGuestRegisterResponse;
+
+            const guestInfo: IGuestInfo = {
+                userId: response.user_id,
+                deviceId: response.device_id,
+                accessToken: response.access_token,
+                refreshToken: response.refresh_token,
+                expiresAt: response.expires_in ? Date.now() + response.expires_in * 1000 : undefined,
+            };
+
+            this.guestInfo = guestInfo;
+            this.emit(GuestEvent.GuestRegistered, guestInfo);
+
+            return response;
+        } catch (error) {
+            this.emit(GuestEvent.GuestError, error as Error);
+            throw error;
+        }
+    }
+
     stop(): void {
         this.guestInfo = null;
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getGuestManager(): GuestManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getGuestManager = function (): GuestManager {
+        return new GuestManager(this, this.getHomeserverUrl());
+    };
+}
+
+export default extendMatrixClient;

@@ -78,6 +78,39 @@ export class AccountDataManager {
     }
 
     /**
+     * List all account data for the current user
+     */
+    public async listAccountData(): Promise<{ account_data: Record<string, any> }> {
+        const path = utils.encodeUri("/user/$userId/account_data/", {
+            $userId: this.client.credentials.userId!,
+        });
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.client as any).http.authedRequest(Method.Get, path);
+    }
+
+    /**
+     * Get room account data from server
+     */
+    public async getRoomAccountDataFromServer<K extends string>(
+        roomId: string,
+        eventType: K,
+    ): Promise<MatrixEvent | undefined> {
+        const path = utils.encodeUri("/user/$userId/rooms/$roomId/account_data/$type", {
+            $userId: this.client.credentials.userId!,
+            $roomId: roomId,
+            $type: eventType,
+        });
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const response = await (this.client as any).http.authedRequest(Method.Get, path);
+        return new MatrixEvent({
+            type: eventType,
+            content: response,
+        });
+    }
+
+    /**
      * Delete account data
      */
     public async deleteAccountData(eventType: string): Promise<void> {

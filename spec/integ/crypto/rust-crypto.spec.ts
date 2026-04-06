@@ -39,12 +39,14 @@ describe("MatrixClient.initRustCrypto", () => {
     it("should raise if userId or deviceId is unknown", async () => {
         const unknownUserClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             deviceId: "aliceDevice",
         });
         await expect(() => unknownUserClient.initRustCrypto()).rejects.toThrow("unknown userId");
 
         const unknownDeviceClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:test",
         });
         await expect(() => unknownDeviceClient.initRustCrypto()).rejects.toThrow("unknown deviceId");
@@ -53,6 +55,7 @@ describe("MatrixClient.initRustCrypto", () => {
     it("should create the indexed db", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -70,6 +73,7 @@ describe("MatrixClient.initRustCrypto", () => {
     it("should create the indexed db with a custom prefix", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -87,6 +91,7 @@ describe("MatrixClient.initRustCrypto", () => {
     it("should create the meta db if given a storageKey", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -106,6 +111,7 @@ describe("MatrixClient.initRustCrypto", () => {
     it("should create the meta db if given a storagePassword", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -126,6 +132,7 @@ describe("MatrixClient.initRustCrypto", () => {
     it("should ignore a second call", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -146,6 +153,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
             const matrixClient = createClient({
                 baseUrl: "http://test.server",
+                allowInsecureHttp: true,
                 userId: FULL_ACCOUNT_DATASET.userId,
                 deviceId: FULL_ACCOUNT_DATASET.deviceId,
                 cryptoStore,
@@ -208,6 +216,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: MSK_NOT_CACHED_DATASET.userId,
                     deviceId: MSK_NOT_CACHED_DATASET.deviceId,
                     cryptoStore,
@@ -235,6 +244,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: MSK_NOT_CACHED_DATASET.userId,
                     deviceId: MSK_NOT_CACHED_DATASET.deviceId,
                     cryptoStore,
@@ -264,6 +274,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: MSK_NOT_CACHED_DATASET.userId,
                     deviceId: MSK_NOT_CACHED_DATASET.deviceId,
                     cryptoStore,
@@ -287,6 +298,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: MSK_NOT_CACHED_DATASET.userId,
                     deviceId: MSK_NOT_CACHED_DATASET.deviceId,
                     cryptoStore,
@@ -316,6 +328,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
             const matrixClient = createClient({
                 baseUrl: "http://test.server",
+                allowInsecureHttp: true,
                 userId: EMPTY_ACCOUNT_DATASET.userId,
                 deviceId: EMPTY_ACCOUNT_DATASET.deviceId,
                 cryptoStore,
@@ -362,6 +375,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: FULL_ACCOUNT_DATASET.userId,
                     deviceId: FULL_ACCOUNT_DATASET.deviceId,
                     cryptoStore,
@@ -386,6 +400,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: MSK_NOT_CACHED_DATASET.userId,
                     deviceId: MSK_NOT_CACHED_DATASET.deviceId,
                     cryptoStore,
@@ -410,6 +425,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: MSK_NOT_CACHED_DATASET.userId,
                     deviceId: MSK_NOT_CACHED_DATASET.deviceId,
                     cryptoStore,
@@ -441,6 +457,7 @@ describe("MatrixClient.initRustCrypto", () => {
 
                 const matrixClient = createClient({
                     baseUrl: "http://test.server",
+                    allowInsecureHttp: true,
                     userId: IDENTITY_NOT_TRUSTED_DATASET.userId,
                     deviceId: IDENTITY_NOT_TRUSTED_DATASET.deviceId,
                     cryptoStore,
@@ -463,6 +480,7 @@ describe("MatrixClient.clearStores", () => {
     it("should clear the indexeddbs", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -481,6 +499,7 @@ describe("MatrixClient.clearStores", () => {
         indexedDB = undefined!;
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });
@@ -494,6 +513,7 @@ describe("MatrixClient.clearStores", () => {
     it("should clear the indexeddbs with a custom prefix", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
         });

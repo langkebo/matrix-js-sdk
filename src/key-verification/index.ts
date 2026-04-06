@@ -20,7 +20,26 @@ limitations under the License.
  * 提供密钥验证功能
  */
 
-import { MatrixClient } from "../client";
+import {
+    type IDeviceSigningVerificationAcceptRequest,
+    type IDeviceSigningVerificationAcceptResponse,
+    type IDeviceSigningVerificationCancelResponse,
+    type IDeviceSigningVerificationDoneResponse,
+    type IDeviceSigningVerificationDoneRequest,
+    type IDeviceSigningVerificationKeyAgreementResponse,
+    type IDeviceSigningVerificationKeyAgreementRequest,
+    type IDeviceSigningVerificationMacResponse,
+    type IDeviceSigningVerificationMacRequest,
+    type IDeviceSigningVerificationStartResponse,
+    type IDeviceSigningVerificationStartRequest,
+    type IVerificationRequestsResponse,
+    MatrixClient,
+} from "../client";
+
+type VerificationApiVersion = "v1" | "r0";
+
+const DEFAULT_CANCEL_CODE = "m.user";
+const DEFAULT_CANCEL_REASON = "Cancelled by user";
 
 export class KeyVerificationManager {
     constructor(private client: MatrixClient) {}
@@ -28,49 +47,127 @@ export class KeyVerificationManager {
     /**
      * Request verification
      */
-    public async requestVerification(userId: string, methods?: string[]): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).requestVerification(userId, methods);
+    public async requestVerification(
+        userId: string,
+        methods?: string[],
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationStartResponse> {
+        const request: IDeviceSigningVerificationStartRequest = {
+            from_device: this.client.getDeviceId() ?? "",
+            to_user: userId,
+            method: methods?.[0],
+        };
+        return this.client.startDeviceSigningVerification(request, version);
     }
 
     /**
      * Request room key verification
      */
-    public async requestRoomKeyVerification(roomId: string, userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).requestRoomKeyVerification(roomId, userId);
+    public async requestRoomKeyVerification(
+        roomId: string,
+        userId: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationStartResponse> {
+        const request: IDeviceSigningVerificationStartRequest = {
+            from_device: this.client.getDeviceId() ?? "",
+            to_user: userId,
+            method: "sas",
+        };
+        void roomId;
+        return this.client.startDeviceSigningVerification(request, version);
     }
 
     /**
      * Begin key verification
      */
-    public async beginKeyVerification(method: string, targetUserId: string, targetDeviceId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).beginKeyVerification(method, targetUserId, targetDeviceId);
+    public async beginKeyVerification(
+        method: string,
+        targetUserId: string,
+        targetDeviceId: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationStartResponse> {
+        const request: IDeviceSigningVerificationStartRequest = {
+            from_device: this.client.getDeviceId() ?? "",
+            to_user: targetUserId,
+            to_device: targetDeviceId,
+            method,
+        };
+        return this.client.startDeviceSigningVerification(request, version);
+    }
+
+    /**
+     * Accept device signing verification
+     */
+    public async acceptKeyVerification(
+        request: IDeviceSigningVerificationAcceptRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationAcceptResponse> {
+        return this.client.acceptDeviceSigningVerification(request, version);
+    }
+
+    /**
+     * Send key agreement step
+     */
+    public async sendKeyAgreement(
+        request: IDeviceSigningVerificationKeyAgreementRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationKeyAgreementResponse> {
+        return this.client.sendDeviceSigningVerificationKeyAgreement(request, version);
+    }
+
+    /**
+     * Send MAC confirmation
+     */
+    public async confirmVerificationMac(
+        request: IDeviceSigningVerificationMacRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationMacResponse> {
+        return this.client.confirmDeviceSigningVerificationMac(request, version);
     }
 
     /**
      * Complete key verification
      */
-    public async completeKeyVerification(txnId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).completeKeyVerification(txnId);
+    public async completeKeyVerification(
+        txnId: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationDoneResponse> {
+        const request: IDeviceSigningVerificationDoneRequest = { transaction_id: txnId };
+        return this.client.completeDeviceSigningVerification(request, version);
     }
 
     /**
      * Cancel key verification
      */
-    public async cancelKeyVerification(txnId: string, reason?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).cancelKeyVerification(txnId, reason);
+    public async cancelKeyVerification(
+        txnId: string,
+        reason = DEFAULT_CANCEL_REASON,
+        code = DEFAULT_CANCEL_CODE,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationCancelResponse> {
+        return this.client.cancelDeviceSigningVerification(
+            {
+                transaction_id: txnId,
+                code,
+                reason,
+            },
+            version,
+        );
     }
 
     /**
      * Get verification requests
      */
-    public getVerificationRequests(userId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getVerificationRequests(userId);
+    public getVerificationRequests(
+        userIdOrVersion?: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IVerificationRequestsResponse> {
+        if (userIdOrVersion === "v1" || userIdOrVersion === "r0") {
+            return this.client.getVerificationRequests(userIdOrVersion);
+        }
+
+        void userIdOrVersion;
+        return this.client.getVerificationRequests(version);
     }
 }
 

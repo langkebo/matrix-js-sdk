@@ -9,7 +9,7 @@ import { type IStore } from "../../src/store";
 import { KnownMembership } from "../../src/@types/membership";
 
 describe("MatrixClient opts", function () {
-    const baseUrl = "http://localhost.or.something";
+    const baseUrl = "https://localhost.or.something";
     let httpBackend = new HttpBackend();
     const userId = "@alice:localhost";
     const userB = "@bob:localhost";

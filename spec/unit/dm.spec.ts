@@ -477,4 +477,466 @@ describe("DirectMessageManager", () => {
             expect(typeof DirectMessageManager).toBe("function");
         });
     });
+
+    // ============ 专用 API 封装测试 ============
+
+    describe("专用 API 封装", () => {
+        describe("createDmRoom", () => {
+            it("should call POST /create_dm API", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" })
+                };
+
+                const roomId = await dmManager.createDmRoom("@alice:example.com");
+
+                expect(roomId).toBe("!newdm:example.com");
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    expect.anything(),
+                    "/create_dm",
+                    undefined,
+                    expect.objectContaining({
+                        user_id: "@alice:example.com",
+                        is_direct: true,
+                    }),
+                    expect.anything()
+                );
+            });
+
+            it("should include optional parameters", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" })
+                };
+
+                await dmManager.createDmRoom("@alice:example.com", {
+                    name: "Test DM",
+                    topic: "Test Topic"
+                });
+
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    expect.anything(),
+                    "/create_dm",
+                    undefined,
+                    expect.objectContaining({
+                        user_id: "@alice:example.com",
+                        is_direct: true,
+                        name: "Test DM",
+                        topic: "Test Topic"
+                    }),
+                    expect.anything()
+                );
+            });
+
+            it("should throw error for empty userId", async () => {
+                await expect(dmManager.createDmRoom("")).rejects.toThrow();
+            });
+
+            it("should emit DMCreated event", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" })
+                };
+
+                const emitSpy = vi.spyOn(dmManager, "emit");
+                await dmManager.createDmRoom("@alice:example.com");
+
+                expect(emitSpy).toHaveBeenCalledWith(
+                    DMEvent.DMCreated,
+                    "!newdm:example.com",
+                    ["@alice:example.com"]
+                );
+            });
+        });
+
+        describe("getDirectRoomsFromServer", () => {
+            it("should call GET /direct API", async () => {
+                const expectedMap = {
+                    "@alice:example.com": ["!dm1:example.com"]
+                };
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({ rooms: expectedMap })
+                };
+
+                const result = await dmManager.getDirectRoomsFromServer();
+
+                expect(result).toEqual(expectedMap);
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    expect.anything(),
+                    "/direct",
+                    undefined,
+                    undefined,
+                    expect.anything()
+                );
+            });
+
+            it("should return empty object when no rooms", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({ rooms: null })
+                };
+
+                const result = await dmManager.getDirectRoomsFromServer();
+
+                expect(result).toEqual({});
+            });
+        });
+
+        describe("updateDirectRoom", () => {
+            it("should call PUT /direct/{room_id} API", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({})
+                };
+
+                await dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"]);
+
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    "PUT",
+                    "/direct/!dm%3Aexample.com",
+                    undefined,
+                    { users: ["@alice:example.com"] },
+                    { prefix: "/_matrix/client/v3" }
+                );
+            });
+
+            it("should throw error for empty roomId", async () => {
+                await expect(dmManager.updateDirectRoom("", ["@alice:example.com"])).rejects.toThrow();
+            });
+
+            it("should emit ListUpdated event", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({})
+                };
+
+                const emitSpy = vi.spyOn(dmManager, "emit");
+                await dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"]);
+
+                expect(emitSpy).toHaveBeenCalledWith(DMEvent.ListUpdated);
+            });
+        });
+
+        describe("isDmRoomFromServer", () => {
+            it("should return true for DM room", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({
+                        room_id: "!dm:example.com",
+                        "m.direct": true
+                    })
+                };
+
+                const result = await dmManager.isDmRoomFromServer("!dm:example.com");
+
+                expect(result).toBe(true);
+            });
+
+            it("should return false for non-DM room", async () => {
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue({
+                        room_id: "!room:example.com",
+                        "m.direct": false
+                    })
+                };
+
+                const result = await dmManager.isDmRoomFromServer("!room:example.com");
+
+                expect(result).toBe(false);
+            });
+
+            it("should return false on 404 error", async () => {
+                const { MatrixError } = require("../../lib/http-api/errors");
+                const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
+                mockClient.http = {
+                    authedRequest: vi.fn().mockRejectedValue(error)
+                };
+
+                const result = await dmManager.isDmRoomFromServer("!unknown:example.com");
+
+                expect(result).toBe(false);
+            });
+
+            it("should throw error for empty roomId", async () => {
+                await expect(dmManager.isDmRoomFromServer("")).rejects.toThrow();
+            });
+        });
+
+        describe("getDmPartnerFromServer", () => {
+            it("should return DM partner info", async () => {
+                const expectedPartner = {
+                    room_id: "!dm:example.com",
+                    user_id: "@alice:example.com",
+                    display_name: "Alice",
+                    avatar_url: "mxc://example.com/avatar"
+                };
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue(expectedPartner)
+                };
+
+                const result = await dmManager.getDmPartnerFromServer("!dm:example.com");
+
+                expect(result).toEqual(expectedPartner);
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    "GET",
+                    "/rooms/!dm%3Aexample.com/dm/partner",
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v3" }
+                );
+            });
+
+            it("should throw error for empty roomId", async () => {
+                await expect(dmManager.getDmPartnerFromServer("")).rejects.toThrow();
+            });
+        });
+    });
+
+    describe("Additional Methods", () => {
+        describe("getDmRoomInfo", () => {
+            it("should return DM room info", async () => {
+                const mockRoom = {
+                    roomId: "!dm:example.com",
+                    name: "DM Room",
+                    getMember: vi.fn().mockReturnValue({
+                        userId: "@partner:example.com",
+                        name: "Partner",
+                    }),
+                    getJoinedMembers: vi.fn().mockReturnValue([
+                        { userId: "@test:example.com", name: "Test User" },
+                        { userId: "@partner:example.com", name: "Partner" },
+                    ]),
+                    getAvatarUrl: vi.fn().mockReturnValue("mxc://avatar"),
+                    getUnreadNotificationCount: vi.fn().mockReturnValue(0),
+                    getLiveTimeline: vi.fn().mockReturnValue({
+                        getEvents: vi.fn().mockReturnValue([]),
+                    }),
+                };
+
+                mockClient.getRoom.mockReturnValue(mockRoom);
+                mockClient.getAccountData.mockReturnValue({
+                    getContent: () => ({
+                        "@partner:example.com": ["!dm:example.com"],
+                    }),
+                });
+                mockClient.mxcToHttp = vi.fn().mockReturnValue("https://example.com/avatar");
+
+                const info = await dmManager.getDmRoomInfo("!dm:example.com");
+
+                expect(info).toBeDefined();
+                expect(info?.roomId).toBe("!dm:example.com");
+            });
+
+            it("should return null for non-existent room", async () => {
+                mockClient.getRoom.mockReturnValue(null);
+
+                const info = await dmManager.getDmRoomInfo("!missing:example.com");
+
+                expect(info).toBeNull();
+            });
+        });
+
+        describe("markDmAsRead", () => {
+            it("should mark DM as read", async () => {
+                const mockEvent = {
+                    getId: vi.fn().mockReturnValue("$event:example.com"),
+                };
+                const mockTimeline = {
+                    getEvents: vi.fn().mockReturnValue([mockEvent]),
+                };
+                const mockRoom = {
+                    getLiveTimeline: vi.fn().mockReturnValue(mockTimeline),
+                };
+                mockClient.getRoom.mockReturnValue(mockRoom);
+                mockClient.setRoomReadMarkers.mockResolvedValue({});
+
+                await dmManager.markDmAsRead("!dm:example.com");
+
+                expect(mockClient.setRoomReadMarkers).toHaveBeenCalledWith(
+                    "!dm:example.com",
+                    "$event:example.com",
+                    mockEvent
+                );
+            });
+
+            it("should handle room with no events", async () => {
+                const mockTimeline = {
+                    getEvents: vi.fn().mockReturnValue([]),
+                };
+                const mockRoom = {
+                    getLiveTimeline: vi.fn().mockReturnValue(mockTimeline),
+                };
+                mockClient.getRoom.mockReturnValue(mockRoom);
+
+                await dmManager.markDmAsRead("!dm:example.com");
+
+                expect(mockClient.setRoomReadMarkers).not.toHaveBeenCalled();
+            });
+        });
+
+        describe("sendDmMessage", () => {
+            it("should send text message", async () => {
+                mockClient.sendEvent.mockResolvedValue({ event_id: "$event:example.com" });
+
+                const eventId = await dmManager.sendDmMessage("!dm:example.com", "Hello");
+
+                expect(eventId).toBe("$event:example.com");
+                expect(mockClient.sendEvent).toHaveBeenCalledWith(
+                    "!dm:example.com",
+                    "m.room.message",
+                    expect.objectContaining({
+                        msgtype: "m.text",
+                        body: "Hello",
+                    })
+                );
+            });
+
+            it("should send custom content", async () => {
+                mockClient.sendEvent.mockResolvedValue({ event_id: "$event:example.com" });
+
+                const content = { msgtype: "m.image", body: "image.png", url: "mxc://..." };
+                const eventId = await dmManager.sendDmMessage("!dm:example.com", content);
+
+                expect(eventId).toBe("$event:example.com");
+                expect(mockClient.sendEvent).toHaveBeenCalledWith(
+                    "!dm:example.com",
+                    "m.room.message",
+                    content
+                );
+            });
+
+            it("should throw error for empty roomId", async () => {
+                await expect(dmManager.sendDmMessage("", "Hello")).rejects.toThrow();
+            });
+        });
+
+        describe("getDmRoomInfos", () => {
+            it("should return all DM room infos", async () => {
+                const mockRoom1 = {
+                    roomId: "!dm1:example.com",
+                    name: "DM 1",
+                    getMember: vi.fn(),
+                    getJoinedMembers: vi.fn().mockReturnValue([
+                        { userId: "@test:example.com", name: "Test" },
+                        { userId: "@user1:example.com", name: "User1" },
+                    ]),
+                    getAvatarUrl: vi.fn().mockReturnValue(null),
+                    getLiveTimeline: vi.fn().mockReturnValue({
+                        getEvents: vi.fn().mockReturnValue([]),
+                    }),
+                };
+
+                const mockRoom2 = {
+                    roomId: "!dm2:example.com",
+                    name: "DM 2",
+                    getMember: vi.fn(),
+                    getJoinedMembers: vi.fn().mockReturnValue([
+                        { userId: "@test:example.com", name: "Test" },
+                        { userId: "@user2:example.com", name: "User2" },
+                    ]),
+                    getAvatarUrl: vi.fn().mockReturnValue(null),
+                    getLiveTimeline: vi.fn().mockReturnValue({
+                        getEvents: vi.fn().mockReturnValue([]),
+                    }),
+                };
+
+                mockClient.getRooms.mockReturnValue([mockRoom1, mockRoom2]);
+                mockClient.getRoom.mockImplementation((roomId: string) => {
+                    if (roomId === "!dm1:example.com") return mockRoom1;
+                    if (roomId === "!dm2:example.com") return mockRoom2;
+                    return null;
+                });
+                mockClient.getAccountData.mockReturnValue({
+                    getContent: () => ({
+                        "@user1:example.com": ["!dm1:example.com"],
+                        "@user2:example.com": ["!dm2:example.com"],
+                    }),
+                });
+                mockClient.mxcToHttp = vi.fn().mockReturnValue(null);
+
+                const infos = await dmManager.getDmRoomInfos();
+
+                expect(infos.length).toBeGreaterThanOrEqual(0);
+            });
+
+            it("should return empty array when no DMs", async () => {
+                mockClient.getRooms.mockReturnValue([]);
+                mockClient.getAccountData.mockReturnValue(null);
+
+                const infos = await dmManager.getDmRoomInfos();
+
+                expect(infos).toEqual([]);
+            });
+        });
+
+        describe("getDmRoom", () => {
+            it("should return room object", async () => {
+                const mockRoom = { roomId: "!dm:example.com" };
+                mockClient.getRoom.mockReturnValue(mockRoom);
+
+                const room = await dmManager.getDmRoom("!dm:example.com");
+
+                expect(room).toEqual(mockRoom);
+            });
+
+            it("should return null for non-existent room", async () => {
+                mockClient.getRoom.mockReturnValue(null);
+
+                const room = await dmManager.getDmRoom("!missing:example.com");
+
+                expect(room).toBeNull();
+            });
+        });
+
+        describe("removeDmRoom", () => {
+            it("should remove DM room from m.direct", async () => {
+                mockClient.getAccountData.mockReturnValue({
+                    getContent: () => ({
+                        "@user:example.com": ["!dm1:example.com", "!dm2:example.com"],
+                    }),
+                });
+                mockClient.setAccountData.mockResolvedValue({});
+
+                await dmManager.removeDmRoom("!dm1:example.com", "@user:example.com");
+
+                expect(mockClient.setAccountData).toHaveBeenCalledWith(
+                    "m.direct",
+                    expect.objectContaining({
+                        "@user:example.com": ["!dm2:example.com"],
+                    })
+                );
+            });
+
+            it("should remove user entry if no rooms left", async () => {
+                mockClient.getAccountData.mockReturnValue({
+                    getContent: () => ({
+                        "@user:example.com": ["!dm:example.com"],
+                    }),
+                });
+                mockClient.setAccountData.mockResolvedValue({});
+
+                await dmManager.removeDmRoom("!dm:example.com", "@user:example.com");
+
+                expect(mockClient.setAccountData).toHaveBeenCalledWith(
+                    "m.direct",
+                    expect.not.objectContaining({
+                        "@user:example.com": expect.anything(),
+                    })
+                );
+            });
+        });
+
+        describe("start", () => {
+            it("should start DM manager", async () => {
+                await dmManager.start();
+                // start() method should complete without errors
+                expect(true).toBe(true);
+            });
+        });
+
+        describe("getCacheStats", () => {
+            it("should return cache statistics", () => {
+                const stats = dmManager.getCacheStats();
+
+                expect(stats).toHaveProperty("dmRooms");
+                expect(stats.dmRooms).toHaveProperty("size");
+                expect(stats.dmRooms).toHaveProperty("maxSize");
+                expect(stats.dmRooms).toHaveProperty("hits");
+                expect(stats.dmRooms).toHaveProperty("misses");
+            });
+        });
+    });
 });

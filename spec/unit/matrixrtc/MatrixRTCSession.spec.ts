@@ -56,10 +56,15 @@ describe("MatrixRTCSession", () => {
     let sess: MatrixRTCSession | undefined;
 
     beforeEach(() => {
-        client = new MatrixClient({ baseUrl: "base_url" });
+        client = new MatrixClient({ baseUrl: "https://example.org" });
         client.getUserId = vi.fn().mockReturnValue("@alice:example.org");
         client.getDeviceId = vi.fn().mockReturnValue("AAAAAAA");
         client.sendEvent = vi.fn().mockResolvedValue({ event_id: "success" });
+        client._unstable_sendDelayedStateEvent = vi.fn().mockResolvedValue({ delay_id: "delay_id" });
+        client._unstable_restartScheduledDelayedEvent = vi.fn().mockResolvedValue(undefined);
+        client._unstable_cancelScheduledDelayedEvent = vi.fn().mockResolvedValue(undefined);
+        client._unstable_sendScheduledDelayedEvent = vi.fn().mockResolvedValue(undefined);
+        client._unstable_updateDelayedEvent = vi.fn().mockResolvedValue(undefined);
         client.decryptEventIfNeeded = vi.fn();
     });
 

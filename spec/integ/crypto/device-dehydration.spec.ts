@@ -33,6 +33,7 @@ describe("Device dehydration", () => {
 
         const matrixClient = createClient({
             baseUrl: "http://test.server",
+            allowInsecureHttp: true,
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
             cryptoCallbacks: {

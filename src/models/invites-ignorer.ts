@@ -145,7 +145,7 @@ export class IgnoredInvites {
                 { scope: PolicyScope.User, entities: [sender] },
                 { scope: PolicyScope.Server, entities: [senderServer, roomServer] },
             ]) {
-                const events = state.getStateEvents(scopeToEventTypeMap[scope]);
+                const events = state.getStateEvents(scopeToEventTypeMap[scope] as string);
                 for (const event of events) {
                     const content = event.getContent();
                     if (content?.recommendation != PolicyRecommendation.Ban) {

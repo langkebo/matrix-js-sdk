@@ -23,7 +23,8 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -73,10 +74,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                "/_synapse/admin/v1/federation/blacklist",
+                "/federation/blacklist",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
 
             const entries: IBlacklistEntry[] = response.blacklist || [];
@@ -100,10 +101,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                "/_synapse/admin/v1/federation/blacklist/add",
+                "/federation/blacklist/add",
                 undefined,
                 { server_name: serverName, reason },
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
 
             const entry: IBlacklistEntry = {
@@ -129,10 +130,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                "/_synapse/admin/v1/federation/blacklist/remove",
+                "/federation/blacklist/remove",
                 undefined,
                 { server_name: serverName },
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
 
             this.blacklist.delete(serverName);
@@ -160,10 +161,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_synapse/admin/v1/federation/status/${encodeURIComponent(serverName)}`,
+                `/federation/status/${encodeURIComponent(serverName)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
 
             return {
@@ -181,10 +182,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                "/_synapse/admin/v1/federation/destinations",
+                "/federation/destinations",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
 
             const servers: IFederationServer[] = response.destinations || [];
@@ -205,10 +206,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                `/_synapse/admin/v1/federation/disconnect/${encodeURIComponent(serverName)}`,
+                `/federation/disconnect/${encodeURIComponent(serverName)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
         } catch (error) {
             this.emit(FederationEvent.FederationError, error as Error);
@@ -224,10 +225,10 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                `/_synapse/admin/v1/federation/reconnect/${encodeURIComponent(serverName)}`,
+                `/federation/reconnect/${encodeURIComponent(serverName)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
         } catch (error) {
             this.emit(FederationEvent.FederationError, error as Error);
@@ -270,7 +271,7 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
 
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/publicRooms`,
+                "/publicRooms",
                 params,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -331,10 +332,10 @@ export class FederationBlacklistManager extends TypedEventEmitter<FederationEven
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                "/_synapse/admin/v1/federation/blacklist",
+                "/federation/blacklist",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: AdminPrefix.V1 }
             );
 
             const entries: IBlacklistEntry[] = response.blacklist || [];
@@ -355,10 +356,10 @@ export class FederationBlacklistManager extends TypedEventEmitter<FederationEven
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/_synapse/admin/v1/federation/blacklist/add",
+            "/federation/blacklist/add",
             undefined,
             { server_name: serverName, reason },
-            { prefix: ClientPrefix.V3 }
+            { prefix: AdminPrefix.V1 }
         );
 
         const entry: IBlacklistEntry = {
@@ -378,10 +379,10 @@ export class FederationBlacklistManager extends TypedEventEmitter<FederationEven
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/_synapse/admin/v1/federation/blacklist/remove",
+            "/federation/blacklist/remove",
             undefined,
             { server_name: serverName },
-            { prefix: ClientPrefix.V3 }
+            { prefix: AdminPrefix.V1 }
         );
 
         this.blacklist.delete(serverName);
@@ -400,3 +401,17 @@ export class FederationBlacklistManager extends TypedEventEmitter<FederationEven
         this.blacklist.clear();
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getFederationManager(): FederationManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getFederationManager = function (): FederationManager {
+        return new FederationManager(this);
+    };
+}
+
+export default extendMatrixClient;

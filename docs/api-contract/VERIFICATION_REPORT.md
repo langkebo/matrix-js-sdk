@@ -1,141 +1,63 @@
-# API 契约一致性验证报告
+# API 契约交叉验证报告
 
-> 生成日期: 2026-03-29
-> 验证范围: matrix-js-sdk 与契约文档的一致性
+> 审查日期: 2026-04-04
+> 审查对象: `synapse-rust` 当前磁盘代码 + `matrix-js-sdk/docs/api-contract`
 
----
+## 验证方法
 
-## Auth 模块 ✅
+1. 从 `synapse-rust/src/web/routes/assembly.rs` 确认实际挂载的顶层 router。
+2. 从 `synapse-rust/src/web/routes/admin/mod.rs` 确认管理端聚合模块。
+3. 从各 route 文件核对 `route()`、`nest()`、`merge()` 组合关系。
+4. 从 `extractors/auth.rs` 与联邦中间件确认认证要求。
+5. 对现有文档逐份重写，删除依赖 SDK 推断但与后端不一致的描述。
 
-| API | 契约路由 | SDK 方法 | 一致性 |
-|-----|----------|----------|--------|
-| 登录 | `/_matrix/client/v3/login` | `client.login()` | ✅ |
-| 注册 | `/_matrix/client/v3/register` | `client.register()` | ✅ |
-| Token 刷新 | `/_matrix/client/v3/refresh` | `client.refreshToken()` | ✅ |
-| 登出 | `/_matrix/client/v3/logout` | `client.logout()` | ✅ |
-| 用户信息 | `/_matrix/client/v3/account/whoami` | `client.whoAmI()` | ✅ |
+## 已重审文档
 
-**结论**: Auth 模块契约与 SDK 实现完全一致。
+| 文档 | 结果 | 说明 |
+|------|------|------|
+| `README.md` | 已更新 | 改为后端优先索引 |
+| `auth.md` | 已更新 | 补上 auth/account/directory/discovery 真实路由 |
+| `account-data.md` | 已新增 | 拆分用户级/房间级 account data 与 filter 契约 |
+| `admin.md` | 已更新 | 按 admin 子模块分组重写 |
+| `device.md` | 已新增 | 补齐设备管理与设备变更查询 |
+| `e2ee.md` | 已新增 | 拆分核心 E2EE、设备信任与 to-device 契约 |
+| `key-backup.md` | 已新增 | 拆分 room key backup / recover / import-export / secure backup |
+| `media.md` | 已新增 | 补齐 Media API 与配额端点 |
+| `presence.md` | 已新增 | 补齐 presence 状态与 v3 presence list |
+| `room.md` | 已更新 | 按 `r0/v1/v3` 真实挂载重写 |
+| `room-summary.md` | 已新增 | 拆分 room summary 读写与内部接口 |
+| `sync.md` | 已更新 | 区分 GET sync 与 POST Sliding Sync |
+| `push.md` | 已更新 | 以 `push.rs` 为准重写 |
+| `space.md` | 已更新 | 以 `space.rs` 为准重写 |
+| `dm.md` | 已更新 | 改为后端真实 DM 路由 |
+| `friend.md` | 已更新 | 改为 `friend_room.rs` 真实路由 |
+| `verification.md` | 已新增 | 拆分 SAS / QR 设备校验兼容路由 |
+| `federation.md` | 已新增 | 拆分 public/protected federation 路由 |
+| `backend-route-inventory.md` | 新增 | 覆盖未单独拆分模块 |
+| `CHANGELOG.md` | 已更新 | 记录本轮重审 |
 
----
+## 已确认排除项
 
-## Admin 模块 ⚠️
+以下文件未在主装配入口挂载，不计入本轮可达 API 契约：
 
-| API | 契约路由 | SDK 路由 | SDK 方法 | 一致性 |
-|-----|----------|----------|----------|--------|
-| 用户列表 | `/_synapse/admin/v1/users` | `/v2/users` | `getUsers()` | ⚠️ 版本差异 |
-| 用户信息 | `/_synapse/admin/v1/users/{user_id}` | `/v2/users/{id}` | `getUser()` | ⚠️ 版本差异 |
-| 删除房间 | `/_synapse/admin/v1/rooms/{room_id}` | `/v1/rooms/{id}` | `deleteRoom()` | ✅ |
-| 房间统计 | `/_synapse/admin/v1/room_stats/{room_id}` | N/A | 无对应方法 | 🔴 缺失 |
-| 用户注册 Nonce | `/_synapse/admin/v1/register/nonce` | N/A | 无对应方法 | 🔴 缺失 |
-| 管理员注册 | `/_synapse/admin/v1/register` | N/A | 无对应方法 | 🔴 缺失 |
+- `synapse-rust/src/web/routes/openclaw.rs`
+- `synapse-rust/src/web/routes/key_rotation.rs`
+- `synapse-rust/src/web/routes/websocket.rs`
 
-**发现的问题**:
+## 本轮修正的典型问题
 
-### 1. API 版本差异
-- **问题**: 契约文档使用 `v1` 前缀，但 SDK 实际使用 `v2`
-- **影响**: 用户列表和用户信息 API
-- **原因**: SDK 代码使用 `/v2/users` 而契约文档写的是 `/v1/users`
-- **建议**: 更新契约文档以匹配实际实现
+- 纠正把纯 SDK 本地行为误写成后端 HTTP 接口的问题
+- 纠正把 `v1` / `r0` / `v3` 混写成单一路径的问题
+- 纠正把未挂载文件路由当成可用接口的问题
+- 纠正把 SDK 假定字段写成后端已承诺字段的问题
 
-### 2. 缺失的方法
-- **getRoomStats()**: 契约文档中有，但 SDK 中无对应方法
-- **registerNonce / adminRegister**: 契约文档中有，但 SDK 中无对应方法
+## 仍需注意
 
-**SDK AdminManager 完整方法列表**:
-```typescript
-// 用户管理
-getUsers(from?, limit?)                    // /v2/users
-getUser(userId)                            // /v2/users/{id}
-createUser(userId, options?)               // /v2/users/{id}
-deactivateUser(userId, erase?)             // /v1/deactivate/{id}
-resetPassword(userId, newPassword, logout?) // /v1/reset_password/{id}
-setAdmin(userId, admin)                    // /v2/users/{id}
-getUserDevices(userId)                     // /v2/users/{id}/devices
-deleteUserDevices(userId, deviceIds)       // /v2/users/{id}/delete_devices
+- 复杂响应对象有一部分由 service 层直接序列化返回，文档目前只保留了稳定可见字段与响应形态。
+- 条件挂载模块 `SAML`、`OIDC` 的“是否可达”取决于运行时配置，因此只在总表中标注来源，不在核心模块文档里宣称默认启用。
 
-// Shadow Ban
-shadowBanUser(userId)                      // /v1/users/{id}/shadow_ban
-unshadowBanUser(userId)                    // DELETE /v1/users/{id}/shadow_ban
-getShadowBanStatus(userId)                 // /v1/users/{id}/shadow_ban
+## 结论
 
-// Rate Limit
-getRateLimit(userId)                       // /v1/users/{id}/rate_limit
-setRateLimit(userId, config)               // /v1/users/{id}/rate_limit
-deleteRateLimit(userId)                    // DELETE /v1/users/{id}/rate_limit
-
-// 房间管理
-getRooms(from?, limit?, searchTerm?)      // /v1/rooms
-getRoom(roomId)                            // /v1/rooms/{id}
-deleteRoom(roomId, options?)               // /v1/rooms/{id}
-blockRoom(roomId, block)                   // /v1/rooms/{id}/block
-getRoomMembers(roomId)                     // /v1/rooms/{id}/members
-joinRoom(roomId, userId)                   // /v1/join/{id}
-
-// 服务器管理
-getServerVersion()                         // /v1/server_version
-getServerStats()                           // /v1/statistics
-getServerConfig()                          // /v1/config
-
-// 注册令牌
-getRegistrationTokens()                    // /v1/registration_tokens
-createRegistrationToken(options?)          // /v1/registration_tokens
-updateRegistrationToken(token, options?)   // POST /v1/registration_tokens/{token}
-deleteRegistrationToken(token)             // DELETE /v1/registration_tokens/{token}
-
-// 联邦管理
-getFederationDestinations()               // /v1/federation_destinations
-```
-
----
-
-## Room 模块 ✅
-
-| API | 契约路由 | SDK 方法 | 一致性 |
-|-----|----------|----------|--------|
-| 创建房间 | `/_matrix/client/v3/createRoom` | `client.createRoom()` | ✅ |
-| 获取房间信息 | `/_matrix/client/v3/rooms/{room_id}` | `client.getRoom()` | ✅ |
-| 加入房间 | `/_matrix/client/v3/join/{room_id_or_alias}` | `client.joinRoom()` | ✅ |
-| 离开房间 | `/_matrix/client/v3/rooms/{room_id}/leave` | `room.leave()` | ✅ |
-| 邀请用户 | `/_matrix/client/v3/rooms/{room_id}/invite` | `room.invite()` | ✅ |
-| 发送消息 | `/_matrix/client/v3/rooms/{room_id}/send/{type}/{txn}` | `room.send()` | ✅ |
-
-**结论**: Room 模块契约与 SDK 实现一致。
-
----
-
-## DM 模块 ✅
-
-| API | 契约路由 | SDK 方法 | 一致性 |
-|-----|----------|----------|--------|
-| 获取 DM 列表 | 本地过滤 | `dmManager.getDMRooms()` | ✅ |
-| 创建 DM | `/_matrix/client/v3/createRoom` | `dmManager.createDm()` | ✅ |
-| m.direct 读取 | 本地操作 | `client.getAccountData()` | ✅ |
-| m.direct 写入 | 本地操作 | `dmManager.setDmRoom()` | ✅ |
-
-**结论**: DM 模块契约与 SDK 实现一致。
-
----
-
-## 总结
-
-| 模块 | 状态 | API 数量 | 一致 |
-|------|------|----------|------|
-| Auth | ✅ | 5 | 5 |
-| Admin | ⚠️ | 6 | 2 |
-| Room | ✅ | 11 | 11 |
-| DM | ✅ | 4 | 4 |
-| Space | 🔄 | 6 | 待验证 |
-| Push | 🔄 | 8 | 待验证 |
-| Sync | 🔄 | 6 | 待验证 |
-
-### 需要修复的问题
-
-1. **更新 Admin 契约文档**:
-   - 将 `/_synapse/admin/v1/users` 更新为 `/_synapse/admin/v1/v2/users` (或说明实际使用 v2)
-   - 添加缺失的 SDK 方法文档
-
-2. **补充缺失的 Admin 方法**:
-   - `getRoomStats()` - 房间统计
-   - `registerNonce()` - 用户注册 Nonce
-   - `adminRegister()` - 管理员注册
+- 已将契约文档基线从“SDK 推断”切换为“后端真实挂载代码”。
+- 核心业务模块与核心 E2EE 路由已逐文档重审。
+- 其余已挂载模块继续通过 `backend-route-inventory.md` 补齐索引与路径族说明。

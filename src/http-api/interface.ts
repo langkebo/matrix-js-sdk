@@ -54,6 +54,11 @@ export interface IHttpOpts {
 
     baseUrl: string;
     idBaseUrl?: string;
+    /**
+     * Explicitly allow non-HTTPS base URLs for local development or controlled test environments.
+     * Defaults to false.
+     */
+    allowInsecureHttp?: boolean;
     prefix: string;
     extraParams?: QueryDict;
 
@@ -84,7 +89,7 @@ export interface IHttpOpts {
 }
 
 /** Options object for `FetchHttpApi.requestOtherUrl`. */
-export interface BaseRequestOpts extends Pick<RequestInit, "priority"> {
+export interface BaseRequestOpts {
     /**
      * map of additional request headers
      */
@@ -96,7 +101,6 @@ export interface BaseRequestOpts extends Pick<RequestInit, "priority"> {
      */
     localTimeoutMs?: number;
     keepAlive?: boolean; // defaults to false
-
     /**
      * By default, we will:
      *

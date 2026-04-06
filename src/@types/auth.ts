@@ -22,11 +22,25 @@ import { type IClientWellKnown } from "../client.ts";
 
 /**
  * Represents a response to the CSAPI `/refresh` endpoint.
+ * 
+ * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:371-376
+ * 注意: 后端返回 expires_in (秒)，SDK使用 expires_in_ms (毫秒) 进行转换
  */
 export interface IRefreshTokenResponse {
     access_token: string;
+    /**
+     * The lifetime of the access token, in milliseconds.
+     * 
+     * 注意: 后端返回字段名为 expires_in (秒)，SDK自动转换为 expires_in_ms (毫秒)
+     */
     expires_in_ms: number;
     refresh_token: string;
+    /**
+     * ID of the device.
+     * 
+     * 注意: 后端此字段为必填，但SDK保持可选以兼容旧版本
+     */
+    device_id?: string;
 }
 
 /* eslint-enable camelcase */
@@ -202,6 +216,9 @@ export type ILoginParams = LoginRequest;
 /**
  * Response body for POST /login request
  * @see https://spec.matrix.org/v1.7/client-server-api/#post_matrixclientv3login
+ * 
+ * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:312-327
+ * 注意: 后端返回 expires_in (秒)，SDK使用 expires_in_ms (毫秒) 进行转换
  */
 export interface LoginResponse {
     /**
@@ -223,11 +240,15 @@ export interface LoginResponse {
      * Once the access token has expired a new access token can be obtained by using the provided refresh token.
      * If no refresh token is provided, the client will need to re-log in to obtain a new access token.
      * If not given, the client can assume that the access token will not expire.
+     * 
+     * 注意: 后端返回字段名为 expires_in (秒)，SDK自动转换为 expires_in_ms (毫秒)
      */
     expires_in_ms?: number;
     /**
      * A refresh token for the account.
      * This token can be used to obtain a new access token when it expires by calling the /refresh endpoint.
+     * 
+     * 注意: 后端此字段为必填，但SDK保持可选以兼容旧版本
      */
     refresh_token?: string;
     /**

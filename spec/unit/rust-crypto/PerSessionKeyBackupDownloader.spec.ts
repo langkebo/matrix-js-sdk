@@ -78,6 +78,7 @@ describe("PerSessionKeyBackupDownloader", () => {
 
         mockHttp = new MatrixHttpApi(new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>(), {
             baseUrl: "http://server/",
+            allowInsecureHttp: true,
             prefix: "",
             onlyData: true,
         });

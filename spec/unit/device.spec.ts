@@ -53,11 +53,11 @@ describe("DeviceManager", () => {
 
             expect(devices).toHaveLength(2);
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
-                "/_matrix/client/v3/devices",
+                "GET",
+                "/devices",
                 undefined,
                 undefined,
-                expect.anything()
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -175,6 +175,29 @@ describe("DeviceManager", () => {
 
             await deviceManager.setDeviceDetails("device1", { display_name: "Test" });
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
+        });
+    });
+
+    describe("getDeviceListUpdates", () => {
+        it("should call the contract path", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                changed: [],
+                left: [],
+            });
+
+            await deviceManager.getDeviceListUpdates(["@alice:example.org"]);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                expect.anything(),
+                "/keys/device_list/update",
+                undefined,
+                { users: ["@alice:example.org"] },
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+            );
+        });
+
+        it("should reject empty user arrays", async () => {
+            await expect(deviceManager.getDeviceListUpdates([])).rejects.toThrow("Users array is required");
         });
     });
 

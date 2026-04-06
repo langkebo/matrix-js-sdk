@@ -31,7 +31,7 @@ limitations under the License.
 import { logger } from "../logger.ts";
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/index.ts";
-import { MatrixClient } from "../client.ts";
+import { MatrixClient } from "../client";
 
 const CLIENT_PREFIX_V1 = { prefix: "/_matrix/client/v1" };
 const CLIENT_PREFIX_V3 = { prefix: "/_matrix/client/v3" };

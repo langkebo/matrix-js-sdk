@@ -1,200 +1,109 @@
-# API 契约变更日志 (Changelog)
+# API 契约变更日志
 
-> 版本: v1.0.0
-> 生成日期: 2026-03-29
-> 记录范围: matrix-js-sdk 与 synapse-rust 接口契约
+## 2026-04-04
 
----
+### Presence 模块审计完成
 
-## 2026-03-29 - 契约文档初始化
+- 完成 `presence.md` 契约与 SDK/后端交叉验证
+- 发现 3 个问题：
+  - ⚠️ P1: 契约文档缺少 `GET /presence/list/{user_id}` 端点记录
+  - ⚠️ P1: SDK 缺少 `getPresenceList()` 方法
+  - 📝 P2: SDK 错误处理不完善
+- 更新 `presence.md` 添加 SDK Manager 对应关系和审计状态
+- 创建 `PRESENCE_API_AUDIT.md` 审计报告
+- 封装覆盖率: 80% (4/5)
 
-### 新增契约文档
+### Key Backup 模块审计完成
 
-| 模块 | 文件 | API 数量 | 说明 |
-|------|------|----------|------|
-| Auth | `auth.md` | 5 | 认证相关 API |
-| Room | `room.md` | 11 | 房间管理 API |
-| DM | `dm.md` | 4 | 私聊管理 API |
-| Friend | `friend.md` | 15+ | 好友管理 API |
-| Admin | `admin.md` | 20+ | 管理员 API |
-| Space | `space.md` | 6 | 空间 API |
-| Push | `push.md` | 8 | 推送 API |
-| Sync | `sync.md` | 6 | 同步 API |
-| **总计** | | **75+** | |
+- 完成 `key-backup.md` 契约与 SDK/后端交叉验证
+- 发现 5 个问题：
+  - 🔴 P0: SDK 使用间接封装而非直接 HTTP 调用
+  - 🔴 P0: 缺少恢复与校验功能 (6 个端点)
+  - 🔴 P0: 缺少导入导出功能 (4 个端点)
+  - ⚠️ P1: 缺少 Secure Backup 封装 (6 个端点)
+  - ⚠️ P1: 缺少批量密钥上传
+- 更新 `key-backup.md` 添加 SDK Manager 对应关系和审计状态
+- 创建 `KEY_BACKUP_API_AUDIT.md` 审计报告
+- 封装覆盖率: 0% 直接 HTTP 封装，75% 未封装
 
----
+### E2EE 契约文档补齐
 
-## API 端点清单
+- 新增 `e2ee.md`，拆分 `e2ee_routes.rs` 中的核心密钥、to-device、设备信任与安全摘要接口
+- 新增 `key-backup.md`，拆分 `key_backup.rs` 的版本管理、密钥备份、恢复、导入导出，以及 `e2ee_routes.rs` 中的 secure backup 接口
+- 新增 `verification.md`，拆分 `verification_routes.rs` 的 SAS 与二维码设备校验接口
+- 更新 `README.md` 索引，纳入新增文档
+- 更新 `backend-route-inventory.md`，将 E2EE / Key Backup / Verification 从总表补录改为独立文档引用
+- 更新 `VERIFICATION_REPORT.md`，记录本轮补齐范围
+- 审查基线保持为 `synapse-rust` 当前磁盘代码，不把未挂载的 `key_rotation.rs` 计入可达契约
 
-### Auth 模块 (5 APIs)
+### Media 模块修复完成
 
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/login` | POST | `client.login()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/register` | POST | `client.register()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `/_matrix/client/v3/refresh` | POST | `client.refreshToken()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `/_matrix/client/v3/logout` | POST | `client.logout()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_matrix/client/v3/account/whoami` | GET | `client.whoAmI()` | ✅ 稳定 | 2026-03-29 |
+- **SDK 修复**:
+  - Voice 端点路径: `ClientPrefix.V3` → `VOICE_R0_PREFIX` (`/_matrix/client/r0`)
+  - Voice transcription: `/voice/transcribe` → `/voice/transcription`, prefix → `VOICE_V1_PREFIX`
+  - Voice getWaveform: 改为本地生成波形（后端无此端点）
+  - 添加 `MediaManager.deleteMedia()` 方法
+  - 添加 `MediaManager.previewUrl()` 方法
+  - 添加 `MediaManager.uploadContentWithId()` 方法
+  - 添加 `MediaQuotaManager.getQuotaAlerts()` 方法
+- **文档更新**:
+  - 更新 `media.md` 契约状态为"已完成并修复"
+  - 更新 `MEDIA_API_AUDIT.md` 审计报告
+- **验证结果**: 封装覆盖率 78% (18/23)
 
-### Room 模块 (11 APIs)
+### Media 模块审计完成
 
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/createRoom` | POST | `client.createRoom()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/rooms/{room_id}` | GET | `client.getRoom()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `/_matrix/client/v3/join/{room_id_or_alias}` | POST | `client.joinRoom()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `/_matrix/client/v3/rooms/{room_id}/leave` | POST | `room.leave()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_matrix/client/v3/rooms/{room_id}/invite` | POST | `room.invite()` | ✅ 稳定 | 2026-03-29 |
-| 6 | `/_matrix/client/v3/rooms/{room_id}/kick` | POST | `room.kick()` | ✅ 稳定 | 2026-03-29 |
-| 7 | `/_matrix/client/v3/rooms/{room_id}/ban` | POST | `room.ban()` | ✅ 稳定 | 2026-03-29 |
-| 8 | `/_matrix/client/v3/rooms/{room_id}/members` | GET | `room.getMembers()` | ✅ 稳定 | 2026-03-29 |
-| 9 | `/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}` | PUT | `room.send()` | ✅ 稳定 | 2026-03-29 |
-| 10 | `/_matrix/client/v3/rooms/{room_id}/event/{event_id}` | GET | `room.getEvent()` | ✅ 稳定 | 2026-03-29 |
-| 11 | `/_matrix/client/v3/rooms/{room_id}/messages` | GET | `room.getMessages()` | ✅ 稳定 | 2026-03-29 |
+- 完成 `media.md` 契约与 SDK/后端交叉验证
+- 发现 6 个问题：
+  - 🔴 P0: Voice 端点路径错误 (SDK 使用 V3，后端实际是 r0)
+  - 🔴 P0: 缺少 `deleteMedia()` 方法
+  - ⚠️ P1: 缺少 `previewUrl()` 方法
+  - ⚠️ P1: 缺少 `getQuotaAlerts()` 方法
+  - 📝 P2: 缺少 `uploadContentWithId()` 方法
+  - 📝 P2: voice 端点应在独立契约文档
+- 更新 `media.md` 添加 SDK Manager 对应关系和审计状态
+- 创建 `MEDIA_API_AUDIT.md` 审计报告
 
-### DM 模块 (4 APIs)
+### Friend 模块修复完成
 
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/dms` | GET | `dmManager.getDMRooms()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/createRoom` | POST | `dmManager.createDm()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `m.direct` 读取 | - | `client.getAccountData()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `m.direct` 写入 | - | `dmManager.setDmRoom()` | ✅ 稳定 | 2026-03-29 |
+- **后端修复**: 添加 `PUT /friends/{user_id}/displayname` 路由和 `update_friend_displayname` 服务方法
+- **SDK 修复**: 
+  - `sendFriendRequest` 字段 `reason` → `message` 与后端对齐
+  - `getFriendInfo` 改为调用专用端点而非遍历好友列表
+- **文档更新**: 
+  - 更新 `friend.md` 契约状态为"已完成并修复"
+  - 更新 `FRIEND_API_AUDIT.md` 审计报告
+- **验证结果**: 封装覆盖率 100% (25/25)
 
-### Friend 模块 (15+ APIs)
+## 2026-04-03
 
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/friend_room/friends` | GET | `friendManager.getFriends()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/friend_room/request` | POST | `friendManager.sendFriendRequest()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `/_matrix/client/v3/friend_room/accept` | POST | `friendManager.acceptFriendRequest()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `/_matrix/client/v3/friend_room/reject` | POST | `friendManager.rejectFriendRequest()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_matrix/client/v3/friend_room/cancel` | POST | `friendManager.cancelFriendRequest()` | ✅ 稳定 | 2026-03-29 |
-| 6 | `/_matrix/client/v3/friend_room/friends/{user_id}` | DELETE | `friendManager.removeFriend()` | ✅ 稳定 | 2026-03-29 |
-| 7 | `/_matrix/client/v3/friend_room/requests/incoming` | GET | `friendManager.getIncomingRequests()` | ✅ 稳定 | 2026-03-29 |
-| 8 | `/_matrix/client/v3/friend_room/requests/outgoing` | GET | `friendManager.getOutgoingRequests()` | ✅ 稳定 | 2026-03-29 |
-| 9 | `/_matrix/client/v3/friend_room/suggestions` | GET | `friendManager.getFriendSuggestions()` | ✅ 稳定 | 2026-03-29 |
-| 10 | `/_matrix/client/v3/friend_room/groups` | GET | `friendManager.getFriendGroups()` | ✅ 稳定 | 2026-03-29 |
-| 11 | `/_matrix/client/v3/friend_room/groups` | POST | `friendManager.createFriendGroup()` | ✅ 稳定 | 2026-03-29 |
-| 12 | `/_matrix/client/v3/friend_room/groups/{id}/users/{user_id}` | PUT | `friendManager.addToFriendGroup()` | ✅ 稳定 | 2026-03-29 |
-| 13 | `/_matrix/client/v3/friend_room/groups/{id}/users/{user_id}` | DELETE | `friendManager.removeFromFriendGroup()` | ✅ 稳定 | 2026-03-29 |
-| 14 | `/_matrix/client/v3/friend_room/groups/{id}` | DELETE | `friendManager.deleteFriendGroup()` | ✅ 稳定 | 2026-03-29 |
-| 15 | `/_matrix/client/v3/friend_room/friends/{user_id}/displayname` | PUT | `friendManager.setFriendDisplayName()` | ✅ 稳定 | 2026-03-29 |
+### Friend 模块审计完成
 
-### Admin 模块 (6 APIs)
+- 完成 `friend.md` 契约与 SDK/后端交叉验证
+- 发现 5 个问题：
+  - 🔴 P0: 后端缺失 `PUT /friends/{user_id}/displayname` 路由
+  - ⚠️ P1: `sendFriendRequest` 请求体字段不一致 (`reason` vs `message`)
+  - ⚠️ P1: `getFriendInfo` 实现错误（未调用专用端点）
+  - ⚠️ P2: `ensureFriendListRoom` 语义不清
+  - 📝 P3: 契约文档与实现不一致
+- 更新 `friend.md` 添加审计状态列和问题详情
 
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_synapse/admin/v1/v2/users` | GET | `admin.getUsers()` | ✅ v2 | 2026-03-29 |
-| 2 | `/_synapse/admin/v1/v2/users/{user_id}` | GET | `admin.getUser()` | ✅ v2 | 2026-03-29 |
-| 3 | `/_synapse/admin/v1/room_stats/{room_id}` | GET | `admin.getRoomStats()` | ✅ 2026-03-29 |
-| 4 | `/_synapse/admin/v1/rooms/{room_id}` | DELETE | `admin.deleteRoom()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_synapse/admin/v1/register/nonce` | GET | `admin.registerNonce()` | ✅ 2026-03-29 |
-| 6 | `/_synapse/admin/v1/register` | POST | `admin.adminRegister()` | ✅ 2026-03-29 |
+### 契约文档重审
 
-### Admin 模块扩展方法 (SDK 额外实现)
+- 以 `synapse-rust` 当前磁盘代码为准，重审 `docs/api-contract` 目录
+- 重写 `README.md`，改为后端真实挂载路由索引
+- 重写 `auth.md`，补齐 auth/account/directory/discovery 端点
+- 重写 `admin.md`，按 admin 子模块分组列出真实端点
+- 重写 `room.md`，按 `r0/v1/v3` 真实挂载拆分
+- 重写 `sync.md`，区分 GET Sync 与 POST Sliding Sync
+- 重写 `push.md`、`space.md`、`dm.md`、`friend.md`
+- 新增 `account-data.md`、`device.md`、`media.md`、`presence.md`、`room-summary.md`、`federation.md`
+- 新增 `backend-route-inventory.md`，补充其余已挂载模块的后端路由总表
+- 重写 `VERIFICATION_REPORT.md`，记录本轮交叉验证方法与排除项
 
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 7 | `/_synapse/admin/v1/v2/users/{user_id}` | PUT | `admin.createUser()` | ✅ | 2026-03-29 |
-| 8 | `/_synapse/admin/v1/deactivate/{user_id}` | POST | `admin.deactivateUser()` | ✅ | 2026-03-29 |
-| 9 | `/_synapse/admin/v1/reset_password/{user_id}` | POST | `admin.resetPassword()` | ✅ | 2026-03-29 |
-| 10 | `/_synapse/admin/v1/users/{user_id}/shadow_ban` | POST | `admin.shadowBanUser()` | ✅ | 2026-03-29 |
-| 11 | `/_synapse/admin/v1/users/{user_id}/rate_limit` | GET/PUT/DELETE | `admin.get/set/deleteRateLimit()` | ✅ | 2026-03-29 |
-| 12 | `/_synapse/admin/v1/rooms` | GET | `admin.getRooms()` | ✅ | 2026-03-29 |
-| 13 | `/_synapse/admin/v1/rooms/{room_id}/block` | POST | `admin.blockRoom()` | ✅ | 2026-03-29 |
-| 14 | `/_synapse/admin/v1/registration_tokens` | GET/POST | `admin.get/createRegistrationToken()` | ✅ | 2026-03-29 |
+## 变更原则
 
-### Space 模块 (6 APIs)
-
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/rooms/{room_id}/hierarchy` | GET | `client.getRoomHierarchy()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/spaces/{space_id}` | GET | `client.getSpace()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `/_matrix/client/v3/spaces/{space_id}/children` | GET | `client.getSpaceChildren()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `/_matrix/client/v3/createRoom` | POST | `client.createRoom()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_matrix/client/v3/spaces/{space_id}/children` | POST | `client.addChildToSpace()` | ✅ 稳定 | 2026-03-29 |
-| 6 | `/_matrix/client/v3/spaces/user` | GET | `client.getUserSpaces()` | ✅ 稳定 | 2026-03-29 |
-
-### Push 模块 (8 APIs)
-
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/push_rules` | GET | `pushManager.getPushRules()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/push_rules/{scope}/{kind}/{ruleId}` | PUT | `pushManager.setPushRule()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `/_matrix/client/v3/push_rules/{scope}/{kind}/{ruleId}` | DELETE | `pushManager.deletePushRule()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `/_matrix/client/v3/pushrules/{scope}/{kind}/{ruleId}/enabled` | PUT | `pushManager.setPushRuleEnabled()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_matrix/client/v3/pushrules/{scope}/{kind}/{ruleId}/actions` | PUT | `pushManager.setPushRuleActions()` | ✅ 稳定 | 2026-03-29 |
-| 6 | `/_matrix/client/v3/pushers` | GET | `pushManager.getPushers()` | ✅ 稳定 | 2026-03-29 |
-| 7 | `/_matrix/client/v3/pushers` | POST | `pushManager.addPusher()` | ✅ 稳定 | 2026-03-29 |
-| 8 | `/_matrix/client/v3/pushers/set` | POST | `pushManager.removePusher()` | ✅ 稳定 | 2026-03-29 |
-
-### Sync 模块 (6 APIs)
-
-| # | 端点 | 方法 | SDK 方法 | 状态 | 添加日期 |
-|---|------|------|----------|------|----------|
-| 1 | `/_matrix/client/v3/sync` | GET | `client.sync()` | ✅ 稳定 | 2026-03-29 |
-| 2 | `/_matrix/client/v3/sync` (with since) | GET | `client.sync()` | ✅ 稳定 | 2026-03-29 |
-| 3 | `/_matrix/client/v1/keys/changes` | GET | `client.getKeyChanges()` | ✅ 稳定 | 2026-03-29 |
-| 4 | `/_matrix/client/v3/joined_rooms` | GET | `client.getJoinedRooms()` | ✅ 稳定 | 2026-03-29 |
-| 5 | `/_matrix/client/v3/my_rooms` | GET | `client.getRooms()` | ✅ 稳定 | 2026-03-29 |
-| 6 | `/_matrix/client/v3/sync` (POST) | POST | `client.slidingSync()` | ✅ MSC3575 | 2026-03-29 |
-
----
-
-## 版本兼容性说明
-
-### Matrix Client API 版本
-
-| 版本 | 前缀 | 状态 |
-|------|------|------|
-| v1 | `/_matrix/client/v1` | ⚠️ 维护中 |
-| v3 | `/_matrix/client/v3` | ✅ 推荐 |
-| unstable | `/_matrix/client/unstable` | 🔄 实验性 |
-
-### Synapse Admin API 版本
-
-| 版本 | 前缀 | 状态 |
-|------|------|------|
-| v1 | `/_synapse/admin/v1` | ⚠️ 维护中 |
-| v2 | `/_synapse/admin/v1/v2/*` | ✅ 推荐 |
-
----
-
-## 状态说明
-
-| 状态 | 含义 |
-|------|------|
-| ✅ 稳定 | 功能完整，已在实际项目中使用 |
-| ⚠️ v2/维护中 | 使用较新版本或处于维护状态 |
-| 🔴 待实现 | SDK 中尚未实现该方法 |
-| 🔄 实验性 | 处于 MSC 实验阶段 |
-
----
-
-## 变更记录格式
-
-```markdown
-### YYYY-MM-DD - 变更描述
-
-**新增**:
-- 新增 API 端点
-
-**修改**:
-- 修改了某 API 的参数
-
-**废弃**:
-- 标记某 API 为废弃
-
-**修复**:
-- 修复了契约文档与实际实现的差异
-```
-
----
-
-## 未来待添加的 API
-
-| 模块 | API | 说明 | 优先级 | 状态 |
-|------|-----|------|--------|------|
-| E2EE | 密钥备份/恢复 | MSC3879 | P2 | 🔴 待实现 |
-| Thread | 线程管理 | MSC3983 | P3 | 🔴 待实现 |
+- 文档结论以已挂载路由为准
+- 版本前缀必须与代码一致
+- 未挂载文件不写入可达 API 契约
+- 复杂响应仅承诺代码中稳定可见字段

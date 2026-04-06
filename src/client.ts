@@ -93,6 +93,7 @@ import {
 } from "./sync-accumulator.ts";
 import type { EventTimelineSet } from "./models/event-timeline-set.ts";
 import * as ContentHelpers from "./content-helpers.ts";
+import { LRUCache } from "./utils/lru-cache.ts";
 import {
     NotificationCountType,
     type Room,
@@ -274,6 +275,12 @@ export interface ICreateClientOpts {
     baseUrl: string;
 
     idBaseUrl?: string;
+
+    /**
+     * Explicitly allow non-HTTPS homeserver URLs for local development or controlled test environments.
+     * Defaults to false.
+     */
+    allowInsecureHttp?: boolean;
 
     /**
      * The data store used for sync data from the homeserver. If not specified,
@@ -567,6 +574,195 @@ enum CrossSigningKeyType {
 export type CrossSigningKeys = Record<CrossSigningKeyType, CrossSigningKeyInfo>;
 
 export type SendToDeviceContentMap = Map<string, Map<string, Record<string, any>>>;
+
+export type RoomKeyRequestStatus = "pending" | "fulfilled" | "cancelled" | "all";
+
+export interface ICreateRoomKeyRequest {
+    algorithm: string;
+    room_id: string;
+    session_id: string;
+    request_type?: string;
+    request_id?: string;
+}
+
+export interface IRoomKeyRequestCreateResponse {
+    request_id: string;
+}
+
+export interface IRoomKeyRequest {
+    request_id: string;
+    user_id: string;
+    device_id: string;
+    room_id: string;
+    session_id: string;
+    algorithm: string;
+    request_type?: string;
+    action?: string;
+    status?: Exclude<RoomKeyRequestStatus, "all">;
+    created_ts: number;
+    is_fulfilled: boolean;
+    fulfilled_by_device?: string | null;
+    fulfilled_ts?: number | null;
+}
+
+export interface IGetRoomKeyRequestsQuery extends QueryDict {
+    status?: RoomKeyRequestStatus;
+    room_id?: string;
+    session_id?: string;
+    limit?: number;
+}
+
+export interface IRoomKeyRequestsResponse {
+    requests: IRoomKeyRequest[];
+}
+
+export interface IDeviceSigningVerificationStartRequest {
+    from_device: string;
+    to_user: string;
+    to_device?: string;
+    transaction_id?: string;
+    method?: string;
+}
+
+export interface IDeviceSigningVerificationStartResponse {
+    transaction_id: string;
+    method: string;
+    key_agreement_protocol: string[];
+    hash: string[];
+    short_authentication_string: string[];
+}
+
+export interface IDeviceSigningVerificationAcceptRequest {
+    transaction_id: string;
+    key_agreement_protocol: string;
+    hash: string;
+    commitment?: string;
+}
+
+export interface IDeviceSigningVerificationAcceptResponse {
+    transaction_id: string;
+    method: string;
+    key_agreement_protocol: string[];
+    hash: string[];
+    short_authentication_string: string[];
+    commitment?: string;
+}
+
+export interface IDeviceSigningVerificationKeyAgreementRequest {
+    transaction_id: string;
+    pubkey: string;
+}
+
+export interface IDeviceSigningVerificationKeyAgreementResponse {
+    transaction_id: string;
+    confirmed: boolean;
+    short_authentication_string?: Record<string, unknown>;
+}
+
+export interface IDeviceSigningVerificationMacRequest {
+    transaction_id: string;
+    mac: string;
+}
+
+export interface IDeviceSigningVerificationMacResponse {
+    transaction_id: string;
+    verified: boolean;
+}
+
+export interface IDeviceSigningVerificationDoneRequest {
+    transaction_id: string;
+}
+
+export interface IDeviceSigningVerificationDoneResponse {
+    transaction_id: string;
+}
+
+export interface IDeviceSigningVerificationCancelRequest {
+    transaction_id: string;
+    code: string;
+    reason: string;
+}
+
+export interface IDeviceSigningVerificationCancelResponse {
+    transaction_id: string;
+    state: "cancelled";
+    code: string;
+    reason: string;
+}
+
+export interface IVerificationRequestInfo {
+    transaction_id: string;
+    from_user: string;
+    from_device: string;
+    to_user: string;
+    to_device?: string | null;
+    method: "sas" | "qr" | "emoji" | "decimal";
+    state: "requested" | "ready" | "pending" | "done" | "cancelled";
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface IVerificationRequestsResponse {
+    requests: IVerificationRequestInfo[];
+}
+
+export interface IShowQrCodeResponse {
+    transaction_id: string;
+    server_name: string;
+    user_id: string;
+    device_id: string;
+    device_ed25519_key: string;
+    device_curve25519_key: string;
+}
+
+export interface IScanQrCodeRequest {
+    transaction_id: string;
+    server_name: string;
+    user_id: string;
+    device_id: string;
+    device_ed25519_key: string;
+    device_curve25519_key: string;
+}
+
+export interface IScanQrCodeResponse {
+    transaction_id: string;
+    state: string;
+}
+
+export interface ISecureBackupInfo {
+    backup_id: string;
+    version: string;
+    algorithm: string;
+    auth_data: Record<string, any>;
+    key_count: number;
+}
+
+export interface ISecureBackupSessionKey {
+    room_id: string;
+    session_id: string;
+    session_key: string;
+    first_message_index?: number;
+    forwarded_count?: number;
+    is_verified?: boolean;
+}
+
+export interface ISecureBackupVerifyResponse {
+    valid: boolean;
+}
+
+export interface ISecureBackupStoreKeysResponse {
+    key_count: number;
+}
+
+export interface ISecureBackupRestoreResponse {
+    success: boolean;
+    key_count: number;
+    message: string;
+}
+
+function getLegacyClientPrefix(version: "v1" | "r0" = "v1"): string {
+    return version === "r0" ? "/_matrix/client/r0" : ClientPrefix.V1;
+}
 
 export interface ISignedKey {
     keys: Record<string, string>;
@@ -1214,7 +1410,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public scheduler?: MatrixScheduler;
     public clientRunning = false;
     public timelineSupport = false;
-    public urlPreviewCache: { [key: string]: Promise<IPreviewUrlResponse> } = {};
+    public urlPreviewCache: LRUCache<Promise<IPreviewUrlResponse>> = new LRUCache<Promise<IPreviewUrlResponse>>(100, 3600000);
     public identityServer?: IIdentityServerProvider;
     public http: MatrixHttpApi<IHttpOpts & { onlyData: true }>; // XXX: Intended private, used in code.
 
@@ -1341,6 +1537,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             fetchFn: opts.fetchFn,
             baseUrl: opts.baseUrl,
             idBaseUrl: opts.idBaseUrl,
+            allowInsecureHttp: opts.allowInsecureHttp,
             accessToken: opts.accessToken,
             refreshToken: opts.refreshToken,
             tokenRefreshFunction: opts.tokenRefreshFunction,
@@ -2240,7 +2437,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         //
         // NB that we rely on this operation being synchronous to avoid a race condition: there must be no `await`
         // between here and `this.addListener` below, in case we miss an update.
-        const existingData = this.store.getAccountData(eventType);
+        const existingData = this.store.getAccountData(eventType as string);
         if (existingData && deepCompare(existingData.event.content, content)) return {};
 
         // Create a promise which will resolve when the update is received
@@ -2281,10 +2478,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     ): Promise<EmptyObject> {
         const path = utils.encodeUri("/user/$userId/account_data/$type", {
             $userId: this.credentials.userId!,
-            $type: eventType,
+            $type: eventType as string,
         });
 
-        return this.http.authedRequest(Method.Put, path, undefined, content);
+        return this.http.authedRequest(Method.Put, path, undefined, content as Record<string, unknown>);
     }
 
     /**
@@ -2293,7 +2490,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns The contents of the given account data event
      */
     public getAccountData<K extends keyof AccountDataEvents>(eventType: K): MatrixEvent | undefined {
-        return this.store.getAccountData(eventType);
+        return this.store.getAccountData(eventType as string);
     }
 
     /**
@@ -2308,17 +2505,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         eventType: K,
     ): Promise<AccountDataEvents[K] | null> {
         if (this.isInitialSyncComplete()) {
-            const event = this.store.getAccountData(eventType);
+            const event = this.store.getAccountData(eventType as string);
             if (!event) {
                 return null;
             }
             // The network version below returns just the content, so this branch
             // does the same to match.
-            return event.getContent<AccountDataEvents[K]>();
+            return event.getContent() as AccountDataEvents[K];
         }
         const path = utils.encodeUri("/user/$userId/account_data/$type", {
             $userId: this.credentials.userId!,
-            $type: eventType,
+            $type: eventType as string,
         });
         try {
             return await this.http.authedRequest(Method.Get, path);
@@ -2339,7 +2536,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         }
         const path = utils.encodeUri("/user/$userId/account_data/$type", {
             $userId: this.getSafeUserId(),
-            $type: eventType,
+            $type: eventType as string,
         });
         const options =
             msc3391DeleteAccountDataServerSupport === ServerSupport.Unstable
@@ -3484,11 +3681,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             );
         }
 
-        this.addThreadRelationIfNeeded(content, threadId, roomId);
+        this.addThreadRelationIfNeeded(content as IContent, threadId, roomId);
         return this.sendCompleteEvent({
             roomId,
             threadId,
-            eventObject: { type: eventType, content },
+            eventObject: { type: eventType as string, content: content as IContent },
             delayOpts,
             txnId,
         });
@@ -3526,11 +3723,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             );
         }
 
-        this.addThreadRelationIfNeeded(content, threadId, roomId);
+        this.addThreadRelationIfNeeded(content as IContent, threadId, roomId);
         return this.sendCompleteEvent({
             roomId,
             threadId,
-            eventObject: { type: eventType, content },
+            eventObject: { type: eventType as string, content: content as IContent },
             queryDict: { "org.matrix.msc4354.sticky_duration_ms": stickDuration },
             delayOpts,
             txnId,
@@ -3561,9 +3758,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             );
         }
 
-        const pathParams = {
+        const pathParams: Record<string, string | null | undefined> = {
             $roomId: roomId,
-            $eventType: eventType,
+            $eventType: eventType as string,
             $stateKey: stateKey,
         };
         let path = utils.encodeUri("/rooms/$roomId/state/$eventType", pathParams);
@@ -3597,11 +3794,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             );
         }
 
-        this.addThreadRelationIfNeeded(content, threadId, roomId);
+        this.addThreadRelationIfNeeded(content as IContent, threadId, roomId);
         return this.sendCompleteEvent({
             roomId,
             threadId,
-            eventObject: { type: eventType, content },
+            eventObject: { type: eventType as string, content: content as IContent },
             queryDict: { "org.matrix.msc4354.sticky_duration_ms": stickDuration },
             txnId,
         });
@@ -3930,8 +4127,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         const key = ts + "_" + url;
 
         // If there's already a request in flight (or we've handled it), return that instead.
-        if (key in this.urlPreviewCache) {
-            return this.urlPreviewCache[key];
+        if (this.urlPreviewCache.has(key)) {
+            return this.urlPreviewCache.get(key)!;
         }
 
         const resp = this.http.authedRequest<IPreviewUrlResponse>(
@@ -3947,8 +4144,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 priority: "low",
             },
         );
-        // TODO: Expire the URL preview cache sometimes
-        this.urlPreviewCache[key] = resp;
+        this.urlPreviewCache.set(key, resp);
         return resp;
     }
 
@@ -4319,6 +4515,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     * @deprecated Use `client.getProfileManager().setProfileInfo(info, data)` instead.
+     *             This method will be removed in a future version.
+     *             The ProfileManager provides caching and event emission.
      */
     // eslint-disable-next-line camelcase
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
@@ -4336,6 +4535,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     * @deprecated Use `client.getProfileManager().setDisplayName(name)` instead.
+     *             This method will be removed in a future version.
+     *             The ProfileManager provides caching and event emission.
      */
     public async setDisplayName(name: string): Promise<EmptyObject> {
         const prom = await this.setProfileInfo("displayname", { displayname: name });
@@ -4353,6 +4555,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     * @deprecated Use `client.getProfileManager().setAvatarUrl(url)` instead.
+     *             This method will be removed in a future version.
+     *             The ProfileManager provides caching and event emission.
      */
     public async setAvatarUrl(url: string): Promise<EmptyObject> {
         const prom = await this.setProfileInfo("avatar_url", { avatar_url: url });
@@ -4385,6 +4590,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * to do so before calling this function. Note also that `useAuthentication`
      * implies `allowRedirects`. Defaults to false (unauthenticated endpoints).
      * @returns the avatar URL or null.
+     * @deprecated Use `client.getProfileManager().mxcUrlToHttp()` instead.
+     *             This method will be removed in a future version.
+     *             The ProfileManager provides a unified interface for profile-related operations.
      */
     public mxcUrlToHttp(
         mxcUrl: string,
@@ -4422,6 +4630,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Promise which resolves
      * @returns Rejects: with an error response.
      * @throws If 'presence' isn't a valid presence enum value.
+     * @deprecated Use `client.getPresenceManager().setPresence(opts)` instead.
+     *             This method will be removed in a future version.
+     *             The PresenceManager provides caching and event emission.
      */
     public async setPresence(opts: IPresenceOpts): Promise<void> {
         const path = utils.encodeUri("/presence/$userId/status", {
@@ -4439,6 +4650,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param userId - The user to get presence for
      * @returns Promise which resolves: The presence state for this user.
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPresenceManager().getPresence(userId)` instead.
+     *             This method will be removed in a future version.
+     *             The PresenceManager provides caching and event emission.
      */
     public getPresence(userId: string): Promise<IStatusResponse> {
         const path = utils.encodeUri("/presence/$userId/status", {
@@ -7001,7 +7215,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         const room = this.getRoom(roomId);
         const event = new MatrixEvent({
             room_id: roomId,
-            type: eventType,
+            type: eventType as string,
             state_key: stateKey,
             // Cast safety: StateEvents[K] is a stronger bound than IContent, which has [key: string]: any
             content: content as IContent,
@@ -7311,10 +7525,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     /**
+     * @param userId - The user to get profile info for.
      * @param info - The kind of info to retrieve (e.g. 'displayname',
      * 'avatar_url').
      * @returns Promise which resolves: TODO
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getProfileManager().getProfileInfo()` instead.
+     *             This method will be removed in a future version.
+     *             The ProfileManager provides caching and a unified interface for profile operations.
      */
     public getProfileInfo(
         userId: string,
@@ -7613,6 +7831,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Gets all devices recorded for the logged-in user
      * @returns Promise which resolves: result object
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getDeviceManager().getDevices()` instead.
+     *             This method will be removed in a future version.
+     *             The DeviceManager provides caching, retry logic, and event emission.
      */
     public getDevices(): Promise<{ devices: IMyDevice[] }> {
         return this.http.authedRequest(Method.Get, "/devices");
@@ -7623,6 +7844,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param deviceId -  device to query
      * @returns Promise which resolves: result object
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getDeviceManager().getDevice(deviceId)` instead.
+     *             This method will be removed in a future version.
+     *             The DeviceManager provides caching and better error handling.
      */
     public getDevice(deviceId: string): Promise<IMyDevice> {
         const path = utils.encodeUri("/devices/$device_id", {
@@ -7638,6 +7862,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param body -       body of request
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getDeviceManager().updateDevice(deviceId, body)` or
+     *             `client.getDeviceManager().setDeviceDetails(deviceId, body)` instead.
+     *             This method will be removed in a future version.
+     *             The DeviceManager provides caching and event emission.
      */
     // eslint-disable-next-line camelcase
     public setDeviceDetails(deviceId: string, body: { display_name: string }): Promise<EmptyObject> {
@@ -7655,6 +7883,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param auth - Optional. Auth data to supply for User-Interactive auth.
      * @returns Promise which resolves: result object
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getDeviceManager().deleteDevice(deviceId, auth)` instead.
+     *             This method will be removed in a future version.
+     *             The DeviceManager provides current device protection and event emission.
      */
     public deleteDevice(deviceId: string, auth?: AuthDict): Promise<EmptyObject> {
         const path = utils.encodeUri("/devices/$device_id", {
@@ -7677,6 +7908,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param auth - Optional. Auth data to supply for User-Interactive auth.
      * @returns Promise which resolves: result object
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getDeviceManager().deleteDevices(devices)` instead.
+     *             This method will be removed in a future version.
+     *             The DeviceManager provides current device protection and event emission.
      */
     public deleteMultipleDevices(devices: string[], auth?: AuthDict): Promise<EmptyObject> {
         const body: Body = { devices };
@@ -7694,6 +7928,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @returns Promise which resolves: Array of objects representing pushers
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().getPushers()` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching, retry logic, and event emission.
      */
     public async getPushers(): Promise<{ pushers: IPusher[] }> {
         const response = await this.http.authedRequest<{ pushers: IPusher[] }>(Method.Get, "/pushers");
@@ -7718,6 +7955,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param pusher - Object representing a pusher
      * @returns Promise which resolves: Empty json object on success
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().setPusher(pusher)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public setPusher(pusher: IPusherRequest): Promise<EmptyObject> {
         const path = "/pushers/set";
@@ -7730,6 +7970,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param appId - app_id of pusher to remove
      * @returns Promise which resolves: Empty json object on success
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().removePusher(pushKey, appId)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public removePusher(pushKey: string, appId: string): Promise<EmptyObject> {
         const path = "/pushers/set";
@@ -7758,6 +8001,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get the push rules for the account from the server.
      * @returns Promise which resolves to the push rules.
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().getPushRules()` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public getPushRules(): Promise<IPushRules> {
         return this.http.authedRequest<IPushRules>(Method.Get, "/pushrules/").then((rules: IPushRules) => {
@@ -7769,6 +8015,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Update the push rules for the account. This should be called whenever
      * updated push rules are available.
+     * @deprecated Use `client.getPushManager().setPushRules(rules)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public setPushRules(rules: IPushRules): void {
         // Fix-up defaults, if applicable.
@@ -7780,6 +8029,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * @returns Promise which resolves: an empty object `{}`
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().addPushRule(scope, kind, ruleId, body)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public addPushRule(
         scope: string,
@@ -7798,6 +8050,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * @returns Promise which resolves: an empty object `{}`
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().deletePushRule(scope, kind, ruleId)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public deletePushRule(scope: string, kind: PushRuleKind, ruleId: Exclude<string, RuleId>): Promise<EmptyObject> {
         // NB. Scope not uri encoded because devices need the '/'
@@ -7812,6 +8067,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Enable or disable a push notification rule.
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().setPushRuleEnabled(scope, kind, ruleId, enabled)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public setPushRuleEnabled(
         scope: string,
@@ -7830,6 +8088,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Set the actions for a push notification rule.
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @deprecated Use `client.getPushManager().setPushRuleActions(scope, kind, ruleId, actions)` instead.
+     *             This method will be removed in a future version.
+     *             The PushManager provides caching and event emission.
      */
     public setPushRuleActions(
         scope: string,
@@ -7967,7 +8228,100 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         const data = Object.assign({}, keys);
         if (auth) Object.assign(data, { auth });
         return this.http.authedRequest(Method.Post, "/keys/device_signing/upload", undefined, data, {
-            prefix: ClientPrefix.Unstable,
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    public requestRoomKey(request: ICreateRoomKeyRequest): Promise<IRoomKeyRequestCreateResponse> {
+        return this.http.authedRequest(Method.Post, "/room_keys/request", undefined, request, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    public getRoomKeyRequests(query: IGetRoomKeyRequestsQuery = {}): Promise<IRoomKeyRequestsResponse> {
+        return this.http.authedRequest(Method.Get, "/room_keys/request", query, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    public deleteRoomKeyRequest(requestId: string): Promise<EmptyObject> {
+        const path = utils.encodeUri("/room_keys/request/$requestId", {
+            $requestId: requestId,
+        });
+        return this.http.authedRequest(Method.Delete, path, undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    }
+
+    public startDeviceSigningVerification(
+        request: IDeviceSigningVerificationStartRequest,
+        version: "v1" | "r0" = "v1",
+    ): Promise<IDeviceSigningVerificationStartResponse> {
+        return this.http.authedRequest(Method.Post, "/keys/device_signing/verify_start", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public acceptDeviceSigningVerification(
+        request: IDeviceSigningVerificationAcceptRequest,
+        version: "v1" | "r0" = "v1",
+    ): Promise<IDeviceSigningVerificationAcceptResponse> {
+        return this.http.authedRequest(Method.Put, "/keys/device_signing/verify_accept", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public sendDeviceSigningVerificationKeyAgreement(
+        request: IDeviceSigningVerificationKeyAgreementRequest,
+        version: "v1" | "r0" = "v1",
+    ): Promise<IDeviceSigningVerificationKeyAgreementResponse> {
+        return this.http.authedRequest(Method.Post, "/keys/device_signing/verify_key_agreement", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public confirmDeviceSigningVerificationMac(
+        request: IDeviceSigningVerificationMacRequest,
+        version: "v1" | "r0" = "v1",
+    ): Promise<IDeviceSigningVerificationMacResponse> {
+        return this.http.authedRequest(Method.Post, "/keys/device_signing/verify_mac", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public completeDeviceSigningVerification(
+        request: IDeviceSigningVerificationDoneRequest,
+        version: "v1" | "r0" = "v1",
+    ): Promise<IDeviceSigningVerificationDoneResponse> {
+        return this.http.authedRequest(Method.Post, "/keys/device_signing/verify_done", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public cancelDeviceSigningVerification(
+        request: IDeviceSigningVerificationCancelRequest,
+        version: "v1" | "r0" = "v1",
+    ): Promise<IDeviceSigningVerificationCancelResponse> {
+        return this.http.authedRequest(Method.Post, "/keys/device_signing/verify_cancel", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public getVerificationRequests(version: "v1" | "r0" = "v1"): Promise<IVerificationRequestsResponse> {
+        return this.http.authedRequest(Method.Get, "/keys/device_signing/requests", undefined, undefined, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public showQrCode(version: "v1" | "r0" = "v1"): Promise<IShowQrCodeResponse> {
+        return this.http.authedRequest(Method.Get, "/keys/qr_code/show", undefined, undefined, {
+            prefix: getLegacyClientPrefix(version),
+        });
+    }
+
+    public scanQrCode(request: IScanQrCodeRequest, version: "v1" | "r0" = "v1"): Promise<IScanQrCodeResponse> {
+        return this.http.authedRequest(Method.Post, "/keys/qr_code/scan", undefined, request, {
+            prefix: getLegacyClientPrefix(version),
         });
     }
 
@@ -8730,6 +9084,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Proposed at https://github.com/matrix-org/matrix-doc/pull/3266
      * @param roomIdOrAlias - The ID or alias of the room to get the summary of.
      * @param via - The list of servers which know about the room if only an ID was provided.
+     * @deprecated Use `client.getRoomSummaryManager().getRoomSummary(roomIdOrAlias, via)` instead.
+     *             This method will be removed in a future version.
+     *             The RoomSummaryManager provides caching and event emission.
      */
     public async getRoomSummary(roomIdOrAlias: string, via?: string[]): Promise<RoomSummary> {
         const paramOpts = {
@@ -8747,6 +9104,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         }
     }
 
+    /**
+     * Get room summary members
+     * @param roomId - The room ID
+     * @returns Array of room summary members (RoomSummaryMember[])
+     * @deprecated Use `client.getRoomSummaryManager().getRoomSummaryMembers(roomId)` instead.
+     *             This method will be removed in a future version.
+     *             The RoomSummaryManager provides caching and event emission.
+     */
     public async getRoomSummaryMembers(roomId: string): Promise<any[]> {
         const path = utils.encodeUri("/rooms/$roomid/summary/members", { $roomid: roomId });
         return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
@@ -8754,6 +9119,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         });
     }
 
+    /**
+     * Get room summary stats
+     * @param roomId - The room ID
+     * @returns Room summary statistics
+     * @deprecated Use `client.getRoomSummaryManager().getRoomSummaryStats(roomId)` instead.
+     *             This method will be removed in a future version.
+     *             The RoomSummaryManager provides caching and event emission.
+     */
     public async getRoomSummaryStats(roomId: string): Promise<any> {
         const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
         return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
@@ -8774,12 +9147,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Create a secure key backup (synapse-rust specific).
      */
-    public async createSecureBackup(passphraseHash: string): Promise<{ backup_id: string }> {
+    public async createSecureBackup(passphrase: string): Promise<ISecureBackupInfo> {
         return await this.http.authedRequest(
             Method.Post,
             "/keys/backup/secure",
             undefined,
-            { passphrase_hash: passphraseHash },
+            { passphrase },
             { prefix: ClientPrefix.V3 },
         );
     }
@@ -8787,7 +9160,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get secure key backup info (synapse-rust specific).
      */
-    public async getSecureBackup(backupId: string): Promise<any> {
+    public async getSecureBackup(backupId: string): Promise<ISecureBackupInfo> {
         const path = utils.encodeUri("/keys/backup/secure/$backupId", { $backupId: backupId });
         return await this.http.authedRequest(Method.Get, path, undefined, undefined, {
             prefix: ClientPrefix.V3,
@@ -8797,13 +9170,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Verify secure key backup passphrase (synapse-rust specific).
      */
-    public async verifySecureBackupPassphrase(backupId: string, passphraseHash: string): Promise<{ valid: boolean }> {
+    public async verifySecureBackupPassphrase(
+        backupId: string,
+        passphrase: string,
+    ): Promise<ISecureBackupVerifyResponse> {
         const path = utils.encodeUri("/keys/backup/secure/$backupId/verify", { $backupId: backupId });
         return await this.http.authedRequest(
             Method.Post,
             path,
             undefined,
-            { passphrase_hash: passphraseHash },
+            { passphrase },
             { prefix: ClientPrefix.V3 },
         );
     }
@@ -8811,23 +9187,46 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Store keys in secure backup (synapse-rust specific).
      */
-    public async storeSecureBackupKeys(backupId: string, keys: any): Promise<void> {
+    public async storeSecureBackupKeys(
+        backupId: string,
+        passphrase: string,
+        sessionKeys: ISecureBackupSessionKey[],
+    ): Promise<ISecureBackupStoreKeysResponse> {
         const path = utils.encodeUri("/keys/backup/secure/$backupId/keys", { $backupId: backupId });
-        await this.http.authedRequest(Method.Post, path, undefined, { keys }, { prefix: ClientPrefix.V3 });
+        return await this.http.authedRequest(
+            Method.Post,
+            path,
+            undefined,
+            { passphrase, session_keys: sessionKeys },
+            { prefix: ClientPrefix.V3 },
+        );
     }
 
     /**
      * Restore keys from secure backup (synapse-rust specific).
      */
-    public async restoreSecureBackup(backupId: string, passphraseHash: string): Promise<{ keys: any }> {
+    public async restoreSecureBackup(
+        backupId: string,
+        passphrase: string,
+    ): Promise<ISecureBackupRestoreResponse> {
         const path = utils.encodeUri("/keys/backup/secure/$backupId/restore", { $backupId: backupId });
         return await this.http.authedRequest(
             Method.Post,
             path,
             undefined,
-            { passphrase_hash: passphraseHash },
+            { passphrase },
             { prefix: ClientPrefix.V3 },
         );
+    }
+
+    /**
+     * Delete a secure key backup (synapse-rust specific).
+     */
+    public async deleteSecureBackup(backupId: string): Promise<EmptyObject> {
+        const path = utils.encodeUri("/keys/backup/secure/$backupId", { $backupId: backupId });
+        return await this.http.authedRequest(Method.Delete, path, undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
     }
 
     /**

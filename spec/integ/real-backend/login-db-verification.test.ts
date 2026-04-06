@@ -31,7 +31,8 @@ describe("Login Tests", () => {
   describe("Login Success", () => {
     test("should login successfully with valid credentials", async () => {
       const client = createClient({
-        baseUrl: TestConfig.baseUrl
+        baseUrl: TestConfig.baseUrl,
+        allowInsecureHttp: true,
       });
 
       const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
@@ -53,7 +54,8 @@ describe("Login Tests", () => {
 
       if (!loggedInClient) {
         const client = createClient({
-          baseUrl: TestConfig.baseUrl
+          baseUrl: TestConfig.baseUrl,
+          allowInsecureHttp: true,
         });
         const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
         loginResult = await client.login("m.login.password", {
@@ -96,7 +98,8 @@ describe("Login Tests", () => {
   describe("Logout", () => {
     test("should logout successfully", async () => {
       const client = createClient({
-        baseUrl: TestConfig.baseUrl
+        baseUrl: TestConfig.baseUrl,
+        allowInsecureHttp: true,
       });
 
       const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
@@ -116,7 +119,8 @@ describe("Login Tests", () => {
   describe("Login Failures", () => {
     test("should fail with wrong password", async () => {
       const client = createClient({
-        baseUrl: TestConfig.baseUrl
+        baseUrl: TestConfig.baseUrl,
+        allowInsecureHttp: true,
       });
 
       const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
@@ -131,7 +135,8 @@ describe("Login Tests", () => {
 
     test("should fail with non-existent user", async () => {
       const client = createClient({
-        baseUrl: TestConfig.baseUrl
+        baseUrl: TestConfig.baseUrl,
+        allowInsecureHttp: true,
       });
 
       await expect(

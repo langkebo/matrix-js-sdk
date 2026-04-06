@@ -21,14 +21,14 @@ limitations under the License.
  * 对接后端: synapse-rust/src/web/routes/friend_room.rs
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixError } from "../http-api/errors.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
-import { MatrixClient } from "../client.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError, SdkError } from "../errors";
+import { MatrixClient } from "../client";
+import { SdkError, NotFoundError } from "../errors";
+import { BaseManager } from "../managers/base-manager.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export enum FriendEvent {
     Invited = "Invited",
@@ -154,32 +154,17 @@ function normalizeFriendRequest(request: FriendRequest): FriendRequest {
     };
 }
 
-export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerEventMap> {
-    private client: MatrixClient;
+export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMap> {
     private friendListRoomId: string | null = null;
-    private friends: Map<string, Friend> = new Map();
+    private friends: LRUCache<Friend>;
     private incomingRequests: Map<string, FriendRequest> = new Map();
     private outgoingRequests: Map<string, FriendRequest> = new Map();
     private groups: FriendGroups = {};
     private initialized: boolean = false;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
-    }
-
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`FriendManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`FriendManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
-            }
-            return new ApiError(`FriendManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode, error.httpStatus, error);
-        }
-        return new ApiError(`FriendManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        super(client);
+        this.friends = new LRUCache<Friend>(500, 5 * 60 * 1000);
     }
 
     private async ensureFriendListRoom(): Promise<string> {
@@ -190,10 +175,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendListResponse>(
                 Method.Get,
-                "/friend_room",
+                "/friends",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.V1 },
             );
             
             if (response.room_id) {
@@ -201,15 +186,15 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
                 return response.room_id;
             }
         } catch (e) {
-            logger.debug("Friend list room doesn't exist, creating new one");
+            logger.debug("Friend list doesn't exist");
         }
 
         const createResponse = await this.client.http.authedRequest<IFriendListResponse>(
             Method.Post,
-            "/friend_room/create",
+            "/friends",
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
         
         this.friendListRoomId = createResponse.room_id ?? null;
@@ -221,14 +206,12 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
             throw new InvalidParamError("Invalid user ID");
         }
 
-        await this.ensureFriendListRoom();
-
         await this.client.http.authedRequest(
             Method.Post,
-            "/friend_room/request",
+            "/friends/request",
             undefined,
-            { user_id: userId, reason },
-            { prefix: ClientPrefix.V3 },
+            { user_id: userId, message: reason },
+            { prefix: ClientPrefix.V1 },
         );
 
         const request: FriendRequest = {
@@ -249,10 +232,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/friend_room/accept",
+            `/friends/request/${encodeURIComponent(userId)}/accept`,
             undefined,
-            { user_id: userId },
-            { prefix: ClientPrefix.V3 },
+            undefined,
+            { prefix: ClientPrefix.V1 },
         );
 
         const request = this.incomingRequests.get(userId);
@@ -278,10 +261,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/friend_room/reject",
+            `/friends/request/${encodeURIComponent(userId)}/reject`,
             undefined,
-            { user_id: userId },
-            { prefix: ClientPrefix.V3 },
+            undefined,
+            { prefix: ClientPrefix.V1 },
         );
 
         this.incomingRequests.delete(userId);
@@ -295,10 +278,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Post,
-            "/friend_room/cancel",
+            `/friends/request/${encodeURIComponent(userId)}/cancel`,
             undefined,
-            { user_id: userId },
-            { prefix: ClientPrefix.V3 },
+            undefined,
+            { prefix: ClientPrefix.V1 },
         );
 
         this.outgoingRequests.delete(userId);
@@ -312,10 +295,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
         await this.client.http.authedRequest(
             Method.Delete,
-            `/friend_room/friends/${encodeURIComponent(userId)}`,
+            `/friends/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
 
         this.friends.delete(userId);
@@ -327,10 +310,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendsResponse>(
                 Method.Get,
-                "/friend_room/friends",
+                "/friends",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.V1 },
             );
 
             const friends = (response.friends || []).map(normalizeFriend);
@@ -347,10 +330,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendRequestsResponse>(
                 Method.Get,
-                "/friend_room/requests/incoming",
+                "/friends/requests/incoming",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.V1 },
             );
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
@@ -367,10 +350,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendRequestsResponse>(
                 Method.Get,
-                "/friend_room/requests/outgoing",
+                "/friends/requests/outgoing",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.V1 },
             );
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
@@ -387,10 +370,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendSuggestionsResponse>(
                 Method.Get,
-                "/friend_room/suggestions",
+                "/friends/suggestions",
                 { limit },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.V1 },
             );
 
             return (response.suggestions || []).map(normalizeFriend);
@@ -412,10 +395,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
         try {
             const response = await this.client.http.authedRequest<IFriendGroupsResponse>(
                 Method.Get,
-                "/friend_room/groups",
+                "/friends/groups",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.V1 },
             );
 
             this.groups = response.groups || {};
@@ -428,10 +411,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async createFriendGroup(name: string): Promise<string> {
         const response = await this.client.http.authedRequest<ICreateGroupResponse>(
             Method.Post,
-            "/friend_room/groups",
+            "/friends/groups",
             undefined,
             { name },
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
 
         const groupId = response.group_id;
@@ -442,11 +425,11 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
 
     async addToFriendGroup(groupId: string, userId: string): Promise<void> {
         await this.client.http.authedRequest(
-            Method.Put,
-            `/friend_room/groups/${groupId}/users/${encodeURIComponent(userId)}`,
+            Method.Post,
+            `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
 
         if (this.groups[groupId]) {
@@ -459,10 +442,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async removeFromFriendGroup(groupId: string, userId: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Delete,
-            `/friend_room/groups/${groupId}/users/${encodeURIComponent(userId)}`,
+            `/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
 
         if (this.groups[groupId]) {
@@ -473,10 +456,10 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async deleteFriendGroup(groupId: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Delete,
-            `/friend_room/groups/${groupId}`,
+            `/friends/groups/${groupId}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
 
         delete this.groups[groupId];
@@ -485,11 +468,139 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     async setFriendDisplayName(userId: string, displayName: string): Promise<void> {
         await this.client.http.authedRequest(
             Method.Put,
-            `/friend_room/friends/${encodeURIComponent(userId)}/displayname`,
+            `/friends/${encodeURIComponent(userId)}/displayname`,
             undefined,
             { displayname: displayName },
-            { prefix: ClientPrefix.V3 },
+            { prefix: ClientPrefix.V1 },
         );
+    }
+
+    async checkFriendship(userId: string): Promise<boolean> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<{ is_friend: boolean }>(
+                Method.Get,
+                `/friends/check/${encodeURIComponent(userId)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+            return response.is_friend;
+        } catch (e) {
+            throw this.normalizeError(e, 'checkFriendship');
+        }
+    }
+
+    async updateFriendNote(userId: string, note: string): Promise<void> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        await this.client.http.authedRequest(
+            Method.Put,
+            `/friends/${encodeURIComponent(userId)}/note`,
+            undefined,
+            { note },
+            { prefix: ClientPrefix.V1 },
+        );
+
+        const friend = this.friends.get(userId);
+        if (friend) {
+            friend.note = note;
+            this.friends.set(userId, friend);
+            this.emit(FriendEvent.FriendUpdated, friend);
+        }
+    }
+
+    async getFriendStatus(userId: string): Promise<string> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        const response = await this.client.http.authedRequest<{ status: string }>(
+            Method.Get,
+            `/friends/${encodeURIComponent(userId)}/status`,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V1 },
+        );
+
+        return response.status;
+    }
+
+    async updateFriendStatus(userId: string, status: string): Promise<void> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        const validStatuses = ["favorite", "normal", "blocked", "hidden"];
+        if (!validStatuses.includes(status)) {
+            throw new InvalidParamError(`Invalid status. Valid values: ${validStatuses.join(", ")}`);
+        }
+
+        await this.client.http.authedRequest(
+            Method.Put,
+            `/friends/${encodeURIComponent(userId)}/status`,
+            undefined,
+            { status },
+            { prefix: ClientPrefix.V1 },
+        );
+
+        const friend = this.friends.get(userId);
+        if (friend) {
+            friend.status = status as FriendStatus;
+            this.friends.set(userId, friend);
+            this.emit(FriendEvent.FriendUpdated, friend);
+        }
+    }
+
+    async renameFriendGroup(groupId: string, name: string): Promise<void> {
+        if (!name || name.length > 50) {
+            throw new InvalidParamError("Group name must be between 1 and 50 characters");
+        }
+
+        await this.client.http.authedRequest(
+            Method.Put,
+            `/friends/groups/${groupId}/name`,
+            undefined,
+            { name },
+            { prefix: ClientPrefix.V1 },
+        );
+
+        if (this.groups[groupId]) {
+            this.groups[groupId].name = name;
+        }
+    }
+
+    async getFriendsInGroup(groupId: string): Promise<Friend[]> {
+        const response = await this.client.http.authedRequest<{ friends: Friend[] }>(
+            Method.Get,
+            `/friends/groups/${groupId}/friends`,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V1 },
+        );
+
+        return (response.friends || []).map(normalizeFriend);
+    }
+
+    async getGroupsForUser(userId: string): Promise<string[]> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        const response = await this.client.http.authedRequest<{ groups: string[] }>(
+            Method.Get,
+            `/friends/${encodeURIComponent(userId)}/groups`,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V1 },
+        );
+
+        return response.groups || [];
     }
 
     getFriendListRoomId(): string | null {
@@ -497,7 +608,7 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     }
 
     getCachedFriends(): Friend[] {
-        return Array.from(this.friends.values());
+        return this.friends.values();
     }
 
     getCachedIncomingRequests(): FriendRequest[] {
@@ -521,12 +632,38 @@ export class FriendManager extends TypedEventEmitter<FriendEvent, FriendManagerE
     }
 
     async getFriendInfo(userId: string): Promise<Friend | null> {
-        const friends = await this.getFriends();
-        return friends.find(f => f.user_id === userId) || null;
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<Friend>(
+                Method.Get,
+                `/friends/${encodeURIComponent(userId)}/info`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+            return normalizeFriend(response);
+        } catch (e) {
+            const error = this.normalizeError(e, 'getFriendInfo');
+            if (error instanceof NotFoundError) {
+                return null;
+            }
+            throw error;
+        }
     }
 
     getFriendCount(): number {
-        return this.friends.size;
+        return this.friends.size();
+    }
+
+    getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
+        return this.friends.getStats();
+    }
+
+    clearCache(): void {
+        this.friends.clear();
     }
 
     async sync(): Promise<void> {

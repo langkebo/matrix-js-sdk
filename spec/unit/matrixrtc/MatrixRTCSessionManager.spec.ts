@@ -39,7 +39,7 @@ describe.each([{ eventKind: "sticky" }, { eventKind: "memberState" }])(
         }
 
         beforeEach(() => {
-            client = new MatrixClient({ baseUrl: "base_url" });
+            client = new MatrixClient({ baseUrl: "https://example.org" });
             client.matrixRTC.start();
         });
 

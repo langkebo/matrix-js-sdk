@@ -895,6 +895,45 @@ echo "=== 检查完成 ==="
 
 ## 六、测试执行流程
 
+### 6.0 Key Verification Real-Backend 快速回归
+
+本轮已补一条面向真实后端的 `KeyVerificationManager` 联调用例，直接覆盖以下 HTTP 闭环：
+
+- `POST /_matrix/client/v1/keys/device_signing/verify_start`
+- `GET /_matrix/client/v1/keys/device_signing/requests`
+- `POST /_matrix/client/v1/keys/device_signing/verify_cancel`
+- 取消后再次查询 `requests`，确认待处理请求已移除
+
+相关文件：
+
+- `spec/integ/real-backend/key-verification-manager.spec.ts`
+- `vitest.real-backend.config.ts`
+
+前置条件：
+
+- `synapse-rust` docker compose 已启动，且 `localhost:28008` 可访问
+- 如后端代码有更新，先重建并重启容器
+
+运行命令：
+
+```bash
+cd /Users/ljf/Desktop/hu/matrix-js-sdk
+pnpm test:real-backend
+```
+
+若需要单独运行 verification 用例：
+
+```bash
+pnpm test:real-backend:verification
+```
+
+若需要从后端侧一条命令完成“重建容器 + 等待服务 + 跑 SDK 联调”：
+
+```bash
+cd /Users/ljf/Desktop/hu/synapse-rust
+./scripts/test/run_sdk_verification_real_backend.sh
+```
+
 ### 6.1 完整测试流程
 
 ```bash

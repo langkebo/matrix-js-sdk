@@ -1,0 +1,672 @@
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { MatrixClient } from "../../src/client";
+import { FriendManager, FriendEvent, Friend, FriendRequest } from "../../src/friend/index.ts";
+import { InvalidParamError } from "../../src/common/errors.ts";
+import { Method } from "../../src/http-api/method.ts";
+import { ClientPrefix } from "../../src/http-api/prefix.ts";
+import { NotFoundError } from "../../src/errors";
+
+describe("FriendManager", () => {
+    let client: MatrixClient;
+    let friendManager: FriendManager;
+    let mockAuthedRequest: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        mockAuthedRequest = vi.fn();
+        client = {
+            http: {
+                authedRequest: mockAuthedRequest,
+            },
+            getUserId: () => "@alice:example.com",
+        } as any;
+
+        friendManager = new FriendManager(client);
+    });
+
+    describe("sendFriendRequest", () => {
+        it("should send a friend request successfully", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            const eventSpy = vi.fn();
+            friendManager.on(FriendEvent.Invited, eventSpy);
+
+            await friendManager.sendFriendRequest("@bob:example.com", "Hello!");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request",
+                undefined,
+                { user_id: "@bob:example.com", message: "Hello!" },
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(eventSpy).toHaveBeenCalledWith("@bob:example.com", expect.objectContaining({
+                user_id: "@bob:example.com",
+                reason: "Hello!",
+                status: "pending",
+            }));
+        });
+
+        it("should throw InvalidParamError for empty user ID", async () => {
+            await expect(friendManager.sendFriendRequest("")).rejects.toThrow(InvalidParamError);
+        });
+
+        it("should throw InvalidParamError when sending request to self", async () => {
+            await expect(friendManager.sendFriendRequest("@alice:example.com")).rejects.toThrow(InvalidParamError);
+        });
+
+        it("should send request without reason", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.sendFriendRequest("@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request",
+                undefined,
+                { user_id: "@bob:example.com", message: undefined },
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+    });
+
+    describe("acceptFriendRequest", () => {
+        it("should accept a friend request successfully", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            const acceptedSpy = vi.fn();
+            const listUpdatedSpy = vi.fn();
+            friendManager.on(FriendEvent.Accepted, acceptedSpy);
+            friendManager.on(FriendEvent.ListUpdated, listUpdatedSpy);
+
+            await friendManager.acceptFriendRequest("@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request/%40bob%3Aexample.com/accept",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(acceptedSpy).toHaveBeenCalledWith("@bob:example.com");
+            expect(listUpdatedSpy).toHaveBeenCalled();
+        });
+
+        it("should throw InvalidParamError for empty user ID", async () => {
+            await expect(friendManager.acceptFriendRequest("")).rejects.toThrow(InvalidParamError);
+        });
+    });
+
+    describe("rejectFriendRequest", () => {
+        it("should reject a friend request successfully", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            const rejectedSpy = vi.fn();
+            friendManager.on(FriendEvent.Rejected, rejectedSpy);
+
+            await friendManager.rejectFriendRequest("@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request/%40bob%3Aexample.com/reject",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(rejectedSpy).toHaveBeenCalledWith("@bob:example.com");
+        });
+
+        it("should throw InvalidParamError for empty user ID", async () => {
+            await expect(friendManager.rejectFriendRequest("")).rejects.toThrow(InvalidParamError);
+        });
+    });
+
+    describe("cancelFriendRequest", () => {
+        it("should cancel a friend request successfully", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            const cancelledSpy = vi.fn();
+            friendManager.on(FriendEvent.Cancelled, cancelledSpy);
+
+            await friendManager.cancelFriendRequest("@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request/%40bob%3Aexample.com/cancel",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(cancelledSpy).toHaveBeenCalledWith("@bob:example.com");
+        });
+
+        it("should throw InvalidParamError for empty user ID", async () => {
+            await expect(friendManager.cancelFriendRequest("")).rejects.toThrow(InvalidParamError);
+        });
+    });
+
+    describe("removeFriend", () => {
+        it("should remove a friend successfully", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            const removedSpy = vi.fn();
+            const listUpdatedSpy = vi.fn();
+            friendManager.on(FriendEvent.Removed, removedSpy);
+            friendManager.on(FriendEvent.ListUpdated, listUpdatedSpy);
+
+            await friendManager.removeFriend("@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/friends/%40bob%3Aexample.com",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(removedSpy).toHaveBeenCalledWith("@bob:example.com");
+            expect(listUpdatedSpy).toHaveBeenCalled();
+        });
+
+        it("should throw InvalidParamError for empty user ID", async () => {
+            await expect(friendManager.removeFriend("")).rejects.toThrow(InvalidParamError);
+        });
+    });
+
+    describe("getFriends", () => {
+        it("should fetch and cache friends list", async () => {
+            const mockFriends: Friend[] = [
+                { user_id: "@bob:example.com", status: "normal", since: 123456 },
+                { user_id: "@charlie:example.com", status: "favorite", since: 123457 },
+            ];
+
+            mockAuthedRequest.mockResolvedValue({ friends: mockFriends });
+
+            const friends = await friendManager.getFriends();
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(friends).toEqual(mockFriends);
+            expect(friendManager.getCachedFriends()).toHaveLength(2);
+        });
+
+        it("should normalize friend status", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [{ user_id: "@bob:example.com", status: "invalid_status" }],
+            });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends[0].status).toBe("normal");
+        });
+
+        it("should handle empty friends list", async () => {
+            mockAuthedRequest.mockResolvedValue({ friends: [] });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends).toEqual([]);
+        });
+    });
+
+    describe("getIncomingRequests", () => {
+        it("should fetch incoming friend requests", async () => {
+            const mockRequests: FriendRequest[] = [
+                { user_id: "@bob:example.com", status: "pending", timestamp: 123456 },
+            ];
+
+            mockAuthedRequest.mockResolvedValue({ requests: mockRequests });
+
+            const requests = await friendManager.getIncomingRequests();
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/requests/incoming",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(requests).toEqual(mockRequests);
+        });
+    });
+
+    describe("getOutgoingRequests", () => {
+        it("should fetch outgoing friend requests", async () => {
+            const mockRequests: FriendRequest[] = [
+                { user_id: "@charlie:example.com", status: "pending", timestamp: 123456 },
+            ];
+
+            mockAuthedRequest.mockResolvedValue({ requests: mockRequests });
+
+            const requests = await friendManager.getOutgoingRequests();
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/requests/outgoing",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(requests).toEqual(mockRequests);
+        });
+    });
+
+    describe("updateFriendStatus", () => {
+        it("should update friend status successfully", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            // First add friend to cache
+            mockAuthedRequest.mockResolvedValueOnce({
+                friends: [{ user_id: "@bob:example.com", status: "normal" }],
+            });
+            await friendManager.getFriends();
+
+            mockAuthedRequest.mockResolvedValue({});
+            const updatedSpy = vi.fn();
+            friendManager.on(FriendEvent.FriendUpdated, updatedSpy);
+
+            await friendManager.updateFriendStatus("@bob:example.com", "favorite");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/friends/%40bob%3Aexample.com/status",
+                undefined,
+                { status: "favorite" },
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(updatedSpy).toHaveBeenCalledWith(expect.objectContaining({
+                user_id: "@bob:example.com",
+                status: "favorite",
+            }));
+        });
+
+        it("should throw InvalidParamError for invalid status", async () => {
+            await expect(
+                friendManager.updateFriendStatus("@bob:example.com", "invalid"),
+            ).rejects.toThrow(InvalidParamError);
+        });
+
+        it("should throw InvalidParamError for empty user ID", async () => {
+            await expect(friendManager.updateFriendStatus("", "favorite")).rejects.toThrow(InvalidParamError);
+        });
+    });
+
+    describe("isFriend", () => {
+        it("should return true for cached friend", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [{ user_id: "@bob:example.com", status: "normal" }],
+            });
+
+            await friendManager.getFriends();
+
+            const result = await friendManager.isFriend("@bob:example.com");
+
+            expect(result).toBe(true);
+        });
+
+        it("should fetch friends if not in cache", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [{ user_id: "@bob:example.com", status: "normal" }],
+            });
+
+            const result = await friendManager.isFriend("@bob:example.com");
+
+            expect(result).toBe(true);
+            expect(mockAuthedRequest).toHaveBeenCalled();
+        });
+
+        it("should return false for non-friend", async () => {
+            mockAuthedRequest.mockResolvedValue({ friends: [] });
+
+            const result = await friendManager.isFriend("@bob:example.com");
+
+            expect(result).toBe(false);
+        });
+    });
+
+    describe("Friend Groups", () => {
+        it("should create a friend group", async () => {
+            mockAuthedRequest.mockResolvedValue({ group_id: "group123" });
+
+            const groupId = await friendManager.createFriendGroup("Best Friends");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/groups",
+                undefined,
+                { name: "Best Friends" },
+                { prefix: ClientPrefix.V1 },
+            );
+
+            expect(groupId).toBe("group123");
+        });
+
+        it("should add user to friend group", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.addToFriendGroup("group123", "@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/groups/group123/add/%40bob%3Aexample.com",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should remove user from friend group", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.removeFromFriendGroup("group123", "@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/friends/groups/group123/remove/%40bob%3Aexample.com",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should delete friend group", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.deleteFriendGroup("group123");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/friends/groups/group123",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should rename friend group", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.renameFriendGroup("group123", "New Name");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/friends/groups/group123/name",
+                undefined,
+                { name: "New Name" },
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should throw InvalidParamError for invalid group name", async () => {
+            await expect(friendManager.renameFriendGroup("group123", "")).rejects.toThrow(InvalidParamError);
+            await expect(friendManager.renameFriendGroup("group123", "a".repeat(51))).rejects.toThrow(
+                InvalidParamError,
+            );
+        });
+
+        it("should get friends in group", async () => {
+            const mockFriends: Friend[] = [{ user_id: "@bob:example.com", status: "normal" }];
+            mockAuthedRequest.mockResolvedValue({ friends: mockFriends });
+
+            const friends = await friendManager.getFriendsInGroup("group123");
+
+            expect(friends).toEqual(mockFriends);
+        });
+
+        it("should get groups for user", async () => {
+            mockAuthedRequest.mockResolvedValue({ groups: ["group1", "group2"] });
+
+            const groups = await friendManager.getGroupsForUser("@bob:example.com");
+
+            expect(groups).toEqual(["group1", "group2"]);
+        });
+    });
+
+    describe("Cache Management", () => {
+        it("should return cache statistics", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [{ user_id: "@bob:example.com", status: "normal" }],
+            });
+
+            await friendManager.getFriends();
+            await friendManager.isFriend("@bob:example.com");
+
+            const stats = friendManager.getCacheStats();
+
+            expect(stats).toHaveProperty("size");
+            expect(stats).toHaveProperty("hits");
+            expect(stats).toHaveProperty("misses");
+            expect(stats).toHaveProperty("hitRate");
+        });
+
+        it("should clear cache", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [{ user_id: "@bob:example.com", status: "normal" }],
+            });
+
+            await friendManager.getFriends();
+            expect(friendManager.getCachedFriends()).toHaveLength(1);
+
+            friendManager.clearCache();
+            expect(friendManager.getCachedFriends()).toHaveLength(0);
+        });
+
+        it("should return friend count", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [
+                    { user_id: "@bob:example.com", status: "normal" },
+                    { user_id: "@charlie:example.com", status: "normal" },
+                ],
+            });
+
+            await friendManager.getFriends();
+
+            expect(friendManager.getFriendCount()).toBe(2);
+        });
+    });
+
+    describe("Additional Methods", () => {
+        it("should check friendship status", async () => {
+            mockAuthedRequest.mockResolvedValue({ is_friend: true });
+
+            const result = await friendManager.checkFriendship("@bob:example.com");
+
+            expect(result).toBe(true);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/check/%40bob%3Aexample.com",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should update friend note", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.updateFriendNote("@bob:example.com", "My best friend");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/friends/%40bob%3Aexample.com/note",
+                undefined,
+                { note: "My best friend" },
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should get friend suggestions", async () => {
+            const mockSuggestions: Friend[] = [{ user_id: "@dave:example.com", status: "normal" }];
+            mockAuthedRequest.mockResolvedValue({ suggestions: mockSuggestions });
+
+            const suggestions = await friendManager.getFriendSuggestions(5);
+
+            expect(suggestions).toEqual(mockSuggestions);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/suggestions",
+                { limit: 5 },
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should set friend display name", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.setFriendDisplayName("@bob:example.com", "Bobby");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/friends/%40bob%3Aexample.com/displayname",
+                undefined,
+                { displayname: "Bobby" },
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should get friend info", async () => {
+            const mockFriend: Friend = { user_id: "@bob:example.com", status: "normal" };
+            mockAuthedRequest.mockResolvedValue(mockFriend);
+
+            const friend = await friendManager.getFriendInfo("@bob:example.com");
+
+            expect(friend).toEqual(mockFriend);
+        });
+
+        it("should return null for non-existent friend info", async () => {
+            const notFoundError = new NotFoundError("Not found");
+            mockAuthedRequest.mockRejectedValue(notFoundError);
+
+            const friend = await friendManager.getFriendInfo("@bob:example.com");
+
+            expect(friend).toBeNull();
+        });
+    });
+
+    describe("Lifecycle Methods", () => {
+        it("should sync all friend data", async () => {
+            mockAuthedRequest
+                .mockResolvedValueOnce({ friends: [] })
+                .mockResolvedValueOnce({ requests: [] })
+                .mockResolvedValueOnce({ requests: [] });
+
+            const syncSpy = vi.fn();
+            friendManager.on(FriendEvent.SyncComplete, syncSpy);
+
+            await friendManager.sync();
+
+            expect(syncSpy).toHaveBeenCalled();
+        });
+
+        it("should start and initialize manager", async () => {
+            mockAuthedRequest
+                .mockResolvedValueOnce({ friends: [] })
+                .mockResolvedValueOnce({ requests: [] })
+                .mockResolvedValueOnce({ requests: [] })
+                .mockResolvedValueOnce({ groups: {} });
+
+            await friendManager.start();
+
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(4);
+        });
+
+        it("should not reinitialize if already started", async () => {
+            mockAuthedRequest
+                .mockResolvedValueOnce({ friends: [] })
+                .mockResolvedValueOnce({ requests: [] })
+                .mockResolvedValueOnce({ requests: [] })
+                .mockResolvedValueOnce({ groups: {} });
+
+            await friendManager.start();
+            await friendManager.start();
+
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(4);
+        });
+
+        it("should stop and clear all data", async () => {
+            mockAuthedRequest.mockResolvedValue({ friends: [{ user_id: "@bob:example.com", status: "normal" }] });
+
+            await friendManager.getFriends();
+            expect(friendManager.getCachedFriends()).toHaveLength(1);
+
+            friendManager.stop();
+
+            expect(friendManager.getCachedFriends()).toHaveLength(0);
+            expect(friendManager.getCachedIncomingRequests()).toHaveLength(0);
+            expect(friendManager.getCachedOutgoingRequests()).toHaveLength(0);
+        });
+    });
+
+    describe("Alias Methods", () => {
+        it("should use getFriendsList as alias for getFriends", async () => {
+            mockAuthedRequest.mockResolvedValue({ friends: [] });
+
+            await friendManager.getFriendsList();
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should use addFriend as alias for sendFriendRequest", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.addFriend("@bob:example.com", "Hello");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request",
+                undefined,
+                { user_id: "@bob:example.com", message: "Hello" },
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should use declineFriendRequest as alias for rejectFriendRequest", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await friendManager.declineFriendRequest("@bob:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/friends/request/%40bob%3Aexample.com/reject",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+    });
+});

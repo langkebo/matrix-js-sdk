@@ -93,7 +93,7 @@ describe("MatrixError", () => {
     it("should reject too-large Retry-After header", () => {
         headers.set("Retry-After", "1" + Array(500).fill("0").join(""));
         const err = makeMatrixError(429, { errcode: "M_LIMIT_EXCEEDED" });
-        expect(() => err.getRetryAfterMs()).toThrow("integer value is too large");
+        expect(() => err.getRetryAfterMs()).toThrow("Retry-After header value is too large");
     });
 
     describe("can be converted to data compatible with the widget api", () => {

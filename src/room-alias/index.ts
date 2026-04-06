@@ -80,7 +80,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/directory/room/${encodeURIComponent(alias)}`,
+                `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -108,7 +108,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         try {
             await this.client.http.authedRequest(
                 Method.Put,
-                `/_matrix/client/v3/directory/room/${encodeURIComponent(alias)}`,
+                `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
                 { room_id: roomId },
                 { prefix: ClientPrefix.V3 }
@@ -144,7 +144,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/_matrix/client/v3/directory/room/${encodeURIComponent(alias)}`,
+                `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -178,7 +178,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/aliases`,
+                `/rooms/${encodeURIComponent(roomId)}/aliases`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }

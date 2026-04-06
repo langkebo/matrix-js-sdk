@@ -67,10 +67,10 @@ describe("FederationManager", () => {
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                "/_synapse/admin/v1/federation/blacklist/add",
+                "/federation/blacklist/add",
                 undefined,
                 { server_name: "evil.example.com", reason: "spam" },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_synapse/admin/v1" }
             );
         });
 
@@ -115,10 +115,10 @@ describe("FederationManager", () => {
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                "/_synapse/admin/v1/federation/blacklist/remove",
+                "/federation/blacklist/remove",
                 undefined,
                 { server_name: "evil.example.com" },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_synapse/admin/v1" }
             );
         });
 
@@ -234,10 +234,10 @@ describe("FederationManager", () => {
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                expect.stringContaining("disconnect"),
+                "/federation/disconnect/example.org",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_synapse/admin/v1" }
             );
         });
 
@@ -270,10 +270,10 @@ describe("FederationManager", () => {
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                expect.stringContaining("reconnect"),
+                "/federation/reconnect/example.org",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_synapse/admin/v1" }
             );
         });
 

@@ -84,10 +84,44 @@ export * from "./models/profile-keys";
 export * from "./models/related-relations";
 export type { RoomSummary } from "./client";
 export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
+export { AccountManager } from "./account";
+export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
 export { DirectMessageManager } from "./dm";
+export { DiscoveryManager, type UserDirectorySearchResponse, type UserDirectoryListResponse, type PublicRoomsResponse } from "./discovery";
 export { PushManager } from "./push";
-export { SpaceManager, type Space, type SpaceChild, type SpaceMember, type SpaceHierarchy, type CreateSpaceOptions, type UpdateSpaceOptions, type AddChildOptions } from "./space";
+export { QrLoginManager, type QrCodeResponse, type QrLoginStatus } from "./qr-login";
+export { UserReportManager } from "./user-report";
+export {
+    SpaceManager,
+    type Space,
+    type SpaceChild,
+    type SpaceMember,
+    type SpaceHierarchy,
+    type SpaceListResponse,
+    type SpaceHierarchyPage,
+    type SpaceStatistics,
+    type SpaceQueryOptions,
+    type CreateSpaceOptions,
+    type UpdateSpaceOptions,
+    type AddChildOptions,
+} from "./space";
 export { FriendManager } from "./friend";
+export { KeyVerificationManager } from "./key-verification";
+export { RoomSummaryManager } from "./room-summary";
+export type {
+    RoomSummaryMember,
+    RoomStats,
+    IRoomSummaryState,
+    RoomSummaryStateContent,
+    RoomSummaryHero,
+    RoomSummaryOptions,
+    RoomSummaryListResponse,
+} from "./room-summary";
+export { RoomKeySharingManager } from "./room-key-sharing";
+export { PresenceManager } from "./presence";
+export { FederationManager } from "./federation";
+export { DeviceManager } from "./device";
+export { ProfileManager } from "./profile";
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
 export type { LoginResponse } from "./@types/auth";

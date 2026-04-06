@@ -4,7 +4,10 @@
  */
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
+import { extendMatrixClientWithManagers } from "../../../src/manager-extensions";
 import { TestConfig } from "./TestConfig";
+
+declare const process: { exit: (code?: number) => never };
 
 let clientA: MatrixClient | null = null;
 let clientB: MatrixClient | null = null;
@@ -24,7 +27,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
 }
 
 async function login(user: { userId: string; password: string }): Promise<MatrixClient> {
-    const testClient = createClient({ baseUrl: TestConfig.baseUrl });
+    const testClient = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
     const username = user.userId.replace("@", "").split(":")[0];
     const result = await testClient.login("m.login.password", {
         user: username,
@@ -38,6 +41,8 @@ async function main(): Promise<void> {
     console.log("\n========================================");
     console.log("私密聊天 (DM) 模块真实服务器测试");
     console.log("========================================\n");
+
+    await extendMatrixClientWithManagers();
     
     // 登录两个用户
     console.log("1. 登录测试用户...");
@@ -48,7 +53,7 @@ async function main(): Promise<void> {
     
     // 获取 DM 管理器
     console.log("2. 获取 DM 管理器...");
-    const dmManagerA = clientA.getDmManager();
+    const dmManagerA = clientA.getDirectMessageManager();
     await dmManagerA.start();
     console.log("   ✅ DM 管理器已获取并启动\n");
     

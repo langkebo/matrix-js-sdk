@@ -1,639 +1,135 @@
-# Room 模块 API 契约
+# Room 模块契约
 
-> 房间相关 API 的 SDK 与后端接口契约
+> 审查来源: `synapse-rust/src/web/routes/room.rs`
 
-## 概述
+## 挂载版本
 
-Room 模块涉及以下 Matrix API：
-
-| 功能 | Matrix API | 说明 |
-|------|------------|------|
-| 创建房间 | `/_matrix/client/v3/createRoom` | POST |
-| 获取房间信息 | `/_matrix/client/v3/rooms/{room_id}` | GET |
-| 加入房间 | `/_matrix/client/v3/join/{room_id_or_alias}` | POST |
-| 离开房间 | `/_matrix/client/v3/rooms/{room_id}/leave` | POST |
-| 邀请用户 | `/_matrix/client/v3/rooms/{room_id}/invite` | POST |
-| 踢出用户 | `/_matrix/client/v3/rooms/{room_id}/kick` | POST |
-| 封禁用户 | `/_matrix/client/v3/rooms/{room_id}/ban` | POST |
-| 成员列表 | `/_matrix/client/v3/rooms/{room_id}/members` | GET |
-| 发送消息 | `/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}` | PUT |
-| 获取消息 | `/_matrix/client/v3/rooms/{room_id}/event/{event_id}` | GET |
-| 消息历史 | `/_matrix/client/v3/rooms/{room_id}/messages` | GET |
-
----
-
-## 创建房间 / Create Room
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/createRoom` |
-| HTTP 方法 | POST |
-| SDK 方法 | `client.createRoom()` |
-| SDK 模块 | `matrix-js-sdk/src/room/index.ts` - `RoomManager.createRoom()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_alias_name` | `string` | 否 | 房间别名本地部分 |
-| `visibility` | `Visibility` | 否 | `'public'` 或 `'private'` |
-| `name` | `string` | 否 | 房间名称 |
-| `topic` | `string` | 否 | 房间主题 |
-| `preset` | `Preset` | 否 | 房间预设 |
-| `power_level_content_override` | `object` | 否 | 权力等级覆盖 |
-| `creation_content` | `object` | 否 | 创建内容 |
-| `initial_state` | `ICreateRoomStateEvent[]` | 否 | 初始状态事件 |
-| `invite` | `string[]` | 否 | 邀请的用户 ID 列表 |
-| `invite_3pid` | `IInvite3PID[]` | 否 | 第三方邀请 |
-| `is_direct` | `boolean` | 否 | 是否为直接消息房间 |
-| `room_version` | `string` | 否 | 房间版本 |
-
-### 响应结构
-
-```typescript
-interface CreateRoomResponse {
-    room_id: string;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 创建成功 |
-| 400 | 参数错误（缺少必填字段） |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限创建房间 |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `create_room()`
-- **SDK 封装**: [matrix-js-sdk/src/room/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room/index.ts) - `RoomManager.createRoom()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `createRoom()`
-
----
-
-## 获取房间信息 / Get Room Info
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}` |
-| HTTP 方法 | GET |
-| SDK 方法 | `client.getRoom()` (本地) |
-| SDK 模块 | `matrix-js-sdk/src/room/index.ts` - `RoomManager.getRoom()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-
-### 响应结构
-
-```typescript
-interface Room {
-    roomId: string;
-    name: string | null;
-    topic: string | null;
-    avatarUrl: string | null;
-    memberCount: number;
-    joinedCount: number;
-    canonicalAlias: string | null;
-    isPublic: boolean;
-}
-```
-
-> 注意：此为 SDK 本地 Room 对象，非 HTTP 响应。后端返回的是完整的房间状态事件。
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限访问房间 |
-| 404 | 房间不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `get_room_info()`
-- **SDK 封装**: [matrix-js-sdk/src/room/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room/index.ts) - `RoomManager.getRoom()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `getRoom()`
-
----
-
-## 加入房间 / Join Room
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/join/{room_id_or_alias}` |
-| HTTP 方法 | POST |
-| SDK 方法 | `client.joinRoom()` |
-| SDK 模块 | `matrix-js-sdk/src/room/index.ts` - `RoomManager.joinRoom()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id_or_alias` | `string` | 是 | 房间 ID 或别名（路径参数） |
-| `opts.viaServers` | `string[]` | 否 | 尝试加入的服务器列表 |
-| `opts.inviteSignUrl` | `string` | 否 | 第三方邀请签名 URL |
-| `opts.acceptSharedHistory` | `boolean` | 否 | 是否接受共享的历史消息 |
-
-### 响应结构
-
-```typescript
-interface JoinRoomResponse {
-    room_id: string;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 加入成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限加入房间 |
-| 404 | 房间不存在 |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `join_room()` / `join_room_by_id_or_alias()`
-- **SDK 封装**: [matrix-js-sdk/src/room/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room/index.ts) - `RoomManager.joinRoom()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `joinRoom()`
-
----
-
-## 离开房间 / Leave Room
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/leave` |
-| HTTP 方法 | POST |
-| SDK 方法 | `client.leaveRoom()` |
-| SDK 模块 | `matrix-js-sdk/src/room/index.ts` - `RoomManager.leave()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-
-### 响应结构
-
-```typescript
-interface EmptyObject {}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 离开成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限离开房间 |
-| 404 | 房间不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `leave_room()`
-- **SDK 封装**: [matrix-js-sdk/src/room/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room/index.ts) - `RoomManager.leave()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `leaveRoom()`
-
----
-
-## 邀请用户 / Invite User
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/invite` |
-| HTTP 方法 | POST |
-| SDK 方法 | `client.invite()` |
-| SDK 模块 | `matrix-js-sdk/src/room/index.ts` - `RoomManager.invite()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `user_id` | `string` | 是 | 被邀请的用户 ID |
-| `reason` | `string` | 否 | 邀请原因 |
-| `shareEncryptedHistory` | `boolean` | 否 | 是否共享加密历史（MSC4268） |
-
-### 响应结构
-
-```typescript
-interface EmptyObject {}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 邀请成功 |
-| 400 | 参数错误 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限邀请用户 |
-| 404 | 房间不存在 |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `invite_user()` / `invite_user_by_room()`
-- **SDK 封装**: [matrix-js-sdk/src/room/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room/index.ts) - `RoomManager.invite()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `inviteUser()`
-
----
-
-## 踢出用户 / Kick User
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/kick` |
-| HTTP 方法 | POST |
-| SDK 方法 | `client.kick()` |
-| SDK 模块 | `matrix-js-sdk/src/room-joining/index.ts` - `RoomJoiningManager.kickUser()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `user_id` | `string` | 是 | 被踢出的用户 ID |
-| `reason` | `string` | 否 | 踢出原因 |
-
-### 响应结构
-
-```typescript
-interface EmptyObject {}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 踢出成功 |
-| 400 | 参数错误 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限踢出用户（需要适当的权力等级） |
-| 404 | 房间不存在 |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `kick_user()`
-- **SDK 封装**: [matrix-js-sdk/src/room-joining/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room-joining/index.ts) - `RoomJoiningManager.kickUser()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `kickUser()`
-
----
-
-## 封禁用户 / Ban User
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/ban` |
-| HTTP 方法 | POST |
-| SDK 方法 | `client.ban()` |
-| SDK 模块 | `matrix-js-sdk/src/room/index.ts` - `RoomManager.ban()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `user_id` | `string` | 是 | 被封禁的用户 ID |
-| `reason` | `string` | 否 | 封禁原因 |
-
-### 响应结构
-
-```typescript
-interface EmptyObject {}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 封禁成功 |
-| 400 | 参数错误 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限封禁用户（需要适当的权力等级） |
-| 404 | 房间不存在 |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `ban_user()`
-- **SDK 封装**: [matrix-js-sdk/src/room/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room/index.ts) - `RoomManager.ban()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `banUser()`
-
----
-
-## 成员列表 / Get Room Members
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/members` |
-| HTTP 方法 | GET |
-| SDK 方法 | `client.getRoomMembers()` |
-| SDK 模块 | `matrix-js-sdk/src/membership/index.ts` - `MembershipManager.getRoomMembers()` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `not_membership` | `string` | 否 | 过滤特定成员资格状态 |
-| `send_image` | `boolean` | 否 | 是否发送头像 |
-
-### 响应结构
-
-```typescript
-interface MembershipEventsResponse {
-    chunk: IEvent[];
-}
-```
-
-### SDK 响应结构（本地）
-
-```typescript
-interface RoomMember {
-    userId: string;
-    roomId: string;
-    name: string;
-    rawDisplayName: string;
-    membership: 'join' | 'leave' | 'invite' | 'ban' | 'knock';
-    powerLevel: number;
-    isDirect: boolean;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限访问成员列表 |
-| 404 | 房间不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `get_room_members()`
-- **SDK 封装**: [matrix-js-sdk/src/membership/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/membership/index.ts) - `MembershipManager.getRoomMembers()`
-- **前端调用**: [hula/src/services/matrix/MatrixRoomService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixRoomService.ts) - `getMembers()`
-
----
-
-## 发送消息 / Send Message
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}` |
-| HTTP 方法 | PUT |
-| SDK 方法 | `client.sendTextMessage()` / `client.sendMessage()` |
-| SDK 模块 | `matrix-js-sdk/src/message/index.ts` - `MessageManager` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `event_type` | `string` | 是 | 事件类型（路径参数），如 `m.room.message` |
-| `txn_id` | `string` | 是 | 事务 ID（路径参数），用于幂等性 |
-| `content` | `object` | 是 | 消息内容（请求体） |
-
-### 消息内容示例
-
-```typescript
-// 文本消息
-interface TextMessageContent {
-    msgtype: 'm.text';
-    body: string;
-}
-
-// 位置消息
-interface LocationMessageContent {
-    msgtype: 'm.location';
-    body: string;
-    geo_uri: string;
-}
-
-// 文件消息
-interface FileMessageContent {
-    msgtype: 'm.file';
-    body: string;
-    url: string;
-    info?: {
-        mimetype: string;
-        size: number;
-    };
-}
-```
-
-### 响应结构
-
-```typescript
-interface SendEventResponse {
-    event_id: string;
-    room_id?: string;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 发送成功 |
-| 400 | 参数错误 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限发送消息 |
-| 404 | 房间不存在 |
-| 429 | 请求过于频繁 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `send_message()`
-- **SDK 封装**: [matrix-js-sdk/src/message/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/message/index.ts) - `MessageManager`
-- **前端调用**: [hula/src/services/matrix/MatrixMessageService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixMessageService.ts)
-
----
-
-## 获取消息 / Get Event
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/event/{event_id}` |
-| HTTP 方法 | GET |
-| SDK 方法 | `client.fetchRoomEvent()` |
-| SDK 模块 | `matrix-js-sdk/src/room-events/index.ts` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `event_id` | `string` | 是 | 事件 ID（路径参数） |
-
-### 响应结构
-
-```typescript
-interface Event {
-    event_id: string;
-    room_id: string;
-    type: string;
-    sender: string;
-    content: IContent;
-    origin_server_ts: number;
-    state_key?: string;
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限访问事件 |
-| 404 | 房间或事件不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `get_single_event()`
-- **SDK 封装**: [matrix-js-sdk/src/room-events/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/room-events/index.ts)
-- **前端调用**: [hula/src/services/matrix/MatrixEventService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixEventService.ts)
-
----
-
-## 消息历史 / Get Messages
-
-### 基本信息
-
-| 字段 | 值 |
-|------|-----|
-| 后端路由 | `/_matrix/client/v3/rooms/{room_id}/messages` |
-| HTTP 方法 | GET |
-| SDK 方法 | `client.getMessages()` |
-| SDK 模块 | `matrix-js-sdk/src/pagination/index.ts` - `PaginationManager` |
-| 认证要求 | 是 |
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `room_id` | `string` | 是 | 房间 ID（路径参数） |
-| `from` | `string` | 是 | 分页起点 token |
-| `to` | `string` | 否 | 分页终点 token |
-| `dir` | `'b' \| 'f'` | 是 | 方向：`'b'` 向后（历史），`'f'` 向前 |
-| `limit` | `number` | 否 | 限制返回的事件数量 |
-| `filter` | `IRoomEventFilter` | 否 | 过滤器 |
-
-### 响应结构
-
-```typescript
-interface MessagesResponse {
-    start: string;
-    end: string;
-    chunk: IEvent[];
-    state?: IEvent[];
-}
-```
-
-### 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 获取成功 |
-| 400 | 参数错误 |
-| 401 | 未认证或 Token 无效 |
-| 403 | 无权限访问消息历史 |
-| 404 | 房间不存在 |
-
-### 对应关系
-
-- **后端实现**: `synapse-rust/src/web/routes/room.rs` - `get_messages()`
-- **SDK 封装**: [matrix-js-sdk/src/pagination/index.ts](file:///Users/ljf/Desktop/hu/matrix-js-sdk/src/pagination/index.ts) - `PaginationManager`
-- **前端调用**: [hula/src/services/matrix/MatrixEventService.ts](file:///Users/ljf/Desktop/hu/hula/src/services/matrix/MatrixEventService.ts)
-
----
-
-## SDK Manager 导出状态
-
-| Manager | 导出位置 | 状态 |
-|---------|----------|------|
-| `RoomManager` | `matrix-js-sdk/src/room/index.ts` | ✅ 完整 |
-| `RoomCreationManager` | `matrix-js-sdk/src/room-creation/index.ts` | ✅ 完整 |
-| `RoomJoiningManager` | `matrix-js-sdk/src/room-joining/index.ts` | ✅ 完整 |
-| `MembershipManager` | `matrix-js-sdk/src/membership/index.ts` | ✅ 完整 |
-| `MessageManager` | `matrix-js-sdk/src/message/index.ts` | ✅ 完整 |
-| `PaginationManager` | `matrix-js-sdk/src/pagination/index.ts` | ✅ 完整 |
-
----
-
-## 状态说明
-
-| 状态 | 说明 |
+| 前缀 | 说明 |
 |------|------|
-| ✅ 已集成 | 后端路由 + SDK 封装 + 前端接入均已完成 |
-| ⚠️ 部分漂移 | 后端可用但 SDK/前端封装有分叉 |
-| 🟡 行为不稳定 | 基本可用但存在逻辑疑点 |
-| 🔴 未实现/有 bug | 缺少必要实现或存在已知 bug |
+| `/_matrix/client/r0` | 兼容主链路 + `createRoom` + `get_membership_events` |
+| `/_matrix/client/v1` | 仅 `m.room.power_levels` 兼容读取 |
+| `/_matrix/client/v3` | 兼容主链路 + 扩展房间能力、通知、线程、密钥、粘性事件等 |
 
-### Room 模块当前状态
+## 认证与通用响应
 
-| 功能 | 状态 | 说明 |
+- 本文件中的房间端点默认需要用户 access token。
+- 常见错误码: `400` 参数错误、`401` 未认证、`403` 无权限、`404` 房间/事件不存在、`429` 限流。
+- 常见成功响应:
+  - 写操作返回空对象或 `{ "event_id": "..." }`
+  - 查询操作返回事件、列表、统计信息或 service 组装后的 JSON 对象
+
+## r0 / v3 共享主链路
+
+| 方法 | 路径 | 主要请求参数 | 主要响应字段 |
+|------|------|--------------|--------------|
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}` | `room_id` | 房间基础信息 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/messages` | `from` `to?` `dir` `limit?` `filter?` | `chunk` `start` `end` |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/search` | 搜索条件 | 搜索结果 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/membership/{user_id}` | `user_id` | 成员关系 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/receipt/{receipt_type}/{event_id}` | receipt 内容 | 空对象 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/receipts/{receipt_type}/{event_id}` | 路径参数 | receipt 列表 |
+| POST/PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/read_markers` | read marker 内容 | 空对象 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/aliases` | `room_id` | 房间别名列表 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/join` | 可选 join body | `room_id` |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/leave` | 可选 reason | 空对象 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/upgrade` | `new_version` | 新房间 ID |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/forget` | 可选 body | 空对象 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/initialSync` | 查询参数 | 初始同步响应 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/members` | `membership?` 等 | `chunk` |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/members/recent` | 查询参数 | 最近成员 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/joined_members` | 无 | `joined` 成员映射 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/version` | 无 | `room_version` |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/invite` | `user_id` `reason?` | 空对象 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/invites` | 无 | 邀请列表 |
+| GET | `/_matrix/client/{r0,v3}/user/{user_id}/rooms` | `user_id` | 用户房间列表 |
+| GET/PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}/{state_key}` | 状态事件内容 | 状态事件 |
+| GET/PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}/` | 空 state key | 状态事件 |
+| GET/POST/PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}` | 状态事件内容 | 状态事件 / 空对象 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/state` | 无 | 房间状态快照 |
+| PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/redact/{event_id}/{txn_id}` | redaction body | `event_id` |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/redact/{event_id}/{txn_id}` | redaction body | `event_id` |
+| PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/guest_access` | `guest_access` | 空对象 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/hierarchy` | `limit?` `max_depth?` `suggested_only?` `from_token?` | 房间层级结构 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/kick` | `user_id` `reason?` | 空对象 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/ban` | `user_id` `reason?` | 空对象 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/unban` | `user_id` `reason?` | 空对象 |
+| GET/POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/pinned_events` | POST 时提供事件信息 | pinned events |
+| DELETE | `/_matrix/client/{r0,v3}/rooms/{room_id}/pinned_events/{event_id}` | `event_id` | 空对象 |
+| PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/send/{event_type}/{txn_id}` | 事件内容 | `event_id` |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/event/{event_id}` | `event_id` | 单个事件 |
+| GET | `/_matrix/client/{r0,v3}/rooms/{room_id}/context/{event_id}` | `event_id` `limit?` `filter?` | `event` `events_before` `events_after` `start` `end` `state` |
+| PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/typing/{user_id}` | `typing` `timeout?` | 空对象 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/report` | `reason` `score?` | 空对象 |
+| POST | `/_matrix/client/{r0,v3}/rooms/{room_id}/report/{event_id}` | `reason` `score?` | 空对象 |
+
+## r0 专用
+
+| 方法 | 路径 | 说明 |
 |------|------|------|
-| 创建房间 | ✅ 已集成 | 完整实现 |
-| 获取房间信息 | ✅ 已集成 | 本地 Room 对象 + 后端路由 |
-| 加入房间 | ✅ 已集成 | 完整实现 |
-| 离开房间 | ✅ 已集成 | 完整实现 |
-| 邀请用户 | ✅ 已集成 | 完整实现 |
-| 踢出用户 | ✅ 已集成 | 完整实现 |
-| 封禁用户 | ✅ 已集成 | 完整实现 |
-| 成员列表 | ✅ 已集成 | 完整实现 |
-| 发送消息 | ✅ 已集成 | 完整实现 |
-| 获取消息 | ✅ 已集成 | 完整实现 |
-| 消息历史 | ✅ 已集成 | 完整实现 |
+| POST | `/_matrix/client/r0/createRoom` | 创建房间 |
+| POST | `/_matrix/client/r0/rooms/{room_id}/get_membership_events` | 获取 membership 事件 |
 
----
+## v1 专用
 
-## 已知问题
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/` | 兼容 power levels 读取 |
 
-| 问题 | 位置 | 说明 | 优先级 |
-|------|------|------|--------|
-| 无 | - | Room 模块各 API 均已完整实现 | - |
+## v3 扩展房间端点
 
+| 方法 | 路径 | 主要请求参数 | 主要响应字段 |
+|------|------|--------------|--------------|
+| GET | `/_matrix/client/v3/rooms/{room_id}/notifications` | 分页查询参数 | `notifications` |
+| GET | `/_matrix/client/v3/rooms/{room_id}/capabilities` | 无 | 房间能力 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}` | `user_id` | 用户碎片信息 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/service_types` | 无 | 服务类型列表 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/sync` | 查询参数 | 房间级同步结果 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/timeline` | 查询参数 | 时间线 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/unread_count` | 无 | 未读计数 |
+| GET/PUT | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}` | account data 内容 | account data |
+| GET | `/_matrix/client/v3/rooms/{room_id}/turn_server` | 无 | TURN 配置 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/metadata` | 无 | 房间元数据 |
+| GET/PUT | `/_matrix/client/v3/rooms/{room_id}/vault_data` | vault 内容 | vault 数据 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/retention` | 无 | retention 策略 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/external_ids` | 无 | 外部关联 ID |
+| GET | `/_matrix/client/v3/rooms/{room_id}/spaces` | 无 | 所属 space 列表 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/event_perspective` | 查询参数 | 事件视角数据 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/encrypted_events` | 查询参数 | 加密事件摘要 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/reduced_events` | 查询参数 | 规约事件列表 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/rendered/` | 查询参数 | 渲染结果 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/event/{event_id}/url` | `event_id` | 事件 URL |
+| POST | `/_matrix/client/v3/rooms/{room_id}/translate/{event_id}` | 翻译请求 | 翻译结果 |
+| POST | `/_matrix/client/v3/rooms/{room_id}/convert/{event_id}` | 转换请求 | 转换结果 |
+| PUT | `/_matrix/client/v3/rooms/{room_id}/sign/{event_id}` | 签名请求 | 签名结果 |
+| POST | `/_matrix/client/v3/rooms/{room_id}/verify/{event_id}` | 校验请求 | 校验结果 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/keys` | 无 | 房间密钥 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/keys/count` | 无 | 密钥计数 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/keys/version` | 无 | 密钥版本 |
+| POST | `/_matrix/client/v3/rooms/{room_id}/keys/claim` | claim body | claim 结果 |
+| PUT | `/_matrix/client/v3/rooms/{room_id}/room_keys/keys` | 转发 room key | 空对象 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/message_queue` | 无 | 队列消息 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/device/{device_id}` | `device_id` | 房间设备信息 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}` | `thread_id` | 线程详情 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/keys/{event_id}` | `event_id` | 事件密钥 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/thread/{event_id}` | `event_id` | 线程视图 |
+| POST | `/_matrix/client/v3/join/{room_id_or_alias}` | 可选 via 信息 | `room_id` |
+| POST | `/_matrix/client/v3/knock/{room_id_or_alias}` | knock 请求体 | `room_id` / 空对象 |
+| POST | `/_matrix/client/v3/invite/{room_id}` | `user_id` | 空对象 |
+| GET/POST | `/_matrix/client/v3/rooms/{room_id}/invite_blocklist` | blocklist body | blocklist |
+| GET/POST | `/_matrix/client/v3/rooms/{room_id}/invite_allowlist` | allowlist body | allowlist |
+| GET/POST | `/_matrix/client/v3/rooms/{room_id}/sticky_events` | sticky event body | sticky events |
+| DELETE | `/_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}` | `event_type` | 空对象 |
+| GET | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `widget_id` | widget capabilities |
+| POST | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send` | widget message body | widget 响应 |
+
+## 典型请求/响应
+
+- 创建房间: `POST /createRoom`，请求体常见字段为 `name` `topic` `invite` `initial_state`，成功返回 `{ "room_id": "..." }`
+- 发送消息: `PUT /rooms/{room_id}/send/{event_type}/{txn_id}`，请求体为事件 `content`，成功返回 `{ "event_id": "..." }`
+- 拉取消息: `GET /rooms/{room_id}/messages`，核心查询参数为 `from` `dir` `limit?`，返回 `chunk/start/end`
+- 成员管理: `invite` `kick` `ban` `unban` 统一返回空对象
+
+## 代码定位
+
+- 路由声明: `synapse-rust/src/web/routes/room.rs`
+- 处理器主体: `synapse-rust/src/web/routes/handlers/room.rs`

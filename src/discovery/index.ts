@@ -15,52 +15,88 @@ limitations under the License.
 */
 
 /**
- * Discovery Manager - 服务发现
+ * Discovery Manager - 服务发现与目录管理
  * 
- * 提供服务端点发现、房间别名解析等功能
+ * 提供服务端点发现、房间别名解析、用户目录搜索等功能
+ * 对应后端 API:
+ * - GET/POST /publicRooms
+ * - POST /user_directory/search
+ * - POST /user_directory/list
+ * - GET /user_directory/profiles/{user_id}
+ * - GET/PUT /directory/list/room/{room_id}
+ * - GET/PUT/DELETE /directory/room/{room_alias}
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 
+export interface UserDirectorySearchResponse {
+    results: Array<{
+        user_id: string;
+        display_name?: string;
+        avatar_url?: string;
+    }>;
+    limited?: boolean;
+}
+
+export interface UserDirectoryListResponse {
+    users: Array<{
+        user_id: string;
+        display_name?: string;
+        avatar_url?: string;
+    }>;
+}
+
+export interface UserDirectoryProfile {
+    user_id: string;
+    display_name?: string;
+    avatar_url?: string;
+}
+
+export interface RoomVisibilityResponse {
+    room_id: string;
+    visibility: "public" | "private";
+}
+
+export interface PublicRoomsResponse {
+    chunk: Array<{
+        room_id: string;
+        name?: string;
+        topic?: string;
+        avatar_url?: string;
+        num_joined_members: number;
+        join_rule?: string;
+        world_readable?: boolean;
+        guest_can_join?: boolean;
+    }>;
+    next_batch?: string;
+    prev_batch?: string;
+    total_room_count_estimate?: number;
+}
+
 export class DiscoveryManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get homeserver URL
-     */
     public getHomeserverUrl(): string {
         return this.client.baseUrl;
     }
 
-    /**
-     * Get client well-known
-     */
     public getClientWellKnown(): any {
         return (this.client as any).clientWellKnown;
     }
 
-    /**
-     * Get server discovery info
-     */
     public async getServerDiscoveryInfo(): Promise<any> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, "/.well-known/matrix/client");
+        return (this.client as any).http.request(Method.Get, "/.well-known/matrix/client", undefined, undefined, { prefix: "" });
     }
 
-    /**
-     * Get room ID for alias
-     */
     public async getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
         const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).http.authedRequest(Method.Get, path);
     }
 
-    /**
-     * Get alias room ID
-     */
     public async getAliasRoomId(alias: string): Promise<string | null> {
         try {
             const result = await this.getRoomIdForAlias(alias);
@@ -69,9 +105,101 @@ export class DiscoveryManager {
             return null;
         }
     }
+
+    public async searchUserDirectory(
+        searchTerm: string,
+        limit?: number,
+    ): Promise<UserDirectorySearchResponse> {
+        const body: Record<string, any> = { search_term: searchTerm };
+        if (limit !== undefined) {
+            body.limit = limit;
+        }
+        return this.client.http.authedRequest<UserDirectorySearchResponse>(
+            Method.Post,
+            "/user_directory/search",
+            undefined,
+            body,
+        );
+    }
+
+    public async listUserDirectory(): Promise<UserDirectoryListResponse> {
+        return this.client.http.authedRequest<UserDirectoryListResponse>(
+            Method.Post,
+            "/user_directory/list",
+        );
+    }
+
+    public async getUserDirectoryProfile(userId: string): Promise<UserDirectoryProfile> {
+        const path = utils.encodeUri("/user_directory/profiles/$userId", { $userId: userId });
+        return this.client.http.authedRequest<UserDirectoryProfile>(Method.Get, path);
+    }
+
+    public async getRoomVisibility(roomId: string): Promise<RoomVisibilityResponse> {
+        const path = utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId });
+        return this.client.http.authedRequest<RoomVisibilityResponse>(Method.Get, path);
+    }
+
+    public async setRoomVisibility(
+        roomId: string,
+        visibility: "public" | "private",
+    ): Promise<void> {
+        const path = utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId });
+        await this.client.http.authedRequest(Method.Put, path, undefined, { visibility });
+    }
+
+    public async getPublicRooms(
+        limit?: number,
+        since?: string,
+        server?: string,
+    ): Promise<PublicRoomsResponse> {
+        const queryParams: Record<string, string | number> = {};
+        if (limit !== undefined) {
+            queryParams.limit = limit;
+        }
+        if (since !== undefined) {
+            queryParams.since = since;
+        }
+        if (server !== undefined) {
+            queryParams.server = server;
+        }
+        return this.client.http.authedRequest<PublicRoomsResponse>(
+            Method.Get,
+            "/publicRooms",
+            queryParams,
+        );
+    }
+
+    public async queryPublicRooms(
+        filter: { generic_search_term?: string; room_types?: string[] },
+        limit?: number,
+        since?: string,
+    ): Promise<PublicRoomsResponse> {
+        const queryParams: Record<string, string | number> = {};
+        if (limit !== undefined) {
+            queryParams.limit = limit;
+        }
+        if (since !== undefined) {
+            queryParams.since = since;
+        }
+        return this.client.http.authedRequest<PublicRoomsResponse>(
+            Method.Post,
+            "/publicRooms",
+            queryParams,
+            { filter },
+        );
+    }
+
+    public async setRoomAlias(roomId: string, alias: string): Promise<void> {
+        const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
+        await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+    }
+
+    public async deleteRoomAlias(alias: string): Promise<void> {
+        const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
+        await this.client.http.authedRequest(Method.Delete, path);
+    }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getDiscoveryManager(): DiscoveryManager;

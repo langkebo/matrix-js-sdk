@@ -339,7 +339,7 @@ describe("AdminManager", () => {
         });
 
         it("should have correct prototype methods", () => {
-            const manager = new AdminManager({ http: { authedRequest: () => {} } });
+            const manager = new AdminManager({ http: { authedRequest: async () => ({}) } } as any);
             expect(typeof manager.getUsers).toBe("function");
             expect(typeof manager.getUser).toBe("function");
             expect(typeof manager.getRooms).toBe("function");

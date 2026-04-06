@@ -11,7 +11,7 @@
         "clean": "rimraf lib",
         "build": "pnpm clean && pnpm build:compile && pnpm build:types",
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
-        "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src",
+        "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
         "lint": "pnpm lint:types && pnpm lint:js && pnpm lint:workflows",
         "lint:js": "eslint --max-warnings 0 src spec && prettier --check .",
@@ -20,6 +20,9 @@
         "lint:workflows": "find .github/workflows -type f \\( -iname '*.yaml' -o -iname '*.yml' \\) | xargs -I {} sh -c 'echo \"Linting {}\"; action-validator \"{}\"'",
         "lint:knip": "knip",
         "test": "vitest",
+        "test:real-backend": "pnpm test:real-backend:verification",
+        "test:real-backend:verification": "vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/key-verification-manager.spec.ts",
+        "test:real-backend:device": "vitest run --no-file-parallelism --config vitest.real-backend.config.ts spec/integ/real-backend/device-manager.spec.ts spec/integ/real-backend/device-step2.spec.ts spec/integ/real-backend/device-delete-devices.spec.ts spec/integ/real-backend/device-list-updates.spec.ts",
         "test:watch": "vitest --watch",
         "coverage": "pnpm test --coverage"
     },
@@ -63,6 +66,14 @@
             "import": "./lib/notification/index.js",
             "types": "./lib/notification/index.d.ts"
         },
+        "./push": {
+            "import": "./lib/push/index.js",
+            "types": "./lib/push/index.d.ts"
+        },
+        "./space": {
+            "import": "./lib/space/index.js",
+            "types": "./lib/space/index.d.ts"
+        },
         "./admin": {
             "import": "./lib/admin/index.js",
             "types": "./lib/admin/index.d.ts"
@@ -82,6 +93,14 @@
         "./http-api": {
             "import": "./lib/http-api/index.js",
             "types": "./lib/http-api/index.d.ts"
+        },
+        "./http-api/errors": {
+            "import": "./lib/http-api/errors.js",
+            "types": "./lib/http-api/errors.d.ts"
+        },
+        "./errors": {
+            "import": "./lib/errors.js",
+            "types": "./lib/errors.d.ts"
         },
         "./client": {
             "import": "./lib/client.js",

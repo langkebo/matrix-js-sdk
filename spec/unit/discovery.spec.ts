@@ -1,0 +1,409 @@
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { DiscoveryManager } from "../../src/discovery/index";
+import { Method } from "../../src/http-api";
+
+describe("DiscoveryManager", () => {
+    let mockClient: any;
+    let discoveryManager: DiscoveryManager;
+    let mockAuthedRequest: ReturnType<typeof vi.fn>;
+    let mockRequest: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        mockAuthedRequest = vi.fn();
+        mockRequest = vi.fn();
+        mockClient = {
+            baseUrl: "https://matrix.example.com",
+            http: {
+                authedRequest: mockAuthedRequest,
+                request: mockRequest,
+            },
+        };
+        discoveryManager = new DiscoveryManager(mockClient);
+    });
+
+    describe("getHomeserverUrl", () => {
+        it("should return homeserver URL", () => {
+            const url = discoveryManager.getHomeserverUrl();
+            expect(url).toBe("https://matrix.example.com");
+        });
+    });
+
+    describe("getClientWellKnown", () => {
+        it("should return client well-known", () => {
+            mockClient.clientWellKnown = { "m.homeserver": { base_url: "https://matrix.example.com" } };
+            const wellKnown = discoveryManager.getClientWellKnown();
+            expect(wellKnown).toEqual({ "m.homeserver": { base_url: "https://matrix.example.com" } });
+        });
+    });
+
+    describe("getServerDiscoveryInfo", () => {
+        it("should get server discovery info", async () => {
+            const discoveryInfo = {
+                "m.homeserver": { base_url: "https://matrix.example.com" },
+                "m.identity_server": { base_url: "https://identity.example.com" },
+            };
+            mockRequest.mockResolvedValue(discoveryInfo);
+
+            const result = await discoveryManager.getServerDiscoveryInfo();
+
+            expect(mockRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/.well-known/matrix/client",
+                undefined,
+                undefined,
+                { prefix: "" }
+            );
+            expect(result).toEqual(discoveryInfo);
+        });
+    });
+
+    describe("getRoomIdForAlias", () => {
+        it("should get room ID for alias", async () => {
+            const response = {
+                room_id: "!room:example.com",
+                servers: ["example.com", "other.com"],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            const result = await discoveryManager.getRoomIdForAlias("#test:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/directory/room/%23test%3Aexample.com"
+            );
+            expect(result).toEqual(response);
+        });
+    });
+
+    describe("getAliasRoomId", () => {
+        it("should return room ID for valid alias", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                room_id: "!room:example.com",
+                servers: ["example.com"],
+            });
+
+            const result = await discoveryManager.getAliasRoomId("#test:example.com");
+
+            expect(result).toBe("!room:example.com");
+        });
+
+        it("should return null for invalid alias", async () => {
+            mockAuthedRequest.mockRejectedValue(new Error("Not found"));
+
+            const result = await discoveryManager.getAliasRoomId("#invalid:example.com");
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe("searchUserDirectory", () => {
+        it("should search user directory", async () => {
+            const response = {
+                results: [
+                    {
+                        user_id: "@alice:example.com",
+                        display_name: "Alice",
+                        avatar_url: "mxc://example.com/avatar",
+                    },
+                ],
+                limited: false,
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            const result = await discoveryManager.searchUserDirectory("alice");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/user_directory/search",
+                undefined,
+                { search_term: "alice" }
+            );
+            expect(result).toEqual(response);
+        });
+
+        it("should search with limit", async () => {
+            const response = {
+                results: [],
+                limited: true,
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            await discoveryManager.searchUserDirectory("alice", 10);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/user_directory/search",
+                undefined,
+                { search_term: "alice", limit: 10 }
+            );
+        });
+    });
+
+    describe("listUserDirectory", () => {
+        it("should list user directory", async () => {
+            const response = {
+                users: [
+                    {
+                        user_id: "@alice:example.com",
+                        display_name: "Alice",
+                    },
+                ],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            const result = await discoveryManager.listUserDirectory();
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/user_directory/list"
+            );
+            expect(result).toEqual(response);
+        });
+    });
+
+    describe("getUserDirectoryProfile", () => {
+        it("should get user directory profile", async () => {
+            const profile = {
+                user_id: "@alice:example.com",
+                display_name: "Alice",
+                avatar_url: "mxc://example.com/avatar",
+            };
+            mockAuthedRequest.mockResolvedValue(profile);
+
+            const result = await discoveryManager.getUserDirectoryProfile("@alice:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/user_directory/profiles/%40alice%3Aexample.com"
+            );
+            expect(result).toEqual(profile);
+        });
+    });
+
+    describe("getRoomVisibility", () => {
+        it("should get room visibility", async () => {
+            const response = {
+                room_id: "!room:example.com",
+                visibility: "public" as const,
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            const result = await discoveryManager.getRoomVisibility("!room:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/directory/list/room/!room%3Aexample.com"
+            );
+            expect(result).toEqual(response);
+        });
+    });
+
+    describe("setRoomVisibility", () => {
+        it("should set room visibility to public", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await discoveryManager.setRoomVisibility("!room:example.com", "public");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/directory/list/room/!room%3Aexample.com",
+                undefined,
+                { visibility: "public" }
+            );
+        });
+
+        it("should set room visibility to private", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await discoveryManager.setRoomVisibility("!room:example.com", "private");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/directory/list/room/!room%3Aexample.com",
+                undefined,
+                { visibility: "private" }
+            );
+        });
+    });
+
+    describe("getPublicRooms", () => {
+        it("should get public rooms", async () => {
+            const response = {
+                chunk: [
+                    {
+                        room_id: "!room1:example.com",
+                        name: "Test Room",
+                        topic: "A test room",
+                        num_joined_members: 10,
+                    },
+                ],
+                next_batch: "next_token",
+                total_room_count_estimate: 100,
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            const result = await discoveryManager.getPublicRooms();
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/publicRooms",
+                {}
+            );
+            expect(result).toEqual(response);
+        });
+
+        it("should get public rooms with limit", async () => {
+            const response = {
+                chunk: [],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            await discoveryManager.getPublicRooms(20);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/publicRooms",
+                { limit: 20 }
+            );
+        });
+
+        it("should get public rooms with pagination", async () => {
+            const response = {
+                chunk: [],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            await discoveryManager.getPublicRooms(20, "since_token");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/publicRooms",
+                { limit: 20, since: "since_token" }
+            );
+        });
+
+        it("should get public rooms from specific server", async () => {
+            const response = {
+                chunk: [],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            await discoveryManager.getPublicRooms(20, undefined, "other.example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/publicRooms",
+                { limit: 20, server: "other.example.com" }
+            );
+        });
+    });
+
+    describe("queryPublicRooms", () => {
+        it("should query public rooms with filter", async () => {
+            const response = {
+                chunk: [
+                    {
+                        room_id: "!room1:example.com",
+                        name: "Gaming Room",
+                        num_joined_members: 50,
+                    },
+                ],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            const result = await discoveryManager.queryPublicRooms({
+                generic_search_term: "gaming",
+            });
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/publicRooms",
+                {},
+                { filter: { generic_search_term: "gaming" } }
+            );
+            expect(result).toEqual(response);
+        });
+
+        it("should query with room types filter", async () => {
+            const response = {
+                chunk: [],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            await discoveryManager.queryPublicRooms({
+                room_types: ["m.space"],
+            });
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/publicRooms",
+                {},
+                { filter: { room_types: ["m.space"] } }
+            );
+        });
+
+        it("should query with limit and pagination", async () => {
+            const response = {
+                chunk: [],
+            };
+            mockAuthedRequest.mockResolvedValue(response);
+
+            await discoveryManager.queryPublicRooms(
+                { generic_search_term: "test" },
+                10,
+                "since_token"
+            );
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/publicRooms",
+                { limit: 10, since: "since_token" },
+                { filter: { generic_search_term: "test" } }
+            );
+        });
+    });
+
+    describe("setRoomAlias", () => {
+        it("should set room alias", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await discoveryManager.setRoomAlias("!room:example.com", "#test:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/directory/room/%23test%3Aexample.com",
+                undefined,
+                { room_id: "!room:example.com" }
+            );
+        });
+    });
+
+    describe("deleteRoomAlias", () => {
+        it("should delete room alias", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await discoveryManager.deleteRoomAlias("#test:example.com");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/directory/room/%23test%3Aexample.com"
+            );
+        });
+    });
+});

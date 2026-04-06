@@ -30,8 +30,9 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix } from "../http-api/prefix.ts";
+import { Body } from "../http-api/interface.ts";
 import { logger } from "../logger.ts";
-import { MatrixClient } from "../client.ts";
+import { MatrixClient } from "../client";
 
 export enum ExternalServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -103,15 +104,26 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         this.client = client;
     }
 
+    private async adminRequest<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string>,
+        body?: Body,
+    ): Promise<T> {
+        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+            prefix: AdminPrefix.V1,
+        });
+    }
+
     /**
      * Register a new external service
      * POST /_synapse/admin/v1/external_services
      */
     public async registerService(request: IRegisterExternalServiceRequest): Promise<IExternalService> {
         try {
-            const response = await this.client.http.authedRequest<any>(
+            const response = await this.adminRequest<any>(
                 Method.Post,
-                `${AdminPrefix.V1}/external_services`,
+                "/external_services",
                 undefined,
                 {
                     service_type: request.serviceType,
@@ -152,9 +164,9 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             const queryParams = serviceType ? { service_type: serviceType } : undefined;
 
-            const response = await this.client.http.authedRequest<any[]>(
+            const response = await this.adminRequest<any[]>(
                 Method.Get,
-                `${AdminPrefix.V1}/external_services`,
+                "/external_services",
                 queryParams
             );
 
@@ -187,9 +199,9 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         try {
-            const response = await this.client.http.authedRequest<any>(
+            const response = await this.adminRequest<any>(
                 Method.Get,
-                `${AdminPrefix.V1}/external_services/${encodeURIComponent(asId)}/health`
+                `/external_services/${encodeURIComponent(asId)}/health`
             );
 
             return {
@@ -217,9 +229,9 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         try {
-            const response = await this.client.http.authedRequest<any>(
+            const response = await this.adminRequest<any>(
                 Method.Post,
-                `${AdminPrefix.V1}/external_services/${encodeURIComponent(asId)}/health/check`
+                `/external_services/${encodeURIComponent(asId)}/health/check`
             );
 
             return {
@@ -242,9 +254,9 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         try {
-            await this.client.http.authedRequest(
+            await this.adminRequest(
                 Method.Delete,
-                `${AdminPrefix.V1}/external_services/${encodeURIComponent(asId)}`
+                `/external_services/${encodeURIComponent(asId)}`
             );
 
             this.servicesCache.delete(asId);
@@ -262,9 +274,9 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async getAllHealthStatus(): Promise<IExternalServiceHealth[]> {
         try {
-            const response = await this.client.http.authedRequest<any[]>(
+            const response = await this.adminRequest<any[]>(
                 Method.Get,
-                `${AdminPrefix.V1}/external_services/health`
+                "/external_services/health"
             );
 
             return response.map(s => ({

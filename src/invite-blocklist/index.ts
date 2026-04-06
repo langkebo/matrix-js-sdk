@@ -30,7 +30,7 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
-import { MatrixClient } from "../client.ts";
+import { MatrixClient } from "../client";
 
 export enum InviteBlocklistEvent {
     BlocklistUpdated = "BlocklistUpdated",
@@ -84,7 +84,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
         try {
             const response = await this.client.http.authedRequest<IBlocklistResponse>(
                 Method.Get,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
+                `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -115,7 +115,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
+                `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
                 undefined,
                 { user_ids: userIds },
                 { prefix: ClientPrefix.V3 }
@@ -172,7 +172,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
         try {
             const response = await this.client.http.authedRequest<IAllowlistResponse>(
                 Method.Get,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
+                `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 }
@@ -203,7 +203,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
         try {
             await this.client.http.authedRequest(
                 Method.Post,
-                `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
+                `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
                 undefined,
                 { user_ids: userIds },
                 { prefix: ClientPrefix.V3 }
