@@ -218,6 +218,7 @@ export class SyncApi {
     private failedSyncCount = 0; // Number of consecutive failed /sync requests
     private storeIsInvalid = false; // flag set if the store needs to be cleared before we can start
     private presence?: SetPresence;
+    private peekPollRetryCount = 0; // Number of consecutive peek poll failures
 
     /**
      * Construct an entity which is able to sync with a homeserver.
@@ -543,15 +544,32 @@ export class SyncApi {
                         .map(this.client.getEventMapper());
 
                     await peekRoom.addLiveEvents(events, { addToState: true });
+                    this.peekPollRetryCount = 0; // Reset on success
                     this.peekPoll(peekRoom, res.end);
                 },
                 (err) => {
                     this.syncOpts.logger.error("[%s] Peek poll failed: %s", peekRoom.roomId, err);
+                    this.peekPollRetryCount++;
+                    const delay = this.calculatePeekPollDelay();
                     setTimeout(() => {
                         this.peekPoll(peekRoom, token);
-                    }, 30 * 1000);
+                    }, delay);
                 },
             );
+    }
+
+    /**
+     * Calculate peek poll delay with exponential backoff
+     * @returns Delay in milliseconds
+     */
+    private calculatePeekPollDelay(): number {
+        // Base delay: 30 seconds
+        // Max delay: 5 minutes
+        // Exponential backoff: 30s, 60s, 120s, 240s, 300s (max)
+        const baseDelay = 30 * 1000;
+        const maxDelay = 5 * 60 * 1000;
+        const delay = Math.min(baseDelay * Math.pow(2, this.peekPollRetryCount - 1), maxDelay);
+        return delay;
     }
 
     /**
@@ -1622,9 +1640,10 @@ export class SyncApi {
                         this.keepAliveTimer = setTimeout(success, 2000);
                     } else {
                         connDidFail = true;
+                        const retryDelay = this.calculateKeepAliveRetryDelay();
                         this.keepAliveTimer = setTimeout(
                             this.pokeKeepAlive.bind(this, connDidFail),
-                            5000 + Math.floor(Math.random() * 5000),
+                            retryDelay,
                         );
                         // A keepalive has failed, so we emit the
                         // error state (whether or not this is the
@@ -1636,6 +1655,23 @@ export class SyncApi {
                     }
                 },
             );
+    }
+
+    /**
+     * Calculate keep-alive retry delay with exponential backoff
+     * @returns Delay in milliseconds
+     */
+    private calculateKeepAliveRetryDelay(): number {
+        // Exponential backoff based on failedSyncCount
+        // Base: 5s, Max: 60s
+        // 5s, 10s, 20s, 40s, 60s (max)
+        const baseDelay = 5000;
+        const maxDelay = 60 * 1000;
+        const exponentialDelay = baseDelay * Math.pow(2, this.failedSyncCount);
+        const delay = Math.min(exponentialDelay, maxDelay);
+        // Add jitter (0-5s) to prevent thundering herd
+        const jitter = Math.floor(Math.random() * 5000);
+        return delay + jitter;
     }
 
     private mapSyncResponseToRoomArray<T extends ILeftRoom | IJoinedRoom | IInvitedRoom | IKnockedRoom>(
