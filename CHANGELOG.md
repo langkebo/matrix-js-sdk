@@ -28,6 +28,59 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 - **测试总数**: 3610 → 3619 个测试 (+9)
 - **整体覆盖率**: 71.37% → 71.38% (lines)
 
+#### Documentation
+
+- **迁移指南** (`docs/MIGRATION_GUIDE.md`)
+  - 详细的 API 迁移说明
+  - 31 个废弃方法的替代方案
+  - 代码示例和最佳实践
+  - 迁移检查清单
+
+- **重构计划** (`docs/CLIENT_REFACTOR_PLAN.md`)
+  - client.ts 长期重构路线图
+  - 8 个阶段的详细计划
+  - 风险评估和缓解措施
+  - 预计 12-18 个月完成
+
+#### Deprecation Notice
+
+以下方法已标记为 @deprecated，将在 v41.0.0 移除：
+
+**Profile 管理** (5 个方法):
+- `setProfileInfo()` → 使用 `getProfileManager().setProfileInfo()`
+- `setDisplayName()` → 使用 `getProfileManager().setDisplayName()`
+- `setAvatarUrl()` → 使用 `getProfileManager().setAvatarUrl()`
+- `getProfileInfo()` → 使用 `getProfileManager().getProfileInfo()`
+- `mxcUrlToHttp()` → 使用 `getProfileManager().mxcUrlToHttp()`
+
+**Presence 管理** (2 个方法):
+- `setPresence()` → 使用 `getPresenceManager().setPresence()`
+- `getPresence()` → 使用 `getPresenceManager().getPresence()`
+
+**Device 管理** (7 个方法):
+- `getDevices()` → 使用 `getDeviceManager().getDevices()`
+- `getDevice()` → 使用 `getDeviceManager().getDevice()`
+- `setDeviceDetails()` → 使用 `getDeviceManager().updateDevice()`
+- `deleteDevice()` → 使用 `getDeviceManager().deleteDevice()`
+- `deleteMultipleDevices()` → 使用 `getDeviceManager().deleteDevices()`
+
+**Push 管理** (8 个方法):
+- `getPushers()` → 使用 `getPushManager().getPushers()`
+- `setPusher()` → 使用 `getPushManager().setPusher()`
+- `removePusher()` → 使用 `getPushManager().removePusher()`
+- `getPushRules()` → 使用 `getPushManager().getPushRules()`
+- `addPushRule()` → 使用 `getPushManager().addPushRule()`
+- `deletePushRule()` → 使用 `getPushManager().deletePushRule()`
+- `setPushRuleEnabled()` → 使用 `getPushManager().setPushRuleEnabled()`
+- `setPushRuleActions()` → 使用 `getPushManager().setPushRuleActions()`
+
+**Room Summary 管理** (3 个方法):
+- `getRoomSummary()` → 使用 `getRoomSummaryManager().getRoomSummary()`
+- `getRoomSummaryMembers()` → 使用 `getRoomSummaryManager().getRoomSummaryMembers()`
+- `getRoomSummaryStats()` → 使用 `getRoomSummaryManager().getRoomSummaryStats()`
+
+> **迁移时间表**: 这些方法将在 v41.0.0 (预计 2026 Q3) 移除。请参考 `docs/MIGRATION_GUIDE.md` 进行迁移。
+
 ### 2026-04-06
 
 #### Code Quality
