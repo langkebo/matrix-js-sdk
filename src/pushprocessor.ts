@@ -756,7 +756,7 @@ export class PushProcessor {
     }
 
     private matchingRuleForEventWithRulesets(ev: MatrixEvent, rulesets?: IPushRules): IAnnotatedPushRule | null {
-        if (!rulesets) {
+        if (!rulesets?.global) {
             return null;
         }
 

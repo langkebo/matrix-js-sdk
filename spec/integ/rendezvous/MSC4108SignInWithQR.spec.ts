@@ -41,6 +41,10 @@ function makeMockClient(opts: { userId: string; deviceId: string; msc4108Enabled
     const crypto = {
         exportSecretsForQrLogin: vi.fn(),
     };
+    const deviceManager = {
+        getDevice: vi.fn(),
+        getDevices: vi.fn(),
+    };
     const client = {
         doesServerSupportUnstableFeature(feature: string) {
             return Promise.resolve(opts.msc4108Enabled && feature === "org.matrix.msc4108");
@@ -56,6 +60,7 @@ function makeMockClient(opts: { userId: string; deviceId: string; msc4108Enabled
         getDevice: vi.fn(),
         getCrypto: vi.fn(() => crypto),
         getAuthMetadata: vi.fn().mockResolvedValue(makeDelegatedAuthConfig("https://issuer/", [DEVICE_CODE_SCOPE])),
+        getDeviceManager: () => deviceManager,
     } as unknown as MatrixClient;
     client.http = new MatrixHttpApi<IHttpOpts & { onlyData: true }>(client, {
         baseUrl: client.baseUrl,
