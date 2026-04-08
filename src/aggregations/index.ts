@@ -14,51 +14,50 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Aggregations Manager - 聚合管理
- * 
- * 提供消息聚合相关功能
- */
-
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+import { MatrixEvent } from "../models/event";
+
+export interface IAggregation {
+    relationType: string;
+    events: MatrixEvent[];
+    count: number;
+}
 
 export class AggregationsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get aggregations
-     */
-    public getAggregations(roomId: string, eventId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAggregations(roomId, eventId);
+    public getAggregations(roomId: string, eventId: string): IAggregation[] {
+        const room = this.client.getRoom(roomId);
+        if (!room) return [];
+        
+        const relations = (room as any).getRelationsForEvent?.(eventId);
+        if (!relations) return [];
+        
+        return Object.entries(relations).map(([relationType, events]) => ({
+            relationType,
+            events: events as MatrixEvent[],
+            count: (events as MatrixEvent[]).length,
+        }));
     }
 
-    /**
-     * Get aggregation
-     */
-    public getAggregation(roomId: string, eventId: string, relationType: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAggregation(roomId, eventId, relationType);
+    public getAggregation(roomId: string, eventId: string, relationType: string): IAggregation | null {
+        const aggregations = this.getAggregations(roomId, eventId);
+        return aggregations.find(a => a.relationType === relationType) || null;
     }
 
-    /**
-     * Has aggregation
-     */
     public hasAggregation(roomId: string, eventId: string, relationType: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasAggregation(roomId, eventId, relationType);
+        return this.getAggregation(roomId, eventId, relationType) !== null;
     }
 
-    /**
-     * Add aggregation
-     */
-    public addAggregation(roomId: string, eventId: string, aggregation: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).addAggregation(roomId, eventId, aggregation);
+    public addAggregation(roomId: string, eventId: string, aggregation: IAggregation): void {
+        const room = this.client.getRoom(roomId);
+        if (room && (room as any).addAggregation) {
+            (room as any).addAggregation(eventId, aggregation);
+        }
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getAggregationsManager(): AggregationsManager;

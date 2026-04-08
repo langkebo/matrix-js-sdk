@@ -14,59 +14,50 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Threading Manager - 线程管理
- * 
- * 提供线程相关功能
- */
-
 import { MatrixClient } from "../client";
+import { Thread } from "../models/thread";
 
 export class ThreadingManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get thread
-     */
-    public getThread(threadId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getThread(threadId);
+    public getThread(threadId: string): Thread | null {
+        const rooms = this.client.getRooms();
+        for (const room of rooms) {
+            const thread = room.getThread?.(threadId);
+            if (thread) return thread;
+        }
+        return null;
     }
 
-    /**
-     * Get thread list
-     */
-    public getThreadList(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getThreadList();
+    public getThreadList(): Thread[] {
+        const threads: Thread[] = [];
+        const rooms = this.client.getRooms();
+        for (const room of rooms) {
+            const roomThreads = room.getThreads?.() || [];
+            threads.push(...roomThreads);
+        }
+        return threads;
     }
 
-    /**
-     * Get threads
-     */
-    public getThreads(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getThreads();
+    public getThreads(): Thread[] {
+        return this.getThreadList();
     }
 
-    /**
-     * Has thread
-     */
     public hasThread(threadId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasThread(threadId);
+        return this.getThread(threadId) !== null;
     }
 
-    /**
-     * Create thread
-     */
-    public async createThread(roomId: string, eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).createThread(roomId, eventId);
+    public async createThread(roomId: string, eventId: string): Promise<Thread | null> {
+        const room = this.client.getRoom(roomId);
+        if (!room) return null;
+        
+        const event = room.findEventById(eventId);
+        if (!event) return null;
+        
+        return room.createThread?.(eventId, event, [], false) || null;
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getThreadingManager(): ThreadingManager;

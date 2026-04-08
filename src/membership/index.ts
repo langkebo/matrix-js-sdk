@@ -14,83 +14,51 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Membership Manager - 成员资格管理
- * 
- * 提供房间成员资格相关功能
- */
-
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+import { RoomMember } from "../models/room-member";
 
 export class MembershipManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get room members
-     */
-    public getRoomMembers(roomId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomMembers(roomId);
+    public getRoomMembers(roomId: string): RoomMember[] {
+        const room = this.client.getRoom(roomId);
+        return room?.getJoinedMembers() || [];
     }
 
-    /**
-     * Get invited rooms
-     */
-    public getInvitedRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getInvitedRooms();
+    public getInvitedRooms(): Room[] {
+        return this.client.getRooms().filter(r => r.getMyMembership() === 'invite');
     }
 
-    /**
-     * Get joined rooms
-     */
-    public getJoinedRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getJoinedRooms();
+    public async getJoinedRooms(): Promise<Room[]> {
+        return this.client.getRooms().filter(r => r.getMyMembership() === 'join');
     }
 
-    /**
-     * Get left rooms
-     */
-    public getLeftRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getLeftRooms();
+    public getLeftRooms(): Room[] {
+        return this.client.getRooms().filter(r => r.getMyMembership() === 'leave');
     }
 
-    /**
-     * Is room joined
-     */
     public isRoomJoined(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isRoomJoined(roomId);
+        const room = this.client.getRoom(roomId);
+        return room?.getMyMembership() === 'join';
     }
 
-    /**
-     * Is room invited
-     */
     public isRoomInvited(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isRoomInvited(roomId);
+        const room = this.client.getRoom(roomId);
+        return room?.getMyMembership() === 'invite';
     }
 
-    /**
-     * Is room left
-     */
     public isRoomLeft(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isRoomLeft(roomId);
+        const room = this.client.getRoom(roomId);
+        return room?.getMyMembership() === 'leave';
     }
 
-    /**
-     * Get member
-     */
-    public getMember(roomId: string, userId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getMember(roomId, userId);
+    public getMember(roomId: string, userId: string): RoomMember | null {
+        const room = this.client.getRoom(roomId);
+        return room?.getMember(userId) || null;
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getMembershipManager(): MembershipManager;
