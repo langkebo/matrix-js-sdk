@@ -18,6 +18,7 @@ import { MsgType } from "./@types/event.ts";
 import { type IMessageRendering, M_TEXT } from "./@types/extensible_events.ts";
 import { type MRoomTopicEventContent, type MTopicContent, M_TOPIC, type MTopicEvent } from "./@types/topic.ts";
 import { type RoomMessageEventContent } from "./@types/events.ts";
+import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types/beacon.ts";
 
 /**
  * Utility to check if a value is provided (not null or undefined)
@@ -143,4 +144,44 @@ export const parseTopicContent = (content: MRoomTopicEventContent): TopicState =
         mtopic?.find((r) => !isProvided(r.mimetype) || r.mimetype === "text/plain")?.body ?? content.topic ?? undefined;
     const html = mtopic?.find((r) => r.mimetype === "text/html")?.body;
     return { text, html };
+};
+
+/**
+ * Beacon event helpers
+ */
+
+export interface BeaconInfoState {
+    description?: string;
+    timeout: number;
+    live?: boolean;
+    timestamp?: number;
+    assetType?: string;
+}
+
+export interface BeaconLocationState {
+    uri?: string;
+    description?: string;
+    timestamp?: number;
+}
+
+export const parseBeaconInfoContent = (content: MBeaconInfoEventContent): BeaconInfoState => {
+    const ts = (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
+    const asset = (content as Record<string, unknown>)["org.matrix.msc3488.asset"] ?? (content as Record<string, unknown>)["m.asset"];
+    return {
+        description: content.description,
+        timeout: content.timeout,
+        live: content.live,
+        timestamp: ts as number | undefined,
+        assetType: (asset as { type?: string })?.type,
+    };
+};
+
+export const parseBeaconContent = (content: MBeaconEventContent): BeaconLocationState => {
+    const location = (content as Record<string, unknown>)["org.matrix.msc3488.location"] ?? (content as Record<string, unknown>)["m.location"];
+    const ts = (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
+    return {
+        uri: (location as { uri?: string })?.uri,
+        description: (location as { description?: string })?.description,
+        timestamp: ts as number | undefined,
+    };
 };

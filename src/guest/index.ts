@@ -195,9 +195,12 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 return false;
             }
 
-            const profile = await this.client.getProfileManager().getProfileInfo(targetUserId);
+            if (this.client.getProfileManager) {
+                const profile = await this.client.getProfileManager().getProfileInfo(targetUserId);
+                return profile?.is_guest === true;
+            }
             
-            return profile?.is_guest === true;
+            return false;
         } catch (e) {
             logger.warn('GuestManager.isGuest failed:', e);
             return false;

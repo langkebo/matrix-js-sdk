@@ -838,7 +838,9 @@ export class SlidingSyncSdk {
                     displayname: user.displayName,
                 });
             } else {
-                promise = client.getProfileManager().getProfileInfo(member.userId);
+                promise = client.getProfileManager ?
+                    client.getProfileManager().getProfileInfo(member.userId) :
+                    client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(Method.Get, `/profile/${encodeURIComponent(member.userId)}`);
             }
             promise.then(
                 function (info) {
@@ -871,26 +873,26 @@ export class SlidingSyncSdk {
      */
     public async sync(): Promise<void> {
         this.syncOpts.logger.debug("Sliding sync init loop");
-        console.log("[SlidingSyncSdk] sync() called, isGuest:", this.client.isGuest());
+        this.syncOpts.logger.info("[SlidingSyncSdk] sync() called, isGuest:", this.client.isGuest());
 
         //   1) We need to get push rules so we can check if events should bing as we get
         //      them from /sync.
         while (!this.client.isGuest()) {
             try {
                 this.syncOpts.logger.debug("Getting push rules...");
-                console.log("[SlidingSyncSdk] Getting push rules, hasGetPushManager:", !!this.client.getPushManager);
+                this.syncOpts.logger.info("[SlidingSyncSdk] Getting push rules, hasGetPushManager:", !!this.client.getPushManager);
                 const result = this.client.getPushManager ?
                     await this.client.getPushManager().getPushRules() :
                     await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
                 this.syncOpts.logger.debug("Got push rules");
-                console.log("[SlidingSyncSdk] Got push rules successfully");
+                this.syncOpts.logger.info("[SlidingSyncSdk] Got push rules successfully");
                 this.client.pushRules = result;
                 break;
             } catch (err) {
                 this.syncOpts.logger.error("Getting push rules failed", err);
-                console.error("[SlidingSyncSdk] Getting push rules failed:", err);
+                this.syncOpts.logger.error("[SlidingSyncSdk] Getting push rules failed:", err);
                 if (this.shouldAbortSync(<MatrixError>err)) {
-                    console.log("[SlidingSyncSdk] Aborting sync due to error");
+                    this.syncOpts.logger.info("[SlidingSyncSdk] Aborting sync due to error");
                     return;
                 }
             }

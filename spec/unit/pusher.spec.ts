@@ -17,6 +17,7 @@ limitations under the License.
 import MockHttpBackend from "matrix-mock-request";
 
 import { MatrixClient, PUSHER_ENABLED } from "../../src/matrix";
+import { extendMatrixClient } from "../../src/push/index";
 import { mkPusher } from "../test-utils/test-utils";
 
 const realSetTimeout = setTimeout;
@@ -31,6 +32,9 @@ let httpBackend: MockHttpBackend;
 
 describe("Pushers", () => {
     beforeEach(() => {
+        // Extend MatrixClient with PushManager
+        extendMatrixClient();
+
         httpBackend = new MockHttpBackend();
         client = new MatrixClient({
             baseUrl: "https://my.home.server",

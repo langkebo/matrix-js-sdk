@@ -24,21 +24,23 @@ describe("GlobalLogoutManager", () => {
         http: {
             authedRequest: ReturnType<typeof vi.fn>;
         };
-        getDevices: ReturnType<typeof vi.fn>;
+        getDeviceManager: ReturnType<typeof vi.fn>;
         deviceId: string;
     };
 
     beforeEach(() => {
+        const mockDeviceManager = {
+            getDevices: vi.fn().mockResolvedValue([
+                { device_id: "DEVICE_1", display_name: "Device 1" },
+                { device_id: "DEVICE_2", display_name: "Device 2" },
+            ]),
+        };
+
         mockClient = {
             http: {
                 authedRequest: vi.fn().mockResolvedValue({}),
             },
-            getDevices: vi.fn().mockResolvedValue({
-                devices: [
-                    { device_id: "DEVICE_1", display_name: "Device 1" },
-                    { device_id: "DEVICE_2", display_name: "Device 2" },
-                ],
-            }),
+            getDeviceManager: vi.fn().mockReturnValue(mockDeviceManager),
             deviceId: "DEVICE_1",
         };
         manager = new GlobalLogoutManager(mockClient as any);
@@ -59,7 +61,7 @@ describe("GlobalLogoutManager", () => {
         it("should return list of devices", async () => {
             const devices = await manager.getActiveSessions();
 
-            expect(mockClient.getDevices).toHaveBeenCalled();
+            expect(mockClient.getDeviceManager).toHaveBeenCalled();
             expect(devices).toHaveLength(2);
             expect(devices[0].deviceId).toBe("DEVICE_1");
         });
@@ -88,9 +90,12 @@ describe("GlobalLogoutManager", () => {
         });
 
         it("should not call http if only one device", async () => {
-            mockClient.getDevices.mockResolvedValueOnce({
-                devices: [{ device_id: "DEVICE_1", display_name: "Device 1" }],
-            });
+            const mockDeviceManager = {
+                getDevices: vi.fn().mockResolvedValue([
+                    { device_id: "DEVICE_1", display_name: "Device 1" },
+                ]),
+            };
+            mockClient.getDeviceManager.mockReturnValueOnce(mockDeviceManager);
 
             await manager.logoutOtherDevices();
 

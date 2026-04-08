@@ -72,6 +72,8 @@ export * from "./@types/read_receipts";
 export type * from "./@types/crypto";
 export type * from "./@types/IIdentityServerProvider";
 export * from "./@types/membership";
+export * from "./@types/beacon";
+export * from "./@types/location";
 export * from "./models/room-summary";
 export * from "./models/event-status";
 export * from "./models/profile-keys";
@@ -102,6 +104,9 @@ export {
 export { FriendManager } from "./friend";
 export { KeyVerificationManager } from "./key-verification";
 export { RoomSummaryManager } from "./room-summary";
+export { BeaconManager } from "./beacon";
+export { Beacon, BeaconEvent, getBeaconInfoIdentifier } from "./models/beacon";
+export type { BeaconIdentifier, BeaconEventHandlerMap } from "./models/beacon";
 export type {
     RoomSummaryMember,
     RoomStats,

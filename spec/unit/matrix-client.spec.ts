@@ -412,6 +412,12 @@ describe("MatrixClient", function () {
 
     describe("mxcUrlToHttp", () => {
         it("should call getHttpUriForMxc", () => {
+            // Mock ProfileManager
+            (client as any).getProfileManager = vi.fn().mockReturnValue({
+                mxcUrlToHttp: (mxc: string, width?: number, height?: number, resizeMethod?: string, allowDirectLinks?: boolean, allowRedirects?: boolean, useAuthentication?: boolean) =>
+                    getHttpUriForMxc(client.baseUrl, mxc, width, height, resizeMethod, allowDirectLinks, allowRedirects, useAuthentication)
+            });
+
             const mxc = "mxc://server/example";
             expect(client.getProfileManager().mxcUrlToHttp(mxc)).toBe(getHttpUriForMxc(client.baseUrl, mxc));
             expect(client.getProfileManager().mxcUrlToHttp(mxc, 32)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32));
@@ -1873,6 +1879,13 @@ describe("MatrixClient", function () {
 
     describe("getPresence", function () {
         it("should send a presence HTTP GET", function () {
+            // Mock PresenceManager
+            (client as any).getPresenceManager = vi.fn().mockReturnValue({
+                getPresence: (userId: string) => {
+                    return client.http.authedRequest(Method.Get, `/presence/${encodeURIComponent(userId)}/status`);
+                }
+            });
+
             httpLookups = [
                 {
                     method: "GET",
@@ -3824,6 +3837,14 @@ describe("MatrixClient", function () {
             beforeEach(() => {
                 makeClient();
 
+                // Set push rules on client so pushProcessor can use them
+                client.pushRules = pushRules as any;
+
+                // Mock PushManager
+                (client as any).getPushManager = vi.fn().mockReturnValue({
+                    getPushRules: vi.fn().mockResolvedValue(pushRules)
+                });
+
                 // this is how notif timeline is set up in react-sdk
                 const notifTimelineSet = new EventTimelineSet(undefined, {
                     timelineSupport: true,
@@ -3833,9 +3854,6 @@ describe("MatrixClient", function () {
                 client.setNotifTimelineSet(notifTimelineSet);
 
                 setNotifsResponse();
-
-                // Mock push rules - PushManager doesn't have setPushRules, it fetches from server
-                vi.spyOn(client.getPushManager(), 'getPushRules').mockResolvedValue(pushRules);
             });
 
             it("should throw when trying to paginate forwards", () => {
@@ -3909,6 +3927,21 @@ describe("MatrixClient", function () {
 
         beforeEach(() => {
             makeClient();
+
+            // Mock PushManager
+            (client as any).getPushManager = vi.fn().mockReturnValue({
+                setPusher: (pusher: any) => {
+                    return client.http.authedRequest(Method.Post, "/pushers/set", undefined, pusher);
+                },
+                removePusher: (pushkey: string, app_id: string) => {
+                    return client.http.authedRequest(Method.Post, "/pushers/set", undefined, {
+                        pushkey,
+                        app_id,
+                        kind: null,
+                    });
+                }
+            });
+
             const response: HttpLookup = {
                 method: Method.Post,
                 path: "/pushers/set",

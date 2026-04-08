@@ -24,20 +24,22 @@ describe("SecurityManager", () => {
         http: {
             authedRequest: ReturnType<typeof vi.fn>;
         };
-        getDevices: ReturnType<typeof vi.fn>;
+        getDeviceManager: ReturnType<typeof vi.fn>;
     };
 
     beforeEach(() => {
+        const mockDeviceManager = {
+            getDevices: vi.fn().mockResolvedValue([
+                { device_id: "DEVICE_1", display_name: "Device 1" },
+                { device_id: "DEVICE_2", display_name: "Device 2" },
+            ]),
+        };
+
         mockClient = {
             http: {
                 authedRequest: vi.fn(),
             },
-            getDevices: vi.fn().mockResolvedValue({
-                devices: [
-                    { device_id: "DEVICE_1", display_name: "Device 1" },
-                    { device_id: "DEVICE_2", display_name: "Device 2" },
-                ],
-            }),
+            getDeviceManager: vi.fn().mockReturnValue(mockDeviceManager),
         };
         manager = new SecurityManager(mockClient as any);
     });
@@ -143,7 +145,10 @@ describe("SecurityManager", () => {
         });
 
         it("should return isSecure false when no devices", async () => {
-            mockClient.getDevices.mockResolvedValueOnce({ devices: [] });
+            const mockDeviceManager = {
+                getDevices: vi.fn().mockResolvedValue([]),
+            };
+            mockClient.getDeviceManager.mockReturnValueOnce(mockDeviceManager);
 
             const result = await manager.checkSessionSecurity();
 

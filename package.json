@@ -78,6 +78,10 @@
             "import": "./lib/admin/index.js",
             "types": "./lib/admin/index.d.ts"
         },
+        "./beacon": {
+            "import": "./lib/beacon/index.js",
+            "types": "./lib/beacon/index.d.ts"
+        },
         "./cache": {
             "import": "./lib/cache/index.js",
             "types": "./lib/cache/index.d.ts"

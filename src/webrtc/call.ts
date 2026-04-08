@@ -51,6 +51,7 @@ import { EventEmitterEvents, TypedEventEmitter } from "../models/typed-event-emi
 import { GroupCallUnknownDeviceError } from "./groupCall.ts";
 import { type IScreensharingOpts } from "./mediaHandler.ts";
 import { MatrixError } from "../http-api/index.ts";
+import { Method } from "../http-api/method.ts";
 import { type GroupCallStats } from "./stats/groupCallStats.ts";
 
 interface CallOpts {
@@ -2605,7 +2606,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     public async transfer(targetUserId: string): Promise<void> {
         // Fetch the target user's global profile info: their room avatar / displayname
         // could be different in whatever room we share with them.
-        const profileInfo = await this.client.getProfileManager().getProfileInfo(targetUserId);
+        const profileInfo = this.client.getProfileManager ?
+            await this.client.getProfileManager().getProfileInfo(targetUserId) :
+            await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(Method.Get, `/profile/${encodeURIComponent(targetUserId)}`);
 
         const replacementId = genCallID();
 
@@ -2630,9 +2633,17 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
      */
     public async transferToCall(transferTargetCall: MatrixCall): Promise<void> {
         const targetUserId = transferTargetCall.getOpponentMember()?.userId;
-        const targetProfileInfo = targetUserId ? await this.client.getProfileManager().getProfileInfo(targetUserId) : undefined;
+        const targetProfileInfo = targetUserId ? (
+            this.client.getProfileManager ?
+                await this.client.getProfileManager().getProfileInfo(targetUserId) :
+                await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(Method.Get, `/profile/${encodeURIComponent(targetUserId)}`)
+        ) : undefined;
         const opponentUserId = this.getOpponentMember()?.userId;
-        const transfereeProfileInfo = opponentUserId ? await this.client.getProfileManager().getProfileInfo(opponentUserId) : undefined;
+        const transfereeProfileInfo = opponentUserId ? (
+            this.client.getProfileManager ?
+                await this.client.getProfileManager().getProfileInfo(opponentUserId) :
+                await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(Method.Get, `/profile/${encodeURIComponent(opponentUserId)}`)
+        ) : undefined;
 
         const newCallId = genCallID();
 

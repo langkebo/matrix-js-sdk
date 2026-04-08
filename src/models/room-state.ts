@@ -26,6 +26,8 @@ import { TypedReEmitter } from "../ReEmitter.ts";
 import { KnownMembership } from "../@types/membership.ts";
 import { type RoomJoinRulesEventContent } from "../@types/state_events.ts";
 import { shouldUseHydraForRoomVersion } from "../utils/roomVersion.ts";
+import { Beacon, BeaconEvent, getBeaconInfoIdentifier, type BeaconIdentifier } from "./beacon.ts";
+import { M_BEACON, M_BEACON_INFO } from "../@types/beacon.ts";
 
 export interface IMarkerFoundOptions {
     /** Whether the timeline was empty before the marker event arrived in the
@@ -162,6 +164,12 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
 
     // We only wants to print warnings about bad room state once.
     private getVersionWarning = false;
+
+    /**
+     * Beacons tracked by this room state
+     * Map from beacon identifier to Beacon
+     */
+    public beacons = new Map<BeaconIdentifier, Beacon>();
 
     /**
      * Construct room state.
@@ -1056,6 +1064,65 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
             const arr = this.displayNameToUserIds.get(strippedDisplayname) ?? [];
             arr.push(userId);
             this.displayNameToUserIds.set(strippedDisplayname, arr);
+        }
+    }
+
+    /**
+     * Process beacon events and update beacons map
+     * @param events - beacon events to process
+     * @param client - the matrix client
+     */
+    public processBeaconEvents(events: MatrixEvent[], client: MatrixClient): void {
+        if (!events?.length) return;
+
+        for (const event of events) {
+            const eventType = event.getType();
+
+            // Process beacon info events (m.beacon_info)
+            if (M_BEACON_INFO.matches(eventType) && event.isState()) {
+                this.processBeaconInfoEvent(event, client);
+            }
+            // Process beacon location events (m.beacon)
+            else if (M_BEACON.matches(eventType)) {
+                this.processBeaconLocationEvent(event);
+            }
+        }
+    }
+
+    private processBeaconInfoEvent(event: MatrixEvent, client: MatrixClient): void {
+        const beaconIdentifier = getBeaconInfoIdentifier(event);
+        const existingBeacon = this.beacons.get(beaconIdentifier);
+
+        if (existingBeacon) {
+            // Update existing beacon
+            existingBeacon.update(event);
+        } else {
+            // Create new beacon
+            const beacon = new Beacon(event);
+            beacon.on(BeaconEvent.Destroy, () => {
+                this.beacons.delete(beaconIdentifier);
+            });
+            beacon.on(BeaconEvent.LivenessChange, (isLive) => {
+                client.emit(BeaconEvent.LivenessChange, isLive, beacon);
+            });
+            this.beacons.set(beaconIdentifier, beacon);
+            beacon.monitorLiveness();
+            client.emit(BeaconEvent.New, event, beacon);
+        }
+    }
+
+    private processBeaconLocationEvent(event: MatrixEvent): void {
+        // Find the beacon this location belongs to
+        const content = event.getContent();
+        const beaconInfoEventId = content?.["m.beacon_info"] ?? content?.["org.matrix.msc3488.beacon_info"];
+        if (!beaconInfoEventId) return;
+
+        // Find the beacon by looking for one with matching beacon info event ID
+        for (const beacon of this.beacons.values()) {
+            if (beacon.beaconInfoId === beaconInfoEventId) {
+                beacon.addLocations([event]);
+                break;
+            }
         }
     }
 }

@@ -83,6 +83,7 @@ import { getHttpUriForMxc } from "./content-repo.ts";
 import { SearchResult } from "./models/search-result.ts";
 import { type IIdentityServerProvider } from "./@types/IIdentityServerProvider.ts";
 import { type MatrixScheduler } from "./scheduler.ts";
+import { type BeaconEvent, type BeaconEventHandlerMap } from "./models/beacon.ts";
 import { type AuthDict } from "./interactive-auth.ts";
 import {
     type IMinimalEvent,
@@ -218,6 +219,7 @@ import { IgnoredInvites } from "./models/invites-ignorer.ts";
 import { type UIARequest } from "./@types/uia.ts";
 import { type LocalNotificationSettings } from "./@types/local_notifications.ts";
 import { buildFeatureSupportMap, Feature, ServerSupport } from "./feature.ts";
+import { M_BEACON_INFO, type MBeaconInfoEventContent } from "./@types/beacon.ts";
 import { type CryptoBackend } from "./common-crypto/CryptoBackend.ts";
 import { RUST_SDK_STORE_PREFIX } from "./rust-crypto/constants.ts";
 import {
@@ -1350,7 +1352,8 @@ export type EmittedEvents =
     | GroupCallEventHandlerEvent.Ended
     | GroupCallEventHandlerEvent.Participants
     | HttpApiEvent.SessionLoggedOut
-    | HttpApiEvent.NoConsent;
+    | HttpApiEvent.NoConsent
+    | BeaconEvent;
 
 export type ClientEventHandlerMap = {
     [ClientEvent.Sync]: (state: SyncState, prevState: SyncState | null, data?: ISyncStateData) => void;
@@ -1374,7 +1377,8 @@ export type ClientEventHandlerMap = {
     CallEventHandlerEventHandlerMap &
     GroupCallEventHandlerEventHandlerMap &
     CallEventHandlerMap &
-    HttpApiEventHandlerMap;
+    HttpApiEventHandlerMap &
+    BeaconEventHandlerMap;
 
 const SSO_ACTION_PARAM = new UnstableValue("action", "org.matrix.msc3824.action");
 
@@ -2857,6 +2861,30 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
      */
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    public async unstable_createLiveBeacon(
+        roomId: Room["roomId"],
+        beaconInfoContent: MBeaconInfoEventContent,
+    ): Promise<ISendEventResponse> {
+        return this.unstable_setLiveBeacon(roomId, beaconInfoContent);
+    }
+
+    /**
+     * Upsert a live beacon event
+     * using a specific m.beacon_info.* event variable type
+     * @param roomId - string
+     * @returns
+     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
+     * @see MatrixSafetyError
+     */
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    public async unstable_setLiveBeacon(
+        roomId: string,
+        beaconInfoContent: MBeaconInfoEventContent,
+    ): Promise<ISendEventResponse> {
+        return this.sendStateEvent(roomId, M_BEACON_INFO.name, beaconInfoContent, this.getUserId()!);
+    }
+
     /**
      * Send a Matrix timeline event.
      * @param roomId The room to send to.
@@ -4552,6 +4580,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     const [timelineEvents, threadedEvents, unknownRelations] =
                         room.partitionThreadedEvents(matrixEvents);
 
+                    this.processAggregatedTimelineEvents(room, timelineEvents);
                     room.addEventsToTimeline(timelineEvents, true, true, room.getLiveTimeline());
                     this.processThreadEvents(room, threadedEvents, true);
                     unknownRelations.forEach((event) => room.relations.aggregateChildEvent(event));
@@ -4690,9 +4719,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         }
 
         const [timelineEvents, threadedEvents, unknownRelations] = timelineSet.room.partitionThreadedEvents(events);
+        this.processAggregatedTimelineEvents(timelineSet.room, timelineEvents);
         timelineSet.addEventsToTimeline(timelineEvents, true, false, timeline, res.start);
         // The target event is not in a thread but process the contextual events, so we can show any threads around it.
         this.processThreadEvents(timelineSet.room, threadedEvents, true);
+        this.processAggregatedTimelineEvents(timelineSet.room, timelineEvents);
         unknownRelations.forEach((event) => timelineSet.relations.aggregateChildEvent(event));
 
         // There is no guarantee that the event ended up in "timeline" (we might have switched to a neighbouring
@@ -4778,6 +4809,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 }
                 timeline.setPaginationToken(resOlder.next_batch ?? null, Direction.Backward);
                 timeline.setPaginationToken(resNewer.next_batch ?? null, Direction.Forward);
+                this.processAggregatedTimelineEvents(timelineSet.room, events);
 
                 // There is no guarantee that the event ended up in "timeline" (we might have switched to a neighbouring
                 // timeline) - so check the room's index again. On the other hand, there's no guarantee the event ended up
@@ -4834,6 +4866,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                 }
                 timeline.setPaginationToken(resOlder.next_batch ?? null, Direction.Backward);
                 timeline.setPaginationToken(null, Direction.Forward);
+                this.processAggregatedTimelineEvents(timelineSet.room, events);
 
                 return timeline;
             }
@@ -5093,6 +5126,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     // in the notification timeline set
                     const timelineSet = eventTimeline.getTimelineSet();
                     timelineSet.addEventsToTimeline(matrixEvents, backwards, false, eventTimeline, token);
+                    this.processAggregatedTimelineEvents(timelineSet.room, matrixEvents);
 
                     // if we've hit the end of the timeline, we need to stop trying to
                     // paginate. We need to keep the 'forwards' token though, to make sure
@@ -5135,6 +5169,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
                     const timelineSet = eventTimeline.getTimelineSet();
                     timelineSet.addEventsToTimeline(matrixEvents, backwards, false, eventTimeline, token);
+                    this.processAggregatedTimelineEvents(room, matrixEvents);
                     this.processThreadRoots(room, matrixEvents, backwards);
 
                     // if we've hit the end of the timeline, we need to stop trying to
@@ -5188,6 +5223,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                             mapper(await this.fetchRoomEvent(eventTimeline.getRoomId() ?? "", thread.id));
                         timelineSet.addEventsToTimeline([originalEvent], true, false, eventTimeline, null);
                     }
+                    this.processAggregatedTimelineEvents(timelineSet.room, matrixEvents);
 
                     // if we've hit the end of the timeline, we need to stop trying to
                     // paginate. We need to keep the 'forwards' token though, to make sure
@@ -5225,6 +5261,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
                     const timelineSet = eventTimeline.getTimelineSet();
                     const [timelineEvents, , unknownRelations] = room.partitionThreadedEvents(matrixEvents);
                     timelineSet.addEventsToTimeline(timelineEvents, backwards, false, eventTimeline, token);
+                    this.processAggregatedTimelineEvents(room, timelineEvents);
                     this.processThreadRoots(
                         room,
                         timelineEvents.filter((it) => it.getServerAggregatedRelation(THREAD_RELATION_TYPE.name)),
@@ -8733,6 +8770,24 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public processThreadRoots(room: Room, threadedEvents: MatrixEvent[], toStartOfTimeline: boolean): void {
         if (!this.supportsThreads()) return;
         room.processThreadRoots(threadedEvents, toStartOfTimeline);
+    }
+
+    public processBeaconEvents(room?: Room, events?: MatrixEvent[]): void {
+        this.processAggregatedTimelineEvents(room, events);
+    }
+
+    /**
+     * Calls aggregation functions for event types that are aggregated
+     * Polls and location beacons
+     * @param room - room the events belong to
+     * @param events - timeline events to be processed
+     * @returns
+     */
+    public processAggregatedTimelineEvents(room?: Room, events?: MatrixEvent[]): void {
+        if (!events?.length) return;
+        if (!room) return;
+
+        room.currentState.processBeaconEvents(events, this);
     }
 
     /**

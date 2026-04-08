@@ -35,8 +35,10 @@ import { AuthError, NotFoundError, RetryableError, ApiError } from "../errors";
 import { logger } from "../logger.ts";
 import { PushRuleKind, PushRuleAction, PushRuleActionName, IPushRule, IPushRules, PushRuleCondition } from "../@types/PushRules";
 import { MatrixError } from "../http-api/errors.ts";
+import { PUSHER_ENABLED } from "../@types/event.ts";
 
 export type { IPushRules } from "../@types/PushRules";
+export { PUSHER_ENABLED } from "../@types/event.ts";
 
 export enum PushEvent {
     PushersUpdated = "PushersUpdated",
@@ -415,7 +417,20 @@ export class PushManager extends TypedEventEmitter<PushEvent, PushManagerEventMa
                 );
             }, 'getPushers');
 
-            const pushers = response?.pushers || [];
+            let pushers = response?.pushers || [];
+
+            // Migration path for clients that connect to a homeserver that does not support
+            // MSC3881 yet, see https://github.com/matrix-org/matrix-spec-proposals/blob/kerry/remote-push-toggle/proposals/3881-remote-push-notification-toggling.md#migration
+            const supportsRemoteToggle = await this.client.doesServerSupportUnstableFeature?.("org.matrix.msc3881");
+            if (!supportsRemoteToggle) {
+                pushers = pushers.map((pusher) => {
+                    if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
+                        (pusher as any)[PUSHER_ENABLED.name] = true;
+                    }
+                    return pusher;
+                });
+            }
+
             this.pushersCache.set("pushers", pushers);
             this.emit(PushEvent.PushersUpdated, pushers);
             return pushers;
@@ -490,14 +505,18 @@ export class PushManager extends TypedEventEmitter<PushEvent, PushManagerEventMa
     // ==================== Push Rules ====================
 
     async getPushRules(forceRefresh = false): Promise<IPushRules> {
+        logger.info("[PushManager] getPushRules() called");
+        
         if (!forceRefresh) {
             const cached = this.pushRulesCache.get("pushRules");
             if (cached) {
+                logger.info("[PushManager] Returning cached push rules");
                 return cached;
             }
         }
 
         try {
+            logger.info("[PushManager] Making HTTP request for push rules, accessToken exists:", !!this.client.http.opts?.accessToken);
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRules>(
                     Method.Get,
@@ -510,8 +529,10 @@ export class PushManager extends TypedEventEmitter<PushEvent, PushManagerEventMa
 
             this.pushRulesCache.set("pushRules", response);
             this.emit(PushEvent.PushRulesUpdated, response);
+            logger.info("[PushManager] getPushRules() succeeded");
             return response;
         } catch (error: unknown) {
+            logger.error("[PushManager] getPushRules() failed:", error);
             this.emit(PushEvent.PushError, this.normalizeError(error, 'getPushRules'));
             throw this.normalizeError(error, 'getPushRules');
         }
