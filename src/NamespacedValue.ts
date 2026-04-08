@@ -71,7 +71,7 @@ export class NamespacedValue<S extends string, U extends string> {
         return val;
     }
 
-    public includedIn(arr: any[]): boolean {
+    public includedIn(arr: unknown[]): boolean {
         let included = false;
         if (this.name) {
             included = arr.includes(this.name);

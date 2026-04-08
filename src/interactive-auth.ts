@@ -68,7 +68,9 @@ export interface IAuthData {
      * For each login type presented, that type may be present as a key in this dictionary.
      * For example, the public part of an OAuth client ID could be given here.
      */
-    params?: Record<string, Record<string, any>>;
+    params?: Record<string, Record<string, unknown>>;
+    // Allow additional properties for extensibility
+    [key: string]: unknown;
 }
 
 export enum AuthType {
@@ -136,7 +138,7 @@ export type AuthDict =
     | PasswordDict
     | RecaptchaDict
     | EmailIdentityDict
-    | { type: Exclude<string, AuthType>; [key: string]: any }
+    | { type: Exclude<string, AuthType>; [key: string]: unknown }
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     | {};
 

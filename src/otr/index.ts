@@ -22,55 +22,60 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IOtrSession {
+    sessionId: string;
+    userId: string;
+    roomId?: string;
+    startedAt: number;
+    isActive: boolean;
+}
+
+export interface IOtrMessage {
+    type: string;
+    content: Record<string, unknown>;
+}
+
+export interface IOtrBeginResponse {
+    session: IOtrSession;
+}
+
 export class OtrManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Begin OTR
-     */
-    public async beginOTR(userId: string, roomId?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).beginOTR(userId, roomId);
+    public async beginOTR(userId: string, roomId?: string): Promise<IOtrBeginResponse> {
+        return (this.client as unknown as {
+            beginOTR: (userId: string, roomId?: string) => Promise<IOtrBeginResponse>;
+        }).beginOTR(userId, roomId);
     }
 
-    /**
-     * End OTR
-     */
-    public async endOTR(userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).endOTR(userId);
+    public async endOTR(userId: string): Promise<void> {
+        return (this.client as unknown as {
+            endOTR: (userId: string) => Promise<void>;
+        }).endOTR(userId);
     }
 
-    /**
-     * Send OTR message
-     */
-    public async sendOTRMessage(userId: string, message: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendOTRMessage(userId, message);
+    public async sendOTRMessage(userId: string, message: IOtrMessage): Promise<void> {
+        return (this.client as unknown as {
+            sendOTRMessage: (userId: string, message: IOtrMessage) => Promise<void>;
+        }).sendOTRMessage(userId, message);
     }
 
-    /**
-     * Is OTR enabled
-     */
     public isOTREnabled(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isOTREnabled();
+        return (this.client as unknown as {
+            isOTREnabled: () => boolean;
+        }).isOTREnabled();
     }
 
-    /**
-     * Set OTR enabled
-     */
     public setOTREnabled(enabled: boolean): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setOTREnabled(enabled);
+        (this.client as unknown as {
+            setOTREnabled: (enabled: boolean) => void;
+        }).setOTREnabled(enabled);
     }
 
-    /**
-     * Get OTR session
-     */
-    public getOTRSession(userId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getOTRSession(userId);
+    public getOTRSession(userId: string): IOtrSession | null {
+        return (this.client as unknown as {
+            getOTRSession: (userId: string) => IOtrSession | null;
+        }).getOTRSession(userId);
     }
 }
 

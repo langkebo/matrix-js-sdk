@@ -23,7 +23,7 @@ type IEventDecryptionResult = EventDecryptionResult;
 export type { IEventDecryptionResult };
 
 interface Extensible {
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 /* eslint-disable camelcase */

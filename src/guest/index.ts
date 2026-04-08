@@ -55,7 +55,7 @@ export interface IGuestLoginResponse {
     refresh_token?: string;
     expires_in?: number;
     well_known?: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
@@ -117,7 +117,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
     async registerGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
         try {
-            const body: Record<string, any> = {
+            const body: Record<string, unknown> = {
                 kind: 'guest',
             };
 
@@ -157,7 +157,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
     async loginGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestLoginResponse> {
         try {
-            const body: Record<string, any> = {
+            const body: Record<string, unknown> = {
                 type: 'm.login.guest',
             };
 
@@ -237,7 +237,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         }
 
         try {
-            const body: Record<string, any> = {
+            const body: Record<string, unknown> = {
                 password,
             };
 
@@ -369,7 +369,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         }
 
         try {
-            const body: Record<string, any> = {
+            const body: Record<string, unknown> = {
                 password: request.password,
             };
 
@@ -401,7 +401,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
     public async registerGuestOnServer(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
         try {
-            const body: Record<string, any> = {};
+            const body: Record<string, unknown> = {};
 
             if (deviceId) {
                 body.device_id = deviceId;

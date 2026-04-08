@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,71 +22,48 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface ILogger {
+    log(...args: unknown[]): void;
+    error(...args: unknown[]): void;
+    warn(...args: unknown[]): void;
+    info(...args: unknown[]): void;
+    debug(...args: unknown[]): void;
+    trace(...args: unknown[]): void;
+}
+
 export class LoggerManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get logger
-     */
-    public getLogger(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).logger;
+    public getLogger(): ILogger | undefined {
+        return (this.client as unknown as { logger?: ILogger }).logger;
     }
 
-    /**
-     * Set logger
-     */
-    public setLogger(logger: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger = logger;
+    public setLogger(logger: ILogger): void {
+        (this.client as unknown as { logger?: ILogger }).logger = logger;
     }
 
-    /**
-     * Log
-     */
-    public log(...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger?.log(...args);
+    public log(...args: unknown[]): void {
+        (this.client as unknown as { logger?: ILogger }).logger?.log(...args);
     }
 
-    /**
-     * Error
-     */
-    public error(...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger?.error(...args);
+    public error(...args: unknown[]): void {
+        (this.client as unknown as { logger?: ILogger }).logger?.error(...args);
     }
 
-    /**
-     * Warn
-     */
-    public warn(...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger?.warn(...args);
+    public warn(...args: unknown[]): void {
+        (this.client as unknown as { logger?: ILogger }).logger?.warn(...args);
     }
 
-    /**
-     * Info
-     */
-    public info(...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger?.info(...args);
+    public info(...args: unknown[]): void {
+        (this.client as unknown as { logger?: ILogger }).logger?.info(...args);
     }
 
-    /**
-     * Debug
-     */
-    public debug(...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger?.debug(...args);
+    public debug(...args: unknown[]): void {
+        (this.client as unknown as { logger?: ILogger }).logger?.debug(...args);
     }
 
-    /**
-     * Trace
-     */
-    public trace(...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).logger?.trace(...args);
+    public trace(...args: unknown[]): void {
+        (this.client as unknown as { logger?: ILogger }).logger?.trace(...args);
     }
 }
 

@@ -38,8 +38,8 @@ let realCallbackKey: NodeJS.Timeout | number;
 
 type Callback = {
     runAt: number;
-    func: (...params: any[]) => void;
-    params: any[];
+    func: (...params: unknown[]) => void;
+    params: unknown[];
     key: number;
 };
 
@@ -49,7 +49,7 @@ const callbackList: Callback[] = [];
 
 // var debuglog = logger.log.bind(logger);
 /* istanbul ignore next */
-const debuglog = function (...params: any[]): void {};
+const debuglog = function (...params: unknown[]): void {};
 
 /**
  * reimplementation of window.setTimeout, which will call the callback if
@@ -61,7 +61,7 @@ const debuglog = function (...params: any[]): void {};
  * @returns an identifier for this callback, which may be passed into
  *                   clearTimeout later.
  */
-export function setTimeout(func: (...params: any[]) => void, delayMs: number, ...params: any[]): number {
+export function setTimeout(func: (...params: unknown[]) => void, delayMs: number, ...params: unknown[]): number {
     delayMs = delayMs || 0;
     if (delayMs < 0) {
         delayMs = 0;

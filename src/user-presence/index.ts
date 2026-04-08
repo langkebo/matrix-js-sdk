@@ -22,47 +22,51 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IPresenceResponse {
+    presence: string;
+    last_active_ago?: number;
+    status_msg?: string;
+    currently_active?: boolean;
+}
+
+export interface ICachedPresence {
+    presence: string;
+    lastActiveAgo?: number;
+    statusMsg?: string;
+    currentlyActive?: boolean;
+}
+
 export class UserPresenceManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get user presence
-     */
-    public async getUserPresence(userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUserPresence(userId);
+    public async getUserPresence(userId: string): Promise<IPresenceResponse> {
+        return (this.client as unknown as {
+            getUserPresence: (userId: string) => Promise<IPresenceResponse>;
+        }).getUserPresence(userId);
     }
 
-    /**
-     * Set presence
-     */
-    public async setPresence(presence: string, statusMsg?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setPresence(presence, statusMsg);
+    public async setPresence(presence: string, statusMsg?: string): Promise<{}> {
+        return (this.client as unknown as {
+            setPresence: (presence: string, statusMsg?: string) => Promise<{}>;
+        }).setPresence(presence, statusMsg);
     }
 
-    /**
-     * Get cached presence
-     */
-    public getCachedPresence(userId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getCachedPresence(userId);
+    public getCachedPresence(userId: string): ICachedPresence | null {
+        return (this.client as unknown as {
+            getCachedPresence: (userId: string) => ICachedPresence | null;
+        }).getCachedPresence(userId);
     }
 
-    /**
-     * Is presence available
-     */
     public isPresenceAvailable(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isPresenceAvailable();
+        return (this.client as unknown as {
+            isPresenceAvailable: () => boolean;
+        }).isPresenceAvailable();
     }
 
-    /**
-     * Subscribe to presence
-     */
-    public async subscribeToPresence(userIds: string[]): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).subscribeToPresence(userIds);
+    public async subscribeToPresence(userIds: string[]): Promise<void> {
+        return (this.client as unknown as {
+            subscribeToPresence: (userIds: string[]) => Promise<void>;
+        }).subscribeToPresence(userIds);
     }
 }
 

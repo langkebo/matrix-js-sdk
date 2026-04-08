@@ -55,7 +55,7 @@ export interface IRoomVersionsCapability {
  * [Capabilities negotiation](https://spec.matrix.org/v1.6/client-server-api/#get_matrixclientv3capabilities).
  */
 export interface Capabilities {
-    [key: string]: any;
+    [key: string]: unknown;
     "m.change_password"?: IChangePasswordCapability;
     "m.room_versions"?: IRoomVersionsCapability;
     "io.element.thread"?: IThreadsCapability;

@@ -16,11 +16,15 @@ limitations under the License.
 
 import { LocalIndexedDBStoreBackend } from "./indexeddb-local-backend.ts";
 import { logger } from "../logger.ts";
+import { type ISyncResponse, type IStateEventWithRoomId } from "../matrix.ts";
+import { type UserTuple } from "./indexeddb-backend.ts";
+import { type IStoredClientOpts } from "../client.ts";
+import { type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage.ts";
 
 interface ICmd {
     command: string;
     seq: number;
-    args: any[];
+    args: unknown[];
 }
 
 /**
@@ -63,13 +67,13 @@ export class IndexedDBStoreWorker {
      */
     public onMessage = (ev: MessageEvent): void => {
         const msg: ICmd = ev.data;
-        let prom: Promise<any> | undefined;
+        let prom: Promise<unknown> | undefined;
 
         switch (msg.command) {
             case "setupWorker":
                 // this is the 'indexedDB' global (where global != window
                 // because it's a web worker and there is no window).
-                this.backend = new LocalIndexedDBStoreBackend(indexedDB, msg.args[0]);
+                this.backend = new LocalIndexedDBStoreBackend(indexedDB, msg.args[0] as string | undefined);
                 prom = Promise.resolve();
                 break;
             case "connect":
@@ -85,10 +89,10 @@ export class IndexedDBStoreWorker {
                 prom = this.backend?.getSavedSync(false);
                 break;
             case "setSyncData":
-                prom = this.backend?.setSyncData(msg.args[0]);
+                prom = this.backend?.setSyncData(msg.args[0] as ISyncResponse);
                 break;
             case "syncToDatabase":
-                prom = this.backend?.syncToDatabase(msg.args[0]);
+                prom = this.backend?.syncToDatabase(msg.args[0] as UserTuple[]);
                 break;
             case "getUserPresenceEvents":
                 prom = this.backend?.getUserPresenceEvents();
@@ -97,28 +101,28 @@ export class IndexedDBStoreWorker {
                 prom = this.backend?.getNextBatchToken();
                 break;
             case "getOutOfBandMembers":
-                prom = this.backend?.getOutOfBandMembers(msg.args[0]);
+                prom = this.backend?.getOutOfBandMembers(msg.args[0] as string);
                 break;
             case "clearOutOfBandMembers":
-                prom = this.backend?.clearOutOfBandMembers(msg.args[0]);
+                prom = this.backend?.clearOutOfBandMembers(msg.args[0] as string);
                 break;
             case "setOutOfBandMembers":
-                prom = this.backend?.setOutOfBandMembers(msg.args[0], msg.args[1]);
+                prom = this.backend?.setOutOfBandMembers(msg.args[0] as string, msg.args[1] as IStateEventWithRoomId[]);
                 break;
             case "getClientOptions":
                 prom = this.backend?.getClientOptions();
                 break;
             case "storeClientOptions":
-                prom = this.backend?.storeClientOptions(msg.args[0]);
+                prom = this.backend?.storeClientOptions(msg.args[0] as IStoredClientOpts);
                 break;
             case "saveToDeviceBatches":
-                prom = this.backend?.saveToDeviceBatches(msg.args[0]);
+                prom = this.backend?.saveToDeviceBatches(msg.args[0] as ToDeviceBatchWithTxnId[]);
                 break;
             case "getOldestToDeviceBatch":
                 prom = this.backend?.getOldestToDeviceBatch();
                 break;
             case "removeToDeviceBatch":
-                prom = this.backend?.removeToDeviceBatch(msg.args[0]);
+                prom = this.backend?.removeToDeviceBatch(msg.args[0] as number);
                 break;
         }
 

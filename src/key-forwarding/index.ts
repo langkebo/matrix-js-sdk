@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,39 +22,45 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IForwardedKey {
+    roomId: string;
+    eventId: string;
+    sessionId: string;
+    algorithm: string;
+    forwardedTo: string;
+    timestamp: number;
+}
+
+export interface IKeyForwardingResponse {
+    success: boolean;
+    requestId: string;
+}
+
 export class KeyForwardingManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Request key forwarding
-     */
-    public async requestKeyForwarding(roomId: string, eventId: string, userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).requestKeyForwarding(roomId, eventId, userId);
+    public async requestKeyForwarding(roomId: string, eventId: string, userId: string): Promise<IKeyForwardingResponse> {
+        return (this.client as unknown as {
+            requestKeyForwarding: (roomId: string, eventId: string, userId: string) => Promise<IKeyForwardingResponse>;
+        }).requestKeyForwarding(roomId, eventId, userId);
     }
 
-    /**
-     * Forward key
-     */
-    public async forwardKey(roomId: string, eventId: string, userId: string, key: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).forwardKey(roomId, eventId, userId, key);
+    public async forwardKey(roomId: string, eventId: string, userId: string, key: Record<string, unknown>): Promise<IKeyForwardingResponse> {
+        return (this.client as unknown as {
+            forwardKey: (roomId: string, eventId: string, userId: string, key: Record<string, unknown>) => Promise<IKeyForwardingResponse>;
+        }).forwardKey(roomId, eventId, userId, key);
     }
 
-    /**
-     * Has forwarded key
-     */
     public hasForwardedKey(roomId: string, eventId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasForwardedKey(roomId, eventId);
+        return (this.client as unknown as {
+            hasForwardedKey: (roomId: string, eventId: string) => boolean;
+        }).hasForwardedKey(roomId, eventId);
     }
 
-    /**
-     * Get forwarded keys
-     */
-    public getForwardedKeys(roomId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getForwardedKeys(roomId);
+    public getForwardedKeys(roomId: string): IForwardedKey[] {
+        return (this.client as unknown as {
+            getForwardedKeys: (roomId: string) => IForwardedKey[];
+        }).getForwardedKeys(roomId);
     }
 }
 

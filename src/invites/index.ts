@@ -21,56 +21,56 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+
+export interface IInviteEvent {
+    roomId: string;
+    sender: string;
+    timestamp: number;
+    event: MatrixEvent;
+}
+
+export interface IInviteResponse {
+    room_id: string;
+}
 
 export class InvitesManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Invite by three pid
-     */
-    public async inviteByThreePid(medium: string, address: string, roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).inviteByThreePid(medium, address, roomId);
+    public async inviteByThreePid(medium: string, address: string, roomId: string): Promise<IInviteResponse> {
+        return (this.client as unknown as {
+            inviteByThreePid: (medium: string, address: string, roomId: string) => Promise<IInviteResponse>;
+        }).inviteByThreePid(medium, address, roomId);
     }
 
-    /**
-     * Invite user to room
-     */
-    public async inviteUserToRoom(userId: string, roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).inviteUserToRoom(userId, roomId);
+    public async inviteUserToRoom(userId: string, roomId: string): Promise<IInviteResponse> {
+        return (this.client as unknown as {
+            inviteUserToRoom: (userId: string, roomId: string) => Promise<IInviteResponse>;
+        }).inviteUserToRoom(userId, roomId);
     }
 
-    /**
-     * Get invite events
-     */
-    public getInviteEvents(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getInviteEvents();
+    public getInviteEvents(): IInviteEvent[] {
+        return (this.client as unknown as {
+            getInviteEvents: () => IInviteEvent[];
+        }).getInviteEvents();
     }
 
-    /**
-     * Has invite
-     */
     public hasInvite(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasInvite(roomId);
+        return (this.client as unknown as {
+            hasInvite: (roomId: string) => boolean;
+        }).hasInvite(roomId);
     }
 
-    /**
-     * Accept invite
-     */
-    public async acceptInvite(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).acceptInvite(roomId);
+    public async acceptInvite(roomId: string): Promise<IInviteResponse> {
+        return (this.client as unknown as {
+            acceptInvite: (roomId: string) => Promise<IInviteResponse>;
+        }).acceptInvite(roomId);
     }
 
-    /**
-     * Decline invite
-     */
-    public async declineInvite(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).declineInvite(roomId);
+    public async declineInvite(roomId: string): Promise<IInviteResponse> {
+        return (this.client as unknown as {
+            declineInvite: (roomId: string) => Promise<IInviteResponse>;
+        }).declineInvite(roomId);
     }
 }
 

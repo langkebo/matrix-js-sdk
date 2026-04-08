@@ -161,7 +161,7 @@ export function removeElement<T>(array: T[], fn: (t: T, i?: number, a?: T[]) => 
  * @param value - The thing to check.
  * @returns True if it is a function.
  */
-export function isFunction(value: any): boolean {
+export function isFunction(value: unknown): boolean {
     return Object.prototype.toString.call(value) === "[object Function]";
 }
 
@@ -198,7 +198,7 @@ export function deepCopy<T>(obj: T): T {
  *
  * @returns true if the two objects are equal
  */
-export function deepCompare(x: any, y: any): boolean {
+export function deepCompare(x: unknown, y: unknown): boolean {
     // Inspired by
     // http://stackoverflow.com/questions/1068834/object-comparison-in-javascript#1144249
 
@@ -213,7 +213,7 @@ export function deepCompare(x: any, y: any): boolean {
     }
 
     // special-case NaN (since NaN !== NaN)
-    if (typeof x === "number" && isNaN(x) && isNaN(y)) {
+    if (typeof x === "number" && isNaN(x as number) && isNaN(y as number)) {
         return true;
     }
 
@@ -226,11 +226,13 @@ export function deepCompare(x: any, y: any): boolean {
     // everything else is either an unequal primitive, or an object
     // XXX: this check has been temporarily tweaked due to issues in the jest test environment,
     // this will be reverted as part of the migration to vitest
+    const xObj = x as object;
+    const yObj = y as object;
     if (
-        x.constructor.name !== "Object" &&
-        x.constructor.name !== "RegExp" &&
-        x.constructor.name !== "Date" &&
-        x.constructor.name !== "Array"
+        (xObj as { constructor?: { name?: string } }).constructor?.name !== "Object" &&
+        (xObj as { constructor?: { name?: string } }).constructor?.name !== "RegExp" &&
+        (xObj as { constructor?: { name?: string } }).constructor?.name !== "Date" &&
+        (xObj as { constructor?: { name?: string } }).constructor?.name !== "Array"
     ) {
         return false;
     }
@@ -238,37 +240,41 @@ export function deepCompare(x: any, y: any): boolean {
     // check they are the same type of object
     // XXX: this check has been temporarily tweaked due to issues in the jest test environment,
     // this will be reverted as part of the migration to vitest
-    if (x.prototype !== y.prototype) {
+    if ((xObj as { prototype?: unknown }).prototype !== (yObj as { prototype?: unknown }).prototype) {
         return false;
     }
 
     // special-casing for some special types of object
     if (x instanceof RegExp || x instanceof Date) {
-        return x.toString() === y.toString();
+        return x.toString() === (y as RegExp | Date).toString();
     }
 
     // the object algorithm works for Array, but it's sub-optimal.
     if (Array.isArray(x)) {
-        if (x.length !== y.length) {
+        const xArr = x as unknown[];
+        const yArr = y as unknown[];
+        if (xArr.length !== yArr.length) {
             return false;
         }
 
-        for (let i = 0; i < x.length; i++) {
-            if (!deepCompare(x[i], y[i])) {
+        for (let i = 0; i < xArr.length; i++) {
+            if (!deepCompare(xArr[i], yArr[i])) {
                 return false;
             }
         }
     } else {
+        const xRec = x as Record<string, unknown>;
+        const yRec = y as Record<string, unknown>;
         // check that all of y's direct keys are in x
-        for (const p in y) {
-            if (y.hasOwnProperty(p) !== x.hasOwnProperty(p)) {
+        for (const p in yRec) {
+            if (Object.prototype.hasOwnProperty.call(yRec, p) !== Object.prototype.hasOwnProperty.call(xRec, p)) {
                 return false;
             }
         }
 
         // finally, compare each of x's keys with y
-        for (const p in x) {
-            if (y.hasOwnProperty(p) !== x.hasOwnProperty(p) || !deepCompare(x[p], y[p])) {
+        for (const p in xRec) {
+            if (Object.prototype.hasOwnProperty.call(yRec, p) !== Object.prototype.hasOwnProperty.call(xRec, p) || !deepCompare(xRec[p], yRec[p])) {
                 return false;
             }
         }
@@ -285,14 +291,14 @@ export function deepCompare(x: any, y: any): boolean {
  * @param obj - The object to get entries of
  * @returns The entries, sorted by key.
  */
-export function deepSortedObjectEntries(obj: any): [string, any][] {
+export function deepSortedObjectEntries(obj: unknown): unknown {
     if (typeof obj !== "object") return obj;
 
     // Apparently these are object types...
     if (obj === null || obj === undefined || Array.isArray(obj)) return obj;
 
-    const pairs: [string, any][] = [];
-    for (const [k, v] of Object.entries(obj)) {
+    const pairs: [string, unknown][] = [];
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
         pairs.push([k, deepSortedObjectEntries(v)]);
     }
 
@@ -308,7 +314,7 @@ export function deepSortedObjectEntries(obj: any): [string, any][] {
  * @param value - the value to test
  * @returns whether or not value is a finite number without type-coercion
  */
-export function isNumber(value: any): value is number {
+export function isNumber(value: unknown): value is number {
     return typeof value === "number" && isFinite(value);
 }
 
@@ -437,7 +443,7 @@ export function immediate(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve));
 }
 
-export function isNullOrUndefined(val: any): boolean {
+export function isNullOrUndefined(val: unknown): boolean {
     return val === null || val === undefined;
 }
 
@@ -707,7 +713,7 @@ export function mapsEqual<K, V>(x: Map<K, V>, y: Map<K, V>, eq = (v1: V, v2: V):
     return true;
 }
 
-function processMapToObjectValue(value: any): any {
+function processMapToObjectValue(value: unknown): unknown {
     if (value instanceof Map) {
         // Value is a Map. Recursively map it to an object.
         return recursiveMapToObject(value);
@@ -723,14 +729,14 @@ function processMapToObjectValue(value: any): any {
  * Recursively converts Maps to plain objects.
  * Also supports sub-lists of Maps.
  */
-export function recursiveMapToObject(map: Map<any, any>): Record<any, any> {
-    const targetMap = new Map();
+export function recursiveMapToObject(map: Map<unknown, unknown>): Record<string, unknown> {
+    const targetMap = new Map<unknown, unknown>();
 
     for (const [key, value] of map) {
         targetMap.set(key, processMapToObjectValue(value));
     }
 
-    return Object.fromEntries(targetMap.entries());
+    return Object.fromEntries(targetMap.entries()) as Record<string, unknown>;
 }
 
 export function unsafeProp<K extends keyof any | undefined>(prop: K): boolean {

@@ -606,13 +606,17 @@ export class RoomWidgetClient extends MatrixClient {
         }
 
         await this.widgetApi
-            .sendToDevice(eventType, true, recursiveMapToObject(contentMap))
+            .sendToDevice(eventType, true, recursiveMapToObject(contentMap) as {
+                [userId: string]: { [deviceId: string]: object };
+            })
             .catch(timeoutToConnectionError);
     }
 
     public async sendToDevice(eventType: string, contentMap: SendToDeviceContentMap): Promise<EmptyObject> {
         await this.widgetApi
-            .sendToDevice(eventType, false, recursiveMapToObject(contentMap))
+            .sendToDevice(eventType, false, recursiveMapToObject(contentMap) as {
+                [userId: string]: { [deviceId: string]: object };
+            })
             .catch(timeoutToConnectionError);
         return {};
     }
@@ -637,7 +641,9 @@ export class RoomWidgetClient extends MatrixClient {
         }
 
         await this.widgetApi
-            .sendToDevice(eventType, false, recursiveMapToObject(contentMap))
+            .sendToDevice(eventType, false, recursiveMapToObject(contentMap) as {
+                [userId: string]: { [deviceId: string]: object };
+            })
             .catch(timeoutToConnectionError);
     }
 
@@ -660,7 +666,9 @@ export class RoomWidgetClient extends MatrixClient {
         contentMap: SendToDeviceContentMap,
     ): Promise<void> {
         await this.widgetApi
-            .sendToDevice(eventType, encrypted, recursiveMapToObject(contentMap))
+            .sendToDevice(eventType, encrypted, recursiveMapToObject(contentMap) as {
+                [userId: string]: { [deviceId: string]: object };
+            })
             .catch(timeoutToConnectionError);
     }
 

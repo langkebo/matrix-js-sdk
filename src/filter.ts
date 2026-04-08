@@ -21,14 +21,14 @@ import { type MatrixEvent } from "./models/event.ts";
 
 /**
  */
-function setProp(obj: Record<string, any>, keyNesting: string, val: any): void {
+function setProp(obj: IFilterDefinition, keyNesting: string, val: unknown): void {
     const nestedKeys = keyNesting.split(".") as [keyof typeof obj];
-    let currentObj = obj;
+    let currentObj: Record<string, unknown> = obj as unknown as Record<string, unknown>;
     for (let i = 0; i < nestedKeys.length - 1; i++) {
         if (!currentObj[nestedKeys[i]]) {
             currentObj[nestedKeys[i]] = {};
         }
-        currentObj = currentObj[nestedKeys[i]];
+        currentObj = currentObj[nestedKeys[i]] as Record<string, unknown>;
     }
     currentObj[nestedKeys[nestedKeys.length - 1]] = val;
 }

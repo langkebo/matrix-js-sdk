@@ -21,14 +21,14 @@ export interface LivekitTransportConfig extends Transport {
     livekit_service_url: string;
 }
 
-export const isLivekitTransportConfig = (object: any): object is LivekitTransportConfig =>
-    object.type === "livekit" && "livekit_service_url" in object;
+export const isLivekitTransportConfig = (object: unknown): object is LivekitTransportConfig =>
+    typeof object === "object" && object !== null && "type" in object && (object as Record<string, unknown>).type === "livekit" && "livekit_service_url" in object;
 
 export interface LivekitTransport extends LivekitTransportConfig {
     livekit_alias: string;
 }
 
-export const isLivekitTransport = (object: any): object is LivekitTransport =>
+export const isLivekitTransport = (object: unknown): object is LivekitTransport =>
     isLivekitTransportConfig(object) && "livekit_alias" in object;
 
 /**
@@ -42,5 +42,5 @@ export interface LivekitFocusSelection extends Transport {
 /**
  * @deprecated see LivekitFocusSelection
  */
-export const isLivekitFocusSelection = (object: any): object is LivekitFocusSelection =>
-    object.type === "livekit" && "focus_selection" in object;
+export const isLivekitFocusSelection = (object: unknown): object is LivekitFocusSelection =>
+    typeof object === "object" && object !== null && "type" in object && (object as Record<string, unknown>).type === "livekit" && "focus_selection" in object;

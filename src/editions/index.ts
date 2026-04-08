@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,48 +21,63 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+
+export interface IEditContent {
+    msgtype?: string;
+    body: string;
+    formatted_body?: string;
+    format?: string;
+    "m.new_content"?: {
+        msgtype?: string;
+        body: string;
+        formatted_body?: string;
+        format?: string;
+    };
+    "m.relates_to"?: {
+        rel_type: "m.replace";
+        event_id: string;
+    };
+}
+
+export interface IRedactResponse {
+    event_id: string;
+}
+
+export interface IEditHistoryEntry {
+    event: MatrixEvent;
+    timestamp: number;
+}
 
 export class EditionsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Edit message
-     */
-    public async editMessage(roomId: string, eventId: string, content: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).editMessage(roomId, eventId, content);
+    public async editMessage(roomId: string, eventId: string, content: IEditContent): Promise<{ event_id: string }> {
+        return (this.client as unknown as {
+            editMessage: (roomId: string, eventId: string, content: IEditContent) => Promise<{ event_id: string }>;
+        }).editMessage(roomId, eventId, content);
     }
 
-    /**
-     * Redact message
-     */
-    public async redactMessage(roomId: string, eventId: string, reason?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).redactMessage(roomId, eventId, reason);
+    public async redactMessage(roomId: string, eventId: string, reason?: string): Promise<IRedactResponse> {
+        return this.client.redactEvent(roomId, eventId, reason);
     }
 
-    /**
-     * Has edit history
-     */
     public hasEditHistory(roomId: string, eventId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasEditHistory(roomId, eventId);
+        return (this.client as unknown as {
+            hasEditHistory: (roomId: string, eventId: string) => boolean;
+        }).hasEditHistory(roomId, eventId);
     }
 
-    /**
-     * Get edit history
-     */
-    public getEditHistory(roomId: string, eventId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getEditHistory(roomId, eventId);
+    public getEditHistory(roomId: string, eventId: string): IEditHistoryEntry[] {
+        return (this.client as unknown as {
+            getEditHistory: (roomId: string, eventId: string) => IEditHistoryEntry[];
+        }).getEditHistory(roomId, eventId);
     }
 
-    /**
-     * Is editable
-     */
     public isEditable(roomId: string, eventId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isEditable(roomId, eventId);
+        return (this.client as unknown as {
+            isEditable: (roomId: string, eventId: string) => boolean;
+        }).isEditable(roomId, eventId);
     }
 }
 

@@ -28,7 +28,7 @@ export class CryptoAlgorithmsManager {
     /**
      * Get crypto algorithm
      */
-    public getCryptoAlgorithm(): any {
+    public getCryptoAlgorithm(): unknown {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).getCryptoAlgorithm();
     }
@@ -36,7 +36,7 @@ export class CryptoAlgorithmsManager {
     /**
      * Set crypto algorithm
      */
-    public setCryptoAlgorithm(algorithm: any): void {
+    public setCryptoAlgorithm(algorithm: unknown): void {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.client as any).setCryptoAlgorithm(algorithm);
     }

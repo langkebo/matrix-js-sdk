@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,63 +22,65 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IDelayedEventResponse {
+    event_id: string;
+    delay_id?: string;
+}
+
+export interface IDelayedEvent {
+    delay_id: string;
+    event_id?: string;
+    room_id: string;
+    event_type: string;
+    state_key?: string;
+    content: Record<string, unknown>;
+    delay_ms: number;
+    created_at: number;
+}
+
 export class ScheduledEventsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Send delayed event
-     */
-    public async sendDelayedEvent(eventType: string, roomId: string, content: any, delayMs: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_sendDelayedEvent(eventType, roomId, content, delayMs);
+    public async sendDelayedEvent(eventType: string, roomId: string, content: Record<string, unknown>, delayMs: number): Promise<IDelayedEventResponse> {
+        return (this.client as unknown as {
+            _unstable_sendDelayedEvent: (eventType: string, roomId: string, content: Record<string, unknown>, delayMs: number) => Promise<IDelayedEventResponse>;
+        })._unstable_sendDelayedEvent(eventType, roomId, content, delayMs);
     }
 
-    /**
-     * Send sticky delayed event
-     */
-    public async sendStickyDelayedEvent(eventType: string, roomId: string, content: any, delayMs: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_sendStickyDelayedEvent(eventType, roomId, content, delayMs);
+    public async sendStickyDelayedEvent(eventType: string, roomId: string, content: Record<string, unknown>, delayMs: number): Promise<IDelayedEventResponse> {
+        return (this.client as unknown as {
+            _unstable_sendStickyDelayedEvent: (eventType: string, roomId: string, content: Record<string, unknown>, delayMs: number) => Promise<IDelayedEventResponse>;
+        })._unstable_sendStickyDelayedEvent(eventType, roomId, content, delayMs);
     }
 
-    /**
-     * Send delayed state event
-     */
-    public async sendDelayedStateEvent(roomId: string, eventType: string, stateKey: string, content: any, delayMs: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_sendDelayedStateEvent(roomId, eventType, stateKey, content, delayMs);
+    public async sendDelayedStateEvent(roomId: string, eventType: string, stateKey: string, content: Record<string, unknown>, delayMs: number): Promise<IDelayedEventResponse> {
+        return (this.client as unknown as {
+            _unstable_sendDelayedStateEvent: (roomId: string, eventType: string, stateKey: string, content: Record<string, unknown>, delayMs: number) => Promise<IDelayedEventResponse>;
+        })._unstable_sendDelayedStateEvent(roomId, eventType, stateKey, content, delayMs);
     }
 
-    /**
-     * Get delayed events
-     */
-    public async getDelayedEvents(): Promise<any[]> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_getDelayedEvents();
+    public async getDelayedEvents(): Promise<IDelayedEvent[]> {
+        return (this.client as unknown as {
+            _unstable_getDelayedEvents: () => Promise<IDelayedEvent[]>;
+        })._unstable_getDelayedEvents();
     }
 
-    /**
-     * Update delayed event
-     */
-    public async updateDelayedEvent(eventId: string, timeoutMs: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_updateDelayedEvent(eventId, timeoutMs);
+    public async updateDelayedEvent(eventId: string, timeoutMs: number): Promise<IDelayedEventResponse> {
+        return (this.client as unknown as {
+            _unstable_updateDelayedEvent: (eventId: string, timeoutMs: number) => Promise<IDelayedEventResponse>;
+        })._unstable_updateDelayedEvent(eventId, timeoutMs);
     }
 
-    /**
-     * Restart scheduled delayed event
-     */
-    public async restartScheduledDelayedEvent(eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_restartScheduledDelayedEvent(eventId);
+    public async restartScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse> {
+        return (this.client as unknown as {
+            _unstable_restartScheduledDelayedEvent: (eventId: string) => Promise<IDelayedEventResponse>;
+        })._unstable_restartScheduledDelayedEvent(eventId);
     }
 
-    /**
-     * Send scheduled delayed event
-     */
-    public async sendScheduledDelayedEvent(eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_sendScheduledDelayedEvent(eventId);
+    public async sendScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse> {
+        return (this.client as unknown as {
+            _unstable_sendScheduledDelayedEvent: (eventId: string) => Promise<IDelayedEventResponse>;
+        })._unstable_sendScheduledDelayedEvent(eventId);
     }
 }
 

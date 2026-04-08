@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,55 +22,60 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface ISessionInfo {
+    deviceId: string;
+    userId: string;
+    accessToken: string;
+    refreshToken?: string;
+    lastActiveTs?: number;
+    isActive?: boolean;
+}
+
+export interface ISessionDetail {
+    device_id: string;
+    display_name?: string;
+    last_seen_ip?: string;
+    last_seen_ts?: number;
+    user_id: string;
+}
+
 export class SessionsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get active sessions
-     */
-    public getActiveSessions(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getActiveSessions();
+    public getActiveSessions(): ISessionInfo[] {
+        return (this.client as unknown as {
+            getActiveSessions: () => ISessionInfo[];
+        }).getActiveSessions();
     }
 
-    /**
-     * Get session info
-     */
-    public getSessionInfo(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getSessionInfo();
+    public getSessionInfo(): ISessionInfo | null {
+        return (this.client as unknown as {
+            getSessionInfo: () => ISessionInfo | null;
+        }).getSessionInfo();
     }
 
-    /**
-     * Refresh session
-     */
-    public async refreshSession(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).refreshSession();
+    public async refreshSession(): Promise<ISessionInfo> {
+        return (this.client as unknown as {
+            refreshSession: () => Promise<ISessionInfo>;
+        }).refreshSession();
     }
 
-    /**
-     * Revoke session
-     */
-    public async revokeSession(deviceId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).revokeSession(deviceId);
+    public async revokeSession(deviceId: string): Promise<void> {
+        return (this.client as unknown as {
+            revokeSession: (deviceId: string) => Promise<void>;
+        }).revokeSession(deviceId);
     }
 
-    /**
-     * Get last active session
-     */
-    public getLastActiveSession(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getLastActiveSession();
+    public getLastActiveSession(): ISessionDetail | null {
+        return (this.client as unknown as {
+            getLastActiveSession: () => ISessionDetail | null;
+        }).getLastActiveSession();
     }
 
-    /**
-     * Set last active session
-     */
     public setLastActiveSession(sessionId: string): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setLastActiveSession(sessionId);
+        (this.client as unknown as {
+            setLastActiveSession: (sessionId: string) => void;
+        }).setLastActiveSession(sessionId);
     }
 }
 

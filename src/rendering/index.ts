@@ -21,56 +21,49 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+
+export type EventRenderer = (event: MatrixEvent) => string | null;
+
+export interface IRenderOptions {
+    showTimestamp?: boolean;
+    showSender?: boolean;
+    maxLength?: number;
+}
 
 export class RenderingManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get event renderer
-     */
-    public getEventRenderer(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).eventRenderer;
+    public getEventRenderer(): EventRenderer | null {
+        return (this.client as unknown as { eventRenderer?: EventRenderer }).eventRenderer ?? null;
     }
 
-    /**
-     * Set event renderer
-     */
-    public setEventRenderer(renderer: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).eventRenderer = renderer;
+    public setEventRenderer(renderer: EventRenderer): void {
+        (this.client as unknown as { eventRenderer?: EventRenderer }).eventRenderer = renderer;
     }
 
-    /**
-     * Render event
-     */
-    public renderEvent(event: any): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).renderEvent(event);
+    public renderEvent(event: MatrixEvent, options?: IRenderOptions): string | null {
+        return (this.client as unknown as {
+            renderEvent: (event: MatrixEvent, options?: IRenderOptions) => string | null;
+        }).renderEvent(event, options);
     }
 
-    /**
-     * Render message
-     */
-    public renderMessage(message: any): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).renderMessage(message);
+    public renderMessage(message: Record<string, unknown>): string | null {
+        return (this.client as unknown as {
+            renderMessage: (message: Record<string, unknown>) => string | null;
+        }).renderMessage(message);
     }
 
-    /**
-     * Get text for event
-     */
-    public getTextForEvent(event: any): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getTextForEvent(event);
+    public getTextForEvent(event: MatrixEvent): string {
+        return (this.client as unknown as {
+            getTextForEvent: (event: MatrixEvent) => string;
+        }).getTextForEvent(event);
     }
 
-    /**
-     * Get preview text
-     */
-    public getPreviewText(event: any): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPreviewText(event);
+    public getPreviewText(event: MatrixEvent): string {
+        return (this.client as unknown as {
+            getPreviewText: (event: MatrixEvent) => string;
+        }).getPreviewText(event);
     }
 }
 

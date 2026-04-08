@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -24,62 +24,62 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 
+export interface ITagContent {
+    order?: number;
+    [key: string]: unknown;
+}
+
+export interface IRoomAccountData {
+    tags?: {
+        [tag: string]: ITagContent;
+    };
+    [key: string]: unknown;
+}
+
 export class TagsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get room tags
-     */
     public getRoomTags(roomId: string): string[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).store.getRoomTags(roomId);
+        return (this.client as unknown as {
+            store: {
+                getRoomTags: (roomId: string) => string[];
+            };
+        }).store.getRoomTags(roomId);
     }
 
-    /**
-     * Get room account data
-     */
-    public getRoomAccountData(roomId: string, eventType: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).store.getRoomAccountData(roomId, eventType);
+    public getRoomAccountData(roomId: string, eventType: string): Record<string, unknown> | null {
+        return (this.client as unknown as {
+            store: {
+                getRoomAccountData: (roomId: string, eventType: string) => Record<string, unknown> | null;
+            };
+        }).store.getRoomAccountData(roomId, eventType);
     }
 
-    /**
-     * Set room account data
-     */
-    public async setRoomAccountData(roomId: string, eventType: string, content: any): Promise<any> {
+    public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<{}> {
         const path = utils.encodeUri("/user/$userId/rooms/$roomId/account_data/$type", {
             $userId: this.client.credentials.userId!,
             $roomId: roomId,
             $type: eventType,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Put, path, undefined, content);
+        return this.client.http.authedRequest<{}>(Method.Put, path, undefined, content);
     }
 
-    /**
-     * Add room tag
-     */
-    public async addRoomTag(roomId: string, tag: string, content?: any): Promise<any> {
+    public async addRoomTag(roomId: string, tag: string, content?: ITagContent): Promise<{}> {
         const path = utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
             $userId: this.client.credentials.userId!,
             $roomId: roomId,
             $tag: tag,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Put, path, undefined, content || {});
+        return this.client.http.authedRequest<{}>(Method.Put, path, undefined, content || {});
     }
 
-    /**
-     * Remove room tag
-     */
-    public async removeRoomTag(roomId: string, tag: string): Promise<any> {
+    public async removeRoomTag(roomId: string, tag: string): Promise<{}> {
         const path = utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
             $userId: this.client.credentials.userId!,
             $roomId: roomId,
             $tag: tag,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Delete, path);
+        return this.client.http.authedRequest<{}>(Method.Delete, path);
     }
 }
 

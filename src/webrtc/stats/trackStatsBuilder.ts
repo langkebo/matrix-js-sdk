@@ -2,28 +2,35 @@ import { type MediaTrackStats } from "./media/mediaTrackStats.ts";
 import { ValueFormatter } from "./valueFormatter.ts";
 import { type TrackSummary } from "./callStatsReportSummary.ts";
 
+interface RTCStatsBase {
+    id?: string;
+    timestamp?: number;
+    type?: string;
+    [key: string]: unknown;
+}
+
 export class TrackStatsBuilder {
-    public static buildFramerateResolution(trackStats: MediaTrackStats, now: any): void {
+    public static buildFramerateResolution(trackStats: MediaTrackStats, now: RTCStatsBase): void {
         const resolution = {
-            height: now.frameHeight,
-            width: now.frameWidth,
+            height: now.frameHeight as number | undefined,
+            width: now.frameWidth as number | undefined,
         };
-        const frameRate = now.framesPerSecond;
+        const frameRate = now.framesPerSecond as number | undefined;
 
         if (resolution.height && resolution.width) {
-            trackStats.setResolution(resolution);
+            trackStats.setResolution(resolution as { height: number; width: number });
         }
         trackStats.setFramerate(Math.round(frameRate || 0));
     }
 
-    public static calculateSimulcastFramerate(trackStats: MediaTrackStats, now: any, before: any, layer: number): void {
+    public static calculateSimulcastFramerate(trackStats: MediaTrackStats, now: RTCStatsBase, before: RTCStatsBase, layer: number): void {
         let frameRate = trackStats.getFramerate();
         if (!frameRate) {
             if (before) {
-                const timeMs = now.timestamp - before.timestamp;
+                const timeMs = (now.timestamp as number) - (before.timestamp as number);
 
                 if (timeMs > 0 && now.framesSent) {
-                    const numberOfFramesSinceBefore = now.framesSent - before.framesSent;
+                    const numberOfFramesSinceBefore = (now.framesSent as number) - (before.framesSent as number);
 
                     frameRate = (numberOfFramesSinceBefore / timeMs) * 1000;
                 }
@@ -39,8 +46,8 @@ export class TrackStatsBuilder {
         trackStats.setFramerate(frameRate);
     }
 
-    public static buildCodec(report: RTCStatsReport | undefined, trackStats: MediaTrackStats, now: any): void {
-        const codec = report?.get(now.codecId);
+    public static buildCodec(report: RTCStatsReport | undefined, trackStats: MediaTrackStats, now: RTCStatsBase): void {
+        const codec = report?.get(now.codecId as string);
 
         if (codec) {
             /**
@@ -54,29 +61,29 @@ export class TrackStatsBuilder {
         }
     }
 
-    public static buildBitrateReceived(trackStats: MediaTrackStats, now: any, before: any): void {
+    public static buildBitrateReceived(trackStats: MediaTrackStats, now: RTCStatsBase, before: RTCStatsBase): void {
         trackStats.setBitrate({
             download: TrackStatsBuilder.calculateBitrate(
                 now.bytesReceived,
                 before.bytesReceived,
-                now.timestamp,
-                before.timestamp,
+                now.timestamp as number,
+                before.timestamp as number,
             ),
             upload: 0,
         });
     }
 
-    public static buildBitrateSend(trackStats: MediaTrackStats, now: any, before: any): void {
+    public static buildBitrateSend(trackStats: MediaTrackStats, now: RTCStatsBase, before: RTCStatsBase): void {
         trackStats.setBitrate({
             download: 0,
-            upload: this.calculateBitrate(now.bytesSent, before.bytesSent, now.timestamp, before.timestamp),
+            upload: this.calculateBitrate(now.bytesSent, before.bytesSent, now.timestamp as number, before.timestamp as number),
         });
     }
 
-    public static buildPacketsLost(trackStats: MediaTrackStats, now: any, before: any): void {
+    public static buildPacketsLost(trackStats: MediaTrackStats, now: RTCStatsBase, before: RTCStatsBase): void {
         const key = now.type === "outbound-rtp" ? "packetsSent" : "packetsReceived";
 
-        let packetsNow = now[key];
+        let packetsNow = now[key] as number;
         if (!packetsNow || packetsNow < 0) {
             packetsNow = 0;
         }
@@ -96,8 +103,8 @@ export class TrackStatsBuilder {
     }
 
     private static calculateBitrate(
-        bytesNowAny: any,
-        bytesBeforeAny: any,
+        bytesNowAny: unknown,
+        bytesBeforeAny: unknown,
         nowTimestamp: number,
         beforeTimestamp: number,
     ): number {
@@ -181,7 +188,7 @@ export class TrackStatsBuilder {
         return { audioTrackSummary, videoTrackSummary };
     }
 
-    public static buildJitter(trackStats: MediaTrackStats, statsReport: any): void {
+    public static buildJitter(trackStats: MediaTrackStats, statsReport: RTCStatsBase): void {
         if (statsReport.type !== "inbound-rtp") {
             return;
         }
@@ -195,13 +202,17 @@ export class TrackStatsBuilder {
         }
     }
 
-    public static buildAudioConcealment(trackStats: MediaTrackStats, statsReport: any): void {
+    public static buildAudioConcealment(trackStats: MediaTrackStats, statsReport: RTCStatsBase): void {
         if (statsReport.type !== "inbound-rtp") {
             return;
         }
-        const msPerSample = (1000 * statsReport?.totalSamplesDuration) / statsReport?.totalSamplesReceived;
-        const concealedAudioDuration = msPerSample * statsReport?.concealedSamples;
-        const totalAudioDuration = 1000 * statsReport?.totalSamplesDuration;
+        const totalSamplesDuration = statsReport.totalSamplesDuration as number | undefined;
+        const totalSamplesReceived = statsReport.totalSamplesReceived as number | undefined;
+        const concealedSamples = statsReport.concealedSamples as number | undefined;
+        
+        const msPerSample = (1000 * (totalSamplesDuration ?? 0)) / (totalSamplesReceived ?? 1);
+        const concealedAudioDuration = msPerSample * (concealedSamples ?? 0);
+        const totalAudioDuration = 1000 * (totalSamplesDuration ?? 0);
         trackStats.setAudioConcealment(concealedAudioDuration, totalAudioDuration);
     }
 }

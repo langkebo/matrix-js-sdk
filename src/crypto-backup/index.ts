@@ -36,7 +36,7 @@ export class CryptoBackupManager {
     /**
      * Enable crypto backup
      */
-    public async enableCryptoBackup(passphrase: string): Promise<any> {
+    public async enableCryptoBackup(passphrase: string): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).enableCryptoBackup(passphrase);
     }
@@ -44,7 +44,7 @@ export class CryptoBackupManager {
     /**
      * Disable crypto backup
      */
-    public async disableCryptoBackup(): Promise<any> {
+    public async disableCryptoBackup(): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).disableCryptoBackup();
     }
@@ -52,7 +52,7 @@ export class CryptoBackupManager {
     /**
      * Get crypto backup
      */
-    public async getCryptoBackup(): Promise<any> {
+    public async getCryptoBackup(): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).getCryptoBackup();
     }
@@ -60,7 +60,7 @@ export class CryptoBackupManager {
     /**
      * Restore crypto backup
      */
-    public async restoreCryptoBackup(backup: any, passphrase: string): Promise<any> {
+    public async restoreCryptoBackup(backup: unknown, passphrase: string): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).restoreCryptoBackup(backup, passphrase);
     }

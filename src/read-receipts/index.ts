@@ -14,59 +14,73 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Read Receipts Manager - 已读回执管理
- * 
- * 提供已读回执相关功能
- */
-
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+import { CachedReceipt, Receipt } from "../@types/read_receipts";
+
+export interface IReadReceipt {
+    eventId: string;
+    ts: number;
+    userId: string;
+    data?: Record<string, unknown>;
+}
+
+export interface IReadMarkers {
+    m_read?: string;
+    m_fully_read?: string;
+}
 
 export class ReadReceiptsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Send read receipt
-     */
-    public async sendReadReceipt(roomId: string, eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendReadReceipt(roomId, eventId);
+    public async sendReadReceipt(roomId: string, eventId: string): Promise<void> {
+        const room = this.client.getRoom(roomId);
+        const event = room?.findEventById(eventId);
+        if (event) {
+            await this.client.sendReadReceipt(event);
+        }
     }
 
-    /**
-     * Set read markers
-     */
-    public async setReadMarkers(roomId: string, eventId: string, fullyReadEventId?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setReadMarkers(roomId, eventId, fullyReadEventId);
+    public async setReadMarkers(roomId: string, eventId: string, fullyReadEventId?: string): Promise<void> {
+        const room = this.client.getRoom(roomId);
+        const rrEvent = eventId ? room?.findEventById(eventId) : undefined;
+        await this.client.setRoomReadMarkers(roomId, fullyReadEventId || eventId, rrEvent);
     }
 
-    /**
-     * Set read marker
-     */
-    public async setReadMarker(roomId: string, eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setReadMarker(roomId, eventId);
+    public async setReadMarker(roomId: string, eventId: string): Promise<void> {
+        await this.client.setRoomReadMarkers(roomId, eventId, undefined);
     }
 
-    /**
-     * Get read receipt
-     */
-    public getReceipt(roomId: string, eventId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getReceipt(roomId, eventId);
+    public getReceipt(roomId: string, eventId: string): IReadReceipt[] {
+        const room = this.client.getRoom(roomId);
+        if (!room) return [];
+        
+        const event = room.findEventById(eventId);
+        if (!event) return [];
+        
+        const receipts = room.getReceiptsForEvent?.(event) || [];
+        return receipts.map((r: CachedReceipt) => ({
+            eventId: (r.data as Receipt & { event_id?: string }).event_id || eventId,
+            ts: (r.data as Receipt).ts || 0,
+            userId: r.userId,
+            data: r.data as unknown as Record<string, unknown>,
+        }));
     }
 
-    /**
-     * Get read markers
-     */
-    public getReadMarkers(roomId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getReadMarkers(roomId);
+    public getReadMarkers(roomId: string): IReadMarkers {
+        const room = this.client.getRoom(roomId);
+        if (!room) return {};
+        
+        const readMarker = room.getAccountData('m.fully_read');
+        const readReceipt = room.getAccountData('m.read');
+        
+        return {
+            m_read: readReceipt?.getContent()?.event_id,
+            m_fully_read: readMarker?.getContent()?.event_id,
+        };
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getReadReceiptsManager(): ReadReceiptsManager;

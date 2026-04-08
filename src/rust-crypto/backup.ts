@@ -837,11 +837,12 @@ export class RustBackupDecryptor implements BackupDecryptor {
         const keys: IMegolmSessionData[] = [];
         for (const [sessionId, sessionData] of Object.entries(ciphertexts)) {
             try {
+                const sessionDataTyped = sessionData.session_data as Curve25519SessionData;
                 const decrypted = JSON.parse(
                     this.decryptionKey.decryptV1(
-                        sessionData.session_data.ephemeral,
-                        sessionData.session_data.mac,
-                        sessionData.session_data.ciphertext,
+                        sessionDataTyped.ephemeral,
+                        sessionDataTyped.mac,
+                        sessionDataTyped.ciphertext,
                     ),
                 );
                 decrypted.session_id = sessionId;

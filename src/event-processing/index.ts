@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,56 +21,21 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
 
 export class EventProcessingManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Process event
-     */
-    public async processEvent(event: any): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).processEvent(event);
+    public async processEvent(event: MatrixEvent): Promise<void> {
+        return (this.client as unknown as {
+            processEvent: (event: MatrixEvent) => Promise<void>;
+        }).processEvent(event);
     }
 
-    /**
-     * Handle event
-     */
-    public async handleEvent(event: any): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).handleEvent(event);
-    }
-
-    /**
-     * Emit event
-     */
-    public emit(eventName: string, ...args: any[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).emit(eventName, ...args);
-    }
-
-    /**
-     * On event
-     */
-    public on(eventName: string, listener: Function): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).on(eventName, listener);
-    }
-
-    /**
-     * Off event
-     */
-    public off(eventName: string, listener: Function): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).off(eventName, listener);
-    }
-
-    /**
-     * Once event
-     */
-    public once(eventName: string, listener: Function): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).once(eventName, listener);
+    public async handleEvent(event: MatrixEvent): Promise<void> {
+        return (this.client as unknown as {
+            handleEvent: (event: MatrixEvent) => Promise<void>;
+        }).handleEvent(event);
     }
 }
 

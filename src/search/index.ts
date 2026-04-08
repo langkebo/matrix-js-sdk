@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,39 +22,79 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface ISearchOptions {
+    term: string;
+    room_id?: string;
+    limit?: number;
+    before_limit?: number;
+    after_limit?: number;
+    order_by_recency?: boolean;
+    include_state?: boolean;
+    filter?: {
+        rooms?: string[];
+        senders?: string[];
+        types?: string[];
+    };
+}
+
+export interface ISearchResult {
+    rank?: number;
+    result: Record<string, unknown>;
+    context?: {
+        events_before: Array<Record<string, unknown>>;
+        events_after: Array<Record<string, unknown>>;
+        profile_info?: Record<string, { displayname?: string; avatar_url?: string }>;
+    };
+}
+
+export interface ISearchResponse {
+    search_categories: {
+        room_events?: {
+            count: number;
+            results: ISearchResult[];
+            next_batch?: string;
+            highlights?: string[];
+            state?: Array<Record<string, unknown>>;
+        };
+    };
+}
+
+export interface IUserDirectorySearchResult {
+    user_id: string;
+    display_name?: string;
+    avatar_url?: string;
+}
+
+export interface IUserDirectoryResponse {
+    results: IUserDirectorySearchResult[];
+    limited?: boolean;
+}
+
 export class SearchManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Search message text
-     */
-    public async searchMessageText(opts: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).searchMessageText(opts);
+    public async searchMessageText(opts: ISearchOptions): Promise<ISearchResponse> {
+        return (this.client as unknown as {
+            searchMessageText: (opts: ISearchOptions) => Promise<ISearchResponse>;
+        }).searchMessageText(opts);
     }
 
-    /**
-     * Search room events
-     */
-    public async searchRoomEvents(opts: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).searchRoomEvents(opts);
+    public async searchRoomEvents(opts: ISearchOptions): Promise<ISearchResponse> {
+        return (this.client as unknown as {
+            searchRoomEvents: (opts: ISearchOptions) => Promise<ISearchResponse>;
+        }).searchRoomEvents(opts);
     }
 
-    /**
-     * Search user directory
-     */
-    public async searchUserDirectory(opts: { term: string; limit?: number }): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).searchUserDirectory(opts);
+    public async searchUserDirectory(opts: { term: string; limit?: number }): Promise<IUserDirectoryResponse> {
+        return (this.client as unknown as {
+            searchUserDirectory: (opts: { term: string; limit?: number }) => Promise<IUserDirectoryResponse>;
+        }).searchUserDirectory(opts);
     }
 
-    /**
-     * General search
-     */
-    public async search(opts: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).search(opts);
+    public async search(opts: { room_events?: ISearchOptions }): Promise<ISearchResponse> {
+        return (this.client as unknown as {
+            search: (opts: { room_events?: ISearchOptions }) => Promise<ISearchResponse>;
+        }).search(opts);
     }
 }
 

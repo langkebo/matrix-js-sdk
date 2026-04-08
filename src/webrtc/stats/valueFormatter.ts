@@ -11,11 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 export class ValueFormatter {
-    public static getNonNegativeValue(imput: any): number {
-        let value = imput;
+    public static getNonNegativeValue(input: unknown): number {
+        let value: number;
 
-        if (typeof value !== "number") {
-            value = Number(value);
+        if (typeof input === "number") {
+            value = input;
+        } else {
+            value = Number(input);
         }
 
         if (isNaN(value)) {

@@ -404,8 +404,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
 
     // the stats for the call at the point it ended. We can't get these after we
     // tear the call down, so we just grab a snapshot before we stop the call.
-    // The typescript definitions have this type as 'any' :(
-    private callStatsAtEnd?: any[];
+    private callStatsAtEnd?: RTCStats[];
 
     // Perfect negotiation state: https://www.w3.org/TR/webrtc/#perfect-negotiation-example
     private makingOffer = false;
@@ -924,13 +923,13 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         return this.collectCallStats();
     }
 
-    private async collectCallStats(): Promise<any[] | undefined> {
+    private async collectCallStats(): Promise<RTCStats[] | undefined> {
         // This happens when the call fails before it starts.
         // For example when we fail to get capture sources
         if (!this.peerConn) return;
 
         const statsReport = await this.peerConn.getStats();
-        const stats: any[] = [];
+        const stats: RTCStats[] = [];
         statsReport.forEach((item) => {
             stats.push(item);
         });

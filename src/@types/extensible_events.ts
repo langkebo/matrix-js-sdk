@@ -19,7 +19,7 @@ import { type EitherAnd, NamespacedValue, UnstableValue } from "matrix-events-sd
 /**
  * Utility to check if a value is provided (not null or undefined)
  */
-function isProvided(value: any): boolean {
+function isProvided(value: unknown): boolean {
     return value !== null && value !== undefined;
 }
 

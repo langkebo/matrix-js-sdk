@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,39 +22,52 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IPusher {
+    pushkey: string;
+    kind: string;
+    app_id: string;
+    app_display_name: string;
+    device_display_name: string;
+    profile_tag?: string;
+    lang: string;
+    data: Record<string, unknown>;
+}
+
+export interface IPushersResponse {
+    pushers: IPusher[];
+}
+
+export interface IPusherData {
+    url?: string;
+    format?: string;
+    default_payload?: Record<string, unknown>;
+}
+
 export class PushNotificationsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get pushers
-     */
-    public async getPushers(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPushers();
+    public async getPushers(): Promise<IPushersResponse> {
+        return (this.client as unknown as {
+            getPushers: () => Promise<IPushersResponse>;
+        }).getPushers();
     }
 
-    /**
-     * Set pushers
-     */
-    public async setPushers(pushers: any[]): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setPushers(pushers);
+    public async setPushers(pushers: IPusher[]): Promise<void> {
+        return (this.client as unknown as {
+            setPushers: (pushers: IPusher[]) => Promise<void>;
+        }).setPushers(pushers);
     }
 
-    /**
-     * Remove pusher
-     */
-    public async removePusher(pusherData: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).removePusher(pusherData);
+    public async removePusher(pusherData: IPusher): Promise<void> {
+        return (this.client as unknown as {
+            removePusher: (pusherData: IPusher) => Promise<void>;
+        }).removePusher(pusherData);
     }
 
-    /**
-     * Get pusher data
-     */
-    public getPusherData(roomId: string, userId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPusherData(roomId, userId);
+    public getPusherData(roomId: string, userId: string): IPusherData | null {
+        return (this.client as unknown as {
+            getPusherData: (roomId: string, userId: string) => IPusherData | null;
+        }).getPusherData(roomId, userId);
     }
 }
 

@@ -21,55 +21,45 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+
+export interface IQueuedEvent {
+    event: MatrixEvent;
+    priority: number;
+    retries: number;
+}
 
 export class SendingQueueManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get sending queue
-     */
-    public getSendingQueue(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sendingQueue || [];
+    public getSendingQueue(): IQueuedEvent[] {
+        return (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue || [];
     }
 
-    /**
-     * Add to sending queue
-     */
-    public addToSendingQueue(event: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!((this.client as any).sendingQueue)) {
-            (this.client as any).sendingQueue = [];
+    public addToSendingQueue(event: MatrixEvent, priority = 0): void {
+        const clientWithQueue = this.client as unknown as { sendingQueue?: IQueuedEvent[] };
+        if (!clientWithQueue.sendingQueue) {
+            clientWithQueue.sendingQueue = [];
         }
-        (this.client as any).sendingQueue.push(event);
+        clientWithQueue.sendingQueue.push({ event, priority, retries: 0 });
     }
 
-    /**
-     * Remove from sending queue
-     */
     public removeFromSendingQueue(eventId: string): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const queue = (this.client as any).sendingQueue || [];
-        const index = queue.findIndex((e: any) => e.getId() === eventId);
+        const clientWithQueue = this.client as unknown as { sendingQueue?: IQueuedEvent[] };
+        const queue = clientWithQueue.sendingQueue || [];
+        const index = queue.findIndex((e) => e.event.getId() === eventId);
         if (index > -1) {
             queue.splice(index, 1);
         }
     }
 
-    /**
-     * Clear sending queue
-     */
     public clearSendingQueue(): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).sendingQueue = [];
+        (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue = [];
     }
 
-    /**
-     * Is sending queue empty
-     */
     public isSendingQueueEmpty(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return !((this.client as any).sendingQueue?.length > 0);
+        const queue = (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue;
+        return !(queue && queue.length > 0);
     }
 }
 

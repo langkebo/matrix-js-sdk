@@ -180,7 +180,7 @@ export class FilterComponent {
         return true;
     }
 
-    private arrayMatchesFilter(filter: any[], values: any[]): boolean {
+    private arrayMatchesFilter(filter: unknown[], values: unknown[]): boolean {
         return (
             values.length > 0 &&
             filter.every((value) => {

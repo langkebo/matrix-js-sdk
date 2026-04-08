@@ -23,7 +23,7 @@ import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types
 /**
  * Utility to check if a value is provided (not null or undefined)
  */
-function isProvided(value: any): boolean {
+function isProvided(value: unknown): boolean {
     return value !== null && value !== undefined;
 }
 

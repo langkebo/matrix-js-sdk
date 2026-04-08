@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,56 +21,68 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { IPushRules } from "../@types/PushRules";
+
+export interface IPushRule {
+    rule_id: string;
+    default?: boolean;
+    enabled?: boolean;
+    pattern?: string;
+    conditions?: Array<{
+        kind: string;
+        key?: string;
+        pattern?: string;
+        is?: string;
+    }>;
+    actions?: Array<string | Record<string, unknown>>;
+}
+
+export interface ISetPushRuleBody {
+    pattern?: string;
+    conditions?: Array<{
+        kind: string;
+        key?: string;
+        pattern?: string;
+        is?: string;
+    }>;
+    actions?: Array<string | Record<string, unknown>>;
+}
 
 export class PushRulesManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get push rules
-     */
-    public async getPushRules(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPushRules();
+    public async getPushRules(): Promise<IPushRules> {
+        return (this.client as unknown as {
+            getPushRules: () => Promise<IPushRules>;
+        }).getPushRules();
     }
 
-    /**
-     * Get push rule
-     */
-    public async getPushRule(kind: string, ruleId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPushRule(kind, ruleId);
+    public async getPushRule(kind: string, ruleId: string): Promise<IPushRule | null> {
+        return (this.client as unknown as {
+            getPushRule: (kind: string, ruleId: string) => Promise<IPushRule | null>;
+        }).getPushRule(kind, ruleId);
     }
 
-    /**
-     * Set push rule
-     */
-    public async setPushRule(kind: string, ruleId: string, body: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setPushRule(kind, ruleId, body);
+    public async setPushRule(kind: string, ruleId: string, body: ISetPushRuleBody): Promise<void> {
+        return (this.client as unknown as {
+            setPushRule: (kind: string, ruleId: string, body: ISetPushRuleBody) => Promise<void>;
+        }).setPushRule(kind, ruleId, body);
     }
 
-    /**
-     * Delete push rule
-     */
-    public async deletePushRule(kind: string, ruleId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).deletePushRule(kind, ruleId);
+    public async deletePushRule(kind: string, ruleId: string): Promise<void> {
+        return (this.client as unknown as {
+            deletePushRule: (kind: string, ruleId: string) => Promise<void>;
+        }).deletePushRule(kind, ruleId);
     }
 
-    /**
-     * Enable push rule
-     */
-    public async enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).enablePushRule(kind, ruleId, enabled);
+    public async enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<void> {
+        return (this.client as unknown as {
+            enablePushRule: (kind: string, ruleId: string, enabled: boolean) => Promise<void>;
+        }).enablePushRule(kind, ruleId, enabled);
     }
 
-    /**
-     * Get all push rules
-     */
-    public getPushRulesCached(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).pushRules;
+    public getPushRulesCached(): IPushRules | null {
+        return (this.client as unknown as { pushRules?: IPushRules }).pushRules ?? null;
     }
 }
 

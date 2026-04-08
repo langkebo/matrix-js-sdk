@@ -21,48 +21,48 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+import { Room } from "../models/room";
+
+export interface IRoomStateEvent {
+    type: string;
+    state_key: string;
+    content: Record<string, unknown>;
+    sender: string;
+    event_id: string;
+}
 
 export class RoomStateManagementManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get room state
-     */
-    public async getRoomState(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomState(roomId);
+    public async getRoomState(roomId: string): Promise<IRoomStateEvent[]> {
+        return (this.client as unknown as {
+            getRoomState: (roomId: string) => Promise<IRoomStateEvent[]>;
+        }).getRoomState(roomId);
     }
 
-    /**
-     * Get room state events
-     */
-    public async getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomStateEvents(roomId, eventType, stateKey);
+    public async getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]> {
+        return (this.client as unknown as {
+            getRoomStateEvents: (roomId: string, eventType: string, stateKey?: string) => Promise<MatrixEvent[]>;
+        }).getRoomStateEvents(roomId, eventType, stateKey);
     }
 
-    /**
-     * Get state events
-     */
-    public getStateEvents(eventType: string, stateKey: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getStateEvents(eventType, stateKey);
+    public getStateEvents(eventType: string, stateKey: string): MatrixEvent[] {
+        return (this.client as unknown as {
+            getStateEvents: (eventType: string, stateKey: string) => MatrixEvent[];
+        }).getStateEvents(eventType, stateKey);
     }
 
-    /**
-     * Set room account data
-     */
-    public async setRoomAccountData(roomId: string, eventType: string, content: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomAccountData(roomId, eventType, content);
+    public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void> {
+        return (this.client as unknown as {
+            setRoomAccountData: (roomId: string, eventType: string, content: Record<string, unknown>) => Promise<void>;
+        }).setRoomAccountData(roomId, eventType, content);
     }
 
-    /**
-     * Get room account data
-     */
-    public getRoomAccountData(roomId: string, eventType: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomAccountData(roomId, eventType);
+    public getRoomAccountData(roomId: string, eventType: string): Record<string, unknown> | null {
+        return (this.client as unknown as {
+            getRoomAccountData: (roomId: string, eventType: string) => Record<string, unknown> | null;
+        }).getRoomAccountData(roomId, eventType);
     }
 }
 

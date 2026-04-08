@@ -33,7 +33,7 @@ export class InvalidCryptoStoreError extends Error {
 export class KeySignatureUploadError extends Error {
     public constructor(
         message: string,
-        public readonly value: any,
+        public readonly value: unknown,
     ) {
         super(message);
     }

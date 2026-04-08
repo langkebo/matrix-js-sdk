@@ -75,7 +75,7 @@ const optionalStringArrayProperty = (wellKnown: Record<string, unknown>, key: st
     }
     return true;
 };
-const requiredArrayValue = (wellKnown: Record<string, unknown>, key: string, value: any): boolean => {
+const requiredArrayValue = (wellKnown: Record<string, unknown>, key: string, value: unknown): boolean => {
     const array = wellKnown[key];
     if (!array || !Array.isArray(array) || !array.includes(value)) {
         logger.error(`Invalid property: ${key}. ${value} is required.`);

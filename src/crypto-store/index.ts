@@ -28,7 +28,7 @@ export class CryptoStoreManager {
     /**
      * Get crypto store
      */
-    public getCryptoStore(): any {
+    public getCryptoStore(): unknown {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).cryptoStore;
     }
@@ -36,7 +36,7 @@ export class CryptoStoreManager {
     /**
      * Set crypto store
      */
-    public setCryptoStore(store: any): void {
+    public setCryptoStore(store: unknown): void {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.client as any).cryptoStore = store;
     }

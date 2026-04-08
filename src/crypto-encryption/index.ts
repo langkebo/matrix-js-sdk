@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,96 +21,91 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
+import { Room } from "../models/room";
+import { CryptoApi } from "../crypto-api";
+
+export interface IEncryptionResult {
+    event: MatrixEvent;
+    encryptedContent: Record<string, unknown>;
+}
+
+export interface IDecryptionResult {
+    clearEvent: Record<string, unknown>;
+    senderKey?: string;
+    forwardingCurve25519KeyChain?: string[];
+    keysClaimed?: Record<string, string>;
+}
+
+export interface IEncryptionInfo {
+    algorithm: string;
+    senderKey?: string;
+    senderEd25519?: string;
+    senderCurve25519?: string;
+    deviceId?: string;
+}
 
 export class CryptoEncryptionManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Is e2e enabled
-     */
     public isE2eEnabled(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isE2eEnabled();
+        return this.client.getCrypto() !== undefined;
     }
 
-    /**
-     * Get crypto
-     */
-    public getCrypto(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).crypto;
+    public getCrypto(): CryptoApi | undefined {
+        return this.client.getCrypto();
     }
 
-    /**
-     * Is crypto ready
-     */
     public isCryptoReady(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isCryptoReady();
+        return (this.client as unknown as {
+            isCryptoReady: () => boolean;
+        }).isCryptoReady();
     }
 
-    /**
-     * Get device list
-     */
-    public getDeviceList(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).deviceList;
+    public getDeviceList(): unknown {
+        return (this.client as unknown as { deviceList?: unknown }).deviceList;
     }
 
-    /**
-     * Encrypt event
-     */
-    public async encryptEvent(event: any, room: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).encryptEvent(event, room);
+    public async encryptEvent(event: MatrixEvent, room: Room): Promise<IEncryptionResult> {
+        return (this.client as unknown as {
+            encryptEvent: (event: MatrixEvent, room: Room) => Promise<IEncryptionResult>;
+        }).encryptEvent(event, room);
     }
 
-    /**
-     * Decrypt event
-     */
-    public async decryptEvent(event: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).decryptEvent(event);
+    public async decryptEvent(event: MatrixEvent): Promise<IDecryptionResult> {
+        return (this.client as unknown as {
+            decryptEvent: (event: MatrixEvent) => Promise<IDecryptionResult>;
+        }).decryptEvent(event);
     }
 
-    /**
-     * Get user devices
-     */
-    public async getUserDevices(userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUserDevices(userId);
+    public async getUserDevices(userId: string): Promise<Record<string, unknown>> {
+        return (this.client as unknown as {
+            getUserDevices: (userId: string) => Promise<Record<string, unknown>>;
+        }).getUserDevices(userId);
     }
 
-    /**
-     * Set device verified
-     */
-    public async setDeviceVerified(userId: string, deviceId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setDeviceVerified(userId, deviceId);
+    public async setDeviceVerified(userId: string, deviceId: string): Promise<void> {
+        return (this.client as unknown as {
+            setDeviceVerified: (userId: string, deviceId: string) => Promise<void>;
+        }).setDeviceVerified(userId, deviceId);
     }
 
-    /**
-     * Mark device as verified
-     */
-    public async markDeviceAsVerified(userId: string, deviceId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).markDeviceAsVerified(userId, deviceId);
+    public async markDeviceAsVerified(userId: string, deviceId: string): Promise<void> {
+        return (this.client as unknown as {
+            markDeviceAsVerified: (userId: string, deviceId: string) => Promise<void>;
+        }).markDeviceAsVerified(userId, deviceId);
     }
 
-    /**
-     * Mark all devices as verified
-     */
-    public async markAllDevicesAsVerified(userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).markAllDevicesAsVerified(userId);
+    public async markAllDevicesAsVerified(userId: string): Promise<void> {
+        return (this.client as unknown as {
+            markAllDevicesAsVerified: (userId: string) => Promise<void>;
+        }).markAllDevicesAsVerified(userId);
     }
 
-    /**
-     * Get encryption info for room
-     */
-    public async getEncryptionInfoForRoom(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getEncryptionInfoForRoom(roomId);
+    public async getEncryptionInfoForRoom(roomId: string): Promise<IEncryptionInfo> {
+        return (this.client as unknown as {
+            getEncryptionInfoForRoom: (roomId: string) => Promise<IEncryptionInfo>;
+        }).getEncryptionInfoForRoom(roomId);
     }
 }
 

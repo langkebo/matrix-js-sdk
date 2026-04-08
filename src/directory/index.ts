@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -24,64 +24,71 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 
+export interface IPublicRoom {
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    aliases?: string[];
+    canonical_alias?: string;
+    joined_members?: number;
+    joined_local_members?: number;
+    num_joined_members: number;
+    world_readable: boolean;
+    guest_can_join: boolean;
+}
+
+export interface IPublicRoomsResponse {
+    chunk: IPublicRoom[];
+    next_batch?: string;
+    prev_batch?: string;
+    total_room_count_estimate?: number;
+}
+
+export interface IRoomAliasResponse {
+    room_id: string;
+    servers: string[];
+}
+
+export interface IRoomAliasesResponse {
+    aliases: string[];
+}
+
 export class DirectoryManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get public rooms list
-     */
-    public async getPublicRoomsList(opts?: any): Promise<any> {
+    public async getPublicRoomsList(opts?: { server?: string; limit?: number; since?: string }): Promise<IPublicRoomsResponse> {
         const path = "/publicRooms";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path, opts);
+        return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Get, path, opts as Record<string, string>);
     }
 
-    /**
-     * Get public rooms
-     */
-    public async getPublicRooms(server: string, limit?: number, since?: string): Promise<any> {
+    public async getPublicRooms(server: string, limit?: number, since?: string): Promise<IPublicRoomsResponse> {
         const path = "/publicRooms";
-        const opts: any = { server };
+        const opts: Record<string, string | number> = { server };
         if (limit) opts.limit = limit;
         if (since) opts.since = since;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, opts);
+        return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Post, path, undefined, opts);
     }
 
-    /**
-     * Get room ID for alias
-     */
-    public async getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
+    public async getRoomIdForAlias(alias: string): Promise<IRoomAliasResponse> {
         const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path);
+        return this.client.http.authedRequest<IRoomAliasResponse>(Method.Get, path);
     }
 
-    /**
-     * Create room alias
-     */
-    public async createRoomAlias(roomId: string, alias: string): Promise<any> {
+    public async createRoomAlias(roomId: string, alias: string): Promise<void> {
         const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+        await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
     }
 
-    /**
-     * Delete room alias
-     */
-    public async deleteRoomAlias(alias: string): Promise<any> {
+    public async deleteRoomAlias(alias: string): Promise<void> {
         const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Delete, path);
+        await this.client.http.authedRequest(Method.Delete, path);
     }
 
-    /**
-     * Get aliases for room
-     */
     public async getAliasesForRoom(roomId: string): Promise<string[]> {
         const path = utils.encodeUri("/rooms/$roomId/aliases", { $roomId: roomId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path);
+        const response = await this.client.http.authedRequest<IRoomAliasesResponse>(Method.Get, path);
+        return response.aliases || [];
     }
 }
 

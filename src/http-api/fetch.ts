@@ -192,7 +192,7 @@ export class FetchHttpApi<O extends IHttpOpts> {
                     this.eventEmitter.emit(HttpApiEvent.SessionLoggedOut, error);
                 }
             } else if (error.errcode == "M_CONSENT_NOT_GIVEN") {
-                this.eventEmitter.emit(HttpApiEvent.NoConsent, error.message, error.data.consent_uri);
+                this.eventEmitter.emit(HttpApiEvent.NoConsent, error.message, error.data.consent_uri as string);
             }
 
             throw error;

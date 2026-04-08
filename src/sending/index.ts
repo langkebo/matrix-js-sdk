@@ -65,46 +65,54 @@ export class SendingManager {
         txnId?: string,
     ): Promise<ISendEventResponse>;
     public async sendEvent(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendEvent(roomId, ...args);
     }
 
     public async sendMessage(roomId: string, content: Record<string, unknown>, txnId?: string): Promise<ISendEventResponse>;
     public async sendMessage(roomId: string, threadId: string | null, content: Record<string, unknown>, txnId?: string): Promise<ISendEventResponse>;
     public async sendMessage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendMessage(roomId, ...args);
     }
 
     public async sendTextMessage(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendTextMessage(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendTextMessage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendTextMessage(roomId, ...args);
     }
 
     public async sendHtmlMessage(roomId: string, body: string, html: string): Promise<ISendEventResponse>;
     public async sendHtmlMessage(roomId: string, threadId: string | null, body: string, html: string): Promise<ISendEventResponse>;
     public async sendHtmlMessage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendHtmlMessage(roomId, ...args);
     }
 
     public async sendEmote(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendEmote(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendEmote(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendEmoteMessage(roomId, ...args);
     }
 
     public async sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendNotice(roomId: string, threadId: string | null, body: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendNotice(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendNotice(roomId, ...args);
     }
 
     public async sendImage(roomId: string, url: string, info?: IImageInfo, text?: string): Promise<ISendEventResponse>;
     public async sendImage(roomId: string, threadId: string | null, url: string, info?: IImageInfo, text?: string): Promise<ISendEventResponse>;
     public async sendImage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendImageMessage(roomId, ...args);
     }
 
     public async sendFile(roomId: string, content: IFileContent, txnId?: string): Promise<ISendEventResponse> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).sendMessage(roomId, content, txnId);
     }
 }

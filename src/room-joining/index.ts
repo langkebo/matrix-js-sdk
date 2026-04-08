@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,64 +21,48 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+
+export interface IJoinRoomOptions {
+    syncRoom?: boolean;
+    inviteSignUrl?: string;
+    viaServers?: string[];
+    isDirect?: boolean;
+}
+
+export interface ILeaveRoomOptions {
+    reason?: string;
+}
 
 export class RoomJoiningManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Join room
-     */
-    public async joinRoom(roomIdOrAlias: string, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).joinRoom(roomIdOrAlias, opts);
+    public async joinRoom(roomIdOrAlias: string, opts?: IJoinRoomOptions): Promise<Room> {
+        return this.client.joinRoom(roomIdOrAlias, opts as Record<string, unknown>);
     }
 
-    /**
-     * Leave room
-     */
-    public async leaveRoom(roomId: string, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).leaveRoom(roomId, opts);
+    public async leaveRoom(roomId: string, _opts?: ILeaveRoomOptions): Promise<{}> {
+        return this.client.leave(roomId);
     }
 
-    /**
-     * Invite user
-     */
-    public async inviteUser(userId: string, roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).invite(userId, roomId);
+    public async inviteUser(userId: string, roomId: string): Promise<{}> {
+        return this.client.invite(roomId, userId);
     }
 
-    /**
-     * Kick user
-     */
-    public async kickUser(userId: string, roomId: string, reason?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).kick(userId, roomId, reason);
+    public async kickUser(userId: string, roomId: string, reason?: string): Promise<{}> {
+        return this.client.kick(roomId, userId, reason);
     }
 
-    /**
-     * Ban user
-     */
-    public async banUser(userId: string, roomId: string, reason?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).ban(userId, roomId, reason);
+    public async banUser(userId: string, roomId: string, reason?: string): Promise<{}> {
+        return this.client.ban(roomId, userId, reason);
     }
 
-    /**
-     * Unban user
-     */
-    public async unbanUser(userId: string, roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).unban(userId, roomId);
+    public async unbanUser(userId: string, roomId: string): Promise<{}> {
+        return this.client.unban(roomId, userId);
     }
 
-    /**
-     * Accept invitation
-     */
-    public async acceptInvitation(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).joinRoom(roomId);
+    public async acceptInvitation(roomId: string): Promise<Room> {
+        return this.client.joinRoom(roomId);
     }
 }
 

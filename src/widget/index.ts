@@ -42,7 +42,7 @@ export interface IWidget {
     type: string;
     name: string;
     url: string;
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
     creatorUserId?: string;
     roomId?: string;
 }
@@ -69,13 +69,13 @@ export interface WidgetOpenURLOptions {
 export interface WidgetMessage {
     api: string;
     action: string;
-    data?: any;
+    data?: Record<string, unknown>;
     requestId?: string;
 }
 
 export interface WidgetMessageResponse {
     requestId: string;
-    response?: any;
+    response?: Record<string, unknown>;
     error?: {
         message: string;
         code?: string;
@@ -353,7 +353,7 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
         const requestId = message.requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Post,
                 `/rooms/${roomId}/widgets/${widgetId}/send`,
                 undefined,

@@ -18,6 +18,7 @@ import { MatrixClient } from "../client";
 import { EventTimelineSet } from "../models/event-timeline-set";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
+import { type LocalNotificationSettings } from "../@types/local_notifications";
 
 export interface ILocalNotificationSettings {
     is_silenced: boolean;
@@ -58,8 +59,8 @@ export class NotificationsManager {
         this.client.resetNotifTimelineSet();
     }
 
-    public async setLocalNotificationSettings(deviceId: string, settings: ILocalNotificationSettings): Promise<void> {
-        await this.client.setLocalNotificationSettings(deviceId, settings as any);
+    public async setLocalNotificationSettings(deviceId: string, settings: LocalNotificationSettings): Promise<void> {
+        await this.client.setLocalNotificationSettings(deviceId, settings);
     }
 
     public async getNotifications(opts?: { from?: string; limit?: number; only?: string }): Promise<INotificationsResponse> {

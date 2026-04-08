@@ -35,7 +35,7 @@ export class RoomKeySharingManager {
     /**
      * Share room key
      */
-    public async shareRoomKey(roomId: string, users: string[]): Promise<any> {
+    public async shareRoomKey(roomId: string, users: string[]): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).shareRoomKey(roomId, users);
     }
@@ -91,7 +91,7 @@ export class RoomKeySharingManager {
     /**
      * Export room keys
      */
-    public async exportRoomKeys(): Promise<any> {
+    public async exportRoomKeys(): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).exportRoomKeys();
     }
@@ -109,6 +109,7 @@ export class RoomKeySharingManager {
         sender_claimed_keys?: Record<string, string>;
         export_format?: number;
     }>): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).importRoomKeys(keys);
     }
 }

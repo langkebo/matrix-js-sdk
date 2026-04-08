@@ -21,12 +21,13 @@ export class RoomAccountDataManager {
     constructor(private client: MatrixClient) {}
 
     public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void> {
-        await this.client.setRoomAccountData(roomId, eventType as any, content);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (this.client as any).setRoomAccountData(roomId, eventType, content);
     }
 
     public getRoomAccountData(roomId: string, eventType: string): MatrixEvent | undefined {
         const room = this.client.getRoom(roomId);
-        return room?.getAccountData(eventType as any);
+        return room?.getAccountData(eventType);
     }
 
     public getAllRoomAccountData(roomId: string): Record<string, MatrixEvent> {
@@ -37,9 +38,9 @@ export class RoomAccountDataManager {
         const accountData = room.getAccountData;
         if (!accountData) return {};
         
-        const events = Object.keys((room as any).accountData || {});
+        const events = Object.keys((room as unknown as { accountData: Map<string, MatrixEvent> }).accountData || {});
         for (const eventType of events) {
-            const event = room.getAccountData(eventType as any);
+            const event = room.getAccountData(eventType);
             if (event) {
                 result[eventType] = event;
             }
@@ -49,7 +50,7 @@ export class RoomAccountDataManager {
 
     public hasRoomAccountData(roomId: string, eventType: string): boolean {
         const room = this.client.getRoom(roomId);
-        return room?.getAccountData(eventType as any) !== undefined;
+        return room?.getAccountData(eventType) !== undefined;
     }
 }
 

@@ -401,13 +401,14 @@ export class SlidingSyncSdk {
             case SlidingSyncState.RequestFinished:
                 if (err) {
                     this.failCount += 1;
+                    const errorJson = err as unknown as { errcode?: string; error?: string; [key: string]: unknown };
                     this.updateSyncState(
                         this.failCount > FAILED_SYNC_ERROR_THRESHOLD ? SyncState.Error : SyncState.Reconnecting,
                         {
-                            error: new MatrixError(err),
+                            error: new MatrixError(errorJson),
                         },
                     );
-                    if (this.shouldAbortSync(new MatrixError(err))) {
+                    if (this.shouldAbortSync(new MatrixError(errorJson))) {
                         return; // shouldAbortSync actually stops syncing too so we don't need to do anything.
                     }
                 } else {

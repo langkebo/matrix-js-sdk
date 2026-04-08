@@ -18,6 +18,13 @@ import { MediaTrackStats } from "./mediaTrackStats.ts";
 import { type MediaTrackHandler, type TrackId } from "./mediaTrackHandler.ts";
 import { type MediaSsrcHandler } from "./mediaSsrcHandler.ts";
 
+interface RTCStatsReportItem {
+    trackIdentifier?: string;
+    mid?: string;
+    ssrc?: string | number;
+    [key: string]: unknown;
+}
+
 export class MediaTrackStatsHandler {
     private readonly track2stats = new Map<TrackID, MediaTrackStats>();
 
@@ -33,7 +40,7 @@ export class MediaTrackStatsHandler {
      * https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats
      * https://developer.mozilla.org/en-US/docs/Web/API/RTCInboundRtpStreamStats
      */
-    public findTrack2Stats(report: any, type: "remote" | "local"): MediaTrackStats | undefined {
+    public findTrack2Stats(report: RTCStatsReportItem, type: "remote" | "local"): MediaTrackStats | undefined {
         let trackID;
         if (report.trackIdentifier) {
             trackID = report.trackIdentifier;
@@ -43,14 +50,14 @@ export class MediaTrackStatsHandler {
                     ? this.mediaTrackHandler.getRemoteTrackIdByMid(report.mid)
                     : this.mediaTrackHandler.getLocalTrackIdByMid(report.mid);
         } else if (report.ssrc) {
-            const mid = this.mediaSsrcHandler.findMidBySsrc(report.ssrc, type);
+            const mid = this.mediaSsrcHandler.findMidBySsrc(String(report.ssrc), type);
             if (!mid) {
                 return undefined;
             }
             trackID =
                 type === "remote"
-                    ? this.mediaTrackHandler.getRemoteTrackIdByMid(report.mid)
-                    : this.mediaTrackHandler.getLocalTrackIdByMid(report.mid);
+                    ? this.mediaTrackHandler.getRemoteTrackIdByMid(mid)
+                    : this.mediaTrackHandler.getLocalTrackIdByMid(mid);
         }
 
         if (!trackID) {
@@ -72,7 +79,7 @@ export class MediaTrackStatsHandler {
         return trackStats;
     }
 
-    public findLocalVideoTrackStats(report: any): MediaTrackStats | undefined {
+    public findLocalVideoTrackStats(report: RTCStatsReportItem): MediaTrackStats | undefined {
         const localVideoTracks = this.mediaTrackHandler.getLocalTracks("video");
         if (localVideoTracks.length === 0) {
             return undefined;

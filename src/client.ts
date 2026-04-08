@@ -818,7 +818,7 @@ export interface IServerVersions {
 }
 
 export interface IClientWellKnown {
-    [key: string]: any;
+    [key: string]: unknown;
     "m.homeserver"?: IWellKnownConfig;
     "m.identity_server"?: IWellKnownConfig;
 }
@@ -842,7 +842,7 @@ interface IKeyBackupPath {
 }
 
 interface IMediaConfig {
-    [key: string]: any; // extensible
+    [key: string]: unknown;
     "m.upload.size"?: number;
 }
 
@@ -858,8 +858,19 @@ interface IJoinRequestBody {
 }
 
 interface ITagMetadata {
-    [key: string]: any;
+    [key: string]: unknown;
     order?: number;
+}
+
+interface IMyRoomInfo {
+    room_id: string;
+    name?: string;
+    avatar_url?: string;
+    topic?: string;
+    canonical_alias?: string;
+    join_state?: string;
+    member_count?: number;
+    [key: string]: unknown;
 }
 
 interface IMessagesResponse {
@@ -8660,7 +8671,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get all rooms for the current user, including join, invite, and leave status.
      * Custom endpoint for synapse-rust.
      */
-    public async getMyRooms(): Promise<{ rooms: any[]; total: number }> {
+    public async getMyRooms(): Promise<{ rooms: IMyRoomInfo[]; total: number }> {
         return await this.http.authedRequest(Method.Get, "/my_rooms", undefined, undefined, {
             prefix: ClientPrefix.V3,
         });

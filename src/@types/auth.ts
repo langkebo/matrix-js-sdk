@@ -156,7 +156,7 @@ type SpecUserIdentifier = UserLoginIdentifier | ThirdPartyLoginIdentifier | Phon
  */
 export type UserIdentifier =
     | SpecUserIdentifier
-    | { type: Exclude<string, SpecUserIdentifier["type"]>; [key: string]: any };
+    | { type: Exclude<string, SpecUserIdentifier["type"]>; [key: string]: unknown };
 
 /**
  * Request body for POST /login request
@@ -207,7 +207,7 @@ export interface LoginRequest {
      */
     user?: string;
     // Extensible
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 // Export for backwards compatibility

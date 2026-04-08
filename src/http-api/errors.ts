@@ -21,7 +21,7 @@ import { type MatrixEvent } from "../models/event.ts";
 import { NamespacedValue } from "../NamespacedValue.ts";
 
 interface IErrorJson extends Partial<IUsageLimit> {
-    [key: string]: any; // extensible
+    [key: string]: unknown; // extensible
     errcode?: string;
     error?: string;
 }
@@ -142,10 +142,11 @@ export class MatrixError extends HTTPError {
         }
         // Note: retry_after_ms is deprecated as of spec version v1.10
         if (this.errcode === "M_LIMIT_EXCEEDED" && "retry_after_ms" in this.data) {
-            if (!Number.isInteger(this.data.retry_after_ms)) {
+            const retryAfterMs = this.data.retry_after_ms as unknown;
+            if (!Number.isInteger(retryAfterMs)) {
                 throw new Error("retry_after_ms is not an integer");
             }
-            return this.data.retry_after_ms;
+            return retryAfterMs as number;
         }
         return null;
     }

@@ -14,40 +14,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Filter Manager - 过滤器管理
- * 
- * 提供过滤器创建、获取等功能
- */
-
 import { MatrixClient } from "../client";
-import { Filter, type IFilterDefinition } from "../filter";
-import { Method } from "../http-api/index";
+import { Filter, IFilterDefinition } from "../filter";
 import * as utils from "../utils";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 
 export class FilterManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Create a new filter
-     */
-    public createFilter(content: IFilterDefinition): Promise<Filter> {
-        const path = utils.encodeUri("/user/$userId/filter", {
-            $userId: this.client.credentials.userId!,
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, content).then((response: any) => {
-            // persist the filter
-            const filter = Filter.fromJson(this.client.credentials.userId, response.filter_id, content);
-            this.client.store.storeFilter(filter);
-            return filter;
-        });
+    public async createFilter(definition: IFilterDefinition): Promise<{ filterId: string }> {
+        const userId = this.client.getUserId();
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+
+        const path = utils.encodeUri("/user/$userId/filter", { $userId: userId });
+        const response = await this.client.http.authedRequest<{ filter_id: string }>(
+            Method.Post,
+            path,
+            undefined,
+            definition,
+            { prefix: ClientPrefix.V3 }
+        );
+
+        const filter = Filter.fromJson(userId, response.filter_id, definition);
+        this.client.store.storeFilter(filter);
+        
+        return { filterId: response.filter_id };
     }
 
-    /**
-     * Get a filter by ID
-     */
-    public getFilter(userId: string, filterId: string, allowCached = true): Promise<Filter> {
+    public async getFilter(userId: string, filterId: string, allowCached = true): Promise<Filter> {
         if (allowCached) {
             const filter = this.client.store.getFilter(userId, filterId);
             if (filter) {
@@ -60,26 +57,26 @@ export class FilterManager {
             $filterId: filterId,
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path).then((response: any) => {
-            // persist the filter
-            const filter = Filter.fromJson(userId, filterId, response);
-            this.client.store.storeFilter(filter);
-            return filter;
-        });
+        const response = await this.client.http.authedRequest<IFilterDefinition>(
+            Method.Get,
+            path,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 }
+        );
+        
+        const filter = Filter.fromJson(userId, filterId, response);
+        this.client.store.storeFilter(filter);
+        return filter;
     }
 
-    /**
-     * Get or create a filter
-     */
     public async getOrCreateFilter(filterName: string, filter: Filter): Promise<string> {
         const filterId = this.client.store.getFilterIdByName(filterName);
         let existingId: string | undefined;
 
         if (filterId) {
-            // check that the existing filter matches our expectations
             try {
-                const existingFilter = await this.getFilter(this.client.credentials.userId!, filterId, true);
+                const existingFilter = await this.getFilter(this.client.getUserId()!, filterId, true);
                 if (existingFilter) {
                     const oldDef = existingFilter.getDefinition();
                     const newDef = filter.getDefinition();
@@ -89,12 +86,11 @@ export class FilterManager {
                     }
                 }
             } catch (error) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if ((error as any).errcode !== "M_UNKNOWN" && (error as any).errcode !== "M_NOT_FOUND") {
+                const err = error as Error & { errcode?: string };
+                if (err.errcode !== "M_UNKNOWN" && err.errcode !== "M_NOT_FOUND") {
                     throw error;
                 }
             }
-            // if the filter doesn't exist anymore on the server, remove from store
             if (!existingId) {
                 this.client.store.setFilterIdByName(filterName, undefined);
             }
@@ -104,11 +100,9 @@ export class FilterManager {
             return existingId;
         }
 
-        // create a new filter
         const createdFilter = await this.createFilter(filter.getDefinition());
-
         this.client.store.setFilterIdByName(filterName, createdFilter.filterId);
-        return createdFilter.filterId!;
+        return createdFilter.filterId;
     }
 }
 

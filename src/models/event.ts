@@ -73,7 +73,7 @@ export interface IUnsigned {
     "replaces_state"?: string;
     "transaction_id"?: string;
     "invite_room_state"?: StrippedState[];
-    "m.relations"?: Record<RelationType | string, any>; // No common pattern for aggregated relations
+    "m.relations"?: Record<RelationType | string, any>;
     "msc4354_sticky_duration_ttl_ms"?: number;
     [UNSIGNED_THREAD_ID_FIELD.name]?: string;
     "membership"?: Membership;

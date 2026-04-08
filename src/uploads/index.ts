@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,47 +22,51 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IUploadOptions {
+    name?: string;
+    type?: string;
+    includeFilename?: boolean;
+    progress?: (progress: { loaded: number; total: number }) => void;
+}
+
+export interface IUploadProgress {
+    loaded: number;
+    total: number;
+}
+
+export interface IUploadResponse {
+    content_uri: string;
+}
+
 export class UploadsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Upload content
-     */
-    public async uploadContent(file: any, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).uploadContent(file, opts);
+    public async uploadContent(file: File | Blob | string, opts?: IUploadOptions): Promise<IUploadResponse> {
+        return this.client.uploadContent(file, opts as Record<string, unknown>);
     }
 
-    /**
-     * Upload file
-     */
-    public async uploadFile(file: any, opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).uploadFile(file, opts);
+    public async uploadFile(file: File | Blob, opts?: IUploadOptions): Promise<IUploadResponse> {
+        return (this.client as unknown as {
+            uploadFile: (file: File | Blob, opts?: IUploadOptions) => Promise<IUploadResponse>;
+        }).uploadFile(file, opts);
     }
 
-    /**
-     * Cancel upload
-     */
-    public cancelUpload(upload: Promise<any>): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).cancelUpload(upload);
+    public cancelUpload(upload: Promise<unknown>): boolean {
+        return (this.client as unknown as {
+            cancelUpload: (upload: Promise<unknown>) => boolean;
+        }).cancelUpload(upload);
     }
 
-    /**
-     * Get upload progress
-     */
-    public getUploadProgress(uploadId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUploadProgress(uploadId);
+    public getUploadProgress(uploadId: string): IUploadProgress | null {
+        return (this.client as unknown as {
+            getUploadProgress: (uploadId: string) => IUploadProgress | null;
+        }).getUploadProgress(uploadId);
     }
 
-    /**
-     * Abort all uploads
-     */
     public abortAllUploads(): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).abortAllUploads();
+        (this.client as unknown as {
+            abortAllUploads: () => void;
+        }).abortAllUploads();
     }
 }
 

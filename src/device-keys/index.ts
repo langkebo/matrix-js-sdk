@@ -76,8 +76,10 @@ export interface ClaimKeysRequest {
     one_time_keys: Record<string, Record<string, string>>;
 }
 
+export type OneTimeKeysMap = Record<string, Record<string, Record<string, unknown>>>;
+
 export interface ClaimKeysResponse {
-    one_time_keys?: Record<string, Record<string, Record<string, any>>>;
+    one_time_keys?: OneTimeKeysMap;
     failures?: Record<string, Record<string, string>>;
 }
 
@@ -127,7 +129,7 @@ export enum DeviceKeysEvent {
 interface DeviceKeysManagerEventMap {
     [DeviceKeysEvent.KeysUploaded]: (counts: Record<string, number>) => void;
     [DeviceKeysEvent.KeysQueried]: (deviceKeys: Record<string, Record<string, DeviceKeys>>) => void;
-    [DeviceKeysEvent.KeyClaimed]: (keys: Record<string, Record<string, Record<string, any>>>) => void;
+    [DeviceKeysEvent.KeyClaimed]: (keys: OneTimeKeysMap) => void;
     [DeviceKeysEvent.DeviceListUpdated]: (changed: string[], left: string[]) => void;
     [DeviceKeysEvent.RoomKeyRequested]: (requests: RoomKeyRequest[]) => void;
 }
@@ -450,39 +452,34 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
         }
     }
 
-    /**
-     * 获取设备密钥（兼容旧接口）
-     */
-    public async getDeviceKeys(userId: string): Promise<any> {
-        return (this.client as any).getDeviceKeys(userId);
+    public async getDeviceKeys(userId: string): Promise<Record<string, DeviceKeys>> {
+        return (this.client as unknown as {
+            getDeviceKeys: (userId: string) => Promise<Record<string, DeviceKeys>>;
+        }).getDeviceKeys(userId);
     }
 
-    /**
-     * 上传设备密钥（兼容旧接口）
-     */
-    public async uploadDeviceKeys(keys: any): Promise<any> {
-        return (this.client as any).uploadDeviceKeys(keys);
+    public async uploadDeviceKeys(keys: DeviceKeys): Promise<UploadKeysResponse> {
+        return (this.client as unknown as {
+            uploadDeviceKeys: (keys: DeviceKeys) => Promise<UploadKeysResponse>;
+        }).uploadDeviceKeys(keys);
     }
 
-    /**
-     * 获取用户设备（兼容旧接口）
-     */
-    public async getUserDevices(userId: string): Promise<any> {
-        return (this.client as any).getUserDevices(userId);
+    public async getUserDevices(userId: string): Promise<Record<string, DeviceKeys>> {
+        return (this.client as unknown as {
+            getUserDevices: (userId: string) => Promise<Record<string, DeviceKeys>>;
+        }).getUserDevices(userId);
     }
 
-    /**
-     * 是否有设备（兼容旧接口）
-     */
     public hasDevice(deviceId: string): boolean {
-        return (this.client as any).hasDevice(deviceId);
+        return (this.client as unknown as {
+            hasDevice: (deviceId: string) => boolean;
+        }).hasDevice(deviceId);
     }
 
-    /**
-     * 获取设备（兼容旧接口）
-     */
-    public getDevice(deviceId: string): any {
-        return (this.client as any).getDevice(deviceId);
+    public getDevice(deviceId: string): DeviceKeys | null {
+        return (this.client as unknown as {
+            getDevice: (deviceId: string) => DeviceKeys | null;
+        }).getDevice(deviceId);
     }
 }
 

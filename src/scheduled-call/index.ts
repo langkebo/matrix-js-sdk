@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,39 +22,44 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IScheduledCall {
+    callId: string;
+    roomId: string;
+    type: "voice" | "video";
+    scheduledAt: number;
+    createdBy: string;
+    status: "scheduled" | "started" | "ended" | "cancelled";
+}
+
+export interface IScheduleCallResponse {
+    call_id: string;
+}
+
 export class ScheduledCallManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Schedule call
-     */
-    public async scheduleCall(roomId: string, type: string, timestamp: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).scheduleCall(roomId, type, timestamp);
+    public async scheduleCall(roomId: string, type: string, timestamp: number): Promise<IScheduleCallResponse> {
+        return (this.client as unknown as {
+            scheduleCall: (roomId: string, type: string, timestamp: number) => Promise<IScheduleCallResponse>;
+        }).scheduleCall(roomId, type, timestamp);
     }
 
-    /**
-     * Cancel scheduled call
-     */
-    public async cancelScheduledCall(callId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).cancelScheduledCall(callId);
+    public async cancelScheduledCall(callId: string): Promise<void> {
+        return (this.client as unknown as {
+            cancelScheduledCall: (callId: string) => Promise<void>;
+        }).cancelScheduledCall(callId);
     }
 
-    /**
-     * Get scheduled calls
-     */
-    public getScheduledCalls(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getScheduledCalls();
+    public getScheduledCalls(): IScheduledCall[] {
+        return (this.client as unknown as {
+            getScheduledCalls: () => IScheduledCall[];
+        }).getScheduledCalls();
     }
 
-    /**
-     * Get scheduled call
-     */
-    public getScheduledCall(callId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getScheduledCall(callId);
+    public getScheduledCall(callId: string): IScheduledCall | null {
+        return (this.client as unknown as {
+            getScheduledCall: (callId: string) => IScheduledCall | null;
+        }).getScheduledCall(callId);
     }
 }
 

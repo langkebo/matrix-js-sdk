@@ -1,4 +1,5 @@
 import { logger } from "../logger"
+import { MatrixClient } from "../client";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -12,7 +13,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 export interface TelemetryEvent {
     event: string
     timestamp: number
-    data?: Record<string, any>
+    data?: Record<string, unknown>
 }
 
 export interface TelemetryConfig {
@@ -38,13 +39,13 @@ export interface ClientMetrics {
 }
 
 export class TelemetryManager {
-    private client: any;
+    private client: MatrixClient;
     private config: TelemetryConfig;
     private eventQueue: TelemetryEvent[] = [];
     private sessionStart: number;
     private stats: UsageStats;
 
-    constructor(client: any, config?: Partial<TelemetryConfig>) {
+    constructor(client: MatrixClient, config?: Partial<TelemetryConfig>) {
         this.client = client;
         this.config = {
             enabled: config?.enabled || false,
@@ -93,7 +94,7 @@ export class TelemetryManager {
     /**
      * 跟踪事件
      */
-    track(event: string, data?: Record<string, any>): void {
+    track(event: string, data?: Record<string, unknown>): void {
         if (!this.config.enabled) return;
 
         // 采样检查
@@ -175,7 +176,7 @@ export class TelemetryManager {
     /**
      * 记录错误
      */
-    trackError(error: Error, context?: Record<string, any>): void {
+    trackError(error: Error, context?: Record<string, unknown>): void {
         this.track('error', {
             message: error.message,
             stack: error.stack,
@@ -188,7 +189,7 @@ export class TelemetryManager {
      */
     getClientInfo(): ClientMetrics {
         return {
-            version: this.client.version || 'unknown',
+            version: (this.client as unknown as { version?: string }).version || 'unknown',
             platform: this.getPlatform(),
             runtime: this.getRuntime(),
             features: this.getEnabledFeatures()
@@ -212,10 +213,9 @@ export class TelemetryManager {
     private getEnabledFeatures(): string[] {
         const features: string[] = [];
         
-        if (this.client.isCryptoEnabled?.()) features.push('encryption');
-        if (this.client.supportsVoip?.()) features.push('voip');
-        if (this.client.supportsThreads?.()) features.push('threads');
-        if (this.client.isRoomEncrypted?.()) features.push('e2ee_rooms');
+        if (this.client.getCrypto()) features.push('encryption');
+        if (this.client.supportsVoip()) features.push('voip');
+        if (this.client.supportsThreads()) features.push('threads');
         
         return features;
     }

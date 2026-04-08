@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,48 +21,51 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { SyncAccumulator } from "../sync-accumulator";
+
+export interface ISyncAccumulatedData {
+    rooms?: {
+        join?: Record<string, unknown>;
+        invite?: Record<string, unknown>;
+        leave?: Record<string, unknown>;
+    };
+    account_data?: Array<{
+        type: string;
+        content: Record<string, unknown>;
+    }>;
+    presence?: Array<{
+        type: string;
+        content: Record<string, unknown>;
+    }>;
+}
 
 export class SyncAccumulatorManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get sync accumulator
-     */
-    public getSyncAccumulator(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).syncAccumulator;
+    public getSyncAccumulator(): SyncAccumulator | null {
+        return (this.client as unknown as { syncAccumulator?: SyncAccumulator }).syncAccumulator ?? null;
     }
 
-    /**
-     * Set sync accumulator
-     */
-    public setSyncAccumulator(accumulator: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).syncAccumulator = accumulator;
+    public setSyncAccumulator(accumulator: SyncAccumulator): void {
+        (this.client as unknown as { syncAccumulator?: SyncAccumulator }).syncAccumulator = accumulator;
     }
 
-    /**
-     * Accumulate sync data
-     */
-    public async accumulateSyncData(data: any): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).accumulateSyncData(data);
+    public async accumulateSyncData(data: Record<string, unknown>): Promise<void> {
+        return (this.client as unknown as {
+            accumulateSyncData: (data: Record<string, unknown>) => Promise<void>;
+        }).accumulateSyncData(data);
     }
 
-    /**
-     * Get accumulated data
-     */
-    public getAccumulatedData(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAccumulatedData();
+    public getAccumulatedData(): ISyncAccumulatedData | null {
+        return (this.client as unknown as {
+            getAccumulatedData: () => ISyncAccumulatedData | null;
+        }).getAccumulatedData();
     }
 
-    /**
-     * Reset accumulator
-     */
     public resetAccumulator(): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).resetAccumulator();
+        (this.client as unknown as {
+            resetAccumulator: () => void;
+        }).resetAccumulator();
     }
 }
 

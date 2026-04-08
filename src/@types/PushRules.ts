@@ -72,7 +72,7 @@ export enum ConditionKind {
 }
 
 export interface IPushRuleCondition<N extends ConditionKind | string> {
-    [k: string]: any; // for custom conditions, there can be other fields here
+    [k: string]: unknown; // for custom conditions, there can be other fields here
     kind: N;
 }
 

@@ -85,7 +85,7 @@ export class TypedEventEmitter<
      */
     public emit<T extends Events>(event: T, ...args: Parameters<SuperclassArguments[T]>): boolean;
     public emit<T extends Events>(event: T, ...args: Parameters<Arguments[T]>): boolean;
-    public emit<T extends Events>(event: T, ...args: any[]): boolean {
+    public emit<T extends Events>(event: T, ...args: unknown[]): boolean {
         return super.emit(event, ...args);
     }
 
@@ -100,7 +100,7 @@ export class TypedEventEmitter<
         ...args: Parameters<SuperclassArguments[T]>
     ): Promise<boolean>;
     public async emitPromised<T extends Events>(event: T, ...args: Parameters<Arguments[T]>): Promise<boolean>;
-    public async emitPromised<T extends Events>(event: T, ...args: any[]): Promise<boolean> {
+    public async emitPromised<T extends Events>(event: T, ...args: unknown[]): Promise<boolean> {
         const listeners = this.listeners(event);
         return Promise.allSettled(listeners.map((l) => l(...args))).then(() => {
             return listeners.length > 0;

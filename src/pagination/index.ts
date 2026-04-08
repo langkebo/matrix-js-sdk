@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,40 +21,47 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { EventTimeline } from "../models/event-timeline";
+
+export interface IPaginateOptions {
+    backwards?: boolean;
+    limit?: number;
+}
+
+export interface ISearchResult {
+    results: Array<{
+        rank?: number;
+        result: Record<string, unknown>;
+    }>;
+    next_batch?: string;
+    count?: number;
+}
 
 export class PaginationManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Paginate event timeline
-     */
-    public async paginateEventTimeline(eventTimeline: any, opts?: any): Promise<boolean> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).paginateEventTimeline(eventTimeline, opts);
+    public async paginateEventTimeline(eventTimeline: EventTimeline, opts?: IPaginateOptions): Promise<boolean> {
+        return (this.client as unknown as {
+            paginateEventTimeline: (eventTimeline: EventTimeline, opts?: IPaginateOptions) => Promise<boolean>;
+        }).paginateEventTimeline(eventTimeline, opts);
     }
 
-    /**
-     * Back paginate room events search
-     */
-    public async backPaginateRoomEventsSearch(searchResults: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).backPaginateRoomEventsSearch(searchResults);
+    public async backPaginateRoomEventsSearch(searchResults: ISearchResult): Promise<ISearchResult> {
+        return (this.client as unknown as {
+            backPaginateRoomEventsSearch: (searchResults: ISearchResult) => Promise<ISearchResult>;
+        }).backPaginateRoomEventsSearch(searchResults);
     }
 
-    /**
-     * Fetch initial pagination data
-     */
-    public async fetchInitialPaginationData(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).fetchInitialPaginationData(roomId);
+    public async fetchInitialPaginationData(roomId: string): Promise<Record<string, unknown>> {
+        return (this.client as unknown as {
+            fetchInitialPaginationData: (roomId: string) => Promise<Record<string, unknown>>;
+        }).fetchInitialPaginationData(roomId);
     }
 
-    /**
-     * Get message for pagination
-     */
-    public getMessagesForTimeline(roomId: string, opts?: any): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getMessagesForTimeline(roomId, opts);
+    public getMessagesForTimeline(roomId: string, opts?: IPaginateOptions): Record<string, unknown> {
+        return (this.client as unknown as {
+            getMessagesForTimeline: (roomId: string, opts?: IPaginateOptions) => Record<string, unknown>;
+        }).getMessagesForTimeline(roomId, opts);
     }
 }
 

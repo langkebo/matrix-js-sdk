@@ -310,7 +310,7 @@ export class IndexedDBStore extends MemoryStore {
      * @param fallback - The method name for fallback.
      * @returns A wrapped member function.
      */
-    private degradable<A extends Array<any>, F extends keyof MemoryStore | null, R = void>(
+    private degradable<A extends unknown[], F extends keyof MemoryStore | null, R = void>(
         func: DegradableFn<A, R>,
         fallback: F,
     ): DegradableFn<A, F extends string ? R : void> {
@@ -394,4 +394,4 @@ function pendingEventsKey(roomId: string): string {
     return `mx_pending_events_${roomId}`;
 }
 
-type DegradableFn<A extends Array<any>, T> = (...args: A) => Promise<T>;
+type DegradableFn<A extends unknown[], T> = (...args: A) => Promise<T>;

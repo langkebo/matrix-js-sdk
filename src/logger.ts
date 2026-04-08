@@ -26,7 +26,7 @@ interface LoggerWithLogMethod extends Logger {
      *
      * @deprecated prefer {@link Logger.debug}.
      */
-    log(...msg: any[]): void;
+    log(...msg: unknown[]): void;
 }
 
 /** Logger interface used within the js-sdk codebase */
@@ -122,7 +122,7 @@ loglevel.methodFactory = function (methodName, logLevel, loggerName) {
 /**
  * Implementation of {@link Logger} based on `loglevel`.
  */
-interface PrefixedLogger extends loglevel.Logger, LoggerWithLogMethod {
+interface PrefixedLogger extends Omit<loglevel.Logger, 'log'>, LoggerWithLogMethod {
     prefix?: string;
 }
 
@@ -186,23 +186,23 @@ export class LogSpan implements BaseLogger {
         this.name = name + ":";
     }
 
-    public trace(...msg: any[]): void {
+    public trace(...msg: unknown[]): void {
         this.parent.trace(this.name, ...msg);
     }
 
-    public debug(...msg: any[]): void {
+    public debug(...msg: unknown[]): void {
         this.parent.debug(this.name, ...msg);
     }
 
-    public info(...msg: any[]): void {
+    public info(...msg: unknown[]): void {
         this.parent.info(this.name, ...msg);
     }
 
-    public warn(...msg: any[]): void {
+    public warn(...msg: unknown[]): void {
         this.parent.warn(this.name, ...msg);
     }
 
-    public error(...msg: any[]): void {
+    public error(...msg: unknown[]): void {
         this.parent.error(this.name, ...msg);
     }
 }
@@ -235,23 +235,23 @@ interface Debugger {
 export class DebugLogger implements Logger {
     public constructor(private debugInstance: Debugger) {}
 
-    public trace(...msg: any[]): void {
+    public trace(...msg: unknown[]): void {
         this.debugWithPrefix("[TRACE]", ...msg);
     }
 
-    public debug(...msg: any[]): void {
+    public debug(...msg: unknown[]): void {
         this.debugWithPrefix("[DEBUG]", ...msg);
     }
 
-    public info(...msg: any[]): void {
+    public info(...msg: unknown[]): void {
         this.debugWithPrefix("[INFO]", ...msg);
     }
 
-    public warn(...msg: any[]): void {
+    public warn(...msg: unknown[]): void {
         this.debugWithPrefix("[WARN]", ...msg);
     }
 
-    public error(...msg: any[]): void {
+    public error(...msg: unknown[]): void {
         this.debugWithPrefix("[ERROR]", ...msg);
     }
 
@@ -259,7 +259,7 @@ export class DebugLogger implements Logger {
         return new DebugLogger(this.debugInstance.extend(namespace));
     }
 
-    private debugWithPrefix(prefix: string, ...msg: any[]): void {
+    private debugWithPrefix(prefix: string, ...msg: unknown[]): void {
         let formatter: string;
 
         // Convert the first argument to a string, so that we can safely add a prefix. This is much the same logic that
@@ -267,10 +267,10 @@ export class DebugLogger implements Logger {
         if (msg.length === 0) {
             formatter = "";
         } else if (msg[0] instanceof Error) {
-            const err = msg.shift();
+            const err = msg.shift() as Error;
             formatter = err.stack || err.message;
         } else if (typeof msg[0] == "string") {
-            formatter = msg.shift();
+            formatter = msg.shift() as string;
         } else {
             formatter = "%O";
         }

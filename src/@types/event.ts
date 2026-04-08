@@ -419,8 +419,8 @@ export interface AccountDataEvents extends SecretStorageAccountDataEvents {
     [key: `m.secret_storage.key.${string}`]: SecretStorageKeyDescription;
 
     // Invites-ignorer events
-    [POLICIES_ACCOUNT_EVENT_TYPE.name]: { [key: string]: any };
-    [POLICIES_ACCOUNT_EVENT_TYPE.altName]: { [key: string]: any };
+    [POLICIES_ACCOUNT_EVENT_TYPE.name]: Record<string, unknown>;
+    [POLICIES_ACCOUNT_EVENT_TYPE.altName]: Record<string, unknown>;
 
     [EventType.InvitePermissionConfig]: { default_action?: string };
 

@@ -178,7 +178,7 @@ export class CallStatsReportGatherer {
         return this.isActive;
     }
 
-    private handleError(error: any): void {
+    private handleError(error: unknown): void {
         this.isActive = false;
         logger.warn(`CallStatsReportGatherer ${this.callId} processStatsReport fails and set to inactive ${error}`);
     }

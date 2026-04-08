@@ -21,56 +21,58 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixHttpApi, IHttpOpts } from "../http-api";
+
+export interface IRequestOptions {
+    method?: string;
+    url?: string;
+    headers?: Record<string, string>;
+    body?: unknown;
+    timeout?: number;
+}
+
+export interface IPendingRequest {
+    id: string;
+    url: string;
+    method: string;
+    timestamp: number;
+}
+
+type ClientHttpApi = MatrixHttpApi<IHttpOpts & { onlyData: true }>;
 
 export class HttpManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get HTTP agent
-     */
-    public getHttp(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http;
+    public getHttp(): ClientHttpApi {
+        return this.client.http;
     }
 
-    /**
-     * Set HTTP agent
-     */
-    public setHttp(http: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).http = http;
+    public setHttp(http: ClientHttpApi): void {
+        (this.client as unknown as { http: ClientHttpApi }).http = http;
     }
 
-    /**
-     * Create http request
-     */
-    public createRequest(options: any): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).createRequest(options);
+    public createRequest(options: IRequestOptions): Promise<unknown> {
+        return (this.client as unknown as {
+            createRequest: (options: IRequestOptions) => Promise<unknown>;
+        }).createRequest(options);
     }
 
-    /**
-     * Pick any destination certificate
-     */
-    public pickAnyDestinationCertificate(roomId: string, eventId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).pickAnyDestinationCertificate(roomId, eventId);
+    public pickAnyDestinationCertificate(roomId: string, eventId: string): unknown {
+        return (this.client as unknown as {
+            pickAnyDestinationCertificate: (roomId: string, eventId: string) => unknown;
+        }).pickAnyDestinationCertificate(roomId, eventId);
     }
 
-    /**
-     * Get pending requests
-     */
-    public getPendingRequests(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPendingRequests();
+    public getPendingRequests(): IPendingRequest[] {
+        return (this.client as unknown as {
+            getPendingRequests: () => IPendingRequest[];
+        }).getPendingRequests();
     }
 
-    /**
-     * Cancel pending requests
-     */
     public cancelPendingRequests(reason: string): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).cancelPendingRequests(reason);
+        (this.client as unknown as {
+            cancelPendingRequests: (reason: string) => void;
+        }).cancelPendingRequests(reason);
     }
 }
 

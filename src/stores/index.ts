@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,56 +21,37 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { IStore } from "../store/index";
 
 export class StoresManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get store
-     */
-    public getStore(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).store;
+    public getStore(): IStore | undefined {
+        return (this.client as unknown as { store?: IStore }).store;
     }
 
-    /**
-     * Set store
-     */
-    public setStore(store: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).store = store;
+    public setStore(store: IStore): void {
+        (this.client as unknown as { store?: IStore }).store = store;
     }
 
-    /**
-     * Get crypto store
-     */
-    public getCryptoStore(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).cryptoStore;
+    public getCryptoStore(): unknown {
+        return (this.client as unknown as { cryptoStore?: unknown }).cryptoStore;
     }
 
-    /**
-     * Set crypto store
-     */
-    public setCryptoStore(store: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).cryptoStore = store;
+    public setCryptoStore(store: unknown): void {
+        (this.client as unknown as { cryptoStore?: unknown }).cryptoStore = store;
     }
 
-    /**
-     * Store value
-     */
-    public async storeValue(key: string, value: any): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).storeValue(key, value);
+    public async storeValue(key: string, value: unknown): Promise<void> {
+        return (this.client as unknown as {
+            storeValue: (key: string, value: unknown) => Promise<void>;
+        }).storeValue(key, value);
     }
 
-    /**
-     * Get stored value
-     */
-    public async getStoredValue(key: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getStoredValue(key);
+    public async getStoredValue(key: string): Promise<unknown> {
+        return (this.client as unknown as {
+            getStoredValue: (key: string) => Promise<unknown>;
+        }).getStoredValue(key);
     }
 }
 

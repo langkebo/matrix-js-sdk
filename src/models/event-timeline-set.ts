@@ -28,7 +28,7 @@ import { type Thread, type ThreadFilterType } from "./thread.ts";
 const DEBUG = true;
 
 /* istanbul ignore next */
-let debuglog: (...args: any[]) => void;
+let debuglog: (...args: unknown[]) => void;
 if (DEBUG) {
     // using bind means that we get to keep useful line numbers in the console
     debuglog = logger.log.bind(logger);

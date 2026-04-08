@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,56 +21,45 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixCall } from "../webrtc/call";
 
 export class VoIPCallsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Create call
-     */
-    public createCall(roomId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).createCall(roomId);
+    public createCall(roomId: string): MatrixCall | null {
+        return (this.client as unknown as {
+            createCall: (roomId: string) => MatrixCall | null;
+        }).createCall(roomId);
     }
 
-    /**
-     * Set supports call transfer
-     */
     public setSupportsCallTransfer(support: boolean): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setSupportsCallTransfer(support);
+        (this.client as unknown as {
+            setSupportsCallTransfer: (support: boolean) => void;
+        }).setSupportsCallTransfer(support);
     }
 
-    /**
-     * Get call
-     */
-    public getCall(roomId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getCall(roomId);
+    public getCall(roomId: string): MatrixCall | null {
+        return (this.client as unknown as {
+            getCall: (roomId: string) => MatrixCall | null;
+        }).getCall(roomId);
     }
 
-    /**
-     * Get all calls
-     */
-    public getAllCalls(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAllCalls();
+    public getAllCalls(): MatrixCall[] {
+        return (this.client as unknown as {
+            getAllCalls: () => MatrixCall[];
+        }).getAllCalls();
     }
 
-    /**
-     * Get calls for room
-     */
-    public getCallsForRoom(roomId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getCallsForRoom(roomId);
+    public getCallsForRoom(roomId: string): MatrixCall[] {
+        return (this.client as unknown as {
+            getCallsForRoom: (roomId: string) => MatrixCall[];
+        }).getCallsForRoom(roomId);
     }
 
-    /**
-     * Terminate all calls
-     */
     public async terminateAllCalls(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).terminateAllCalls();
+        return (this.client as unknown as {
+            terminateAllCalls: () => Promise<void>;
+        }).terminateAllCalls();
     }
 }
 

@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,40 +21,44 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+
+export interface IRoomUpgradeHistory {
+    roomId: string;
+    version?: string;
+    predecessor?: string;
+    successor?: string;
+}
+
+export interface IUpgradeRoomResponse {
+    replacement_room: string;
+}
 
 export class RoomUpgradesManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get room upgrade history
-     */
-    public getRoomUpgradeHistory(roomId: string): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomUpgradeHistory(roomId);
+    public getRoomUpgradeHistory(roomId: string): IRoomUpgradeHistory[] {
+        return (this.client as unknown as {
+            getRoomUpgradeHistory: (roomId: string) => IRoomUpgradeHistory[];
+        }).getRoomUpgradeHistory(roomId);
     }
 
-    /**
-     * Upgrade room
-     */
-    public async upgradeRoom(roomId: string, newVersion: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).upgradeRoom(roomId, newVersion);
+    public async upgradeRoom(roomId: string, newVersion: string): Promise<IUpgradeRoomResponse> {
+        return (this.client as unknown as {
+            upgradeRoom: (roomId: string, newVersion: string) => Promise<IUpgradeRoomResponse>;
+        }).upgradeRoom(roomId, newVersion);
     }
 
-    /**
-     * Can upgrade room
-     */
     public canUpgradeRoom(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).canUpgradeRoom(roomId);
+        return (this.client as unknown as {
+            canUpgradeRoom: (roomId: string) => boolean;
+        }).canUpgradeRoom(roomId);
     }
 
-    /**
-     * Get recommended room version
-     */
     public async getRecommendedRoomVersion(): Promise<string> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRecommendedRoomVersion();
+        return (this.client as unknown as {
+            getRecommendedRoomVersion: () => Promise<string>;
+        }).getRecommendedRoomVersion();
     }
 }
 

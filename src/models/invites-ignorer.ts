@@ -192,7 +192,7 @@ export class IgnoredInvites {
      */
     public async getOrCreateTargetRoom(): Promise<Room> {
         const ignoreInvitesPolicies = this.getIgnoreInvitesPolicies();
-        let target = ignoreInvitesPolicies.target;
+        let target: string | null = ignoreInvitesPolicies.target as string | null;
         // Validate `target`. If it is invalid, trash out the current `target`
         // and create a new room.
         if (typeof target !== "string") {
@@ -215,11 +215,11 @@ export class IgnoredInvites {
             })
         ).room_id;
         await this.withIgnoreInvitesPolicies((ignoreInvitesPolicies) => {
-            ignoreInvitesPolicies.target = target;
+            ignoreInvitesPolicies.target = target as string;
         });
 
         // Since we have just called `createRoom`, `getRoom` should not be `null`.
-        return this.client.getRoom(target)!;
+        return this.client.getRoom(target as string)!;
     }
 
     /**
@@ -238,7 +238,7 @@ export class IgnoredInvites {
      */
     public async getOrCreateSourceRooms(): Promise<Room[]> {
         const ignoreInvitesPolicies = this.getIgnoreInvitesPolicies();
-        let sources: string[] = ignoreInvitesPolicies.sources;
+        let sources: string[] = ignoreInvitesPolicies.sources as string[] | undefined ?? [];
 
         // Validate `sources`. If it is invalid, trash out the current `sources`
         // and create a new list of sources from `target`.
@@ -283,7 +283,7 @@ export class IgnoredInvites {
      *
      * @returns A non-null object.
      */
-    private getIgnoreInvitesPolicies(): { [key: string]: any } {
+    private getIgnoreInvitesPolicies(): Record<string, unknown> {
         return this.getPoliciesAndIgnoreInvitesPolicies().ignoreInvitesPolicies;
     }
 
@@ -291,7 +291,7 @@ export class IgnoredInvites {
      * Modify in place the `IGNORE_INVITES_POLICIES` object from account data.
      */
     private async withIgnoreInvitesPolicies(
-        cb: (ignoreInvitesPolicies: { [key: string]: any }) => void,
+        cb: (ignoreInvitesPolicies: Record<string, unknown>) => void,
     ): Promise<void> {
         const { policies, ignoreInvitesPolicies } = this.getPoliciesAndIgnoreInvitesPolicies();
         cb(ignoreInvitesPolicies);
@@ -304,8 +304,8 @@ export class IgnoredInvites {
      * object.
      */
     private getPoliciesAndIgnoreInvitesPolicies(): {
-        policies: { [key: string]: any };
-        ignoreInvitesPolicies: { [key: string]: any };
+        policies: Record<string, unknown>;
+        ignoreInvitesPolicies: Record<string, unknown>;
     } {
         let policies: IContent = {};
         for (const key of [POLICIES_ACCOUNT_EVENT_TYPE.name, POLICIES_ACCOUNT_EVENT_TYPE.altName]) {

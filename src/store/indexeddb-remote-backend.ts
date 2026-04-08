@@ -25,7 +25,7 @@ export class RemoteIndexedDBStoreBackend implements IIndexedDBBackend {
     private worker?: Worker;
     private nextSeq = 0;
     // The currently in-flight requests to the actual backend
-    private inFlight: Record<number, PromiseWithResolvers<any>> = {}; // seq: promise
+    private inFlight: Record<number, PromiseWithResolvers<unknown>> = {}; // seq: promise
     // Once we start connecting, we keep the promise and re-use it
     // if we try to connect again
     private startPromise?: Promise<void>;
@@ -158,14 +158,14 @@ export class RemoteIndexedDBStoreBackend implements IIndexedDBBackend {
         return this.startPromise;
     }
 
-    private doCmd<T>(command: string, args?: any): Promise<T> {
+    private doCmd<T>(command: string, args?: unknown[]): Promise<T> {
         // wrap in a q so if the postMessage throws,
         // the promise automatically gets rejected
         return Promise.resolve().then(() => {
             const seq = this.nextSeq++;
             const def = Promise.withResolvers<T>();
 
-            this.inFlight[seq] = def;
+            this.inFlight[seq] = def as PromiseWithResolvers<unknown>;
 
             this.worker?.postMessage({ command, seq, args });
 

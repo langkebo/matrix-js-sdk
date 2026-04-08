@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,63 +22,56 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IClientOptions {
+    baseUrl?: string;
+    idBaseUrl?: string;
+    accessToken?: string;
+    userId?: string;
+    deviceId?: string;
+    sessionStore?: unknown;
+    store?: unknown;
+    scheduler?: unknown;
+    cryptoStore?: unknown;
+    verificationMethods?: string[];
+}
+
 export class LifecycleManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Start client
-     */
     public async startClient(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).startClient();
+        return this.client.startClient();
     }
 
-    /**
-     * Stop client
-     */
     public async stopClient(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).stopClient();
+        return this.client.stopClient();
     }
 
-    /**
-     * Is client running
-     */
     public isClientRunning(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).clientRunning;
+        return (this.client as unknown as { clientRunning?: boolean }).clientRunning ?? false;
     }
 
-    /**
-     * Exit
-     */
     public async exit(code?: number): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).exit(code);
+        return (this.client as unknown as {
+            exit: (code?: number) => Promise<void>;
+        }).exit(code);
     }
 
-    /**
-     * Terminate
-     */
     public terminate(): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).terminate();
+        (this.client as unknown as {
+            terminate: () => void;
+        }).terminate();
     }
 
-    /**
-     * Reset
-     */
     public async reset(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).reset();
+        return (this.client as unknown as {
+            reset: () => Promise<void>;
+        }).reset();
     }
 
-    /**
-     * Prepare
-     */
-    public async prepare(clientOptions?: any): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).prepare(clientOptions);
+    public async prepare(clientOptions?: IClientOptions): Promise<void> {
+        return (this.client as unknown as {
+            prepare: (clientOptions?: IClientOptions) => Promise<void>;
+        }).prepare(clientOptions);
     }
 }
 

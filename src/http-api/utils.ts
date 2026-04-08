@@ -188,7 +188,7 @@ export async function retryNetworkOperation<T>(maxAttempts: number, callback: ()
  * @param attempts - The number of attempts made so far, including the one that just failed.
  * @param retryConnectionError - Whether to retry on {@link ConnectionError} (CORS, connection is down, etc.)
  */
-export function calculateRetryBackoff(err: any, attempts: number, retryConnectionError: boolean): number {
+export function calculateRetryBackoff(err: unknown, attempts: number, retryConnectionError: boolean): number {
     if (attempts > 4) {
         return -1; // give up
     }
@@ -197,19 +197,20 @@ export function calculateRetryBackoff(err: any, attempts: number, retryConnectio
         return -1;
     }
 
-    if (err.httpStatus && Math.floor(err.httpStatus / 100) === 4 && err.httpStatus !== 429) {
+    const httpErr = err as { httpStatus?: number; name?: string };
+    if (httpErr.httpStatus && Math.floor(httpErr.httpStatus / 100) === 4 && httpErr.httpStatus !== 429) {
         // client error; no amount of retrying will save you now (except for rate limiting which is handled below)
         return -1;
     }
 
-    if (err.name === "AbortError") {
+    if (httpErr.name === "AbortError") {
         // this is a client timeout, that is already very high 60s/80s
         // we don't want to retry, as it could do it for very long
         return -1;
     }
 
     // If we are trying to send an event (or similar) that is too large in any way, then retrying won't help
-    if (err.name === "M_TOO_LARGE") {
+    if (httpErr.name === "M_TOO_LARGE") {
         return -1;
     }
 

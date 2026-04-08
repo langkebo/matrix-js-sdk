@@ -14,59 +14,46 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Event Status Manager - 事件状态管理
- * 
- * 提供事件状态相关功能
- */
-
 import { MatrixClient } from "../client";
+import { EventStatus } from "../models/event";
 
 export class EventStatusManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get event status
-     */
-    public getEventStatus(roomId: string, eventId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getEventStatus(roomId, eventId);
+    public getEventStatus(roomId: string, eventId: string): EventStatus | null {
+        const room = this.client.getRoom(roomId);
+        if (!room) return null;
+        
+        const event = room.findEventById(eventId);
+        return event?.status || null;
     }
 
-    /**
-     * Set event status
-     */
-    public setEventStatus(roomId: string, eventId: string, status: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setEventStatus(roomId, eventId, status);
+    public setEventStatus(roomId: string, eventId: string, status: EventStatus): void {
+        const room = this.client.getRoom(roomId);
+        if (!room) return;
+        
+        const event = room.findEventById(eventId);
+        if (event) {
+            event.setStatus(status);
+        }
     }
 
-    /**
-     * Is event sending
-     */
     public isEventSending(roomId: string, eventId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isEventSending(roomId, eventId);
+        const status = this.getEventStatus(roomId, eventId);
+        return status === EventStatus.SENDING || status === EventStatus.QUEUED;
     }
 
-    /**
-     * Is event sent
-     */
     public isEventSent(roomId: string, eventId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isEventSent(roomId, eventId);
+        const status = this.getEventStatus(roomId, eventId);
+        return status === null || status === EventStatus.SENT;
     }
 
-    /**
-     * Is event failed
-     */
     public isEventFailed(roomId: string, eventId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isEventFailed(roomId, eventId);
+        const status = this.getEventStatus(roomId, eventId);
+        return status === EventStatus.NOT_SENT;
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getEventStatusManager(): EventStatusManager;

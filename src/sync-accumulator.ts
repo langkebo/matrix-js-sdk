@@ -313,7 +313,7 @@ export class SyncAccumulator {
     private accumulateRoom(roomId: string, category: Category.Join, data: IJoinedRoom, fromDatabase: boolean): void;
     private accumulateRoom(roomId: string, category: Category.Leave, data: ILeftRoom, fromDatabase: boolean): void;
     private accumulateRoom(roomId: string, category: Category.Knock, data: IKnockedRoom, fromDatabase: boolean): void;
-    private accumulateRoom(roomId: string, category: Category, data: any, fromDatabase = false): void {
+    private accumulateRoom(roomId: string, category: Category, data: IInvitedRoom | IJoinedRoom | ILeftRoom | IKnockedRoom, fromDatabase = false): void {
         // Valid /sync state transitions
         //       +--------+ <======+            1: Accept an invite
         //   +== | INVITE |        | (5)        2: Leave a room

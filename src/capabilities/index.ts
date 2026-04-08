@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,33 +22,48 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IServerCapabilities {
+    capabilities: {
+        [key: string]: {
+            enabled?: boolean;
+            available?: boolean;
+            [key: string]: unknown;
+        };
+    };
+}
+
 export class CapabilitiesManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get capabilities (cached)
-     */
-    public async getCapabilities(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).serverCapabilitiesService?.getCachedCapabilities() || 
-               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-               (this.client as any).serverCapabilitiesService?.fetchCapabilities();
+    public async getCapabilities(): Promise<IServerCapabilities | undefined> {
+        return (this.client as unknown as {
+            serverCapabilitiesService?: {
+                getCachedCapabilities: () => IServerCapabilities | undefined;
+                fetchCapabilities: () => Promise<IServerCapabilities>;
+            };
+        }).serverCapabilitiesService?.getCachedCapabilities() || 
+        (this.client as unknown as {
+            serverCapabilitiesService?: {
+                fetchCapabilities: () => Promise<IServerCapabilities>;
+            };
+        }).serverCapabilitiesService?.fetchCapabilities();
     }
 
-    /**
-     * Get cached capabilities
-     */
-    public getCachedCapabilities(): any | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).serverCapabilitiesService?.getCachedCapabilities();
+    public getCachedCapabilities(): IServerCapabilities | undefined {
+        return (this.client as unknown as {
+            serverCapabilitiesService?: {
+                getCachedCapabilities: () => IServerCapabilities | undefined;
+            };
+        }).serverCapabilitiesService?.getCachedCapabilities();
     }
 
-    /**
-     * Fetch capabilities from server
-     */
-    public fetchCapabilities(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).serverCapabilitiesService?.fetchCapabilities();
+    public async fetchCapabilities(): Promise<IServerCapabilities | undefined> {
+        const service = (this.client as unknown as {
+            serverCapabilitiesService?: {
+                fetchCapabilities: () => Promise<IServerCapabilities>;
+            };
+        }).serverCapabilitiesService;
+        return service?.fetchCapabilities();
     }
 }
 

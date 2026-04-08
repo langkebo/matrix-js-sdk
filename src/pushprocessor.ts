@@ -717,7 +717,7 @@ export class PushProcessor {
      * @param ev - The matrix event to fetch the field from.
      * @returns The value at the dotted path given by key.
      */
-    private valueForDottedKey(key: string, ev: MatrixEvent): any {
+    private valueForDottedKey(key: string, ev: MatrixEvent): unknown {
         // The key should already have been parsed via updateCachedPushRuleKeys,
         // but if it hasn't (maybe via an old consumer of the SDK which hasn't
         // been updated?) then lazily calculate it here.
@@ -726,7 +726,7 @@ export class PushProcessor {
             parts = PushProcessor.partsForDottedKey(key);
             this.parsedKeys.set(key, parts);
         }
-        let val: any;
+        let val: unknown;
 
         // special-case the first component to deal with encrypted messages
         const firstPart = parts[0];
@@ -750,7 +750,7 @@ export class PushProcessor {
             }
 
             const thisPart = parts[currentIndex];
-            val = val[thisPart];
+            val = (val as Record<string, unknown>)[thisPart];
         }
         return val;
     }

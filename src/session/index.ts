@@ -68,7 +68,7 @@ export class SessionManager {
     /**
      * Who am I
      */
-    public async whoami(): Promise<any> {
+    public async whoami(): Promise<unknown> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).whoami();
     }

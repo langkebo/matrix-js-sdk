@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+You May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -22,47 +22,52 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 
+export interface IGroupCallOptions {
+    isPtt?: boolean;
+    intent?: string;
+    dataChannelOptions?: Record<string, unknown>;
+}
+
+export interface IGroupCall {
+    roomId: string;
+    isActive: boolean;
+    participants: Array<{
+        userId: string;
+        deviceId: string;
+    }>;
+}
+
 export class GroupCallManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get group call for room
-     */
-    public getGroupCallForRoom(roomId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getGroupCallForRoom(roomId);
+    public getGroupCallForRoom(roomId: string): IGroupCall | null {
+        return (this.client as unknown as {
+            getGroupCallForRoom: (roomId: string) => IGroupCall | null;
+        }).getGroupCallForRoom(roomId);
     }
 
-    /**
-     * Create group call
-     */
-    public async createGroupCall(roomId: string, options?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).createGroupCall(roomId, options);
+    public async createGroupCall(roomId: string, options?: IGroupCallOptions): Promise<IGroupCall> {
+        return (this.client as unknown as {
+            createGroupCall: (roomId: string, options?: IGroupCallOptions) => Promise<IGroupCall>;
+        }).createGroupCall(roomId, options);
     }
 
-    /**
-     * Get use E2E for group call
-     */
     public getUseE2eForGroupCall(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUseE2eForGroupCall();
+        return (this.client as unknown as {
+            getUseE2eForGroupCall: () => boolean;
+        }).getUseE2eForGroupCall();
     }
 
-    /**
-     * Wait until room ready for group calls
-     */
     public async waitUntilRoomReadyForGroupCalls(roomId: string): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).waitUntilRoomReadyForGroupCalls(roomId);
+        return (this.client as unknown as {
+            waitUntilRoomReadyForGroupCalls: (roomId: string) => Promise<void>;
+        }).waitUntilRoomReadyForGroupCalls(roomId);
     }
 
-    /**
-     * Get all active group calls
-     */
-    public getActiveGroupCalls(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getActiveGroupCalls();
+    public getActiveGroupCalls(): IGroupCall[] {
+        return (this.client as unknown as {
+            getActiveGroupCalls: () => IGroupCall[];
+        }).getActiveGroupCalls();
     }
 }
 

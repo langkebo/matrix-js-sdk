@@ -302,7 +302,7 @@ export class MatrixScheduler<T = ISendEventResponse> {
 }
 
 /* istanbul ignore next */
-function debuglog(...args: any[]): void {
+function debuglog(...args: unknown[]): void {
     if (DEBUG) {
         logger.log(...args);
     }
