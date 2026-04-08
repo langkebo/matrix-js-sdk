@@ -21,48 +21,47 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+import { EventTimeline } from "../models/event-timeline";
+import { EventTimelineSet } from "../models/event-timeline-set";
 
 export class TimelineManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get timeline for room
-     */
-    public getTimelineForRoom(roomId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getTimelineForRoom(roomId);
+    public getTimelineForRoom(roomId: string): EventTimelineSet | null {
+        const room = this.client.getRoom(roomId);
+        return room?.getUnfilteredTimelineSet() || null;
     }
 
-    /**
-     * Get event timeline
-     */
-    public getEventTimeline(roomId: string, eventId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getEventTimeline(roomId, eventId);
+    public getEventTimeline(roomId: string, eventId: string): EventTimeline | null {
+        const room = this.client.getRoom(roomId);
+        if (!room) return null;
+        
+        const timelineSet = room.getUnfilteredTimelineSet();
+        return timelineSet?.getTimelineForEvent(eventId) || null;
     }
 
-    /**
-     * Get event andComments
-     */
-    public getEventAndComments(eventId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getEventAndComments(eventId);
+    public getEventAndComments(eventId: string): { event: unknown; comments: unknown[] } | null {
+        const rooms = this.client.getRooms();
+        for (const room of rooms) {
+            const timelineSet = room.getUnfilteredTimelineSet();
+            const event = timelineSet?.getTimelineForEvent(eventId);
+            if (event) {
+                return {
+                    event,
+                    comments: [],
+                };
+            }
+        }
+        return null;
     }
 
-    /**
-     * Peek room
-     */
-    public async peekRoom(roomId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).peekRoom(roomId);
+    public async peekRoom(roomId: string): Promise<Room | null> {
+        return await this.client.peekInRoom(roomId);
     }
 
-    /**
-     * Stop peeking
-     */
-    public async stopPeeking(roomId: string): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).stopPeeking(roomId);
+    public async stopPeeking(): Promise<void> {
+        this.client.stopPeeking?.();
     }
 }
 

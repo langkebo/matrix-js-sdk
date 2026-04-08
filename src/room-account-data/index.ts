@@ -14,51 +14,45 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Room Account Data Manager - 房间账户数据管理
- * 
- * 提供房间账户数据相关功能
- */
-
 import { MatrixClient } from "../client";
+import { MatrixEvent } from "../models/event";
 
 export class RoomAccountDataManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Set room account data
-     */
-    public async setRoomAccountData(roomId: string, eventType: string, content: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomAccountData(roomId, eventType, content);
+    public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void> {
+        await this.client.setRoomAccountData(roomId, eventType as any, content);
     }
 
-    /**
-     * Get room account data
-     */
-    public getRoomAccountData(roomId: string, eventType: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomAccountData(roomId, eventType);
+    public getRoomAccountData(roomId: string, eventType: string): MatrixEvent | undefined {
+        const room = this.client.getRoom(roomId);
+        return room?.getAccountData(eventType as any);
     }
 
-    /**
-     * Get all room account data
-     */
-    public getAllRoomAccountData(roomId: string): Record<string, any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAllRoomAccountData(roomId);
+    public getAllRoomAccountData(roomId: string): Record<string, MatrixEvent> {
+        const room = this.client.getRoom(roomId);
+        if (!room) return {};
+        
+        const result: Record<string, MatrixEvent> = {};
+        const accountData = room.getAccountData;
+        if (!accountData) return {};
+        
+        const events = Object.keys((room as any).accountData || {});
+        for (const eventType of events) {
+            const event = room.getAccountData(eventType as any);
+            if (event) {
+                result[eventType] = event;
+            }
+        }
+        return result;
     }
 
-    /**
-     * Has room account data
-     */
     public hasRoomAccountData(roomId: string, eventType: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasRoomAccountData(roomId, eventType);
+        const room = this.client.getRoom(roomId);
+        return room?.getAccountData(eventType as any) !== undefined;
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomAccountDataManager(): RoomAccountDataManager;

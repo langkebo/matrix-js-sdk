@@ -1,27 +1,8 @@
 import { logger } from "../logger"
-/*
-Copyright 2024 The Matrix.org Foundation C.I.C.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-/**
- * Invite List Manager - 邀请列表管理
- * 
- * 提供邀请列表的管理功能
- */
-
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+import { Direction } from "../models/event-timeline";
 
 export enum InviteListEvent {
     InviteReceived = "InviteReceived",
@@ -53,11 +34,11 @@ interface InviteListManagerEventMap {
 }
 
 export class InviteListManager extends TypedEventEmitter<InviteListEvent, InviteListManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private invites: Map<string, IInviteInfo> = new Map();
     private initialized: boolean = false;
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
@@ -84,14 +65,14 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
         }
     }
 
-    private async buildInviteInfo(room: any): Promise<IInviteInfo> {
+    private async buildInviteInfo(room: Room): Promise<IInviteInfo> {
         const roomId = room.roomId;
-        const inviteState = room.getLiveTimeline?.()?.getState?.('f') || room.currentState;
+        const inviteState = room.getLiveTimeline?.()?.getState?.(Direction.Forward) || room.currentState;
         
         let inviterId = '';
         let inviterName = '';
         
-        const memberEvents = inviteState.getStateEvents?.('m.room.member') || [];
+        const memberEvents = inviteState?.getStateEvents?.('m.room.member') || [];
         for (const event of memberEvents) {
             const content = event.getContent?.();
             if (content?.membership === 'invite' && event.getStateKey?.() === this.client.getUserId()) {
@@ -108,7 +89,9 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
         const roomNameEvent = inviteState.getStateEvents?.('m.room.name', '');
         const roomName = roomNameEvent?.getContent?.()?.name || room.name || roomId;
 
-        const isDirect = room.isDirect?.() || false;
+        const mDirectEvent = this.client.getAccountData?.('m.direct');
+        const directRooms = mDirectEvent?.getContent?.() as Record<string, string[]> | undefined;
+        const isDirect = directRooms ? Object.values(directRooms).some(users => users.includes(this.client.getUserId() || '')) : false;
 
         return {
             roomId,
