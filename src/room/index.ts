@@ -515,12 +515,13 @@ export class RoomManager extends TypedEventEmitter<RoomEvent, RoomManagerEventMa
     // ==================== Room Lifecycle ====================
 
     public async createRoom(options: ICreateRoomOpts): Promise<{ room_id: string }> {
-        const invitesNeedingToken = (options.invite_3pid || []).filter((i: any) => !i.id_access_token);
-        if (invitesNeedingToken.length > 0 && (this.client as any).identityServer?.getAccessToken) {
-            const identityAccessToken = await (this.client as any).identityServer.getAccessToken();
+        const invitesNeedingToken = (options.invite_3pid || []).filter((i: { id_access_token?: string }) => !i.id_access_token);
+        const clientWithIdentity = this.client as MatrixClient & { identityServer?: { getAccessToken?: () => Promise<string> } };
+        if (invitesNeedingToken.length > 0 && clientWithIdentity.identityServer?.getAccessToken) {
+            const identityAccessToken = await clientWithIdentity.identityServer.getAccessToken();
             if (identityAccessToken) {
                 for (const invite of invitesNeedingToken) {
-                    (invite as any).id_access_token = identityAccessToken;
+                    (invite as { id_access_token?: string }).id_access_token = identityAccessToken;
                 }
             }
         }

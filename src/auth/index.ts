@@ -191,22 +191,16 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      */
     public async hasLoginFlow(flowType: string): Promise<boolean> {
         const flows = await this.getSupportedLoginFlows();
-        return flows.flows?.some((flow: any) => flow.type === flowType) ?? false;
+        return flows.flows?.some((flow: { type?: string }) => flow.type === flowType) ?? false;
     }
 
-    /**
-     * Check if password login is supported
-     */
     public async hasPasswordLogin(): Promise<boolean> {
         return this.hasLoginFlow("m.login.password");
     }
 
-    /**
-     * Check if SSO login is supported
-     */
     public async hasSSOLogin(): Promise<boolean> {
         const flows = await this.getSupportedLoginFlows();
-        return flows.flows?.some((flow: any) => 
+        return flows.flows?.some((flow: { type?: string }) => 
             flow.type === "m.login.sso" || flow.type === "m.login.cas"
         ) ?? false;
     }

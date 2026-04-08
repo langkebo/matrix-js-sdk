@@ -106,14 +106,16 @@ describe("SDK alignment managers", () => {
     });
 
     describe("RoomListManager", () => {
-        it("delegates getMyRooms to the client", async () => {
+        it("delegates getRooms to the client", async () => {
             const client = {
-                getMyRooms: vi.fn().mockResolvedValue({ rooms: [{ room_id: "!room:test" }], total: 1 }),
+                getRooms: vi.fn().mockReturnValue([{ roomId: "!room:test" }]),
             };
             const manager = new RoomListManager(client as any);
 
-            await expect(manager.getMyRooms()).resolves.toEqual({ rooms: [{ room_id: "!room:test" }], total: 1 });
-            expect(client.getMyRooms).toHaveBeenCalled();
+            const result = await manager.getMyRooms();
+            expect(result.rooms).toEqual([{ roomId: "!room:test" }]);
+            expect(result.total).toBe(1);
+            expect(client.getRooms).toHaveBeenCalled();
         });
     });
 });

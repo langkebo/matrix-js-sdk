@@ -21,60 +21,41 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
 
 export class RoomListManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get room list
-     */
-    public getRoomList(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomList();
+    public getRoomList(): Room[] {
+        return this.client.getRooms();
     }
 
-    /**
-     * Get rooms
-     */
-    public getRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRooms();
+    public getRooms(): Room[] {
+        return this.client.getRooms();
     }
 
-    /**
-     * Get visible rooms
-     */
-    public getVisibleRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getVisibleRooms();
+    public getVisibleRooms(): Room[] {
+        return this.client.getVisibleRooms();
     }
 
-    /**
-     * Get dm user map
-     */
-    public getDmUserMap(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getDmUserMap();
+    public getDmUserMap(): Record<string, string[]> {
+        return this.client.store.getAccountData("m.direct")?.getContent() as Record<string, string[]> || {};
     }
 
-    /**
-     * Get room
-     */
-    public getRoom(roomId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoom(roomId);
+    public getRoom(roomId: string): Room | null {
+        return this.client.getRoom(roomId);
     }
 
-    public getMyRooms(): Promise<{ rooms: any[]; total: number }> {
-        return (this.client as any).getMyRooms();
+    public async getMyRooms(): Promise<{ rooms: Room[]; total: number }> {
+        const rooms = this.client.getRooms();
+        return { rooms, total: rooms.length };
     }
 
-    /**
-     * Remove room
-     */
     public removeRoom(roomId: string): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).removeRoom(roomId);
+        const room = this.client.getRoom(roomId);
+        if (room) {
+            this.client.store.removeRoom(roomId);
+        }
     }
 }
 

@@ -46,6 +46,56 @@ export enum AdminEvent {
     AdminError = "AdminError",
 }
 
+export interface DeviceInfo {
+    device_id: string;
+    display_name?: string;
+    last_seen_ip?: string;
+    last_seen_ts?: number;
+    user_id?: string;
+}
+
+export interface MediaInfo {
+    created_ts?: number;
+    last_access_ts?: number;
+    media_id: string;
+    media_type?: string;
+    upload_name?: string;
+    quarantined_by?: string;
+}
+
+export interface RoomStateEvent {
+    type: string;
+    state_key: string;
+    content: Record<string, unknown>;
+    sender: string;
+    event_id: string;
+}
+
+export interface RoomMessage {
+    event_id: string;
+    type: string;
+    content: Record<string, unknown>;
+    sender: string;
+    origin_server_ts: number;
+}
+
+export interface SpaceInfo {
+    space_id: string;
+    name?: string;
+    room_id: string;
+    creator?: string;
+    child_rooms?: string[];
+    member_count?: number;
+}
+
+export interface UserSession {
+    session_id: string;
+    device_id?: string;
+    last_seen_ts?: number;
+    last_seen_ip?: string;
+    user_agent?: string;
+}
+
 export interface UserInfo {
     user_id: string;
     name?: string;
@@ -323,8 +373,8 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 获取用户的设备列表
      */
-    async getUserDevices(userId: string): Promise<any[]> {
-        const response = await this.adminRequest<{ devices: any[] }>(
+    async getUserDevices(userId: string): Promise<DeviceInfo[]> {
+        const response = await this.adminRequest<{ devices: DeviceInfo[] }>(
             Method.Get,
             `/v2/users/${encodeURIComponent(userId)}/devices`
         );
@@ -661,12 +711,12 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 获取媒体列表
      */
-    async getMedia(limit?: number, from?: string): Promise<{ media: any[]; next_token?: string }> {
+    async getMedia(limit?: number, from?: string): Promise<{ media: MediaInfo[]; next_token?: string }> {
         const queryParams: Record<string, string> = {};
         if (limit) queryParams["limit"] = String(limit);
         if (from) queryParams["from"] = from;
 
-        const response = await this.adminRequest<{ media: any[]; next_token?: string }>(
+        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(
             Method.Get,
             "/v1/media",
             Object.keys(queryParams).length > 0 ? queryParams : undefined
@@ -716,8 +766,8 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 获取房间状态事件
      */
-    async getRoomState(roomId: string): Promise<{ state: any[] }> {
-        const response = await this.adminRequest<{ state: any[] }>(
+    async getRoomState(roomId: string): Promise<{ state: RoomStateEvent[] }> {
+        const response = await this.adminRequest<{ state: RoomStateEvent[] }>(
             Method.Get,
             `/v1/rooms/${encodeURIComponent(roomId)}/state`
         );
@@ -731,13 +781,13 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         limit?: number;
         from?: string;
         dir?: 'f' | 'b';
-    }): Promise<{ chunk: any[]; start?: string; end?: string }> {
+    }): Promise<{ chunk: RoomMessage[]; start?: string; end?: string }> {
         const queryParams: Record<string, string> = {};
         if (options?.limit) queryParams["limit"] = String(options.limit);
         if (options?.from) queryParams["from"] = options.from;
         if (options?.dir) queryParams["dir"] = options.dir;
 
-        return await this.adminRequest<{ chunk: any[]; start?: string; end?: string }>(
+        return await this.adminRequest<{ chunk: RoomMessage[]; start?: string; end?: string }>(
             Method.Get,
             `/v1/rooms/${encodeURIComponent(roomId)}/messages`,
             Object.keys(queryParams).length > 0 ? queryParams : undefined
@@ -934,8 +984,8 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         limit?: number;
         start_date?: number;
         end_date?: number;
-    }): Promise<{ results: any[]; count: number }> {
-        return await this.adminRequest<{ results: any[]; count: number }>(
+    }): Promise<{ results: RoomMessage[]; count: number }> {
+        return await this.adminRequest<{ results: RoomMessage[]; count: number }>(
             Method.Post,
             `/v1/rooms/${encodeURIComponent(roomId)}/search`,
             undefined,
@@ -943,9 +993,6 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         );
     }
 
-    /**
-     * 搜索所有房间
-     */
     async searchAllRooms(options?: {
         search_term?: string;
         limit?: number;
@@ -953,8 +1000,8 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         order_by?: string;
         is_public?: boolean;
         is_encrypted?: boolean;
-    }): Promise<{ results: any[]; count: number; total: number }> {
-        return await this.adminRequest<{ results: any[]; count: number; total: number }>(
+    }): Promise<{ results: RoomInfo[]; count: number; total: number }> {
+        return await this.adminRequest<{ results: RoomInfo[]; count: number; total: number }>(
             Method.Post,
             "/v1/rooms/search",
             undefined,
@@ -962,18 +1009,15 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         );
     }
 
-    /**
-     * 获取事件上下文
-     */
     async getEventContext(roomId: string, eventId: string): Promise<{
-        event: any;
-        events_before: any[];
-        events_after: any[];
+        event: RoomMessage;
+        events_before: RoomMessage[];
+        events_after: RoomMessage[];
     }> {
         return await this.adminRequest<{
-            event: any;
-            events_before: any[];
-            events_after: any[];
+            event: RoomMessage;
+            events_before: RoomMessage[];
+            events_after: RoomMessage[];
         }>(
             Method.Get,
             `/v1/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`
@@ -995,19 +1039,16 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 获取所有空间
      */
-    async getSpaces(): Promise<{ spaces: any[]; total: number }> {
-        return await this.adminRequest<{ spaces: any[]; total: number }>(
+    async getSpaces(): Promise<{ spaces: SpaceInfo[]; total: number }> {
+        return await this.adminRequest<{ spaces: SpaceInfo[]; total: number }>(
             Method.Get,
             "/v1/spaces"
         );
     }
 
-    /**
-     * 获取单个空间
-     */
-    async getSpace(spaceId: string): Promise<any | null> {
+    async getSpace(spaceId: string): Promise<SpaceInfo | null> {
         try {
-            return await this.adminRequest<any>(
+            return await this.adminRequest<SpaceInfo>(
                 Method.Get,
                 `/v1/spaces/${encodeURIComponent(spaceId)}`
             );
@@ -1105,12 +1146,12 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      */
     async getUserSessions(userId: string): Promise<{
         user_id: string;
-        sessions: any[];
+        sessions: UserSession[];
         total: number;
     }> {
         return await this.adminRequest<{
             user_id: string;
-            sessions: any[];
+            sessions: UserSession[];
             total: number;
         }>(
             Method.Get,
@@ -1240,13 +1281,13 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         user_id: string;
         rooms_evicted: number;
         rooms: string[];
-        failures: any[];
+        failures: Array<{ room_id: string; error: string }>;
     }> {
         return await this.adminRequest<{
             user_id: string;
             rooms_evicted: number;
             rooms: string[];
-            failures: any[];
+            failures: Array<{ room_id: string; error: string }>;
         }>(
             Method.Post,
             `/v1/users/${encodeURIComponent(userId)}/evict`

@@ -187,13 +187,14 @@ export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceMa
         return new ApiError(`PresenceManager.${method} failed: ${message}`, errcode, err?.httpStatus ?? 0, err);
     }
 
-    private isRetryableError(error: any): boolean {
-        return error?.code === "ECONNRESET" ||
-               error?.code === "ETIMEDOUT" ||
-               error?.code === "ENOTFOUND" ||
-               error?.code === "ECONNREFUSED" ||
-               error?.errno === "ECONNRESET" ||
-               error?.errno === "ETIMEDOUT";
+    private isRetryableError(error: unknown): boolean {
+        const err = error as Error & { code?: string; errno?: string };
+        return err?.code === "ECONNRESET" ||
+               err?.code === "ETIMEDOUT" ||
+               err?.code === "ENOTFOUND" ||
+               err?.code === "ECONNREFUSED" ||
+               err?.errno === "ECONNRESET" ||
+               err?.errno === "ETIMEDOUT";
     }
 
     private async presenceRequest<T>(
@@ -256,7 +257,7 @@ export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceMa
         }
 
         try {
-            const response = await this.presenceRequest<any>(
+            const response = await this.presenceRequest<IPresenceState>(
                 Method.Get,
                 `/presence/${encodeURIComponent(userId)}/status`
             );
@@ -270,8 +271,9 @@ export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceMa
 
             this.presenceCache.set(userId, state);
             return state;
-        } catch (error: any) {
-            if (error?.httpStatus === 404 || error?.errcode === "M_NOT_FOUND") {
+        } catch (error: unknown) {
+            const err = error as Error & { httpStatus?: number; errcode?: string };
+            if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
                 return null;
             }
             throw this.normalizeError(error, 'getPresence');
@@ -354,8 +356,9 @@ export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceMa
 
             this.emit(PresenceEvent.PresenceListUpdated, events);
             return events;
-        } catch (error: any) {
-            if (error?.httpStatus === 404 || error?.errcode === "M_NOT_FOUND") {
+        } catch (error: unknown) {
+            const err = error as Error & { httpStatus?: number; errcode?: string };
+            if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
                 return [];
             }
             throw this.normalizeError(error, 'getSubscribedPresence');
@@ -386,8 +389,9 @@ export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceMa
             });
 
             return events;
-        } catch (error: any) {
-            if (error?.httpStatus === 404 || error?.errcode === "M_NOT_FOUND") {
+        } catch (error: unknown) {
+            const err = error as Error & { httpStatus?: number; errcode?: string };
+            if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
                 return [];
             }
             throw this.normalizeError(error, 'getPresenceList');
