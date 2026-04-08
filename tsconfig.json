@@ -3,7 +3,7 @@
         "target": "es2022",
         "experimentalDecorators": false,
         "esModuleInterop": true,
-        "module": "preserve",
+        "module": "esnext",
         "moduleResolution": "bundler",
         "noUnusedLocals": false,
         "noUnusedParameters": false,
@@ -12,7 +12,7 @@
         "strict": true,
         "skipLibCheck": true,
         "allowImportingTsExtensions": true,
-        "lib": ["es2024", "dom", "dom.iterable"],
+        "lib": ["esnext", "dom", "dom.iterable"],
         "types": ["vitest/globals", "node"],
         "paths": {
             "#types/*": ["./node_modules/vite/types/*"]
