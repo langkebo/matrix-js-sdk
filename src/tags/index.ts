@@ -24,6 +24,7 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client.ts";
 
 export enum TagEvent {
     TagAdded = "TagAdded",
@@ -51,10 +52,10 @@ interface TagManagerEventMap {
 }
 
 export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private roomTags: Map<string, IRoomTags> = new Map();
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
@@ -66,7 +67,10 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
         try {
             const userId = this.client.getUserId();
-            const response = await this.client.http.authedRequest(
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
+            const response = await this.client.http.authedRequest<{ tags?: IRoomTags }>(
                 Method.Get,
                 `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags`,
                 undefined,
@@ -91,7 +95,10 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
         try {
             const userId = this.client.getUserId();
-            const body: any = {};
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
+            const body: Record<string, unknown> = {};
             
             if (order !== undefined) {
                 body.order = order;
@@ -124,6 +131,9 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
         try {
             const userId = this.client.getUserId();
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
             
             await this.client.http.authedRequest(
                 Method.Delete,

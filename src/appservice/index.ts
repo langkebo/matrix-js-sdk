@@ -24,6 +24,7 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client.ts";
 
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -96,13 +97,13 @@ interface ApplicationServiceManagerEventMap {
 }
 
 export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent, ApplicationServiceManagerEventMap> {
-    private _client: any;
+    private client: MatrixClient;
     private services: Map<string, ApplicationService> = new Map();
     private initialized: boolean = false;
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
-        this._client = client;
+        this.client = client;
     }
 
     async registerAppService(request: RegisterApplicationServiceRequest): Promise<ApplicationService> {
@@ -111,7 +112,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         }
 
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<ApplicationService>(
                 Method.Post,
                 "/application_services",
                 undefined,
@@ -125,7 +126,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 as_token: request.as_token,
                 hs_token: request.hs_token,
                 sender_localpart: request.sender_localpart,
-                sender: `@${request.sender_localpart}:${this._client.getDomain()}`,
+                sender: `@${request.sender_localpart}:${this.client.getDomain()}`,
                 rate_limited: request.rate_limited,
                 protocols: request.protocols,
                 namespaces: request.namespaces,
@@ -147,7 +148,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         }
 
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest(
                 Method.Get,
                 `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
@@ -167,7 +168,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async updateApplicationService(serviceId: string, request: UpdateApplicationServiceRequest): Promise<ApplicationService> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<ApplicationService>(
                 Method.Put,
                 `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
@@ -194,7 +195,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async unregisterApplicationService(serviceId: string): Promise<void> {
         try {
-            await this._client.http.authedRequest(
+            await this.client.http.authedRequest(
                 Method.Delete,
                 `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
@@ -212,7 +213,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async listApplicationServices(): Promise<ApplicationService[]> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ application_services?: ApplicationService[] }>(
                 Method.Get,
                 "/application_services",
                 undefined,
@@ -220,7 +221,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 { prefix: AdminPrefix.V1 }
             );
 
-            const services = (response.application_services || []) as ApplicationService[];
+            const services = response.application_services || [];
             services.forEach(s => this.services.set(s.id, s));
 
             return services;
@@ -232,7 +233,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async checkUserId(userId: string): Promise<boolean> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ exists?: boolean }>(
                 Method.Get,
                 "/appservice/user",
                 { user_id: userId },
@@ -248,7 +249,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async checkAlias(alias: string): Promise<boolean> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ exists?: boolean }>(
                 Method.Get,
                 "/appservice/alias",
                 { alias },
@@ -266,7 +267,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         try {
             const startTime = Date.now();
             
-            await this._client.http.authedRequest(
+            await this.client.http.authedRequest(
                 Method.Post,
                 `/application_services/${encodeURIComponent(serviceId)}/ping`,
                 undefined,
@@ -283,7 +284,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async getProtocol(protocol: string): Promise<ApplicationServiceProtocol | null> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<ApplicationServiceProtocol>(
                 Method.Get,
                 `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
                 undefined,
@@ -291,7 +292,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 { prefix: ClientPrefix.V3 }
             );
 
-            return response as ApplicationServiceProtocol;
+            return response;
         } catch (e) {
             logger.warn('ApplicationServiceManager.getProtocol failed:', e);
             return null;
@@ -300,7 +301,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async getProtocols(): Promise<string[]> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
                 "/thirdparty/protocols",
                 undefined,
@@ -317,7 +318,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async queryUsers(protocol: string, fields: Record<string, string>): Promise<ApplicationServiceUser[]> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<ApplicationServiceUser[]>(
                 Method.Get,
                 `/thirdparty/user/${encodeURIComponent(protocol)}`,
                 fields,
@@ -325,16 +326,16 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 { prefix: ClientPrefix.V3 }
             );
 
-            return response as ApplicationServiceUser[];
+            return response;
         } catch (e) {
             logger.warn('ApplicationServiceManager.queryUsers failed:', e);
             return [];
         }
     }
 
-    async queryLocations(protocol: string, fields: Record<string, string>): Promise<any[]> {
+    async queryLocations(protocol: string, fields: Record<string, string>): Promise<unknown[]> {
         try {
-            const response = await this._client.http.authedRequest(
+            const response = await this.client.http.authedRequest<unknown[]>(
                 Method.Get,
                 `/thirdparty/location/${encodeURIComponent(protocol)}`,
                 fields,

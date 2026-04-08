@@ -270,7 +270,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
      * 更新设备列表
      * POST /_matrix/client/r0/keys/device_list/update
      */
-    async updateDeviceList(users: string[], since?: string): Promise<{ changed: any[]; left: string[]; stream_id?: number }> {
+    async updateDeviceList(users: string[], since?: string): Promise<{ changed: string[]; left: string[]; stream_id?: number }> {
         try {
             const body: Record<string, unknown> = { users };
             
@@ -278,7 +278,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 body.since = since;
             }
 
-            const response = await this.client.http.authedRequest<{ changed: any[]; left: string[]; stream_id?: number }>(
+            const response = await this.client.http.authedRequest<{ changed?: string[]; left?: string[]; stream_id?: number }>(
                 Method.Post,
                 "/keys/device_list/update",
                 undefined,
@@ -286,19 +286,19 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 { prefix: ClientPrefix.V3 }
             );
 
-            return response;
+            return {
+                changed: response.changed || [],
+                left: response.left || [],
+                stream_id: response.stream_id,
+            };
         } catch (error) {
             throw this.normalizeError(error, "updateDeviceList");
         }
     }
 
-    /**
-     * 上传签名
-     * POST /_matrix/client/r0/keys/signatures
-     */
-    async uploadSignatures(signatures: Record<string, Record<string, Record<string, string>>>): Promise<Record<string, any>> {
+    async uploadSignatures(signatures: Record<string, Record<string, Record<string, string>>>): Promise<Record<string, unknown>> {
         try {
-            return await this.client.http.authedRequest<Record<string, any>>(
+            return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Post,
                 "/keys/signatures",
                 undefined,

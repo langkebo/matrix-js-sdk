@@ -24,6 +24,7 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client.ts";
 
 export enum FilterEvent {
     FilterCreated = "FilterCreated",
@@ -102,12 +103,12 @@ interface FilterManagerEventMap {
 }
 
 export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private filters: Map<string, IFilterInfo> = new Map();
     private filterCache: Map<string, IFilterManagerDefinition> = new Map();
     private defaultFilter: IFilterManagerDefinition | null = null;
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
@@ -119,7 +120,10 @@ export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerE
 
         try {
             const userId = this.client.getUserId();
-            const response = await this.client.http.authedRequest(
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
+            const response = await this.client.http.authedRequest<IFilterManagerResponse>(
                 Method.Post,
                 `/user/${encodeURIComponent(userId)}/filter`,
                 undefined,
@@ -158,7 +162,10 @@ export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerE
 
         try {
             const userId = this.client.getUserId();
-            const response = await this.client.http.authedRequest(
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
+            const response = await this.client.http.authedRequest<IFilterManagerDefinition>(
                 Method.Get,
                 `/user/${encodeURIComponent(userId)}/filter/${encodeURIComponent(filterId)}`,
                 undefined,
@@ -182,6 +189,9 @@ export class FilterManager extends TypedEventEmitter<FilterEvent, FilterManagerE
 
         try {
             const userId = this.client.getUserId();
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
             await this.client.http.authedRequest(
                 Method.Delete,
                 `/user/${encodeURIComponent(userId)}/filter/${encodeURIComponent(filterId)}`,

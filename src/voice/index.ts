@@ -26,6 +26,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
+import { getHttpUriForMxc } from "../content-repo.ts";
 
 const VOICE_R0_PREFIX = "/_matrix/client/r0";
 const VOICE_V1_PREFIX = "/_matrix/client/v1";
@@ -130,7 +131,7 @@ export interface VoiceTranscriptionParams {
 
 export interface VoiceTranscriptionResult {
     text: string;
-    confidence: number;
+    confidence?: number;
     language?: string;
     words?: Array<{
         word: string;
@@ -161,12 +162,12 @@ interface VoiceMessageManagerEventMap {
 }
 
 export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMessageManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private config: VoiceConfig;
     private activeSessions: Map<string, { roomId: string; startedAt: number }> = new Map();
     private waveformCache: Map<string, number[]> = new Map();
 
-    constructor(client: any, config?: Partial<VoiceConfig>) {
+    constructor(client: MatrixClient, config?: Partial<VoiceConfig>) {
         super();
         this.client = client;
         this.config = {
@@ -199,7 +200,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
             const uploadResult = await this.client.uploadContent(file, {
                 name: filename || 'voice-message.ogg',
                 type: actualMimeType,
-                include_filename: false,
+                includeFilename: false,
                 progressHandler: (progress: { loaded: number; total: number }) => {
                     this.emit(VoiceEvent.UploadProgress, roomId, {
                         loaded: progress.loaded,
@@ -229,7 +230,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
                 'm.mentions': {},
             };
 
-            const eventResponse = await this.client.sendEvent(roomId, 'm.room.message', messageContent);
+            const eventResponse = await this.client.sendEvent(roomId, 'm.room.message', messageContent as any) as { event_id: string };
 
             const result: VoiceMessageUploadResult = {
                 eventId: eventResponse.event_id,
@@ -255,19 +256,19 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
                 return null;
             }
 
-            const content = event.content;
-            if (content.msgtype !== 'm.audio' && !content.url) {
+            const content = event.content as Record<string, unknown> | undefined;
+            if (!content || (content.msgtype !== 'm.audio' && !content.url)) {
                 return null;
             }
 
-            const info = content.info || {};
+            const info = (content.info as Record<string, unknown>) || {};
 
             return {
                 eventId,
-                duration: info.duration || 0,
-                waveform: info.waveform,
-                mimeType: info.mimetype || 'audio/ogg',
-                size: info.size,
+                duration: (info.duration as number) || 0,
+                waveform: info.waveform as number[] | undefined,
+                mimeType: (info.mimetype as string) || 'audio/ogg',
+                size: info.size as number | undefined,
             };
         } catch (e) {
             logger.warn('VoiceMessageManager.getVoiceMessageInfo failed:', e);
@@ -311,7 +312,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
         const { inputUrl, outputFormat = 'mp3', bitrate = 128 } = params;
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ url: string; duration: number }>(
                 Method.Post,
                 "/voice/convert",
                 undefined,
@@ -338,7 +339,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
         const { inputUrl, quality = 0.8, targetSize } = params;
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ url: string; original_size: number; optimized_size: number }>(
                 Method.Post,
                 "/voice/optimize",
                 undefined,
@@ -366,7 +367,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
         const { audioUrl, language, model } = params;
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ text: string; confidence?: number; language?: string; words?: unknown[] }>(
                 Method.Post,
                 "/voice/transcription",
                 undefined,
@@ -378,12 +379,14 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
                 { prefix: VOICE_V1_PREFIX }
             );
 
-            return {
+            const result: VoiceTranscriptionResult = {
                 text: response.text,
-                confidence: response.confidence,
-                language: response.language,
-                words: response.words,
             };
+            if (response.confidence !== undefined) result.confidence = response.confidence;
+            if (response.language !== undefined) result.language = response.language;
+            if (response.words !== undefined) result.words = response.words as VoiceTranscriptionResult['words'];
+
+            return result;
         } catch (e) {
             logger.warn('VoiceMessageManager.transcribeVoiceMessage failed:', e);
             throw e;
@@ -392,7 +395,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
 
     async downloadVoiceMessage(mxcUrl: string): Promise<Blob> {
         try {
-            const httpUrl = this.client.mxcToHttp(mxcUrl);
+            const httpUrl = getHttpUriForMxc(this.client.getHomeserverUrl(), mxcUrl);
             const response = await fetch(httpUrl);
             return await response.blob();
         } catch (e) {
@@ -493,7 +496,7 @@ export class VoiceMessageManager extends TypedEventEmitter<VoiceEvent, VoiceMess
 
     async getVoicePlaybackUrl(mxcUrl: string): Promise<string> {
         try {
-            return this.client.mxcToHttp(mxcUrl);
+            return getHttpUriForMxc(this.client.getHomeserverUrl(), mxcUrl);
         } catch (e) {
             logger.warn('VoiceMessageManager.getVoicePlaybackUrl failed:', e);
             throw e;

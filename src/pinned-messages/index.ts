@@ -183,20 +183,43 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
         return { cache: this.pinnedEventsCache.getStats(), requests: { ...this.requestStats } };
     }
 
-    public async pinMessage(roomId: string, eventId: string): Promise<any> {
-        return (this.client as any).pinMessage(roomId, eventId);
+    public async pinMessage(roomId: string, eventId: string): Promise<void> {
+        const room = this.client.getRoom(roomId);
+        let pinned: string[] = [];
+        if (room) {
+            const pinnedEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+            if (pinnedEvent) {
+                const content = pinnedEvent.getContent<{ pinned?: string[] }>();
+                pinned = content.pinned || [];
+            }
+        }
+        if (!pinned.includes(eventId)) {
+            pinned.push(eventId);
+        }
+        await this.client.sendStateEvent(roomId, 'm.room.pinned_events', { pinned }, '');
     }
 
-    public async unpinMessage(roomId: string, eventId: string): Promise<any> {
-        return (this.client as any).unpinMessage(roomId, eventId);
+    public async unpinMessage(roomId: string, eventId: string): Promise<void> {
+        const room = this.client.getRoom(roomId);
+        if (!room) return;
+        const pinnedEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+        if (!pinnedEvent) return;
+        const content = pinnedEvent.getContent<{ pinned?: string[] }>();
+        const pinned = (content.pinned || []).filter((id: string) => id !== eventId);
+        await this.client.sendStateEvent(roomId, 'm.room.pinned_events', { pinned }, '');
     }
 
-    public getPinnedMessages(roomId: string): any[] {
-        return (this.client as any).getPinnedMessages(roomId);
+    public getPinnedMessages(roomId: string): string[] {
+        const room = this.client.getRoom(roomId);
+        if (!room) return [];
+        const pinnedEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+        if (!pinnedEvent) return [];
+        const content = pinnedEvent.getContent<{ pinned?: string[] }>();
+        return content.pinned || [];
     }
 
     public hasPinnedMessages(roomId: string): boolean {
-        return (this.client as any).hasPinnedMessages(roomId);
+        return this.getPinnedMessages(roomId).length > 0;
     }
 
     public async getPinnedEventsFromServer(roomId: string): Promise<IPinnedEventInfo[]> {

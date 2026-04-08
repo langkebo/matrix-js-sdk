@@ -82,19 +82,20 @@ export class DiscoveryManager {
         return this.client.baseUrl;
     }
 
-    public getClientWellKnown(): any {
-        return (this.client as any).clientWellKnown;
+    public getClientWellKnown(): Record<string, unknown> | undefined {
+        if (this.client.getClientWellKnown) {
+            return this.client.getClientWellKnown();
+        }
+        return (this.client as unknown as { clientWellKnown?: Record<string, unknown> }).clientWellKnown;
     }
 
-    public async getServerDiscoveryInfo(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.request(Method.Get, "/.well-known/matrix/client", undefined, undefined, { prefix: "" });
+    public async getServerDiscoveryInfo(): Promise<Record<string, unknown>> {
+        return this.client.http.request<Record<string, unknown>>(Method.Get, "/.well-known/matrix/client", undefined, undefined, { prefix: "" });
     }
 
     public async getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
         const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path);
+        return this.client.http.authedRequest<{ room_id: string; servers: string[] }>(Method.Get, path);
     }
 
     public async getAliasRoomId(alias: string): Promise<string | null> {

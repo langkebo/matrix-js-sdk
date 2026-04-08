@@ -24,6 +24,7 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client.ts";
 
 export enum RoomAliasEvent {
     AliasCreated = "AliasCreated",
@@ -55,11 +56,11 @@ interface RoomAliasManagerEventMap {
 }
 
 export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAliasManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private aliasCache: Map<string, IRoomAliasInfo> = new Map();
     private roomAliasesCache: Map<string, string[]> = new Map();
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
@@ -78,7 +79,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         }
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<IRoomAliasResponse>(
                 Method.Get,
                 `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
@@ -176,7 +177,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         }
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<IRoomAliasesResponse>(
                 Method.Get,
                 `/rooms/${encodeURIComponent(roomId)}/aliases`,
                 undefined,
@@ -291,7 +292,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
             roomId,
             'm.room.canonical_alias',
             {
-                alias: canonicalAlias,
+                alias: canonicalAlias ?? undefined,
                 alt_aliases: altAliases,
             },
             ''
@@ -312,7 +313,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
             roomId,
             'm.room.canonical_alias',
             {
-                alias: canonicalAlias,
+                alias: canonicalAlias ?? undefined,
                 alt_aliases: filtered,
             },
             ''
@@ -337,7 +338,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
             roomId,
             'm.room.aliases',
             { alias: aliasLocalpart },
-            this.client.getDomain()
+            this.client.getDomain() ?? undefined
         );
     }
 

@@ -20,10 +20,10 @@ export interface TypingOptions {
 }
 
 export class TypingManager {
-    private client: any;
+    private client: MatrixClient;
     private typingTimers: Map<string, NodeJS.Timeout> = new Map();
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         this.client = client;
     }
 
@@ -40,7 +40,11 @@ export class TypingManager {
         }
 
         try {
-            await this.client.sendTyping(roomId, this.client.getUserId()!, timeout, true);
+            const userId = this.client.getUserId();
+            if (!userId) {
+                throw new Error("User ID is required");
+            }
+            await this.client.sendTyping(roomId, true, timeout);
             
             // 设置自动停止打字
             const timer = setTimeout(async () => {
@@ -53,9 +57,6 @@ export class TypingManager {
         }
     }
 
-    /**
-     * 停止打字
-     */
     async stopTyping(roomId: string): Promise<void> {
         const timerKey = `${roomId}`;
         if (this.typingTimers.has(timerKey)) {
@@ -64,15 +65,12 @@ export class TypingManager {
         }
 
         try {
-            await this.client.sendTyping(roomId, this.client.getUserId()!, 0, false);
+            await this.client.sendTyping(roomId, false, 0);
         } catch (e) {
             logger.warn('TypingManager.stopTyping failed:', e);
         }
     }
 
-    /**
-     * 获取房间内正在打字的用户
-     */
     async getTypingUsers(roomId: string): Promise<TypingUser[]> {
         try {
             // 从 room 对象获取
@@ -80,10 +78,12 @@ export class TypingManager {
             if (!room) return [];
 
             // 获取当前状态事件
-            const event = room.currentState.getStateEvents('m.typing', this.client.getUserId());
+            const userId = this.client.getUserId();
+            if (!userId) return [];
+            const event = room.currentState.getStateEvents('m.typing', userId);
             if (!event) return [];
 
-            const content = event.getContent();
+            const content = event.getContent<{ user_ids?: string[]; timeout?: number }>();
             return content.user_ids?.map((userId: string) => ({
                 userId,
                 timeout: content.timeout || 30000

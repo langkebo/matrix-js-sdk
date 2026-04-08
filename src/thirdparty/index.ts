@@ -1,5 +1,5 @@
 import { logger } from "../logger"
-import { MatrixClient } from "../client";
+import { MatrixClient, type IProtocol } from "../client";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -10,37 +10,23 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
  * 提供第三方协议和 bridges 管理功能
  */
 
-export interface ThirdPartyProtocol {
-    protocol: string
-    description?: string
-    fields: {
-        [key: string]: {
-            type: string
-            regex?: string
-            placeholder?: string
-            required?: boolean
-        }
-    }
-    objects?: Array<{
-        id: string
-        name: string
-        fields: Record<string, any>
-    }>
+export interface ThirdPartyProtocol extends IProtocol {
+    protocol: string;
 }
 
 export interface ThirdPartyLocation {
     alias: string
     protocol: string
-    fields: Record<string, any>
+    fields: Record<string, unknown> | object
     info?: {
-        [key: string]: any
+        [key: string]: unknown
     }
 }
 
 export interface ThirdPartyUser {
     userid: string
     protocol: string
-    fields: Record<string, any>
+    fields: Record<string, unknown> | object
     display_name?: string
     avatar_url?: string
 }
@@ -50,9 +36,9 @@ export interface ThirdPartySearchParams {
 }
 
 export class ThirdPartyManager {
-    private client: any;
+    private client: MatrixClient;
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         this.client = client;
     }
 
@@ -61,10 +47,10 @@ export class ThirdPartyManager {
      */
     async getProtocols(): Promise<ThirdPartyProtocol[]> {
         try {
-            const protocols = await this.client.getThirdPartyProtocols();
+            const protocols = await this.client.getThirdpartyProtocols();
             return Object.entries(protocols).map(([name, data]) => ({
+                ...data,
                 protocol: name,
-                ...(data as any)
             }));
         } catch (e) {
             logger.warn('ThirdPartyManager.getProtocols failed:', e);
@@ -72,9 +58,6 @@ export class ThirdPartyManager {
         }
     }
 
-    /**
-     * 获取单个协议信息
-     */
     async getProtocol(protocol: string): Promise<ThirdPartyProtocol | null> {
         try {
             const protocols = await this.getProtocols();
@@ -85,30 +68,24 @@ export class ThirdPartyManager {
         }
     }
 
-    /**
-     * 搜索第三方位置（bridges）
-     */
     async searchLocations(
         protocol: string,
         params: ThirdPartySearchParams
     ): Promise<ThirdPartyLocation[]> {
         try {
-            return await this.client.getThirdPartyLocation(protocol, params);
+            return await this.client.getThirdpartyLocation(protocol, params);
         } catch (e) {
             logger.warn('ThirdPartyManager.searchLocations failed:', e);
             return [];
         }
     }
 
-    /**
-     * 搜索第三方用户
-     */
     async searchUsers(
         protocol: string,
         params: ThirdPartySearchParams
     ): Promise<ThirdPartyUser[]> {
         try {
-            return await this.client.getThirdPartyUser(protocol, params);
+            return await this.client.getThirdpartyUser(protocol, params);
         } catch (e) {
             logger.warn('ThirdPartyManager.searchUsers failed:', e);
             return [];
@@ -130,8 +107,8 @@ export class ThirdPartyManager {
                     fields: { room_id: roomId.room_id },
                     info: room ? {
                         name: room.name,
-                        topic: room.topic,
-                        avatar_url: room.avatarUrl
+                        topic: room.currentState.getStateEvents('m.room.topic', '')?.getContent<{ topic?: string }>()?.topic,
+                        avatar_url: room.getAvatarUrl(this.client.getHomeserverUrl(), 64, 64, 'crop') || undefined
                     } : undefined
                 };
             }

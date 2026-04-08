@@ -37,6 +37,8 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
+import { MatrixEvent } from "../models/event.ts";
+import { EventType } from "../@types/event.ts";
 
 export enum StickyEvent {
     StickySet = "StickySet",
@@ -48,7 +50,7 @@ export enum StickyEvent {
 export interface IStickyEventData {
     event_id: string;
     event_type: string;
-    content: any;
+    content: Record<string, unknown>;
     sender: string;
     ts: number;
 }
@@ -57,7 +59,7 @@ export interface IStickyEventInfo {
     roomId: string;
     eventId: string;
     eventType: string;
-    content: any;
+    content: Record<string, unknown>;
     sender: string;
     timestamp: number;
 }
@@ -329,13 +331,13 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         };
     }
 
-    async setStickyEvent(roomId: string, eventId: string, content?: any): Promise<void> {
+    async setStickyEvent(roomId: string, eventId: string, content?: Record<string, unknown>): Promise<void> {
         if (!roomId || !eventId) {
             throw new Error("Room ID and event ID are required");
         }
 
         try {
-            let stickyContent = content;
+            let stickyContent: IStickyEventData | undefined = content as IStickyEventData | undefined;
 
             if (!stickyContent) {
                 const room = this.client.getRoom(roomId);
@@ -345,8 +347,8 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
                         stickyContent = {
                             event_id: eventId,
                             event_type: event.getType(),
-                            content: event.getContent(),
-                            sender: event.getSender(),
+                            content: event.getContent<Record<string, unknown>>(),
+                            sender: event.getSender() ?? '',
                             ts: event.getTs(),
                         };
                     }
@@ -359,7 +361,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
 
             await this.client.sendStateEvent(
                 roomId,
-                this.stickyEventType as any,
+                this.stickyEventType as EventType,
                 stickyContent,
                 ''
             );
@@ -429,7 +431,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         try {
             await this.client.sendStateEvent(
                 roomId,
-                this.stickyEventType as any,
+                this.stickyEventType as EventType,
                 {},
                 ''
             );
@@ -442,7 +444,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         }
     }
 
-    async updateStickyEvent(roomId: string, eventId: string, content?: any): Promise<void> {
+    async updateStickyEvent(roomId: string, eventId: string, content?: Record<string, unknown>): Promise<void> {
         await this.setStickyEvent(roomId, eventId, content);
         const stickyInfo = await this.getStickyEvent(roomId);
         if (stickyInfo) {
@@ -455,7 +457,7 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         return sticky !== null && sticky.eventId !== '';
     }
 
-    async getStickyEventContent(roomId: string): Promise<any | null> {
+    async getStickyEventContent(roomId: string): Promise<Record<string, unknown> | null> {
         const stickyInfo = await this.getStickyEvent(roomId);
         return stickyInfo?.content || null;
     }
@@ -525,12 +527,12 @@ export class StickyEventManager extends TypedEventEmitter<StickyEvent, StickyEve
         return result;
     }
 
-    handleStateEvent(roomId: string, event: any): void {
+    handleStateEvent(roomId: string, event: MatrixEvent): void {
         if (event.getType() !== this.stickyEventType) {
             return;
         }
 
-        const content = event.getContent();
+        const content = event.getContent<IStickyEventData>();
         
         if (!content || Object.keys(content).length === 0) {
             this.stickyEventsCache.delete(roomId);

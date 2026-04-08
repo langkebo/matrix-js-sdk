@@ -43,6 +43,11 @@ describe("AccountDataManager", () => {
             store: {
                 getAccountData: vi.fn((type: string) => mockAccountDataMap.get(type)),
                 accountData: mockAccountDataMap,
+                storeAccountDataEvents: vi.fn((events: MatrixEvent[]) => {
+                    events.forEach((event) => {
+                        mockAccountDataMap.set(event.getType(), event);
+                    });
+                }),
             },
             setAccountData: mockSetAccountData,
             setAccountDataRaw: mockSetAccountDataRaw,

@@ -31,7 +31,7 @@ limitations under the License.
 import { logger } from "../logger.ts";
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/index.ts";
-import { MatrixClient } from "../client";
+import { MatrixClient } from "../client.ts";
 
 const CLIENT_PREFIX_V1 = { prefix: "/_matrix/client/v1" };
 const CLIENT_PREFIX_V3 = { prefix: "/_matrix/client/v3" };
@@ -47,7 +47,7 @@ export interface IBurnAfterReadMessage {
     event_id: string;
     room_id: string;
     sender: string;
-    content: any;
+    content: Record<string, unknown>;
     sent_at: number;
     read_at?: number;
     burned_at?: number;
@@ -83,7 +83,7 @@ export interface IBurnPendingEvent {
 
 export interface ISendBurnAfterReadMessageRequest {
     room_id: string;
-    content: any;
+    content: Record<string, unknown>;
     expires_in?: number;
     msgtype?: string;
 }
@@ -102,12 +102,12 @@ interface BurnAfterReadManagerEventMap {
 }
 
 export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, BurnAfterReadManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private config: IBurnAfterReadConfig;
     private messages: Map<string, IBurnAfterReadMessage> = new Map();
-    private burnTimers: Map<string, NodeJS.Timeout> = new Map();
+    private burnTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
-    constructor(client: any, config?: Partial<IBurnAfterReadConfig>) {
+    constructor(client: MatrixClient, config?: Partial<IBurnAfterReadConfig>) {
         super();
         this.client = client;
         this.config = {
@@ -125,7 +125,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
     public async enableBurn(roomId: string, burnAfterMs?: number): Promise<IBurnSettings> {
         const burnMs = burnAfterMs ?? this.config.default_expire_time ?? 60000;
 
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<IBurnSettings>(
             Method.Put,
             `/rooms/${encodeURIComponent(roomId)}/burn`,
             undefined,
@@ -144,7 +144,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * PUT /_matrix/client/v1/rooms/{room_id}/burn
      */
     public async disableBurn(roomId: string): Promise<IBurnSettings> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<IBurnSettings>(
             Method.Put,
             `/rooms/${encodeURIComponent(roomId)}/burn`,
             undefined,
@@ -163,7 +163,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * GET /_matrix/client/v1/rooms/{room_id}/burn
      */
     public async getBurnSettings(roomId: string): Promise<IBurnSettings> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<IBurnSettings>(
             Method.Get,
             `/rooms/${encodeURIComponent(roomId)}/burn`,
             undefined,
@@ -182,7 +182,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * GET /_matrix/client/v1/rooms/{room_id}/burn/pending
      */
     public async getPendingBurns(roomId: string): Promise<IBurnPendingEvent[]> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<{ events?: IBurnPendingEvent[] }>(
             Method.Get,
             `/rooms/${encodeURIComponent(roomId)}/burn/pending`,
             undefined,
@@ -198,7 +198,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * POST /_matrix/client/v1/rooms/{room_id}/burn/{event_id}
      */
     public async markBurnRead(roomId: string, eventId: string): Promise<{ success: boolean; will_delete_at: number }> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<{ success?: boolean; will_delete_at: number }>(
             Method.Post,
             `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
             undefined,
@@ -217,7 +217,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * DELETE /_matrix/client/v1/rooms/{room_id}/burn/{event_id}
      */
     public async cancelBurn(roomId: string, eventId: string): Promise<{ success: boolean }> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<{ success?: boolean }>(
             Method.Delete,
             `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
             undefined,
@@ -235,7 +235,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * PUT /_matrix/client/v1/user/burn/config
      */
     public async setBurnConfig(defaultBurnMs: number): Promise<{ default_burn_ms: number }> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<{ default_burn_ms?: number }>(
             Method.Put,
             "/user/burn/config",
             undefined,
@@ -255,7 +255,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
      * GET /_matrix/client/v1/user/burn/stats
      */
     public async getBurnStats(): Promise<IBurnStats> {
-        const response = await this.client.http.authedRequest(
+        const response = await this.client.http.authedRequest<IBurnStats>(
             Method.Get,
             "/user/burn/stats",
             undefined,
@@ -297,7 +297,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
                 },
             };
 
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ event_id: string }>(
                 Method.Put,
                 `/rooms/${encodeURIComponent(request.room_id)}/send/m.room.message/${Date.now()}`,
                 undefined,
@@ -311,7 +311,7 @@ export class BurnAfterReadManager extends TypedEventEmitter<BurnAfterReadEvent, 
             const message: IBurnAfterReadMessage = {
                 event_id: eventId,
                 room_id: request.room_id,
-                sender: this.client.getUserId(),
+                sender: this.client.getUserId() ?? "",
                 content: request.content,
                 sent_at: now,
                 expires_in: expiresIn,

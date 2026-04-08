@@ -44,21 +44,21 @@ export enum EphemeralEvent {
 export interface IEphemeralEventData {
     type: string;
     sender: string;
-    content: any;
+    content: Record<string, unknown>;
 }
 
 export interface IEphemeralEventInfo {
     roomId: string;
     type: string;
     sender: string;
-    content: any;
+    content: Record<string, unknown>;
     timestamp: number;
 }
 
 export interface IServerEphemeralEvent {
     type: string;
     sender: string;
-    content: any;
+    content: Record<string, unknown>;
 }
 
 export interface IServerEphemeralEventsResponse {
@@ -189,20 +189,37 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
         return { cache: this.ephemeralEventsCache.getStats(), requests: { ...this.requestStats } };
     }
 
-    public async sendEphemeralEvent(roomId: string, type: string, content: any): Promise<any> {
-        return (this.client as any).sendEphemeralEvent(roomId, type, content);
+    public async sendEphemeralEvent(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {
+        const userId = this.client.getUserId() ?? '';
+        const contentMap = new Map<string, Map<string, Record<string, unknown>>>();
+        const roomMap = new Map<string, Record<string, unknown>>();
+        roomMap.set(userId, content);
+        contentMap.set(roomId, roomMap);
+        await this.client.sendToDevice(type, contentMap);
     }
 
-    public getEphemeralEvents(roomId: string): any[] {
-        return (this.client as any).getEphemeralEvents(roomId);
+    public getEphemeralEvents(roomId: string): IEphemeralEventInfo[] {
+        const room = this.client.getRoom(roomId);
+        if (!room) return [];
+        const ephemeralEvents = room.currentState.getStateEvents('m.ephemeral');
+        return ephemeralEvents.map((event): IEphemeralEventInfo => ({
+            roomId,
+            type: event.getType(),
+            sender: event.getSender() ?? '',
+            content: event.getContent<Record<string, unknown>>(),
+            timestamp: event.getTs(),
+        }));
     }
 
     public hasEphemeralEvents(roomId: string): boolean {
-        return (this.client as any).hasEphemeralEvents(roomId);
+        return this.getEphemeralEvents(roomId).length > 0;
     }
 
     public clearEphemeralEvents(roomId: string): void {
-        (this.client as any).clearEphemeralEvents(roomId);
+        const room = this.client.getRoom(roomId);
+        if (room) {
+            room.currentState.setStateEvents([]);
+        }
         this.ephemeralEventsCache.delete(roomId);
         this.emit(EphemeralEvent.EphemeralCleared, roomId);
     }
@@ -231,7 +248,8 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
         try {
             const events = await this.getEphemeralEventsFromServer(roomId);
             const typingEvent = events.find(e => e.type === "m.typing");
-            return typingEvent?.content?.user_ids || [];
+            const content = typingEvent?.content as { user_ids?: string[] } | undefined;
+            return content?.user_ids || [];
         } catch { return []; }
     }
 

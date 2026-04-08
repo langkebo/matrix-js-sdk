@@ -30,6 +30,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
+import type { Room } from "../models/room";
 
 export enum GuestEvent {
     GuestRegistered = "GuestRegistered",
@@ -77,10 +78,16 @@ export interface IServerGuestInfoResponse {
     guest: IServerGuestInfo;
 }
 
+export interface IAuthDict {
+    type?: string;
+    session?: string;
+    [key: string]: unknown;
+}
+
 export interface IUpgradeGuestRequest {
     username?: string;
     password: string;
-    auth?: any;
+    auth?: IAuthDict;
 }
 
 export interface IUpgradeGuestResponse {
@@ -98,11 +105,11 @@ interface GuestManagerEventMap {
 }
 
 export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private guestInfo: IGuestInfo | null = null;
     private baseUrl: string;
 
-    constructor(client: any, baseUrl: string) {
+    constructor(client: MatrixClient, baseUrl: string) {
         super();
         this.client = client;
         this.baseUrl = baseUrl;
@@ -122,7 +129,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = await this.client.http.request(
+            const response = await this.client.http.request<IGuestRegisterResponse>(
                 Method.Post,
                 "/register",
                 undefined,
@@ -162,7 +169,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = await this.client.http.request(
+            const response = await this.client.http.request<IGuestLoginResponse>(
                 Method.Post,
                 "/login",
                 undefined,
@@ -195,9 +202,13 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 return false;
             }
 
-            if (this.client.getProfileManager) {
-                const profile = await this.client.getProfileManager().getProfileInfo(targetUserId);
-                return profile?.is_guest === true;
+            if (targetUserId === this.client.getUserId()) {
+                try {
+                    const guestInfo = await this.getGuestInfoFromServer();
+                    return guestInfo?.is_guest === true;
+                } catch {
+                    return false;
+                }
             }
             
             return false;
@@ -220,7 +231,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         return this.guestInfo.accessToken;
     }
 
-    async upgradeGuestAccount(password: string, authDict?: any): Promise<void> {
+    async upgradeGuestAccount(password: string, authDict?: IAuthDict): Promise<void> {
         if (!this.guestInfo) {
             throw new Error("No guest account to upgrade");
         }
@@ -269,7 +280,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
         try {
             const rooms = this.client.getRooms?.() || [];
-            return rooms.map((r: any) => r.roomId);
+            return rooms.map((r: Room) => r.roomId);
         } catch (e) {
             logger.warn('GuestManager.getGuestRooms failed:', e);
             return [];
@@ -282,11 +293,9 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         }
 
         try {
-            const response = await this.client.joinRoom(roomIdOrAlias, {
-                syncRoom: true,
-            });
+            const room = await this.client.joinRoom(roomIdOrAlias);
 
-            return { roomId: response.roomId };
+            return { roomId: room.roomId };
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;
@@ -300,7 +309,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
             }
 
             if (roomIdOrAlias.startsWith("#")) {
-                const response = await this.client.http.authedRequest(
+                const response = await this.client.http.authedRequest<{ room_id?: string }>(
                     Method.Get,
                     `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
                     undefined,

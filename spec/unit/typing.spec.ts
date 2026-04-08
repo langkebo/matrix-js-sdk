@@ -36,12 +36,12 @@ describe("TypingManager", () => {
     describe("startTyping", () => {
         it("should start typing in a room", async () => {
             await typingManager.startTyping("!room:example.com");
-            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", "@user:example.com", expect.any(Number), true);
+            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", true, expect.any(Number));
         });
 
         it("should use custom timeout", async () => {
             await typingManager.startTyping("!room:example.com", { timeout: 5000 });
-            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", "@user:example.com", 5000, true);
+            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", true, 5000);
         });
 
         it("should handle errors gracefully", async () => {
@@ -54,7 +54,7 @@ describe("TypingManager", () => {
         it("should stop typing in a room", async () => {
             await typingManager.startTyping("!room:example.com");
             await typingManager.stopTyping("!room:example.com");
-            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", "@user:example.com", 0, false);
+            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", false, 0);
         });
     });
 

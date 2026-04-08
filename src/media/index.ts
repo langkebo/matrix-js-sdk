@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { MediaPrefix } from "../http-api/prefix.ts";
+import type { UploadResponse } from "../http-api/interface.ts";
 
 export interface UrlPreview {
     url?: string;
@@ -40,8 +41,8 @@ export class MediaManager {
     /**
      * Upload content
      */
-    public uploadContent(file: any, opts?: any): Promise<any> {
-        return (this.client as any).http.uploadContent(file, opts);
+    public uploadContent(file: File | Blob | ArrayBuffer, opts?: { name?: string; type?: string; progress?: (progress: { loaded: number; total: number }) => void }): Promise<{ content_uri: string }> {
+        return this.client.http.uploadContent(file as Blob, opts as Record<string, unknown>);
     }
 
     /**
@@ -70,17 +71,12 @@ export class MediaManager {
     /**
      * Cancel an upload
      */
-    public cancelUpload(upload: Promise<any>): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.cancelUpload(upload);
+    public cancelUpload(upload: Promise<UploadResponse>): boolean {
+        return this.client.http.cancelUpload?.(upload) ?? false;
     }
 
-    /**
-     * Get current uploads
-     */
-    public getCurrentUploads(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.getCurrentUploads();
+    public getCurrentUploads(): Array<{ loaded: number; total: number; promise: Promise<UploadResponse> }> {
+        return this.client.http.getCurrentUploads?.() ?? [];
     }
 
     /**
@@ -116,7 +112,7 @@ export class MediaManager {
      * GET /_matrix/media/v1/preview_url
      */
     public async previewUrl(url: string, ts?: number): Promise<UrlPreview> {
-        const params: Record<string, any> = { url };
+        const params: Record<string, string | number> = { url };
         if (ts !== undefined) {
             params.ts = ts;
         }

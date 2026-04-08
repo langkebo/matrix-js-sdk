@@ -25,6 +25,7 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { MatrixClient } from "../client.ts";
 
 export enum WidgetEvent {
     WidgetAdded = "WidgetAdded",
@@ -92,12 +93,12 @@ interface WidgetManagerEventMap {
 }
 
 export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private widgets: Map<string, Map<string, IWidget>> = new Map();
     private permissions: Map<string, IWidgetPermission> = new Map();
     private pendingRequests: Map<string, (response: WidgetMessageResponse) => void> = new Map();
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
@@ -117,9 +118,11 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
             const widgets: IWidget[] = [];
 
             for (const event of widgetEvents) {
-                const content = event.getContent();
+                const content = event.getContent<{ type?: string; name?: string; url?: string; data?: Record<string, unknown>; creatorUserId?: string }>();
+                const stateKey = event.getStateKey();
+                if (!stateKey) continue;
                 const widget: IWidget = {
-                    id: event.getStateKey(),
+                    id: stateKey,
                     type: content.type || 'customwidget',
                     name: content.name || 'Widget',
                     url: content.url || '',
@@ -325,7 +328,7 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
 
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ capabilities?: string[] }>(
                 Method.Get,
                 `/rooms/${roomId}/widgets/${widgetId}/capabilities`,
                 undefined,
@@ -365,12 +368,13 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
                 requestId,
                 response: response,
             };
-        } catch (e: any) {
+        } catch (e: unknown) {
+            const error = e as Error & { errcode?: string };
             return {
                 requestId,
                 error: {
-                    message: e.message || 'Unknown error',
-                    code: e.errcode,
+                    message: error.message || 'Unknown error',
+                    code: error.errcode,
                 },
             };
         }

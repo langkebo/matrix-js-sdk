@@ -24,7 +24,7 @@ limitations under the License.
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client";
+import { MatrixClient } from "../client.ts";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -60,19 +60,19 @@ interface FederationManagerEventMap {
 }
 
 export class FederationManager extends TypedEventEmitter<FederationEvent, FederationManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private blacklist: Map<string, IBlacklistEntry> = new Map();
     private serverCache: Map<string, IFederationServer> = new Map();
     private initialized: boolean = false;
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
 
     async getBlacklist(): Promise<IBlacklistEntry[]> {
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ blacklist?: IBlacklistEntry[] }>(
                 Method.Get,
                 "/federation/blacklist",
                 undefined,
@@ -111,7 +111,7 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
                 serverName,
                 reason,
                 addedAt: Date.now(),
-                addedBy: this.client.getUserId(),
+                addedBy: this.client.getUserId() ?? undefined,
             };
 
             this.blacklist.set(serverName, entry);
@@ -159,7 +159,11 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         }
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{
+                online?: boolean;
+                last_successful_connect?: number;
+                latency?: number;
+            }>(
                 Method.Get,
                 `/federation/status/${encodeURIComponent(serverName)}`,
                 undefined,
@@ -180,7 +184,7 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
 
     async getFederationDestinations(): Promise<IFederationServer[]> {
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ destinations?: IFederationServer[] }>(
                 Method.Get,
                 "/federation/destinations",
                 undefined,
@@ -242,7 +246,7 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         }
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ server?: { version?: string } }>(
                 Method.Get,
                 `/_matrix/federation/v1/version`,
                 undefined,
@@ -259,17 +263,17 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         }
     }
 
-    async getPublicRoomsOnServer(serverName: string, limit?: number, since?: string): Promise<any> {
+    async getPublicRoomsOnServer(serverName: string, limit?: number, since?: string): Promise<{ chunk: unknown[]; next_batch?: string; prev_batch?: string }> {
         if (!serverName) {
             throw new Error("Server name is required");
         }
 
         try {
-            const params: any = {};
-            if (limit) params.limit = limit;
-            if (since) params.since = since;
+            const params: { limit?: number; since?: string } = {};
+            if (limit !== undefined) params.limit = limit;
+            if (since !== undefined) params.since = since;
 
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ chunk?: unknown[]; next_batch?: string; prev_batch?: string }>(
                 Method.Get,
                 "/publicRooms",
                 params,
@@ -277,7 +281,13 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
                 { prefix: ClientPrefix.V3 }
             );
 
-            return response;
+            const result: { chunk: unknown[]; next_batch?: string; prev_batch?: string } = {
+                chunk: response.chunk || [],
+            };
+            if (response.next_batch) result.next_batch = response.next_batch;
+            if (response.prev_batch) result.prev_batch = response.prev_batch;
+
+            return result;
         } catch (error) {
             this.emit(FederationEvent.FederationError, error as Error);
             throw error;
@@ -320,17 +330,17 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
 }
 
 export class FederationBlacklistManager extends TypedEventEmitter<FederationEvent, FederationManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private blacklist: Map<string, IBlacklistEntry> = new Map();
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
 
     async getBlacklist(): Promise<IBlacklistEntry[]> {
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ blacklist?: IBlacklistEntry[] }>(
                 Method.Get,
                 "/federation/blacklist",
                 undefined,

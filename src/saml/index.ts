@@ -102,19 +102,19 @@ interface SamlAuthManagerEventMap {
 }
 
 export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManagerEventMap> {
-    private client: any;
+    private client: MatrixClient;
     private config: SamlConfig | null = null;
     private userMappings: Map<string, SamlUserMapping> = new Map();
     private pendingRequests: Map<string, string> = new Map();
 
-    constructor(client: any) {
+    constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
 
     async initiateLogin(request?: SamlLoginRequest): Promise<SamlLoginResponse> {
         try {
-            const response = await this.client.http.request(
+            const response = await this.client.http.request<SamlLoginResponse>(
                 Method.Post,
                 "/login/saml/redirect",
                 undefined,
@@ -136,7 +136,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     async handleCallback(samlResponse: string, requestId?: string): Promise<SamlCallbackResponse> {
         try {
-            const response = await this.client.http.request(
+            const response = await this.client.http.request<SamlCallbackResponse>(
                 Method.Post,
                 "/login/saml/callback",
                 undefined,
@@ -234,7 +234,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     async getUserMappings(): Promise<SamlUserMapping[]> {
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<{ mappings?: SamlUserMapping[] }>(
                 Method.Get,
                 "/saml/mappings",
                 undefined,
@@ -242,7 +242,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
                 { prefix: AdminPrefix.V1 }
             );
 
-            const mappings = (response.mappings || []) as SamlUserMapping[];
+            const mappings = response.mappings || [];
             this.userMappings.clear();
             mappings.forEach(m => this.userMappings.set(m.name_id, m));
 
@@ -294,7 +294,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     async getMetadata(): Promise<string> {
         try {
-            const response = await this.client.http.request(
+            const response = await this.client.http.request<{ metadata?: string }>(
                 Method.Get,
                 "/login/saml/metadata",
                 undefined,

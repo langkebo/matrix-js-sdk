@@ -33,21 +33,16 @@ export class AccountDataManager {
      */
     public async setAccountData<K extends string>(
         eventType: K,
-        content: any,
-    ): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setAccountData(eventType, content);
+        content: Record<string, unknown>,
+    ): Promise<void> {
+        await this.client.setAccountData(eventType, content);
     }
 
-    /**
-     * Set account data raw
-     */
     public setAccountDataRaw<K extends string>(
         eventType: K,
-        content: any,
+        content: Record<string, unknown>,
     ): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setAccountDataRaw(eventType, content);
+        this.client.setAccountDataRaw(eventType, content);
     }
 
     /**
@@ -66,27 +61,24 @@ export class AccountDataManager {
             $type: eventType,
         });
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const response = await (this.client as any).http.authedRequest(Method.Get, path);
+        const response = await this.client.http.authedRequest<Record<string, unknown>>(Method.Get, path);
         const event = new MatrixEvent({
             type: eventType,
             content: response,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client.store as any).accountData.set(eventType, event);
+        this.client.store?.storeAccountDataEvents?.([event]);
         return event;
     }
 
     /**
      * List all account data for the current user
      */
-    public async listAccountData(): Promise<{ account_data: Record<string, any> }> {
+    public async listAccountData(): Promise<{ account_data: Record<string, unknown> }> {
         const path = utils.encodeUri("/user/$userId/account_data/", {
             $userId: this.client.credentials.userId!,
         });
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path);
+        return this.client.http.authedRequest<{ account_data: Record<string, unknown> }>(Method.Get, path);
     }
 
     /**
@@ -102,8 +94,7 @@ export class AccountDataManager {
             $type: eventType,
         });
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const response = await (this.client as any).http.authedRequest(Method.Get, path);
+        const response = await this.client.http.authedRequest<Record<string, unknown>>(Method.Get, path);
         return new MatrixEvent({
             type: eventType,
             content: response,
@@ -119,10 +110,9 @@ export class AccountDataManager {
             $type: eventType,
         });
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (this.client as any).http.authedRequest(Method.Delete, path);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client.store as any).accountData.set(eventType, new MatrixEvent({ type: eventType, content: {} }));
+        await this.client.http.authedRequest(Method.Delete, path);
+        const event = new MatrixEvent({ type: eventType, content: {} });
+        this.client.store?.storeAccountDataEvents?.([event]);
     }
 }
 
