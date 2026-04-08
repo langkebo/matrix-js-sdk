@@ -14,83 +14,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Sync Manager - 同步管理
- * 
- * 提供数据同步相关功能
- */
-
 import { MatrixClient } from "../client";
+import { Room } from "../models/room";
+import { SyncState } from "../sync";
 
 export class SyncManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get sync token
-     */
     public getSyncToken(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).syncToken;
     }
 
-    /**
-     * Get sync state
-     */
-    public getSyncState(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).syncState;
+    public getSyncState(): SyncState | null {
+        return this.client.getSyncState();
     }
 
-    /**
-     * Get sync state data
-     */
-    public getSyncStateData(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).syncStateData;
+    public getSyncStateData(): unknown {
+        return this.client.getSyncStateData();
     }
 
-    /**
-     * Is syncing
-     */
     public isSyncing(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.client as any).syncing || false;
     }
 
-    /**
-     * Get rooms
-     */
-    public getRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).rooms || [];
+    public getRooms(): Room[] {
+        return this.client.getRooms();
     }
 
-    /**
-     * Get joined rooms
-     */
-    public getJoinedRooms(): string[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getJoinedRooms();
+    public async getJoinedRooms(): Promise<string[]> {
+        const response = await this.client.getJoinedRooms();
+        return response.joined_rooms;
     }
 
-    /**
-     * Get invited rooms
-     */
-    public getInvitedRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getInvitedRooms();
+    public getInvitedRooms(): Room[] {
+        return this.client.getRooms().filter(r => r.getMyMembership() === 'invite');
     }
 
-    /**
-     * Get left rooms
-     */
-    public getLeftRooms(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getLeftRooms();
+    public getLeftRooms(): Room[] {
+        return this.client.getRooms().filter(r => r.getMyMembership() === 'leave');
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getSyncManager(): SyncManager;

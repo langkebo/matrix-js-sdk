@@ -14,59 +14,59 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * User Directory Manager - 用户目录管理
- * 
- * 提供用户目录搜索相关功能
- */
-
 import { MatrixClient } from "../client";
+import { User } from "../models/user";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+
+export interface IUserDirectorySearchResult {
+    results: Array<{
+        user_id: string;
+        display_name?: string;
+        avatar_url?: string;
+    }>;
+    limited?: boolean;
+}
+
+export interface IUserProfile {
+    avatar_url?: string;
+    displayname?: string;
+}
 
 export class UserDirectoryManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Search user directory
-     */
-    public async searchUserDirectory(term: string, limit?: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).searchUserDirectory(term, limit);
+    public async searchUserDirectory(term: string, limit?: number): Promise<IUserDirectorySearchResult> {
+        return this.client.searchUserDirectory({ term, limit });
     }
 
-    /**
-     * Get profile
-     */
-    public async getProfile(userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getProfile(userId);
+    public async getProfile(userId: string): Promise<IUserProfile> {
+        if (this.client.getProfileManager) {
+            return this.client.getProfileManager().getProfileInfo(userId) as Promise<IUserProfile>;
+        }
+        return this.client.http.authedRequest<IUserProfile>(
+            Method.Get,
+            `/profile/${encodeURIComponent(userId)}`,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 }
+        );
     }
 
-    /**
-     * Get user
-     */
-    public getUser(userId: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUser(userId);
+    public getUser(userId: string): User | null {
+        return this.client.getUser(userId);
     }
 
-    /**
-     * Get users
-     */
-    public getUsers(): any[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUsers();
+    public getUsers(): User[] {
+        return this.client.getUsers();
     }
 
-    /**
-     * Get user By display name
-     */
-    public getUserByDisplayName(displayName: string): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUserByDisplayName(displayName);
+    public getUserByDisplayName(displayName: string): User | undefined {
+        const users = this.client.getUsers();
+        return users.find(u => u.displayName === displayName);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getUserDirectoryManager(): UserDirectoryManager;

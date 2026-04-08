@@ -14,59 +14,65 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Notifications Manager - 通知管理
- * 
- * 提供通知相关功能
- */
-
 import { MatrixClient } from "../client";
+import { EventTimelineSet } from "../models/event-timeline-set";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+
+export interface ILocalNotificationSettings {
+    is_silenced: boolean;
+    [key: string]: unknown;
+}
+
+export interface INotificationsResponse {
+    next_token?: string;
+    notifications: Array<{
+        actions: unknown[];
+        event: {
+            content: Record<string, unknown>;
+            event_id: string;
+            origin_server_ts: number;
+            room_id: string;
+            sender: string;
+            type: string;
+        };
+        profile_tag?: string;
+        read: boolean;
+        room_id: string;
+        ts: number;
+    }>;
+}
 
 export class NotificationsManager {
     constructor(private client: MatrixClient) {}
 
-    /**
-     * Get notification timeline set
-     */
-    public getNotifTimelineSet(): any {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getNotifTimelineSet();
+    public getNotifTimelineSet(): EventTimelineSet | null {
+        return this.client.getNotifTimelineSet();
     }
 
-    /**
-     * Set notification timeline set
-     */
-    public setNotifTimelineSet(set: any): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setNotifTimelineSet(set);
+    public setNotifTimelineSet(set: EventTimelineSet): void {
+        this.client.setNotifTimelineSet(set);
     }
 
-    /**
-     * Reset notification timeline set
-     */
     public resetNotifTimelineSet(): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).resetNotifTimelineSet();
+        this.client.resetNotifTimelineSet();
     }
 
-    /**
-     * Set local notification settings
-     */
-    public async setLocalNotificationSettings(roomId: string, settings: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setLocalNotificationSettings(roomId, settings);
+    public async setLocalNotificationSettings(deviceId: string, settings: ILocalNotificationSettings): Promise<void> {
+        await this.client.setLocalNotificationSettings(deviceId, settings as any);
     }
 
-    /**
-     * Get notifications
-     */
-    public async getNotifications(opts?: any): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getNotifications(opts);
+    public async getNotifications(opts?: { from?: string; limit?: number; only?: string }): Promise<INotificationsResponse> {
+        return this.client.http.authedRequest<INotificationsResponse>(
+            Method.Get,
+            "/notifications",
+            opts,
+            undefined,
+            { prefix: ClientPrefix.V3 }
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getNotificationsManager(): NotificationsManager;
