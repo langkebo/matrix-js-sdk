@@ -99,8 +99,16 @@ export class RoomKeySharingManager {
     /**
      * Import room keys
      */
-    public async importRoomKeys(keys: any[]): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public async importRoomKeys(keys: Array<{
+        room_id: string;
+        session_id: string;
+        session_key: string;
+        algorithm?: string;
+        forwarding_curve25519_key_chain?: string[];
+        sender_key?: string;
+        sender_claimed_keys?: Record<string, string>;
+        export_format?: number;
+    }>): Promise<void> {
         return (this.client as any).importRoomKeys(keys);
     }
 }

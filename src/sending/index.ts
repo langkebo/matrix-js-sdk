@@ -14,76 +14,101 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Sending Manager - 发送管理
- * 
- * 提供消息发送相关功能
- */
-
 import { MatrixClient } from "../client";
+import { EventType } from "../@types/event";
+import { MatrixEvent } from "../models/event";
+
+export interface ISendEventResponse {
+    event_id: string;
+}
+
+export interface IImageInfo {
+    w?: number;
+    h?: number;
+    mimetype?: string;
+    size?: number;
+    thumbnail_url?: string;
+    thumbnail_info?: IImageInfo;
+    [key: string]: unknown;
+}
+
+export interface IFileContent {
+    body: string;
+    filename?: string;
+    info?: IImageInfo;
+    msgtype: string;
+    url?: string;
+    file?: {
+        url: string;
+        key: Record<string, unknown>;
+        iv: string;
+        hashes: Record<string, string>;
+        v: string;
+    };
+    [key: string]: unknown;
+}
 
 export class SendingManager {
     constructor(private client: MatrixClient) {}
 
     public async sendEvent(
         roomId: string,
-        eventType: string,
-        content: any,
+        eventType: string | EventType,
+        content: Record<string, unknown>,
         txnId?: string,
-    ): Promise<any>;
+    ): Promise<ISendEventResponse>;
     public async sendEvent(
         roomId: string,
         threadId: string | null,
-        eventType: string,
-        content: any,
+        eventType: string | EventType,
+        content: Record<string, unknown>,
         txnId?: string,
-    ): Promise<any>;
-    public async sendEvent(roomId: string, ...args: any[]): Promise<any> {
+    ): Promise<ISendEventResponse>;
+    public async sendEvent(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendEvent(roomId, ...args);
     }
 
-    public async sendMessage(roomId: string, content: any, txnId?: string): Promise<any>;
-    public async sendMessage(roomId: string, threadId: string | null, content: any, txnId?: string): Promise<any>;
-    public async sendMessage(roomId: string, ...args: any[]): Promise<any> {
+    public async sendMessage(roomId: string, content: Record<string, unknown>, txnId?: string): Promise<ISendEventResponse>;
+    public async sendMessage(roomId: string, threadId: string | null, content: Record<string, unknown>, txnId?: string): Promise<ISendEventResponse>;
+    public async sendMessage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendMessage(roomId, ...args);
     }
 
-    public async sendTextMessage(roomId: string, text: string, txnId?: string): Promise<any>;
-    public async sendTextMessage(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<any>;
-    public async sendTextMessage(roomId: string, ...args: any[]): Promise<any> {
+    public async sendTextMessage(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
+    public async sendTextMessage(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<ISendEventResponse>;
+    public async sendTextMessage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendTextMessage(roomId, ...args);
     }
 
-    public async sendHtmlMessage(roomId: string, body: string, html: string): Promise<any>;
-    public async sendHtmlMessage(roomId: string, threadId: string | null, body: string, html: string): Promise<any>;
-    public async sendHtmlMessage(roomId: string, ...args: any[]): Promise<any> {
+    public async sendHtmlMessage(roomId: string, body: string, html: string): Promise<ISendEventResponse>;
+    public async sendHtmlMessage(roomId: string, threadId: string | null, body: string, html: string): Promise<ISendEventResponse>;
+    public async sendHtmlMessage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendHtmlMessage(roomId, ...args);
     }
 
-    public async sendEmote(roomId: string, text: string, txnId?: string): Promise<any>;
-    public async sendEmote(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<any>;
-    public async sendEmote(roomId: string, ...args: any[]): Promise<any> {
+    public async sendEmote(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
+    public async sendEmote(roomId: string, threadId: string | null, text: string, txnId?: string): Promise<ISendEventResponse>;
+    public async sendEmote(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendEmoteMessage(roomId, ...args);
     }
 
-    public async sendNotice(roomId: string, body: string, txnId?: string): Promise<any>;
-    public async sendNotice(roomId: string, threadId: string | null, body: string, txnId?: string): Promise<any>;
-    public async sendNotice(roomId: string, ...args: any[]): Promise<any> {
+    public async sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
+    public async sendNotice(roomId: string, threadId: string | null, body: string, txnId?: string): Promise<ISendEventResponse>;
+    public async sendNotice(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendNotice(roomId, ...args);
     }
 
-    public async sendImage(roomId: string, url: string, info?: any, text?: string): Promise<any>;
-    public async sendImage(roomId: string, threadId: string | null, url: string, info?: any, text?: string): Promise<any>;
-    public async sendImage(roomId: string, ...args: any[]): Promise<any> {
+    public async sendImage(roomId: string, url: string, info?: IImageInfo, text?: string): Promise<ISendEventResponse>;
+    public async sendImage(roomId: string, threadId: string | null, url: string, info?: IImageInfo, text?: string): Promise<ISendEventResponse>;
+    public async sendImage(roomId: string, ...args: unknown[]): Promise<ISendEventResponse> {
         return (this.client as any).sendImageMessage(roomId, ...args);
     }
 
-    public async sendFile(roomId: string, content: any, txnId?: string): Promise<any> {
+    public async sendFile(roomId: string, content: IFileContent, txnId?: string): Promise<ISendEventResponse> {
         return (this.client as any).sendMessage(roomId, content, txnId);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getSendingManager(): SendingManager;

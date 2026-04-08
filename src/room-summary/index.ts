@@ -475,7 +475,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                 clientSummary = await this.client.http.authedRequest(Method.Get, path, via ? { via } : undefined, undefined, unstableOpts);
             }
 
-            const summary = this.convertClientSummary(clientSummary);
+            const summary = this.convertClientSummary(clientSummary as Parameters<typeof this.convertClientSummary>[0]);
             this.summaryCache.set(roomIdOrAlias, summary);
             this.emit(RoomSummaryEvent.Updated, roomIdOrAlias, summary);
             return summary;
@@ -1182,7 +1182,24 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
      * client.ts 的 RoomSummary 是 MSC3266 标准格式
      * 本模块的 RoomSummary 是 synapse-rust 的扩展格式
      */
-    private convertClientSummary(clientSummary: any): RoomSummary {
+    private convertClientSummary(clientSummary: {
+        room_id: string;
+        room_type?: string;
+        name?: string;
+        topic?: string;
+        avatar_url?: string;
+        canonical_alias?: string;
+        join_rule?: string;
+        history_visibility?: string;
+        guest_access?: string;
+        is_direct?: boolean;
+        is_space?: boolean;
+        is_encrypted?: boolean;
+        num_joined_members?: number;
+        heroes?: Array<string | { user_id: string; display_name?: string; avatar_url?: string }>;
+        last_event_ts?: number;
+        last_message_ts?: number;
+    }): RoomSummary {
         return {
             room_id: clientSummary.room_id,
             room_type: clientSummary.room_type,
@@ -1199,7 +1216,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
             member_count: clientSummary.num_joined_members || 0,
             joined_member_count: clientSummary.num_joined_members || 0,
             invited_member_count: 0,
-            heroes: (clientSummary.heroes || []).map((h: any) => ({
+            heroes: (clientSummary.heroes || []).map((h) => ({
                 user_id: typeof h === 'string' ? h : h.user_id,
                 display_name: typeof h === 'string' ? undefined : h.display_name,
                 avatar_url: typeof h === 'string' ? undefined : h.avatar_url,
