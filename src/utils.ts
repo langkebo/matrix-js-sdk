@@ -224,8 +224,8 @@ export function deepCompare(x: unknown, y: unknown): boolean {
     }
 
     // everything else is either an unequal primitive, or an object
-    // XXX: this check has been temporarily tweaked due to issues in the jest test environment,
-    // this will be reverted as part of the migration to vitest
+    // Workaround: This check has been tweaked due to issues in test environments.
+    // See: https://github.com/matrix-org/matrix-js-sdk/issues/XXXX
     const xObj = x as object;
     const yObj = y as object;
     if (
@@ -238,8 +238,7 @@ export function deepCompare(x: unknown, y: unknown): boolean {
     }
 
     // check they are the same type of object
-    // XXX: this check has been temporarily tweaked due to issues in the jest test environment,
-    // this will be reverted as part of the migration to vitest
+    // Workaround: This check has been tweaked due to issues in test environments.
     if ((xObj as { prototype?: unknown }).prototype !== (yObj as { prototype?: unknown }).prototype) {
         return false;
     }
@@ -274,7 +273,10 @@ export function deepCompare(x: unknown, y: unknown): boolean {
 
         // finally, compare each of x's keys with y
         for (const p in xRec) {
-            if (Object.prototype.hasOwnProperty.call(yRec, p) !== Object.prototype.hasOwnProperty.call(xRec, p) || !deepCompare(xRec[p], yRec[p])) {
+            if (
+                Object.prototype.hasOwnProperty.call(yRec, p) !== Object.prototype.hasOwnProperty.call(xRec, p) ||
+                !deepCompare(xRec[p], yRec[p])
+            ) {
                 return false;
             }
         }
@@ -693,7 +695,9 @@ export function recursivelyAssign<T1 extends T2, T2 extends Record<string, any>>
  * Latest timestamp first
  */
 export function sortEventsByLatestContentTimestamp(left: MatrixEvent, right: MatrixEvent): number {
-    return -1;
+    const leftTs = Number(left.getContent()?.["m.ts"] ?? 0);
+    const rightTs = Number(right.getContent()?.["m.ts"] ?? 0);
+    return rightTs - leftTs;
 }
 
 export function isSupportedReceiptType(receiptType: string): boolean {

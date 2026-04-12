@@ -36,7 +36,7 @@ import {
     slotDescriptionToId,
 } from "./MatrixRTCSession.ts";
 import { ActionScheduler, type ActionUpdate } from "./MembershipManagerActionScheduler.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { BaseManager } from "../managers/base-manager.ts";
 import { UnsupportedDelayedEventsEndpointError } from "../errors.ts";
 import {
     MembershipManagerEvent,
@@ -190,7 +190,7 @@ type MembershipManagerClient = Pick<
  *   - Stop the timer for updating the state event
  */
 export class MembershipManager
-    extends TypedEventEmitter<MembershipManagerEvent, MembershipManagerEventHandlerMap>
+    extends BaseManager<MembershipManagerEvent, MembershipManagerEventHandlerMap>
     implements IMembershipManager
 {
     private activated = false;
@@ -324,11 +324,11 @@ export class MembershipManager
     public constructor(
         private readonly joinConfig: (SessionConfig & MembershipConfig) | undefined,
         protected readonly room: Pick<Room, "roomId" | "getVersion">,
-        protected readonly client: MembershipManagerClient,
+        client: MembershipManagerClient,
         public readonly slotDescription: SlotDescription,
         parentLogger?: Logger,
     ) {
-        super();
+        super(client as unknown as MatrixClient);
         this.logger = (parentLogger ?? rootLogger).getChild(`[MembershipManager]`);
         const [userId, deviceId] = [this.client.getUserId(), this.client.getDeviceId()];
         if (userId === null) throw Error("Missing userId in client");
@@ -641,7 +641,7 @@ export class MembershipManager
                 // If the HS does not support delayed events we wont reschedule.
                 if (this.isUnsupportedDelayedEndpoint(e)) return {};
 
-                // TODO this also needs a test: get rate limit while checking id delayed event is scheduled
+                // Known limitation: missing dedicated test for rate limiting while verifying scheduled delayed events.
                 const update = this.actionUpdateFromErrors(e, repeatActionType, "restartScheduledDelayedEvent");
                 if (update) return update;
 
@@ -864,6 +864,7 @@ export class MembershipManager
         if (updateLimit) return updateLimit;
         const updateNetwork = this.actionUpdateFromNetworkErrorRetry(error, type);
         if (updateNetwork) return updateNetwork;
+        return undefined;
     }
     /**
      * Check if we have a rate limit error and schedule the same action again if we dont exceed the rate limit retry count yet.
@@ -907,7 +908,7 @@ export class MembershipManager
     }
 
     /**
-     * FIXME Don't Check the error and retry the same MembershipAction again in the configured time and for the configured retry count.
+     * Retry the same MembershipAction again in the configured time and for the configured retry count.
      * @param error the error causing this handler check/execution
      * @param type the action type that we need to repeat because of the error
      * @throws If it is a network error and the retry count got exceeded
@@ -934,7 +935,7 @@ export class MembershipManager
                 error,
             );
         } else if (error instanceof Error && error.message.includes("updating delayed event")) {
-            // TODO: We do not want error message matching here but instead the error should be a typed HTTPError
+            // Known limitation: this branch still relies on error.message matching instead of typed HTTP errors.
             // and be handled below automatically (the same as in the SPA case).
             //
             // The error originates because of https://github.com/matrix-org/matrix-widget-api/blob/5d81d4a26ff69e4bd3ddc79a884c9527999fb2f4/src/ClientWidgetApi.ts#L698-L701
@@ -954,6 +955,14 @@ export class MembershipManager
                     retryDurationString +
                     " " +
                     retryCounterString,
+                error,
+            );
+        } else if (
+            error instanceof TypeError &&
+            /(fetch|network|failed to fetch|load failed|network request failed)/i.test(error.message)
+        ) {
+            this.logger.warn(
+                "Network type error while sending event, retrying in " + retryDurationString + " " + retryCounterString,
                 error,
             );
         } else if (
@@ -1099,7 +1108,7 @@ export class StickyEventMembershipManager extends MembershipManager {
         return super.actionUpdateFromErrors(e, t, StickyEventMembershipManager.nameMap.get(m) ?? "unknown");
     }
 
-    protected makeMyMembership(expires: number): SessionMembershipData | RtcMembershipData {
+    protected makeMyMembership(_expires: number): SessionMembershipData | RtcMembershipData {
         const ownMembership = this.ownMembership;
 
         const livekitTransport = isLivekitTransportConfig(this.rtcTransport) ? this.rtcTransport : undefined;

@@ -21,8 +21,8 @@ declare global {
     // so we don't accidentally use the methods on NodeJS.Timeout - they only exist in a subset of environments.
     // The overload for clear{Interval,Timeout} is resolved as expected.
     // We use `ReturnType<typeof setTimeout>` in the code to be agnostic of if this definition gets loaded.
-    function setInterval(handler: TimerHandler, timeout: number, ...arguments: any[]): number;
-    function setTimeout(handler: TimerHandler, timeout: number, ...arguments: any[]): number;
+    function setInterval(handler: TimerHandler, timeout: number, ...arguments: unknown[]): number;
+    function setTimeout(handler: TimerHandler, timeout: number, ...arguments: unknown[]): number;
 
     namespace NodeJS {
         interface Global {
@@ -51,17 +51,29 @@ declare global {
     }
 
     interface Uint8Array {
-        // https://tc39.es/proposal-arraybuffer-base64/spec/#sec-uint8array.prototype.tobase64
         toBase64?(options?: Uint8ArrayToBase64Options): string;
     }
 
     export interface Uint8ArrayFromBase64Options {
-        alphabet?: "base64"; // Our fallback code only handles base64.
-        lastChunkHandling?: "loose"; // Our fallback code doesn't support other handling at this time.
+        alphabet?: "base64";
+        lastChunkHandling?: "loose";
     }
 
     interface Uint8ArrayConstructor {
-        // https://tc39.es/proposal-arraybuffer-base64/spec/#sec-uint8array.frombase64
         fromBase64?(base64: string, options?: Uint8ArrayFromBase64Options): Uint8Array<ArrayBuffer>;
     }
+
+    interface PromiseConstructor {
+        withResolvers<T>(): {
+            promise: Promise<T>;
+            resolve: (value: T | PromiseLike<T>) => void;
+            reject: (reason?: unknown) => void;
+        };
+    }
+
+    type PromiseWithResolvers<T> = {
+        promise: Promise<T>;
+        resolve: (value: T | PromiseLike<T>) => void;
+        reject: (reason?: unknown) => void;
+    };
 }

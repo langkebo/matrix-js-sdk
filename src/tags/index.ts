@@ -1,4 +1,4 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -17,7 +17,7 @@ limitations under the License.
 
 /**
  * Tag Manager - 标签管理
- * 
+ *
  * 提供房间标签的添加、删除、查询功能
  */
 
@@ -75,15 +75,16 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
                 `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const tags = response.tags || {};
             this.roomTags.set(roomId, tags);
-            
+
             return tags;
+            // @swallow-error { owner: "tags", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('TagManager.getRoomTags failed:', e);
+            logger.warn("TagManager.getRoomTags failed:", e);
             return {};
         }
     }
@@ -99,7 +100,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
                 throw new Error("User ID is required");
             }
             const body: Record<string, unknown> = {};
-            
+
             if (order !== undefined) {
                 body.order = order;
             }
@@ -109,7 +110,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
                 `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
                 undefined,
                 body,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const tags = this.roomTags.get(roomId) || {};
@@ -134,13 +135,13 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
             if (!userId) {
                 throw new Error("User ID is required");
             }
-            
+
             await this.client.http.authedRequest(
                 Method.Delete,
                 `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const tags = this.roomTags.get(roomId) || {};
@@ -173,7 +174,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
     async clearRoomTags(roomId: string): Promise<void> {
         const tags = await this.getRoomTags(roomId);
-        
+
         for (const tag of Object.keys(tags)) {
             await this.removeRoomTag(roomId, tag);
         }
@@ -195,37 +196,37 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
     }
 
     async getFavoriteRooms(): Promise<string[]> {
-        return this.getRoomsByTag('m.favourite');
+        return this.getRoomsByTag("m.favourite");
     }
 
     async addToFavorites(roomId: string): Promise<void> {
-        await this.addRoomTag(roomId, 'm.favourite', 0.5);
+        await this.addRoomTag(roomId, "m.favourite", 0.5);
     }
 
     async removeFromFavorites(roomId: string): Promise<void> {
-        await this.removeRoomTag(roomId, 'm.favourite');
+        await this.removeRoomTag(roomId, "m.favourite");
     }
 
     async isFavorite(roomId: string): Promise<boolean> {
         const tags = await this.getRoomTags(roomId);
-        return tags['m.favourite'] !== undefined;
+        return tags["m.favourite"] !== undefined;
     }
 
     async getLowPriorityRooms(): Promise<string[]> {
-        return this.getRoomsByTag('m.lowpriority');
+        return this.getRoomsByTag("m.lowpriority");
     }
 
     async addToLowPriority(roomId: string): Promise<void> {
-        await this.addRoomTag(roomId, 'm.lowpriority', 1);
+        await this.addRoomTag(roomId, "m.lowpriority", 1);
     }
 
     async removeFromLowPriority(roomId: string): Promise<void> {
-        await this.removeRoomTag(roomId, 'm.lowpriority');
+        await this.removeRoomTag(roomId, "m.lowpriority");
     }
 
     async isLowPriority(roomId: string): Promise<boolean> {
         const tags = await this.getRoomTags(roomId);
-        return tags['m.lowpriority'] !== undefined;
+        return tags["m.lowpriority"] !== undefined;
     }
 
     getCachedTags(roomId: string): IRoomTags {

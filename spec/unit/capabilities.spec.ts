@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
 import { CapabilitiesManager } from "../../src/capabilities/index";
 
 describe("CapabilitiesManager", () => {

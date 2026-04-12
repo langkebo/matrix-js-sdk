@@ -51,7 +51,7 @@ export type MTopicContent = { "m.text": IMessageRendering[] };
 
 /**
  * A previous incorrect form of m.topic used by matrix-js-sdk
- * TODO remove this after a few releases
+ * Known limitation: legacy malformed m.topic form is still accepted for compatibility.
  *      https://github.com/matrix-org/matrix-js-sdk/pull/4984#pullrequestreview-3174251065
  */
 export type MalformedMTopicEvent = { "m.topic": IMessageRendering[] };

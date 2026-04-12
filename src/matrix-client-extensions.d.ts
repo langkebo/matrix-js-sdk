@@ -3,7 +3,7 @@
  * 解决 extendMatrixClient 模式导致的类型丢失问题
  *
  * 每个通过 extendMatrixClient 添加的方法都需要在这里声明
- * 
+ *
  * ⚠️ 重要：所有 Manager 必须实现 extendMatrixClient() 函数才能正常工作
  * 新添加的 Manager 需要同时：
  * 1. 在对应的模块中实现 extendMatrixClient()
@@ -14,6 +14,13 @@ import type { MatrixClient } from "./client";
 import type { Room } from "./models/room";
 import type { MatrixEvent } from "./models/event";
 import type { RoomMember } from "./models/room-member";
+import type { ISendEventResponse, IRedactOpts } from "./@types/requests";
+import type { RoomAccountDataEvents } from "./@types/event";
+import { type ITurnServer, type IMediaConfig, type IIdentityServerProvider } from "./client";
+import type { CryptoBackend } from "./common-crypto/CryptoBackend";
+import type { CryptoApi } from "./crypto-api";
+import type { IStoredClientOpts } from "./client-config-types";
+import type { SyncApiOptions } from "./sync";
 
 // ============ 类型定义 ============
 
@@ -25,6 +32,9 @@ interface MatrixClientExtensionMethods {
     getAuthManager(): import("./auth/index").AuthManager;
     getCredentialsManager(): import("./credentials/index").CredentialsManager;
     getDeviceManager(): import("./device/index").DeviceManager;
+    getThreePidsManager(): import("./threepids/index").ThreePidsManager;
+    getIdentityServerManager(): import("./identity-server/index").IdentityServerManager;
+    getPasswordResetManager(): import("./password-reset/index").PasswordResetManager;
     getGlobalLogoutManager(): import("./auth/global-logout").GlobalLogoutManager;
     getUserManager(): import("./user/index").UserManager;
 
@@ -36,7 +46,7 @@ interface MatrixClientExtensionMethods {
     getRoomStateManager(): import("./room-state/index").RoomStateManager;
     getRoomStateManagementManager(): import("./room-state-management/index").RoomStateManagementManager;
     getRoomListManager(): import("./room-list/index").RoomListManager;
-    
+
     // ============ Room Summary ============
     // 推荐使用 RoomSummaryManager（完整封装，包含缓存和事件）
     getRoomSummaryManager(): import("./room-summary/index").RoomSummaryManager;
@@ -185,16 +195,254 @@ interface MatrixClientExtensionMethods {
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
 }
 
+/**
+ * MatrixClient 内部属性和方法声明
+ *
+ * 这些是 MatrixClient 类中已实现但未在主接口中声明的属性和方法。
+ * 管理器通过 (this.client as any) 访问这些成员，
+ * 通过在扩展接口中声明它们，可以消除大部分 as any 用法。
+ */
+interface MatrixClientInternalMethods {
+    // ============ Credentials & Identity ============
+    readonly credentials: { userId: string | null };
+    readonly deviceId: string | null;
+    readonly baseUrl: string;
+    readonly idBaseUrl?: string;
+    readonly syncing?: boolean;
+    readonly syncToken?: string | null;
+    readonly serverClockDiff?: number;
+    readonly rooms: Room[];
+    readonly identityServer?: IIdentityServerProvider;
+
+    getAccessToken(): string | null;
+    getIdentityServerUrl(stripProto?: boolean): string | undefined;
+    getSessionId(): string;
+    getRoomByAlias(alias: string): Room | null;
+    getCrypto(): CryptoApi | undefined;
+    getCryptoBackend(): CryptoBackend | undefined;
+    getClientOpts(): IStoredClientOpts | undefined;
+    getSyncApiOptions(): SyncApiOptions;
+    isGuest(): boolean;
+
+    // ============ Room Getters (implemented but not in interface) ============
+    getRoomName(roomId: string): string;
+    getRoomTopic(roomId: string): string;
+    getRoomAvatarUrl(roomId: string): string;
+    getRoomHistoryVisibility(roomId: string): string;
+    getRoomGuestAccess(roomId: string): string;
+    getRoomJoinRule(roomId: string): string;
+    getNotificationCount(roomId: string): number;
+    getHighlightCount(roomId: string): number;
+    hasUnreadNotifications(roomId: string): boolean;
+    hasUnreadHighlights(roomId: string): boolean;
+    getTotalNotificationCount(): number;
+    getTotalHighlightCount(): number;
+    getRoomWithHighestUnread(): Room | null;
+    getRoomsWithUnreadNotifications(): Room[];
+    sortRoomsByLastMessage(): void;
+
+    // ============ Room Setters (implemented but not in interface) ============
+    setRoomName(roomId: string, name: string): Promise<ISendEventResponse>;
+    setRoomTopic(roomId: string, topic?: string, htmlTopic?: string): Promise<ISendEventResponse>;
+    setRoomAccountData<K extends keyof RoomAccountDataEvents>(
+        roomId: string,
+        eventType: K,
+        content: RoomAccountDataEvents[K] | Record<string, never>,
+    ): Promise<EmptyObject>;
+
+    // ============ Message Sending (implemented but not in interface) ============
+    sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
+    sendTextMessage(roomId: string, threadId: string | null, body: string, txnId?: string): Promise<ISendEventResponse>;
+    sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
+    sendNotice(roomId: string, threadId: string | null, body: string, txnId?: string): Promise<ISendEventResponse>;
+    sendEmoteMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
+    sendEmoteMessage(
+        roomId: string,
+        threadId: string | null,
+        body: string,
+        txnId?: string,
+    ): Promise<ISendEventResponse>;
+    sendHtmlMessage(roomId: string, body: string, htmlBody: string): Promise<ISendEventResponse>;
+    sendHtmlMessage(
+        roomId: string,
+        threadId: string | null,
+        body: string,
+        htmlBody: string,
+    ): Promise<ISendEventResponse>;
+    sendHtmlNotice(roomId: string, body: string, htmlBody: string): Promise<ISendEventResponse>;
+    sendHtmlNotice(
+        roomId: string,
+        threadId: string | null,
+        body: string,
+        htmlBody: string,
+    ): Promise<ISendEventResponse>;
+    sendHtmlEmote(roomId: string, body: string, htmlBody: string): Promise<ISendEventResponse>;
+    sendHtmlEmote(roomId: string, threadId: string | null, body: string, htmlBody: string): Promise<ISendEventResponse>;
+    sendImageMessage(roomId: string, url: string, info?: unknown, text?: string): Promise<ISendEventResponse>;
+    sendImageMessage(
+        roomId: string,
+        threadId: string | null,
+        url: string,
+        info?: unknown,
+        text?: string,
+    ): Promise<ISendEventResponse>;
+
+    // ============ Event Management (implemented but not in interface) ============
+    resendEvent(event: MatrixEvent, room: Room): Promise<ISendEventResponse>;
+    cancelPendingEvent(event: MatrixEvent): void;
+    redactEvent(roomId: string, eventId: string, txnId?: string, opts?: IRedactOpts): Promise<ISendEventResponse>;
+    redactEvent(
+        roomId: string,
+        threadId: string | null,
+        eventId: string,
+        txnId?: string,
+        opts?: IRedactOpts,
+    ): Promise<ISendEventResponse>;
+
+    // ============ Room Settings (phantom methods used by RoomSettingsManager) ============
+    setRoomAvatar(roomId: string, avatarUrl: string): Promise<any>;
+    setRoomHistoryVisibility(roomId: string, visibility: string): Promise<any>;
+    setRoomGuestAccess(roomId: string, allow: boolean): Promise<any>;
+    setRoomJoinRule(roomId: string, joinRule: string): Promise<any>;
+    getRoomHistoryVisibility(roomId: string): string;
+    getRoomGuestAccess(roomId: string): string;
+    getRoomJoinRule(roomId: string): string;
+
+    // ============ Event Management (phantom methods used by EventManager) ============
+    getEvent(roomId: string, eventId: string): Promise<MatrixEvent>;
+    getRoomEvents(roomId: string, start: string, limit: number): Promise<MatrixEvent[]>;
+    getStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]>;
+    fetchEvent(roomId: string, eventId: string): Promise<MatrixEvent>;
+
+    // ============ Server Time & Turn Servers ============
+    getTurnServers(): ITurnServer[];
+    getTurnServersExpiry(): number;
+    getTurnServerURIs(): Promise<string[]>;
+    getLocalTimestampForServerTime(serverTime: number): number;
+    getServerTimestamp(): number;
+    updateServerTimeInfo(serverTime: number, serverDate: string): void;
+    getMediaConfig(useAuthenticatedMedia?: boolean): Promise<IMediaConfig>;
+
+    // ============ Server Capabilities ============
+    getServerCapabilities(): Promise<Record<string, unknown>>;
+    hasServerSupport(feature: string): Promise<boolean>;
+    getServerVersion(): Promise<string>;
+    supportsThreads(): Promise<boolean>;
+    supportsLocation(): Promise<boolean>;
+
+    // ============ Room Key Sharing ============
+    shareRoomKey(roomId: string, users: string[]): Promise<unknown>;
+    getSharedWithUsers(roomId: string): Promise<Record<string, unknown>>;
+    hasSharedKeyWithUser(userId: string): Promise<boolean>;
+    exportRoomKeys(): Promise<unknown>;
+    importRoomKeys(keys: unknown[], options?: unknown): Promise<unknown>;
+
+    // ============ Key Claiming ============
+    claimKeys(users: Record<string, string[]>): Promise<unknown>;
+    claimedKeys: Record<string, Record<string, string>>;
+
+    // ============ Pending Events ============
+    getPendingEvents(roomId: string): MatrixEvent[];
+    hasPendingEvents(roomId: string): boolean;
+    cancelUpload(upload: Promise<unknown>): boolean;
+    getUnsentEvents(roomId: string): MatrixEvent[];
+
+    // ============ Room Retention ============
+    getRoomRetention(roomId: string): Promise<unknown>;
+    setRoomRetention(roomId: string, policy: Record<string, unknown>): Promise<void>;
+    getServerRetention(): Promise<unknown>;
+
+    // ============ Encryption Rotation ============
+    rotateEncryptionKeys(): Promise<void>;
+    isRotationNeeded(): boolean;
+    getRotationPeriod(): number;
+    setRotationPeriod(period: number): void;
+    getLastRotationTime(): number;
+
+    // ============ Reactions ============
+    reactToMessage(roomId: string, eventId: string, key: string): Promise<void>;
+    redactReaction(roomId: string, eventId: string): Promise<void>;
+    getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>>;
+    hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean>;
+
+    // ============ Crypto & Cross-Signing ============
+    cryptoStore: unknown;
+    getCryptoAlgorithm(): unknown;
+    setCryptoAlgorithm(algorithm: unknown): void;
+    hasCrypto(): boolean;
+    initCrypto(): Promise<void>;
+    stopCrypto(): void;
+    checkCrossSigningStatus(): unknown;
+    getCrossSigningKeys(): Promise<unknown>;
+    isCrossSigningReady(): boolean;
+    getUserCrossSigningKeys(userId: string): Promise<unknown>;
+    checkAndTrustCrossSigning(): Promise<void>;
+    isCryptoBackupEnabled(): boolean;
+    enableCryptoBackup(passphrase: string): Promise<void>;
+    disableCryptoBackup(): Promise<void>;
+    getCryptoBackup(): Promise<unknown>;
+    restoreCryptoBackup(backup: string | object, passphrase?: string): Promise<void>;
+    deleteCryptoStore(): Promise<void>;
+    isCryptoStoreReady(): boolean;
+    isSecretStorageReady(): boolean;
+    getSecretStorageKey(keyId: string): Promise<[string, string] | null>;
+    storeSecret(name: string, secret: string, keys: string[]): Promise<void>;
+    getSecret(name: string): Promise<string | null>;
+    hasSecret(name: string): boolean;
+    getSecretStorageKeys(): Promise<Record<string, string>>;
+
+    // ============ Widgets ============
+    getUserWidgets(): Promise<Record<string, unknown>>;
+    getRoomWidgets(roomId: string): Promise<Record<string, unknown>>;
+    setUserWidgets(widgets: Record<string, unknown>): Promise<void>;
+    setRoomWidgets(roomId: string, widgets: Record<string, unknown>): Promise<void>;
+    getAllWidgetEvents(roomId: string): Promise<MatrixEvent[]>;
+
+    // ============ Beacons ============
+
+    // ============ Session ============
+    logout(stopClient?: boolean): Promise<EmptyObject>;
+    deactivateAccount(auth?: unknown, erase?: boolean): Promise<{ id_server_unbind_result: IdServerUnbindResult }>;
+    whoami(): Promise<IWhoamiResponse>;
+    // Note: sessionId is protected on MatrixClient, not public
+
+    // ============ Settled / Sync State ============
+    waitForPendingRequests(timeoutMs: number): Promise<void>;
+    isInitialSyncComplete(): boolean;
+    hasStartedSync(): boolean;
+    isSyncing(): boolean;
+    waitForSync(): Promise<void>;
+
+    // ============ Crypto Store ============
+    deleteCryptoStore(): Promise<void>;
+    isCryptoStoreReady(): boolean;
+
+    // ============ Media Storage ============
+    getUserStorageUsage(userId: string): Promise<{ size: number; ntFiles: number } | null>;
+
+    // ============ Credentials (for credentials/index.ts) ============
+    getIdentityServerUrl(stripProto?: boolean): string | undefined;
+
+    // ============ Notification Callback ============
+    notificationCallback: unknown;
+}
+
+declare global {
+    interface EmptyObject {
+        // Marker interface for empty object returns
+    }
+}
+
 // ============ 模块扩展声明 ============
 
 // 扩展 MatrixClient 接口
 declare module "./client" {
-    interface MatrixClient extends MatrixClientExtensionMethods {}
+    interface MatrixClient extends MatrixClientExtensionMethods, MatrixClientInternalMethods {}
 }
 
 // 扩展 matrix 入口
 declare module "./matrix" {
-    interface MatrixClient extends MatrixClientExtensionMethods {}
+    interface MatrixClient extends MatrixClientExtensionMethods, MatrixClientInternalMethods {}
 }
 
 // ============ 导出类型 ============
@@ -206,9 +454,9 @@ export type MatrixClientExtensions = MatrixClient;
 
 /**
  * 如何添加新的 Manager：
- * 
+ *
  * 1. 在对应的 src/<module>/index.ts 中实现 Manager 类
- * 
+ *
  * 2. 实现 extendMatrixClient() 函数：
  * ```typescript
  * export function extendMatrixClient(): void {
@@ -218,19 +466,19 @@ export type MatrixClientExtensions = MatrixClient;
  * }
  * export default extendMatrixClient;
  * ```
- * 
+ *
  * 3. 在本文件中添加类型声明：
  * ```typescript
  * exampleManagerGetter(): import("./<module>/index").ExampleManager;
  * ```
- * 
+ *
  * 4. ⚠️ 重要：在实际使用前必须调用 extendMatrixClient()
- * 
+ *
  * 示例：
  * ```typescript
  * import { extendMatrixClient } from "./admin";
  * extendMatrixClient(); // 必须调用
- * 
+ *
  * const client = createClient({ ... });
  * const admin = client.getAdminManager(); // 现在可以用了
  * ```

@@ -1561,6 +1561,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         } else if (this._replacingEvent) {
             return this._replacingEvent.getId();
         }
+        return undefined;
     }
 
     /**
@@ -1585,6 +1586,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         } else if (this._replacingEvent) {
             return this._replacingEvent.getDate() ?? undefined;
         }
+        return undefined;
     }
 
     /**
@@ -1607,6 +1609,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         } else if (this.isRedaction()) {
             return this.event.redacts;
         }
+        return undefined;
     }
 
     /**
@@ -1671,7 +1674,8 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         for (const [p, v] of Object.entries(this)) {
             if (p !== "event") {
                 // exclude the thing we just cloned
-                // @ts-ignore - XXX: this is just nasty
+                // @ts-ignore - Known limitation: This copy operation is necessary for snapshot functionality
+                // but bypasses type safety. Future refactoring should use a proper clone method.
                 ev[p as keyof MatrixEvent] = v;
             }
         }

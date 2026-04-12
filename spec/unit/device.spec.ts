@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DeviceManager, DeviceEvent, UIAError } from "../../src/device/index";
+import { MatrixError } from "../../src/http-api/errors.ts";
 
 describe("DeviceManager", () => {
     let mockClient: any;
@@ -69,24 +70,16 @@ describe("DeviceManager", () => {
             const emitSpy = vi.spyOn(deviceManager, "emit");
             await deviceManager.getDevices();
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                DeviceEvent.DevicesUpdated,
-                expect.any(Array)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DevicesUpdated, expect.any(Array));
         });
 
         it("should handle errors and emit DeviceError", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(
-                new Error("Network error")
-            );
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Network error"));
 
             const emitSpy = vi.spyOn(deviceManager, "emit");
             await expect(deviceManager.getDevices()).rejects.toThrow("Network error");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                DeviceEvent.DeviceError,
-                expect.any(Error)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DeviceError, expect.any(Error));
         });
     });
 
@@ -96,8 +89,8 @@ describe("DeviceManager", () => {
 
             const device = await deviceManager.getDevice("device1");
 
-            expect(device.device_id).toBe("device1");
-            expect(device.display_name).toBe("Test Device 1");
+            expect(device?.device_id).toBe("device1");
+            expect(device?.display_name).toBe("Test Device 1");
         });
 
         it("should return cached device if available", async () => {
@@ -111,8 +104,24 @@ describe("DeviceManager", () => {
             mockClient.http.authedRequest.mockClear();
             const device = await deviceManager.getDevice("device1");
 
-            expect(device.device_id).toBe("device1");
+            expect(device?.device_id).toBe("device1");
             expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
+        });
+
+        it("should return null on 404 error", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            const device = await deviceManager.getDevice("device1");
+
+            expect(device).toBeNull();
+        });
+
+        it("should throw on 404 error when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(deviceManager.getDevice("device1", false, true)).rejects.toThrow();
         });
 
         it("should throw error for empty deviceId", async () => {
@@ -134,22 +143,15 @@ describe("DeviceManager", () => {
             const emitSpy = vi.spyOn(deviceManager, "emit");
             await deviceManager.updateDevice("device1", { display_name: "New Name" });
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                DeviceEvent.DeviceUpdated,
-                expect.any(Object)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DeviceUpdated, expect.any(Object));
         });
 
         it("should throw error for empty deviceId", async () => {
-            await expect(
-                deviceManager.updateDevice("", { display_name: "New Name" })
-            ).rejects.toThrow();
+            await expect(deviceManager.updateDevice("", { display_name: "New Name" })).rejects.toThrow();
         });
 
         it("should throw error when no updates provided", async () => {
-            await expect(
-                deviceManager.updateDevice("device1", {})
-            ).rejects.toThrow();
+            await expect(deviceManager.updateDevice("device1", {})).rejects.toThrow();
         });
 
         it("should throw UIAError for auth required", async () => {
@@ -158,16 +160,14 @@ describe("DeviceManager", () => {
                 data: { flows: [{ stages: ["m.login.password"] }] },
             });
 
-            await expect(
-                deviceManager.updateDevice("device1", { display_name: "New Name" })
-            ).rejects.toThrow(UIAError);
+            await expect(deviceManager.updateDevice("device1", { display_name: "New Name" })).rejects.toThrow(UIAError);
         });
     });
 
     describe("setDeviceDetails", () => {
         it("should call updateDevice", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
-            
+
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 devices: mockDevices,
             });
@@ -204,7 +204,7 @@ describe("DeviceManager", () => {
     describe("deleteDevice", () => {
         it("should delete device successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
-            
+
             // First cache the device
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 devices: mockDevices,
@@ -214,10 +214,7 @@ describe("DeviceManager", () => {
             const emitSpy = vi.spyOn(deviceManager, "emit");
             await deviceManager.deleteDevice("device2");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                DeviceEvent.DeviceDeleted,
-                "device2"
-            );
+            expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DeviceDeleted, "device2");
         });
 
         it("should throw error for empty deviceId", async () => {
@@ -225,9 +222,7 @@ describe("DeviceManager", () => {
         });
 
         it("should throw error when deleting current device", async () => {
-            await expect(deviceManager.deleteDevice("device1")).rejects.toThrow(
-                "Cannot delete the current device"
-            );
+            await expect(deviceManager.deleteDevice("device1")).rejects.toThrow("Cannot delete the current device");
         });
 
         it("should throw UIAError for auth required", async () => {
@@ -236,16 +231,14 @@ describe("DeviceManager", () => {
                 data: { flows: [{ stages: ["m.login.password"] }] },
             });
 
-            await expect(deviceManager.deleteDevice("device2")).rejects.toThrow(
-                UIAError
-            );
+            await expect(deviceManager.deleteDevice("device2")).rejects.toThrow(UIAError);
         });
     });
 
     describe("deleteDevices", () => {
         it("should delete multiple devices", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
-            
+
             // First cache the devices
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 devices: mockDevices,
@@ -255,10 +248,7 @@ describe("DeviceManager", () => {
             const emitSpy = vi.spyOn(deviceManager, "emit");
             await deviceManager.deleteDevices(["device2"]);
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                DeviceEvent.DeviceDeleted,
-                "device2"
-            );
+            expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DeviceDeleted, "device2");
         });
 
         it("should throw error for empty device list", async () => {
@@ -266,16 +256,14 @@ describe("DeviceManager", () => {
         });
 
         it("should throw error when current device in list", async () => {
-            await expect(
-                deviceManager.deleteDevices(["device1"])
-            ).rejects.toThrow("Cannot delete the current device");
+            await expect(deviceManager.deleteDevices(["device1"])).rejects.toThrow("Cannot delete the current device");
         });
     });
 
     describe("renameDevice", () => {
         it("should rename device", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
-            
+
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 devices: mockDevices,
             });

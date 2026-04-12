@@ -157,7 +157,7 @@ export class AIModule {
         }
 
         return {
-            news: Array.isArray(result) ? result as AINewsItem[] : [],
+            news: Array.isArray(result) ? (result as AINewsItem[]) : [],
             total: Array.isArray(result) ? (result as AINewsItem[]).length : 0,
         };
     }
@@ -177,7 +177,7 @@ export class AIModule {
         }
 
         return {
-            news: Array.isArray(result) ? result as AINewsItem[] : [],
+            news: Array.isArray(result) ? (result as AINewsItem[]) : [],
             total: Array.isArray(result) ? (result as AINewsItem[]).length : 0,
         };
     }

@@ -15,24 +15,27 @@ limitations under the License.
 */
 
 /**
- * AI Connection Manager - AI 连接管理
- * 
- * 提供通过后端服务器管理 AI 连接的功能
- * 
- * 对应后端 API:
- * - GET /connections
- * - POST /connections
- * - GET /connections/{id}
- * - DELETE /connections/{id}
- * - GET /mcp/tools
- * - POST /mcp/tools/call
+ * AI Connection Manager - AI 连接管理 + MCP 工具代理
+ *
+ * 对接后端 synapse-rust/src/web/routes/ai_connection.rs
+ *
+ * 后端 API (根路径, 无 Matrix prefix):
+ *   GET  /connections
+ *   POST /connections
+ *   GET  /connections/{id}
+ *   DELETE /connections/{id}
+ *   GET  /mcp/tools?provider=X
+ *   POST /mcp/tools/call
+ *
+ * 路由直接 merge 到主路由, 无独立 prefix (见 assembly.rs create_ai_connection_router())
  */
 
-import { logger } from "../logger.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager.js";
+import { Method } from "../http-api/method.js";
+import { MatrixClient } from "../client.js";
+
+/** 根路径前缀: ai_connection router 直接 merge 到主路由, 无 Matrix prefix */
+const AI_CONNECTION_PREFIX = "";
 
 export enum AIConnectionEvent {
     ConnectionCreated = "ConnectionCreated",
@@ -42,249 +45,260 @@ export enum AIConnectionEvent {
     Error = "Error",
 }
 
-export interface IAIConnection {
+/**
+ * AI 连接 - 对应后端 storage/ai_connection.rs AiConnection 结构体
+ */
+export interface AIConnection {
     id: string;
-    name: string;
-    type: string;
-    config: Record<string, unknown>;
-    created_at?: number;
-    updated_at?: number;
-    status?: string;
+    user_id: string;
+    /** AI provider 标识, 如 "openai", "anthropic", "claude" 等 */
+    provider: string;
+    /** 配置 JSON, 通常包含 { mcp_url: string } */
+    config: Record<string, unknown> | null;
+    is_active: boolean;
+    created_ts: number;
+    updated_ts: number | null;
 }
 
-export interface ICreateConnectionRequest {
-    name: string;
-    type: string;
-    config: Record<string, unknown>;
+export interface CreateConnectionOptions {
+    /** AI provider 标识 */
+    provider: string;
+    /** 配置对象, 通常包含 mcp_url */
+    config?: Record<string, unknown>;
 }
 
-export interface IAIConnectionResponse {
-    connection: IAIConnection;
+export interface UpdateConnectionOptions {
+    is_active?: boolean;
+    config?: Record<string, unknown>;
 }
 
-export interface IAIConnectionsResponse {
-    connections: IAIConnection[];
-}
-
-export interface IAITool {
-    name: string;
-    description: string;
-    inputSchema: Record<string, unknown>;
-}
-
-export interface IAIToolsResponse {
-    tools: IAITool[];
-}
-
-export interface ICallToolRequest {
-    name: string;
+export interface McpToolCallOptions {
+    /** AI provider 标识 */
+    provider: string;
+    /** 要调用的 MCP 工具名称 */
+    toolName: string;
+    /** 工具参数 */
     arguments?: Record<string, unknown>;
 }
 
-export interface ICallToolResponse {
-    content: Array<{
-        type: string;
-        text?: string;
-        data?: unknown;
-    }>;
-    isError?: boolean;
+export interface McpTool {
+    name: string;
+    description?: string;
+    inputSchema?: Record<string, unknown>;
 }
 
 interface AIConnectionManagerEventMap {
-    [AIConnectionEvent.ConnectionCreated]: (connection: IAIConnection) => void;
+    [AIConnectionEvent.ConnectionCreated]: (connection: AIConnection) => void;
     [AIConnectionEvent.ConnectionDeleted]: (connectionId: string) => void;
-    [AIConnectionEvent.ConnectionUpdated]: (connection: IAIConnection) => void;
-    [AIConnectionEvent.ToolCalled]: (toolName: string, result: ICallToolResponse) => void;
+    [AIConnectionEvent.ConnectionUpdated]: (connection: AIConnection) => void;
+    [AIConnectionEvent.ToolCalled]: (toolName: string, result: unknown) => void;
     [AIConnectionEvent.Error]: (error: Error) => void;
 }
 
-export class AIConnectionManager extends TypedEventEmitter<AIConnectionEvent, AIConnectionManagerEventMap> {
-    private client: MatrixClient;
-    private connections: Map<string, IAIConnection> = new Map();
-    private tools: IAITool[] = [];
+export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnectionManagerEventMap> {
+    private connectionsCache: Map<string, AIConnection> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
-    public async getConnections(): Promise<IAIConnection[]> {
+    /**
+     * 获取当前用户所有 AI 连接
+     * GET /connections
+     */
+    public async getConnections(): Promise<AIConnection[]> {
         try {
-            const response = await this.client.http.authedRequest<IAIConnectionsResponse>(
+            const connections = await this.client.http.authedRequest<AIConnection[]>(
                 Method.Get,
-                "/connections",
+                `${AI_CONNECTION_PREFIX}/connections`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: "" },
             );
 
-            const connections = response.connections || [];
-            this.connections.clear();
+            this.connectionsCache.clear();
             for (const conn of connections) {
-                this.connections.set(conn.id, conn);
+                this.connectionsCache.set(conn.id, conn);
             }
 
             return connections;
         } catch (error) {
-            logger.warn("AIConnectionManager.getConnections failed:", error);
-            throw error;
+            throw this.normalizeError(error, "getConnections");
         }
     }
 
-    public async getConnection(connectionId: string): Promise<IAIConnection> {
-        if (!connectionId) {
-            throw new Error("Connection ID is required");
+    /**
+     * 创建新的 AI 连接
+     * POST /connections { provider, config? }
+     */
+    public async createConnection(options: CreateConnectionOptions): Promise<AIConnection> {
+        if (!options.provider) {
+            throw new Error("provider is required");
         }
 
         try {
-            const response = await this.client.http.authedRequest<IAIConnectionResponse>(
-                Method.Get,
-                `/connections/${encodeURIComponent(connectionId)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            );
-
-            const connection = response.connection;
-            this.connections.set(connection.id, connection);
-            this.emit(AIConnectionEvent.ConnectionUpdated, connection);
-
-            return connection;
-        } catch (error) {
-            logger.warn(`AIConnectionManager.getConnection failed for ${connectionId}:`, error);
-            throw error;
-        }
-    }
-
-    public async createConnection(request: ICreateConnectionRequest): Promise<IAIConnection> {
-        if (!request.name) {
-            throw new Error("Connection name is required");
-        }
-
-        if (!request.type) {
-            throw new Error("Connection type is required");
-        }
-
-        try {
-            const response = await this.client.http.authedRequest<IAIConnectionResponse>(
+            const connection = await this.client.http.authedRequest<AIConnection>(
                 Method.Post,
-                "/connections",
+                `${AI_CONNECTION_PREFIX}/connections`,
                 undefined,
-                request,
-                { prefix: ClientPrefix.V3 }
+                {
+                    provider: options.provider,
+                    config: options.config ?? null,
+                },
+                { prefix: "" },
             );
 
-            const connection = response.connection;
-            this.connections.set(connection.id, connection);
+            this.connectionsCache.set(connection.id, connection);
             this.emit(AIConnectionEvent.ConnectionCreated, connection);
 
             return connection;
         } catch (error) {
-            this.emit(AIConnectionEvent.Error, error as Error);
-            throw error;
+            this.emit(AIConnectionEvent.Error, this.normalizeError(error, "createConnection") as Error);
+            throw this.normalizeError(error, "createConnection");
         }
     }
 
+    /**
+     * 获取指定 ID 的 AI 连接
+     * GET /connections/{id}
+     */
+    public async getConnection(connectionId: string): Promise<AIConnection> {
+        if (!connectionId) {
+            throw new Error("connectionId is required");
+        }
+
+        try {
+            const connection = await this.client.http.authedRequest<AIConnection>(
+                Method.Get,
+                `${AI_CONNECTION_PREFIX}/connections/${encodeURIComponent(connectionId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+
+            this.connectionsCache.set(connection.id, connection);
+            this.emit(AIConnectionEvent.ConnectionUpdated, connection);
+
+            return connection;
+        } catch (error) {
+            throw this.normalizeError(error, "getConnection");
+        }
+    }
+
+    /**
+     * 删除 AI 连接
+     * DELETE /connections/{id}
+     */
     public async deleteConnection(connectionId: string): Promise<void> {
         if (!connectionId) {
-            throw new Error("Connection ID is required");
+            throw new Error("connectionId is required");
         }
 
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/connections/${encodeURIComponent(connectionId)}`,
+                `${AI_CONNECTION_PREFIX}/connections/${encodeURIComponent(connectionId)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: "" },
             );
 
-            this.connections.delete(connectionId);
+            this.connectionsCache.delete(connectionId);
             this.emit(AIConnectionEvent.ConnectionDeleted, connectionId);
         } catch (error) {
-            this.emit(AIConnectionEvent.Error, error as Error);
-            throw error;
+            this.emit(AIConnectionEvent.Error, this.normalizeError(error, "deleteConnection") as Error);
+            throw this.normalizeError(error, "deleteConnection");
         }
     }
 
-    public async listTools(connectionId?: string): Promise<IAITool[]> {
+    /**
+     * 获取指定 provider 的 MCP 工具列表
+     * GET /mcp/tools?provider=X
+     */
+    public async listMcpTools(provider: string): Promise<unknown> {
+        if (!provider) {
+            throw new Error("provider is required");
+        }
+
         try {
-            const query = connectionId ? { connection_id: connectionId } : undefined;
-            const response = await this.client.http.authedRequest<IAIToolsResponse>(
+            const result = await this.client.http.authedRequest<unknown>(
                 Method.Get,
-                "/mcp/tools",
-                query,
+                `${AI_CONNECTION_PREFIX}/mcp/tools`,
+                { provider },
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: "" },
             );
 
-            this.tools = response.tools || [];
-            return this.tools;
+            return result;
         } catch (error) {
-            logger.warn("AIConnectionManager.listTools failed:", error);
-            throw error;
+            throw this.normalizeError(error, "listMcpTools");
         }
     }
 
-    public async callTool(request: ICallToolRequest, connectionId?: string): Promise<ICallToolResponse> {
-        if (!request.name) {
-            throw new Error("Tool name is required");
+    /**
+     * 调用 MCP 工具
+     * POST /mcp/tools/call { provider, tool_name, arguments }
+     */
+    public async callMcpTool(options: McpToolCallOptions): Promise<unknown> {
+        if (!options.provider) {
+            throw new Error("provider is required");
+        }
+        if (!options.toolName) {
+            throw new Error("toolName is required");
         }
 
         try {
-            const body: Record<string, unknown> = {
-                name: request.name,
-            };
-
-            if (request.arguments) {
-                body.arguments = request.arguments;
-            }
-
-            if (connectionId) {
-                body.connection_id = connectionId;
-            }
-
-            const response = await this.client.http.authedRequest<ICallToolResponse>(
+            const result = await this.client.http.authedRequest<unknown>(
                 Method.Post,
-                "/mcp/tools/call",
+                `${AI_CONNECTION_PREFIX}/mcp/tools/call`,
                 undefined,
-                body,
-                { prefix: ClientPrefix.V3 }
+                {
+                    provider: options.provider,
+                    tool_name: options.toolName,
+                    arguments: options.arguments ?? {},
+                },
+                { prefix: "" },
             );
 
-            this.emit(AIConnectionEvent.ToolCalled, request.name, response);
+            this.emit(AIConnectionEvent.ToolCalled, options.toolName, result);
 
-            return response;
+            return result;
         } catch (error) {
-            this.emit(AIConnectionEvent.Error, error as Error);
-            throw error;
+            this.emit(AIConnectionEvent.Error, this.normalizeError(error, "callMcpTool") as Error);
+            throw this.normalizeError(error, "callMcpTool");
         }
     }
 
-    public getCachedConnection(connectionId: string): IAIConnection | undefined {
-        return this.connections.get(connectionId);
+    /**
+     * 列出所有已缓存的连接 (不发起网络请求)
+     */
+    public getCachedConnections(): AIConnection[] {
+        return Array.from(this.connectionsCache.values());
     }
 
-    public getCachedConnections(): IAIConnection[] {
-        return Array.from(this.connections.values());
+    /**
+     * 从缓存获取指定连接 (不发起网络请求)
+     */
+    public getCachedConnection(connectionId: string): AIConnection | undefined {
+        return this.connectionsCache.get(connectionId);
     }
 
-    public getCachedTools(): IAITool[] {
-        return [...this.tools];
-    }
-
+    /**
+     * 清除本地缓存
+     */
     public clearCache(): void {
-        this.connections.clear();
-        this.tools = [];
+        this.connectionsCache.clear();
     }
 
+    /**
+     * 停止并清理
+     */
     public stop(): void {
-        this.connections.clear();
-        this.tools = [];
+        this.connectionsCache.clear();
     }
 }
 
-declare module "../client.ts" {
+declare module "../client.js" {
     interface MatrixClient {
         getAIConnectionManager(): AIConnectionManager;
     }

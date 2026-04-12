@@ -16,38 +16,38 @@ limitations under the License.
 
 /**
  * Session Manager - 会话管理
- * 
+ *
  * 提供登录、登出、会话管理等功能
  */
 
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { type EmptyObject } from "../@types/common";
 
-export class SessionManager {
-    constructor(private client: MatrixClient) {}
+export class SessionManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * Logout
      */
     public async logout(stopClient = false): Promise<EmptyObject> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).logout(stopClient);
+        return this.client.logout(stopClient);
     }
 
     /**
      * Deactivate account
      */
-    public async deactivateAccount(): Promise<EmptyObject> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).deactivateAccount();
+    public async deactivateAccount(): Promise<{ id_server_unbind_result: string }> {
+        return this.client.deactivateAccount();
     }
 
     /**
      * Get access token
      */
-    public getAccessToken(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAccessToken();
+    public getAccessToken(): string | null {
+        return this.client.getAccessToken();
     }
 
     /**
@@ -61,16 +61,14 @@ export class SessionManager {
      * Get session ID
      */
     public getSessionId(): string | null {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sessionId || null;
+        return this.client.getSessionId() || null;
     }
 
     /**
      * Who am I
      */
     public async whoami(): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).whoami();
+        return this.client.whoami();
     }
 }
 

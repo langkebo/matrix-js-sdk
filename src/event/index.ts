@@ -14,87 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Event Manager - 事件管理
- * 
- * 提供事件重发、取消、删除等功能
- */
+import { MatrixClient } from "../client.ts";
+import { EventManager } from "./EventManager.ts";
+import type { RetryOptions } from "../managers/base-manager.ts";
 
-import { MatrixClient } from "../client";
-import { MatrixEvent } from "../models/event";
-import { Room } from "../models/room";
+export * from "./EventManager.ts";
 
-export class EventManager {
-    constructor(private client: MatrixClient) {}
-
-    /**
-     * Resend an event
-     */
-    public async resendEvent(event: MatrixEvent, room: Room): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).resendEvent(event, room);
-    }
-
-    /**
-     * Cancel a pending event
-     */
-    public cancelPendingEvent(event: MatrixEvent): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).cancelPendingEvent(event);
-    }
-
-    /**
-     * Redact an event
-     */
-    public async redactEvent(roomId: string, eventId: string, reason?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).redactEvent(roomId, eventId, reason);
-    }
-
-    /**
-     * Get event
-     */
-    public async getEvent(roomId: string, eventId: string): Promise<MatrixEvent> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getEvent(roomId, eventId);
-    }
-
-    /**
-     * Get room events
-     */
-    public async getRoomEvents(roomId: string, start: string, limit: number): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomEvents(roomId, start, limit);
-    }
-
-    /**
-     * Get state events
-     */
-    public async getStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getStateEvents(roomId, eventType, stateKey);
-    }
-
-    /**
-     * Fetch event
-     */
-    public async fetchEvent(roomId: string, eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).fetchEvent(roomId, eventId);
-    }
-}
-
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getEventManager(): EventManager;
     }
 }
 
+const eventManagerCache = new WeakMap<MatrixClient, EventManager>();
+
 export function extendMatrixClient(): void {
-    MatrixClient.prototype.getEventManager = function (): EventManager {
-        return new EventManager(this);
+    if (MatrixClient.prototype.hasOwnProperty("getEventManager")) return;
+
+    MatrixClient.prototype.getEventManager = function (this: MatrixClient): EventManager {
+        let manager = eventManagerCache.get(this);
+        if (!manager) {
+            manager = new EventManager(this);
+            eventManagerCache.set(this, manager);
+        }
+        return manager;
     };
+}
+
+export function setEventManagerRetryOptions(client: MatrixClient, options: RetryOptions): void {
+    const manager = client.getEventManager();
+    manager.setRetryOptions(options);
 }
 
 export default extendMatrixClient;

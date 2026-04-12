@@ -135,7 +135,9 @@ export class OutgoingRequestProcessor {
      */
     private async sendToDeviceRequest(request: ToDeviceRequest): Promise<string> {
         // a bit of extra logging, to help trace to-device messages through the system
-        const parsedBody: { messages: Record<string, Record<string, Record<string, any>>> } = JSON.parse(request.body);
+        const parsedBody: { messages: Record<string, Record<string, Record<string, unknown>>> } = JSON.parse(
+            request.body,
+        );
 
         const messageList = [];
         for (const [userId, perUserMessages] of Object.entries(parsedBody.messages)) {
@@ -168,7 +170,7 @@ export class OutgoingRequestProcessor {
 
         const parsedBody = JSON.parse(body);
         const makeRequest = async (auth: AuthDict | null): Promise<T> => {
-            const newBody: Record<string, any> = {
+            const newBody: Record<string, unknown> = {
                 ...parsedBody,
             };
             if (auth !== null) {
@@ -224,7 +226,7 @@ export class OutgoingRequestProcessor {
             // We set a timeout of 60 seconds to guard against requests getting stuck forever and wedging the
             // request loop (cf https://github.com/element-hq/element-web/issues/29534).
             //
-            // (XXX: should we do this in the whole of the js-sdk?)
+            // Note: Consider applying this timeout pattern across the entire js-sdk for consistency.
             localTimeoutMs: 60000,
         };
 

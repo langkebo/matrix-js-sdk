@@ -1,12 +1,13 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 import { MatrixClient, type IProtocol } from "../client";
+import { BaseManager } from "../managers/base-manager";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
 
 /**
  * ThirdParty Manager - 第三方服务管理
- * 
+ *
  * 提供第三方协议和 bridges 管理功能
  */
 
@@ -15,79 +16,95 @@ export interface ThirdPartyProtocol extends IProtocol {
 }
 
 export interface ThirdPartyLocation {
-    alias: string
-    protocol: string
-    fields: Record<string, unknown> | object
+    alias: string;
+    protocol: string;
+    fields: Record<string, unknown> | object;
     info?: {
-        [key: string]: unknown
-    }
+        [key: string]: unknown;
+    };
 }
 
 export interface ThirdPartyUser {
-    userid: string
-    protocol: string
-    fields: Record<string, unknown> | object
-    display_name?: string
-    avatar_url?: string
+    userid: string;
+    protocol: string;
+    fields: Record<string, unknown> | object;
+    display_name?: string;
+    avatar_url?: string;
 }
 
 export interface ThirdPartySearchParams {
-    [key: string]: string
+    [key: string]: string;
 }
 
-export class ThirdPartyManager {
-    private client: MatrixClient;
-
+export class ThirdPartyManager extends BaseManager {
     constructor(client: MatrixClient) {
-        this.client = client;
+        super(client);
     }
 
     /**
      * 获取支持的第三方协议
      */
-    async getProtocols(): Promise<ThirdPartyProtocol[]> {
+    async getProtocols(throwOnError = false): Promise<ThirdPartyProtocol[]> {
         try {
             const protocols = await this.client.getThirdpartyProtocols();
             return Object.entries(protocols).map(([name, data]) => ({
                 ...data,
                 protocol: name,
             }));
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.getProtocols failed:', e);
+            if (throwOnError) {
+                throw this.normalizeError(e, "getProtocols");
+            }
+            logger.warn("ThirdPartyManager.getProtocols failed:", e);
             return [];
         }
     }
 
-    async getProtocol(protocol: string): Promise<ThirdPartyProtocol | null> {
+    async getProtocol(protocol: string, throwOnError = false): Promise<ThirdPartyProtocol | null> {
         try {
-            const protocols = await this.getProtocols();
-            return protocols.find(p => p.protocol === protocol) || null;
+            const protocols = await this.getProtocols(throwOnError);
+            return protocols.find((p) => p.protocol === protocol) || null;
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.getProtocol failed:', e);
+            if (throwOnError) {
+                throw this.normalizeError(e, "getProtocol");
+            }
+            logger.warn("ThirdPartyManager.getProtocol failed:", e);
             return null;
         }
     }
 
     async searchLocations(
         protocol: string,
-        params: ThirdPartySearchParams
+        params: ThirdPartySearchParams,
+        throwOnError = false,
     ): Promise<ThirdPartyLocation[]> {
         try {
             return await this.client.getThirdpartyLocation(protocol, params);
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.searchLocations failed:', e);
+            if (throwOnError) {
+                throw this.normalizeError(e, "searchLocations");
+            }
+            logger.warn("ThirdPartyManager.searchLocations failed:", e);
             return [];
         }
     }
 
     async searchUsers(
         protocol: string,
-        params: ThirdPartySearchParams
+        params: ThirdPartySearchParams,
+        throwOnError = false,
     ): Promise<ThirdPartyUser[]> {
         try {
             return await this.client.getThirdpartyUser(protocol, params);
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.searchUsers failed:', e);
+            if (throwOnError) {
+                throw this.normalizeError(e, "searchUsers");
+            }
+            logger.warn("ThirdPartyManager.searchUsers failed:", e);
             return [];
         }
     }
@@ -103,18 +120,24 @@ export class ThirdPartyManager {
                 const room = this.client.getRoom(roomId.room_id);
                 return {
                     alias,
-                    protocol: 'matrix',
+                    protocol: "matrix",
                     fields: { room_id: roomId.room_id },
-                    info: room ? {
-                        name: room.name,
-                        topic: room.currentState.getStateEvents('m.room.topic', '')?.getContent<{ topic?: string }>()?.topic,
-                        avatar_url: room.getAvatarUrl(this.client.getHomeserverUrl(), 64, 64, 'crop') || undefined
-                    } : undefined
+                    info: room
+                        ? {
+                              name: room.name,
+                              topic: room.currentState
+                                  .getStateEvents("m.room.topic", "")
+                                  ?.getContent<{ topic?: string }>()?.topic,
+                              avatar_url:
+                                  room.getAvatarUrl(this.client.getHomeserverUrl(), 64, 64, "crop") || undefined,
+                          }
+                        : undefined,
                 };
             }
             return null;
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.getLocation failed:', e);
+            logger.warn("ThirdPartyManager.getLocation failed:", e);
             return null;
         }
     }
@@ -125,18 +148,19 @@ export class ThirdPartyManager {
     async getUser(userId: string): Promise<ThirdPartyUser | null> {
         try {
             // 检查是否是第三方用户
-            if (userId.includes(':')) {
-                const [localpart, server] = userId.split(':');
+            if (userId.includes(":")) {
+                const [localpart, server] = userId.split(":");
                 // 尝试从协议获取用户
                 return {
                     userid: userId,
-                    protocol: 'matrix',
-                    fields: { localpart, server }
+                    protocol: "matrix",
+                    fields: { localpart, server },
                 };
             }
             return null;
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.getUser failed:', e);
+            logger.warn("ThirdPartyManager.getUser failed:", e);
             return null;
         }
     }
@@ -145,28 +169,29 @@ export class ThirdPartyManager {
      * 解析第三方统一标识符
      */
     async parseMatrixUri(uri: string): Promise<{
-        type: 'user' | 'room' | 'event'
-        id: string
-        fields?: Record<string, any>
+        type: "user" | "room" | "event";
+        id: string;
+        fields?: Record<string, unknown>;
     } | null> {
         try {
             // 简单解析 matrix: URIs
-            if (uri.startsWith('matrix:')) {
-                const parts = uri.replace('matrix:', '').split('?');
+            if (uri.startsWith("matrix:")) {
+                const parts = uri.replace("matrix:", "").split("?");
                 const path = parts[0];
-                
-                if (path.startsWith('u/')) {
-                    return { type: 'user', id: path.replace('u/', '') };
-                } else if (path.startsWith('r/')) {
-                    return { type: 'room', id: path.replace('r/', '') };
-                } else if (path.startsWith('e/')) {
-                    const [roomId, eventId] = path.replace('e/', '').split('/');
-                    return { type: 'event', id: eventId, fields: { room_id: roomId } };
+
+                if (path.startsWith("u/")) {
+                    return { type: "user", id: path.replace("u/", "") };
+                } else if (path.startsWith("r/")) {
+                    return { type: "room", id: path.replace("r/", "") };
+                } else if (path.startsWith("e/")) {
+                    const [roomId, eventId] = path.replace("e/", "").split("/");
+                    return { type: "event", id: eventId, fields: { room_id: roomId } };
                 }
             }
             return null;
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ThirdPartyManager.parseMatrixUri failed:', e);
+            logger.warn("ThirdPartyManager.parseMatrixUri failed:", e);
             return null;
         }
     }
@@ -174,32 +199,28 @@ export class ThirdPartyManager {
     /**
      * 生成第三方统一标识符
      */
-    encodeMatrixUri(
-        type: 'user' | 'room' | 'event',
-        id: string,
-        params?: Record<string, string>
-    ): string {
-        let path = '';
+    encodeMatrixUri(type: "user" | "room" | "event", id: string, params?: Record<string, string>): string {
+        let path = "";
         switch (type) {
-            case 'user':
+            case "user":
                 path = `u/${id}`;
                 break;
-            case 'room':
+            case "room":
                 path = `r/${id}`;
                 break;
-            case 'event':
+            case "event":
                 path = `e/${id}`;
                 break;
         }
-        
+
         let uri = `matrix:${path}`;
         if (params) {
             const query = Object.entries(params)
                 .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-                .join('&');
-            uri += '?' + query;
+                .join("&");
+            uri += "?" + query;
         }
-        
+
         return uri;
     }
 

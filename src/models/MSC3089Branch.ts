@@ -249,9 +249,11 @@ export class MSC3089Branch {
         // the timeline.
         const timelineEvents = [...room.getLiveTimeline().getEvents()].reverse();
 
-        // XXX: This is a very inefficient search, but it's the best we can do with the
-        // relations structure we have in the SDK. As of writing, it is not worth the
-        // investment in improving the structure.
+        /**
+         * Known limitation: This is a very inefficient search, but it's the best we can do
+         * with the relations structure we have in the SDK. Improving the structure would
+         * require significant investment.
+         */
         let childEvent: MatrixEvent | undefined;
         let parentEvent = await this.getFileEvent();
         do {

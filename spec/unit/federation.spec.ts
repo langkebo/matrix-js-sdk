@@ -25,9 +25,7 @@ describe("FederationManager", () => {
     describe("getBlacklist", () => {
         it("should get blacklist successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [
-                    { serverName: "evil.example.com", reason: "spam", addedAt: 1234567890 },
-                ],
+                blacklist: [{ serverName: "evil.example.com", reason: "spam", addedAt: 1234567890 }],
             });
 
             const blacklist = await federationManager.getBlacklist();
@@ -44,10 +42,7 @@ describe("FederationManager", () => {
             const emitSpy = vi.spyOn(federationManager, "emit");
             await federationManager.getBlacklist();
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.BlacklistUpdated,
-                expect.any(Array)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
         });
 
         it("should return cached blacklist on error", async () => {
@@ -56,6 +51,12 @@ describe("FederationManager", () => {
             const blacklist = await federationManager.getBlacklist();
 
             expect(blacklist).toHaveLength(0);
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
+
+            await expect(federationManager.getBlacklist(true)).rejects.toThrow("Boom");
         });
     });
 
@@ -70,7 +71,7 @@ describe("FederationManager", () => {
                 "/federation/blacklist/add",
                 undefined,
                 { server_name: "evil.example.com", reason: "spam" },
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -80,30 +81,20 @@ describe("FederationManager", () => {
             const emitSpy = vi.spyOn(federationManager, "emit");
             await federationManager.addToBlacklist("evil.example.com");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.BlacklistUpdated,
-                expect.any(Array)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
         });
 
         it("should throw error for empty server name", async () => {
-            await expect(
-                federationManager.addToBlacklist("")
-            ).rejects.toThrow("Server name is required");
+            await expect(federationManager.addToBlacklist("")).rejects.toThrow("Server name is required");
         });
 
         it("should emit FederationError on failure", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Network error"));
 
             const emitSpy = vi.spyOn(federationManager, "emit");
-            await expect(
-                federationManager.addToBlacklist("evil.example.com")
-            ).rejects.toThrow();
+            await expect(federationManager.addToBlacklist("evil.example.com")).rejects.toThrow();
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.FederationError,
-                expect.any(Error)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
         });
     });
 
@@ -118,7 +109,7 @@ describe("FederationManager", () => {
                 "/federation/blacklist/remove",
                 undefined,
                 { server_name: "evil.example.com" },
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -128,16 +119,11 @@ describe("FederationManager", () => {
             const emitSpy = vi.spyOn(federationManager, "emit");
             await federationManager.removeFromBlacklist("evil.example.com");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.BlacklistUpdated,
-                expect.any(Array)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
         });
 
         it("should throw error for empty server name", async () => {
-            await expect(
-                federationManager.removeFromBlacklist("")
-            ).rejects.toThrow("Server name is required");
+            await expect(federationManager.removeFromBlacklist("")).rejects.toThrow("Server name is required");
         });
     });
 
@@ -178,9 +164,7 @@ describe("FederationManager", () => {
         });
 
         it("should throw error for empty server name", async () => {
-            await expect(
-                federationManager.getServerStatus("")
-            ).rejects.toThrow("Server name is required");
+            await expect(federationManager.getServerStatus("")).rejects.toThrow("Server name is required");
         });
 
         it("should return null on error", async () => {
@@ -190,15 +174,18 @@ describe("FederationManager", () => {
 
             expect(status).toBeNull();
         });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
+
+            await expect(federationManager.getServerStatus("example.org", true)).rejects.toThrow("Boom");
+        });
     });
 
     describe("getFederationDestinations", () => {
         it("should get federation destinations", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
-                destinations: [
-                    { serverName: "example.org" },
-                    { serverName: "matrix.org" },
-                ],
+                destinations: [{ serverName: "example.org" }, { serverName: "matrix.org" }],
             });
 
             const destinations = await federationManager.getFederationDestinations();
@@ -224,6 +211,12 @@ describe("FederationManager", () => {
 
             expect(destinations).toHaveLength(0);
         });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
+
+            await expect(federationManager.getFederationDestinations(true)).rejects.toThrow("Boom");
+        });
     });
 
     describe("disconnectServer", () => {
@@ -237,28 +230,21 @@ describe("FederationManager", () => {
                 "/federation/disconnect/example.org",
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
         it("should throw error for empty server name", async () => {
-            await expect(
-                federationManager.disconnectServer("")
-            ).rejects.toThrow("Server name is required");
+            await expect(federationManager.disconnectServer("")).rejects.toThrow("Server name is required");
         });
 
         it("should emit FederationError on failure", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
             const emitSpy = vi.spyOn(federationManager, "emit");
-            await expect(
-                federationManager.disconnectServer("example.org")
-            ).rejects.toThrow();
+            await expect(federationManager.disconnectServer("example.org")).rejects.toThrow();
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.FederationError,
-                expect.any(Error)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
         });
     });
 
@@ -273,14 +259,12 @@ describe("FederationManager", () => {
                 "/federation/reconnect/example.org",
                 undefined,
                 undefined,
-                { prefix: "/_synapse/admin/v1" }
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
         it("should throw error for empty server name", async () => {
-            await expect(
-                federationManager.reconnectServer("")
-            ).rejects.toThrow("Server name is required");
+            await expect(federationManager.reconnectServer("")).rejects.toThrow("Server name is required");
         });
     });
 
@@ -301,6 +285,12 @@ describe("FederationManager", () => {
             const version = await federationManager.getServerVersion("example.org");
 
             expect(version).toBeNull();
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
+
+            await expect(federationManager.getServerVersion("example.org", true)).rejects.toThrow("Boom");
         });
     });
 
@@ -325,7 +315,7 @@ describe("FederationManager", () => {
                 expect.stringContaining("publicRooms"),
                 { limit: 10, since: "token123" },
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
@@ -333,14 +323,9 @@ describe("FederationManager", () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
             const emitSpy = vi.spyOn(federationManager, "emit");
-            await expect(
-                federationManager.getPublicRoomsOnServer("example.org")
-            ).rejects.toThrow();
+            await expect(federationManager.getPublicRoomsOnServer("example.org")).rejects.toThrow();
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.FederationError,
-                expect.any(Error)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
         });
     });
 
@@ -462,6 +447,12 @@ describe("FederationBlacklistManager", () => {
 
             expect(blacklist).toHaveLength(0);
         });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
+
+            await expect(blacklistManager.getBlacklist(true)).rejects.toThrow("Boom");
+        });
     });
 
     describe("addServer", () => {
@@ -483,10 +474,7 @@ describe("FederationBlacklistManager", () => {
             const emitSpy = vi.spyOn(blacklistManager, "emit");
             await blacklistManager.addServer("evil.example.com");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.ServerAdded,
-                "evil.example.com"
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.ServerAdded, "evil.example.com");
         });
     });
 
@@ -509,10 +497,7 @@ describe("FederationBlacklistManager", () => {
             const emitSpy = vi.spyOn(blacklistManager, "emit");
             await blacklistManager.removeServer("evil.example.com");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                FederationEvent.ServerRemoved,
-                "evil.example.com"
-            );
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.ServerRemoved, "evil.example.com");
         });
     });
 });

@@ -37,6 +37,24 @@ describe("RoomHierarchy", () => {
         expect(res).toHaveLength(0);
     });
 
+    it("should return empty list and mark noSupport when /hierarchy returns M_UNRECOGNIZED", async () => {
+        fetchMock.get("begin:https://server/_matrix/client/", {
+            status: 400,
+            body: {
+                errcode: "M_UNRECOGNIZED",
+                error: "Unrecognized request",
+            },
+        });
+
+        const room = new Room(roomId, client, client.getSafeUserId());
+        const hierarchy = new RoomHierarchy(room);
+        const res = await hierarchy.load();
+
+        expect(fetchMock).toHaveFetched(/\/hierarchy\?suggested_only=false$/);
+        expect(res).toEqual([]);
+        expect(hierarchy.noSupport).toBe(true);
+    });
+
     describe("itSuggested", () => {
         it("should return true if a room is suggested", async () => {
             const url = `https://server/_matrix/client/v1/rooms/${encodeURIComponent(roomId)}/hierarchy?suggested_only=false`;

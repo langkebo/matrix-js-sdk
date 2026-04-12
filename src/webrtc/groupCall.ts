@@ -169,7 +169,7 @@ export interface IGroupCallRoomState {
     "m.type": GroupCallType;
     "m.terminated"?: GroupCallTerminationReason;
     "io.element.ptt"?: boolean;
-    // TODO: Specify data-channels
+    // Known limitation: data-channel schema needs a stricter specification
     "dataChannelsEnabled"?: boolean;
     "dataChannelOptions"?: IGroupCallDataChannelOptions;
 
@@ -341,7 +341,7 @@ export class GroupCall extends TypedEventEmitter<
             "m.intent": this.intent,
             "m.type": this.type,
             "io.element.ptt": this.isPtt,
-            // TODO: Specify data-channels better
+            // Known limitation: data-channel fields require a more explicit contract
             "dataChannelsEnabled": this.dataChannelsEnabled,
             "dataChannelOptions": this.dataChannelsEnabled ? this.dataChannelOptions : undefined,
         };
@@ -884,7 +884,7 @@ export class GroupCall extends TypedEventEmitter<
                     this.localDesktopCapturerSourceId,
                 );
 
-                // TODO: handle errors
+                // Known limitation: this path currently does not provide richer error handling
                 this.forEachCall((call) => call.pushLocalFeed(this.localScreenshareFeed!.clone()));
 
                 return true;
@@ -1590,7 +1590,7 @@ export class GroupCall extends TypedEventEmitter<
                 session_id: this.client.getSessionId(),
                 expires_ts: Date.now() + DEVICE_TIMEOUT,
                 feeds: this.getLocalFeeds().map((feed) => ({ purpose: feed.purpose })),
-                // TODO: Add data channels
+                // Known limitation: data channels are not added in this path yet
             },
         ]);
     }

@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * Logger Manager - 日志管理
- * 
+ *
  * 提供日志相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface ILogger {
     log(...args: unknown[]): void;
@@ -31,8 +32,15 @@ export interface ILogger {
     trace(...args: unknown[]): void;
 }
 
-export class LoggerManager {
-    constructor(private client: MatrixClient) {}
+export interface LoggerManagerEvents {
+    log_level_changed: { level: string };
+    logger_set: void;
+}
+
+export class LoggerManager extends BaseManager<keyof LoggerManagerEvents, LoggerManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getLogger(): ILogger | undefined {
         return (this.client as unknown as { logger?: ILogger }).logger;
@@ -67,7 +75,6 @@ export class LoggerManager {
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getLoggerManager(): LoggerManager;

@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { AdminManager, AdminEvent, AdminApiError } from "../../src/admin/index";
+import { AdminManager, AdminEvent } from "../../src/admin/index";
 import { MatrixError } from "../../src/http-api/errors";
-import { AuthError, NotFoundError, ApiError } from "../../src/errors";
+import { AuthError, NotFoundError, ApiError, RetryableError } from "../../src/errors";
+import { FetchHttpApi } from "../../src/http-api/fetch";
+import { TypedEventEmitter } from "../../src/models/typed-event-emitter";
 
 describe("AdminManager", () => {
     let mockClient: any;
@@ -30,15 +32,15 @@ describe("AdminManager", () => {
             // 验证 authedRequest 被调用
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
             const call = mockClient.http.authedRequest.mock.calls[0];
-            
-            // 验证调用参数：path 应该是相对路径，不包含 /_synapse/admin/v1
+
+            // 验证调用参数：path 应该是相对路径，不包含 /_synapse/admin
             const path = call[1];
             expect(path).toBe("/v2/users");
-            expect(path).not.toContain("/_synapse/admin/v1");
-            
+            expect(path).not.toContain("/_synapse/admin");
+
             // 验证 prefix 是单独传递的
             const opts = call[4];
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin");
         });
 
         it("应该正确组装 getUser URL", async () => {
@@ -51,7 +53,7 @@ describe("AdminManager", () => {
             const call = mockClient.http.authedRequest.mock.calls[0];
             // 路径应该是相对路径
             expect(call[1]).toBe("/v2/users/%40user%3Aexample.com");
-            expect(call[1]).not.toContain("/_synapse/admin/v1");
+            expect(call[1]).not.toContain("/_synapse/admin");
         });
 
         it("应该正确组装 getRooms URL", async () => {
@@ -65,7 +67,7 @@ describe("AdminManager", () => {
             expect(call[1]).toBe("/v1/rooms");
             // queryParams should be passed (even if some values are undefined)
             expect(call[2]).toBeDefined();
-            expect(call[1]).not.toContain("/_synapse/admin/v1");
+            expect(call[1]).not.toContain("/_synapse/admin");
         });
     });
 
@@ -73,98 +75,64 @@ describe("AdminManager", () => {
 
     describe("错误分类测试", () => {
         it("应该对 401 响应抛出 AuthError", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" },
-                401,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" }, 401, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(AuthError);
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(AuthError);
         });
 
         it("应该对 401 状态码抛出 AuthError", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_UNKNOWN", error: "Unauthorized" },
-                401,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_UNKNOWN", error: "Unauthorized" }, 401, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(AuthError);
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(AuthError);
         });
 
         it("应该对 404 响应抛出 NotFoundError", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_NOT_FOUND", error: "User not found" },
-                404,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.createUser('@test:localhost')).rejects.toThrow(NotFoundError);
+            await expect(adminManager.createUser("@test:localhost")).rejects.toThrow(NotFoundError);
         });
 
         it("应该对其他错误码抛出 ApiError", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_FORBIDDEN", error: "Forbidden" },
-                403,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(ApiError);
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(ApiError);
         });
 
-        it("应该对 500 错误抛出 ApiError", async () => {
+        it("应该对 500 错误抛出 RetryableError", async () => {
             const matrixError = new MatrixError(
                 { errcode: "M_UNKNOWN", error: "Internal server error" },
                 500,
-                undefined
+                undefined,
             );
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow(ApiError);
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(RetryableError);
         });
 
         it("错误消息应该包含类名", async () => {
             const matrixError = new MatrixError(
                 { errcode: "M_UNKNOWN", error: "Something went wrong" },
                 500,
-                undefined
+                undefined,
             );
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow();
-            try {
-                await adminManager.getUser('@test:localhost');
-            } catch (e) {
-                expect((e as Error).message).toContain('AdminManager');
-            }
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(/AdminManager/);
         });
 
         it("错误消息应该包含原始错误信息", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_FORBIDDEN", error: "Access denied" },
-                403,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Access denied" }, 403, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser('@test:localhost')).rejects.toThrow();
-            try {
-                await adminManager.getUser('@test:localhost');
-            } catch (e) {
-                expect((e as Error).message).toContain('Access denied');
-            }
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(/Access denied/);
         });
 
         it("getUser 遇到 404 应该返回 null", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_NOT_FOUND", error: "User not found" },
-                404,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
             const result = await adminManager.getUser("@nonexistent:example.com");
@@ -176,26 +144,95 @@ describe("AdminManager", () => {
 
     describe("错误处理", () => {
         it("should convert MatrixError to ApiError for non-401/404", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_FORBIDDEN", error: "Forbidden" },
-                403,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
             await expect(adminManager.getUser("@user:example.com")).rejects.toThrow(ApiError);
         });
 
         it("getUser should return null for 404", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_NOT_FOUND", error: "User not found" },
-                404,
-                undefined
-            );
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
             const result = await adminManager.getUser("@nonexistent:example.com");
             expect(result).toBeNull();
+        });
+
+        it("getUser should throw for 404 when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getUser("@nonexistent:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getShadowBanStatus should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getShadowBanStatus("@user:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getRateLimit should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getRateLimit("@user:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getRoom should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getRoom("!room:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getServerVersion should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getServerVersion(true)).rejects.toThrow(ApiError);
+        });
+
+        it("getFederationDestination should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getFederationDestination("example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getRoomVersion should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getRoomVersion("!room:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getAccountDetails should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getAccountDetails("@user:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getSpace should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getSpace("!space:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("whois should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.whois("@user:example.com", true)).rejects.toThrow(NotFoundError);
+        });
+
+        it("getRoomStats should throw when throwOnError is true", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getRoomStats("!room:example.com", true)).rejects.toThrow(NotFoundError);
         });
     });
 
@@ -261,11 +298,7 @@ describe("AdminManager", () => {
             const emitSpy = vi.spyOn(adminManager, "emit");
             await adminManager.createUser("@newuser:example.com");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                AdminEvent.UserCreated,
-                "@newuser:example.com",
-                expect.any(Object)
-            );
+            expect(emitSpy).toHaveBeenCalledWith(AdminEvent.UserCreated, "@newuser:example.com", expect.any(Object));
         });
     });
 
@@ -361,10 +394,20 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            // path 不应该包含 _synapse/admin/v1
-            expect(path).not.toContain("_synapse/admin/v1");
+            // path 不应该包含 _synapse/admin
+            expect(path).not.toContain("_synapse/admin");
             // prefix 应该是独立的
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(opts.prefix).toBe("/_synapse/admin");
+
+            const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+                baseUrl: "http://localhost:8008",
+                prefix: "/_matrix/client/v3",
+                onlyData: true,
+                allowInsecureHttp: true,
+            });
+            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:8008");
+            expect(url.pathname).toBe("/_synapse/admin/v2/users/%40user%3Aexample.com");
+            expect(url.pathname).not.toContain("/_synapse/admin/v1/v2");
         });
 
         it("getUsers 不应该产生重复前缀的 URL", async () => {
@@ -378,8 +421,8 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            expect(path).not.toContain("_synapse/admin/v1");
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(path).not.toContain("_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin");
         });
 
         it("createUser 不应该产生重复前缀的 URL", async () => {
@@ -393,8 +436,8 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            expect(path).not.toContain("_synapse/admin/v1");
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(path).not.toContain("_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin");
         });
 
         it("deactivateUser 不应该产生重复前缀的 URL", async () => {
@@ -406,8 +449,18 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            expect(path).not.toContain("_synapse/admin/v1");
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(path).not.toContain("_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin");
+
+            const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+                baseUrl: "http://localhost:8008",
+                prefix: "/_matrix/client/v3",
+                onlyData: true,
+                allowInsecureHttp: true,
+            });
+            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:8008");
+            expect(url.pathname).toBe("/_synapse/admin/v1/users/%40user%3Aexample.com/deactivate");
+            expect(url.pathname).not.toContain("/_synapse/admin/v1/v1");
         });
 
         it("deleteRoom 不应该产生重复前缀的 URL", async () => {
@@ -419,8 +472,8 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            expect(path).not.toContain("_synapse/admin/v1");
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(path).not.toContain("_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin");
         });
 
         it("getServerStats 不应该产生重复前缀的 URL", async () => {
@@ -435,8 +488,8 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            expect(path).not.toContain("_synapse/admin/v1");
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(path).not.toContain("_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin");
         });
 
         it("getRoomStats 不应该产生重复前缀的 URL", async () => {
@@ -450,8 +503,8 @@ describe("AdminManager", () => {
             const path = call[1];
             const opts = call[4];
 
-            expect(path).not.toContain("_synapse/admin/v1");
-            expect(opts.prefix).toBe("/_synapse/admin/v1");
+            expect(path).not.toContain("_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin");
         });
     });
 
@@ -466,7 +519,7 @@ describe("AdminManager", () => {
                 { name: "getServerStats", call: () => adminManager.getServerStats() },
             ];
 
-            for (const { name, call } of methodsToTest) {
+            for (const { call } of methodsToTest) {
                 mockClient.http.authedRequest.mockResolvedValueOnce({});
 
                 await call();
@@ -475,7 +528,7 @@ describe("AdminManager", () => {
                 const opts = callArgs[4];
 
                 expect(opts).toBeDefined();
-                expect(opts.prefix).toBe("/_synapse/admin/v1");
+                expect(opts.prefix).toBe("/_synapse/admin");
             }
         });
 

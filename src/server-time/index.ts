@@ -16,49 +16,40 @@ limitations under the License.
 
 /**
  * Server Time Manager - 服务器时间管理
- * 
+ *
  * 提供服务器时间同步功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class ServerTimeManager {
-    constructor(private client: MatrixClient) {}
+export interface ServerTimeManagerEvents {
+    time_synced: { diff: number };
+    time_updated: { serverTime: number };
+}
 
-    /**
-     * Get server clock diff
-     */
+export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents, ServerTimeManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getServerClockDiff(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).serverClockDiff || 0;
+        return this.client.serverClockDiff ?? 0;
     }
 
-    /**
-     * Get local timestamp for server time
-     */
     public getLocalTimestampForServerTime(serverTime: number): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getLocalTimestampForServerTime(serverTime);
+        return this.client.getLocalTimestampForServerTime(serverTime);
     }
 
-    /**
-     * Get server timestamp
-     */
     public getServerTimestamp(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getServerTimestamp();
+        return this.client.getServerTimestamp();
     }
 
-    /**
-     * Update server time info
-     */
     public updateServerTimeInfo(serverTime: number, serverDate: string): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).updateServerTimeInfo(serverTime, serverDate);
+        this.client.updateServerTimeInfo(serverTime, serverDate);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getServerTimeManager(): ServerTimeManager;

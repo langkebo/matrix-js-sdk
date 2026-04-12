@@ -47,9 +47,7 @@ async function waitForVerificationRequest(
         try {
             response = await manager.getVerificationRequests();
         } catch (error) {
-            throw new Error(
-                `Live backend does not expose verification request listing endpoint: ${String(error)}`,
-            );
+            throw new Error(`Live backend does not expose verification request listing endpoint: ${String(error)}`);
         }
         const match = response.requests.find((request) => request.transaction_id === transactionId);
         if (match) {
@@ -69,9 +67,7 @@ async function waitForVerificationRemoval(manager: KeyVerificationManager, trans
         try {
             response = await manager.getVerificationRequests();
         } catch (error) {
-            throw new Error(
-                `Live backend does not expose verification request listing endpoint: ${String(error)}`,
-            );
+            throw new Error(`Live backend does not expose verification request listing endpoint: ${String(error)}`);
         }
         if (!response.requests.some((request) => request.transaction_id === transactionId)) {
             return;
@@ -106,40 +102,47 @@ describe("KeyVerificationManager real backend integration", () => {
         await secondaryClient?.logout?.().catch(() => undefined);
     });
 
-    it("should round-trip verification requests and cancellation through backend HTTP routes", async () => {
-        expect(backendAvailable, `real backend should be reachable for this integration test: ${String(setupError)}`).toBe(
-            true,
-        );
+    it(
+        "should round-trip verification requests and cancellation through backend HTTP routes",
+        async () => {
+            expect(
+                backendAvailable,
+                `real backend should be reachable for this integration test: ${String(setupError)}`,
+            ).toBe(true);
 
-        const primaryManager = primaryClient.getKeyVerificationManager();
-        const secondaryManager = secondaryClient.getKeyVerificationManager();
+            const primaryManager = primaryClient.getKeyVerificationManager();
+            const secondaryManager = secondaryClient.getKeyVerificationManager();
 
-        const startResponse = await primaryManager.requestVerification(secondaryUserId, ["m.sas.v1"]);
-        expect(startResponse.transaction_id).toBeTruthy();
-        expect(startResponse.method).toBe("m.sas.v1");
+            const startResponse = await primaryManager.requestVerification(secondaryUserId, ["m.sas.v1"]);
+            expect(startResponse.transaction_id).toBeTruthy();
+            expect(startResponse.method).toBe("m.sas.v1");
 
-        const pending = await waitForVerificationRequest(secondaryManager, startResponse.transaction_id);
-        expect(pending.transaction_id).toBe(startResponse.transaction_id);
-        expect(pending.from_user).toBe(primaryClient.getUserId());
-        expect(pending.to_user).toBe(secondaryUserId);
-        expect(pending.state).toBe("requested");
+            const pending = await waitForVerificationRequest(secondaryManager, startResponse.transaction_id);
+            expect(pending.transaction_id).toBe(startResponse.transaction_id);
+            expect(pending.from_user).toBe(primaryClient.getUserId());
+            expect(pending.to_user).toBe(secondaryUserId);
+            expect(pending.state).toBe("requested");
 
-        const listed = await secondaryManager.getVerificationRequests();
-        expect(listed.requests.some((request) => request.transaction_id === startResponse.transaction_id)).toBe(true);
-
-        let cancelResponse;
-        try {
-            cancelResponse = await secondaryManager.cancelKeyVerification(
-                startResponse.transaction_id,
-                "Cancelled by real backend integration test",
+            const listed = await secondaryManager.getVerificationRequests();
+            expect(listed.requests.some((request) => request.transaction_id === startResponse.transaction_id)).toBe(
+                true,
             );
-        } catch (error) {
-            throw new Error(`Live backend does not expose verification cancel endpoint: ${String(error)}`);
-        }
-        expect(cancelResponse.transaction_id).toBe(startResponse.transaction_id);
-        expect(cancelResponse.state).toBe("cancelled");
-        expect(cancelResponse.code).toBe("m.user");
 
-        await waitForVerificationRemoval(secondaryManager, startResponse.transaction_id);
-    }, TestConfig.timeout.medium);
+            let cancelResponse;
+            try {
+                cancelResponse = await secondaryManager.cancelKeyVerification(
+                    startResponse.transaction_id,
+                    "Cancelled by real backend integration test",
+                );
+            } catch (error) {
+                throw new Error(`Live backend does not expose verification cancel endpoint: ${String(error)}`);
+            }
+            expect(cancelResponse.transaction_id).toBe(startResponse.transaction_id);
+            expect(cancelResponse.state).toBe("cancelled");
+            expect(cancelResponse.code).toBe("m.user");
+
+            await waitForVerificationRemoval(secondaryManager, startResponse.transaction_id);
+        },
+        TestConfig.timeout.medium,
+    );
 });

@@ -143,15 +143,16 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Re-check the key backup and enable/disable it as appropriate.
      *
      * @param force - whether we should force a re-check even if one has already happened.
+     * @param throwOnError - Whether to throw on error (default false)
      */
-    public checkKeyBackupAndEnable(force: boolean): Promise<KeyBackupCheck | null> {
+    public checkKeyBackupAndEnable(force: boolean, throwOnError = false): Promise<KeyBackupCheck | null> {
         if (!force && this.checkedForBackup) {
             return Promise.resolve(null);
         }
 
         // make sure there is only one check going on at a time
         if (!this.keyBackupCheckInProgress) {
-            this.keyBackupCheckInProgress = this.doCheckKeyBackup().finally(() => {
+            this.keyBackupCheckInProgress = this.doCheckKeyBackup(throwOnError).finally(() => {
                 this.keyBackupCheckInProgress = null;
             });
         }
@@ -162,16 +163,22 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Handles a backup secret received event and store it if it matches the current backup version.
      *
      * @param secret - The secret as received from a `m.secret.send` event for secret `m.megolm_backup.v1`.
+     * @param throwOnError - Whether to throw on error (default false)
      * @returns true if the secret is valid and has been stored, false otherwise.
      */
-    public async handleBackupSecretReceived(secret: string): Promise<boolean> {
+    public async handleBackupSecretReceived(secret: string, throwOnError = false): Promise<boolean> {
         // Currently we only receive the decryption key without any key backup version. It is important to
         // check that the secret is valid for the current version before storing it.
         // We force a check to ensure to have the latest version.
         let latestBackupInfo: KeyBackupInfo | null;
+        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         try {
             latestBackupInfo = await this.requestKeyBackupVersion();
         } catch (e) {
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
+            if (throwOnError) {
+                throw e;
+            }
             this.logger.warn("handleBackupSecretReceived: Error checking for latest key backup", e);
             return false;
         }
@@ -198,9 +205,14 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
             this.logger.info(
                 `handleBackupSecretReceived: A valid backup decryption key has been received and stored in cache.`,
             );
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
             await this.saveBackupDecryptionKey(backupDecryptionKey, latestBackupInfo.version);
             return true;
         } catch (e) {
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
+            if (throwOnError) {
+                throw e;
+            }
             this.logger.warn("handleBackupSecretReceived: Invalid backup decryption key", e);
         }
 
@@ -282,12 +294,17 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
     private keyBackupCheckInProgress: Promise<KeyBackupCheck | null> | null = null;
 
     /** Helper for `checkKeyBackup` */
-    private async doCheckKeyBackup(): Promise<KeyBackupCheck | null> {
+    private async doCheckKeyBackup(throwOnError = false): Promise<KeyBackupCheck | null> {
         this.logger.debug("Checking key backup status...");
         let backupInfo: KeyBackupInfo | null | undefined;
+        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         try {
             backupInfo = await this.requestKeyBackupVersion();
         } catch (e) {
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
+            if (throwOnError) {
+                throw e;
+            }
             this.logger.warn("Error checking for active key backup", e);
             this.serverBackupInfo = undefined;
             return null;
@@ -584,7 +601,8 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
             current = (await this.requestKeyBackupVersion())?.version ?? null;
         }
 
-        // XXX: Should this also update Secret Storage and delete any existing keys?
+        // Note: This method only deletes backup versions on the server.
+        // Consider whether Secret Storage keys should also be updated.
     }
 
     /**
@@ -884,6 +902,7 @@ export async function requestKeyBackupVersion(
         return await http.authedRequest<KeyBackupInfo>(Method.Get, path, undefined, undefined, {
             prefix: ClientPrefix.V3,
         });
+        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
     } catch (e) {
         if ((<MatrixError>e).errcode === "M_NOT_FOUND") {
             return null;

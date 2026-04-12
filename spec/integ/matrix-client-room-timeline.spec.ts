@@ -789,6 +789,10 @@ describe("MatrixClient room timelines", function () {
         });
 
         it("Timeline recovers after `/context` request to generate new timeline fails", async () => {
+            // Disable retries for this test so the /context request fails immediately
+            const { setEventManagerRetryOptions } = await import("../../src/event/index.ts");
+            setEventManagerRetryOptions(client!, { maxRetries: 0 });
+
             // `/context` request for `refreshLiveTimeline()` -> `getEventTimeline()`
             // to construct a new timeline from.
             httpBackend!

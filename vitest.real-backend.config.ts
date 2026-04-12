@@ -5,9 +5,6 @@ export default defineConfig({
         environment: "node",
         globals: true,
         pool: "threads",
-        exclude: [
-            "**/node_modules/**",
-            "**/dist/**",
-        ],
+        exclude: ["**/node_modules/**", "**/dist/**"],
     },
 });

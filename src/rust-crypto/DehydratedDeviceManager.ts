@@ -106,6 +106,7 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
                     prefix: UnstablePrefix,
                 },
             );
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         } catch (error) {
             const err = error as MatrixError;
             if (err.errcode === "M_UNRECOGNIZED") {
@@ -242,6 +243,7 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
             // us to do) and M_UNRECOGNIZED (the server does not understand the
             // endpoint).  We pass through any other errors.
             if (err.errcode === "M_NOT_FOUND" || err.errcode === "M_UNRECOGNIZED") {
+                // @swallow-error { owner: "crypto", expires: "2026-12-31" }
                 this.logger.info("dehydration: No dehydrated device");
                 return false;
             }
@@ -362,8 +364,10 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
             // is found, we don't consider it an error, because we we'll end up
             // with no dehydrated device.
             if (err.errcode === "M_UNRECOGNIZED") {
+                // @swallow-error { owner: "crypto", expires: "2026-12-31" }
                 return;
             } else if (err.errcode === "M_NOT_FOUND") {
+                // @swallow-error { owner: "crypto", expires: "2026-12-31" }
                 return;
             }
             throw error;

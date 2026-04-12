@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DirectMessageManager, DMEvent } from "../../src/dm/index";
+import { MatrixError } from "../../src/http-api/errors";
+import * as dmExports from "../../src/dm/index";
 
 describe("DirectMessageManager", () => {
     let mockClient: any;
@@ -29,8 +31,8 @@ describe("DirectMessageManager", () => {
             // 设置用户级别的 m.direct account data
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@user1:example.com": ["!room:example.com"]
-                })
+                    "@user1:example.com": ["!room:example.com"],
+                }),
             });
 
             await dmManager.getDMRooms();
@@ -52,11 +54,11 @@ describe("DirectMessageManager", () => {
         it("m.direct 格式应为 { [userId]: [roomId, ...] }", async () => {
             const expectedMap = {
                 "@alice:example.com": ["!dm1:example.com"],
-                "@bob:example.com": ["!dm2:example.com", "!dm3:example.com"]
+                "@bob:example.com": ["!dm2:example.com", "!dm3:example.com"],
             };
-            
+
             mockClient.getAccountData.mockReturnValue({
-                getContent: () => expectedMap
+                getContent: () => expectedMap,
             });
 
             const dmMap = await dmManager.getDirectRoomsByUser();
@@ -88,7 +90,7 @@ describe("DirectMessageManager", () => {
                 expect.objectContaining({
                     is_direct: true,
                     invite: ["@user1:example.com"],
-                })
+                }),
             );
         });
 
@@ -108,8 +110,8 @@ describe("DirectMessageManager", () => {
         it("should return existing DM if found", async () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@user1:example.com": ["!existing:example.com"]
-                })
+                    "@user1:example.com": ["!existing:example.com"],
+                }),
             });
 
             const roomId = await dmManager.createDm(["@user1:example.com"]);
@@ -126,11 +128,7 @@ describe("DirectMessageManager", () => {
             const emitSpy = vi.spyOn(dmManager, "emit");
             await dmManager.createDm(["@user1:example.com"]);
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                DMEvent.DMCreated,
-                "!room:example.com",
-                ["@user1:example.com"]
-            );
+            expect(emitSpy).toHaveBeenCalledWith(DMEvent.DMCreated, "!room:example.com", ["@user1:example.com"]);
         });
 
         it("should throw error for empty userIds", async () => {
@@ -155,34 +153,32 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
                     "@alice:example.com": ["!dm1:example.com"],
-                    "@bob:example.com": ["!dm2:example.com"]
-                })
+                    "@bob:example.com": ["!dm2:example.com"],
+                }),
             });
 
             const mockRoom1 = {
                 roomId: "!dm1:example.com",
                 getMyMembership: vi.fn().mockReturnValue("join"),
-                getJoinedMembers: vi.fn().mockReturnValue([
-                    { userId: "@test:example.com" },
-                    { userId: "@alice:example.com" }
-                ]),
+                getJoinedMembers: vi
+                    .fn()
+                    .mockReturnValue([{ userId: "@test:example.com" }, { userId: "@alice:example.com" }]),
                 name: "DM 1",
                 getAvatarUrl: vi.fn().mockReturnValue(null),
                 getLiveTimeline: vi.fn().mockReturnValue({ getEvents: () => [] }),
-                getUnreadNotificationCount: vi.fn().mockReturnValue(0)
+                getUnreadNotificationCount: vi.fn().mockReturnValue(0),
             };
 
             const mockRoom2 = {
                 roomId: "!dm2:example.com",
                 getMyMembership: vi.fn().mockReturnValue("join"),
-                getJoinedMembers: vi.fn().mockReturnValue([
-                    { userId: "@test:example.com" },
-                    { userId: "@bob:example.com" }
-                ]),
+                getJoinedMembers: vi
+                    .fn()
+                    .mockReturnValue([{ userId: "@test:example.com" }, { userId: "@bob:example.com" }]),
                 name: "DM 2",
                 getAvatarUrl: vi.fn().mockReturnValue(null),
                 getLiveTimeline: vi.fn().mockReturnValue({ getEvents: () => [] }),
-                getUnreadNotificationCount: vi.fn().mockReturnValue(0)
+                getUnreadNotificationCount: vi.fn().mockReturnValue(0),
             };
 
             mockClient.getRooms.mockReturnValue([mockRoom1, mockRoom2]);
@@ -195,8 +191,8 @@ describe("DirectMessageManager", () => {
         it("should skip rooms with left membership", async () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@alice:example.com": ["!dm1:example.com"]
-                })
+                    "@alice:example.com": ["!dm1:example.com"],
+                }),
             });
 
             const mockRoom = {
@@ -206,7 +202,7 @@ describe("DirectMessageManager", () => {
                 name: "DM 1",
                 getAvatarUrl: vi.fn().mockReturnValue(null),
                 getLiveTimeline: vi.fn().mockReturnValue({ getEvents: () => [] }),
-                getUnreadNotificationCount: vi.fn().mockReturnValue(0)
+                getUnreadNotificationCount: vi.fn().mockReturnValue(0),
             };
 
             mockClient.getRooms.mockReturnValue([mockRoom]);
@@ -220,20 +216,18 @@ describe("DirectMessageManager", () => {
         it("should handle both join and invite membership", async () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@alice:example.com": ["!dm1:example.com"]
-                })
+                    "@alice:example.com": ["!dm1:example.com"],
+                }),
             });
 
             const mockRoom = {
                 roomId: "!dm1:example.com",
                 getMyMembership: vi.fn().mockReturnValue("invite"),
-                getJoinedMembers: vi.fn().mockReturnValue([
-                    { userId: "@alice:example.com" }
-                ]),
+                getJoinedMembers: vi.fn().mockReturnValue([{ userId: "@alice:example.com" }]),
                 name: "DM 1",
                 getAvatarUrl: vi.fn().mockReturnValue(null),
                 getLiveTimeline: vi.fn().mockReturnValue({ getEvents: () => [] }),
-                getUnreadNotificationCount: vi.fn().mockReturnValue(0)
+                getUnreadNotificationCount: vi.fn().mockReturnValue(0),
             };
 
             mockClient.getRooms.mockReturnValue([mockRoom]);
@@ -348,7 +342,7 @@ describe("DirectMessageManager", () => {
                 "m.direct",
                 expect.objectContaining({
                     "@user1:example.com": expect.arrayContaining(["!old:example.com", "!room:example.com"]),
-                })
+                }),
             );
         });
     });
@@ -359,8 +353,8 @@ describe("DirectMessageManager", () => {
         it("should return true for room in m.direct", async () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@user1:example.com": ["!room:example.com"]
-                })
+                    "@user1:example.com": ["!room:example.com"],
+                }),
             });
 
             const result = await dmManager.checkRoomIsDm("!room:example.com");
@@ -371,8 +365,8 @@ describe("DirectMessageManager", () => {
         it("should return false for room not in m.direct", async () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@user1:example.com": ["!other:example.com"]
-                })
+                    "@user1:example.com": ["!other:example.com"],
+                }),
             });
 
             const result = await dmManager.checkRoomIsDm("!room:example.com");
@@ -384,10 +378,9 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue({ getContent: () => ({}) });
 
             const mockRoom = {
-                getJoinedMembers: vi.fn().mockReturnValue([
-                    { userId: "@user1:example.com" },
-                    { userId: "@user2:example.com" }
-                ])
+                getJoinedMembers: vi
+                    .fn()
+                    .mockReturnValue([{ userId: "@user1:example.com" }, { userId: "@user2:example.com" }]),
             };
             mockClient.getRoom.mockReturnValue(mockRoom);
 
@@ -404,8 +397,8 @@ describe("DirectMessageManager", () => {
         it("should return partner from m.direct", async () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
-                    "@alice:example.com": ["!room:example.com"]
-                })
+                    "@alice:example.com": ["!room:example.com"],
+                }),
             });
 
             const partner = await dmManager.getDmPartner("!room:example.com");
@@ -417,10 +410,9 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue({ getContent: () => ({}) });
 
             const mockRoom = {
-                getJoinedMembers: vi.fn().mockReturnValue([
-                    { userId: "@test:example.com" },
-                    { userId: "@alice:example.com" }
-                ])
+                getJoinedMembers: vi
+                    .fn()
+                    .mockReturnValue([{ userId: "@test:example.com" }, { userId: "@alice:example.com" }]),
             };
             mockClient.getRoom.mockReturnValue(mockRoom);
 
@@ -437,13 +429,13 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue({
                 getContent: () => ({
                     "@alice:example.com": ["!dm1:example.com"],
-                    "@bob:example.com": ["!dm2:example.com"]
-                })
+                    "@bob:example.com": ["!dm2:example.com"],
+                }),
             });
 
             const mockRoom1 = {
                 roomId: "!dm1:example.com",
-                getMyMembership: vi.fn().mockReturnValue("join")
+                getMyMembership: vi.fn().mockReturnValue("join"),
             };
 
             mockClient.getRooms.mockReturnValue([mockRoom1]);
@@ -468,12 +460,12 @@ describe("DirectMessageManager", () => {
 
     describe("extendMatrixClient", () => {
         it("should export extendMatrixClient function", () => {
-            const { extendMatrixClient } = require("../../lib/dm/index");
+            const { extendMatrixClient } = dmExports;
             expect(typeof extendMatrixClient).toBe("function");
         });
 
         it("should extend DirectMessageManager prototype correctly", () => {
-            const { DirectMessageManager } = require("../../lib/dm/index");
+            const { DirectMessageManager } = dmExports;
             expect(typeof DirectMessageManager).toBe("function");
         });
     });
@@ -484,7 +476,7 @@ describe("DirectMessageManager", () => {
         describe("createDmRoom", () => {
             it("should call POST /create_dm API", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" })
+                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
                 };
 
                 const roomId = await dmManager.createDmRoom("@alice:example.com");
@@ -498,18 +490,18 @@ describe("DirectMessageManager", () => {
                         user_id: "@alice:example.com",
                         is_direct: true,
                     }),
-                    expect.anything()
+                    expect.anything(),
                 );
             });
 
             it("should include optional parameters", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" })
+                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
                 };
 
                 await dmManager.createDmRoom("@alice:example.com", {
                     name: "Test DM",
-                    topic: "Test Topic"
+                    topic: "Test Topic",
                 });
 
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -520,9 +512,9 @@ describe("DirectMessageManager", () => {
                         user_id: "@alice:example.com",
                         is_direct: true,
                         name: "Test DM",
-                        topic: "Test Topic"
+                        topic: "Test Topic",
                     }),
-                    expect.anything()
+                    expect.anything(),
                 );
             });
 
@@ -532,27 +524,23 @@ describe("DirectMessageManager", () => {
 
             it("should emit DMCreated event", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" })
+                    authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
                 };
 
                 const emitSpy = vi.spyOn(dmManager, "emit");
                 await dmManager.createDmRoom("@alice:example.com");
 
-                expect(emitSpy).toHaveBeenCalledWith(
-                    DMEvent.DMCreated,
-                    "!newdm:example.com",
-                    ["@alice:example.com"]
-                );
+                expect(emitSpy).toHaveBeenCalledWith(DMEvent.DMCreated, "!newdm:example.com", ["@alice:example.com"]);
             });
         });
 
         describe("getDirectRoomsFromServer", () => {
             it("should call GET /direct API", async () => {
                 const expectedMap = {
-                    "@alice:example.com": ["!dm1:example.com"]
+                    "@alice:example.com": ["!dm1:example.com"],
                 };
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({ rooms: expectedMap })
+                    authedRequest: vi.fn().mockResolvedValue({ rooms: expectedMap }),
                 };
 
                 const result = await dmManager.getDirectRoomsFromServer();
@@ -563,13 +551,13 @@ describe("DirectMessageManager", () => {
                     "/direct",
                     undefined,
                     undefined,
-                    expect.anything()
+                    expect.anything(),
                 );
             });
 
             it("should return empty object when no rooms", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({ rooms: null })
+                    authedRequest: vi.fn().mockResolvedValue({ rooms: null }),
                 };
 
                 const result = await dmManager.getDirectRoomsFromServer();
@@ -581,7 +569,7 @@ describe("DirectMessageManager", () => {
         describe("updateDirectRoom", () => {
             it("should call PUT /direct/{room_id} API", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({})
+                    authedRequest: vi.fn().mockResolvedValue({}),
                 };
 
                 await dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"]);
@@ -591,7 +579,7 @@ describe("DirectMessageManager", () => {
                     "/direct/!dm%3Aexample.com",
                     undefined,
                     { users: ["@alice:example.com"] },
-                    { prefix: "/_matrix/client/v3" }
+                    { prefix: "/_matrix/client/v3" },
                 );
             });
 
@@ -601,7 +589,7 @@ describe("DirectMessageManager", () => {
 
             it("should emit ListUpdated event", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({})
+                    authedRequest: vi.fn().mockResolvedValue({}),
                 };
 
                 const emitSpy = vi.spyOn(dmManager, "emit");
@@ -615,9 +603,9 @@ describe("DirectMessageManager", () => {
             it("should return true for DM room", async () => {
                 mockClient.http = {
                     authedRequest: vi.fn().mockResolvedValue({
-                        room_id: "!dm:example.com",
-                        "m.direct": true
-                    })
+                        "room_id": "!dm:example.com",
+                        "m.direct": true,
+                    }),
                 };
 
                 const result = await dmManager.isDmRoomFromServer("!dm:example.com");
@@ -628,9 +616,9 @@ describe("DirectMessageManager", () => {
             it("should return false for non-DM room", async () => {
                 mockClient.http = {
                     authedRequest: vi.fn().mockResolvedValue({
-                        room_id: "!room:example.com",
-                        "m.direct": false
-                    })
+                        "room_id": "!room:example.com",
+                        "m.direct": false,
+                    }),
                 };
 
                 const result = await dmManager.isDmRoomFromServer("!room:example.com");
@@ -639,15 +627,23 @@ describe("DirectMessageManager", () => {
             });
 
             it("should return false on 404 error", async () => {
-                const { MatrixError } = require("../../lib/http-api/errors");
                 const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
                 mockClient.http = {
-                    authedRequest: vi.fn().mockRejectedValue(error)
+                    authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
                 const result = await dmManager.isDmRoomFromServer("!unknown:example.com");
 
                 expect(result).toBe(false);
+            });
+
+            it("should throw on 404 error when throwOnError is true", async () => {
+                const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
+                mockClient.http = {
+                    authedRequest: vi.fn().mockRejectedValue(error),
+                };
+
+                await expect(dmManager.isDmRoomFromServer("!unknown:example.com", true)).rejects.toThrow();
             });
 
             it("should throw error for empty roomId", async () => {
@@ -661,10 +657,10 @@ describe("DirectMessageManager", () => {
                     room_id: "!dm:example.com",
                     user_id: "@alice:example.com",
                     display_name: "Alice",
-                    avatar_url: "mxc://example.com/avatar"
+                    avatar_url: "mxc://example.com/avatar",
                 };
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue(expectedPartner)
+                    authedRequest: vi.fn().mockResolvedValue(expectedPartner),
                 };
 
                 const result = await dmManager.getDmPartnerFromServer("!dm:example.com");
@@ -675,8 +671,28 @@ describe("DirectMessageManager", () => {
                     "/rooms/!dm%3Aexample.com/dm/partner",
                     undefined,
                     undefined,
-                    { prefix: "/_matrix/client/v3" }
+                    { prefix: "/_matrix/client/v3" },
                 );
+            });
+
+            it("should return null on 404 error", async () => {
+                const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
+                mockClient.http = {
+                    authedRequest: vi.fn().mockRejectedValue(error),
+                };
+
+                const result = await dmManager.getDmPartnerFromServer("!unknown:example.com");
+
+                expect(result).toBeNull();
+            });
+
+            it("should throw on 404 error when throwOnError is true", async () => {
+                const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
+                mockClient.http = {
+                    authedRequest: vi.fn().mockRejectedValue(error),
+                };
+
+                await expect(dmManager.getDmPartnerFromServer("!unknown:example.com", true)).rejects.toThrow();
             });
 
             it("should throw error for empty roomId", async () => {
@@ -748,7 +764,7 @@ describe("DirectMessageManager", () => {
                 expect(mockClient.setRoomReadMarkers).toHaveBeenCalledWith(
                     "!dm:example.com",
                     "$event:example.com",
-                    mockEvent
+                    mockEvent,
                 );
             });
 
@@ -780,7 +796,7 @@ describe("DirectMessageManager", () => {
                     expect.objectContaining({
                         msgtype: "m.text",
                         body: "Hello",
-                    })
+                    }),
                 );
             });
 
@@ -791,11 +807,7 @@ describe("DirectMessageManager", () => {
                 const eventId = await dmManager.sendDmMessage("!dm:example.com", content);
 
                 expect(eventId).toBe("$event:example.com");
-                expect(mockClient.sendEvent).toHaveBeenCalledWith(
-                    "!dm:example.com",
-                    "m.room.message",
-                    content
-                );
+                expect(mockClient.sendEvent).toHaveBeenCalledWith("!dm:example.com", "m.room.message", content);
             });
 
             it("should throw error for empty roomId", async () => {
@@ -804,52 +816,20 @@ describe("DirectMessageManager", () => {
         });
 
         describe("getDmRoomInfos", () => {
-            it("should return all DM room infos", async () => {
-                const mockRoom1 = {
+            it("should return all cached DM room infos", async () => {
+                (dmManager as any).dmRoomsCache.set("!dm1:example.com", {
                     roomId: "!dm1:example.com",
-                    name: "DM 1",
-                    getMember: vi.fn(),
-                    getJoinedMembers: vi.fn().mockReturnValue([
-                        { userId: "@test:example.com", name: "Test" },
-                        { userId: "@user1:example.com", name: "User1" },
-                    ]),
-                    getAvatarUrl: vi.fn().mockReturnValue(null),
-                    getLiveTimeline: vi.fn().mockReturnValue({
-                        getEvents: vi.fn().mockReturnValue([]),
-                    }),
-                };
-
-                const mockRoom2 = {
+                    invitees: ["@user1:example.com"],
+                });
+                (dmManager as any).dmRoomsCache.set("!dm2:example.com", {
                     roomId: "!dm2:example.com",
-                    name: "DM 2",
-                    getMember: vi.fn(),
-                    getJoinedMembers: vi.fn().mockReturnValue([
-                        { userId: "@test:example.com", name: "Test" },
-                        { userId: "@user2:example.com", name: "User2" },
-                    ]),
-                    getAvatarUrl: vi.fn().mockReturnValue(null),
-                    getLiveTimeline: vi.fn().mockReturnValue({
-                        getEvents: vi.fn().mockReturnValue([]),
-                    }),
-                };
-
-                mockClient.getRooms.mockReturnValue([mockRoom1, mockRoom2]);
-                mockClient.getRoom.mockImplementation((roomId: string) => {
-                    if (roomId === "!dm1:example.com") return mockRoom1;
-                    if (roomId === "!dm2:example.com") return mockRoom2;
-                    return null;
+                    invitees: ["@user2:example.com"],
                 });
-                mockClient.getAccountData.mockReturnValue({
-                    getContent: () => ({
-                        "@user1:example.com": ["!dm1:example.com"],
-                        "@user2:example.com": ["!dm2:example.com"],
-                    }),
-                });
-                mockClient.mxcToHttp = vi.fn().mockReturnValue(null);
 
                 const infos = await dmManager.getDmRoomInfos();
 
-                expect(infos.length).toBeGreaterThanOrEqual(0);
+                expect(infos).toHaveLength(2);
+                expect(infos.map((info) => info.roomId).sort()).toEqual(["!dm1:example.com", "!dm2:example.com"]);
             });
 
             it("should return empty array when no DMs", async () => {
@@ -879,6 +859,12 @@ describe("DirectMessageManager", () => {
 
                 expect(room).toBeNull();
             });
+
+            it("should throw NotFoundError for non-existent room when throwOnError is true", async () => {
+                mockClient.getRoom.mockReturnValue(null);
+
+                await expect(dmManager.getDmRoom("!missing:example.com", true)).rejects.toThrow("DM room not found");
+            });
         });
 
         describe("removeDmRoom", () => {
@@ -896,7 +882,7 @@ describe("DirectMessageManager", () => {
                     "m.direct",
                     expect.objectContaining({
                         "@user:example.com": ["!dm2:example.com"],
-                    })
+                    }),
                 );
             });
 
@@ -914,7 +900,7 @@ describe("DirectMessageManager", () => {
                     "m.direct",
                     expect.not.objectContaining({
                         "@user:example.com": expect.anything(),
-                    })
+                    }),
                 );
             });
         });
@@ -936,6 +922,16 @@ describe("DirectMessageManager", () => {
                 expect(stats.dmRooms).toHaveProperty("maxSize");
                 expect(stats.dmRooms).toHaveProperty("hits");
                 expect(stats.dmRooms).toHaveProperty("misses");
+            });
+
+            it("should report cache size after inserting DM room", () => {
+                (dmManager as any).dmRoomsCache.set("!dm1:example.com", {
+                    roomId: "!dm1:example.com",
+                    invitees: ["@user1:example.com"],
+                });
+
+                const stats = dmManager.getCacheStats();
+                expect(stats.dmRooms.size).toBe(1);
             });
         });
     });

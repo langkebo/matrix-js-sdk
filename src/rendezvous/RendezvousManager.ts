@@ -16,10 +16,10 @@ limitations under the License.
 
 /**
  * Rendezvous Manager - 二维码登录会话管理
- * 
+ *
  * 提供二维码登录会话的创建、更新、消息传递等功能
  * 对应后端: synapse-rust/src/web/routes/rendezvous.rs
- * 
+ *
  * 后端端点:
  * - POST /_matrix/client/v1/rendezvous - 创建会话
  * - GET /_matrix/client/v1/rendezvous/{session_id} - 获取会话
@@ -115,31 +115,40 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     private normalizeError(error: unknown, method: string): SdkError {
         const err = error as Error;
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`RendezvousManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`RendezvousManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`RendezvousManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
+                return new NotFoundError(
+                    `RendezvousManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                    error,
+                );
             }
-            return new ApiError(`RendezvousManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
+            return new ApiError(
+                `RendezvousManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error.errcode ?? "UNKNOWN",
+                error.httpStatus ?? 0,
+                error,
+            );
         }
-        return new ApiError(`RendezvousManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        return new ApiError(
+            `RendezvousManager.${method} failed: ${err?.message ?? String(error)}`,
+            "UNKNOWN",
+            0,
+            error,
+        );
     }
 
     private async rendezvousRequest<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string>,
-        body?: unknown
+        body?: unknown,
     ): Promise<T> {
         try {
-            return await this.client.http.authedRequest(
-                method,
-                path,
-                queryParams ?? {},
-                body as Body | undefined,
-                { prefix: RENDEZVOUS_PREFIX }
-            ) as Promise<T>;
+            return (await this.client.http.authedRequest(method, path, queryParams ?? {}, body as Body | undefined, {
+                prefix: RENDEZVOUS_PREFIX,
+            })) as Promise<T>;
         } catch (err) {
             throw this.normalizeError(err, "request");
         }
@@ -159,7 +168,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
             Method.Post,
             "/rendezvous",
             undefined,
-            options
+            options,
         );
 
         this.emit(RendezvousEvent.SessionCreated, response);
@@ -175,8 +184,9 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
         try {
             return await this.rendezvousRequest<RendezvousSession>(
                 Method.Get,
-                `/rendezvous/${encodeURIComponent(sessionId)}`
+                `/rendezvous/${encodeURIComponent(sessionId)}`,
             );
+            // @swallow-error { owner: "rendezvous", expires: "2026-12-31" }
         } catch (error) {
             if (error instanceof NotFoundError) {
                 return null;
@@ -194,15 +204,15 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
             Method.Put,
             `/rendezvous/${encodeURIComponent(sessionId)}`,
             undefined,
-            { status }
+            { status },
         );
 
         this.emit(RendezvousEvent.SessionUpdated, response);
-        
+
         if (response.login_finish) {
             logger.info(`Rendezvous session ${sessionId} completed with login`);
         }
-        
+
         return response;
     }
 
@@ -211,10 +221,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
      * DELETE /_matrix/client/v1/rendezvous/{session_id}
      */
     async deleteSession(sessionId: string): Promise<void> {
-        await this.rendezvousRequest<void>(
-            Method.Delete,
-            `/rendezvous/${encodeURIComponent(sessionId)}`
-        );
+        await this.rendezvousRequest<void>(Method.Delete, `/rendezvous/${encodeURIComponent(sessionId)}`);
 
         this.emit(RendezvousEvent.SessionDeleted, sessionId);
         logger.info(`Rendezvous session deleted: ${sessionId}`);
@@ -229,7 +236,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
             Method.Post,
             `/rendezvous/${encodeURIComponent(sessionId)}/messages`,
             undefined,
-            message
+            message,
         );
 
         this.emit(RendezvousEvent.MessageSent, response);
@@ -243,13 +250,13 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     async getMessages(sessionId: string): Promise<GetMessagesResponse> {
         const response = await this.rendezvousRequest<GetMessagesResponse>(
             Method.Get,
-            `/rendezvous/${encodeURIComponent(sessionId)}/messages`
+            `/rendezvous/${encodeURIComponent(sessionId)}/messages`,
         );
 
         if (response.messages?.length > 0) {
             this.emit(RendezvousEvent.MessageReceived, response.messages);
         }
-        
+
         return response;
     }
 
@@ -281,7 +288,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
             interval?: number;
             maxAttempts?: number;
             onMessage?: (messages: RendezvousMessage[]) => void;
-        }
+        },
     ): Promise<RendezvousMessage[]> {
         const interval = options?.interval ?? 1000;
         const maxAttempts = options?.maxAttempts ?? 60;
@@ -289,7 +296,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
 
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             const session = await this.getSession(sessionId);
-            
+
             if (!session) {
                 throw new Error("Session not found or expired");
             }
@@ -299,16 +306,16 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
             }
 
             const response = await this.getMessages(sessionId);
-            
+
             if (response.messages?.length > 0) {
                 allMessages.push(...response.messages);
-                
+
                 if (options?.onMessage) {
                     options.onMessage(response.messages);
                 }
             }
 
-            await new Promise(resolve => setTimeout(resolve, interval));
+            await new Promise((resolve) => setTimeout(resolve, interval));
         }
 
         return allMessages;

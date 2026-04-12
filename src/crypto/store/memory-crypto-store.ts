@@ -172,7 +172,7 @@ export class MemoryCryptoStore implements CryptoStore {
         func(this.sessions[deviceKey] || {});
     }
 
-    public storeEndToEndSession(deviceKey: string, sessionId: string, sessionInfo: ISessionInfo, txn: unknown): void {
+    public storeEndToEndSession(deviceKey: string, sessionId: string, sessionInfo: ISessionInfo, _txn: unknown): void {
         let deviceSessions = this.sessions[deviceKey];
         if (deviceSessions === undefined) {
             deviceSessions = {};
@@ -231,7 +231,7 @@ export class MemoryCryptoStore implements CryptoStore {
     public getEndToEndInboundGroupSession(
         senderCurve25519Key: string,
         sessionId: string,
-        txn: unknown,
+        _txn: unknown,
         func: (groupSession: InboundGroupSessionData | null, groupSessionWithheld: IWithheld | null) => void,
     ): void {
         const k = encodeSessionKey(senderCurve25519Key, sessionId);
@@ -242,7 +242,7 @@ export class MemoryCryptoStore implements CryptoStore {
         senderCurve25519Key: string,
         sessionId: string,
         sessionData: InboundGroupSessionData,
-        txn: unknown,
+        _txn: unknown,
     ): void {
         const k = encodeSessionKey(senderCurve25519Key, sessionId);
         this.inboundGroupSessions[k] = sessionData;

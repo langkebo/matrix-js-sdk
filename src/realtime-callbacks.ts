@@ -49,7 +49,7 @@ const callbackList: Callback[] = [];
 
 // var debuglog = logger.log.bind(logger);
 /* istanbul ignore next */
-const debuglog = function (...params: unknown[]): void {};
+const debuglog = function (..._params: unknown[]): void {};
 
 /**
  * reimplementation of window.setTimeout, which will call the callback if

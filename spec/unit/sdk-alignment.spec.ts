@@ -37,7 +37,7 @@ describe("SDK alignment managers", () => {
             await manager.sendEmote("!room:test", "wave", "txn-2");
             await manager.sendImage("!room:test", "mxc://img", { w: 10 }, "Image");
 
-            expect(client.sendEmoteMessage).toHaveBeenCalledWith("!room:test", "wave", "txn-2");
+            expect(client.sendEmoteMessage).toHaveBeenCalledWith("!room:test", "wave", "txn-2", undefined);
             expect(client.sendImageMessage).toHaveBeenCalledWith("!room:test", "mxc://img", { w: 10 }, "Image");
         });
     });

@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * Group Call Manager - 群组通话管理
- * 
+ *
  * 提供群组通话相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IGroupCallOptions {
     isPtt?: boolean;
@@ -37,37 +38,49 @@ export interface IGroupCall {
     }>;
 }
 
-export class GroupCallManager {
-    constructor(private client: MatrixClient) {}
+export class GroupCallManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getGroupCallForRoom(roomId: string): IGroupCall | null {
-        return (this.client as unknown as {
-            getGroupCallForRoom: (roomId: string) => IGroupCall | null;
-        }).getGroupCallForRoom(roomId);
+        return (
+            this.client as unknown as {
+                getGroupCallForRoom: (roomId: string) => IGroupCall | null;
+            }
+        ).getGroupCallForRoom(roomId);
     }
 
     public async createGroupCall(roomId: string, options?: IGroupCallOptions): Promise<IGroupCall> {
-        return (this.client as unknown as {
-            createGroupCall: (roomId: string, options?: IGroupCallOptions) => Promise<IGroupCall>;
-        }).createGroupCall(roomId, options);
+        return (
+            this.client as unknown as {
+                createGroupCall: (roomId: string, options?: IGroupCallOptions) => Promise<IGroupCall>;
+            }
+        ).createGroupCall(roomId, options);
     }
 
     public getUseE2eForGroupCall(): boolean {
-        return (this.client as unknown as {
-            getUseE2eForGroupCall: () => boolean;
-        }).getUseE2eForGroupCall();
+        return (
+            this.client as unknown as {
+                getUseE2eForGroupCall: () => boolean;
+            }
+        ).getUseE2eForGroupCall();
     }
 
     public async waitUntilRoomReadyForGroupCalls(roomId: string): Promise<void> {
-        return (this.client as unknown as {
-            waitUntilRoomReadyForGroupCalls: (roomId: string) => Promise<void>;
-        }).waitUntilRoomReadyForGroupCalls(roomId);
+        return (
+            this.client as unknown as {
+                waitUntilRoomReadyForGroupCalls: (roomId: string) => Promise<void>;
+            }
+        ).waitUntilRoomReadyForGroupCalls(roomId);
     }
 
     public getActiveGroupCalls(): IGroupCall[] {
-        return (this.client as unknown as {
-            getActiveGroupCalls: () => IGroupCall[];
-        }).getActiveGroupCalls();
+        return (
+            this.client as unknown as {
+                getActiveGroupCalls: () => IGroupCall[];
+            }
+        ).getActiveGroupCalls();
     }
 }
 

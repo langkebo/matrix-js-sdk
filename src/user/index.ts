@@ -16,27 +16,30 @@ limitations under the License.
 
 /**
  * User Manager - 用户管理
- * 
+ *
  * 提供用户信息获取、忽略用户等功能
  */
 
 import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { type EmptyObject } from "../@types/common";
+import { BaseManager } from "../managers/base-manager";
 
-export class UserManager {
-    constructor(private client: MatrixClient) {}
+export interface UserManagerEvents {
+    user_ignored: { userId: string };
+    user_unignored: { userId: string };
+    user_updated: { userId: string };
+}
 
-    /**
-     * Get user ID
-     */
+export class UserManager extends BaseManager<keyof UserManagerEvents, UserManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getUserId(): string | null {
         return this.client.credentials.userId;
     }
 
-    /**
-     * Get safe user ID (throws if not set)
-     */
     public getSafeUserId(): string {
         const userId = this.client.credentials.userId;
         if (!userId) {
@@ -45,9 +48,6 @@ export class UserManager {
         return userId;
     }
 
-    /**
-     * Get user ID localpart
-     */
     public getUserIdLocalpart(): string | null {
         const userId = this.client.credentials.userId;
         if (!userId) return null;
@@ -56,9 +56,6 @@ export class UserManager {
         return userId.substring(0, colonIndex);
     }
 
-    /**
-     * Get domain from user ID
-     */
     public getDomain(): string | null {
         const userId = this.client.credentials.userId;
         if (!userId) return null;
@@ -67,23 +64,14 @@ export class UserManager {
         return userId.substring(colonIndex + 1);
     }
 
-    /**
-     * Get a user by ID
-     */
     public getUser(userId: string): User | null {
         return this.client.store.getUser(userId);
     }
 
-    /**
-     * Get all users
-     */
     public getUsers(): User[] {
         return this.client.store.getUsers();
     }
 
-    /**
-     * Get ignored users
-     */
     public getIgnoredUsers(): string[] {
         const event = this.client.store.getAccountData("m.ignored_user_list");
         if (!event) return [];
@@ -91,27 +79,22 @@ export class UserManager {
         return Object.keys(content.ignored_users || {});
     }
 
-    /**
-     * Set ignored users
-     */
     public async setIgnoredUsers(userIds: string[]): Promise<EmptyObject> {
-        const ignoredUsers: Record<string, {}> = {};
+        const ignoredUsers: Record<string, Record<string, never>> = {};
         for (const userId of userIds) {
             ignoredUsers[userId] = {};
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setAccountData("m.ignored_user_list", { ignored_users: ignoredUsers });
+        return this.withRetry(
+            () => this.client.setAccountData("m.ignored_user_list", { ignored_users: ignoredUsers }),
+            "setIgnoredUsers",
+        );
     }
 
-    /**
-     * Check if a user is ignored
-     */
     public isUserIgnored(userId: string): boolean {
         return this.getIgnoredUsers().includes(userId);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getUserManager(): UserManager;

@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { M_POLL_START } from "matrix-events-sdk";
-
 import {
     DuplicateStrategy,
     EventTimelineSet,
@@ -369,7 +367,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     private getTypeWarning = false;
     private membersPromise?: Promise<boolean>;
 
-    // XXX: These should be read-only
+    // These should be read-only
     /**
      * The human-readable display name for this room.
      */
@@ -382,7 +380,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
      * Dict of room tags; the keys are the tag name and the values
      * are any metadata associated with the tag - e.g. `{ "fav" : { order: 1 } }`
      */
-    public tags: Record<string, Record<string, any>> = {}; // $tagName: { $metadata: $value }
+    public tags: Record<string, Record<string, unknown>> = {}; // $tagName: { $metadata: $value }
     /**
      * accountData Dict of per-room account_data events; the keys are the
      * event type and the values are the events.
@@ -889,6 +887,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 return this.heroes?.[0]?.userId;
             }
         }
+        return undefined;
     }
 
     /**
@@ -916,6 +915,69 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         // so I probably created a room with just me in it
         // and marked it as a DM. Ok then
         return this.myUserId;
+    }
+
+    /**
+     * Check if this room is a direct message room.
+     *
+     * This checks if the room is marked as a DM in the user's m.direct account data,
+     * or if it has exactly 2 members (a typical DM room pattern).
+     *
+     * @returns true if this room is a direct message room
+     */
+    public isDirect(): boolean {
+        try {
+            const dmManager = this.client.getDirectMessageManager();
+            const dmMap = dmManager.getDirectRoomsByUserSync();
+            for (const roomIds of Object.values(dmMap)) {
+                if ((roomIds as string[]).includes(this.roomId)) {
+                    return true;
+                }
+            }
+        } catch {
+            // If we can't get the DM map, fall back to member count check
+        }
+
+        const members = this.getJoinedMembers();
+        return members.length === 2;
+    }
+
+    /**
+     * Get all relations for a given event.
+     *
+     * @param eventId - The ID of the event to get relations for.
+     * @returns A map of relation types to arrays of related events.
+     */
+    public getRelationsForEvent(eventId: string): Map<string, MatrixEvent[]> {
+        const result = new Map<string, MatrixEvent[]>();
+        const allChildEvents = this.relations.getAllChildEventsForEvent(eventId);
+
+        for (const event of allChildEvents) {
+            const relation = event.getRelation();
+            if (relation?.rel_type) {
+                const existing = result.get(relation.rel_type) || [];
+                existing.push(event);
+                result.set(relation.rel_type, existing);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Get child events for a specific relation type and event type.
+     *
+     * @param eventId - The ID of the parent event.
+     * @param relationType - The type of relationship (e.g., "m.annotation", "m.reference").
+     * @param eventType - The event type of the relation events.
+     * @returns A Relations object containing the child events, or undefined.
+     */
+    public getChildEventsForEvent(
+        eventId: string,
+        relationType: string,
+        eventType: string,
+    ): import("./relations.ts").Relations | undefined {
+        return this.relations.getChildEventsForEvent(eventId, relationType, eventType);
     }
 
     /**
@@ -963,7 +1025,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                     }
                 } else {
                     // use the Hero supplied values for the room member.
-                    // TODO: It's unfortunate that this function, which clearly only cares about the
+                    // It's unfortunate that this function, which clearly only cares about the
                     //       avatar url, returns the entire RoomMember event. We need to fake an event
                     //       to meet this API shape.
                     const heroMember = new RoomMember(this.roomId, hero.userId);
@@ -1020,6 +1082,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 return member;
             }
         }
+        return undefined;
     }
 
     /**
@@ -1131,6 +1194,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                             })
                     );
                 }
+                return;
             })
             .catch((err) => {
                 // as this is not awaited anywhere,
@@ -1317,7 +1381,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
             this.emit(RoomEvent.CurrentStateUpdated, this, previousCurrentState, this.currentState);
 
             // Re-emit various events on the current room state
-            // TODO: If currentState really only exists for backwards
+            // If currentState really only exists for backwards
             // compatibility, shouldn't we be doing this some other way?
             this.reEmitter.stopReEmitting(previousCurrentState, [
                 RoomStateEvent.Events,
@@ -1363,7 +1427,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
                 for (const [userId, singleReceipt] of Object.entries(userReceipt)) {
                     if (!singleReceipt || typeof singleReceipt !== "object") continue;
-                    const typedSingleReceipt = singleReceipt as Record<string, any>;
+                    const typedSingleReceipt = singleReceipt as Record<string, unknown>;
                     if (userId !== this.client.getUserId()) continue;
                     if (typedSingleReceipt.thread_id === undefined) {
                         hasUnthreadedReceipt = true;
@@ -2014,7 +2078,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
             // populate up the new timelineSet with filtered events from our live
             // unfiltered timeline.
             //
-            // XXX: This is risky as our timeline
+            // This is risky as our timeline
             // may have grown huge and so take a long time to filter.
             // see https://github.com/vector-im/vector-web/issues/2109
 
@@ -2530,7 +2594,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
         this.emit(RoomEvent.Redaction, redactionEvent, this, threadRootId);
 
-        // TODO: we stash user displaynames (among other things) in
+        // We stash user displaynames (among other things) in
         // RoomMember objects which are then attached to other events
         // (in the sender and target fields). We should get those
         // RoomMember objects to update themselves when the events that
@@ -2547,7 +2611,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     }
 
     private tryApplyRedaction = (event: MatrixEvent): void => {
-        // FIXME: apply redactions to notification list
+        // Apply redactions to notification list
 
         // NB: We continue to add the redaction event to the timeline at the
         // end of this function so clients can say "so and so redacted an event"
@@ -3025,7 +3089,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         const neighbouringEvents = [...events];
 
         for (const event of events) {
-            // TODO: We should have a filter to say "only add state event types X Y Z to the timeline".
+            // We should have a filter to say "only add state event types X Y Z to the timeline".
             this.processLiveEvent(event);
 
             if (event.getUnsigned().transaction_id) {
@@ -3102,7 +3166,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
             // Log cleanup for monitoring
             logger.debug(
                 `[Room ${this.roomId}] Cleaned up ${eventsToRemove} old events, ` +
-                `timeline now has ${events.length} events`
+                    `timeline now has ${events.length} events`,
             );
         }
     }
@@ -3171,7 +3235,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
         this.roomReceipts.add(content, synthetic);
 
-        // TODO: delete the following code when it has been replaced by RoomReceipts
+        // Delete the following code when it has been replaced by RoomReceipts
         Object.keys(content).forEach((eventId: string) => {
             Object.keys(content[eventId]).forEach((receiptType: ReceiptType | string) => {
                 Object.keys(content[eventId][receiptType]).forEach((userId: string) => {
@@ -3347,10 +3411,10 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         //    }
         // }
 
-        // XXX: do we need to deep copy here?
+        // Do we need to deep copy here?
         this.tags = event.getContent().tags || {};
 
-        // XXX: we could do a deep-comparison to see if the tags have really
+        // We could do a deep-comparison to see if the tags have really
         // changed - but do we want to bother?
         this.emit(RoomEvent.Tags, event, this);
     }

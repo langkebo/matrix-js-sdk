@@ -86,6 +86,9 @@ import { type CryptoBackend } from "../../src/common-crypto/CryptoBackend";
 import { SyncResponder } from "../test-utils/SyncResponder.ts";
 import { mockInitialApiRequests } from "../test-utils/mockEndpoints.ts";
 import { type Transport } from "../../src/matrixrtc/index.ts";
+import { extendMatrixClient as extendRoom } from "../../src/room/index";
+
+extendRoom();
 
 vi.useFakeTimers();
 
@@ -192,7 +195,7 @@ describe("MatrixClient", function () {
 
     const PUSH_RULES_RESPONSE: HttpLookup = {
         method: "GET",
-        path: "/pushrules/",
+        path: "/pushrules",
         data: {},
     };
 
@@ -414,14 +417,33 @@ describe("MatrixClient", function () {
         it("should call getHttpUriForMxc", () => {
             // Mock ProfileManager
             (client as any).getProfileManager = vi.fn().mockReturnValue({
-                mxcUrlToHttp: (mxc: string, width?: number, height?: number, resizeMethod?: string, allowDirectLinks?: boolean, allowRedirects?: boolean, useAuthentication?: boolean) =>
-                    getHttpUriForMxc(client.baseUrl, mxc, width, height, resizeMethod, allowDirectLinks, allowRedirects, useAuthentication)
+                mxcUrlToHttp: (
+                    mxc: string,
+                    width?: number,
+                    height?: number,
+                    resizeMethod?: string,
+                    allowDirectLinks?: boolean,
+                    allowRedirects?: boolean,
+                    useAuthentication?: boolean,
+                ) =>
+                    getHttpUriForMxc(
+                        client.baseUrl,
+                        mxc,
+                        width,
+                        height,
+                        resizeMethod,
+                        allowDirectLinks,
+                        allowRedirects,
+                        useAuthentication,
+                    ),
             });
 
             const mxc = "mxc://server/example";
             expect(client.getProfileManager().mxcUrlToHttp(mxc)).toBe(getHttpUriForMxc(client.baseUrl, mxc));
             expect(client.getProfileManager().mxcUrlToHttp(mxc, 32)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32));
-            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32, 46));
+            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46)).toBe(
+                getHttpUriForMxc(client.baseUrl, mxc, 32, 46),
+            );
             expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale")).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale"),
             );
@@ -775,6 +797,32 @@ describe("MatrixClient", function () {
             ];
 
             await client.sendEvent(roomId, threadId, EventType.RoomMessage, { ...content }, txnId);
+        });
+
+        it("encrypts event when room requires encryption", async () => {
+            const eventId = "$eventId:example.org";
+            const txnId = client.makeTxnId();
+            const room = new Room(roomId, client, userId);
+            vi.mocked(store.getRoom).mockReturnValue(room);
+            vi.spyOn(room, "hasEncryptionStateEvent").mockReturnValue(true);
+
+            const mockCrypto = {
+                isEncryptionEnabledInRoom: vi.fn().mockResolvedValue(true),
+                encryptEvent: vi.fn().mockResolvedValue(undefined),
+                stop: vi.fn(),
+            } as unknown as Mocked<CryptoBackend>;
+            client["cryptoBackend"] = mockCrypto;
+
+            httpLookups = [
+                {
+                    method: "PUT",
+                    path: `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId}`,
+                    data: { event_id: eventId },
+                },
+            ];
+
+            await client.sendEvent(roomId, EventType.RoomMessage, { ...content }, txnId);
+            expect(mockCrypto.encryptEvent).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -1274,6 +1322,225 @@ describe("MatrixClient", function () {
         });
     });
 
+    describe("_unstable_sendStickyDelayedEvent", () => {
+        const roomId = "!room:example.org";
+        const body = "This is the body";
+        const content = { body, msgtype: MsgType.Text } satisfies RoomMessageEventContent;
+        const timeoutDelayOpts = { delay: 2000 };
+        const stickyDuration = 3000;
+        const stickyDelayQueryOpts = {
+            "org.matrix.msc4140.delay": 2000,
+            "org.matrix.msc4354.sticky_duration_ms": stickyDuration,
+        };
+
+        beforeEach(() => {
+            unstableFeatures["org.matrix.msc4140"] = true;
+            unstableFeatures["org.matrix.msc4354"] = true;
+        });
+
+        // eslint-disable-next-line @vitest/expect-expect
+        it("should add thread relation if threadId is passed and the relation is missing", async () => {
+            httpLookups = [];
+            const threadId = "$threadId:server";
+            const expectBody = {
+                ...content,
+                "msc4354_sticky_key": "test",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        event_id: threadId,
+                    },
+                    "event_id": threadId,
+                    "is_falling_back": true,
+                    "rel_type": "m.thread",
+                },
+            };
+
+            const room = new Room(roomId, client, userId);
+            vi.mocked(store.getRoom).mockReturnValue(room);
+
+            const rootEvent = new MatrixEvent({ event_id: threadId });
+            room.createThread(threadId, rootEvent, [rootEvent], false);
+
+            const timeoutDelayTxnId = client.makeTxnId();
+            httpLookups.push({
+                method: "PUT",
+                path: `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${timeoutDelayTxnId}`,
+                expectQueryParams: stickyDelayQueryOpts,
+                data: { delay_id: "id1" },
+                expectBody,
+            });
+
+            await client._unstable_sendStickyDelayedEvent(
+                roomId,
+                stickyDuration,
+                timeoutDelayOpts,
+                threadId,
+                EventType.RoomMessage,
+                { ...content, msc4354_sticky_key: "test" },
+                timeoutDelayTxnId,
+            );
+        });
+
+        // eslint-disable-next-line @vitest/expect-expect
+        it("should add thread relation if threadId is passed and the relation is missing with reply", async () => {
+            httpLookups = [];
+            const threadId = "$threadId:server";
+            const content = {
+                body,
+                "msgtype": MsgType.Text,
+                "msc4354_sticky_key": "test",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        event_id: "$other:event",
+                    },
+                },
+            } satisfies RoomMessageEventContent & { msc4354_sticky_key?: string };
+            const expectBody = {
+                ...content,
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        event_id: "$other:event",
+                    },
+                    "event_id": threadId,
+                    "is_falling_back": false,
+                    "rel_type": "m.thread",
+                },
+            };
+
+            const room = new Room(roomId, client, userId);
+            vi.mocked(store.getRoom).mockReturnValue(room);
+
+            const rootEvent = new MatrixEvent({ event_id: threadId });
+            room.createThread(threadId, rootEvent, [rootEvent], false);
+
+            const timeoutDelayTxnId = client.makeTxnId();
+            httpLookups.push({
+                method: "PUT",
+                path: `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${timeoutDelayTxnId}`,
+                expectQueryParams: stickyDelayQueryOpts,
+                data: { delay_id: "id1" },
+                expectBody,
+            });
+
+            await client._unstable_sendStickyDelayedEvent(
+                roomId,
+                stickyDuration,
+                timeoutDelayOpts,
+                threadId,
+                EventType.RoomMessage,
+                { ...content },
+                timeoutDelayTxnId,
+            );
+        });
+    });
+
+    describe("_unstable_sendStickyEvent", () => {
+        const roomId = "!room:example.org";
+        const body = "This is the body";
+        const content = { body, msgtype: MsgType.Text } satisfies RoomMessageEventContent;
+        const stickyDuration = 3000;
+        const stickyQueryOpts = { "org.matrix.msc4354.sticky_duration_ms": stickyDuration };
+
+        beforeEach(() => {
+            unstableFeatures["org.matrix.msc4354"] = true;
+        });
+
+        // eslint-disable-next-line @vitest/expect-expect
+        it("should add thread relation if threadId is passed and the relation is missing", async () => {
+            httpLookups = [];
+            const eventId = "$eventId:example.org";
+            const threadId = "$threadId:server";
+            const expectBody = {
+                ...content,
+                "msc4354_sticky_key": "test",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        event_id: threadId,
+                    },
+                    "event_id": threadId,
+                    "is_falling_back": true,
+                    "rel_type": "m.thread",
+                },
+            };
+
+            const room = new Room(roomId, client, userId);
+            vi.mocked(store.getRoom).mockReturnValue(room);
+
+            const rootEvent = new MatrixEvent({ event_id: threadId });
+            room.createThread(threadId, rootEvent, [rootEvent], false);
+
+            const txnId = client.makeTxnId();
+            httpLookups.push({
+                method: "PUT",
+                path: `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId}`,
+                expectQueryParams: stickyQueryOpts,
+                data: { event_id: eventId },
+                expectBody,
+            });
+
+            await client._unstable_sendStickyEvent(
+                roomId,
+                stickyDuration,
+                threadId,
+                EventType.RoomMessage,
+                { ...content, msc4354_sticky_key: "test" },
+                txnId,
+            );
+        });
+
+        // eslint-disable-next-line @vitest/expect-expect
+        it("should add thread relation if threadId is passed and the relation is missing with reply", async () => {
+            httpLookups = [];
+            const eventId = "$eventId:example.org";
+            const threadId = "$threadId:server";
+            const content = {
+                body,
+                "msgtype": MsgType.Text,
+                "msc4354_sticky_key": "test",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        event_id: "$other:event",
+                    },
+                },
+            } satisfies RoomMessageEventContent & { msc4354_sticky_key?: string };
+            const expectBody = {
+                ...content,
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        event_id: "$other:event",
+                    },
+                    "event_id": threadId,
+                    "is_falling_back": false,
+                    "rel_type": "m.thread",
+                },
+            };
+
+            const room = new Room(roomId, client, userId);
+            vi.mocked(store.getRoom).mockReturnValue(room);
+
+            const rootEvent = new MatrixEvent({ event_id: threadId });
+            room.createThread(threadId, rootEvent, [rootEvent], false);
+
+            const txnId = client.makeTxnId();
+            httpLookups.push({
+                method: "PUT",
+                path: `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId}`,
+                expectQueryParams: stickyQueryOpts,
+                data: { event_id: eventId },
+                expectBody,
+            });
+
+            await client._unstable_sendStickyEvent(
+                roomId,
+                stickyDuration,
+                threadId,
+                EventType.RoomMessage,
+                { ...content },
+                txnId,
+            );
+        });
+    });
+
     describe("extended profiles", () => {
         const unstableMSC4133Prefix = `${ClientPrefix.Unstable}/uk.tcpip.msc4133`;
         const userId = "@profile_user:example.org";
@@ -1732,7 +1999,7 @@ describe("MatrixClient", function () {
             httpLookups = [];
             httpLookups.push({
                 method: "GET",
-                path: "/pushrules/",
+                path: "/pushrules",
                 error: { errcode: "NOPE_NOPE_NOPE" },
             });
             httpLookups.push(PUSH_RULES_RESPONSE);
@@ -1845,7 +2112,7 @@ describe("MatrixClient", function () {
     describe("inviteByEmail", function () {
         const roomId = "!foo:bar";
 
-        it("should send an invite HTTP POST", function () {
+        it("should send an invite HTTP POST", async function () {
             httpLookups = [
                 {
                     method: "POST",
@@ -1858,7 +2125,7 @@ describe("MatrixClient", function () {
                     },
                 },
             ];
-            client.inviteByEmail(roomId, "alice@gmail.com");
+            await client.inviteByEmail(roomId, "alice@gmail.com");
             expect(httpLookups.length).toEqual(0);
         });
     });
@@ -1883,7 +2150,7 @@ describe("MatrixClient", function () {
             (client as any).getPresenceManager = vi.fn().mockReturnValue({
                 getPresence: (userId: string) => {
                     return client.http.authedRequest(Method.Get, `/presence/${encodeURIComponent(userId)}/status`);
-                }
+                },
             });
 
             httpLookups = [
@@ -2165,6 +2432,34 @@ describe("MatrixClient", function () {
             // Restore method
             client.supportsThreads = supportsThreads;
         });
+
+        it("createThreadListMessagesRequest delegates and normalizes threaded response", async () => {
+            const roomId = "!room:example.org";
+            httpLookups = [
+                {
+                    method: "GET",
+                    path: `/rooms/${encodeURIComponent(roomId)}/threads`,
+                    expectQueryParams: {
+                        limit: "2",
+                        dir: "b",
+                        include: "all",
+                    },
+                    data: {
+                        chunk: [{ event_id: "$event1:example.org" }, { event_id: "$event2:example.org" }],
+                        prev_batch: "prev-token",
+                        next_batch: "next-token",
+                    },
+                },
+            ];
+
+            const response = await client.createThreadListMessagesRequest(roomId, null, 2, Direction.Backward);
+            expect(response.start).toBe("prev-token");
+            expect(response.end).toBe("next-token");
+            expect(response.chunk.map((event) => event.event_id)).toEqual([
+                "$event2:example.org",
+                "$event1:example.org",
+            ]);
+        });
     });
 
     describe("read-markers and read-receipts", () => {
@@ -2310,7 +2605,8 @@ describe("MatrixClient", function () {
                 },
             });
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/device_signing/upload");
             expect(queryParams).toBeUndefined();
@@ -2332,7 +2628,8 @@ describe("MatrixClient", function () {
                 request_type: "request",
             });
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/room_keys/request");
             expect(queryParams).toBeUndefined();
@@ -2355,7 +2652,8 @@ describe("MatrixClient", function () {
                 limit: 10,
             });
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("GET");
             expect(path).toBe("/room_keys/request");
             expect(queryParams).toEqual({
@@ -2373,7 +2671,8 @@ describe("MatrixClient", function () {
 
             await client.deleteRoomKeyRequest("req/with/slash");
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("DELETE");
             expect(path).toBe("/room_keys/request/req%2Fwith%2Fslash");
             expect(queryParams).toBeUndefined();
@@ -2382,13 +2681,15 @@ describe("MatrixClient", function () {
         });
 
         it("uses v1 prefix for startDeviceSigningVerification by default", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                transaction_id: "txn-1",
-                method: "sas",
-                key_agreement_protocol: ["curve25519-hkdf-sha256"],
-                hash: ["sha256"],
-                short_authentication_string: ["emoji"],
-            });
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    transaction_id: "txn-1",
+                    method: "sas",
+                    key_agreement_protocol: ["curve25519-hkdf-sha256"],
+                    hash: ["sha256"],
+                    short_authentication_string: ["emoji"],
+                });
 
             await client.startDeviceSigningVerification({
                 from_device: "DEVICE",
@@ -2397,7 +2698,8 @@ describe("MatrixClient", function () {
                 method: "sas",
             });
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/device_signing/verify_start");
             expect(queryParams).toBeUndefined();
@@ -2411,13 +2713,15 @@ describe("MatrixClient", function () {
         });
 
         it("supports r0 prefix for acceptDeviceSigningVerification", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                transaction_id: "txn-1",
-                method: "sas",
-                key_agreement_protocol: ["curve25519-hkdf-sha256"],
-                hash: ["sha256"],
-                short_authentication_string: ["emoji"],
-            });
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    transaction_id: "txn-1",
+                    method: "sas",
+                    key_agreement_protocol: ["curve25519-hkdf-sha256"],
+                    hash: ["sha256"],
+                    short_authentication_string: ["emoji"],
+                });
 
             await client.acceptDeviceSigningVerification(
                 {
@@ -2428,7 +2732,8 @@ describe("MatrixClient", function () {
                 "r0",
             );
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("PUT");
             expect(path).toBe("/keys/device_signing/verify_accept");
             expect(queryParams).toBeUndefined();
@@ -2451,7 +2756,8 @@ describe("MatrixClient", function () {
 
             await client.createSecureBackup("plain-passphrase");
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/backup/secure");
             expect(queryParams).toBeUndefined();
@@ -2464,7 +2770,8 @@ describe("MatrixClient", function () {
 
             await client.verifySecureBackupPassphrase("backup-1", "plain-passphrase");
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/backup/secure/backup-1/verify");
             expect(queryParams).toBeUndefined();
@@ -2486,7 +2793,8 @@ describe("MatrixClient", function () {
                 },
             ]);
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/backup/secure/backup-1/keys");
             expect(queryParams).toBeUndefined();
@@ -2515,7 +2823,8 @@ describe("MatrixClient", function () {
 
             await client.restoreSecureBackup("backup-1", "plain-passphrase");
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/backup/secure/backup-1/restore");
             expect(queryParams).toBeUndefined();
@@ -2526,7 +2835,8 @@ describe("MatrixClient", function () {
         it("calls deleteSecureBackup with the secure backup path", async () => {
             await client.deleteSecureBackup("backup-1");
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("DELETE");
             expect(path).toBe("/keys/backup/secure/backup-1");
             expect(queryParams).toBeUndefined();
@@ -3166,6 +3476,7 @@ describe("MatrixClient", function () {
         async function setUpClient(versionsResponse: object = { versions: ["1"] }): Promise<MatrixClient> {
             fetchMock.getOnce(new URL("/_matrix/client/versions", TEST_HOMESERVER_URL).toString(), versionsResponse);
             fetchMock.getOnce(new URL("/_matrix/client/v3/capabilities", TEST_HOMESERVER_URL).toString(), {});
+            fetchMock.getOnce(new URL("/_matrix/client/v3/pushrules", TEST_HOMESERVER_URL).toString(), {});
             fetchMock.getOnce(new URL("/_matrix/client/v3/pushrules/", TEST_HOMESERVER_URL).toString(), {});
             fetchMock.postOnce(
                 new URL(`/_matrix/client/v3/user/${encodeURIComponent(userId)}/filter`, TEST_HOMESERVER_URL).toString(),
@@ -3842,7 +4153,7 @@ describe("MatrixClient", function () {
 
                 // Mock PushManager
                 (client as any).getPushManager = vi.fn().mockReturnValue({
-                    getPushRules: vi.fn().mockResolvedValue(pushRules)
+                    getPushRules: vi.fn().mockResolvedValue(pushRules),
                 });
 
                 // this is how notif timeline is set up in react-sdk
@@ -3933,13 +4244,13 @@ describe("MatrixClient", function () {
                 setPusher: (pusher: any) => {
                     return client.http.authedRequest(Method.Post, "/pushers/set", undefined, pusher);
                 },
-                removePusher: (pushkey: string, app_id: string) => {
+                removePusher: (pushkey: string, appId: string) => {
                     return client.http.authedRequest(Method.Post, "/pushers/set", undefined, {
                         pushkey,
-                        app_id,
+                        app_id: appId,
                         kind: null,
                     });
-                }
+                },
             });
 
             const response: HttpLookup = {

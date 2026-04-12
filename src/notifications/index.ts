@@ -19,6 +19,7 @@ import { EventTimelineSet } from "../models/event-timeline-set";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
+import { BaseManager } from "../managers/base-manager";
 
 export interface ILocalNotificationSettings {
     is_silenced: boolean;
@@ -44,8 +45,15 @@ export interface INotificationsResponse {
     }>;
 }
 
-export class NotificationsManager {
-    constructor(private client: MatrixClient) {}
+export interface NotificationsManagerEvents {
+    notifications_updated: { count: number };
+    notification_cleared: { roomId: string };
+}
+
+export class NotificationsManager extends BaseManager<keyof NotificationsManagerEvents, NotificationsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getNotifTimelineSet(): EventTimelineSet | null {
         return this.client.getNotifTimelineSet();
@@ -63,13 +71,17 @@ export class NotificationsManager {
         await this.client.setLocalNotificationSettings(deviceId, settings);
     }
 
-    public async getNotifications(opts?: { from?: string; limit?: number; only?: string }): Promise<INotificationsResponse> {
-        return this.client.http.authedRequest<INotificationsResponse>(
-            Method.Get,
-            "/notifications",
-            opts,
-            undefined,
-            { prefix: ClientPrefix.V3 }
+    public async getNotifications(opts?: {
+        from?: string;
+        limit?: number;
+        only?: string;
+    }): Promise<INotificationsResponse> {
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<INotificationsResponse>(Method.Get, "/notifications", opts, undefined, {
+                    prefix: ClientPrefix.V3,
+                }),
+            "getNotifications",
         );
     }
 }

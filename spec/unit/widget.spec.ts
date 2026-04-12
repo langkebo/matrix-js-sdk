@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { WidgetManager, WidgetEvent } from "../../src/widget/index";
+import { WidgetManager } from "../../src/widget/index";
 import { MatrixError } from "../../src/http-api/errors";
-import { NotFoundError, ApiError } from "../../src/errors";
 
 describe("WidgetManager", () => {
     let mockClient: any;

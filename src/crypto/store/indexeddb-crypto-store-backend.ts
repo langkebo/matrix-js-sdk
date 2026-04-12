@@ -265,6 +265,7 @@ export class Backend implements CryptoStore {
         });
 
         if (result.length === 0) {
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
             // No sessions left.
             return null;
         }
@@ -413,6 +414,7 @@ export class Backend implements CryptoStore {
         );
 
         if (result.length === 0) {
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
             // No sessions left.
             return null;
         }

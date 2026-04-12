@@ -116,7 +116,7 @@ function reqAsPromise(req: IDBRequest): Promise<IDBRequest> {
 }
 
 function reqAsCursorPromise<T>(req: IDBRequest<T>): Promise<T> {
-    return reqAsEventPromise(req).then((event) => req.result);
+    return reqAsEventPromise(req).then((_event) => req.result);
 }
 
 export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
@@ -496,8 +496,10 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
 
     /**
      * Load all user presence events from the database. This is not cached.
-     * FIXME: It would probably be more sensible to store the events in the
-     * sync.
+     *
+     * Design note: Presence events could alternatively be stored during the sync
+     * process for better consistency with other event types, but are currently
+     * stored separately for historical reasons.
      * @returns A list of presence events in their raw form.
      */
     public getUserPresenceEvents(): Promise<UserTuple[]> {

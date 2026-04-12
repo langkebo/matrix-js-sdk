@@ -83,7 +83,7 @@ export class RoomKeyTransport
     }
 
     /** implements {@link IKeyTransport#sendKey} */
-    public async sendKey(keyBase64Encoded: string, index: number, members: ParticipantDeviceInfo[]): Promise<void> {
+    public async sendKey(keyBase64Encoded: string, index: number, _members: ParticipantDeviceInfo[]): Promise<void> {
         // members not used in room transports as the keys are sent to all room members
         const content: EncryptionKeysEventContent = {
             keys: [

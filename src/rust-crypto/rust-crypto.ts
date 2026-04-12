@@ -333,15 +333,15 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
      * Implementation of {@link CryptoBackend.maybeAcceptKeyBundle}.
      */
     public async maybeAcceptKeyBundle(roomId: string, inviter: string): Promise<boolean> {
-        // TODO: retry this if it gets interrupted or it fails. (https://github.com/matrix-org/matrix-rust-sdk/issues/5112)
-        // TODO: do this in the background.
+        // Known limitation: retry if this gets interrupted or fails. (https://github.com/matrix-org/matrix-rust-sdk/issues/5112)
+        // Known limitation: this currently runs on the foreground path.
 
         const logger = new LogSpan(this.logger, `maybeAcceptKeyBundle(${roomId}, ${inviter})`);
 
         // Make sure we have an up-to-date idea of the inviter's cross-signing keys, so that we can check if the
         // device that sent us the bundle data was correctly cross-signed.
         //
-        // TODO: it would be nice to skip this step if we have an up-to-date copy of the inviter's cross-signing keys,
+        // Known limitation: we could skip this step if we had an up-to-date copy of the inviter's cross-signing keys,
         //   but we don't have an easy way to check that. Possibly the rust side could trigger a key request and then
         //   block until it happens.
         logger.info(`Checking inviter cross-signing keys`);
@@ -488,7 +488,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
      * Implementation of {@link CryptoApi.userHasCrossSigningKeys}.
      */
     public async userHasCrossSigningKeys(userId = this.userId, downloadUncached = false): Promise<boolean> {
-        // TODO: could probably do with a more efficient way of doing this than returning the whole set and searching
+        // Known limitation: this can likely be made more efficient than returning the whole set and searching
         const rustTrackedUsers: Set<RustSdkCryptoJs.UserId> = await this.olmMachine.trackedUsers();
         let rustTrackedUser: RustSdkCryptoJs.UserId | undefined;
         for (const u of rustTrackedUsers) {
@@ -633,7 +633,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
      */
     public setTrustCrossSignedDevices(val: boolean): void {
         this._trustCrossSignedDevices = val;
-        // TODO: legacy crypto goes through the list of known devices and emits DeviceVerificationChanged
+        // Note: legacy crypto goes through the list of known devices and emits DeviceVerificationChanged
         //  events. Maybe we need to do the same?
     }
 
@@ -1120,6 +1120,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
         if (request) {
             return this.makeVerificationRequest(request);
         }
+        return undefined;
     }
 
     /**
@@ -1140,7 +1141,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
             // Get the request content to send to the DM room
             const verCont: string = await userIdentity.verificationRequestContent(methods);
 
-            // TODO: due to https://github.com/matrix-org/matrix-rust-sdk/issues/5643, we need to fix up the verification request content to include `msgtype`.
+            // Workaround for https://github.com/matrix-org/matrix-rust-sdk/issues/5643: fix up the verification request content to include `msgtype`.
             const verContObj = JSON.parse(verCont);
             verContObj["msgtype"] = "m.key.verification.request";
             const verificationEventContent: string = JSON.stringify(verContObj);
@@ -1859,7 +1860,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
      *
      * @param syncState - information on the completed sync.
      */
-    public onSyncCompleted(syncState: OnSyncCompletedData): void {
+    public onSyncCompleted(_syncState: OnSyncCompletedData): void {
         // Processing the /sync may have produced new outgoing requests which need sending, so kick off the outgoing
         // request loop, if it's not already running.
         this.outgoingRequestsManager.doProcessOutgoingRequests().catch((e) => {
@@ -1921,7 +1922,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
      * @param member - The member whose RoomMember.membership changed.
      * @param oldMembership - The previous membership state. Null if it's a new member.
      */
-    public onRoomMembership(event: MatrixEvent, member: RoomMember, oldMembership?: string): void {
+    public onRoomMembership(event: MatrixEvent, member: RoomMember, _oldMembership?: string): void {
         const enc = this.roomEncryptors[event.getRoomId()!];
         if (!enc) {
             // not encrypting in this room
@@ -2050,10 +2051,10 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
      * @param value - the secret value
      */
     private async handleSecretReceived(name: string, value: string): Promise<boolean> {
-        this.logger.debug(`onReceiveSecret: Received secret ${name}`);
+        this.logger.debug(`onReceiveSecret: Received secret ${name}`); // @log-allow: only logs secret name, not value
         if (name === "m.megolm_backup.v1") {
             return await this.backupManager.handleBackupSecretReceived(value);
-            // XXX at this point we should probably try to download the backup and import the keys,
+            // At this point we should probably try to download the backup and import the keys,
             // or at least retry for the current decryption failures?
             // Maybe add some signaling when a new secret is received, and let clients handle it?
             // as it's where the restore from backup APIs are exposed.
@@ -2467,7 +2468,7 @@ function rustEncryptionInfoToJsEncryptionInfo(
         return null;
     }
 
-    // TODO: use strict shield semantics.
+    // Known limitation: use strict shield semantics.
     const shieldState = encryptionInfo.shieldState(false);
 
     let shieldColour: EventShieldColour;

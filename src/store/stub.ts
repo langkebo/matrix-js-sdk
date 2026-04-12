@@ -59,12 +59,12 @@ export class StubStore implements IStore {
     /**
      * No-op.
      */
-    public storeRoom(room: Room): void {}
+    public storeRoom(_room: Room): void {}
 
     /**
      * No-op.
      */
-    public getRoom(roomId: string): Room | null {
+    public getRoom(_roomId: string): Room | null {
         return null;
     }
 
@@ -79,7 +79,7 @@ export class StubStore implements IStore {
     /**
      * Permanently delete a room.
      */
-    public removeRoom(roomId: string): void {
+    public removeRoom(_roomId: string): void {
         return;
     }
 
@@ -94,12 +94,12 @@ export class StubStore implements IStore {
     /**
      * No-op.
      */
-    public storeUser(user: User): void {}
+    public storeUser(_user: User): void {}
 
     /**
      * No-op.
      */
-    public getUser(userId: string): User | null {
+    public getUser(_userId: string): User | null {
         return null;
     }
 
@@ -113,14 +113,14 @@ export class StubStore implements IStore {
     /**
      * No-op.
      */
-    public scrollback(room: Room, limit: number): MatrixEvent[] {
+    public scrollback(_room: Room, _limit: number): MatrixEvent[] {
         return [];
     }
 
     /**
      * No-op.
      */
-    public setUserCreator(creator: UserCreator): void {
+    public setUserCreator(_creator: UserCreator): void {
         return;
     }
 
@@ -131,18 +131,18 @@ export class StubStore implements IStore {
      * @param token - The token associated with these events.
      * @param toStart - True if these are paginated results.
      */
-    public storeEvents(room: Room, events: MatrixEvent[], token: string | null, toStart: boolean): void {}
+    public storeEvents(_room: Room, _events: MatrixEvent[], _token: string | null, _toStart: boolean): void {}
 
     /**
      * Store a filter.
      */
-    public storeFilter(filter: Filter): void {}
+    public storeFilter(_filter: Filter): void {}
 
     /**
      * Retrieve a filter.
      * @returns A filter or null.
      */
-    public getFilter(userId: string, filterId: string): Filter | null {
+    public getFilter(_userId: string, _filterId: string): Filter | null {
         return null;
     }
 
@@ -151,26 +151,26 @@ export class StubStore implements IStore {
      * @param filterName - The filter name.
      * @returns The filter ID or null.
      */
-    public getFilterIdByName(filterName: string): string | null {
+    public getFilterIdByName(_filterName: string): string | null {
         return null;
     }
 
     /**
      * Set a filter name to ID mapping.
      */
-    public setFilterIdByName(filterName: string, filterId?: string): void {}
+    public setFilterIdByName(_filterName: string, _filterId?: string): void {}
 
     /**
      * Store user-scoped account data events
      * @param events - The events to store.
      */
-    public storeAccountDataEvents(events: MatrixEvent[]): void {}
+    public storeAccountDataEvents(_events: MatrixEvent[]): void {}
 
     /**
      * Get account data event by event type
      * @param eventType - The event type being queried
      */
-    public getAccountData(eventType: EventType | string): MatrixEvent | undefined {
+    public getAccountData(_eventType: EventType | string): MatrixEvent | undefined {
         return undefined;
     }
 
@@ -180,7 +180,7 @@ export class StubStore implements IStore {
      * @param syncData - The sync data
      * @returns An immediately resolved promise.
      */
-    public setSyncData(syncData: ISyncResponse): Promise<void> {
+    public setSyncData(_syncData: ISyncResponse): Promise<void> {
         return Promise.resolve();
     }
 
@@ -238,7 +238,7 @@ export class StubStore implements IStore {
         return Promise.resolve(null);
     }
 
-    public setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
+    public setOutOfBandMembers(_roomId: string, _membershipEvents: IStateEventWithRoomId[]): Promise<void> {
         return Promise.resolve();
     }
 
@@ -250,19 +250,19 @@ export class StubStore implements IStore {
         return Promise.resolve(undefined);
     }
 
-    public storeClientOptions(options: IStoredClientOpts): Promise<void> {
+    public storeClientOptions(_options: IStoredClientOpts): Promise<void> {
         return Promise.resolve();
     }
 
-    public async getPendingEvents(roomId: string): Promise<Partial<IEvent>[]> {
+    public async getPendingEvents(_roomId: string): Promise<Partial<IEvent>[]> {
         return [];
     }
 
-    public setPendingEvents(roomId: string, events: Partial<IEvent>[]): Promise<void> {
+    public setPendingEvents(_roomId: string, _events: Partial<IEvent>[]): Promise<void> {
         return Promise.resolve();
     }
 
-    public async saveToDeviceBatches(batch: ToDeviceBatch[]): Promise<void> {
+    public async saveToDeviceBatches(_batch: ToDeviceBatch[]): Promise<void> {
         return Promise.resolve();
     }
 
@@ -270,7 +270,7 @@ export class StubStore implements IStore {
         return Promise.resolve(null);
     }
 
-    public async removeToDeviceBatch(id: number): Promise<void> {
+    public async removeToDeviceBatch(_id: number): Promise<void> {
         return Promise.resolve();
     }
 

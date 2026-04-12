@@ -16,57 +16,76 @@ limitations under the License.
 
 /**
  * Cross Signing Manager - 交叉签名管理
- * 
+ *
  * 提供 cross-signing 功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class CrossSigningManager {
-    constructor(private client: MatrixClient) {}
+export interface CrossSigningStatus {
+    crossSigningVerified: boolean;
+    crossSigningVerifiedBefore: boolean;
+    crossSigningTrusted: boolean;
+}
 
-    /**
-     * Check cross signing status
-     */
-    public async checkCrossSigningStatus(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).checkCrossSigningStatus();
+export interface CrossSigningKeys {
+    masterKey: string | null;
+    selfSigningKey: string | null;
+    userSigningKey: string | null;
+}
+
+export interface UserCrossSigningKeys {
+    masterKey: string | null;
+    selfSigningKey: string | null;
+    userSigningKey: string | null;
+    verified: boolean;
+}
+
+export interface CrossSigningManagerEvents {
+    cross_signing_ready: void;
+    cross_signing_updated: { userId: string };
+    cross_signing_trusted: { userId: string };
+}
+
+export class CrossSigningManager extends BaseManager<keyof CrossSigningManagerEvents, CrossSigningManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Get cross signing keys
-     */
-    public async getCrossSigningKeys(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getCrossSigningKeys();
+    public async checkCrossSigningStatus(): Promise<CrossSigningStatus> {
+        return this.withRetry(
+            () => this.client.checkCrossSigningStatus() as Promise<CrossSigningStatus>,
+            "checkCrossSigningStatus",
+        );
     }
 
-    /**
-     * Is cross signing ready
-     */
+    public async getCrossSigningKeys(): Promise<CrossSigningKeys> {
+        return this.withRetry(
+            () => this.client.getCrossSigningKeys() as Promise<CrossSigningKeys>,
+            "getCrossSigningKeys",
+        );
+    }
+
     public isCrossSigningReady(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isCrossSigningReady();
+        return this.client.isCrossSigningReady();
     }
 
-    /**
-     * Get user cross signing keys
-     */
-    public async getUserCrossSigningKeys(userId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUserCrossSigningKeys(userId);
+    public async getUserCrossSigningKeys(userId: string): Promise<UserCrossSigningKeys> {
+        return this.withRetry(
+            () => this.client.getUserCrossSigningKeys(userId) as Promise<UserCrossSigningKeys>,
+            "getUserCrossSigningKeys",
+        );
     }
 
-    /**
-     * Check and trust cross signing
-     */
-    public async checkAndTrustCrossSigning(): Promise<boolean> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).checkAndTrustCrossSigning();
+    public async checkAndTrustCrossSigning(): Promise<void> {
+        return this.withRetry(
+            () => this.client.checkAndTrustCrossSigning() as Promise<void>,
+            "checkAndTrustCrossSigning",
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCrossSigningManager(): CrossSigningManager;

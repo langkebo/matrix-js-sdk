@@ -1,4 +1,4 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -17,15 +17,15 @@ limitations under the License.
 
 /**
  * Widget Manager - 小组件管理
- * 
+ *
  * 提供小组件的创建、管理、权限验证功能
  * 对接后端: synapse-rust/src/services/widget_service.rs
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { BaseManager } from "../managers/base-manager.ts";
 import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 
 export enum WidgetEvent {
     WidgetAdded = "WidgetAdded",
@@ -82,6 +82,154 @@ export interface WidgetMessageResponse {
     };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// v1 REST API types (对接 synapse-rust/src/web/routes/widget.rs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Backend widget API response structure
+ * GET /_matrix/client/v1/rooms/{room_id}/widgets
+ * POST /_matrix/client/v1/widgets
+ * GET /_matrix/client/v1/widgets/{widget_id}
+ */
+export interface WidgetApiData {
+    id?: number;
+    widget_id: string;
+    room_id: string | null;
+    user_id: string;
+    /** e.g. "customwidget", "jitsi" */
+    widget_type: string;
+    url: string;
+    name: string;
+    data: Record<string, unknown>;
+    is_active: boolean;
+    created_ts?: number;
+    updated_ts?: number | null;
+}
+
+export interface WidgetApiResponse {
+    widget: WidgetApiData;
+}
+
+export interface WidgetListApiResponse {
+    widgets: WidgetApiData[];
+    total: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v1 REST API types for config
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface WidgetConfigResponse {
+    widget_id: string;
+    room_id: string | null;
+    url: string;
+    name: string;
+    data: Record<string, unknown>;
+    type: string;
+}
+
+export interface JitsiConfigResponse {
+    conf_id: string;
+    name: string;
+    domain: string;
+    app_id: string | null;
+    jwt: string | null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v1 REST API types for permissions
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SetPermissionRequest {
+    user_id: string;
+    permissions: string[];
+}
+
+export interface SetPermissionResponse {
+    success: boolean;
+    permission_id: number;
+}
+
+export interface WidgetPermissionItem {
+    id: number;
+    user_id: string;
+    widget_id: string;
+    permissions: string[];
+    created_ts?: number;
+    updated_ts?: number | null;
+}
+
+export interface WidgetPermissionsResponse {
+    permissions: WidgetPermissionItem[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v1 REST API types for sessions
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CreateSessionRequest {
+    widget_id: string;
+    device_id?: string;
+    expires_in_ms?: number;
+}
+
+export interface SessionApiData {
+    id?: number;
+    session_id: string;
+    widget_id: string;
+    user_id: string;
+    device_id: string | null;
+    expires_at: number;
+    created_ts?: number;
+    last_active_ts?: number;
+    is_active?: boolean;
+}
+
+export interface SessionResponse {
+    session: SessionApiData;
+}
+
+export interface SessionListResponse {
+    sessions: SessionApiData[];
+    total: number;
+}
+
+export interface CreateWidgetOptions {
+    roomId?: string;
+    type: string;
+    url: string;
+    name: string;
+    data?: Record<string, unknown>;
+}
+
+export interface UpdateWidgetOptions {
+    url?: string;
+    name?: string;
+    data?: Record<string, unknown>;
+}
+
+export interface WidgetSession {
+    id?: number;
+    session_id: string;
+    widget_id: string;
+    user_id: string;
+    device_id: string | null;
+    expires_at: number;
+    created_ts?: number;
+    last_active_ts?: number;
+    is_active?: boolean;
+}
+
+export interface WidgetSessionResponse {
+    session: SessionApiData;
+}
+
+export interface WidgetSessionListResponse {
+    sessions: SessionApiData[];
+    total: number;
+}
+
 interface WidgetManagerEventMap {
     [WidgetEvent.WidgetAdded]: (roomId: string, widget: IWidget) => void;
     [WidgetEvent.WidgetRemoved]: (roomId: string, widgetId: string) => void;
@@ -92,99 +240,154 @@ interface WidgetManagerEventMap {
     [WidgetEvent.PermissionDenied]: (widgetId: string, permissions: string[]) => void;
 }
 
-export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerEventMap> {
-    private client: MatrixClient;
+export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMap> {
     private widgets: Map<string, Map<string, IWidget>> = new Map();
     private permissions: Map<string, IWidgetPermission> = new Map();
     private pendingRequests: Map<string, (response: WidgetMessageResponse) => void> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
-    async getRoomWidgets(roomId: string): Promise<IWidget[]> {
+    /**
+     * 将后端 WidgetApiData 转换为 IWidget
+     */
+    private toIWidget(data: WidgetApiData, roomId?: string): IWidget {
+        return {
+            id: data.widget_id,
+            type: data.widget_type,
+            name: data.name,
+            url: data.url,
+            data: data.data,
+            creatorUserId: data.user_id,
+            roomId: roomId ?? data.room_id ?? undefined,
+        };
+    }
+
+    /**
+     * 获取房间的小组件列表
+     * GET /_matrix/client/v1/rooms/{room_id}/widgets
+     *
+     * 对接后端 REST API，不再从 room state events 读取
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 房间小组件列表
+     */
+    async getRoomWidgets(roomId: string, throwOnError = false): Promise<IWidget[]> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+
+        // 优先从缓存返回
         if (this.widgets.has(roomId)) {
             return Array.from(this.widgets.get(roomId)!.values());
         }
 
         try {
-            const room = this.client.getRoom(roomId);
-            if (!room) {
-                return [];
-            }
+            const response = await this.client.http.authedRequest<WidgetListApiResponse>(
+                Method.Get,
+                `/rooms/${encodeURIComponent(roomId)}/widgets`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
 
-            const widgetEvents = room.currentState.getStateEvents('im.vector.modular.widgets');
-            const widgets: IWidget[] = [];
+            const widgets: IWidget[] = (response.widgets ?? []).map((w) => this.toIWidget(w, roomId));
 
-            for (const event of widgetEvents) {
-                const content = event.getContent<{ type?: string; name?: string; url?: string; data?: Record<string, unknown>; creatorUserId?: string }>();
-                const stateKey = event.getStateKey();
-                if (!stateKey) continue;
-                const widget: IWidget = {
-                    id: stateKey,
-                    type: content.type || 'customwidget',
-                    name: content.name || 'Widget',
-                    url: content.url || '',
-                    data: content.data,
-                    creatorUserId: content.creatorUserId,
-                    roomId,
-                };
-                widgets.push(widget);
-            }
-
-            if (!this.widgets.has(roomId)) {
-                this.widgets.set(roomId, new Map());
-            }
-            widgets.forEach(w => this.widgets.get(roomId)!.set(w.id, w));
+            this.widgets.set(roomId, new Map());
+            widgets.forEach((w) => this.widgets.get(roomId)!.set(w.id, w));
 
             return widgets;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('WidgetManager.getRoomWidgets failed:', e);
+            const error = this.normalizeError(e, "getRoomWidgets");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn("WidgetManager.getRoomWidgets failed:", error);
             return [];
         }
     }
 
-    async addWidget(roomId: string, widget: Omit<IWidget, 'roomId'>): Promise<IWidget> {
+    /**
+     * 获取单个小组件
+     * GET /_matrix/client/v1/widgets/{widget_id}
+     *
+     * @param widgetId - 小组件 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 小组件详情
+     */
+    async getWidget(widgetId: string, throwOnError = false): Promise<IWidget | null> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<WidgetApiResponse>(
+                Method.Get,
+                `/widgets/${encodeURIComponent(widgetId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return this.toIWidget(response.widget);
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "getWidget");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.getWidget failed for ${widgetId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 创建小组件
+     * POST /_matrix/client/v1/widgets
+     *
+     * @param roomId - 房间 ID（可选，不传则创建全局小组件）
+     * @param widget - 小组件配置
+     * @returns 创建的小组件
+     */
+    async addWidget(roomId: string, widget: Omit<IWidget, "roomId">): Promise<IWidget> {
         if (!roomId) {
             throw new Error("Room ID is required");
         }
 
-        if (!widget.id) {
-            widget.id = `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
-
-        const content = {
-            type: widget.type,
-            name: widget.name,
-            url: widget.url,
-            data: widget.data,
-            creatorUserId: widget.creatorUserId || this.client.getUserId(),
-        };
+        const widgetId = widget.id || `widget_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
         try {
-            await this.client.sendStateEvent(
-                roomId,
-                'im.vector.modular.widgets',
-                content,
-                widget.id
+            const response = await this.client.http.authedRequest<WidgetApiResponse>(
+                Method.Post,
+                "/widgets",
+                undefined,
+                {
+                    room_id: roomId,
+                    widget_id: widgetId,
+                    widget_type: widget.type,
+                    url: widget.url,
+                    name: widget.name,
+                    data: widget.data ?? {},
+                },
+                { prefix: "/_matrix/client/v1" },
             );
 
-            const newWidget: IWidget = {
-                ...widget,
-                roomId,
-            };
+            const newWidget = this.toIWidget(response.widget, roomId);
 
             if (!this.widgets.has(roomId)) {
                 this.widgets.set(roomId, new Map());
             }
-            this.widgets.get(roomId)!.set(widget.id, newWidget);
+            this.widgets.get(roomId)!.set(newWidget.id, newWidget);
 
             this.emit(WidgetEvent.WidgetAdded, roomId, newWidget);
 
             return newWidget;
-        } catch (error) {
-            this.emit(WidgetEvent.WidgetError, roomId, widget.id, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "addWidget");
+            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
             throw error;
         }
     }
@@ -195,11 +398,13 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
         }
 
         try {
-            await this.client.sendStateEvent(
-                roomId,
-                'im.vector.modular.widgets',
-                {},
-                widgetId
+            // DELETE /_matrix/client/v1/widgets/{widget_id}
+            await this.client.http.authedRequest(
+                Method.Delete,
+                `/widgets/${encodeURIComponent(widgetId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
             );
 
             if (this.widgets.has(roomId)) {
@@ -207,8 +412,9 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
             }
 
             this.emit(WidgetEvent.WidgetRemoved, roomId, widgetId);
-        } catch (error) {
-            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "removeWidget");
+            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
             throw error;
         }
     }
@@ -231,71 +437,67 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
             roomId,
         };
 
-        const content = {
-            type: updatedWidget.type,
-            name: updatedWidget.name,
-            url: updatedWidget.url,
-            data: updatedWidget.data,
-            creatorUserId: updatedWidget.creatorUserId,
-        };
-
         try {
-            await this.client.sendStateEvent(
-                roomId,
-                'im.vector.modular.widgets',
-                content,
-                widgetId
+            const response = await this.client.http.authedRequest<WidgetApiResponse>(
+                Method.Put,
+                `/widgets/${encodeURIComponent(widgetId)}`,
+                undefined,
+                {
+                    url: updatedWidget.url,
+                    name: updatedWidget.name,
+                    data: updatedWidget.data,
+                },
+                { prefix: "/_matrix/client/v1" },
             );
 
-            this.widgets.get(roomId)!.set(widgetId, updatedWidget);
-            this.emit(WidgetEvent.WidgetUpdated, roomId, updatedWidget);
+            const finalWidget = this.toIWidget(response.widget, roomId);
 
-            return updatedWidget;
-        } catch (error) {
-            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error as Error);
+            this.widgets.get(roomId)!.set(widgetId, finalWidget);
+            this.emit(WidgetEvent.WidgetUpdated, roomId, finalWidget);
+
+            return finalWidget;
+        } catch (e) {
+            const error = this.normalizeError(e, "updateWidget");
+            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
             throw error;
         }
     }
 
-    async getWidget(roomId: string, widgetId: string): Promise<IWidget | null> {
+    /**
+     * Get a widget by room and widget ID
+     * First checks cache, then fetches from backend
+     */
+    async getWidgetById(roomId: string, widgetId: string): Promise<IWidget | null> {
         const roomWidgets = this.widgets.get(roomId);
         if (roomWidgets && roomWidgets.has(widgetId)) {
             return roomWidgets.get(widgetId) || null;
         }
 
         await this.getRoomWidgets(roomId);
-        
+
         const widgets = this.widgets.get(roomId);
         return widgets?.get(widgetId) || null;
     }
 
-    async checkWidgetPermission(
-        roomId: string,
-        widgetId: string,
-        permissions: string[]
-    ): Promise<boolean> {
+    async checkWidgetPermission(roomId: string, widgetId: string, permissions: string[]): Promise<boolean> {
         const permissionKey = `${roomId}:${widgetId}`;
         const existing = this.permissions.get(permissionKey);
 
         if (existing && existing.granted) {
-            const hasAll = permissions.every(p => existing.permissions.includes(p));
+            const hasAll = permissions.every((p) => existing.permissions.includes(p));
             if (hasAll) {
                 return true;
             }
         }
 
         this.emit(WidgetEvent.PermissionRequested, widgetId, permissions);
-        
+
         return false;
     }
 
-    async grantWidgetPermission(
-        roomId: string,
-        widgetId: string,
-        permissions: string[]
-    ): Promise<void> {
+    async grantWidgetPermission(roomId: string, widgetId: string, permissions: string[]): Promise<void> {
         const permissionKey = `${roomId}:${widgetId}`;
-        
+
         const permission: IWidgetPermission = {
             widgetId,
             roomId,
@@ -308,13 +510,9 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
         this.emit(WidgetEvent.PermissionGranted, widgetId, permissions);
     }
 
-    async denyWidgetPermission(
-        roomId: string,
-        widgetId: string,
-        permissions: string[]
-    ): Promise<void> {
+    async denyWidgetPermission(roomId: string, widgetId: string, permissions: string[]): Promise<void> {
         const permissionKey = `${roomId}:${widgetId}`;
-        
+
         const permission: IWidgetPermission = {
             widgetId,
             roomId,
@@ -333,24 +531,22 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
                 `/rooms/${roomId}/widgets/${widgetId}/capabilities`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: "/_matrix/client/v1" },
             );
 
             return {
                 capabilities: response.capabilities || [],
             };
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('WidgetManager.getWidgetCapabilities failed:', e);
+            const error = this.normalizeError(e, "getWidgetCapabilities");
+            logger.warn("WidgetManager.getWidgetCapabilities failed:", error);
             return { capabilities: [] };
         }
     }
 
-    async sendWidgetMessage(
-        roomId: string,
-        widgetId: string,
-        message: WidgetMessage
-    ): Promise<WidgetMessageResponse> {
-        const requestId = message.requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    async sendWidgetMessage(roomId: string, widgetId: string, message: WidgetMessage): Promise<WidgetMessageResponse> {
+        const requestId = message.requestId || `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
         try {
             const response = await this.client.http.authedRequest<Record<string, unknown>>(
@@ -361,7 +557,7 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
                     ...message,
                     request_id: requestId,
                 },
-                { prefix: ClientPrefix.V3 }
+                { prefix: "/_matrix/client/v1" },
             );
 
             return {
@@ -369,61 +565,390 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
                 response: response,
             };
         } catch (e: unknown) {
-            const error = e as Error & { errcode?: string };
+            const error = this.normalizeError(e, "sendWidgetMessage");
             return {
                 requestId,
                 error: {
-                    message: error.message || 'Unknown error',
-                    code: error.errcode,
+                    message: error.message || "Unknown error",
+                    code: (error as { errcode?: string }).errcode,
                 },
             };
         }
     }
 
-    async navigateWidget(
-        roomId: string,
-        widgetId: string,
-        url: string
-    ): Promise<void> {
+    async navigateWidget(roomId: string, widgetId: string, url: string): Promise<void> {
         await this.sendWidgetMessage(roomId, widgetId, {
-            api: 'widget',
-            action: 'navigate',
+            api: "widget",
+            action: "navigate",
             data: { url },
         });
     }
 
-    async openWidgetURL(
-        roomId: string,
-        widgetId: string,
-        options?: WidgetOpenURLOptions
-    ): Promise<void> {
-        const widget = await this.getWidget(roomId, widgetId);
+    async openWidgetURL(roomId: string, widgetId: string, options?: WidgetOpenURLOptions): Promise<void> {
+        const widget = await this.getWidgetById(roomId, widgetId);
         if (!widget) {
             throw new Error(`Widget ${widgetId} not found`);
         }
 
         if (options?.useIframe) {
-            const iframe = document.createElement('iframe');
+            const iframe = document.createElement("iframe");
             iframe.src = widget.url;
             iframe.width = String(options.width || 400);
             iframe.height = String(options.height || 300);
             iframe.title = options.title || widget.name;
             document.body.appendChild(iframe);
         } else {
-            window.open(widget.url, '_blank', 'noopener,noreferrer');
+            window.open(widget.url, "_blank", "noopener,noreferrer");
+        }
+    }
+
+    /**
+     * 获取小组件配置
+     * GET /_matrix/client/v1/widgets/{widget_id}/config
+     *
+     * @param widgetId - 小组件 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 小组件配置信息
+     */
+    async getWidgetConfig(widgetId: string, throwOnError = false): Promise<WidgetConfigResponse | null> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<WidgetConfigResponse>(
+                Method.Get,
+                `/widgets/${encodeURIComponent(widgetId)}/config`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "getWidgetConfig");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.getWidgetConfig failed for ${widgetId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取 Jitsi 视频会议配置
+     * GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns Jitsi 会议配置
+     */
+    async getJitsiConfig(roomId: string, throwOnError = false): Promise<JitsiConfigResponse | null> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<JitsiConfigResponse>(
+                Method.Get,
+                `/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "getJitsiConfig");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.getJitsiConfig failed for room ${roomId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取小组件的所有权限列表
+     * GET /_matrix/client/v1/widgets/{widget_id}/permissions
+     *
+     * @param widgetId - 小组件 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 权限列表
+     */
+    async getWidgetPermissions(widgetId: string, throwOnError = false): Promise<WidgetPermissionsResponse | null> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<WidgetPermissionsResponse>(
+                Method.Get,
+                `/widgets/${encodeURIComponent(widgetId)}/permissions`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "getWidgetPermissions");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.getWidgetPermissions failed for ${widgetId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 设置小组件权限
+     * POST /_matrix/client/v1/widgets/{widget_id}/permissions
+     *
+     * @param widgetId - 小组件 ID
+     * @param userId - 用户 ID
+     * @param permissions - 权限列表
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 设置结果
+     */
+    async setWidgetPermission(
+        widgetId: string,
+        userId: string,
+        permissions: string[],
+        throwOnError = false,
+    ): Promise<SetPermissionResponse | null> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<SetPermissionResponse>(
+                Method.Post,
+                `/widgets/${encodeURIComponent(widgetId)}/permissions`,
+                undefined,
+                {
+                    user_id: userId,
+                    permissions,
+                },
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "setWidgetPermission");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.setWidgetPermission failed for ${widgetId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 删除小组件权限
+     * DELETE /_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}
+     *
+     * @param widgetId - 小组件 ID
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 删除结果
+     */
+    async deleteWidgetPermission(widgetId: string, userId: string, throwOnError = false): Promise<boolean> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<{ deleted: boolean }>(
+                Method.Delete,
+                `/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response.deleted ?? false;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "deleteWidgetPermission");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.deleteWidgetPermission failed for ${widgetId}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * 创建小组件会话
+     * POST /_matrix/client/v1/widgets/{widget_id}/sessions
+     *
+     * @param widgetId - 小组件 ID
+     * @param options - 会话选项（可选）
+     * @param options.deviceId - 设备 ID（可选）
+     * @param options.expiresInMs - 过期时间（毫秒，可选）
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 创建的会话信息
+     */
+    async createWidgetSession(
+        widgetId: string,
+        options?: { deviceId?: string; expiresInMs?: number },
+        throwOnError = false,
+    ): Promise<SessionApiData | null> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<SessionResponse>(
+                Method.Post,
+                `/widgets/${encodeURIComponent(widgetId)}/sessions`,
+                undefined,
+                {
+                    widget_id: widgetId,
+                    device_id: options?.deviceId ?? null,
+                    expires_in_ms: options?.expiresInMs ?? null,
+                },
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response.session;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "createWidgetSession");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.createWidgetSession failed for ${widgetId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取小组件的所有会话列表
+     * GET /_matrix/client/v1/widgets/{widget_id}/sessions
+     *
+     * @param widgetId - 小组件 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 会话列表
+     */
+    async getWidgetSessions(widgetId: string, throwOnError = false): Promise<SessionApiData[]> {
+        if (!widgetId) {
+            throw new Error("Widget ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<SessionListResponse>(
+                Method.Get,
+                `/widgets/${encodeURIComponent(widgetId)}/sessions`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response.sessions ?? [];
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "getWidgetSessions");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.getWidgetSessions failed for ${widgetId}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * 获取单个小组件会话
+     * GET /_matrix/client/v1/widgets/sessions/{session_id}
+     *
+     * @param sessionId - 会话 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 会话详情
+     */
+    async getWidgetSession(sessionId: string, throwOnError = false): Promise<SessionApiData | null> {
+        if (!sessionId) {
+            throw new Error("Session ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<SessionResponse>(
+                Method.Get,
+                `/widgets/sessions/${encodeURIComponent(sessionId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response.session;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "getWidgetSession");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.getWidgetSession failed for ${sessionId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * 终止小组件会话
+     * DELETE /_matrix/client/v1/widgets/sessions/{session_id}
+     *
+     * @param sessionId - 会话 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 是否成功终止
+     */
+    async terminateWidgetSession(sessionId: string, throwOnError = false): Promise<boolean> {
+        if (!sessionId) {
+            throw new Error("Session ID is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<{ terminated: boolean }>(
+                Method.Delete,
+                `/widgets/sessions/${encodeURIComponent(sessionId)}`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+
+            return response.terminated ?? false;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
+        } catch (e) {
+            const error = this.normalizeError(e, "terminateWidgetSession");
+            if (throwOnError) {
+                throw error;
+            }
+            logger.warn(`WidgetManager.terminateWidgetSession failed for ${sessionId}:`, error);
+            return false;
         }
     }
 
     async validateWidgetURL(url: string): Promise<boolean> {
         try {
             const parsedUrl = new URL(url);
-            
-            const allowedSchemes = ['http:', 'https:'];
+
+            const allowedSchemes = ["http:", "https:"];
             if (!allowedSchemes.includes(parsedUrl.protocol)) {
                 return false;
             }
 
             return true;
+            // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch {
             return false;
         }
@@ -441,7 +966,7 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
 
     clearRoomWidgets(roomId: string): void {
         this.widgets.delete(roomId);
-        
+
         for (const [key, permission] of this.permissions.entries()) {
             if (permission.roomId === roomId) {
                 this.permissions.delete(key);
@@ -455,7 +980,8 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
             try {
                 await this.getRoomWidgets(room.roomId);
             } catch (e) {
-                logger.warn(`Failed to load widgets for room ${room.roomId}:`, e);
+                const error = this.normalizeError(e, "start");
+                logger.warn(`Failed to load widgets for room ${room.roomId}:`, error);
             }
         }
     }
@@ -466,3 +992,17 @@ export class WidgetManager extends TypedEventEmitter<WidgetEvent, WidgetManagerE
         this.pendingRequests.clear();
     }
 }
+
+declare module "../client.ts" {
+    interface MatrixClient {
+        getWidgetManager(): WidgetManager;
+    }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getWidgetManager = function (): WidgetManager {
+        return getOrCreateManager(this, "widget", () => new WidgetManager(this));
+    };
+}
+
+export default extendMatrixClient;

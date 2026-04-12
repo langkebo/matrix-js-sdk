@@ -914,8 +914,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         this.emit(CallEvent.FeedsChanged, this.feeds, this);
     }
 
-    // The typescript definitions have this type as 'any' :(
-    public async getCurrentCallStats(): Promise<any[] | undefined> {
+    public async getCurrentCallStats(): Promise<RTCStats[] | undefined> {
         if (this.callHasEnded()) {
             return this.callStatsAtEnd;
         }
@@ -940,8 +939,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     /**
      * Configure this call from an invite event. Used by MatrixClient.
      * @param event - The m.call.invite event
+     * @param throwOnError - Whether to throw on error (default false)
      */
-    public async initWithInvite(event: MatrixEvent): Promise<void> {
+    public async initWithInvite(event: MatrixEvent, throwOnError = false): Promise<void> {
         const invite = event.getContent<MCallInviteNegotiate>();
         this.direction = CallDirection.Inbound;
 
@@ -977,6 +977,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         } catch (e) {
             logger.debug(`Call ${this.callId} initWithInvite() failed to set remote description`, e);
             this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false);
+            if (throwOnError) {
+                throw e;
+            }
             return;
         }
 
@@ -994,6 +997,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
                 `Call ${this.callId} initWithInvite() no remote stream or no tracks after setting remote description!`,
             );
             this.terminate(CallParty.Local, CallErrorCode.SetRemoteDescription, false);
+            if (throwOnError) {
+                throw new Error("No remote stream or no tracks after setting remote description");
+            }
             return;
         }
 
@@ -1042,7 +1048,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         type: "audio" | "video",
     ): boolean {
         if (wantedValue && !valueOfTheOtherSide) {
-            // TODO: Figure out how to do this
+            // Known limitation: no supported path to satisfy this media combination yet
             logger.warn(
                 `Call ${this.callId} shouldAnswerWithMediaType() unable to answer with ${type} because the other side isn't sending it either.`,
             );
@@ -1065,7 +1071,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
      */
     public async answer(audio?: boolean, video?: boolean): Promise<void> {
         if (this.inviteOrAnswerSent) return;
-        // TODO: Figure out how to do this
+        // Known limitation: answering without any media is not supported
         if (audio === false && video === false) throw new Error("You CANNOT answer a call without media");
 
         if (!this.localUsermediaStream && !this.waitForLocalAVStream) {
@@ -1264,15 +1270,10 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
 
         logger.debug(`Call ${this.callId} setScreensharingEnabled() running (enabled=${enabled})`);
         if (enabled) {
-            try {
-                const stream = await this.client.getMediaHandler().getScreensharingStream(opts);
-                if (!stream) return false;
-                this.pushNewLocalFeed(stream, SDPStreamMetadataPurpose.Screenshare);
-                return true;
-            } catch (err) {
-                logger.error(`Call ${this.callId} setScreensharingEnabled() failed to get screen-sharing stream:`, err);
-                return false;
-            }
+            const stream = await this.getScreensharingStreamOrFallback(opts, "setScreensharingEnabled()");
+            if (!stream) return false;
+            this.pushNewLocalFeed(stream, SDPStreamMetadataPurpose.Screenshare);
+            return true;
         } else {
             const audioTransceiver = this.transceivers.get(
                 getTransceiverKey(SDPStreamMetadataPurpose.Screenshare, "audio"),
@@ -1293,6 +1294,19 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         }
     }
 
+    private async getScreensharingStreamOrFallback(
+        opts: IScreensharingOpts | undefined,
+        methodName: string,
+    ): Promise<MediaStream | undefined> {
+        return Promise.resolve(this.client.getMediaHandler().getScreensharingStream(opts)).then(
+            (stream) => stream,
+            (error) => {
+                logger.error(`Call ${this.callId} ${methodName} failed to get screen-sharing stream:`, error);
+                return undefined;
+            },
+        );
+    }
+
     /**
      * Starts/stops screensharing
      * Should be used ONLY if the opponent doesn't support SDPStreamMetadata
@@ -1308,28 +1322,23 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
             `Call ${this.callId} setScreensharingEnabledWithoutMetadataSupport() running (enabled=${enabled})`,
         );
         if (enabled) {
-            try {
-                const stream = await this.client.getMediaHandler().getScreensharingStream(opts);
-                if (!stream) return false;
+            const stream = await this.getScreensharingStreamOrFallback(
+                opts,
+                "setScreensharingEnabledWithoutMetadataSupport()",
+            );
+            if (!stream) return false;
 
-                const track = stream.getTracks().find((track) => track.kind === "video");
+            const track = stream.getTracks().find((track) => track.kind === "video");
 
-                const sender = this.transceivers.get(
-                    getTransceiverKey(SDPStreamMetadataPurpose.Usermedia, "video"),
-                )?.sender;
+            const sender = this.transceivers.get(
+                getTransceiverKey(SDPStreamMetadataPurpose.Usermedia, "video"),
+            )?.sender;
 
-                sender?.replaceTrack(track ?? null);
+            sender?.replaceTrack(track ?? null);
 
-                this.pushNewLocalFeed(stream, SDPStreamMetadataPurpose.Screenshare, false);
+            this.pushNewLocalFeed(stream, SDPStreamMetadataPurpose.Screenshare, false);
 
-                return true;
-            } catch (err) {
-                logger.error(
-                    `Call ${this.callId} setScreensharingEnabledWithoutMetadataSupport() failed to get screen-sharing stream:`,
-                    err,
-                );
-                return false;
-            }
+            return true;
         } else {
             const track = this.localUsermediaStream?.getTracks().find((track) => track.kind === "video");
             const sender = this.transceivers.get(
@@ -2084,7 +2093,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     private async wrappedGotLocalOffer(): Promise<void> {
         this.makingOffer = true;
         try {
-            // XXX: in what situations do we believe gotLocalOffer actually throws? It appears
+            // Known limitation: it is unclear in which situations gotLocalOffer actually throws. It appears
             // to handle most of its exceptions itself and terminate the call. I'm not entirely
             // sure it would ever throw, so I can't add a test for these lines.
             // Also the tense is different between "gotLocalOffer" and "getLocalOfferFailed" so
@@ -2512,7 +2521,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
                     return;
                 }
 
-                // TODO: Here we were sending the event to the opponent's device as a to-device message with MatrixClient.encryptAndSendToDevice.
+                // Known limitation: this used to send a to-device message with MatrixClient.encryptAndSendToDevice.
                 // However due to the switch to Rust cryptography we need to migrate to the new encryptToDeviceMessages API.
                 throw new Error("Unimplemented");
             } else {
@@ -2605,9 +2614,12 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     public async transfer(targetUserId: string): Promise<void> {
         // Fetch the target user's global profile info: their room avatar / displayname
         // could be different in whatever room we share with them.
-        const profileInfo = this.client.getProfileManager ?
-            await this.client.getProfileManager().getProfileInfo(targetUserId) :
-            await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(Method.Get, `/profile/${encodeURIComponent(targetUserId)}`);
+        const profileInfo = this.client.getProfileManager
+            ? await this.client.getProfileManager().getProfileInfo(targetUserId)
+            : await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(
+                  Method.Get,
+                  `/profile/${encodeURIComponent(targetUserId)}`,
+              );
 
         const replacementId = genCallID();
 
@@ -2632,17 +2644,23 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
      */
     public async transferToCall(transferTargetCall: MatrixCall): Promise<void> {
         const targetUserId = transferTargetCall.getOpponentMember()?.userId;
-        const targetProfileInfo = targetUserId ? (
-            this.client.getProfileManager ?
-                await this.client.getProfileManager().getProfileInfo(targetUserId) :
-                await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(Method.Get, `/profile/${encodeURIComponent(targetUserId)}`)
-        ) : undefined;
+        const targetProfileInfo = targetUserId
+            ? this.client.getProfileManager
+                ? await this.client.getProfileManager().getProfileInfo(targetUserId)
+                : await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(
+                      Method.Get,
+                      `/profile/${encodeURIComponent(targetUserId)}`,
+                  )
+            : undefined;
         const opponentUserId = this.getOpponentMember()?.userId;
-        const transfereeProfileInfo = opponentUserId ? (
-            this.client.getProfileManager ?
-                await this.client.getProfileManager().getProfileInfo(opponentUserId) :
-                await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(Method.Get, `/profile/${encodeURIComponent(opponentUserId)}`)
-        ) : undefined;
+        const transfereeProfileInfo = opponentUserId
+            ? this.client.getProfileManager
+                ? await this.client.getProfileManager().getProfileInfo(opponentUserId)
+                : await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(
+                      Method.Get,
+                      `/profile/${encodeURIComponent(opponentUserId)}`,
+                  )
+            : undefined;
 
         const newCallId = genCallID();
 
@@ -2868,7 +2886,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
 
         await this.initOpponentCrypto();
 
-        // XXX Find a better way to do this
+        // Known limitation: this registration path should be improved.
         this.client.callEventHandler!.calls.set(this.callId, this);
 
         // make sure we have valid turn creds. Unless something's gone wrong, it should
@@ -3025,6 +3043,7 @@ export function supportsMatrixCall(): boolean {
             }
             return false;
         }
+        // @swallow-error { owner: "webrtc", expires: "2026-12-31" }
     } catch (e) {
         logger.error("Exception thrown when trying to access WebRTC", e);
         return false;

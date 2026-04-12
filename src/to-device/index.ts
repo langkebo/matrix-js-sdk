@@ -16,10 +16,10 @@ limitations under the License.
 
 /**
  * To-Device Manager - 设备消息管理
- * 
+ *
  * 提供设备间消息发送功能
  * 对应后端: synapse-rust/src/web/routes/e2ee_routes.rs
- * 
+ *
  * 后端端点:
  * - PUT /sendToDevice/{event_type}/{transaction_id}
  */
@@ -30,6 +30,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
+import { BaseManager } from "../managers/base-manager.ts";
 
 export interface ToDeviceMessage {
     [userId: string]: {
@@ -47,13 +48,12 @@ export interface ToDeviceResult {
     failures?: Record<string, Record<string, { error: string }>>;
 }
 
-export class ToDeviceManager {
-    private client: MatrixClient;
+export class ToDeviceManager extends BaseManager {
     private txnId = 0;
     private readonly maxRetries = 3;
     private readonly retryDelay = 1000;
 
-    private requestStats = {
+    private toDeviceRequestStats = {
         total: 0,
         successful: 0,
         failed: 0,
@@ -61,34 +61,30 @@ export class ToDeviceManager {
     };
 
     constructor(client: MatrixClient) {
-        this.client = client;
+        super(client);
     }
 
     /**
      * 发送设备间消息
      * PUT /_matrix/client/v3/sendToDevice/{event_type}/{txnId}
      */
-    async sendToDevice(
-        eventType: string,
-        messages: ToDeviceMessage,
-        txnId?: string
-    ): Promise<ToDeviceResult> {
+    async sendToDevice(eventType: string, messages: ToDeviceMessage, txnId?: string): Promise<ToDeviceResult> {
         const transactionId = txnId ?? this.makeTxnId();
 
         try {
-            const result = await this.withRetry(async () => {
+            const result = await this.withRetryInternal(async () => {
                 return await this.client.http.authedRequest<ToDeviceResult>(
                     Method.Put,
                     `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
                     undefined,
                     { messages },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "sendToDevice");
 
             return result;
         } catch (error) {
-            throw this.normalizeError(error, "sendToDevice");
+            throw this.normalizeToDeviceError(error, "sendToDevice");
         }
     }
 
@@ -106,10 +102,10 @@ export class ToDeviceManager {
                 results.push({
                     success: false,
                     failures: {
-                        "_batch": {
-                            "_error": { error: error instanceof Error ? error.message : String(error) }
-                        }
-                    }
+                        _batch: {
+                            _error: { error: error instanceof Error ? error.message : String(error) },
+                        },
+                    },
                 });
             }
         }
@@ -123,7 +119,7 @@ export class ToDeviceManager {
     async sendEncryptedToDevice(
         eventType: string,
         encryptedMessages: ToDeviceMessage,
-        txnId?: string
+        txnId?: string,
     ): Promise<ToDeviceResult> {
         return this.sendToDevice(eventType, encryptedMessages, txnId);
     }
@@ -132,12 +128,12 @@ export class ToDeviceManager {
         return `mjs${Date.now()}${this.txnId++}`;
     }
 
-    getRequestStats(): typeof this.requestStats {
-        return { ...this.requestStats };
+    getRequestStats(): typeof this.toDeviceRequestStats {
+        return { ...this.toDeviceRequestStats };
     }
 
     resetRequestStats(): void {
-        this.requestStats = {
+        this.toDeviceRequestStats = {
             total: 0,
             successful: 0,
             failed: 0,
@@ -145,10 +141,10 @@ export class ToDeviceManager {
         };
     }
 
-    private async withRetry<T>(
+    private async withRetryInternal<T>(
         requestFn: () => Promise<T>,
         method: string,
-        retries = this.maxRetries
+        retries = this.maxRetries,
     ): Promise<T> {
         let lastError: unknown;
         const startTime = Date.now();
@@ -172,82 +168,84 @@ export class ToDeviceManager {
 
                 if (!this.isRetryableError(error)) {
                     this.recordRequest(false, false);
-                    this.emitMetric('api_error', method, {
+                    this.emitMetric("api_error", method, {
                         error: this.getErrorType(error),
                         attempt: attempt + 1,
-                        retryable: false
+                        retryable: false,
                     });
                     throw error;
                 }
 
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`ToDeviceManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
-                        method,
+                    logger.warn(
+                        `ToDeviceManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
+                        {
+                            method,
+                            attempt: attempt + 1,
+                            maxAttempts: retries + 1,
+                            delay,
+                            error: this.getErrorType(error),
+                        },
+                    );
+
+                    this.emitMetric("api_retry", method, {
                         attempt: attempt + 1,
-                        maxAttempts: retries + 1,
                         delay,
                         error: this.getErrorType(error),
                     });
 
-                    this.emitMetric('api_retry', method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error)
-                    });
-
-                    await this.sleep(delay);
+                    await this.sleepInternal(delay);
                 }
             }
         }
 
         this.recordRequest(false, true);
         const duration = Date.now() - startTime;
-        this.emitMetric('api_failure', method, {
+        this.emitMetric("api_failure", method, {
             attempts: retries + 1,
             duration,
-            error: this.getErrorType(lastError)
+            error: this.getErrorType(lastError),
         });
 
         throw lastError;
     }
 
     private recordRequest(success: boolean, retried: boolean): void {
-        this.requestStats.total++;
+        this.toDeviceRequestStats.total++;
         if (success) {
-            this.requestStats.successful++;
+            this.toDeviceRequestStats.successful++;
         } else {
-            this.requestStats.failed++;
+            this.toDeviceRequestStats.failed++;
         }
         if (retried) {
-            this.requestStats.retried++;
+            this.toDeviceRequestStats.retried++;
         }
     }
 
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            const retryableCodes = [
-                "M_LIMIT_EXCEEDED",
-                "M_SERVER_UNAVAILABLE",
-            ];
+            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
             const retryableStatus = [429, 500, 502, 503, 504];
-            return (
-                retryableCodes.includes(error.errcode ?? "") ||
-                retryableStatus.includes(error.httpStatus ?? 0)
-            );
+            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
         }
         return false;
     }
 
-    private normalizeError(error: unknown, method: string): SdkError {
+    private normalizeToDeviceError(error: unknown, method: string): SdkError {
         const err = error as Error;
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`ToDeviceManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`ToDeviceManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            return new ApiError(`ToDeviceManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
+            return new ApiError(
+                `ToDeviceManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error.errcode ?? "UNKNOWN",
+                error.httpStatus ?? 0,
+                error,
+            );
         }
-        return new ApiError(`ToDeviceManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        return new ApiError(`ToDeviceManager.${method} failed: ${err?.message ?? String(error)}`, "UNKNOWN", 0, error);
     }
 
     private getErrorType(error: unknown): string {
@@ -268,8 +266,8 @@ export class ToDeviceManager {
         }
     }
 
-    private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    private sleepInternal(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

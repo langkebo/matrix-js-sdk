@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-import { PushManager, PushEvent, IPusher, IPushRules } from "../../src/push/index";
+import { PushManager, PushEvent } from "../../src/push/index";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
 import { PushRuleKind, PushRuleActionName, TweakName } from "../../src/@types/PushRules";
@@ -98,22 +98,18 @@ describe("PushManager", () => {
             const pushers = await pushManager.getPushers();
             expect(pushers).toHaveLength(1);
             expect(pushers[0].pushkey).toBe("key1");
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/pushers",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" }
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/pushers", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
 
         it("should emit PushersUpdated event", async () => {
             const listener = vi.fn();
             pushManager.on(PushEvent.PushersUpdated, listener);
             await pushManager.getPushers();
-            expect(listener).toHaveBeenCalledWith(expect.arrayContaining([
-                expect.objectContaining({ pushkey: "key1" }),
-            ]));
+            expect(listener).toHaveBeenCalledWith(
+                expect.arrayContaining([expect.objectContaining({ pushkey: "key1" })]),
+            );
         });
 
         it("should throw AuthError on 401", async () => {
@@ -136,8 +132,7 @@ describe("PushManager", () => {
             }
             vi.useFakeTimers();
             const promise = pushManager.getPushers();
-            // Attach catch handler immediately to prevent unhandled rejection
-            const catchPromise = promise.catch(() => {});
+            promise.catch(() => {});
             await vi.runAllTimersAsync();
             vi.useRealTimers();
             await expect(promise).rejects.toThrow(RetryableError);
@@ -160,26 +155,30 @@ describe("PushManager", () => {
                 "/pushers/set",
                 undefined,
                 expect.objectContaining({ pushkey: "new-key" }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
         it("should throw InvalidParamError when pushkey is missing", async () => {
-            await expect(pushManager.setPusher({
-                app_id: "test",
-                app_display_name: "Test",
-                device_display_name: "Device",
-                lang: "en",
-            } as any)).rejects.toThrow(InvalidParamError);
+            await expect(
+                pushManager.setPusher({
+                    app_id: "test",
+                    app_display_name: "Test",
+                    device_display_name: "Device",
+                    lang: "en",
+                } as any),
+            ).rejects.toThrow(InvalidParamError);
         });
 
         it("should throw InvalidParamError when app_id is missing", async () => {
-            await expect(pushManager.setPusher({
-                pushkey: "key",
-                app_display_name: "Test",
-                device_display_name: "Device",
-                lang: "en",
-            } as any)).rejects.toThrow(InvalidParamError);
+            await expect(
+                pushManager.setPusher({
+                    pushkey: "key",
+                    app_display_name: "Test",
+                    device_display_name: "Device",
+                    lang: "en",
+                } as any),
+            ).rejects.toThrow(InvalidParamError);
         });
     });
 
@@ -195,7 +194,7 @@ describe("PushManager", () => {
                     app_id: "com.example.app",
                     kind: null,
                 }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
@@ -244,13 +243,13 @@ describe("PushManager", () => {
 
     describe("getPushRulesByKind", () => {
         it("should get rules by kind", async () => {
-            const rules = await pushManager.getPushRulesByKind("global", PushRuleKind.Override);
+            await pushManager.getPushRulesByKind("global", PushRuleKind.Override);
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "GET",
                 expect.stringContaining("/pushrules/global/"),
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
@@ -278,10 +277,22 @@ describe("PushManager", () => {
             expect(rule).toBeNull();
         });
 
+        it("should throw on 404 when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            await expect(
+                pushManager.getPushRule("global", PushRuleKind.Override, "nonexistent", true),
+            ).rejects.toThrow();
+        });
+
         it("should throw InvalidParamError when parameters are missing", async () => {
             await expect(pushManager.getPushRule("", PushRuleKind.Override, "rule")).rejects.toThrow(InvalidParamError);
             await expect(pushManager.getPushRule("global", "" as any, "rule")).rejects.toThrow(InvalidParamError);
-            await expect(pushManager.getPushRule("global", PushRuleKind.Override, "")).rejects.toThrow(InvalidParamError);
+            await expect(pushManager.getPushRule("global", PushRuleKind.Override, "")).rejects.toThrow(
+                InvalidParamError,
+            );
         });
     });
 
@@ -296,14 +307,16 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/content/keyword"),
                 undefined,
                 expect.objectContaining({ actions: [PushRuleActionName.Notify], pattern: "test" }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
         it("should throw InvalidParamError when actions are missing", async () => {
-            await expect(pushManager.createPushRule("global", PushRuleKind.ContentSpecific, "rule", {
-                actions: [],
-            })).rejects.toThrow(InvalidParamError);
+            await expect(
+                pushManager.createPushRule("global", PushRuleKind.ContentSpecific, "rule", {
+                    actions: [],
+                }),
+            ).rejects.toThrow(InvalidParamError);
         });
     });
 
@@ -317,7 +330,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/override/rule1"),
                 undefined,
                 expect.objectContaining({ actions: [PushRuleActionName.DontNotify] }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -330,7 +343,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/override/rule1"),
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -349,6 +362,16 @@ describe("PushManager", () => {
             const enabled = await pushManager.getPushRuleEnabled("global", PushRuleKind.Override, "nonexistent");
             expect(enabled).toBe(false);
         });
+
+        it("should throw on 404 when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            await expect(
+                pushManager.getPushRuleEnabled("global", PushRuleKind.Override, "nonexistent", true),
+            ).rejects.toThrow();
+        });
     });
 
     describe("setPushRuleEnabled", () => {
@@ -359,7 +382,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/enabled"),
                 undefined,
                 { enabled: false },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -375,12 +398,14 @@ describe("PushManager", () => {
                 expect.stringContaining("/actions"),
                 undefined,
                 { actions: [PushRuleActionName.Notify, { set_tweak: TweakName.Highlight, value: true }] },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
         it("should throw InvalidParamError when actions are empty", async () => {
-            await expect(pushManager.setPushRuleActions("global", PushRuleKind.Override, "rule1", [])).rejects.toThrow(InvalidParamError);
+            await expect(pushManager.setPushRuleActions("global", PushRuleKind.Override, "rule1", [])).rejects.toThrow(
+                InvalidParamError,
+            );
         });
     });
 
@@ -400,7 +425,7 @@ describe("PushManager", () => {
                 "/notifications",
                 { limit: "10", from: "token", only: "highlight" },
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
@@ -413,8 +438,7 @@ describe("PushManager", () => {
             }
             vi.useFakeTimers();
             const promise = pushManager.getNotifications();
-            // Attach catch handler immediately to prevent unhandled rejection
-            const catchPromise = promise.catch(() => {});
+            promise.catch(() => {});
             await vi.runAllTimersAsync();
             vi.useRealTimers();
             await expect(promise).rejects.toThrow(RetryableError);
@@ -429,7 +453,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/notifications/notif123/ack"),
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
@@ -444,6 +468,14 @@ describe("PushManager", () => {
             });
             await expect(pushManager.ackNotification("nonexistent")).resolves.toBeUndefined();
         });
+
+        it("should throw on 404 when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            await expect(pushManager.ackNotification("nonexistent", true)).rejects.toThrow();
+        });
     });
 
     // ==================== Convenience Methods ====================
@@ -456,7 +488,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/room/"),
                 undefined,
                 expect.objectContaining({ actions: ["dont_notify"] }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -469,7 +501,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/room/"),
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -482,7 +514,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/content/important"),
                 undefined,
                 expect.objectContaining({ pattern: "important" }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -495,7 +527,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/content/important"),
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -508,7 +540,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/sender/"),
                 undefined,
                 expect.objectContaining({ actions: ["dont_notify"] }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -521,7 +553,7 @@ describe("PushManager", () => {
                 expect.stringContaining("/pushrules/global/sender/"),
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -586,13 +618,15 @@ describe("PushManager", () => {
                 message: "Not found",
                 httpStatus: 404,
             });
-            await expect(pushManager.setPusher({
-                pushkey: "key",
-                app_id: "app",
-                app_display_name: "Test",
-                device_display_name: "Device",
-                lang: "en",
-            })).rejects.toThrow(NotFoundError);
+            await expect(
+                pushManager.setPusher({
+                    pushkey: "key",
+                    app_id: "app",
+                    app_display_name: "Test",
+                    device_display_name: "Device",
+                    lang: "en",
+                }),
+            ).rejects.toThrow(NotFoundError);
         });
 
         it("should classify other errors as ApiError", async () => {

@@ -124,7 +124,7 @@ export class CrossSigningIdentity {
             }
         }
 
-        // TODO: we might previously have bootstrapped cross-signing but not completed uploading the keys to the
+        // Known limitation: cross-signing may have been bootstrapped previously without completing key upload to the
         //   server -- in which case we should call OlmDevice.bootstrap_cross_signing. How do we know?
         this.logger.debug("bootstrapCrossSigning: complete");
     }
@@ -137,8 +137,12 @@ export class CrossSigningIdentity {
      *   * Upload the private keys to SSSS, if it is set up
      */
     private async resetCrossSigning(authUploadDeviceSigningKeys?: UIAuthCallback<void>): Promise<void> {
-        // XXX: We must find a way to make this atomic, currently if the user does not remember his account password
-        // or 4S passphrase/key the process will fail in a bad state, with keys rotated but not uploaded or saved in 4S.
+        /**
+         * Known limitation: This operation is not atomic. If the user does not remember
+         * their account password or 4S passphrase/key, the process will fail in a bad state
+         * with keys rotated but not uploaded or saved in 4S.
+         * Known limitation: implement atomic cross-signing reset with rollback capability.
+         */
         const outgoingRequests: CrossSigningBootstrapRequests = await this.olmMachine.bootstrapCrossSigning(true);
 
         // If 4S is configured we need to update it.

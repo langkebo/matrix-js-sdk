@@ -417,14 +417,14 @@ async function getAndDecryptCachedSecretKey(
     legacyPickleKey: Uint8Array<ArrayBuffer>,
     name: string,
 ): Promise<string | undefined> {
-    const key = await new Promise<any>((resolve) => {
+    const key = await new Promise<AESEncryptedSecretStoragePayload | Uint8Array | null>((resolve) => {
         legacyStore.doTxn("readonly", [IndexedDBCryptoStore.STORE_ACCOUNT], (txn) => {
             legacyStore.getSecretStorePrivateKey(txn, resolve, name as keyof SecretStorePrivateKeys);
         });
     });
 
-    if (key && key.ciphertext && key.iv && key.mac) {
-        return await decryptAESSecretStorageItem(key as AESEncryptedSecretStoragePayload, legacyPickleKey, name);
+    if (key && !(key instanceof Uint8Array) && key.ciphertext && key.iv && key.mac) {
+        return await decryptAESSecretStorageItem(key, legacyPickleKey, name);
     } else if (key instanceof Uint8Array) {
         // This is a legacy backward compatibility case where the key was stored in clear.
         return encodeBase64(key);

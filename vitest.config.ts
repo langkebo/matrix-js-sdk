@@ -9,7 +9,7 @@ import { defineConfig, type ViteUserConfig } from "vitest/config";
 import { type Reporter } from "vitest/reporters";
 import { env } from "process";
 
-const reporters: ViteUserConfig["test"]["reporters"] = [["default"]];
+const reporters: NonNullable<NonNullable<ViteUserConfig["test"]>["reporters"]> = [["default"]];
 
 const slowTestReporter: Reporter = {
     onTestRunEnd(testModules, unhandledErrors, reason) {
@@ -67,10 +67,6 @@ export default defineConfig({
         setupFiles: "spec/setupTests.ts",
         globals: true,
         pool: "threads",
-        exclude: [
-            "**/node_modules/**",
-            "**/dist/**",
-            "**/spec/integ/real-backend/**",
-        ],
+        exclude: ["**/node_modules/**", "**/dist/**", "**/spec/integ/real-backend/**"],
     },
 });

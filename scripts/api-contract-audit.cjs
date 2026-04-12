@@ -47,7 +47,11 @@ function findVariableInitializer(name, fromNode, sourceFile) {
         if (ts.isObjectBindingPattern(bindingName)) {
             for (const element of bindingName.elements) {
                 if (element.propertyName && ts.isIdentifier(element.name) && element.name.text === name) {
-                    if (initializer && ts.isObjectLiteralExpression(initializer) && ts.isIdentifier(element.propertyName)) {
+                    if (
+                        initializer &&
+                        ts.isObjectLiteralExpression(initializer) &&
+                        ts.isIdentifier(element.propertyName)
+                    ) {
                         for (const property of initializer.properties) {
                             if (!ts.isPropertyAssignment(property)) continue;
                             if (property.name.getText(sourceFile) === element.propertyName.text) {
@@ -225,11 +229,11 @@ function canonicalizeMethod(methodExpr) {
     if (cleaned === "Method.Put" || cleaned.endsWith(".Put")) return "PUT";
     if (cleaned === "Method.Delete" || cleaned.endsWith(".Delete")) return "DELETE";
     if (cleaned === "Method.Patch" || cleaned.endsWith(".Patch")) return "PATCH";
-    if (cleaned === "GET" || cleaned === "'GET'" || cleaned === "\"GET\"") return "GET";
-    if (cleaned === "POST" || cleaned === "'POST'" || cleaned === "\"POST\"") return "POST";
-    if (cleaned === "PUT" || cleaned === "'PUT'" || cleaned === "\"PUT\"") return "PUT";
-    if (cleaned === "DELETE" || cleaned === "'DELETE'" || cleaned === "\"DELETE\"") return "DELETE";
-    if (cleaned === "PATCH" || cleaned === "'PATCH'" || cleaned === "\"PATCH\"") return "PATCH";
+    if (cleaned === "GET" || cleaned === "'GET'" || cleaned === '"GET"') return "GET";
+    if (cleaned === "POST" || cleaned === "'POST'" || cleaned === '"POST"') return "POST";
+    if (cleaned === "PUT" || cleaned === "'PUT'" || cleaned === '"PUT"') return "PUT";
+    if (cleaned === "DELETE" || cleaned === "'DELETE'" || cleaned === '"DELETE"') return "DELETE";
+    if (cleaned === "PATCH" || cleaned === "'PATCH'" || cleaned === '"PATCH"') return "PATCH";
     return methodExpr;
 }
 
@@ -264,7 +268,7 @@ function normalizePathLiteral(text) {
     if (trimmed.length >= 2) {
         const first = trimmed[0];
         const last = trimmed[trimmed.length - 1];
-        if ((first === "`" && last === "`") || (first === "'" && last === "'") || (first === "\"" && last === "\"")) {
+        if ((first === "`" && last === "`") || (first === "'" && last === "'") || (first === '"' && last === '"')) {
             return trimmed.slice(1, -1);
         }
     }
@@ -285,7 +289,10 @@ function expandContractPath(contractPath) {
             paths[idx] = current;
             break;
         }
-        const values = raw.split(",").map((s) => s.trim()).filter(Boolean);
+        const values = raw
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
         const prefix = current.slice(0, match.index);
         const suffix = current.slice(match.index + match[0].length);
         paths.splice(idx, 1, ...values.map((v) => `${prefix}${v}${suffix}`));
@@ -379,13 +386,18 @@ function scanSourceFile(filePath) {
                 for (const method of methods) {
                     for (const requestPath of requestPathVariants) {
                         for (const prefixExpr of prefixExprs) {
-                            const pathIncludesAbsolutePrefix = typeof requestPath === "string" && requestPath.startsWith("/_");
+                            const pathIncludesAbsolutePrefix =
+                                typeof requestPath === "string" && requestPath.startsWith("/_");
                             const prefix = resolvePrefix(prefixExpr);
                             const effectivePrefix =
-                                prefix ?? (callee === "requestOtherUrl" || pathIncludesAbsolutePrefix ? undefined : PREFIX_MAP["ClientPrefix.V3"]);
+                                prefix ??
+                                (callee === "requestOtherUrl" || pathIncludesAbsolutePrefix
+                                    ? undefined
+                                    : PREFIX_MAP["ClientPrefix.V3"]);
                             if (
                                 (effectivePrefix?.startsWith("/_matrix/media/") && requestPath.startsWith("/media/")) ||
-                                (effectivePrefix?.startsWith("/_matrix/identity/") && requestPath.startsWith("/_matrix/identity/"))
+                                (effectivePrefix?.startsWith("/_matrix/identity/") &&
+                                    requestPath.startsWith("/_matrix/identity/"))
                             ) {
                                 continue;
                             }
@@ -436,7 +448,9 @@ function scanDefaultManagerModules() {
 function main() {
     const contractFiles = walk(
         contractsRoot,
-        (filePath) => filePath.endsWith(".md") && !["README.md", "CHANGELOG.md", "VERIFICATION_REPORT.md"].includes(path.basename(filePath)),
+        (filePath) =>
+            filePath.endsWith(".md") &&
+            !["README.md", "CHANGELOG.md", "VERIFICATION_REPORT.md"].includes(path.basename(filePath)),
     );
     const sourceFiles = walk(srcRoot, (filePath) => filePath.endsWith(".ts") || filePath.endsWith(".d.ts"));
 

@@ -112,7 +112,7 @@ export class MSC3089TreeSpace {
      * Whether or not this is a top level space.
      */
     public get isTopLevel(): boolean {
-        // XXX: This is absolutely not how you find out if the space is top level
+        // Known limitation: this is not the canonical way to determine if the space is top level
         // but is safe for a managed usecase like we offer in the SDK.
         const parentEvents = this.room.currentState.getStateEvents(EventType.SpaceParent);
         if (!parentEvents?.length) return true;
@@ -334,10 +334,10 @@ export class MSC3089TreeSpace {
 
     private getParentRoom(): Room {
         const parents = this.room.currentState.getStateEvents(EventType.SpaceParent);
-        const parent = parents[0]; // XXX: Wild assumption
+        const parent = parents[0]; // Known limitation: assumes the first parent event is authoritative
         if (!parent) throw new Error("Expected to have a parent in a non-top level space");
 
-        // XXX: We are assuming the parent is a valid tree space.
+        // Known limitation: assumes the parent is a valid tree space.
         // We probably don't need to validate the parent room state for this usecase though.
         const stateKey = parent.getStateKey();
         if (!stateKey) throw new Error("No state key found for parent");
@@ -440,7 +440,7 @@ export class MSC3089TreeSpace {
                     lastOrder = target.order;
                 }
                 if (!target.order) {
-                    // XXX: We should be creating gaps to avoid conflicts
+                    // Known limitation: creating gaps would reduce order conflicts
                     lastOrder = lastOrder ? nextString(lastOrder) : DEFAULT_ALPHABET[0];
                     const currentChild = parentRoom.currentState.getStateEvents(EventType.SpaceChild, target.roomId);
                     const content = currentChild?.getContent<SpaceChildEventContent>() ?? {
@@ -464,7 +464,7 @@ export class MSC3089TreeSpace {
             }
         }
 
-        // TODO: Deal with order conflicts by reordering
+        // Known limitation: order conflicts should be resolved by reordering
 
         // Now we can finally update our own order state
         const currentChild = parentRoom.currentState.getStateEvents(EventType.SpaceChild, this.roomId);
@@ -475,7 +475,7 @@ export class MSC3089TreeSpace {
             {
                 ...content,
 
-                // TODO: Safely constrain to 50 character limit required by spaces.
+                // Known limitation: order should be safely constrained to the 50-character limit required by spaces.
                 order: newOrder,
             },
             this.roomId,

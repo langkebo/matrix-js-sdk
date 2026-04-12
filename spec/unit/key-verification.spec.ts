@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { KeyVerificationManager } from "../../src/key-verification/index";
-import {
-    extendMatrixClientWithManagers,
-    resetManagerExtensions,
-} from "../../src/manager-extensions/index";
+import { extendMatrixClientWithManagers, resetManagerExtensions } from "../../src/manager-extensions/index";
 import { MatrixClient } from "../../src/client";
 
 describe("KeyVerificationManager", () => {
@@ -19,7 +16,9 @@ describe("KeyVerificationManager", () => {
             sendDeviceSigningVerificationKeyAgreement: vi
                 .fn()
                 .mockResolvedValue({ transaction_id: "txn-key", confirmed: false }),
-            confirmDeviceSigningVerificationMac: vi.fn().mockResolvedValue({ transaction_id: "txn-mac", verified: true }),
+            confirmDeviceSigningVerificationMac: vi
+                .fn()
+                .mockResolvedValue({ transaction_id: "txn-mac", verified: true }),
             completeDeviceSigningVerification: vi.fn().mockResolvedValue({ transaction_id: "txn-done" }),
             cancelDeviceSigningVerification: vi.fn().mockResolvedValue({
                 transaction_id: "txn-cancel",

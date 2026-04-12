@@ -218,13 +218,13 @@ export class GroupCallEventHandler {
                 if (content["m.terminated"] || event.isRedacted()) {
                     currentGroupCall.terminate(false);
                 } else if (content["m.type"] !== currentGroupCall.type) {
-                    // TODO: Handle the callType changing when the room state changes
+                    // Known limitation: call type changes from room state are not handled.
                     logger.warn(
                         `GroupCallEventHandler onRoomStateChanged() currently does not support changing type (roomId=${state.roomId})`,
                     );
                 }
             } else if (currentGroupCall && currentGroupCall.groupCallId !== groupCallId) {
-                // TODO: Handle new group calls and multiple group calls
+                // Known limitation: additional concurrent group calls are not handled.
                 logger.warn(
                     `GroupCallEventHandler onRoomStateChanged() currently does not support multiple calls (roomId=${state.roomId})`,
                 );

@@ -17,7 +17,7 @@ limitations under the License.
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
 import { Device, DeviceVerification } from "../models/device.ts";
-import { type DeviceKeys } from "../client.ts";
+import type { DeviceKeys } from "../client-api-types.ts";
 
 /**
  * Convert a {@link RustSdkCryptoJs.Device} to a {@link Device}
@@ -106,7 +106,7 @@ type QueryDevice = DeviceKeys[keyof DeviceKeys];
  * @internal
  */
 export function downloadDeviceToJsDevice(device: QueryDevice): Device {
-    const keys = new Map(Object.entries(device.keys));
+    const keys = new Map<string, string>(Object.entries(device.keys));
     const displayName = device.unsigned?.device_display_name;
 
     const signatures = new Map<string, Map<string, string>>();

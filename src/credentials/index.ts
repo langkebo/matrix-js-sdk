@@ -16,55 +16,50 @@ limitations under the License.
 
 /**
  * Credentials Manager - 凭证管理
- * 
+ *
  * 提供用户凭证相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class CredentialsManager {
-    constructor(private client: MatrixClient) {}
+export interface CredentialsInfo {
+    userId: string | null;
+    deviceId: string | null;
+    baseUrl: string;
+    identityServer?: string;
+}
 
-    /**
-     * Get user id
-     */
+export interface CredentialsManagerEvents {
+    credentials_changed: { userId: string | null };
+    logged_in: { userId: string };
+    logged_out: void;
+}
+
+export class CredentialsManager extends BaseManager<keyof CredentialsManagerEvents, CredentialsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getUserId(): string | null {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).credentials?.userId || null;
+        return this.client.credentials.userId || null;
     }
 
-    /**
-     * Get device id
-     */
     public getDeviceId(): string | null {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).deviceId;
+        return this.client.deviceId;
     }
 
-    /**
-     * Get access token
-     */
-    public getAccessToken(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAccessToken();
+    public getAccessToken(): string | null {
+        return this.client.getAccessToken();
     }
 
-    /**
-     * Get base url
-     */
     public getBaseUrl(): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).baseUrl;
+        return this.client.baseUrl;
     }
 
-    /**
-     * Get homeserver name
-     */
     public getHomeserverName(): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const baseUrl = (this.client as any).baseUrl;
+        const baseUrl = this.client.baseUrl;
         if (!baseUrl) return "";
-        // Extract hostname from URL like "http://localhost:8008"
         try {
             const url = new URL(baseUrl);
             return url.hostname;
@@ -73,25 +68,24 @@ export class CredentialsManager {
         }
     }
 
-    /**
-     * Get identity server
-     */
     public getIdentityServer(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const url = (this.client as any).getIdentityServerUrl?.();
-        return url;
+        return this.client.getIdentityServerUrl();
     }
 
-    /**
-     * Is logged in
-     */
     public isLoggedIn(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return !!((this.client as any).credentials?.userId);
+        return !!this.client.credentials.userId;
+    }
+
+    public getCredentialsInfo(): CredentialsInfo {
+        return {
+            userId: this.getUserId(),
+            deviceId: this.getDeviceId(),
+            baseUrl: this.getBaseUrl(),
+            identityServer: this.getIdentityServer(),
+        };
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCredentialsManager(): CredentialsManager;

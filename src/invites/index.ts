@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,12 +16,13 @@ limitations under the License.
 
 /**
  * Invites Manager - 邀请管理
- * 
+ *
  * 提供邀请相关功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IInviteEvent {
     roomId: string;
@@ -34,47 +35,82 @@ export interface IInviteResponse {
     room_id: string;
 }
 
-export class InvitesManager {
-    constructor(private client: MatrixClient) {}
+export interface InvitesManagerEvents {
+    invite_received: { roomId: string; sender: string };
+    invite_accepted: { roomId: string };
+    invite_declined: { roomId: string };
+}
+
+export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, InvitesManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async inviteByThreePid(medium: string, address: string, roomId: string): Promise<IInviteResponse> {
-        return (this.client as unknown as {
-            inviteByThreePid: (medium: string, address: string, roomId: string) => Promise<IInviteResponse>;
-        }).inviteByThreePid(medium, address, roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        inviteByThreePid: (medium: string, address: string, roomId: string) => Promise<IInviteResponse>;
+                    }
+                ).inviteByThreePid(medium, address, roomId),
+            "inviteByThreePid",
+        );
     }
 
     public async inviteUserToRoom(userId: string, roomId: string): Promise<IInviteResponse> {
-        return (this.client as unknown as {
-            inviteUserToRoom: (userId: string, roomId: string) => Promise<IInviteResponse>;
-        }).inviteUserToRoom(userId, roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        inviteUserToRoom: (userId: string, roomId: string) => Promise<IInviteResponse>;
+                    }
+                ).inviteUserToRoom(userId, roomId),
+            "inviteUserToRoom",
+        );
     }
 
     public getInviteEvents(): IInviteEvent[] {
-        return (this.client as unknown as {
-            getInviteEvents: () => IInviteEvent[];
-        }).getInviteEvents();
+        return (
+            this.client as unknown as {
+                getInviteEvents: () => IInviteEvent[];
+            }
+        ).getInviteEvents();
     }
 
     public hasInvite(roomId: string): boolean {
-        return (this.client as unknown as {
-            hasInvite: (roomId: string) => boolean;
-        }).hasInvite(roomId);
+        return (
+            this.client as unknown as {
+                hasInvite: (roomId: string) => boolean;
+            }
+        ).hasInvite(roomId);
     }
 
     public async acceptInvite(roomId: string): Promise<IInviteResponse> {
-        return (this.client as unknown as {
-            acceptInvite: (roomId: string) => Promise<IInviteResponse>;
-        }).acceptInvite(roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        acceptInvite: (roomId: string) => Promise<IInviteResponse>;
+                    }
+                ).acceptInvite(roomId),
+            "acceptInvite",
+        );
     }
 
     public async declineInvite(roomId: string): Promise<IInviteResponse> {
-        return (this.client as unknown as {
-            declineInvite: (roomId: string) => Promise<IInviteResponse>;
-        }).declineInvite(roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        declineInvite: (roomId: string) => Promise<IInviteResponse>;
+                    }
+                ).declineInvite(roomId),
+            "declineInvite",
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getInvitesManager(): InvitesManager;

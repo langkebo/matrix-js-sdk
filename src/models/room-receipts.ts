@@ -158,7 +158,7 @@ export class RoomReceipts {
             }
         }
 
-        // TODO: what if they sent the second-last event in the thread?
+        // Known limitation: this heuristic does not cover the "sent second-last event in thread" case.
         if (this.userSentLatestEventInThread(threadId, userId)) {
             // The user sent the latest message in this event's thread, so we
             // consider everything in the thread to be read.

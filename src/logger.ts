@@ -96,7 +96,7 @@ const DEFAULT_NAMESPACE = "matrix";
 // to avoid the issue, we override the methodFactory of loglevel that binds to the
 // console methods at initialization time by a factory that looks up the console methods
 // when logging so we always get the current value of console methods.
-loglevel.methodFactory = function (methodName, logLevel, loggerName) {
+loglevel.methodFactory = function (methodName, _logLevel, _loggerName) {
     return function (this: PrefixedLogger, ...args): void {
         /* eslint-disable @typescript-eslint/no-invalid-this */
         if (this.prefix) {
@@ -122,7 +122,7 @@ loglevel.methodFactory = function (methodName, logLevel, loggerName) {
 /**
  * Implementation of {@link Logger} based on `loglevel`.
  */
-interface PrefixedLogger extends Omit<loglevel.Logger, 'log'>, LoggerWithLogMethod {
+interface PrefixedLogger extends Omit<loglevel.Logger, "log">, LoggerWithLogMethod {
     prefix?: string;
 }
 
@@ -212,7 +212,7 @@ export class LogSpan implements BaseLogger {
  * to avoid a dependency on `debug`.
  */
 interface Debugger {
-    (formatter: any, ...args: any[]): void;
+    (formatter: unknown, ...args: unknown[]): void;
     extend: (namespace: string, delimiter?: string) => Debugger;
 }
 

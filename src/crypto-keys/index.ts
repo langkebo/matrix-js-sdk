@@ -16,10 +16,10 @@ limitations under the License.
 
 /**
  * Crypto Keys Manager - 加密密钥管理
- * 
+ *
  * 提供密钥上传、下载、认领等功能
  * 对应后端: synapse-rust/src/web/routes/e2ee_routes.rs
- * 
+ *
  * 后端端点:
  * - POST /keys/upload
  * - POST /keys/query
@@ -37,6 +37,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export interface IDeviceKeys {
     user_id: string;
@@ -106,80 +107,6 @@ export interface IRoomKeyDistributionResponse {
     session_id: string;
     session_key: string;
 }
-
-interface CacheEntry<T> {
-    value: T;
-    timestamp: number;
-}
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            this.misses++;
-            return undefined;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
-        } else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-        });
-    }
-
-    delete(key: string): boolean {
-        return this.cache.delete(key);
-    }
-
-    clear(): void {
-        this.cache.clear();
-        this.hits = 0;
-        this.misses = 0;
-    }
-
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return {
-            size: this.cache.size,
-            hits: this.hits,
-            misses: this.misses,
-            hitRate: total > 0 ? this.hits / total : 0,
-        };
-    }
-}
-
 export class CryptoKeysManager {
     private client: MatrixClient;
     private deviceKeysCache: LRUCache<IDeviceKeys>;
@@ -195,7 +122,11 @@ export class CryptoKeysManager {
 
     constructor(client: MatrixClient) {
         this.client = client;
-        this.deviceKeysCache = new LRUCache<IDeviceKeys>(500, 10 * 60 * 1000);
+        this.deviceKeysCache = new LRUCache<IDeviceKeys>({
+            maxSize: 500,
+            ttl: 10 * 60 * 1000,
+            name: "index.ts-idevicekeys",
+        });
     }
 
     async uploadKeys(content: IKeysUploadRequest): Promise<IKeysUploadResponse> {
@@ -206,7 +137,7 @@ export class CryptoKeysManager {
                     "/keys/upload",
                     undefined,
                     content,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadKeys");
 
@@ -248,7 +179,7 @@ export class CryptoKeysManager {
                     "/keys/query",
                     undefined,
                     content,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "queryKeys");
 
@@ -264,7 +195,11 @@ export class CryptoKeysManager {
         }
     }
 
-    async claimKeys(devices: [string, string][], keyAlgorithm = "signed_curve25519", timeout?: number): Promise<IKeysClaimResponse> {
+    async claimKeys(
+        devices: [string, string][],
+        keyAlgorithm = "signed_curve25519",
+        timeout?: number,
+    ): Promise<IKeysClaimResponse> {
         const queries: Record<string, Record<string, string>> = {};
         for (const [userId, deviceId] of devices) {
             if (!queries[userId]) {
@@ -285,7 +220,7 @@ export class CryptoKeysManager {
                     "/keys/claim",
                     undefined,
                     content,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "claimKeys");
 
@@ -303,7 +238,7 @@ export class CryptoKeysManager {
                     "/keys/changes",
                     { from, to },
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getKeysChanges");
 
@@ -321,7 +256,7 @@ export class CryptoKeysManager {
                     "/keys/device_list/update",
                     undefined,
                     {},
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "updateDeviceList");
         } catch (error) {
@@ -329,7 +264,9 @@ export class CryptoKeysManager {
         }
     }
 
-    async uploadKeySignatures(signatures: IKeySignaturesUploadRequest["signatures"]): Promise<IKeySignaturesUploadResponse> {
+    async uploadKeySignatures(
+        signatures: IKeySignaturesUploadRequest["signatures"],
+    ): Promise<IKeySignaturesUploadResponse> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IKeySignaturesUploadResponse>(
@@ -337,7 +274,7 @@ export class CryptoKeysManager {
                     "/keys/signatures/upload",
                     undefined,
                     { signatures },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadKeySignatures");
 
@@ -359,7 +296,7 @@ export class CryptoKeysManager {
                     "/keys/device_signing/upload",
                     undefined,
                     content,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadDeviceSigning");
         } catch (error) {
@@ -367,7 +304,14 @@ export class CryptoKeysManager {
         }
     }
 
-    async getRoomKeyDistribution(roomId: string): Promise<IRoomKeyDistributionResponse> {
+    /**
+     * 获取房间密钥分发信息
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 分发信息
+     */
+    async getRoomKeyDistribution(roomId: string, throwOnError = false): Promise<IRoomKeyDistributionResponse | null> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IRoomKeyDistributionResponse>(
@@ -375,13 +319,21 @@ export class CryptoKeysManager {
                     `/rooms/${encodeURIComponent(roomId)}/keys/distribution`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getRoomKeyDistribution");
 
             return response;
         } catch (error) {
-            throw this.normalizeError(error, "getRoomKeyDistribution");
+            const err = this.normalizeError(error, "getRoomKeyDistribution");
+            if (throwOnError) {
+                throw err;
+            }
+            if (err instanceof NotFoundError) {
+                logger.warn(`CryptoKeysManager.getRoomKeyDistribution failed for ${roomId}:`, err);
+                return null;
+            }
+            throw err;
         }
     }
 
@@ -410,11 +362,7 @@ export class CryptoKeysManager {
         };
     }
 
-    private async withRetry<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries
-    ): Promise<T> {
+    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
         let lastError: unknown;
         const startTime = Date.now();
 
@@ -437,28 +385,31 @@ export class CryptoKeysManager {
 
                 if (!this.isRetryableError(error)) {
                     this.recordRequest(false, false);
-                    this.emitMetric('api_error', method, {
+                    this.emitMetric("api_error", method, {
                         error: this.getErrorType(error),
                         attempt: attempt + 1,
-                        retryable: false
+                        retryable: false,
                     });
                     throw error;
                 }
 
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`CryptoKeysManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
-                        method,
+                    logger.warn(
+                        `CryptoKeysManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
+                        {
+                            method,
+                            attempt: attempt + 1,
+                            maxAttempts: retries + 1,
+                            delay,
+                            error: this.getErrorType(error),
+                        },
+                    );
+
+                    this.emitMetric("api_retry", method, {
                         attempt: attempt + 1,
-                        maxAttempts: retries + 1,
                         delay,
                         error: this.getErrorType(error),
-                    });
-
-                    this.emitMetric('api_retry', method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error)
                     });
 
                     await this.sleep(delay);
@@ -468,10 +419,10 @@ export class CryptoKeysManager {
 
         this.recordRequest(false, true);
         const duration = Date.now() - startTime;
-        this.emitMetric('api_failure', method, {
+        this.emitMetric("api_failure", method, {
             attempts: retries + 1,
             duration,
-            error: this.getErrorType(lastError)
+            error: this.getErrorType(lastError),
         });
 
         throw lastError;
@@ -491,15 +442,9 @@ export class CryptoKeysManager {
 
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            const retryableCodes = [
-                "M_LIMIT_EXCEEDED",
-                "M_SERVER_UNAVAILABLE",
-            ];
+            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
             const retryableStatus = [429, 500, 502, 503, 504];
-            return (
-                retryableCodes.includes(error.errcode ?? "") ||
-                retryableStatus.includes(error.httpStatus ?? 0)
-            );
+            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
         }
         return false;
     }
@@ -507,15 +452,28 @@ export class CryptoKeysManager {
     private normalizeError(error: unknown, method: string): SdkError {
         const err = error as Error;
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`CryptoKeysManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`CryptoKeysManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`CryptoKeysManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
+                return new NotFoundError(
+                    `CryptoKeysManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                    error,
+                );
             }
-            return new ApiError(`CryptoKeysManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
+            return new ApiError(
+                `CryptoKeysManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error.errcode ?? "UNKNOWN",
+                error.httpStatus ?? 0,
+                error,
+            );
         }
-        return new ApiError(`CryptoKeysManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        return new ApiError(
+            `CryptoKeysManager.${method} failed: ${err?.message ?? String(error)}`,
+            "UNKNOWN",
+            0,
+            error,
+        );
     }
 
     private getErrorType(error: unknown): string {
@@ -537,7 +495,7 @@ export class CryptoKeysManager {
     }
 
     private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

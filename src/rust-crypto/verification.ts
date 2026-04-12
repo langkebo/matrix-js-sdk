@@ -338,7 +338,7 @@ export class RustVerificationRequest
      *
      * @returns The verifier which will do the actual verification.
      */
-    public beginKeyVerification(method: string, targetDevice?: { userId?: string; deviceId?: string }): Verifier {
+    public beginKeyVerification(_method: string, _targetDevice?: { userId?: string; deviceId?: string }): Verifier {
         throw new Error("not implemented");
     }
 
@@ -541,8 +541,8 @@ abstract class BaseRustVerifer<InnerType extends RustSdkCryptoJs.Qr | RustSdkCry
      *
      * @param e - the reason for the cancellation.
      */
-    public cancel(e?: Error): void {
-        // TODO: something with `e`
+    public cancel(_e?: Error): void {
+        // Known limitation: cancellation reason is currently ignored.
         const req: undefined | OutgoingRequest = this.inner.cancel();
         if (req) {
             this.outgoingRequestProcessor.makeOutgoingRequest(req);

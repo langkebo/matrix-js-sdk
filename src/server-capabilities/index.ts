@@ -16,57 +16,51 @@ limitations under the License.
 
 /**
  * Server Capabilities Manager - 服务器能力管理
- * 
+ *
  * 提供服务器能力相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class ServerCapabilitiesManager {
-    constructor(private client: MatrixClient) {}
+export interface ServerCapabilities {
+    [key: string]: unknown;
+}
 
-    /**
-     * Get server capabilities
-     */
-    public async getServerCapabilities(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getServerCapabilities();
+export interface ServerCapabilitiesManagerEvents {
+    capabilities_updated: { capabilities: ServerCapabilities };
+    server_version_updated: { version: string };
+}
+
+export class ServerCapabilitiesManager extends BaseManager<
+    keyof ServerCapabilitiesManagerEvents,
+    ServerCapabilitiesManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Has server support
-     */
+    public async getServerCapabilities(): Promise<ServerCapabilities> {
+        return this.withRetry(() => this.client.getServerCapabilities(), "getServerCapabilities");
+    }
+
     public hasServerSupport(feature: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasServerSupport(feature);
+        return this.client.hasServerSupport(feature);
     }
 
-    /**
-     * Get server version
-     */
     public async getServerVersion(): Promise<string> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getServerVersion();
+        return this.withRetry(() => this.client.getServerVersion(), "getServerVersion");
     }
 
-    /**
-     * Supports threads
-     */
     public supportsThreads(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).supportsThreads();
+        return this.client.supportsThreads();
     }
 
-    /**
-     * Supports location
-     */
     public supportsLocation(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).supportsLocation();
+        return this.client.supportsLocation();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getServerCapabilitiesManager(): ServerCapabilitiesManager;

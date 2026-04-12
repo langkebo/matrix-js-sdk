@@ -16,58 +16,54 @@ limitations under the License.
 
 /**
  * Widgets Manager - 小组件管理
- * 
+ *
  * 提供 Matrix widgets 管理功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
-export class WidgetsManager {
-    constructor(private client: MatrixClient) {}
+export interface WidgetInfo {
+    id: string;
+    type: string;
+    url: string;
+    name: string;
+    data?: Record<string, unknown>;
+}
 
-    /**
-     * Get user widgets
-     */
-    public getUserWidgets(): Record<string, MatrixEvent[]> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUserWidgets();
+export interface WidgetsManagerEvents {
+    widget_added: { widgetId: string; roomId?: string };
+    widget_removed: { widgetId: string; roomId?: string };
+    widget_updated: { widgetId: string; roomId?: string };
+}
+
+export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, WidgetsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Get room widgets
-     */
-    public getRoomWidgets(roomId: string): MatrixEvent[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomWidgets(roomId);
+    public async getUserWidgets(): Promise<Record<string, unknown>> {
+        return this.withRetry(() => this.client.getUserWidgets(), "getUserWidgets");
     }
 
-    /**
-     * Set user widgets
-     */
-    public async setUserWidgets(widgets: Record<string, any>): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setUserWidgets(widgets);
+    public async getRoomWidgets(roomId: string): Promise<Record<string, unknown>> {
+        return this.withRetry(() => this.client.getRoomWidgets(roomId), "getRoomWidgets");
     }
 
-    /**
-     * Set room widgets
-     */
-    public async setRoomWidgets(roomId: string, widgets: MatrixEvent[]): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomWidgets(roomId, widgets);
+    public async setUserWidgets(widgets: Record<string, unknown>): Promise<void> {
+        return this.withRetry(() => this.client.setUserWidgets(widgets), "setUserWidgets");
     }
 
-    /**
-     * Get all widget events
-     */
-    public getAllWidgetEvents(): MatrixEvent[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAllWidgetEvents();
+    public async setRoomWidgets(roomId: string, widgets: Record<string, unknown>): Promise<void> {
+        return this.withRetry(() => this.client.setRoomWidgets(roomId, widgets), "setRoomWidgets");
+    }
+
+    public async getAllWidgetEvents(roomId: string): Promise<MatrixEvent[]> {
+        return this.withRetry(() => this.client.getAllWidgetEvents(roomId), "getAllWidgetEvents");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getWidgetsManager(): WidgetsManager;

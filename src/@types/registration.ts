@@ -66,7 +66,7 @@ export interface RegisterRequest {
  * The result of a successful call to `POST /_matrix/client/v3/register`.
  *
  * @see https://spec.matrix.org/v1.7/client-server-api/#post_matrixclientv3register
- * 
+ *
  * 后端实现: synapse-rust/src/services/registration_service.rs:99-109
  * 注意: 后端返回 expires_in (秒)，SDK使用 expires_in_ms (毫秒) 进行转换
  */
@@ -79,7 +79,7 @@ export interface RegisterResponse {
      * An access token for the account.
      * This access token can then be used to authorize other requests.
      * Required if the inhibit_login option is false.
-     * 
+     *
      * 注意: 后端此字段为必填，但SDK保持可选以兼容 inhibit_login 选项
      */
     access_token?: string;
@@ -87,7 +87,7 @@ export interface RegisterResponse {
      * ID of the registered device.
      * Will be the same as the corresponding parameter in the request, if one was specified.
      * Required if the inhibit_login option is false.
-     * 
+     *
      * 注意: 后端此字段为必填，但SDK保持可选以兼容 inhibit_login 选项
      */
     device_id?: string;
@@ -98,7 +98,7 @@ export interface RegisterResponse {
      * If not given, the client can assume that the access token will not expire.
      *
      * Omitted if the inhibit_login option is true.
-     * 
+     *
      * 注意: 后端返回字段名为 expires_in (秒)，SDK自动转换为 expires_in_ms (毫秒)
      */
     expires_in_ms?: number;
@@ -107,7 +107,7 @@ export interface RegisterResponse {
      * This token can be used to obtain a new access token when it expires by calling the /refresh endpoint.
      *
      * Omitted if the inhibit_login option is true.
-     * 
+     *
      * 注意: 后端此字段为必填，但SDK保持可选以兼容 inhibit_login 选项
      */
     refresh_token?: string;
@@ -115,7 +115,7 @@ export interface RegisterResponse {
      * Optional client configuration provided by the server.
      * If present, clients SHOULD use the provided object to reconfigure themselves, optionally validating the URLs within.
      * This object takes the same form as the one returned from .well-known autodiscovery.
-     * 
+     *
      * 注意: 后端此字段为必填，但SDK保持可选以兼容旧版本
      */
     well_known?: IClientWellKnown;

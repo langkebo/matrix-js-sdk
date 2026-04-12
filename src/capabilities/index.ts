@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * Capabilities Manager - 能力查询
- * 
+ *
  * 提供服务器能力查询功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IServerCapabilities {
     capabilities: {
@@ -32,42 +33,46 @@ export interface IServerCapabilities {
     };
 }
 
-export class CapabilitiesManager {
-    constructor(private client: MatrixClient) {}
+export interface CapabilitiesManagerEvents {
+    capabilities_updated: { capabilities: IServerCapabilities };
+    capability_changed: { capability: string; enabled: boolean };
+}
+
+export class CapabilitiesManager extends BaseManager<keyof CapabilitiesManagerEvents, CapabilitiesManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getCapabilities(): Promise<IServerCapabilities | undefined> {
-        return (this.client as unknown as {
-            serverCapabilitiesService?: {
-                getCachedCapabilities: () => IServerCapabilities | undefined;
-                fetchCapabilities: () => Promise<IServerCapabilities>;
-            };
-        }).serverCapabilitiesService?.getCachedCapabilities() || 
-        (this.client as unknown as {
-            serverCapabilitiesService?: {
-                fetchCapabilities: () => Promise<IServerCapabilities>;
-            };
-        }).serverCapabilitiesService?.fetchCapabilities();
+        const cached = this.getCachedCapabilities();
+        if (cached) return cached;
+        return this.fetchCapabilities();
     }
 
     public getCachedCapabilities(): IServerCapabilities | undefined {
-        return (this.client as unknown as {
-            serverCapabilitiesService?: {
-                getCachedCapabilities: () => IServerCapabilities | undefined;
-            };
-        }).serverCapabilitiesService?.getCachedCapabilities();
+        return (
+            this.client as unknown as {
+                serverCapabilitiesService?: {
+                    getCachedCapabilities: () => IServerCapabilities | undefined;
+                };
+            }
+        ).serverCapabilitiesService?.getCachedCapabilities();
     }
 
     public async fetchCapabilities(): Promise<IServerCapabilities | undefined> {
-        const service = (this.client as unknown as {
-            serverCapabilitiesService?: {
-                fetchCapabilities: () => Promise<IServerCapabilities>;
-            };
-        }).serverCapabilitiesService;
-        return service?.fetchCapabilities();
+        return this.withRetry(async () => {
+            const service = (
+                this.client as unknown as {
+                    serverCapabilitiesService?: {
+                        fetchCapabilities: () => Promise<IServerCapabilities>;
+                    };
+                }
+            ).serverCapabilitiesService;
+            return service?.fetchCapabilities();
+        }, "fetchCapabilities");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCapabilitiesManager(): CapabilitiesManager;

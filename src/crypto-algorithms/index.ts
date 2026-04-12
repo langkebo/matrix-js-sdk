@@ -16,57 +16,52 @@ limitations under the License.
 
 /**
  * Crypto Algorithms Manager - 加密算法管理
- * 
+ *
  * 提供加密算法相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class CryptoAlgorithmsManager {
-    constructor(private client: MatrixClient) {}
+export type CryptoAlgorithm = string;
 
-    /**
-     * Get crypto algorithm
-     */
-    public getCryptoAlgorithm(): unknown {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getCryptoAlgorithm();
+export interface CryptoAlgorithmsManagerEvents {
+    crypto_initialized: void;
+    crypto_stopped: void;
+    algorithm_changed: { algorithm: CryptoAlgorithm };
+}
+
+export class CryptoAlgorithmsManager extends BaseManager<
+    keyof CryptoAlgorithmsManagerEvents,
+    CryptoAlgorithmsManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Set crypto algorithm
-     */
-    public setCryptoAlgorithm(algorithm: unknown): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setCryptoAlgorithm(algorithm);
+    public getCryptoAlgorithm(): CryptoAlgorithm | undefined {
+        return this.client.getCryptoAlgorithm() as CryptoAlgorithm | undefined;
     }
 
-    /**
-     * Has crypto
-     */
+    public setCryptoAlgorithm(algorithm: CryptoAlgorithm): void {
+        this.client.setCryptoAlgorithm(algorithm);
+    }
+
     public hasCrypto(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasCrypto();
+        return this.client.hasCrypto();
     }
 
-    /**
-     * Init crypto
-     */
     public async initCrypto(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).initCrypto();
+        return this.withRetry(async () => {
+            await this.client.initCrypto();
+        }, "initCrypto");
     }
 
-    /**
-     * Stop crypto
-     */
     public async stopCrypto(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).stopCrypto();
+        await this.client.stopCrypto();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCryptoAlgorithmsManager(): CryptoAlgorithmsManager;

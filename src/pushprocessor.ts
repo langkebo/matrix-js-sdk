@@ -287,7 +287,7 @@ export class PushProcessor {
     public static rewriteDefaultRules(
         logger: Logger,
         incomingRules: IPushRules,
-        userId: string | undefined = undefined,
+        _userId: string | undefined = undefined,
     ): IPushRules {
         let newRules: IPushRules = JSON.parse(JSON.stringify(incomingRules)); // deep clone
 
@@ -588,8 +588,7 @@ export class PushProcessor {
             return false;
         }
 
-        // XXX This does not match in a case-insensitive manner.
-        //
+        // Known limitation: This does not match in a case-insensitive manner.
         // See https://spec.matrix.org/v1.5/client-server-api/#conditions-1
         if (cond.value) {
             return cond.value === val;

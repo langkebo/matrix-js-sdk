@@ -16,57 +16,48 @@ limitations under the License.
 
 /**
  * Encryption Rotation Manager - 加密轮换管理
- * 
+ *
  * 提供加密密钥轮换相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class EncryptionRotationManager {
-    constructor(private client: MatrixClient) {}
+export interface EncryptionRotationManagerEvents {
+    keys_rotated: void;
+    rotation_needed: void;
+    rotation_period_changed: { period: number };
+}
 
-    /**
-     * Rotate encryption keys
-     */
-    public async rotateEncryptionKeys(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).rotateEncryptionKeys();
+export class EncryptionRotationManager extends BaseManager<
+    keyof EncryptionRotationManagerEvents,
+    EncryptionRotationManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Is rotation needed
-     */
+    public async rotateEncryptionKeys(): Promise<void> {
+        return this.withRetry(() => this.client.rotateEncryptionKeys(), "rotateEncryptionKeys");
+    }
+
     public isRotationNeeded(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isRotationNeeded();
+        return this.client.isRotationNeeded();
     }
 
-    /**
-     * Get rotation period
-     */
     public getRotationPeriod(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRotationPeriod();
+        return this.client.getRotationPeriod();
     }
 
-    /**
-     * Set rotation period
-     */
     public setRotationPeriod(period: number): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).setRotationPeriod(period);
+        this.client.setRotationPeriod(period);
     }
 
-    /**
-     * Get last rotation time
-     */
     public getLastRotationTime(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getLastRotationTime();
+        return this.client.getLastRotationTime();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getEncryptionRotationManager(): EncryptionRotationManager;

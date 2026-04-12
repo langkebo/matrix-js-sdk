@@ -175,7 +175,9 @@ describe("FetchHttpApi", () => {
                     prefix,
                     onlyData: true,
                 }),
-        ).toThrow(`Insecure baseUrl is not allowed: ${baseUrl}. Use HTTPS or set allowInsecureHttp=true for local development.`);
+        ).toThrow(
+            `Insecure baseUrl is not allowed: ${baseUrl}. Use HTTPS or set allowInsecureHttp=true for local development.`,
+        );
     });
 
     it("should allow insecure baseUrl when allowInsecureHttp is enabled", () => {
@@ -414,7 +416,13 @@ describe("FetchHttpApi", () => {
         it("should not include token if unset", async () => {
             const fetchFn = makeMockFetchFn();
             const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
-            const api = new FetchHttpApi(emitter, { baseUrl, prefix, fetchFn, onlyData: true, allowInsecureHttp: true });
+            const api = new FetchHttpApi(emitter, {
+                baseUrl,
+                prefix,
+                fetchFn,
+                onlyData: true,
+                allowInsecureHttp: true,
+            });
             await api.authedRequest(Method.Post, "/account/password");
             expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>).Authorization).toBeUndefined();
         });
@@ -661,16 +669,16 @@ describe("FetchHttpApi", () => {
     describe("getUrl()", () => {
         const localBaseUrl = "http://baseurl";
         const baseUrlWithTrailingSlash = "http://baseurl/";
-            const makeApi = (thisBaseUrl = baseUrl): FetchHttpApi<any> => {
+        const makeApi = (thisBaseUrl = baseUrl): FetchHttpApi<any> => {
             const fetchFn = vi.fn();
             const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
-                return new FetchHttpApi(emitter, {
-                    baseUrl: thisBaseUrl,
-                    prefix,
-                    fetchFn,
-                    onlyData: true,
-                    allowInsecureHttp: true,
-                });
+            return new FetchHttpApi(emitter, {
+                baseUrl: thisBaseUrl,
+                prefix,
+                fetchFn,
+                onlyData: true,
+                allowInsecureHttp: true,
+            });
         };
 
         type TestParams = {

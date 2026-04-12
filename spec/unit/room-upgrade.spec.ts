@@ -26,7 +26,13 @@ describe("Room upgrades", function () {
 
         // Then we make an HTTP request to the correct endpoint, with the
         // version provided in the JSON.
-        expect(authedRequest).toHaveBeenCalledWith("POST", "/rooms/!r1/upgrade", undefined, { new_version: "12" });
+        expect(authedRequest).toHaveBeenCalledWith(
+            "POST",
+            "/rooms/!r1/upgrade",
+            undefined,
+            { new_version: "12" },
+            undefined,
+        );
     });
 
     it("Includes additional_creators if provided", () => {
@@ -38,10 +44,16 @@ describe("Room upgrades", function () {
 
         // Then we make an HTTP request to the correct endpoint, with the
         // version and additional creators provided.
-        expect(authedRequest).toHaveBeenCalledWith("POST", "/rooms/!r1/upgrade", undefined, {
-            new_version: "13",
-            additional_creators: ["@u:s.co", "@v:a.b"],
-        });
+        expect(authedRequest).toHaveBeenCalledWith(
+            "POST",
+            "/rooms/!r1/upgrade",
+            undefined,
+            {
+                new_version: "13",
+                additional_creators: ["@u:s.co", "@v:a.b"],
+            },
+            undefined,
+        );
     });
 });
 

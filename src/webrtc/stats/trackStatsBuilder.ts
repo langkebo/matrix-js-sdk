@@ -23,7 +23,12 @@ export class TrackStatsBuilder {
         trackStats.setFramerate(Math.round(frameRate || 0));
     }
 
-    public static calculateSimulcastFramerate(trackStats: MediaTrackStats, now: RTCStatsBase, before: RTCStatsBase, layer: number): void {
+    public static calculateSimulcastFramerate(
+        trackStats: MediaTrackStats,
+        now: RTCStatsBase,
+        before: RTCStatsBase,
+        layer: number,
+    ): void {
         let frameRate = trackStats.getFramerate();
         if (!frameRate) {
             if (before) {
@@ -76,7 +81,12 @@ export class TrackStatsBuilder {
     public static buildBitrateSend(trackStats: MediaTrackStats, now: RTCStatsBase, before: RTCStatsBase): void {
         trackStats.setBitrate({
             download: 0,
-            upload: this.calculateBitrate(now.bytesSent, before.bytesSent, now.timestamp as number, before.timestamp as number),
+            upload: this.calculateBitrate(
+                now.bytesSent,
+                before.bytesSent,
+                now.timestamp as number,
+                before.timestamp as number,
+            ),
         });
     }
 
@@ -209,7 +219,7 @@ export class TrackStatsBuilder {
         const totalSamplesDuration = statsReport.totalSamplesDuration as number | undefined;
         const totalSamplesReceived = statsReport.totalSamplesReceived as number | undefined;
         const concealedSamples = statsReport.concealedSamples as number | undefined;
-        
+
         const msPerSample = (1000 * (totalSamplesDuration ?? 0)) / (totalSamplesReceived ?? 1);
         const concealedAudioDuration = msPerSample * (concealedSamples ?? 0);
         const totalAudioDuration = 1000 * (totalSamplesDuration ?? 0);

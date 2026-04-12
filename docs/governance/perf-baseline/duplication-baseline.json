@@ -1,0 +1,45 @@
+{
+    "file": "src/client.ts",
+    "timestamp": "2026-04-11T01:40:22.267Z",
+    "totalLines": 6670,
+    "patterns": [
+        {
+            "name": "HTTP 认证请求",
+            "count": 29
+        },
+        {
+            "name": "HTTP 普通请求",
+            "count": 11
+        },
+        {
+            "name": "Manager 委托调用",
+            "count": 46
+        },
+        {
+            "name": "异步重试包装",
+            "count": 0
+        },
+        {
+            "name": "错误抛出",
+            "count": 23
+        },
+        {
+            "name": "日志调试",
+            "count": 7
+        },
+        {
+            "name": "事件发射",
+            "count": 5
+        },
+        {
+            "name": "Promise 返回",
+            "count": 36
+        }
+    ],
+    "duplicates": {
+        "totalBlocks": 582,
+        "totalLocations": 1548,
+        "estimatedDupLines": 2910,
+        "duplicationRate": 43.6
+    }
+}

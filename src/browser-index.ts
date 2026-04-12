@@ -14,9 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { setCryptoStoreFactory } from "./matrix.ts";
+import { IndexedDBCryptoStore } from "./crypto/store/indexeddb-crypto-store.ts";
 import * as matrixcs from "./matrix.ts";
 
-type BrowserMatrix = typeof matrixcs;
+export * from "./matrix.ts";
+
+type BrowserMatrix = typeof import("./matrix.ts");
 declare global {
     /* eslint-disable no-var, camelcase */
     var __js_sdk_entrypoint: boolean;
@@ -29,16 +33,13 @@ if (globalThis.__js_sdk_entrypoint) {
 }
 globalThis.__js_sdk_entrypoint = true;
 
-// just *accessing* indexedDB throws an exception in firefox with indexeddb disabled.
 let indexedDB: IDBFactory | undefined;
 try {
     indexedDB = globalThis.indexedDB;
 } catch {}
 
-// if our browser (appears to) support indexeddb, use an indexeddb crypto store.
 if (indexedDB) {
-    matrixcs.setCryptoStoreFactory(() => new matrixcs.IndexedDBCryptoStore(indexedDB!, "matrix-js-sdk:crypto"));
+    setCryptoStoreFactory(() => new IndexedDBCryptoStore(indexedDB!, "matrix-js-sdk:crypto"));
 }
 
-export * from "./matrix.ts";
 globalThis.matrixcs = matrixcs;

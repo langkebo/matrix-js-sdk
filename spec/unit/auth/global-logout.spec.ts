@@ -50,10 +50,7 @@ describe("GlobalLogoutManager", () => {
         it("should call logout/all endpoint", async () => {
             await manager.logoutAll();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
-                "/logout/all",
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/logout/all");
         });
     });
 
@@ -71,10 +68,7 @@ describe("GlobalLogoutManager", () => {
         it("should call delete device endpoint", async () => {
             await manager.logoutDevice("DEVICE_2");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
-                "/devices/DEVICE_2",
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/devices/DEVICE_2");
         });
     });
 
@@ -83,17 +77,12 @@ describe("GlobalLogoutManager", () => {
             await manager.logoutOtherDevices();
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(1);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
-                "/devices/DEVICE_2",
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/devices/DEVICE_2");
         });
 
         it("should not call http if only one device", async () => {
             const mockDeviceManager = {
-                getDevices: vi.fn().mockResolvedValue([
-                    { device_id: "DEVICE_1", display_name: "Device 1" },
-                ]),
+                getDevices: vi.fn().mockResolvedValue([{ device_id: "DEVICE_1", display_name: "Device 1" }]),
             };
             mockClient.getDeviceManager.mockReturnValueOnce(mockDeviceManager);
 

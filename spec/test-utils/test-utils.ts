@@ -599,14 +599,14 @@ export class EventCounter {
  *
  * This can be useful when there are multiple steps in the code which require an iteration of the event loop.
  */
-export async function advanceTimersUntil<T>(promise: Promise<T>): Promise<T> {
+export async function advanceTimersUntil<T>(promise: Promise<T>, stepMs = 1): Promise<T> {
     let resolved = false;
     promise.finally(() => {
         resolved = true;
     });
 
     while (!resolved) {
-        await vi.advanceTimersByTimeAsync(1);
+        await vi.advanceTimersByTimeAsync(stepMs);
     }
 
     return await promise;

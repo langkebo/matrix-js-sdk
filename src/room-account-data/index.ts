@@ -16,13 +16,26 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
-export class RoomAccountDataManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomAccountDataManagerEvents {
+    account_data_updated: { roomId: string; eventType: string; event: MatrixEvent };
+}
 
-    public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (this.client as any).setRoomAccountData(roomId, eventType, content);
+export class RoomAccountDataManager extends BaseManager<
+    keyof RoomAccountDataManagerEvents,
+    RoomAccountDataManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
+    public async setRoomAccountData(
+        roomId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+    ): Promise<void> {
+        await this.client.setRoomAccountData(roomId, eventType as never, content as never);
     }
 
     public getRoomAccountData(roomId: string, eventType: string): MatrixEvent | undefined {
@@ -33,13 +46,12 @@ export class RoomAccountDataManager {
     public getAllRoomAccountData(roomId: string): Record<string, MatrixEvent> {
         const room = this.client.getRoom(roomId);
         if (!room) return {};
-        
+
         const result: Record<string, MatrixEvent> = {};
-        const accountData = room.getAccountData;
-        if (!accountData) return {};
-        
-        const events = Object.keys((room as unknown as { accountData: Map<string, MatrixEvent> }).accountData || {});
-        for (const eventType of events) {
+        const accountDataMap = (room as unknown as { accountData: Map<string, MatrixEvent> }).accountData;
+        if (!accountDataMap) return {};
+
+        for (const eventType of accountDataMap.keys()) {
             const event = room.getAccountData(eventType);
             if (event) {
                 result[eventType] = event;

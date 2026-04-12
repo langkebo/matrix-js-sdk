@@ -1,0 +1,209 @@
+{
+    "timestamp": "2026-04-11T05:07:25.257Z",
+    "version": "1.0.0",
+    "metrics": {
+        "coverage": {
+            "lines": {
+                "total": 24494,
+                "covered": 17639,
+                "percentage": "72.01",
+                "threshold": 70,
+                "passed": true
+            },
+            "branches": {
+                "total": 13477,
+                "covered": 9030,
+                "percentage": "67.00",
+                "threshold": 60,
+                "passed": true
+            },
+            "functions": {
+                "total": 6352,
+                "covered": 4068,
+                "percentage": "64.04",
+                "threshold": 70,
+                "passed": false
+            },
+            "fileCount": 400
+        },
+        "criticalCoverage": {
+            "modules": [
+                {
+                    "file": "src/admin/index.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/dm/index.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/push/index.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/space/index.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/room-summary/index.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/room/RoomManager.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/event/EventManager.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                },
+                {
+                    "file": "src/auth/index.ts",
+                    "coverage": "N/A",
+                    "threshold": 90,
+                    "passed": false
+                }
+            ],
+            "passed": false,
+            "threshold": 90
+        },
+        "complexity": {
+            "clientTs": {
+                "lines": 6670,
+                "functionCount": 323,
+                "baseline": 9044,
+                "reduction": "26.2"
+            }
+        },
+        "security": {
+            "vulnerabilities": {
+                "critical": 0,
+                "high": 0,
+                "moderate": 0,
+                "low": 0,
+                "info": 0,
+                "total": 0
+            },
+            "passed": true
+        },
+        "technicalDebt": {
+            "summary": {
+                "TODO": 86,
+                "FIXME": 8,
+                "HACK": 0,
+                "XXX": 75
+            },
+            "total": 169,
+            "baseline": 181,
+            "reduction": "6.6",
+            "topFiles": [
+                {
+                    "file": "/src/client.ts",
+                    "TODO": 17,
+                    "FIXME": 1,
+                    "XXX": 11
+                },
+                {
+                    "file": "/src/sliding-sync-sdk.ts",
+                    "TODO": 8,
+                    "XXX": 7
+                },
+                {
+                    "file": "/src/rust-crypto/rust-crypto.ts",
+                    "TODO": 7,
+                    "XXX": 1
+                },
+                {
+                    "file": "/src/models/room.ts",
+                    "TODO": 5,
+                    "FIXME": 1,
+                    "XXX": 4
+                },
+                {
+                    "file": "/src/sync.ts",
+                    "TODO": 2,
+                    "FIXME": 3,
+                    "XXX": 9
+                },
+                {
+                    "file": "/src/webrtc/groupCall.ts",
+                    "TODO": 4
+                },
+                {
+                    "file": "/src/matrixrtc/CallMembership.ts",
+                    "TODO": 3
+                },
+                {
+                    "file": "/src/matrixrtc/MatrixRTCSession.ts",
+                    "TODO": 3
+                },
+                {
+                    "file": "/src/matrixrtc/MembershipManager.ts",
+                    "TODO": 2,
+                    "FIXME": 1
+                },
+                {
+                    "file": "/src/matrixrtc/ToDeviceKeyTransport.ts",
+                    "TODO": 3
+                }
+            ]
+        },
+        "managerMigration": {
+            "total": 130,
+            "migrated": 109,
+            "coverage": "83.8",
+            "threshold": 95,
+            "passed": false,
+            "nonMigrated": [
+                {
+                    "file": "/src/crypto-keys/index.ts",
+                    "class": "CryptoKeysManager"
+                },
+                {
+                    "file": "/src/key-backup/index.ts",
+                    "class": "KeyBackupManager"
+                },
+                {
+                    "file": "/src/key-verification/index.ts",
+                    "class": "KeyVerificationManager"
+                },
+                {
+                    "file": "/src/push-notifications/index.ts",
+                    "class": "PushNotificationsManager"
+                },
+                {
+                    "file": "/src/qr-login/index.ts",
+                    "class": "QrLoginManager"
+                }
+            ]
+        },
+        "anyTypeUsage": {
+            "colonAny": 12,
+            "asAny": 1,
+            "total": 13,
+            "baseline": 208,
+            "reduction": "93.8"
+        },
+        "tests": {
+            "error": "Test run failed"
+        }
+    },
+    "summary": {
+        "overallHealth": "critical",
+        "passedChecks": 3,
+        "totalChecks": 6
+    }
+}

@@ -34,7 +34,6 @@ import {
     removeHiddenChars,
 } from "../../src/utils";
 import { logger } from "../../src/logger";
-import { mkMessage } from "../test-utils/test-utils";
 import { ReceiptType } from "../../src/@types/read_receipts";
 
 describe("utils", function () {

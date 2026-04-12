@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
 import { DeviceTrustManager, DeviceTrustEvent } from "../../src/device-trust/index";
 import { Method } from "../../src/http-api";
 
@@ -58,7 +59,7 @@ describe("DeviceTrustManager", () => {
                     device_id: undefined,
                     method: "sas",
                 },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
             expect(result).toEqual(response);
         });
@@ -95,7 +96,7 @@ describe("DeviceTrustManager", () => {
                 "/device_verification/request",
                 undefined,
                 expect.objectContaining({ method: "sas" }),
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -118,7 +119,7 @@ describe("DeviceTrustManager", () => {
                     token: "token123",
                     approved: true,
                 },
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
             expect(result).toEqual(response);
         });
@@ -167,7 +168,7 @@ describe("DeviceTrustManager", () => {
                 "/device_verification/status/token123",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" }
+                { prefix: "/_matrix/client/v3" },
             );
             expect(result).toEqual(response);
         });
@@ -190,13 +191,9 @@ describe("DeviceTrustManager", () => {
 
             const result = await deviceTrustManager.getDeviceTrustList();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/device_trust",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/device_trust", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
             expect(result).toEqual(devices);
         });
 
@@ -244,13 +241,9 @@ describe("DeviceTrustManager", () => {
 
             const result = await deviceTrustManager.getDeviceTrust("DEVICE1");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/device_trust/DEVICE1",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/device_trust/DEVICE1", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
             expect(result).toEqual(trustInfo);
         });
 
@@ -294,13 +287,9 @@ describe("DeviceTrustManager", () => {
 
             const result = await deviceTrustManager.getSecuritySummary();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/security/summary",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/security/summary", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
             expect(result).toEqual(summary);
         });
 

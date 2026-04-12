@@ -16,12 +16,13 @@ limitations under the License.
 
 /**
  * Rendering Manager - 渲染管理
- * 
+ *
  * 提供消息渲染相关功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
 export type EventRenderer = (event: MatrixEvent) => string | null;
 
@@ -31,8 +32,15 @@ export interface IRenderOptions {
     maxLength?: number;
 }
 
-export class RenderingManager {
-    constructor(private client: MatrixClient) {}
+export interface RenderingManagerEvents {
+    renderer_set: void;
+    renderer_cleared: void;
+}
+
+export class RenderingManager extends BaseManager<keyof RenderingManagerEvents, RenderingManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getEventRenderer(): EventRenderer | null {
         return (this.client as unknown as { eventRenderer?: EventRenderer }).eventRenderer ?? null;
@@ -43,31 +51,38 @@ export class RenderingManager {
     }
 
     public renderEvent(event: MatrixEvent, options?: IRenderOptions): string | null {
-        return (this.client as unknown as {
-            renderEvent: (event: MatrixEvent, options?: IRenderOptions) => string | null;
-        }).renderEvent(event, options);
+        return (
+            this.client as unknown as {
+                renderEvent: (event: MatrixEvent, options?: IRenderOptions) => string | null;
+            }
+        ).renderEvent(event, options);
     }
 
     public renderMessage(message: Record<string, unknown>): string | null {
-        return (this.client as unknown as {
-            renderMessage: (message: Record<string, unknown>) => string | null;
-        }).renderMessage(message);
+        return (
+            this.client as unknown as {
+                renderMessage: (message: Record<string, unknown>) => string | null;
+            }
+        ).renderMessage(message);
     }
 
     public getTextForEvent(event: MatrixEvent): string {
-        return (this.client as unknown as {
-            getTextForEvent: (event: MatrixEvent) => string;
-        }).getTextForEvent(event);
+        return (
+            this.client as unknown as {
+                getTextForEvent: (event: MatrixEvent) => string;
+            }
+        ).getTextForEvent(event);
     }
 
     public getPreviewText(event: MatrixEvent): string {
-        return (this.client as unknown as {
-            getPreviewText: (event: MatrixEvent) => string;
-        }).getPreviewText(event);
+        return (
+            this.client as unknown as {
+                getPreviewText: (event: MatrixEvent) => string;
+            }
+        ).getPreviewText(event);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRenderingManager(): RenderingManager;

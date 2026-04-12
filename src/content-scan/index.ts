@@ -16,37 +16,54 @@ limitations under the License.
 
 /**
  * Content Scan Manager - 内容扫描管理
- * 
+ *
  * 提供内容扫描功能
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { BaseManager } from "../managers/base-manager";
 
-export class ContentScanManager {
-    constructor(private client: MatrixClient) {}
+export interface ScanResult {
+    url: string;
+    status: "clean" | "threat" | "unknown";
+    threat_type?: string;
+}
 
-    /**
-     * Scan content
-     */
-    public async scanContent(urls: string[], threatType?: string): Promise<any> {
-        const path = "/v1/moderation/scan";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { urls, threat_type: threatType });
+export interface ScanStatus {
+    enabled: boolean;
+    last_scan: number;
+    total_scanned: number;
+}
+
+export interface ContentScanManagerEvents {
+    content_scanned: { urls: string[]; results: ScanResult[] };
+    threat_detected: { url: string; threatType: string };
+}
+
+export class ContentScanManager extends BaseManager<keyof ContentScanManagerEvents, ContentScanManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Get scan status
-     */
-    public async getScanStatus(): Promise<any> {
-        const path = "/v1/moderation/scan/status";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path);
+    public async scanContent(urls: string[], threatType?: string): Promise<ScanResult[]> {
+        return this.withRetry(async () => {
+            const path = "/v1/moderation/scan";
+            const result = await this.client.http.authedRequest<ScanResult[]>(Method.Post, path, undefined, {
+                urls,
+                threat_type: threatType,
+            });
+            return result;
+        }, "scanContent");
     }
 
-    /**
-     * Check if content is scanned
-     */
+    public async getScanStatus(): Promise<ScanStatus> {
+        return this.withRetry(async () => {
+            const path = "/v1/moderation/scan/status";
+            return this.client.http.authedRequest<ScanStatus>(Method.Get, path);
+        }, "getScanStatus");
+    }
+
     public async isContentScanned(contentUrl: string): Promise<boolean> {
         try {
             await this.scanContent([contentUrl]);
@@ -57,7 +74,6 @@ export class ContentScanManager {
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getContentScanManager(): ContentScanManager;

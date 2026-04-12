@@ -21,6 +21,8 @@ describe("AccountManager", () => {
                 userId: "@test:example.com",
             },
             isGuest: vi.fn().mockReturnValue(false),
+            getSessionId: vi.fn().mockReturnValue("session123"),
+            setGuest: vi.fn(),
             stopClient: vi.fn(),
         };
         accountManager = new AccountManager(mockClient);
@@ -34,8 +36,8 @@ describe("AccountManager", () => {
 
     describe("getSessionId", () => {
         it("should return session ID", () => {
-            mockClient.sessionId = "session123";
             expect(accountManager.getSessionId()).toBe("session123");
+            expect(mockClient.getSessionId).toHaveBeenCalled();
         });
     });
 
@@ -54,7 +56,7 @@ describe("AccountManager", () => {
     describe("setGuest", () => {
         it("should set guest status", () => {
             accountManager.setGuest(true);
-            expect(mockClient.isGuestAccount).toBe(true);
+            expect(mockClient.setGuest).toHaveBeenCalledWith(true);
         });
     });
 
@@ -134,8 +136,8 @@ describe("AccountManager", () => {
 
     describe("getCasLoginUrl", () => {
         it("should return CAS login URL", () => {
-            mockClient.http.getUrl.mockReturnValue({ 
-                href: "https://example.com/login/cas/redirect?redirectUrl=abc" 
+            mockClient.http.getUrl.mockReturnValue({
+                href: "https://example.com/login/cas/redirect?redirectUrl=abc",
             });
             const url = accountManager.getCasLoginUrl("https://example.com/callback");
             expect(url).toContain("/login/cas/redirect");
@@ -144,31 +146,26 @@ describe("AccountManager", () => {
 
     describe("getSsoLoginUrl", () => {
         it("should return SSO login URL", () => {
-            mockClient.http.getUrl.mockReturnValue({ 
-                href: "https://example.com/login/sso/redirect?redirectUrl=abc" 
+            mockClient.http.getUrl.mockReturnValue({
+                href: "https://example.com/login/sso/redirect?redirectUrl=abc",
             });
             const url = accountManager.getSsoLoginUrl("https://example.com/callback");
             expect(url).toContain("/login/sso/redirect");
         });
 
         it("should include idpId when provided", () => {
-            mockClient.http.getUrl.mockReturnValue({ 
-                href: "https://example.com/login/sso/redirect/idp1?redirectUrl=abc" 
+            mockClient.http.getUrl.mockReturnValue({
+                href: "https://example.com/login/sso/redirect/idp1?redirectUrl=abc",
             });
             const url = accountManager.getSsoLoginUrl("https://example.com/callback", "sso", "idp1");
             expect(url).toContain("/login/sso/redirect/idp1");
         });
 
         it("should include action parameter", () => {
-            mockClient.http.getUrl.mockReturnValue({ 
-                href: "https://example.com/login/sso/redirect?redirectUrl=abc&action=login" 
+            mockClient.http.getUrl.mockReturnValue({
+                href: "https://example.com/login/sso/redirect?redirectUrl=abc&action=login",
             });
-            const url = accountManager.getSsoLoginUrl(
-                "https://example.com/callback",
-                "sso",
-                undefined,
-                "login"
-            );
+            const url = accountManager.getSsoLoginUrl("https://example.com/callback", "sso", undefined, "login");
             expect(url).toContain("action=login");
         });
     });
@@ -209,10 +206,7 @@ describe("AccountManager", () => {
 
             await accountManager.logout();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
-                "/logout"
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/logout");
         });
 
         it("should stop client when stopClient is true", async () => {
@@ -239,10 +233,7 @@ describe("AccountManager", () => {
         it("should accept auth and erase options", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
 
-            await accountManager.deactivateAccount(
-                { type: "m.login.password" },
-                true
-            );
+            await accountManager.deactivateAccount({ type: "m.login.password" }, true);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
@@ -251,7 +242,7 @@ describe("AccountManager", () => {
                 expect.objectContaining({
                     auth: { type: "m.login.password" },
                     erase: true,
-                })
+                }),
             );
         });
     });
@@ -270,8 +261,8 @@ describe("AccountManager", () => {
 
     describe("getFallbackAuthUrl", () => {
         it("should return fallback auth URL", () => {
-            mockClient.http.getUrl.mockReturnValue({ 
-                href: "https://example.com/auth/m.login.password/fallback/web?authSessionId=session123" 
+            mockClient.http.getUrl.mockReturnValue({
+                href: "https://example.com/auth/m.login.password/fallback/web?authSessionId=session123",
             });
             const url = accountManager.getFallbackAuthUrl("m.login.password", "session123");
             expect(url).toContain("/auth/m.login.password/fallback/web");
@@ -287,12 +278,9 @@ describe("AccountManager", () => {
                 allow_guest_access: true,
             });
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "PUT",
-                expect.any(String),
-                undefined,
-                { allow_guest_access: true }
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("PUT", expect.any(String), undefined, {
+                allow_guest_access: true,
+            });
         });
     });
 });

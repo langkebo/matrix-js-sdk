@@ -16,12 +16,13 @@ limitations under the License.
 
 /**
  * Retention Manager - 消息保留策略管理
- * 
+ *
  * 提供消息保留策略相关功能
  * 对应后端: retention_service
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface RetentionPolicy {
     min_lifetime?: number;
@@ -33,110 +34,86 @@ export interface RetentionState {
     policy?: RetentionPolicy;
 }
 
-/**
- * 消息保留策略管理器
- * 对应后端服务: retention_service
- */
-export class RetentionManager {
-    constructor(private client: MatrixClient) {}
+export interface RetentionManagerEvents {
+    retention_policy_updated: { roomId: string; policy: RetentionPolicy };
+    message_expired: { roomId: string; eventId: string };
+}
 
-    /**
-     * 获取房间的保留策略
-     * 对应 API: GET /rooms/{room_id}/ Retention
-     */
+export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, RetentionManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public async getRoomRetention(roomId: string): Promise<RetentionPolicy | null> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomRetention(roomId);
+        const result = await this.client.getRoomRetention(roomId);
+        return result as RetentionPolicy | null;
     }
 
-    /**
-     * 设置房间的保留策略
-     * 对应 API: PUT /rooms/{room_id}/ Retention
-     */
     public async setRoomRetention(roomId: string, policy: RetentionPolicy): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomRetention(roomId, policy);
+        await this.client.setRoomRetention(roomId, policy as Record<string, unknown>);
     }
 
-    /**
-     * 获取服务器的默认保留策略
-     * 对应 API: GET / Retention
-     */
     public async getServerRetention(): Promise<RetentionPolicy | null> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getServerRetention();
+        const result = await this.client.getServerRetention();
+        return result as RetentionPolicy | null;
     }
 
-    /**
-     * 获取房间的保留状态
-     */
     public getRoomRetentionState(roomId: string): RetentionState {
         const room = this.client.getRoom(roomId);
         if (!room) {
             return { enabled: false };
         }
-        
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const retentionState = (room.currentState as any).getStateEvents("m.room.retention");
+
+        const retentionState = room.currentState.getStateEvents("m.room.retention", "");
         if (retentionState && retentionState.getContent()) {
             return {
                 enabled: true,
-                policy: retentionState.getContent() as RetentionPolicy
+                policy: retentionState.getContent() as RetentionPolicy,
             };
         }
-        
+
         return { enabled: false };
     }
 
-    /**
-     * 获取所有房间的保留策略
-     */
     public getAllRoomRetentionPolicies(): Record<string, RetentionPolicy> {
         const rooms = this.client.getRooms();
         const policies: Record<string, RetentionPolicy> = {};
-        
+
         for (const room of rooms) {
             const state = this.getRoomRetentionState(room.roomId);
             if (state.enabled && state.policy) {
                 policies[room.roomId] = state.policy;
             }
         }
-        
+
         return policies;
     }
 
-    /**
-     * 检查消息是否在保留期内
-     */
     public isMessageWithinRetention(roomId: string, timestamp: number): boolean {
         const state = this.getRoomRetentionState(roomId);
-        
+
         if (!state.enabled || !state.policy || !state.policy.max_lifetime) {
-            return true; // 没有保留策略，默认保留
+            return true;
         }
-        
+
         const age = Date.now() - timestamp;
         return age < state.policy.max_lifetime;
     }
 
-    /**
-     * 获取消息剩余保留时间（毫秒）
-     */
     public getMessageRemainingLifetime(roomId: string, timestamp: number): number | null {
         const state = this.getRoomRetentionState(roomId);
-        
+
         if (!state.enabled || !state.policy || !state.policy.max_lifetime) {
-            return null; // 无保留策略，永久保留
+            return null;
         }
-        
+
         const age = Date.now() - timestamp;
         const remaining = state.policy.max_lifetime - age;
-        
+
         return remaining > 0 ? remaining : 0;
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRetentionManager(): RetentionManager;

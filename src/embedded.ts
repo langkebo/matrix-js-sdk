@@ -419,7 +419,7 @@ export class RoomWidgetClient extends MatrixClient {
 
         // Delayed event special case.
         if (delayOpts) {
-            // TODO: updatePendingEvent for delayed events?
+            // Known limitation: delayed events do not update local pending event state.
             const response = await this.widgetApi
                 .sendRoomEvent(
                     event.getType(),
@@ -456,6 +456,38 @@ export class RoomWidgetClient extends MatrixClient {
         this.eventEmitter.emit(RoomWidgetClientEvent.PendingEventsChanged);
 
         return { event_id: response.event_id! };
+    }
+
+    public override async sendEvent(
+        roomId: string,
+        threadIdOrEventType: string | null,
+        eventTypeOrContent: string | IContent,
+        contentOrTxnId?: IContent | string,
+        txnIdOrVoid?: string,
+    ): Promise<ISendEventResponse> {
+        const prepared = this.prepareSendEventWithThreadRelation(
+            roomId,
+            threadIdOrEventType,
+            eventTypeOrContent,
+            contentOrTxnId,
+            txnIdOrVoid,
+        );
+        const room = this.getRoom(roomId);
+        if (!room) {
+            throw new Error(`Unknown room: ${roomId}`);
+        }
+        const localEvent = new MatrixEvent({
+            room_id: roomId,
+            type: prepared.eventObject.type,
+            content: prepared.eventObject.content,
+            event_id: `$local-${Date.now()}`,
+            sender: this.getUserId()!,
+            origin_server_ts: Date.now(),
+            txn_id: prepared.txnId ?? this.makeTxnId(),
+        } as Partial<IEvent>);
+        localEvent.setStatus(EventStatus.SENDING);
+        room.addPendingEvent(localEvent, prepared.txnId ?? this.makeTxnId());
+        return this.encryptAndSendEvent(room, localEvent) as Promise<ISendEventResponse>;
     }
 
     public async sendStateEvent<K extends keyof StateEvents>(
@@ -606,17 +638,25 @@ export class RoomWidgetClient extends MatrixClient {
         }
 
         await this.widgetApi
-            .sendToDevice(eventType, true, recursiveMapToObject(contentMap) as {
-                [userId: string]: { [deviceId: string]: object };
-            })
+            .sendToDevice(
+                eventType,
+                true,
+                recursiveMapToObject(contentMap) as {
+                    [userId: string]: { [deviceId: string]: object };
+                },
+            )
             .catch(timeoutToConnectionError);
     }
 
     public async sendToDevice(eventType: string, contentMap: SendToDeviceContentMap): Promise<EmptyObject> {
         await this.widgetApi
-            .sendToDevice(eventType, false, recursiveMapToObject(contentMap) as {
-                [userId: string]: { [deviceId: string]: object };
-            })
+            .sendToDevice(
+                eventType,
+                false,
+                recursiveMapToObject(contentMap) as {
+                    [userId: string]: { [deviceId: string]: object };
+                },
+            )
             .catch(timeoutToConnectionError);
         return {};
     }
@@ -641,9 +681,13 @@ export class RoomWidgetClient extends MatrixClient {
         }
 
         await this.widgetApi
-            .sendToDevice(eventType, false, recursiveMapToObject(contentMap) as {
-                [userId: string]: { [deviceId: string]: object };
-            })
+            .sendToDevice(
+                eventType,
+                false,
+                recursiveMapToObject(contentMap) as {
+                    [userId: string]: { [deviceId: string]: object };
+                },
+            )
             .catch(timeoutToConnectionError);
     }
 
@@ -666,9 +710,13 @@ export class RoomWidgetClient extends MatrixClient {
         contentMap: SendToDeviceContentMap,
     ): Promise<void> {
         await this.widgetApi
-            .sendToDevice(eventType, encrypted, recursiveMapToObject(contentMap) as {
-                [userId: string]: { [deviceId: string]: object };
-            })
+            .sendToDevice(
+                eventType,
+                encrypted,
+                recursiveMapToObject(contentMap) as {
+                    [userId: string]: { [deviceId: string]: object };
+                },
+            )
             .catch(timeoutToConnectionError);
     }
 
@@ -864,7 +912,7 @@ function processAndThrow(error: unknown): never {
  * It either throws the original error or a new ConnectionError.
  **/
 function timeoutToConnectionError(error: unknown): never {
-    // TODO: this should not check on error.message but instead it should be a specific type
+    // Known limitation: timeout detection currently depends on error.message matching.
     // error instanceof WidgetTimeoutError
     if (error instanceof Error && error.message === "Request timed out") {
         throw new ConnectionError("widget api timeout");

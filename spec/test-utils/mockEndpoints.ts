@@ -26,6 +26,8 @@ import { type KeyBackupInfo } from "../../src/crypto-api";
  */
 export function mockInitialApiRequests(homeserverUrl: string, userId: string = "@alice:localhost") {
     fetchMock.getOnce(new URL("/_matrix/client/versions", homeserverUrl).toString(), { versions: ["v1.1"] });
+    fetchMock.getOnce(new URL("/_matrix/client/v3/capabilities", homeserverUrl).toString(), {});
+    fetchMock.getOnce(new URL("/_matrix/client/v3/pushrules", homeserverUrl).toString(), {});
     fetchMock.getOnce(new URL("/_matrix/client/v3/pushrules/", homeserverUrl).toString(), {});
     fetchMock.postOnce(
         new URL(`/_matrix/client/v3/user/${encodeURIComponent(userId)}/filter`, homeserverUrl).toString(),

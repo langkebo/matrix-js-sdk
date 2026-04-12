@@ -431,6 +431,37 @@ describe("MatrixRTCSession", () => {
 
             expect(sess?.slotDescription.id).toEqual("ROOM");
         });
+        it("keeps joined state membership when matching sticky event is left", async () => {
+            const stickyUserId = "@stickyleft:user.example";
+            const joinedMembership = {
+                ...membershipTemplate,
+                user_id: stickyUserId,
+            };
+            const mockRoom = makeMockRoom([joinedMembership]);
+            mockRoom._unstable_getStickyEvents.mockImplementation(() => {
+                const ev = mockRTCEvent(
+                    {
+                        user_id: stickyUserId,
+                        msc4354_sticky_key: `_${stickyUserId}_${membershipTemplate.device_id}`,
+                    },
+                    mockRoom.roomId,
+                    15000,
+                );
+                return [ev as StickyMatrixEvent];
+            });
+
+            sess = MatrixRTCSession.sessionForSlot(client, mockRoom, callSession, {
+                listenForStickyEvents: true,
+                listenForMemberStateEvents: true,
+            });
+            await flushPromises();
+
+            const memberships = sess.memberships;
+            expect(memberships.length).toEqual(1);
+            expect(memberships[0].sender).toEqual(stickyUserId);
+            expect(memberships[0].application).toEqual("m.call");
+            expect(memberships[0].isExpired()).toEqual(false);
+        });
         it("handles an incoming sticky event to an existing session", async () => {
             const mockRoom = makeMockRoom([membershipTemplate]);
             const stickyUserId = "@stickyev:user.example";

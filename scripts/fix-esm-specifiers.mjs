@@ -5,14 +5,7 @@ import path from "node:path";
 const projectRoot = path.resolve(import.meta.dirname, "..");
 const libRoot = path.join(projectRoot, "lib");
 
-const knownExtensions = new Set([
-    ".js",
-    ".mjs",
-    ".cjs",
-    ".json",
-    ".node",
-    ".wasm",
-]);
+const knownExtensions = new Set([".js", ".mjs", ".cjs", ".json", ".node", ".wasm"]);
 
 function shouldRewriteSpecifier(spec) {
     if (!(spec.startsWith("./") || spec.startsWith("../"))) return false;

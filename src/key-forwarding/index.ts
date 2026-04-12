@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * Key Forwarding Manager - 密钥转发管理
- * 
+ *
  * 提供密钥转发相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IForwardedKey {
     roomId: string;
@@ -36,35 +37,75 @@ export interface IKeyForwardingResponse {
     requestId: string;
 }
 
-export class KeyForwardingManager {
-    constructor(private client: MatrixClient) {}
+export interface KeyForwardingManagerEvents {
+    key_forwarded: { roomId: string; userId: string };
+    key_forward_failed: { roomId: string; error: Error };
+}
 
-    public async requestKeyForwarding(roomId: string, eventId: string, userId: string): Promise<IKeyForwardingResponse> {
-        return (this.client as unknown as {
-            requestKeyForwarding: (roomId: string, eventId: string, userId: string) => Promise<IKeyForwardingResponse>;
-        }).requestKeyForwarding(roomId, eventId, userId);
+export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManagerEvents, KeyForwardingManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    public async forwardKey(roomId: string, eventId: string, userId: string, key: Record<string, unknown>): Promise<IKeyForwardingResponse> {
-        return (this.client as unknown as {
-            forwardKey: (roomId: string, eventId: string, userId: string, key: Record<string, unknown>) => Promise<IKeyForwardingResponse>;
-        }).forwardKey(roomId, eventId, userId, key);
+    public async requestKeyForwarding(
+        roomId: string,
+        eventId: string,
+        userId: string,
+    ): Promise<IKeyForwardingResponse> {
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        requestKeyForwarding: (
+                            roomId: string,
+                            eventId: string,
+                            userId: string,
+                        ) => Promise<IKeyForwardingResponse>;
+                    }
+                ).requestKeyForwarding(roomId, eventId, userId),
+            "requestKeyForwarding",
+        );
+    }
+
+    public async forwardKey(
+        roomId: string,
+        eventId: string,
+        userId: string,
+        key: Record<string, unknown>,
+    ): Promise<IKeyForwardingResponse> {
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        forwardKey: (
+                            roomId: string,
+                            eventId: string,
+                            userId: string,
+                            key: Record<string, unknown>,
+                        ) => Promise<IKeyForwardingResponse>;
+                    }
+                ).forwardKey(roomId, eventId, userId, key),
+            "forwardKey",
+        );
     }
 
     public hasForwardedKey(roomId: string, eventId: string): boolean {
-        return (this.client as unknown as {
-            hasForwardedKey: (roomId: string, eventId: string) => boolean;
-        }).hasForwardedKey(roomId, eventId);
+        return (
+            this.client as unknown as {
+                hasForwardedKey: (roomId: string, eventId: string) => boolean;
+            }
+        ).hasForwardedKey(roomId, eventId);
     }
 
     public getForwardedKeys(roomId: string): IForwardedKey[] {
-        return (this.client as unknown as {
-            getForwardedKeys: (roomId: string) => IForwardedKey[];
-        }).getForwardedKeys(roomId);
+        return (
+            this.client as unknown as {
+                getForwardedKeys: (roomId: string) => IForwardedKey[];
+            }
+        ).getForwardedKeys(roomId);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getKeyForwardingManager(): KeyForwardingManager;

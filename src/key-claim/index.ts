@@ -16,37 +16,44 @@ limitations under the License.
 
 /**
  * Key Claim Manager - 密钥声明管理
- * 
+ *
  * 提供密钥声明相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class KeyClaimManager {
-    constructor(private client: MatrixClient) {}
+export type ClaimedKeys = Record<string, Record<string, string>>;
+
+export interface KeyClaimManagerEvents {
+    keys_claimed: { users: Record<string, string[]>; keys: ClaimedKeys };
+    keys_cleared: void;
+}
+
+export class KeyClaimManager extends BaseManager<keyof KeyClaimManagerEvents, KeyClaimManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * Claim keys
      */
-    public async claimKeys(users: Record<string, string[]>): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).claimKeys(users);
+    public async claimKeys(users: Record<string, string[]>): Promise<ClaimedKeys> {
+        return (await this.withRetry(() => this.client.claimKeys(users), "claimKeys")) as ClaimedKeys;
     }
 
     /**
      * Get claimed keys
      */
-    public getClaimedKeys(): Record<string, any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).claimedKeys || {};
+    public getClaimedKeys(): ClaimedKeys {
+        return this.client.claimedKeys || {};
     }
 
     /**
      * Has claimed key
      */
     public hasClaimedKey(userId: string, deviceId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const keys = (this.client as any).claimedKeys || {};
+        const keys = this.client.claimedKeys || {};
         return !!keys[userId]?.[deviceId];
     }
 
@@ -54,8 +61,7 @@ export class KeyClaimManager {
      * Clear claimed keys
      */
     public clearClaimedKeys(): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).claimedKeys = {};
+        this.client.claimedKeys = {};
     }
 }
 

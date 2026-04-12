@@ -18,6 +18,7 @@ import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IUserDirectorySearchResult {
     results: Array<{
@@ -33,8 +34,10 @@ export interface IUserProfile {
     displayname?: string;
 }
 
-export class UserDirectoryManager {
-    constructor(private client: MatrixClient) {}
+export class UserDirectoryManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async searchUserDirectory(term: string, limit?: number): Promise<IUserDirectorySearchResult> {
         return this.client.searchUserDirectory({ term, limit });
@@ -49,7 +52,7 @@ export class UserDirectoryManager {
             `/profile/${encodeURIComponent(userId)}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 }
+            { prefix: ClientPrefix.V3 },
         );
     }
 
@@ -63,7 +66,7 @@ export class UserDirectoryManager {
 
     public getUserByDisplayName(displayName: string): User | undefined {
         const users = this.client.getUsers();
-        return users.find(u => u.displayName === displayName);
+        return users.find((u) => u.displayName === displayName);
     }
 }
 

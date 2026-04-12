@@ -9,13 +9,13 @@
 
 ## 1. 审计范围
 
-| 类别 | 端点数量 | 后端实现 | SDK 封装 |
-|------|----------|----------|----------|
-| 备份版本管理 | 5 | ✅ 完整 | ✅ 已封装 |
-| 备份密钥读写 | 11 | ✅ 完整 | ✅ 已封装 |
-| 恢复与校验 | 6 | ✅ 完整 | ✅ 已封装 |
-| 导出与导入 | 4 | ✅ 完整 | ✅ 已封装 |
-| Secure Backup | 6 | ✅ 完整 (e2ee_routes.rs) | ✅ 已封装 |
+| 类别          | 端点数量 | 后端实现                 | SDK 封装  |
+| ------------- | -------- | ------------------------ | --------- |
+| 备份版本管理  | 5        | ✅ 完整                  | ✅ 已封装 |
+| 备份密钥读写  | 11       | ✅ 完整                  | ✅ 已封装 |
+| 恢复与校验    | 6        | ✅ 完整                  | ✅ 已封装 |
+| 导出与导入    | 4        | ✅ 完整                  | ✅ 已封装 |
+| Secure Backup | 6        | ✅ 完整 (e2ee_routes.rs) | ✅ 已封装 |
 
 ---
 
@@ -23,13 +23,13 @@
 
 ### 2.1 备份版本管理端点
 
-| 端点 | 契约定义 | 后端实现 | SDK 封装 | 状态 |
-|------|----------|----------|----------|------|
-| `GET /room_keys/version` | ✅ | ✅ key_backup.rs:35 | ✅ `KeyBackupManager.getBackupVersions()` | ✅ OK |
-| `POST /room_keys/version` | ✅ | ✅ key_backup.rs:53 | ✅ `KeyBackupManager.createBackupVersion()` | ✅ OK |
-| `GET /room_keys/version/{version}` | ✅ | ✅ key_backup.rs:71 | ✅ `KeyBackupManager.getBackupVersion()` | ✅ OK |
-| `PUT /room_keys/version/{version}` | ✅ | ✅ key_backup.rs:89 | ✅ `KeyBackupManager.updateBackupVersion()` | ✅ 已添加 |
-| `DELETE /room_keys/version/{version}` | ✅ | ✅ key_backup.rs:107 | ✅ `KeyBackupManager.deleteBackupVersion()` | ✅ OK |
+| 端点                                  | 契约定义 | 后端实现             | SDK 封装                                    | 状态      |
+| ------------------------------------- | -------- | -------------------- | ------------------------------------------- | --------- |
+| `GET /room_keys/version`              | ✅       | ✅ key_backup.rs:35  | ✅ `KeyBackupManager.getBackupVersions()`   | ✅ OK     |
+| `POST /room_keys/version`             | ✅       | ✅ key_backup.rs:53  | ✅ `KeyBackupManager.createBackupVersion()` | ✅ OK     |
+| `GET /room_keys/version/{version}`    | ✅       | ✅ key_backup.rs:71  | ✅ `KeyBackupManager.getBackupVersion()`    | ✅ OK     |
+| `PUT /room_keys/version/{version}`    | ✅       | ✅ key_backup.rs:89  | ✅ `KeyBackupManager.updateBackupVersion()` | ✅ 已添加 |
+| `DELETE /room_keys/version/{version}` | ✅       | ✅ key_backup.rs:107 | ✅ `KeyBackupManager.deleteBackupVersion()` | ✅ OK     |
 
 | `GET /room_keys/keys` | ✅ | ✅ key_backup.rs:125 | ✅ `KeyBackupManager.getAllBackupKeys()` | ✅ OK |
 | `GET /room_keys/keys/{version}` | ✅ | ✅ key_backup.rs:161 | ✅ `KeyBackupManager.getBackupKeys()` | ✅ OK |
@@ -59,11 +59,11 @@
 
 ## 3. 已修复问题
 
-| 问题 | 修复内容 | 文件 |
-|------|----------|------|
-| SDK 使用间接封装 | 重构为直接 HTTP 调用 | `key-backup/index.ts` |
-| 缺少恢复与校验功能 | 添加 6 个方法 | `key-backup/index.ts` |
-| 缺少导入导出功能 | 添加 4 个方法 | `key-backup/index.ts` |
+| 问题                    | 修复内容                   | 文件                     |
+| ----------------------- | -------------------------- | ------------------------ |
+| SDK 使用间接封装        | 重构为直接 HTTP 调用       | `key-backup/index.ts`    |
+| 缺少恢复与校验功能      | 添加 6 个方法              | `key-backup/index.ts`    |
+| 缺少导入导出功能        | 添加 4 个方法              | `key-backup/index.ts`    |
 | 缺少 Secure Backup 封装 | 添加 `SecureBackupManager` | `secure-backup/index.ts` |
 
 ---
@@ -162,7 +162,16 @@ export interface SecureBackupInfo {
 ```typescript
 // key-backup/index.ts
 export { KeyBackupManager } from "./key-backup";
-export type { BackupVersionInfo, BackupVersion, RoomKeyBackup, RecoveryProgress, BatchRecoverResult, ExportResult, ImportResult, VerifyResult } from "./key-backup";
+export type {
+    BackupVersionInfo,
+    BackupVersion,
+    RoomKeyBackup,
+    RecoveryProgress,
+    BatchRecoverResult,
+    ExportResult,
+    ImportResult,
+    VerifyResult,
+} from "./key-backup";
 
 // secure-backup/index.ts
 export { SecureBackupManager } from "./secure-backup";
@@ -176,30 +185,24 @@ export type { SecureBackupInfo } from "./secure-backup";
 ### 7.1 单元测试
 
 ```typescript
-describe('KeyBackupManager', () => {
-    it('should call correct API endpoints', async () => {
+describe("KeyBackupManager", () => {
+    it("should call correct API endpoints", async () => {
         // Mock HTTP client
         const mockHttp = {
-            authedRequest: vi.fn()
+            authedRequest: vi.fn(),
         };
         const client = {
-            http: mockHttp
+            http: mockHttp,
         } as any;
-        
+
         const manager = new KeyBackupManager(client);
-        
+
         // Test version management
         await manager.getBackupVersions();
-        expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-            'GET',
-            '/room_keys/version'
-        );
-        
-        await manager.createBackupVersion('m.megolm.v1.aes-sha2', { key: 'value' });
-        expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-            'POST',
-            '/room_keys/version'
-        );
+        expect(mockHttp.authedRequest).toHaveBeenCalledWith("GET", "/room_keys/version");
+
+        await manager.createBackupVersion("m.megolm.v1.aes-sha2", { key: "value" });
+        expect(mockHttp.authedRequest).toHaveBeenCalledWith("POST", "/room_keys/version");
     });
 });
 ```
@@ -214,10 +217,10 @@ describe('KeyBackupManager', () => {
 - ✅ 所有端点已正确封装
 
 ### 8.2 娡块功能
+
 - ✅ 版本管理: 创建、更新、获取、删除备份版本
 - ✅ 密钥读写: 蟥询、上传、批量上传密钥
 - ✅ 恢复功能: 恢复密钥、获取恢复进度、批量恢复
 - ✅ 校验功能: 验证备份完整性
 - ✅ 导入导出: 导出/导入密钥
 - ✅ Secure Backup: 口令驱动的安全备份
-

@@ -114,8 +114,12 @@ export interface ICallStartedPrefixCondition extends IPushRuleCondition<Conditio
     // no additional fields
 }
 
-// XXX: custom conditions are possible but always fail, and break the typescript discriminated union so ignore them here
-// IPushRuleCondition<Exclude<string, ConditionKind>> unfortunately does not resolve this at the time of writing.
+/**
+ * Known limitation: Custom conditions are possible but always fail, and break
+ * the TypeScript discriminated union so we ignore them here.
+ * IPushRuleCondition<Exclude<string, ConditionKind>> unfortunately does not
+ * resolve this at the time of writing.
+ */
 export type PushRuleCondition =
     | IEventMatchCondition
     | IEventPropertyIsCondition
@@ -187,8 +191,8 @@ export interface IPusher {
     "app_id": string;
     "data": {
         format?: string;
-        url?: string; // TODO: Required if kind==http
-        brand?: string; // TODO: For email notifications only? Unspecced field
+        url?: string; // Required when kind is "http".
+        brand?: string; // Used by some email pushers.
     };
     "device_display_name": string;
     "kind": "http" | string;

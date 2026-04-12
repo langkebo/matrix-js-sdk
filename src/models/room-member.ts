@@ -89,7 +89,11 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
     private modified = -1;
     public requestedProfileInfo = false; // used by sync.ts
 
-    // XXX these should be read-only
+    /**
+     * Known limitation: These properties should ideally be read-only but are
+     * currently mutable for backwards compatibility. External mutation is
+     * discouraged and may be removed in a future major version.
+     */
     /**
      * True if the room member is currently typing.
      */
@@ -297,7 +301,7 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
         this.typing = false;
         const typingList = event.getContent().user_ids;
         if (!Array.isArray(typingList)) {
-            // malformed event :/ bail early. TODO: whine?
+            // malformed event :/ bail early. Known limitation: no dedicated warning is emitted here.
             return;
         }
         if (typingList.indexOf(this.userId) !== -1) {
@@ -343,7 +347,7 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
         // when not available because that room state hasn't been loaded in,
         // we don't really know, but more likely to not be a direct chat
         if (this.events.member) {
-            // TODO: persist the is_direct flag on the member as more member events
+            // Known limitation: is_direct is not persisted across later member events
             //       come in caused by displayName changes.
 
             // the is_direct flag is set on the invite member event.
@@ -363,6 +367,7 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
                 return inviteSender;
             }
         }
+        return undefined;
     }
 
     /**
@@ -428,6 +433,7 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
         } else if (this.user) {
             return this.user.avatarUrl;
         }
+        return undefined;
     }
 }
 

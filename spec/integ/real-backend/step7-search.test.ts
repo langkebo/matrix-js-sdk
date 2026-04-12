@@ -1,8 +1,8 @@
 /**
  * Step 7: 搜索与同步模块测试
- * 
+ *
  * 测试模块: search, filtering, filter, sync-management, sync-accumulator, sessions, server-capabilities, server-time, capabilities, identity
- * 
+ *
  * 运行: npx tsx spec/integ/real-backend/step7-search.test.ts
  */
 
@@ -33,16 +33,16 @@ async function login(): Promise<MatrixClient> {
         baseUrl: TestConfig.baseUrl,
         allowInsecureHttp: true,
     });
-    
+
     const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-    
+
     const result = await testClient.login("m.login.password", {
         user: username,
-        password: TestConfig.testUser.password
+        password: TestConfig.testUser.password,
     });
-    
+
     testClient.setAccessToken(result.access_token);
-    
+
     return testClient;
 }
 
@@ -52,66 +52,66 @@ async function main(): Promise<void> {
     console.log("========================================\n");
 
     await extendMatrixClientWithManagers();
-    
+
     console.log("1. 登录测试...");
     client = await login();
     console.log(`   ✅ 登录成功: ${client.getUserId()}\n`);
-    
+
     // 创建测试房间
     console.log("2. 创建测试房间...");
     const room = await client!.createRoom({
         name: "Search Test Room",
-        topic: "Test Room for Search Testing"
+        topic: "Test Room for Search Testing",
     });
     testRoomId = room.room_id;
     console.log(`   ✅ 房间创建成功: ${testRoomId}\n`);
-    
+
     // 发送测试消息
     console.log("3. 发送测试消息...");
     await client!.sendMessage(testRoomId, {
         msgtype: MsgType.Text,
-        body: "Hello search test"
+        body: "Hello search test",
     });
     console.log("   ✅ 消息已发送\n");
-    
+
     // === Search Module ===
     console.log("4. Search 模块测试...");
-    
+
     await runTest("search", async () => {
         const result = await client!.search({
             body: {
                 search_categories: {
                     room_events: {
-                        search_term: "hello"
-                    }
-                }
-            }
+                        search_term: "hello",
+                    },
+                },
+            },
         });
     });
-    
+
     await runTest("search (users)", async () => {
         try {
             const result = await client!.searchUserDirectory({
-                term: "test"
+                term: "test",
             });
         } catch (e: any) {
             console.log("    ⚠️ User search not available");
         }
     });
-    
+
     // === Filtering Module ===
     console.log("\n5. Filtering 模块测试...");
-    
+
     await runTest("createFilter", async () => {
         const filter = await client!.createFilter({
             room: {
                 timeline: {
-                    limit: 10
-                }
-            }
+                    limit: 10,
+                },
+            },
         });
     });
-    
+
     await runTest("getFilter", async () => {
         try {
             const filter = await client!.getFilter(client!.getUserId() || "", "test-filter-id", true);
@@ -119,10 +119,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Get filter not available");
         }
     });
-    
+
     // === Sync Management Module ===
     console.log("\n6. Sync Management 模块测试...");
-    
+
     await runTest("sync (initial)", async () => {
         try {
             const result = await (client as any).sync({}, "");
@@ -130,7 +130,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Sync not available");
         }
     });
-    
+
     await runTest("sync (增量)", async () => {
         try {
             const result = await (client as any).sync({}, "test-token");
@@ -138,7 +138,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Sync with token not available");
         }
     });
-    
+
     await runTest("syncNext", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -147,10 +147,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ SyncNext not available");
         }
     });
-    
+
     // === Sync Accumulator Module ===
     console.log("\n7. Sync Accumulator 模块测试...");
-    
+
     await runTest("getSyncAccumulator", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -159,22 +159,22 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Sync accumulator not available");
         }
     });
-    
+
     await runTest("getRooms", async () => {
         const rooms = client!.getRooms();
         // 可能为空因为未同步
     });
-    
+
     await runTest("getRoom", async () => {
         if (testRoomId) {
             const room = client!.getRoom(testRoomId);
             // 可能为 null 因为未完全同步
         }
     });
-    
+
     // === Sessions Module ===
     console.log("\n8. Sessions 模块测试...");
-    
+
     await runTest("getSessions", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,7 +183,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Get sessions not available");
         }
     });
-    
+
     await runTest("getSessionId", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -192,18 +192,18 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Get session id not available");
         }
     });
-    
+
     // === Server Capabilities Module ===
     console.log("\n9. Server Capabilities 模块测试...");
-    
+
     await runTest("getCapabilities", async () => {
         const caps = await client!.getCapabilities();
     });
-    
+
     await runTest("getServerVersions", async () => {
         const versions = await client!.getVersions();
     });
-    
+
     await runTest("getSupportedVersions", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -212,10 +212,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Supported versions not available");
         }
     });
-    
+
     // === Server Time Module ===
     console.log("\n10. Server Time 模块测试...");
-    
+
     await runTest("getServerTimestamp", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -224,7 +224,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Server timestamp not available");
         }
     });
-    
+
     await runTest("getTimestampToDeviceMessage", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -233,14 +233,14 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Timestamp to device message not available");
         }
     });
-    
+
     // === Identity Module ===
     console.log("\n11. Identity 模块测试...");
-    
+
     await runTest("getIdentityServerUrl", async () => {
         const url = client!.getIdentityServerUrl();
     });
-    
+
     await runTest("getIdentityServerAccessToken", async () => {
         try {
             const token = (client as any).getIdentityServerAccessToken();
@@ -248,7 +248,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Identity access token not available");
         }
     });
-    
+
     await runTest("requestIdentity3pidOwnership", async () => {
         try {
             await (client as any).requestIdentity3pidOwnership("test", "test");
@@ -256,7 +256,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Request 3pid ownership not available");
         }
     });
-    
+
     await runTest("lookupThreePids", async () => {
         try {
             await client!.lookupThreePid("email", "test@example.com", "test-access-token");
@@ -264,10 +264,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Lookup three pids not available");
         }
     });
-    
+
     // === Additional Tests ===
     console.log("\n12. Additional 模块测试...");
-    
+
     await runTest("getClientWellKnown", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -276,7 +276,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Well-known not available");
         }
     });
-    
+
     await runTest("getPushGatewayDiscovery", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -285,7 +285,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Push gateway discovery not available");
         }
     });
-    
+
     // 清理
     console.log("\n13. 清理...");
     if (testRoomId) {
@@ -296,33 +296,35 @@ async function main(): Promise<void> {
             console.log("   ⚠️ 清理失败");
         }
     }
-    
+
     try {
         await client!.logout();
         console.log("   ✅ 已登出");
     } catch (e) {
         console.log("   ⚠️ 登出失败");
     }
-    
+
     // 输出结果
     console.log("\n========================================");
     console.log("测试结果汇总");
     console.log("========================================");
-    
-    const passed = testResults.filter(r => r.passed).length;
-    const failed = testResults.filter(r => !r.passed).length;
+
+    const passed = testResults.filter((r) => r.passed).length;
+    const failed = testResults.filter((r) => !r.passed).length;
     const total = testResults.length;
-    
+
     console.log(`总计: ${total} | ✅ 通过: ${passed} | ❌ 失败: ${failed}`);
     console.log(`通过率: ${((passed / total) * 100).toFixed(1)}%\n`);
-    
+
     if (failed > 0) {
         console.log("失败测试:");
-        testResults.filter(r => !r.passed).forEach(r => {
-            console.log(`  - ${r.name}: ${r.error}`);
-        });
+        testResults
+            .filter((r) => !r.passed)
+            .forEach((r) => {
+                console.log(`  - ${r.name}: ${r.error}`);
+            });
     }
-    
+
     process.exit(failed > 0 ? 1 : 0);
 }
 

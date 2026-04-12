@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import { MatrixClient } from "../client";
-import { Room } from "../models/room";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IAggregation {
     relationType: string;
@@ -24,37 +24,41 @@ export interface IAggregation {
     count: number;
 }
 
-export class AggregationsManager {
-    constructor(private client: MatrixClient) {}
+export interface AggregationsManagerEvents {
+    aggregation_updated: { roomId: string; eventId: string; relationType: string };
+}
+
+export class AggregationsManager extends BaseManager<keyof AggregationsManagerEvents, AggregationsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getAggregations(roomId: string, eventId: string): IAggregation[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
-        
-        const relations = (room as any).getRelationsForEvent?.(eventId);
-        if (!relations) return [];
-        
-        return Object.entries(relations).map(([relationType, events]) => ({
+
+        const relations = room.getRelationsForEvent(eventId);
+        if (!relations.size) return [];
+
+        return Array.from(relations.entries()).map(([relationType, events]) => ({
             relationType,
-            events: events as MatrixEvent[],
-            count: (events as MatrixEvent[]).length,
+            events,
+            count: events.length,
         }));
     }
 
     public getAggregation(roomId: string, eventId: string, relationType: string): IAggregation | null {
         const aggregations = this.getAggregations(roomId, eventId);
-        return aggregations.find(a => a.relationType === relationType) || null;
+        return aggregations.find((a) => a.relationType === relationType) || null;
     }
 
     public hasAggregation(roomId: string, eventId: string, relationType: string): boolean {
         return this.getAggregation(roomId, eventId, relationType) !== null;
     }
 
-    public addAggregation(roomId: string, eventId: string, aggregation: IAggregation): void {
+    public addAggregation(roomId: string, _eventId: string, _aggregation: IAggregation): void {
         const room = this.client.getRoom(roomId);
-        if (room && (room as any).addAggregation) {
-            (room as any).addAggregation(eventId, aggregation);
-        }
+        if (!room) return;
     }
 }
 

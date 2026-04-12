@@ -1,585 +1,246 @@
-# Matrix JS SDK 迁移指南
+# matrix-js-sdk Migration Guide
 
-## 从 MatrixClient 直接方法迁移到 Manager API
+## 2026Q2 systemic refactor track
 
-本指南帮助您从 MatrixClient 的废弃方法迁移到新的 Manager API。Manager API 提供更好的缓存、事件发射和错误处理机制。
+This guide captures compatibility-preserving migrations introduced by the 2026Q2 systemic refactor workstream.
 
----
+## Entrypoint layering
 
-## 为什么要迁移？
+New entrypoints are available to align imports with the refactor layering goals:
 
-### Manager API 的优势
-1. **更好的缓存**: 使用 LRU 缓存，自动管理内存
-2. **事件发射**: 状态变更时自动发射事件
-3. **统一错误处理**: 规范化的错误类型和重试逻辑
-4. **类型安全**: 完整的 TypeScript 类型定义
-5. **可测试性**: 独立的 Manager 更容易测试
+| Entrypoint               | When to use                                                         |
+| ------------------------ | ------------------------------------------------------------------- |
+| `matrix-js-sdk/core`     | Default recommendation for new integrations (curated export set)    |
+| `matrix-js-sdk/advanced` | Explicit opt-in for feature-heavy integrations (curated export set) |
+| `matrix-js-sdk/legacy`   | Compatibility entrypoint for deprecated shims                       |
 
-### 废弃时间表
-- **v40.x**: 方法标记为 @deprecated，仍然可用
-- **v41.0.0**: 废弃方法将被移除（预计 2026 Q3）
-- **迁移期**: 至少 6 个月
+## Scenario-based onboarding (max 3 paths)
 
----
+Use a single primary entrypoint per integration and choose from the three paths below:
 
-## Profile 管理迁移
+| Integration scenario                        | Primary entrypoint       | Typical imports                                                                       |
+| ------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Basic client lifecycle and event handling   | `matrix-js-sdk/core`     | `createClient`, `MatrixClient`, `ClientEvent`, `MatrixError`                          |
+| Feature-heavy integrations (admin/dm/space) | `matrix-js-sdk/advanced` | `AdminManager`, `DirectMessageManager`, `SpaceManager`, `RoomSummaryManager`          |
+| Legacy migration shim only                  | `matrix-js-sdk/legacy`   | `LegacyFilterManager`, `LegacyFilterEvent`, `IFilterManagerDefinition`, `IFilterInfo` |
 
-### 设置用户资料信息
+### Recommended import policy
 
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setProfileInfo('avatar_url', { 
-    avatar_url: 'mxc://example.com/avatar' 
+1. Prefer `matrix-js-sdk/core` for all new integrations.
+2. Upgrade to `matrix-js-sdk/advanced` only when manager-heavy domains are required.
+3. Keep `matrix-js-sdk/legacy` temporary and migration-scoped.
+4. Run `pnpm quality:contracts` after import-path migration to verify export contract consistency.
+
+### Quick examples
+
+Core path:
+
+```ts
+import { ClientEvent, createClient } from "matrix-js-sdk/core";
+```
+
+Advanced path:
+
+```ts
+import { DirectMessageManager, createClient } from "matrix-js-sdk/advanced";
+```
+
+Legacy path:
+
+```ts
+import { LegacyFilterManager } from "matrix-js-sdk/legacy";
+```
+
+### Module-level migration examples
+
+| Module/use case             | Before migration                   | Recommended import       |
+| --------------------------- | ---------------------------------- | ------------------------ |
+| Base client bootstrap       | `matrix-js-sdk`                    | `matrix-js-sdk/core`     |
+| Direct messaging manager    | `matrix-js-sdk/dm`                 | `matrix-js-sdk/advanced` |
+| Friend relationship manager | `matrix-js-sdk/friend`             | `matrix-js-sdk/advanced` |
+| Space hierarchy manager     | `matrix-js-sdk/space`              | `matrix-js-sdk/advanced` |
+| Admin operations manager    | `matrix-js-sdk/admin`              | `matrix-js-sdk/advanced` |
+| Legacy filter compatibility | `matrix-js-sdk/src/filter-manager` | `matrix-js-sdk/legacy`   |
+
+Core-focused integration:
+
+```ts
+import { ClientEvent, MatrixClient, createClient } from "matrix-js-sdk/core";
+```
+
+Advanced manager integration:
+
+```ts
+import { DirectMessageManager, FriendManager, SpaceManager, createClient } from "matrix-js-sdk/advanced";
+```
+
+Legacy shim migration:
+
+```ts
+import { LegacyFilterEvent, LegacyFilterManager } from "matrix-js-sdk/legacy";
+```
+
+## Legacy filter manager path
+
+The `filter-manager` path is now a deprecated compatibility layer. The canonical implementation lives in `filter/index.ts` and is re-exported from the main SDK entrypoint.
+
+| Legacy import                                                    | Recommended import                                | Compatibility note                                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| `matrix-js-sdk/src/filter-manager` -> `FilterManager`            | `matrix-js-sdk` -> `FilterManager`                | Canonical manager, long-term supported                                     |
+| `matrix-js-sdk/src/filter-manager` -> `FilterManager`            | `matrix-js-sdk` -> `LegacyFilterManager`          | Transitional alias for consumers that still need the legacy helper surface |
+| `matrix-js-sdk/src/filter-manager` -> `IFilterManagerDefinition` | `matrix-js-sdk/src/filter` -> `IFilterDefinition` | Type-only rename; payload shape is unchanged                               |
+| `matrix-js-sdk/src/filter-manager` -> `createFilterDefinition()` | inline `IFilterDefinition` object                 | Helper remains available but is deprecated                                 |
+
+### Behavioral notes
+
+- `LegacyFilterManager#getFilter()` now returns `null` only for `404 / M_NOT_FOUND`.
+- Non-404 failures now throw normalized SDK errors instead of being silently swallowed.
+- `LegacyFilterManager` remains available for at least the current refactor cycle and should be treated as a migration shim, not a long-term API.
+
+## Main entrypoint aliases
+
+The main entrypoint now exposes:
+
+- `FilterManager`: canonical implementation from `src/filter/index.ts`
+- `LegacyFilterManager`: deprecated compatibility wrapper from `src/filter-manager/index.ts`
+
+### Main entrypoint alias mapping
+
+| Deprecated entrypoint export                  | Recommended replacement                                                     | Notes                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `matrix-js-sdk` -> `LegacyFilterManager`      | `matrix-js-sdk` -> `FilterManager`                                          | Prefer the canonical implementation for all new code |
+| `matrix-js-sdk` -> `IFilterManagerDefinition` | `matrix-js-sdk/src/filter` -> `IFilterDefinition`                           | Type-only rename; runtime shape is unchanged         |
+| `matrix-js-sdk` -> `IFilterInfo`              | `matrix-js-sdk` -> `LegacyFilterManager` return types only during migration | Keep only while migrating legacy cache helpers       |
+| `matrix-js-sdk` -> `IFilterManagerResponse`   | `matrix-js-sdk` -> `FilterManager#createFilter()` return shape              | Use the canonical manager contract going forward     |
+| `matrix-js-sdk` -> `LegacyFilterEvent`        | `matrix-js-sdk/src/filter-manager` -> `FilterEvent`                         | Legacy event enum remains for staged migration only  |
+| `matrix-js-sdk` -> `createFilterDefinition()` | inline `IFilterDefinition` object                                           | Preferred for new code; helper is deprecated         |
+
+### Code examples
+
+Replace deprecated main-entrypoint aliases:
+
+```ts
+import { LegacyFilterManager, createFilterDefinition, type IFilterManagerDefinition } from "matrix-js-sdk";
+```
+
+with:
+
+```ts
+import { FilterManager } from "matrix-js-sdk";
+import type { IFilterDefinition } from "matrix-js-sdk/src/filter";
+
+const definition: IFilterDefinition = {
+    room: {
+        timeline: {
+            limit: 50,
+        },
+    },
+};
+```
+
+Replace legacy path imports:
+
+```ts
+import { FilterManager } from "matrix-js-sdk/src/filter-manager";
+```
+
+with:
+
+```ts
+import { FilterManager } from "matrix-js-sdk";
+```
+
+## Recommended migration steps
+
+1. Replace legacy imports with `FilterManager` from the main SDK entrypoint.
+2. Replace `IFilterManagerDefinition` with `IFilterDefinition`.
+3. Remove reliance on non-404 fallback behavior from `LegacyFilterManager#getFilter()`.
+4. Keep legacy aliases only where staged migration is required.
+
+## Error semantics migration
+
+Manager APIs are now aligned on `BaseManager` error normalization semantics.
+
+### Normalized error classes
+
+- `AuthError`: authentication/authorization failures (`401`, `M_UNKNOWN_TOKEN`)
+- `NotFoundError`: resource not found (`404`, `M_NOT_FOUND`)
+- `RetryableError`: retryable transport/server/rate-limit failures (`429`, `5xx`, network transient)
+- `ApiError`: all other API failures with stable `code` + `statusCode`
+
+### Consumer migration checklist
+
+1. Catch `SdkError` subclasses instead of parsing raw HTTP payloads.
+2. Replace ad-hoc status-code branching with class-based branching (`instanceof`).
+3. Treat `RetryableError` as unified retry signal across managers.
+4. Keep fallback handling only for explicitly documented internal-only managers.
+
+### Example
+
+```ts
+import { ApiError, AuthError, NotFoundError, RetryableError } from "matrix-js-sdk";
+
+try {
+    await client.getToDeviceManager().sendToDevice(eventType, messages);
+} catch (error) {
+    if (error instanceof AuthError) {
+    } else if (error instanceof RetryableError) {
+    } else if (error instanceof NotFoundError) {
+    } else if (error instanceof ApiError) {
+    } else {
+        throw error;
+    }
+}
+```
+
+## Manager extensions lifecycle contract
+
+The manager extension system now supports a stable runtime contract for dynamic initialization.
+
+### Initialization mode
+
+- Default mode: `createClient()` and `createRoomWidgetClient()` auto-initialize manager extensions.
+- Opt-out mode: pass `disableDynamicExtensions: true` in `ICreateClientOpts` to skip dynamic extension initialization.
+
+```ts
+import { createClient } from "matrix-js-sdk";
+
+const client = createClient({
+    baseUrl: "https://example.com",
+    accessToken: "token",
+    userId: "@alice:example.com",
+    disableDynamicExtensions: true,
 });
 ```
 
-**新方式** (推荐):
-```typescript
-// ✅ 使用 ProfileManager
-const profileManager = client.getProfileManager();
-await profileManager.setProfileInfo('avatar_url', { 
-    avatar_url: 'mxc://example.com/avatar' 
+### Lifecycle events
+
+The main entrypoint exports lifecycle subscription APIs:
+
+- `onManagerExtensionsLifecycle(listener)`
+- `offManagerExtensionsLifecycle(listener)`
+
+Event shape:
+
+- `phase`: `register | init | start | stop`
+- `status`: `begin | success | error`
+- `modules`: enabled manager extension module names
+- `error`: populated when `status === "error"`
+
+```ts
+import { onManagerExtensionsLifecycle, createClient } from "matrix-js-sdk";
+
+const unsubscribe = onManagerExtensionsLifecycle((event) => {
+    if (event.phase === "init" && event.status === "error") {
+        throw event.error;
+    }
 });
-```
 
-### 设置显示名称
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setDisplayName('Alice');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 ProfileManager
-const profileManager = client.getProfileManager();
-await profileManager.setDisplayName('Alice');
-```
-
-### 设置头像
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setAvatarUrl('mxc://example.com/avatar');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 ProfileManager
-const profileManager = client.getProfileManager();
-await profileManager.setAvatarUrl('mxc://example.com/avatar');
-```
-
-### 获取用户资料
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const profile = await client.getProfileInfo('@user:example.com');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 ProfileManager，带缓存
-const profileManager = client.getProfileManager();
-const profile = await profileManager.getProfileInfo('@user:example.com');
-```
-
-### MXC URL 转换
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const httpUrl = client.mxcUrlToHttp('mxc://example.com/file');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 ProfileManager
-const profileManager = client.getProfileManager();
-const httpUrl = profileManager.mxcUrlToHttp('mxc://example.com/file');
-```
-
----
-
-## Presence 管理迁移
-
-### 设置在线状态
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setPresence({
-    presence: 'online',
-    status_msg: 'Working'
+createClient({
+    baseUrl: "https://example.com",
+    accessToken: "token",
+    userId: "@alice:example.com",
 });
+
+unsubscribe();
 ```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PresenceManager
-const presenceManager = client.getPresenceManager();
-await presenceManager.setPresence({
-    presence: 'online',
-    status_msg: 'Working'
-});
-```
-
-### 获取用户在线状态
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const presence = await client.getPresence('@user:example.com');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PresenceManager，带缓存
-const presenceManager = client.getPresenceManager();
-const presence = await presenceManager.getPresence('@user:example.com');
-```
-
----
-
-## Device 管理迁移
-
-### 获取设备列表
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const devices = await client.getDevices();
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 DeviceManager
-const deviceManager = client.getDeviceManager();
-const devices = await deviceManager.getDevices();
-```
-
-### 获取单个设备信息
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const device = await client.getDevice('DEVICE_ID');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 DeviceManager
-const deviceManager = client.getDeviceManager();
-const device = await deviceManager.getDevice('DEVICE_ID');
-```
-
-### 更新设备信息
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setDeviceDetails('DEVICE_ID', {
-    display_name: 'My Phone'
-});
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 DeviceManager
-const deviceManager = client.getDeviceManager();
-await deviceManager.updateDevice('DEVICE_ID', {
-    display_name: 'My Phone'
-});
-```
-
-### 删除设备
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.deleteDevice('DEVICE_ID', { 
-    type: 'm.login.password',
-    password: 'secret'
-});
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 DeviceManager
-const deviceManager = client.getDeviceManager();
-await deviceManager.deleteDevice('DEVICE_ID', { 
-    type: 'm.login.password',
-    password: 'secret'
-});
-```
-
-### 批量删除设备
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.deleteMultipleDevices(['DEVICE1', 'DEVICE2'], {
-    type: 'm.login.password',
-    password: 'secret'
-});
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 DeviceManager
-const deviceManager = client.getDeviceManager();
-await deviceManager.deleteDevices(['DEVICE1', 'DEVICE2'], {
-    type: 'm.login.password',
-    password: 'secret'
-});
-```
-
----
-
-## Push 管理迁移
-
-### 获取推送器列表
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const pushers = await client.getPushers();
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-const pushers = await pushManager.getPushers();
-```
-
-### 设置推送器
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setPusher({
-    kind: 'http',
-    app_id: 'com.example.app',
-    pushkey: 'push_key',
-    data: { url: 'https://push.example.com' }
-});
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-await pushManager.setPusher({
-    kind: 'http',
-    app_id: 'com.example.app',
-    pushkey: 'push_key',
-    data: { url: 'https://push.example.com' }
-});
-```
-
-### 移除推送器
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.removePusher('push_key', 'com.example.app');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-await pushManager.removePusher('push_key', 'com.example.app');
-```
-
-### 获取推送规则
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const rules = await client.getPushRules();
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-const rules = await pushManager.getPushRules();
-```
-
-### 添加推送规则
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.addPushRule('global', 'room', '!room:example.com', {
-    actions: ['notify']
-});
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-await pushManager.addPushRule('global', 'room', '!room:example.com', {
-    actions: ['notify']
-});
-```
-
-### 删除推送规则
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.deletePushRule('global', 'room', '!room:example.com');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-await pushManager.deletePushRule('global', 'room', '!room:example.com');
-```
-
-### 启用/禁用推送规则
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setPushRuleEnabled('global', 'room', '!room:example.com', true);
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-await pushManager.setPushRuleEnabled('global', 'room', '!room:example.com', true);
-```
-
-### 设置推送规则动作
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setPushRuleActions('global', 'room', '!room:example.com', ['notify']);
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 PushManager
-const pushManager = client.getPushManager();
-await pushManager.setPushRuleActions('global', 'room', '!room:example.com', ['notify']);
-```
-
----
-
-## Room Summary 管理迁移
-
-### 获取房间摘要
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const summary = await client.getRoomSummary('!room:example.com');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 RoomSummaryManager
-const summaryManager = client.getRoomSummaryManager();
-const summary = await summaryManager.getRoomSummary('!room:example.com');
-```
-
-### 获取房间成员摘要
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const members = await client.getRoomSummaryMembers('!room:example.com');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 RoomSummaryManager
-const summaryManager = client.getRoomSummaryManager();
-const members = await summaryManager.getRoomSummaryMembers('!room:example.com');
-```
-
-### 获取房间统计
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const stats = await client.getRoomSummaryStats('!room:example.com');
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 RoomSummaryManager
-const summaryManager = client.getRoomSummaryManager();
-const stats = await summaryManager.getRoomSummaryStats('!room:example.com');
-```
-
----
-
-## 批量迁移示例
-
-### 完整的用户资料更新流程
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-await client.setDisplayName('Alice');
-await client.setAvatarUrl('mxc://example.com/avatar');
-await client.setPresence({ presence: 'online' });
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用各个 Manager
-const profileManager = client.getProfileManager();
-const presenceManager = client.getPresenceManager();
-
-await profileManager.setDisplayName('Alice');
-await profileManager.setAvatarUrl('mxc://example.com/avatar');
-await presenceManager.setPresence({ presence: 'online' });
-```
-
-### 设备管理流程
-
-**旧方式** (废弃):
-```typescript
-// ❌ 将在 v41.0.0 移除
-const devices = await client.getDevices();
-const oldDevices = devices.devices.filter(d => isOld(d));
-await client.deleteMultipleDevices(
-    oldDevices.map(d => d.device_id),
-    auth
-);
-```
-
-**新方式** (推荐):
-```typescript
-// ✅ 使用 DeviceManager
-const deviceManager = client.getDeviceManager();
-
-const devices = await deviceManager.getDevices();
-const oldDevices = devices.devices.filter(d => isOld(d));
-await deviceManager.deleteDevices(
-    oldDevices.map(d => d.device_id),
-    auth
-);
-```
-
----
-
-## 迁移检查清单
-
-使用以下清单确保完整迁移：
-
-### Profile 相关
-- [ ] `setProfileInfo()` → `getProfileManager().setProfileInfo()`
-- [ ] `setDisplayName()` → `getProfileManager().setDisplayName()`
-- [ ] `setAvatarUrl()` → `getProfileManager().setAvatarUrl()`
-- [ ] `getProfileInfo()` → `getProfileManager().getProfileInfo()`
-- [ ] `mxcUrlToHttp()` → `getProfileManager().mxcUrlToHttp()`
-
-### Presence 相关
-- [ ] `setPresence()` → `getPresenceManager().setPresence()`
-- [ ] `getPresence()` → `getPresenceManager().getPresence()`
-
-### Device 相关
-- [ ] `getDevices()` → `getDeviceManager().getDevices()`
-- [ ] `getDevice()` → `getDeviceManager().getDevice()`
-- [ ] `setDeviceDetails()` → `getDeviceManager().updateDevice()`
-- [ ] `deleteDevice()` → `getDeviceManager().deleteDevice()`
-- [ ] `deleteMultipleDevices()` → `getDeviceManager().deleteDevices()`
-
-### Push 相关
-- [ ] `getPushers()` → `getPushManager().getPushers()`
-- [ ] `setPusher()` → `getPushManager().setPusher()`
-- [ ] `removePusher()` → `getPushManager().removePusher()`
-- [ ] `getPushRules()` → `getPushManager().getPushRules()` 
-- [ ] `addPushRule()` → `getPushManager().addPushRule()`
-- [ ] `deletePushRule()` → `getPushManager().deletePushRule()`
-- [ ] `setPushRuleEnabled()` → `getPushManager().setPushRuleEnabled()`
-- [ ] `setPushRuleActions()` → `getPushManager().setPushRuleActions()`
-
-### Room Summary 相关
-- [ ] `getRoomSummary()` → `getRoomSummaryManager().getRoomSummary()`
-- [ ] `getRoomSummaryMembers()` → `getRoomSummaryManager().getRoomSummaryMembers()`
-- [ ] `getRoomSummaryStats()` → `getRoomSummaryManager().getRoomSummaryStats()`
-
----
-
-## 常见问题
-
-### Q: 为什么要迁移？旧方法还能用吗？
-A: 旧方法在 v40.x 中仍然可用，但在 v41.0.0 将被移除。Manager API 提供更好的性能和功能。
-
-### Q: 迁移会破坏我的代码吗？
-A: 不会。在 v41.0.0 之前，两种方式都可以使用。您有至少 6 个月的迁移期。
-
-### Q: Manager API 有什么额外的好处？
-A: 
-- 自动缓存，减少网络请求
-- 事件发射，实时状态更新
-- 统一的错误处理和重试逻辑
-- 更好的类型安全
-
-### Q: 如何检测代码中使用了废弃方法？
-A: 
-1. TypeScript 编译器会显示 @deprecated 警告
-2. 使用 ESLint 规则检测废弃 API
-3. 查看编辑器中的警告提示
-
-### Q: 迁移需要多长时间？
-A: 大多数项目可以在 1-2 天内完成迁移。使用查找替换可以加速过程。
-
----
-
-## 自动化迁移工具
-
-### 使用 jscodeshift 批量迁移
-
-```bash
-# 安装 jscodeshift
-npm install -g jscodeshift
-
-# 运行迁移脚本（即将提供）
-jscodeshift -t matrix-sdk-migration.js src/
-```
-
-### 手动查找替换
-
-在您的 IDE 中使用正则表达式查找替换：
-
-```regex
-# 查找: client\.setDisplayName\(
-# 替换: client.getProfileManager().setDisplayName(
-
-# 查找: client\.getDevices\(\)
-# 替换: client.getDeviceManager().getDevices()
-```
-
----
-
-## 获取帮助
-
-如果您在迁移过程中遇到问题：
-
-1. 查看 [API 文档](https://matrix-org.github.io/matrix-js-sdk/)
-2. 提交 [GitHub Issue](https://github.com/matrix-org/matrix-js-sdk/issues)
-3. 加入 [Matrix 开发者社区](https://matrix.to/#/#matrix-dev:matrix.org)
-
----
-
-## 更新日志
-
-- **2026-04-06**: 初始版本，标记 31 个废弃方法
-- **2026 Q3**: 计划在 v41.0.0 移除废弃方法

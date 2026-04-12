@@ -1,30 +1,30 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
 
 /**
  * Typing Manager - 打字提示管理
- * 
+ *
  * 提供房间内打字状态管理功能
  */
 
 export interface TypingUser {
-    userId: string
-    timeout: number
+    userId: string;
+    timeout: number;
 }
 
 export interface TypingOptions {
-    timeout?: number // 毫秒
+    timeout?: number; // 毫秒
 }
 
-export class TypingManager {
-    private client: MatrixClient;
-    private typingTimers: Map<string, NodeJS.Timeout> = new Map();
+export class TypingManager extends BaseManager {
+    private typingTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
     constructor(client: MatrixClient) {
-        this.client = client;
+        super(client);
     }
 
     /**
@@ -32,7 +32,7 @@ export class TypingManager {
      */
     async startTyping(roomId: string, options?: TypingOptions): Promise<void> {
         const timeout = options?.timeout || 10000;
-        
+
         // 清除之前的定时器
         const timerKey = `${roomId}`;
         if (this.typingTimers.has(timerKey)) {
@@ -45,15 +45,15 @@ export class TypingManager {
                 throw new Error("User ID is required");
             }
             await this.client.sendTyping(roomId, true, timeout);
-            
+
             // 设置自动停止打字
             const timer = setTimeout(async () => {
                 await this.stopTyping(roomId);
             }, timeout);
-            
+
             this.typingTimers.set(timerKey, timer);
         } catch (e) {
-            logger.warn('TypingManager.startTyping failed:', e);
+            logger.warn("TypingManager.startTyping failed:", this.normalizeError(e, "startTyping"));
         }
     }
 
@@ -67,31 +67,26 @@ export class TypingManager {
         try {
             await this.client.sendTyping(roomId, false, 0);
         } catch (e) {
-            logger.warn('TypingManager.stopTyping failed:', e);
+            logger.warn("TypingManager.stopTyping failed:", this.normalizeError(e, "stopTyping"));
         }
     }
 
     async getTypingUsers(roomId: string): Promise<TypingUser[]> {
-        try {
-            // 从 room 对象获取
-            const room = this.client.getRoom(roomId);
-            if (!room) return [];
+        const room = this.client.getRoom(roomId);
+        if (!room) return [];
 
-            // 获取当前状态事件
-            const userId = this.client.getUserId();
-            if (!userId) return [];
-            const event = room.currentState.getStateEvents('m.typing', userId);
-            if (!event) return [];
+        const userId = this.client.getUserId();
+        if (!userId) return [];
+        const event = room.currentState.getStateEvents("m.typing", userId);
+        if (!event) return [];
 
-            const content = event.getContent<{ user_ids?: string[]; timeout?: number }>();
-            return content.user_ids?.map((userId: string) => ({
-                userId,
-                timeout: content.timeout || 30000
-            })) || [];
-        } catch (e) {
-            logger.warn('TypingManager.getTypingUsers failed:', e);
-            return [];
-        }
+        const content = event.getContent<{ user_ids?: string[]; timeout?: number }>();
+        if (!Array.isArray(content.user_ids)) return [];
+
+        return content.user_ids.map((typingUserId: string) => ({
+            userId: typingUserId,
+            timeout: content.timeout || 30000,
+        }));
     }
 
     /**
@@ -99,14 +94,14 @@ export class TypingManager {
      */
     async getRoomsTyping(rooms: string[]): Promise<Map<string, TypingUser[]>> {
         const result = new Map<string, TypingUser[]>();
-        
+
         for (const roomId of rooms) {
             const users = await this.getTypingUsers(roomId);
             if (users.length > 0) {
                 result.set(roomId, users);
             }
         }
-        
+
         return result;
     }
 
@@ -115,7 +110,7 @@ export class TypingManager {
      */
     async isUserTyping(roomId: string, userId: string): Promise<boolean> {
         const users = await this.getTypingUsers(roomId);
-        return users.some(u => u.userId === userId);
+        return users.some((u) => u.userId === userId);
     }
 
     /**

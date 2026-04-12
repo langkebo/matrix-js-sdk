@@ -35,7 +35,7 @@ export class UrlPreviewManager {
      * @param url - The URL to preview
      * @param timestamp - Optional timestamp for scrying
      */
-    public async getUrlPreview(url: string, timestamp?: number): Promise<Record<string, any>> {
+    public async getUrlPreview(url: string, timestamp?: number): Promise<Record<string, unknown>> {
         return this.client.getUrlPreview(url, timestamp ?? 0);
     }
 

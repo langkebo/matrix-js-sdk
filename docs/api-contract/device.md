@@ -4,47 +4,47 @@
 
 ## 挂载版本
 
-| 前缀 | 路由 |
-|------|------|
+| 前缀                 | 路由                                                    |
+| -------------------- | ------------------------------------------------------- |
 | `/_matrix/client/r0` | `devices`、`delete_devices`、`keys/device_list_updates` |
 | `/_matrix/client/v3` | `devices`、`delete_devices`、`keys/device_list_updates` |
 
 ## 路由清单
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/_matrix/client/{r0,v3}/devices` | 获取当前用户全部设备 | 用户 |
-| POST | `/_matrix/client/{r0,v3}/delete_devices` | 批量删除设备 | 用户 |
-| GET | `/_matrix/client/{r0,v3}/devices/{device_id}` | 获取单设备详情 | 用户 |
-| PUT | `/_matrix/client/{r0,v3}/devices/{device_id}` | 更新设备显示名 | 用户 |
-| DELETE | `/_matrix/client/{r0,v3}/devices/{device_id}` | 删除单设备 | 用户 |
-| POST | `/_matrix/client/{r0,v3}/keys/device_list_updates` | 查询多用户设备变更 | 用户 |
+| 方法   | 路径                                               | 说明                 | 认证 |
+| ------ | -------------------------------------------------- | -------------------- | ---- |
+| GET    | `/_matrix/client/{r0,v3}/devices`                  | 获取当前用户全部设备 | 用户 |
+| POST   | `/_matrix/client/{r0,v3}/delete_devices`           | 批量删除设备         | 用户 |
+| GET    | `/_matrix/client/{r0,v3}/devices/{device_id}`      | 获取单设备详情       | 用户 |
+| PUT    | `/_matrix/client/{r0,v3}/devices/{device_id}`      | 更新设备显示名       | 用户 |
+| DELETE | `/_matrix/client/{r0,v3}/devices/{device_id}`      | 删除单设备           | 用户 |
+| POST   | `/_matrix/client/{r0,v3}/keys/device_list_updates` | 查询多用户设备变更   | 用户 |
 
 ## 代码中可见稳定响应
 
-| 路径 | 响应要点 |
-|------|----------|
-| `GET /devices` | `{ "devices": [{ "device_id", "display_name", "last_seen_ts", "last_seen_ip" }, ...] }` |
-| `GET /devices/{device_id}` | 同时返回扁平字段和嵌套 `device` 对象 |
-| `PUT/DELETE /devices/{device_id}` | 空对象 |
-| `POST /delete_devices` | 空对象 |
-| `POST /keys/device_list_updates` | `{ "changed": [...], "left": [...] }` |
+| 路径                              | 响应要点                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------- |
+| `GET /devices`                    | `{ "devices": [{ "device_id", "display_name", "last_seen_ts", "last_seen_ip" }, ...] }` |
+| `GET /devices/{device_id}`        | 同时返回扁平字段和嵌套 `device` 对象                                                    |
+| `PUT/DELETE /devices/{device_id}` | 空对象                                                                                  |
+| `POST /delete_devices`            | 空对象                                                                                  |
+| `POST /keys/device_list_updates`  | `{ "changed": [...], "left": [...] }`                                                   |
 
 ## 请求体要点
 
-| 路径 | 请求字段 |
-|------|----------|
-| `POST /delete_devices` | `device_ids` 或 `devices`，必须为字符串数组 |
-| `PUT /devices/{device_id}` | `display_name` |
-| `POST /keys/device_list_updates` | `users`，字符串数组 |
+| 路径                             | 请求字段                                    |
+| -------------------------------- | ------------------------------------------- |
+| `POST /delete_devices`           | `device_ids` 或 `devices`，必须为字符串数组 |
+| `PUT /devices/{device_id}`       | `display_name`                              |
+| `POST /keys/device_list_updates` | `users`，字符串数组                         |
 
 ## 常见状态码
 
-| 状态码 | 说明 |
-|--------|------|
-| `200` | 请求成功 |
-| `400` | 缺少 `display_name` 或 `device_ids/users` 格式错误 |
-| `404` | 设备不存在 |
+| 状态码 | 说明                                               |
+| ------ | -------------------------------------------------- |
+| `200`  | 请求成功                                           |
+| `400`  | 缺少 `display_name` 或 `device_ids/users` 格式错误 |
+| `404`  | 设备不存在                                         |
 
 ## 代码定位
 
@@ -54,14 +54,14 @@
 
 > 更新日期: 2026-04-03
 
-| 端点 | SDK Manager | 方法 |
-|------|-------------|------|
-| `GET /devices` | `DeviceManager` | `getDevices()` |
-| `POST /delete_devices` | `DeviceManager` | `deleteDevices()` |
-| `GET /devices/{device_id}` | `DeviceManager` | `getDevice()` |
-| `PUT /devices/{device_id}` | `DeviceManager` | `updateDevice()` / `setDeviceDetails()` / `renameDevice()` |
-| `DELETE /devices/{device_id}` | `DeviceManager` | `deleteDevice()` |
-| `POST /keys/device_list_updates` | `DeviceManager` | `getDeviceListUpdates()` |
+| 端点                             | SDK Manager     | 方法                                                       |
+| -------------------------------- | --------------- | ---------------------------------------------------------- |
+| `GET /devices`                   | `DeviceManager` | `getDevices()`                                             |
+| `POST /delete_devices`           | `DeviceManager` | `deleteDevices()`                                          |
+| `GET /devices/{device_id}`       | `DeviceManager` | `getDevice()`                                              |
+| `PUT /devices/{device_id}`       | `DeviceManager` | `updateDevice()` / `setDeviceDetails()` / `renameDevice()` |
+| `DELETE /devices/{device_id}`    | `DeviceManager` | `deleteDevice()`                                           |
+| `POST /keys/device_list_updates` | `DeviceManager` | `getDeviceListUpdates()`                                   |
 
 ### Manager 初始化
 

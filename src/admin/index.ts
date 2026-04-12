@@ -16,24 +16,23 @@ limitations under the License.
 
 /**
  * Admin Manager - 管理员 API 封装
- * 
+ *
  * 提供服务器管理功能，包括用户管理、房间管理、服务器配置等
  * 对接后端: synapse-rust/src/web/routes/admin/
- * 
+ *
  * ⚠️ URL 组装规则：
  * - HTTP 层执行 baseUrl + prefix + path 三段拼接
  * - 使用 prefix 时，path 只传相对路径（不带前缀）
- * - 例如：baseUrl=https://server.com + prefix=/_synapse/admin/v1 + path=/users
+ * - 例如：baseUrl=https://server.com + prefix=/_synapse/admin + path=/v1/users
  *   结果: https://server.com/_synapse/admin/v1/users
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { Method } from "../http-api/method";
 import { logger } from "../logger";
-import { MatrixError } from "../http-api/errors";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
-import { AuthError, NotFoundError, ApiError } from "../errors";
+import { NotFoundError } from "../errors";
+import { BaseManager } from "../managers/base-manager";
 
 export enum AdminEvent {
     UserCreated = "UserCreated",
@@ -198,7 +197,7 @@ export class AdminApiError extends Error {
         message: string,
         public readonly code: string,
         public readonly statusCode: number,
-        public readonly details?: Record<string, unknown>
+        public readonly details?: Record<string, unknown>,
     ) {
         super(message);
         this.name = "AdminApiError";
@@ -218,26 +217,24 @@ interface AdminManagerEventMap {
 
 /**
  * Admin Manager - 管理员 API 封装
- * 
+ *
  * ⚠️ 重要：URL 组装规则
- * prefix 配置为 "/_synapse/admin/v1"，path 只传相对路径
- * 正确: prefix="/_synapse/admin/v1", path="/users"
- * 错误: prefix="/_synapse/admin/v1", path="/_synapse/admin/v2/users" (会导致重复前缀)
+ * prefix 配置为 "/_synapse/admin"，path 传版本化相对路径（如 /v1/...、/v2/...）
+ * 正确: prefix="/_synapse/admin", path="/v1/users"
+ * 错误: prefix="/_synapse/admin/v1", path="/v2/users" (会拼成 /v1/v2/...)
  */
-const ADMIN_PREFIX = "/_synapse/admin/v1";
+const ADMIN_PREFIX = "/_synapse/admin";
 
-export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEventMap> {
-    private client: MatrixClient;
+export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> {
     private serverStats: ServerStats | null = null;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     /**
      * 发起带前缀的 Admin API 请求
-     * 
+     *
      * @param method - HTTP 方法
      * @param path - 相对路径（不带前缀）
      * @param queryParams - 查询参数
@@ -249,28 +246,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         path: string,
         queryParams?: Record<string, string | string[]>,
         body?: Body,
-        methodName?: string
+        methodName?: string,
     ): Promise<T> {
         try {
-            return await this.client.http.authedRequest(
-                method,
-                path,
-                queryParams ?? {},
-                body,
-                { prefix: ADMIN_PREFIX }
-            ) as Promise<T>;
+            return (await this.client.http.authedRequest(method, path, queryParams ?? {}, body, {
+                prefix: ADMIN_PREFIX,
+            })) as Promise<T>;
         } catch (err) {
-            if (err instanceof MatrixError) {
-                const name = methodName ?? 'unknown';
-                if (err.httpStatus === 401 || err.errcode === 'M_UNKNOWN_TOKEN') {
-                    throw new AuthError(`AdminManager.${name} failed: ${err.message ?? 'Unknown error'}`, err);
-                }
-                if (err.httpStatus === 404 || err.errcode === 'M_NOT_FOUND') {
-                    throw new NotFoundError(`AdminManager.${name} failed: ${err.message ?? 'Unknown error'}`, err);
-                }
-                throw new ApiError(`AdminManager.${name} failed: ${err.message ?? 'Unknown error'}`, err.errcode ?? 'UNKNOWN', err.httpStatus ?? 0, err);
-            }
-            throw err;
+            throw this.normalizeError(err, methodName ?? "unknown");
         }
     }
 
@@ -287,7 +270,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         const response = await this.adminRequest<{ users: UserInfo[]; next_token?: string }>(
             Method.Get,
             "/v2/users",
-            Object.keys(queryParams).length > 0 ? queryParams : undefined
+            Object.keys(queryParams).length > 0 ? queryParams : undefined,
         );
 
         return {
@@ -297,16 +280,32 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     }
 
     /**
-     * 获取单个用户信息
+     * Get user details
+     *
+     * @param userId - User ID
+     * @param throwOnError - Whether to throw on error (default false)
+     * @returns User details
      */
-    async getUser(userId: string): Promise<UserInfo | null> {
+    async getUser(userId: string, throwOnError = false): Promise<UserInfo | null> {
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+
         try {
             return await this.adminRequest<UserInfo>(
                 Method.Get,
-                `/v2/users/${encodeURIComponent(userId)}`
+                `/v2/users/${encodeURIComponent(userId)}`,
+                undefined,
+                undefined,
+                "getUser",
             );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
+                logger.warn(`AdminManager.getUser failed for ${userId}:`, e);
                 return null;
             }
             throw e;
@@ -316,17 +315,20 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 创建新用户
      */
-    async createUser(userId: string, options?: {
-        password?: string;
-        displayname?: string;
-        admin?: boolean;
-        deactivated?: boolean;
-    }): Promise<UserInfo> {
+    async createUser(
+        userId: string,
+        options?: {
+            password?: string;
+            displayname?: string;
+            admin?: boolean;
+            deactivated?: boolean;
+        },
+    ): Promise<UserInfo> {
         const user = await this.adminRequest<UserInfo>(
             Method.Put,
             `/v2/users/${encodeURIComponent(userId)}`,
             undefined,
-            options || {}
+            options || {},
         );
 
         this.emit(AdminEvent.UserCreated, userId, user);
@@ -337,12 +339,9 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 停用用户
      */
     async deactivateUser(userId: string, erase?: boolean): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/users/${encodeURIComponent(userId)}/deactivate`,
-            undefined,
-            { erase: erase ?? false }
-        );
+        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/deactivate`, undefined, {
+            erase: erase ?? false,
+        });
         this.emit(AdminEvent.UserDeactivated, userId);
     }
 
@@ -350,24 +349,17 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 重置用户密码
      */
     async resetPassword(userId: string, newPassword: string, logout?: boolean): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/users/${encodeURIComponent(userId)}/password`,
-            undefined,
-            { new_password: newPassword, logout_devices: logout ?? true }
-        );
+        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/password`, undefined, {
+            new_password: newPassword,
+            logout_devices: logout ?? true,
+        });
     }
 
     /**
      * 设置用户管理员权限
      */
     async setAdmin(userId: string, admin: boolean): Promise<void> {
-        await this.adminRequest(
-            Method.Put,
-            `/v2/users/${encodeURIComponent(userId)}`,
-            undefined,
-            { admin }
-        );
+        await this.adminRequest(Method.Put, `/v2/users/${encodeURIComponent(userId)}`, undefined, { admin });
     }
 
     /**
@@ -376,7 +368,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getUserDevices(userId: string): Promise<DeviceInfo[]> {
         const response = await this.adminRequest<{ devices: DeviceInfo[] }>(
             Method.Get,
-            `/v2/users/${encodeURIComponent(userId)}/devices`
+            `/v2/users/${encodeURIComponent(userId)}/devices`,
         );
         return response.devices || [];
     }
@@ -385,12 +377,9 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 删除用户的设备
      */
     async deleteUserDevices(userId: string, deviceIds: string[]): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/users/${encodeURIComponent(userId)}/devices/delete`,
-            undefined,
-            { devices: deviceIds }
-        );
+        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/devices/delete`, undefined, {
+            devices: deviceIds,
+        });
     }
 
     // ===== Shadow Ban =====
@@ -399,10 +388,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 对用户实施影子封禁
      */
     async shadowBanUser(userId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/v1/users/${encodeURIComponent(userId)}/shadow_ban`
-        );
+        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`);
         this.emit(AdminEvent.UserShadowBanned, userId);
     }
 
@@ -410,23 +396,28 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 取消用户的影子封禁
      */
     async unshadowBanUser(userId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/users/${encodeURIComponent(userId)}/shadow_ban`
-        );
+        await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`);
         this.emit(AdminEvent.UserUnshadowBanned, userId);
     }
 
     /**
-     * 获取用户的影子封禁状态
+     * 获取用户影子封禁状态
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 封禁状态
      */
-    async getShadowBanStatus(userId: string): Promise<ShadowBanStatus | null> {
+    async getShadowBanStatus(userId: string, throwOnError = false): Promise<ShadowBanStatus | null> {
         try {
             return await this.adminRequest<ShadowBanStatus>(
                 Method.Get,
-                `/v1/users/${encodeURIComponent(userId)}/shadow_ban`
+                `/v1/users/${encodeURIComponent(userId)}/shadow_ban`,
             );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -438,14 +429,22 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
 
     /**
      * 获取用户的速率限制配置
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 速率限制配置
      */
-    async getRateLimit(userId: string): Promise<RateLimitConfig | null> {
+    async getRateLimit(userId: string, throwOnError = false): Promise<RateLimitConfig | null> {
         try {
             return await this.adminRequest<RateLimitConfig>(
                 Method.Get,
-                `/v1/users/${encodeURIComponent(userId)}/rate_limit`
+                `/v1/users/${encodeURIComponent(userId)}/rate_limit`,
             );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -457,22 +456,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 设置用户的速率限制配置
      */
     async setRateLimit(userId: string, config: RateLimitConfig): Promise<void> {
-        await this.adminRequest(
-            Method.Put,
-            `/v1/users/${encodeURIComponent(userId)}/rate_limit`,
-            undefined,
-            config
-        );
+        await this.adminRequest(Method.Put, `/v1/users/${encodeURIComponent(userId)}/rate_limit`, undefined, config);
     }
 
     /**
      * 删除用户的速率限制配置（使用默认配置）
      */
     async deleteRateLimit(userId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/users/${encodeURIComponent(userId)}/rate_limit`
-        );
+        await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/rate_limit`);
     }
 
     // ===== 房间管理 =====
@@ -480,7 +471,11 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 获取房间列表（支持分页和搜索）
      */
-    async getRooms(from?: string, limit?: number, searchTerm?: string): Promise<{ rooms: RoomInfo[]; next_token?: string }> {
+    async getRooms(
+        from?: string,
+        limit?: number,
+        searchTerm?: string,
+    ): Promise<{ rooms: RoomInfo[]; next_token?: string }> {
         const queryParams: Record<string, string> = {};
         if (from) queryParams["from"] = from;
         if (limit) queryParams["limit"] = String(limit);
@@ -489,7 +484,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         const response = await this.adminRequest<{ rooms: RoomInfo[]; next_token?: string }>(
             Method.Get,
             "/v1/rooms",
-            Object.keys(queryParams).length > 0 ? queryParams : undefined
+            Object.keys(queryParams).length > 0 ? queryParams : undefined,
         );
 
         return {
@@ -498,16 +493,21 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         };
     }
 
-    /*
-     * 获取单个房间信息
+    /**
+     * 获取房间详情
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 房间详情
      */
-    async getRoom(roomId: string): Promise<RoomInfo | null> {
+    async getRoom(roomId: string, throwOnError = false): Promise<RoomInfo | null> {
         try {
-            return await this.adminRequest<RoomInfo>(
-                Method.Get,
-                `/v1/rooms/${encodeURIComponent(roomId)}`
-            );
+            return await this.adminRequest<RoomInfo>(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}`);
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -518,16 +518,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 删除房间
      */
-    async deleteRoom(roomId: string, options?: {
-        purge?: boolean;
-        force_purge?: boolean;
-    }): Promise<void> {
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/rooms/${encodeURIComponent(roomId)}`,
-            undefined,
-            options || {}
-        );
+    async deleteRoom(
+        roomId: string,
+        options?: {
+            purge?: boolean;
+            force_purge?: boolean;
+        },
+    ): Promise<void> {
+        await this.adminRequest(Method.Delete, `/v1/rooms/${encodeURIComponent(roomId)}`, undefined, options || {});
         this.emit(AdminEvent.RoomDeleted, roomId);
     }
 
@@ -535,12 +533,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 封禁/解封房间
      */
     async blockRoom(roomId: string, block: boolean): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/block`,
-            undefined,
-            { block }
-        );
+        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/block`, undefined, { block });
         this.emit(AdminEvent.RoomBlocked, roomId, block);
     }
 
@@ -550,7 +543,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRoomMembers(roomId: string): Promise<string[]> {
         const response = await this.adminRequest<{ members: string[] }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/members`
+            `/v1/rooms/${encodeURIComponent(roomId)}/members`,
         );
         return response.members || [];
     }
@@ -559,28 +552,30 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 强制用户加入房间（管理员操作）
      */
     async joinRoom(roomId: string, userId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/v1/join/${encodeURIComponent(roomId)}`,
-            undefined,
-            { user_id: userId }
-        );
+        await this.adminRequest(Method.Post, `/v1/join/${encodeURIComponent(roomId)}`, undefined, { user_id: userId });
     }
 
     // ===== 服务器管理 =====
 
     /**
      * 获取服务器版本信息
+     *
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 服务器版本信息
      */
-    async getServerVersion(): Promise<{ server_version: string; python_version: string }> {
+    async getServerVersion(throwOnError = false): Promise<{ server_version: string; python_version: string }> {
         try {
             return await this.adminRequest<{ server_version: string; python_version: string }>(
                 Method.Get,
-                "/v1/server_version"
+                "/v1/server_version",
             );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('AdminManager.getServerVersion failed:', e);
-            return { server_version: 'unknown', python_version: 'unknown' };
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getServerVersion failed:", e);
+            return { server_version: "unknown", python_version: "unknown" };
         }
     }
 
@@ -588,10 +583,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 获取服务器统计信息
      */
     async getServerStats(): Promise<ServerStats> {
-        const stats = await this.adminRequest<ServerStats>(
-            Method.Get,
-            "/v1/statistics"
-        );
+        const stats = await this.adminRequest<ServerStats>(Method.Get, "/v1/statistics");
         this.serverStats = stats;
         this.emit(AdminEvent.ServerStatsUpdated, this.serverStats);
         return this.serverStats;
@@ -599,15 +591,19 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
 
     /**
      * 获取服务器配置
+     *
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 配置信息
      */
-    async getServerConfig(): Promise<Record<string, unknown>> {
+    async getServerConfig(throwOnError = false): Promise<Record<string, unknown>> {
         try {
-            return await this.adminRequest<Record<string, unknown>>(
-                Method.Get,
-                "/v1/config"
-            );
+            return await this.adminRequest<Record<string, unknown>>(Method.Get, "/v1/config");
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('AdminManager.getServerConfig failed:', e);
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getServerConfig failed:", e);
             return {};
         }
     }
@@ -620,7 +616,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRegistrationTokens(): Promise<RegistrationToken[]> {
         const response = await this.adminRequest<{ registration_tokens: RegistrationToken[] }>(
             Method.Get,
-            "/v1/registration_tokens"
+            "/v1/registration_tokens",
         );
         return response.registration_tokens || [];
     }
@@ -637,22 +633,25 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             Method.Post,
             "/v1/registration_tokens",
             undefined,
-            options || {}
+            options || {},
         );
     }
 
     /**
      * 更新注册令牌
      */
-    async updateRegistrationToken(token: string, options: {
-        uses_allowed?: number;
-        expiry_ts?: number;
-    }): Promise<void> {
+    async updateRegistrationToken(
+        token: string,
+        options: {
+            uses_allowed?: number;
+            expiry_ts?: number;
+        },
+    ): Promise<void> {
         await this.adminRequest(
             Method.Post,
             `/v1/registration_tokens/${encodeURIComponent(token)}`,
             undefined,
-            options
+            options,
         );
     }
 
@@ -660,10 +659,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 删除注册令牌
      */
     async deleteRegistrationToken(token: string): Promise<void> {
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/registration_tokens/${encodeURIComponent(token)}`
-        );
+        await this.adminRequest(Method.Delete, `/v1/registration_tokens/${encodeURIComponent(token)}`);
     }
 
     // ===== 联邦管理 =====
@@ -674,21 +670,29 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getFederationDestinations(): Promise<FederationDestination[]> {
         const response = await this.adminRequest<{ destinations: FederationDestination[] }>(
             Method.Get,
-            "/v1/federation/destinations"
+            "/v1/federation/destinations",
         );
         return response.destinations || [];
     }
 
     /**
-     * 获取单个联邦目的地状态
+     * 获取联邦目的地详情
+     *
+     * @param destination - 目的地
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 详情
      */
-    async getFederationDestination(destination: string): Promise<FederationDestination | null> {
+    async getFederationDestination(destination: string, throwOnError = false): Promise<FederationDestination | null> {
         try {
             return await this.adminRequest<FederationDestination>(
                 Method.Get,
-                `/v1/federation/destinations/${encodeURIComponent(destination)}`
+                `/v1/federation/destinations/${encodeURIComponent(destination)}`,
             );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -702,7 +706,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async resetFederationConnection(destination: string): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/v1/federation/destinations/${encodeURIComponent(destination)}/reset_connection`
+            `/v1/federation/destinations/${encodeURIComponent(destination)}/reset_connection`,
         );
     }
 
@@ -719,7 +723,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(
             Method.Get,
             "/v1/media",
-            Object.keys(queryParams).length > 0 ? queryParams : undefined
+            Object.keys(queryParams).length > 0 ? queryParams : undefined,
         );
 
         return {
@@ -732,20 +736,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 删除单个媒体
      */
     async deleteMedia(mediaId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/media/${encodeURIComponent(mediaId)}`
-        );
+        await this.adminRequest(Method.Delete, `/v1/media/${encodeURIComponent(mediaId)}`);
     }
 
     /**
      * 隔离媒体（防止下载）
      */
     async quarantineMedia(mediaId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/v1/media/quarantine/${encodeURIComponent(mediaId)}`
-        );
+        await this.adminRequest(Method.Post, `/v1/media/quarantine/${encodeURIComponent(mediaId)}`);
     }
 
     /**
@@ -756,7 +754,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             Method.Post,
             "/v1/purge_media_cache",
             undefined,
-            beforeTs ? { before_ts: beforeTs } : {}
+            beforeTs ? { before_ts: beforeTs } : {},
         );
         return { deleted: response.deleted || 0 };
     }
@@ -769,7 +767,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRoomState(roomId: string): Promise<{ state: RoomStateEvent[] }> {
         const response = await this.adminRequest<{ state: RoomStateEvent[] }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/state`
+            `/v1/rooms/${encodeURIComponent(roomId)}/state`,
         );
         return { state: response.state || [] };
     }
@@ -777,11 +775,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 获取房间消息
      */
-    async getRoomMessages(roomId: string, options?: {
-        limit?: number;
-        from?: string;
-        dir?: 'f' | 'b';
-    }): Promise<{ chunk: RoomMessage[]; start?: string; end?: string }> {
+    async getRoomMessages(
+        roomId: string,
+        options?: {
+            limit?: number;
+            from?: string;
+            dir?: "f" | "b";
+        },
+    ): Promise<{ chunk: RoomMessage[]; start?: string; end?: string }> {
         const queryParams: Record<string, string> = {};
         if (options?.limit) queryParams["limit"] = String(options.limit);
         if (options?.from) queryParams["from"] = options.from;
@@ -790,7 +791,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         return await this.adminRequest<{ chunk: RoomMessage[]; start?: string; end?: string }>(
             Method.Get,
             `/v1/rooms/${encodeURIComponent(roomId)}/messages`,
-            Object.keys(queryParams).length > 0 ? queryParams : undefined
+            Object.keys(queryParams).length > 0 ? queryParams : undefined,
         );
     }
 
@@ -800,20 +801,31 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRoomAliases(roomId: string): Promise<{ aliases: string[] }> {
         return await this.adminRequest<{ aliases: string[] }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/aliases`
+            `/v1/rooms/${encodeURIComponent(roomId)}/aliases`,
         );
     }
 
     /**
      * 获取房间版本
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 版本信息
      */
-    async getRoomVersion(roomId: string): Promise<{ room_id: string; room_version: string } | null> {
+    async getRoomVersion(
+        roomId: string,
+        throwOnError = false,
+    ): Promise<{ room_id: string; room_version: string } | null> {
         try {
             return await this.adminRequest<{ room_id: string; room_version: string }>(
                 Method.Get,
-                `/v1/rooms/${encodeURIComponent(roomId)}/version`
+                `/v1/rooms/${encodeURIComponent(roomId)}/version`,
             );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -827,7 +839,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRoomBlockStatus(roomId: string): Promise<{ block: boolean; blocked_at?: number }> {
         return await this.adminRequest<{ block: boolean; blocked_at?: number }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/block`
+            `/v1/rooms/${encodeURIComponent(roomId)}/block`,
         );
     }
 
@@ -835,23 +847,23 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 解封房间
      */
     async unblockRoom(roomId: string): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/unblock`
-        );
+        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/unblock`);
     }
 
     /**
      * 清除房间历史
      */
-    async purgeRoomHistory(roomId: string, options?: {
-        purge_up_to_ts?: number;
-    }): Promise<{ success: boolean; deleted_events: number }> {
+    async purgeRoomHistory(
+        roomId: string,
+        options?: {
+            purge_up_to_ts?: number;
+        },
+    ): Promise<{ success: boolean; deleted_events: number }> {
         return await this.adminRequest<{ success: boolean; deleted_events: number }>(
             Method.Post,
             `/v1/rooms/${encodeURIComponent(roomId)}/purge_history`,
             undefined,
-            options || {}
+            options || {},
         );
     }
 
@@ -863,7 +875,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             Method.Post,
             "/v1/purge_room",
             undefined,
-            { room_id: roomId }
+            { room_id: roomId },
         );
     }
 
@@ -879,12 +891,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             kicked_users: string[];
             failed_to_kick_users: string[];
             closed_room: boolean;
-        }>(
-            Method.Post,
-            "/v1/shutdown_room",
-            undefined,
-            { room_id: roomId }
-        );
+        }>(Method.Post, "/v1/shutdown_room", undefined, { room_id: roomId });
     }
 
     // ===== 房间成员管理 =====
@@ -892,32 +899,42 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 强制用户加入房间
      */
-    async forceJoinRoom(roomId: string, userId: string): Promise<{ user_id: string; room_id: string; membership: string }> {
+    async forceJoinRoom(
+        roomId: string,
+        userId: string,
+    ): Promise<{ user_id: string; room_id: string; membership: string }> {
         return await this.adminRequest<{ user_id: string; room_id: string; membership: string }>(
             Method.Put,
-            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`
+            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
         );
     }
 
     /**
      * 强制用户离开房间
      */
-    async forceLeaveRoom(roomId: string, userId: string): Promise<{ user_id: string; room_id: string; removed: boolean }> {
+    async forceLeaveRoom(
+        roomId: string,
+        userId: string,
+    ): Promise<{ user_id: string; room_id: string; removed: boolean }> {
         return await this.adminRequest<{ user_id: string; room_id: string; removed: boolean }>(
             Method.Delete,
-            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`
+            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
         );
     }
 
     /**
      * 封禁用户
      */
-    async banUser(roomId: string, userId: string, reason?: string): Promise<{ user_id: string; room_id: string; membership: string }> {
+    async banUser(
+        roomId: string,
+        userId: string,
+        reason?: string,
+    ): Promise<{ user_id: string; room_id: string; membership: string }> {
         return await this.adminRequest<{ user_id: string; room_id: string; membership: string }>(
             Method.Post,
             `/v1/rooms/${encodeURIComponent(roomId)}/ban/${encodeURIComponent(userId)}`,
             undefined,
-            reason ? { reason } : {}
+            reason ? { reason } : {},
         );
     }
 
@@ -927,19 +944,23 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async unbanUser(roomId: string, userId: string): Promise<{ user_id: string; room_id: string; unbanned: boolean }> {
         return await this.adminRequest<{ user_id: string; room_id: string; unbanned: boolean }>(
             Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`
+            `/v1/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`,
         );
     }
 
     /**
      * 踢出用户
      */
-    async kickUser(roomId: string, userId: string, reason?: string): Promise<{ user_id: string; room_id: string; kicked: boolean }> {
+    async kickUser(
+        roomId: string,
+        userId: string,
+        reason?: string,
+    ): Promise<{ user_id: string; room_id: string; kicked: boolean }> {
         return await this.adminRequest<{ user_id: string; room_id: string; kicked: boolean }>(
             Method.Post,
             `/v1/rooms/${encodeURIComponent(roomId)}/kick/${encodeURIComponent(userId)}`,
             undefined,
-            reason ? { reason } : {}
+            reason ? { reason } : {},
         );
     }
 
@@ -951,7 +972,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRoomListings(roomId: string): Promise<{ room_id: string; public: boolean; in_directory: boolean }> {
         return await this.adminRequest<{ room_id: string; public: boolean; in_directory: boolean }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/listings`
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings`,
         );
     }
 
@@ -961,7 +982,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async setRoomPublic(roomId: string): Promise<{ room_id: string; public: boolean }> {
         return await this.adminRequest<{ room_id: string; public: boolean }>(
             Method.Put,
-            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`,
         );
     }
 
@@ -971,7 +992,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async setRoomPrivate(roomId: string): Promise<{ room_id: string; public: boolean }> {
         return await this.adminRequest<{ room_id: string; public: boolean }>(
             Method.Delete,
-            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`,
         );
     }
 
@@ -980,16 +1001,20 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 搜索房间消息
      */
-    async searchRoomMessages(roomId: string, searchTerm: string, options?: {
-        limit?: number;
-        start_date?: number;
-        end_date?: number;
-    }): Promise<{ results: RoomMessage[]; count: number }> {
+    async searchRoomMessages(
+        roomId: string,
+        searchTerm: string,
+        options?: {
+            limit?: number;
+            start_date?: number;
+            end_date?: number;
+        },
+    ): Promise<{ results: RoomMessage[]; count: number }> {
         return await this.adminRequest<{ results: RoomMessage[]; count: number }>(
             Method.Post,
             `/v1/rooms/${encodeURIComponent(roomId)}/search`,
             undefined,
-            { search_term: searchTerm, ...options }
+            { search_term: searchTerm, ...options },
         );
     }
 
@@ -1005,11 +1030,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             Method.Post,
             "/v1/rooms/search",
             undefined,
-            options || {}
+            options || {},
         );
     }
 
-    async getEventContext(roomId: string, eventId: string): Promise<{
+    async getEventContext(
+        roomId: string,
+        eventId: string,
+    ): Promise<{
         event: RoomMessage;
         events_before: RoomMessage[];
         events_after: RoomMessage[];
@@ -1018,10 +1046,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             event: RoomMessage;
             events_before: RoomMessage[];
             events_after: RoomMessage[];
-        }>(
-            Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`
-        );
+        }>(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`);
     }
 
     /**
@@ -1030,7 +1055,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getRoomForwardExtremities(roomId: string): Promise<{ room_id: string; forward_extremities: number }> {
         return await this.adminRequest<{ room_id: string; forward_extremities: number }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/forward_extremities`
+            `/v1/rooms/${encodeURIComponent(roomId)}/forward_extremities`,
         );
     }
 
@@ -1040,19 +1065,24 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 获取所有空间
      */
     async getSpaces(): Promise<{ spaces: SpaceInfo[]; total: number }> {
-        return await this.adminRequest<{ spaces: SpaceInfo[]; total: number }>(
-            Method.Get,
-            "/v1/spaces"
-        );
+        return await this.adminRequest<{ spaces: SpaceInfo[]; total: number }>(Method.Get, "/v1/spaces");
     }
 
-    async getSpace(spaceId: string): Promise<SpaceInfo | null> {
+    /**
+     * 获取空间详情
+     *
+     * @param spaceId - 空间 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 空间详情
+     */
+    async getSpace(spaceId: string, throwOnError = false): Promise<SpaceInfo | null> {
         try {
-            return await this.adminRequest<SpaceInfo>(
-                Method.Get,
-                `/v1/spaces/${encodeURIComponent(spaceId)}`
-            );
+            return await this.adminRequest<SpaceInfo>(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}`);
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -1066,7 +1096,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async deleteSpace(spaceId: string): Promise<{ deleted: boolean }> {
         return await this.adminRequest<{ deleted: boolean }>(
             Method.Delete,
-            `/v1/spaces/${encodeURIComponent(spaceId)}`
+            `/v1/spaces/${encodeURIComponent(spaceId)}`,
         );
     }
 
@@ -1076,7 +1106,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getSpaceUsers(spaceId: string): Promise<{ users: string[]; total: number }> {
         return await this.adminRequest<{ users: string[]; total: number }>(
             Method.Get,
-            `/v1/spaces/${encodeURIComponent(spaceId)}/users`
+            `/v1/spaces/${encodeURIComponent(spaceId)}/users`,
         );
     }
 
@@ -1086,7 +1116,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getSpaceRooms(spaceId: string): Promise<{ rooms: string[]; total: number }> {
         return await this.adminRequest<{ rooms: string[]; total: number }>(
             Method.Get,
-            `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`
+            `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`,
         );
     }
 
@@ -1102,10 +1132,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             space_id: string;
             member_count: number;
             child_room_count: number;
-        }>(
-            Method.Get,
-            `/v1/spaces/${encodeURIComponent(spaceId)}/stats`
-        );
+        }>(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}/stats`);
     }
 
     // ===== 用户批量操作 =====
@@ -1113,17 +1140,19 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 批量创建用户
      */
-    async batchCreateUsers(users: Array<{
-        username: string;
-        password?: string;
-        displayname?: string;
-        admin?: boolean;
-    }>): Promise<{ created: string[]; failed: string[]; total: number }> {
+    async batchCreateUsers(
+        users: Array<{
+            username: string;
+            password?: string;
+            displayname?: string;
+            admin?: boolean;
+        }>,
+    ): Promise<{ created: string[]; failed: string[]; total: number }> {
         return await this.adminRequest<{ created: string[]; failed: string[]; total: number }>(
             Method.Post,
             "/v1/users/batch",
             undefined,
-            { users }
+            { users },
         );
     }
 
@@ -1135,7 +1164,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             Method.Post,
             "/v1/users/batch_deactivate",
             undefined,
-            { users, erase }
+            { users, erase },
         );
     }
 
@@ -1153,10 +1182,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             user_id: string;
             sessions: UserSession[];
             total: number;
-        }>(
-            Method.Get,
-            `/v1/user_sessions/${encodeURIComponent(userId)}`
-        );
+        }>(Method.Get, `/v1/user_sessions/${encodeURIComponent(userId)}`);
     }
 
     /**
@@ -1169,18 +1195,22 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         return await this.adminRequest<{
             invalidated: boolean;
             sessions_removed: number;
-        }>(
-            Method.Post,
-            `/v1/user_sessions/${encodeURIComponent(userId)}/invalidate`
-        );
+        }>(Method.Post, `/v1/user_sessions/${encodeURIComponent(userId)}/invalidate`);
     }
 
     // ===== 账户管理 =====
 
     /**
      * 获取账户详情
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 账户详情
      */
-    async getAccountDetails(userId: string): Promise<{
+    async getAccountDetails(
+        userId: string,
+        throwOnError = false,
+    ): Promise<{
         name: string;
         user_id: string;
         displayname?: string;
@@ -1191,11 +1221,21 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         room_count: number;
     } | null> {
         try {
-            return await this.adminRequest<any>(
-                Method.Get,
-                `/v1/account/${encodeURIComponent(userId)}`
-            );
+            return await this.adminRequest<{
+                name: string;
+                user_id: string;
+                displayname?: string;
+                admin: boolean;
+                deactivated: boolean;
+                creation_ts: number;
+                device_count: number;
+                room_count: number;
+            }>(Method.Get, `/v1/account/${encodeURIComponent(userId)}`);
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -1206,16 +1246,19 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     /**
      * 更新账户
      */
-    async updateAccount(userId: string, options: {
-        displayname?: string;
-        avatar_url?: string;
-        admin?: boolean;
-    }): Promise<{ user_id: string; updated: boolean }> {
+    async updateAccount(
+        userId: string,
+        options: {
+            displayname?: string;
+            avatar_url?: string;
+            admin?: boolean;
+        },
+    ): Promise<{ user_id: string; updated: boolean }> {
         return await this.adminRequest<{ user_id: string; updated: boolean }>(
             Method.Post,
             `/v1/account/${encodeURIComponent(userId)}`,
             undefined,
-            options
+            options,
         );
     }
 
@@ -1230,10 +1273,14 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         creation_ts: number;
         is_admin: boolean;
     }> {
-        return await this.adminRequest<any>(
-            Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/stats`
-        );
+        return await this.adminRequest<{
+            user_id: string;
+            rooms_joined: number;
+            messages_sent: number;
+            last_seen_ts?: number;
+            creation_ts: number;
+            is_admin: boolean;
+        }>(Method.Get, `/v1/users/${encodeURIComponent(userId)}/stats`);
     }
 
     /**
@@ -1242,7 +1289,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async getUserRooms(userId: string): Promise<{ rooms: string[] }> {
         return await this.adminRequest<{ rooms: string[] }>(
             Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/rooms`
+            `/v1/users/${encodeURIComponent(userId)}/rooms`,
         );
     }
 
@@ -1258,10 +1305,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             access_token: string;
             device_id: string;
             user_id: string;
-        }>(
-            Method.Post,
-            `/v1/users/${encodeURIComponent(userId)}/login`
-        );
+        }>(Method.Post, `/v1/users/${encodeURIComponent(userId)}/login`);
     }
 
     /**
@@ -1270,7 +1314,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     async logoutUserDevices(userId: string): Promise<{ devices_deleted: number }> {
         return await this.adminRequest<{ devices_deleted: number }>(
             Method.Post,
-            `/v1/users/${encodeURIComponent(userId)}/logout`
+            `/v1/users/${encodeURIComponent(userId)}/logout`,
         );
     }
 
@@ -1288,10 +1332,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             rooms_evicted: number;
             rooms: string[];
             failures: Array<{ room_id: string; error: string }>;
-        }>(
-            Method.Post,
-            `/v1/users/${encodeURIComponent(userId)}/evict`
-        );
+        }>(Method.Post, `/v1/users/${encodeURIComponent(userId)}/evict`);
     }
 
     // ===== 便捷方法 =====
@@ -1304,15 +1345,20 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
     }
 
     /**
-     * 获取用户的 WHOIS 信息
+     * 查询用户信息
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 用户信息
      */
-    async whois(userId: string): Promise<any | null> {
+    async whois(userId: string, throwOnError = false): Promise<any | null> {
         try {
-            return await this.adminRequest(
-                Method.Get,
-                `/v1/whois/${encodeURIComponent(userId)}`
-            );
+            return await this.adminRequest<any>(Method.Get, `/v1/whois/${encodeURIComponent(userId)}`);
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -1328,7 +1374,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             Method.Post,
             `/v1/rooms/${encodeURIComponent(roomId)}/make_admin`,
             undefined,
-            userId ? { user_id: userId } : {}
+            userId ? { user_id: userId } : {},
         );
     }
 
@@ -1346,22 +1392,32 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
         active_rooms: number;
         average_messages_per_room: number;
     }> {
-        return await this.adminRequest<any>(
-            Method.Get,
-            "/v1/room_stats"
-        );
+        return await this.adminRequest<{
+            total_rooms: number;
+            encrypted_rooms: number;
+            public_rooms: number;
+            total_messages: number;
+            total_members: number;
+            active_rooms: number;
+            average_messages_per_room: number;
+        }>(Method.Get, "/v1/room_stats");
     }
 
     /**
-     * 获取房间统计数据
+     * 获取房间统计信息
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 统计信息
      */
-    async getRoomStats(roomId: string): Promise<RoomStats | null> {
+    async getRoomStats(roomId: string, throwOnError = false): Promise<RoomStats | null> {
         try {
-            return await this.adminRequest<RoomStats>(
-                Method.Get,
-                `/v1/room_stats/${encodeURIComponent(roomId)}`
-            );
+            return await this.adminRequest<RoomStats>(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/statistics`);
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
             if (e instanceof NotFoundError) {
                 return null;
             }
@@ -1375,10 +1431,7 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
      * 获取管理员注册 Nonce
      */
     async registerNonce(): Promise<string> {
-        const response = await this.adminRequest<{ nonce: string }>(
-            Method.Get,
-            "/v1/register/nonce"
-        );
+        const response = await this.adminRequest<{ nonce: string }>(Method.Get, "/v1/register/nonce");
         return response.nonce;
     }
 
@@ -1413,16 +1466,10 @@ export class AdminManager extends TypedEventEmitter<AdminEvent, AdminManagerEven
             body.mac = options.mac;
         }
 
-        return await this.adminRequest<AdminRegisterResponse>(
-            Method.Post,
-            "/v1/register",
-            undefined,
-            body
-        );
+        return await this.adminRequest<AdminRegisterResponse>(Method.Post, "/v1/register", undefined, body);
     }
 
-    start(): void {
-    }
+    start(): void {}
 
     stop(): void {
         this.serverStats = null;

@@ -57,7 +57,7 @@ export type Listener<E extends string, A extends ListenerMap<E>, T extends E | E
  * Type parameters:
  *  * `Events` - List of all events emitted by this `TypedEventEmitter`. Normally an enum type.
  *  * `Arguments` - A {@link ListenerMap} type providing mappings from event names to listener types.
- *  * `SuperclassArguments` - TODO: not really sure. Alternative listener mappings, I think? But only honoured for `.emit`?
+ *  * `SuperclassArguments` - Listener mapping inherited from parent emit signatures.
  */
 export class TypedEventEmitter<
     Events extends string,

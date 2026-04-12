@@ -18,7 +18,7 @@ import debugFunc, { type Debugger } from "debug";
 import fetchMock from "@fetch-mock/vitest";
 
 import type { IDeviceKeys, IOneTimeKey } from "../../src/@types/crypto";
-import type { CrossSigningKeys, ISignedKey, KeySignatures } from "../../src";
+import type { CrossSigningKeys, ISignedKey, KeySignatures } from "../../src/client-api-types";
 import type { CrossSigningKeyInfo } from "../../src/crypto-api";
 
 /** Interface implemented by classes that intercept `/keys/upload` requests from test clients to catch the uploaded keys

@@ -16,57 +16,57 @@ limitations under the License.
 
 /**
  * Crypto Backup Manager - 加密备份管理
- * 
+ *
  * 提供加密备份相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class CryptoBackupManager {
-    constructor(private client: MatrixClient) {}
+export interface CryptoBackupInfo {
+    version: string;
+    algorithm: string;
+    auth_data: Record<string, unknown>;
+    etag: string;
+    count: number;
+    hash: string;
+}
 
-    /**
-     * Is crypto backup enabled
-     */
+export interface CryptoBackupManagerEvents {
+    backup_enabled: void;
+    backup_disabled: void;
+    backup_restored: { version: string };
+}
+
+export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEvents, CryptoBackupManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public isCryptoBackupEnabled(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isCryptoBackupEnabled();
+        return this.client.isCryptoBackupEnabled();
     }
 
-    /**
-     * Enable crypto backup
-     */
-    public async enableCryptoBackup(passphrase: string): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).enableCryptoBackup(passphrase);
+    public async enableCryptoBackup(passphrase: string): Promise<void> {
+        await this.client.enableCryptoBackup(passphrase);
     }
 
-    /**
-     * Disable crypto backup
-     */
-    public async disableCryptoBackup(): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).disableCryptoBackup();
+    public async disableCryptoBackup(): Promise<void> {
+        await this.client.disableCryptoBackup();
     }
 
-    /**
-     * Get crypto backup
-     */
-    public async getCryptoBackup(): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getCryptoBackup();
+    public async getCryptoBackup(): Promise<CryptoBackupInfo | null> {
+        return this.withRetry(
+            () => this.client.getCryptoBackup() as Promise<CryptoBackupInfo | null>,
+            "getCryptoBackup",
+        );
     }
 
-    /**
-     * Restore crypto backup
-     */
-    public async restoreCryptoBackup(backup: unknown, passphrase: string): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).restoreCryptoBackup(backup, passphrase);
+    public async restoreCryptoBackup(backup: CryptoBackupInfo | string, passphrase: string): Promise<void> {
+        await this.client.restoreCryptoBackup(backup, passphrase);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCryptoBackupManager(): CryptoBackupManager;

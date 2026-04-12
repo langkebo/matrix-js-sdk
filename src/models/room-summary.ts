@@ -73,6 +73,6 @@ interface IInfo {
 export class RoomSummary {
     public constructor(
         public readonly roomId: string,
-        info?: IInfo,
+        _info?: IInfo,
     ) {}
 }

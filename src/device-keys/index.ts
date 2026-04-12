@@ -16,10 +16,10 @@ limitations under the License.
 
 /**
  * Device Keys Manager - 设备密钥管理
- * 
+ *
  * 提供设备密钥、一次性密钥、签名等 E2EE 核心功能
  * 对应后端: synapse-rust/src/web/routes/e2ee_routes.rs
- * 
+ *
  * 后端端点 (compat - r0/v1/v3):
  * - POST /keys/upload - 上传设备密钥和一次性密钥
  * - POST /keys/query - 查询设备密钥
@@ -35,12 +35,10 @@ limitations under the License.
  * - PUT /sendToDevice/{event_type}/{transaction_id} - 发送设备消息
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { BaseManager } from "../managers/base-manager.ts";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 
 export interface DeviceKeys {
     user_id: string;
@@ -134,43 +132,25 @@ interface DeviceKeysManagerEventMap {
     [DeviceKeysEvent.RoomKeyRequested]: (requests: RoomKeyRequest[]) => void;
 }
 
-export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, DeviceKeysManagerEventMap> {
-    private client: MatrixClient;
-
+export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysManagerEventMap> {
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`DeviceKeysManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`DeviceKeysManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
-            }
-            return new ApiError(`DeviceKeysManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
-        }
-        return new ApiError(`DeviceKeysManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
-    }
+    // normalizeError provided by BaseManager
 
     /**
      * 上传设备密钥和一次性密钥
      * POST /_matrix/client/r0/keys/upload
      */
-    async uploadKeys(options: {
-        deviceKeys?: DeviceKeys;
-        oneTimeKeys?: OneTimeKeys;
-    }): Promise<UploadKeysResponse> {
+    async uploadKeys(options: { deviceKeys?: DeviceKeys; oneTimeKeys?: OneTimeKeys }): Promise<UploadKeysResponse> {
         try {
             const body: Record<string, unknown> = {};
-            
+
             if (options.deviceKeys) {
                 body.device_keys = options.deviceKeys;
             }
-            
+
             if (options.oneTimeKeys) {
                 body.one_time_keys = options.oneTimeKeys;
             }
@@ -180,7 +160,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 "/keys/upload",
                 undefined,
                 body,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             if (response.one_time_key_counts) {
@@ -204,7 +184,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 "/keys/query",
                 undefined,
                 request,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             if (response.device_keys) {
@@ -228,7 +208,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 "/keys/claim",
                 undefined,
                 request,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             if (response.one_time_keys) {
@@ -255,7 +235,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 "/keys/changes",
                 params,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             if (response.changed || response.left) {
@@ -272,21 +252,22 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
      * 更新设备列表
      * POST /_matrix/client/r0/keys/device_list/update
      */
-    async updateDeviceList(users: string[], since?: string): Promise<{ changed: string[]; left: string[]; stream_id?: number }> {
+    async updateDeviceList(
+        users: string[],
+        since?: string,
+    ): Promise<{ changed: string[]; left: string[]; stream_id?: number }> {
         try {
             const body: Record<string, unknown> = { users };
-            
+
             if (since) {
                 body.since = since;
             }
 
-            const response = await this.client.http.authedRequest<{ changed?: string[]; left?: string[]; stream_id?: number }>(
-                Method.Post,
-                "/keys/device_list/update",
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 }
-            );
+            const response = await this.client.http.authedRequest<{
+                changed?: string[];
+                left?: string[];
+                stream_id?: number;
+            }>(Method.Post, "/keys/device_list/update", undefined, body, { prefix: ClientPrefix.V3 });
 
             return {
                 changed: response.changed || [],
@@ -298,14 +279,16 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
         }
     }
 
-    async uploadSignatures(signatures: Record<string, Record<string, Record<string, string>>>): Promise<Record<string, unknown>> {
+    async uploadSignatures(
+        signatures: Record<string, Record<string, Record<string, string>>>,
+    ): Promise<Record<string, unknown>> {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Post,
                 "/keys/signatures",
                 undefined,
                 signatures,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
         } catch (error) {
             throw this.normalizeError(error, "uploadSignatures");
@@ -322,13 +305,9 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
         user_signing_key?: Record<string, unknown>;
     }): Promise<void> {
         try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/keys/device_signing/upload",
-                undefined,
-                keys,
-                { prefix: ClientPrefix.V3 }
-            );
+            await this.client.http.authedRequest(Method.Post, "/keys/device_signing/upload", undefined, keys, {
+                prefix: ClientPrefix.V3,
+            });
         } catch (error) {
             throw this.normalizeError(error, "uploadDeviceSigning");
         }
@@ -351,7 +330,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 "/room_keys/request",
                 undefined,
                 request,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return response;
@@ -381,7 +360,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 "/room_keys/request",
                 Object.keys(params).length > 0 ? params : undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             if (response.requests) {
@@ -405,7 +384,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 `/room_keys/request/${encodeURIComponent(requestId)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
         } catch (error) {
             throw this.normalizeError(error, "deleteRoomKeyRequest");
@@ -423,7 +402,7 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
                 `/rooms/${encodeURIComponent(roomId)}/keys/distribution`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
         } catch (error) {
             throw this.normalizeError(error, "getRoomKeyDistribution");
@@ -434,18 +413,14 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
      * 发送设备消息
      * PUT /_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}
      */
-    async sendToDevice(
-        eventType: string,
-        transactionId: string,
-        messages: SendToDeviceMessage
-    ): Promise<void> {
+    async sendToDevice(eventType: string, transactionId: string, messages: SendToDeviceMessage): Promise<void> {
         try {
             await this.client.http.authedRequest(
                 Method.Put,
                 `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
                 undefined,
                 { messages },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
         } catch (error) {
             throw this.normalizeError(error, "sendToDevice");
@@ -453,33 +428,43 @@ export class DeviceKeysManager extends TypedEventEmitter<DeviceKeysEvent, Device
     }
 
     public async getDeviceKeys(userId: string): Promise<Record<string, DeviceKeys>> {
-        return (this.client as unknown as {
-            getDeviceKeys: (userId: string) => Promise<Record<string, DeviceKeys>>;
-        }).getDeviceKeys(userId);
+        return (
+            this.client as unknown as {
+                getDeviceKeys: (userId: string) => Promise<Record<string, DeviceKeys>>;
+            }
+        ).getDeviceKeys(userId);
     }
 
     public async uploadDeviceKeys(keys: DeviceKeys): Promise<UploadKeysResponse> {
-        return (this.client as unknown as {
-            uploadDeviceKeys: (keys: DeviceKeys) => Promise<UploadKeysResponse>;
-        }).uploadDeviceKeys(keys);
+        return (
+            this.client as unknown as {
+                uploadDeviceKeys: (keys: DeviceKeys) => Promise<UploadKeysResponse>;
+            }
+        ).uploadDeviceKeys(keys);
     }
 
     public async getUserDevices(userId: string): Promise<Record<string, DeviceKeys>> {
-        return (this.client as unknown as {
-            getUserDevices: (userId: string) => Promise<Record<string, DeviceKeys>>;
-        }).getUserDevices(userId);
+        return (
+            this.client as unknown as {
+                getUserDevices: (userId: string) => Promise<Record<string, DeviceKeys>>;
+            }
+        ).getUserDevices(userId);
     }
 
     public hasDevice(deviceId: string): boolean {
-        return (this.client as unknown as {
-            hasDevice: (deviceId: string) => boolean;
-        }).hasDevice(deviceId);
+        return (
+            this.client as unknown as {
+                hasDevice: (deviceId: string) => boolean;
+            }
+        ).hasDevice(deviceId);
     }
 
     public getDevice(deviceId: string): DeviceKeys | null {
-        return (this.client as unknown as {
-            getDevice: (deviceId: string) => DeviceKeys | null;
-        }).getDevice(deviceId);
+        return (
+            this.client as unknown as {
+                getDevice: (deviceId: string) => DeviceKeys | null;
+            }
+        ).getDevice(deviceId);
     }
 }
 

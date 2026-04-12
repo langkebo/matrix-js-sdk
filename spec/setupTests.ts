@@ -16,13 +16,21 @@ limitations under the License.
 
 import fetchMock, { manageFetchMockGlobally } from "@fetch-mock/vitest";
 
-vi.mock("../src/http-api/utils", async () => ({
-    ...(await vi.importActual("../src/http-api/utils")),
-    // We mock timeoutSignal otherwise it causes tests to leave timers running
-    timeoutSignal: () => new AbortController().signal,
-}));
+import type * as HttpApiUtils from "../src/http-api/utils";
+import { extendMatrixClientWithManagers } from "../src/manager-extensions";
+
+vi.mock("../src/http-api/utils", async (importOriginal) => {
+    const actual = (await importOriginal()) as typeof HttpApiUtils;
+    return {
+        ...actual,
+    };
+});
 
 manageFetchMockGlobally();
+
+beforeAll(async () => {
+    await extendMatrixClientWithManagers({ includeDm: false });
+});
 
 beforeEach(() => {
     fetchMock.hardReset();

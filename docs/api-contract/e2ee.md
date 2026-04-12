@@ -23,38 +23,40 @@ POST /_matrix/client/v3/keys/upload
 ```
 
 **请求体:**
+
 ```json
 {
-  "device_keys": {
-    "user_id": "@user:example.com",
-    "device_id": "DEVICEID",
-    "algorithms": ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"],
-    "keys": {
-      "curve25519:DEVICEID": "key_base64",
-      "ed25519:DEVICEID": "key_base64"
+    "device_keys": {
+        "user_id": "@user:example.com",
+        "device_id": "DEVICEID",
+        "algorithms": ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"],
+        "keys": {
+            "curve25519:DEVICEID": "key_base64",
+            "ed25519:DEVICEID": "key_base64"
+        },
+        "signatures": {
+            "@user:example.com": {
+                "ed25519:DEVICEID": "signature_base64"
+            }
+        }
     },
-    "signatures": {
-      "@user:example.com": {
-        "ed25519:DEVICEID": "signature_base64"
-      }
+    "one_time_keys": {
+        "signed_curve25519:AAAAAA": {
+            "key": "key_base64",
+            "signatures": {}
+        }
     }
-  },
-  "one_time_keys": {
-    "signed_curve25519:AAAAAA": {
-      "key": "key_base64",
-      "signatures": {}
-    }
-  }
 }
 ```
 
 **响应:**
+
 ```json
 {
-  "one_time_key_counts": {
-    "signed_curve25519": 50,
-    "curve25519": 0
-  }
+    "one_time_key_counts": {
+        "signed_curve25519": 50,
+        "curve25519": 0
+    }
 }
 ```
 
@@ -69,31 +71,33 @@ POST /_matrix/client/v3/keys/query
 ```
 
 **请求体:**
+
 ```json
 {
-  "device_keys": {
-    "@user1:example.com": ["DEVICEID1", "DEVICEID2"],
-    "@user2:example.com": []
-  },
-  "token": "stream_token"
+    "device_keys": {
+        "@user1:example.com": ["DEVICEID1", "DEVICEID2"],
+        "@user2:example.com": []
+    },
+    "token": "stream_token"
 }
 ```
 
 **响应:**
+
 ```json
 {
-  "device_keys": {
-    "@user1:example.com": {
-      "DEVICEID1": {
-        "user_id": "@user1:example.com",
-        "device_id": "DEVICEID1",
-        "algorithms": [],
-        "keys": {},
-        "signatures": {}
-      }
-    }
-  },
-  "failures": {}
+    "device_keys": {
+        "@user1:example.com": {
+            "DEVICEID1": {
+                "user_id": "@user1:example.com",
+                "device_id": "DEVICEID1",
+                "algorithms": [],
+                "keys": {},
+                "signatures": {}
+            }
+        }
+    },
+    "failures": {}
 }
 ```
 
@@ -108,30 +112,32 @@ POST /_matrix/client/v3/keys/claim
 ```
 
 **请求体:**
+
 ```json
 {
-  "one_time_keys": {
-    "@user:example.com": {
-      "DEVICEID": "signed_curve25519:AAAAAA"
+    "one_time_keys": {
+        "@user:example.com": {
+            "DEVICEID": "signed_curve25519:AAAAAA"
+        }
     }
-  }
 }
 ```
 
 **响应:**
+
 ```json
 {
-  "one_time_keys": {
-    "@user:example.com": {
-      "DEVICEID": {
-        "signed_curve25519:AAAAAA": {
-          "key": "key_base64",
-          "signatures": {}
+    "one_time_keys": {
+        "@user:example.com": {
+            "DEVICEID": {
+                "signed_curve25519:AAAAAA": {
+                    "key": "key_base64",
+                    "signatures": {}
+                }
+            }
         }
-      }
-    }
-  },
-  "failures": {}
+    },
+    "failures": {}
 }
 ```
 
@@ -146,10 +152,11 @@ GET /_matrix/client/v3/keys/changes?from=token&to=token
 ```
 
 **响应:**
+
 ```json
 {
-  "changed": ["@user1:example.com", "@user2:example.com"],
-  "left": ["@user3:example.com"]
+    "changed": ["@user1:example.com", "@user2:example.com"],
+    "left": ["@user3:example.com"]
 }
 ```
 
@@ -166,16 +173,17 @@ POST /_matrix/client/v3/keys/signatures/upload
 ```
 
 **请求体:**
+
 ```json
 {
-  "@user:example.com": {
-    "DEVICEID": {
-      "user_id": "@user:example.com",
-      "device_id": "DEVICEID",
-      "keys": {},
-      "signatures": {}
+    "@user:example.com": {
+        "DEVICEID": {
+            "user_id": "@user:example.com",
+            "device_id": "DEVICEID",
+            "keys": {},
+            "signatures": {}
+        }
     }
-  }
 }
 ```
 
@@ -190,11 +198,12 @@ POST /_matrix/client/v3/keys/device_signing/upload
 ```
 
 **请求体:**
+
 ```json
 {
-  "master_key": {},
-  "self_signing_key": {},
-  "user_signing_key": {}
+    "master_key": {},
+    "self_signing_key": {},
+    "user_signing_key": {}
 }
 ```
 
@@ -211,12 +220,13 @@ POST /_matrix/client/v3/room_keys/request
 ```
 
 **请求体:**
+
 ```json
 {
-  "room_id": "!room:example.com",
-  "session_id": "session_id",
-  "algorithm": "m.megolm.v1.aes-sha2",
-  "request_type": "request"
+    "room_id": "!room:example.com",
+    "session_id": "session_id",
+    "algorithm": "m.megolm.v1.aes-sha2",
+    "request_type": "request"
 }
 ```
 
@@ -231,19 +241,20 @@ GET /_matrix/client/v3/room_keys/request
 ```
 
 **响应:**
+
 ```json
 {
-  "requests": [
-    {
-      "request_id": "request_id",
-      "user_id": "@user:example.com",
-      "device_id": "DEVICEID",
-      "room_id": "!room:example.com",
-      "session_id": "session_id",
-      "algorithm": "m.megolm.v1.aes-sha2",
-      "status": "pending"
-    }
-  ]
+    "requests": [
+        {
+            "request_id": "request_id",
+            "user_id": "@user:example.com",
+            "device_id": "DEVICEID",
+            "room_id": "!room:example.com",
+            "session_id": "session_id",
+            "algorithm": "m.megolm.v1.aes-sha2",
+            "status": "pending"
+        }
+    ]
 }
 ```
 
@@ -270,18 +281,19 @@ PUT /_matrix/client/v3/sendToDevice/{event_type}/{txn_id}
 ```
 
 **请求体:**
+
 ```json
 {
-  "messages": {
-    "@user1:example.com": {
-      "DEVICEID1": {
-        "algorithm": "m.megolm.v1.aes-sha2",
-        "room_id": "!room:example.com",
-        "session_id": "session_id",
-        "session_key": "key_base64"
-      }
+    "messages": {
+        "@user1:example.com": {
+            "DEVICEID1": {
+                "algorithm": "m.megolm.v1.aes-sha2",
+                "room_id": "!room:example.com",
+                "session_id": "session_id",
+                "session_key": "key_base64"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -291,12 +303,12 @@ PUT /_matrix/client/v3/sendToDevice/{event_type}/{txn_id}
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 说明 |
-|--------|-------------|------|
-| M_MISSING_TOKEN | 401 | 缺少访问令牌 |
-| M_UNKNOWN_TOKEN | 401 | 无效的访问令牌 |
-| M_NOT_FOUND | 404 | 资源不存在 |
-| M_INVALID_SIGNATURE | 400 | 签名无效 |
+| 错误码              | HTTP 状态码 | 说明           |
+| ------------------- | ----------- | -------------- |
+| M_MISSING_TOKEN     | 401         | 缺少访问令牌   |
+| M_UNKNOWN_TOKEN     | 401         | 无效的访问令牌 |
+| M_NOT_FOUND         | 404         | 资源不存在     |
+| M_INVALID_SIGNATURE | 400         | 签名无效       |
 
 ---
 
@@ -353,25 +365,31 @@ await deviceKeysManager.uploadKeys({
         user_id: "@user:example.com",
         device_id: "DEVICEID",
         algorithms: ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"],
-        keys: { /* ... */ },
-        signatures: { /* ... */ }
+        keys: {
+            /* ... */
+        },
+        signatures: {
+            /* ... */
+        },
     },
-    oneTimeKeys: { /* ... */ }
+    oneTimeKeys: {
+        /* ... */
+    },
 });
 
 // 查询其他用户的设备密钥
 const keys = await deviceKeysManager.queryKeys({
     device_keys: {
-        "@other:example.com": []
-    }
+        "@other:example.com": [],
+    },
 });
 
 // 声明一次性密钥
 const claimedKeys = await deviceKeysManager.claimKeys({
     one_time_keys: {
         "@other:example.com": {
-            "DEVICEID": "signed_curve25519:AAAAAA"
-        }
-    }
+            DEVICEID: "signed_curve25519:AAAAAA",
+        },
+    },
 });
 ```

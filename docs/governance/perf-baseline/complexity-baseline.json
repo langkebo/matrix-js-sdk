@@ -1,0 +1,535 @@
+{
+    "file": "src/client.ts",
+    "timestamp": "2026-04-11T01:40:15.310Z",
+    "summary": {
+        "totalFunctions": 104,
+        "totalComplexity": 344,
+        "avgComplexity": 3.3,
+        "simple": 103,
+        "medium": 0,
+        "high": 1,
+        "extreme": 0
+    },
+    "functions": [
+        {
+            "name": "constructor",
+            "line": 908,
+            "complexity": 20
+        },
+        {
+            "name": "startClient",
+            "line": 1041,
+            "complexity": 9
+        },
+        {
+            "name": "getOrCreateFilter",
+            "line": 4049,
+            "complexity": 9
+        },
+        {
+            "name": "identityHashedLookup",
+            "line": 6031,
+            "complexity": 9
+        },
+        {
+            "name": "getLatestTimeline",
+            "line": 3451,
+            "complexity": 8
+        },
+        {
+            "name": "initRustCrypto",
+            "line": 1562,
+            "complexity": 7
+        },
+        {
+            "name": "sendReceipt",
+            "line": 2981,
+            "complexity": 7
+        },
+        {
+            "name": "checkTurnServers",
+            "line": 4172,
+            "complexity": 7
+        },
+        {
+            "name": "unknown",
+            "line": 6599,
+            "complexity": 7
+        },
+        {
+            "name": "unknown",
+            "line": 1191,
+            "complexity": 6
+        },
+        {
+            "name": "setRoomReadMarkers",
+            "line": 3047,
+            "complexity": 6
+        },
+        {
+            "name": "unknown",
+            "line": 3325,
+            "complexity": 6
+        },
+        {
+            "name": "relations",
+            "line": 4556,
+            "complexity": 6
+        },
+        {
+            "name": "unknown",
+            "line": 4607,
+            "complexity": 6
+        },
+        {
+            "name": "createRoom",
+            "line": 5025,
+            "complexity": 6
+        },
+        {
+            "name": "unknown",
+            "line": 2047,
+            "complexity": 5
+        },
+        {
+            "name": "unknown",
+            "line": 3943,
+            "complexity": 5
+        },
+        {
+            "name": "createGroupCall",
+            "line": 1349,
+            "complexity": 4
+        },
+        {
+            "name": "unknown",
+            "line": 1725,
+            "complexity": 4
+        },
+        {
+            "name": "setAccountData",
+            "line": 1842,
+            "complexity": 4
+        },
+        {
+            "name": "getAccountDataFromServer",
+            "line": 1923,
+            "complexity": 4
+        },
+        {
+            "name": "unknown",
+            "line": 2315,
+            "complexity": 4
+        },
+        {
+            "name": "unknown",
+            "line": 4127,
+            "complexity": 4
+        },
+        {
+            "name": "doesServerForceEncryptionForPreset",
+            "line": 4465,
+            "complexity": 4
+        },
+        {
+            "name": "unknown",
+            "line": 6586,
+            "complexity": 4
+        },
+        {
+            "name": "unknown",
+            "line": 954,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 1133,
+            "complexity": 3
+        },
+        {
+            "name": "clearStores",
+            "line": 1174,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 1444,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 1761,
+            "complexity": 3
+        },
+        {
+            "name": "sendReadReceipt",
+            "line": 3018,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 3275,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 3291,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 3907,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 3981,
+            "complexity": 3
+        },
+        {
+            "name": "getFilter",
+            "line": 4029,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 4098,
+            "complexity": 3
+        },
+        {
+            "name": "doesServerSupportUnstableFeature",
+            "line": 4451,
+            "complexity": 3
+        },
+        {
+            "name": "doesServerSupportThread",
+            "line": 4478,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 4623,
+            "complexity": 3
+        },
+        {
+            "name": "isUsernameAvailable",
+            "line": 4707,
+            "complexity": 3
+        },
+        {
+            "name": "refreshToken",
+            "line": 4801,
+            "complexity": 3
+        },
+        {
+            "name": "login",
+            "line": 4844,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 4965,
+            "complexity": 3
+        },
+        {
+            "name": "sendStateEvent",
+            "line": 5144,
+            "complexity": 3
+        },
+        {
+            "name": "doesServerSupportExtendedProfiles",
+            "line": 5376,
+            "complexity": 3
+        },
+        {
+            "name": "bulkLookupThreePids",
+            "line": 6165,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 6224,
+            "complexity": 3
+        },
+        {
+            "name": "getThirdpartyProtocols",
+            "line": 6284,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 6447,
+            "complexity": 3
+        },
+        {
+            "name": "unknown",
+            "line": 894,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1119,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1237,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1247,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1259,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1270,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1294,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1413,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1422,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1433,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1487,
+            "complexity": 2
+        },
+        {
+            "name": "getCapabilities",
+            "line": 1516,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1702,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1776,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1864,
+            "complexity": 2
+        },
+        {
+            "name": "deleteAccountData",
+            "line": 1948,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 1967,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 2180,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 2245,
+            "complexity": 2
+        },
+        {
+            "name": "encryptAndSendEvent",
+            "line": 2301,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 2353,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 2658,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 2673,
+            "complexity": 2
+        },
+        {
+            "name": "assertDelayedEventsSupported",
+            "line": 2697,
+            "complexity": 2
+        },
+        {
+            "name": "assertStickyEventsSupported",
+            "line": 2712,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 3117,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 3360,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 3398,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 3554,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 3575,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 3630,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4109,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4154,
+            "complexity": 2
+        },
+        {
+            "name": "fetchClientWellKnown",
+            "line": 4279,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4291,
+            "complexity": 2
+        },
+        {
+            "name": "getVersions",
+            "line": 4412,
+            "complexity": 2
+        },
+        {
+            "name": "isVersionSupported",
+            "line": 4440,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4663,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4671,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4781,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 4891,
+            "complexity": 2
+        },
+        {
+            "name": "logout",
+            "line": 4944,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5105,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5209,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5323,
+            "complexity": 2
+        },
+        {
+            "name": "unbindThreePid",
+            "line": 5565,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5809,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5844,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5895,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 5942,
+            "complexity": 2
+        },
+        {
+            "name": "lookupThreePid",
+            "line": 6118,
+            "complexity": 2
+        },
+        {
+            "name": "encryptAndSendToDevice",
+            "line": 6253,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 6475,
+            "complexity": 2
+        },
+        {
+            "name": "unknown",
+            "line": 6570,
+            "complexity": 2
+        }
+    ]
+}

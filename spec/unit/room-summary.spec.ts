@@ -69,7 +69,9 @@ describe("RoomSummaryManager", () => {
 
         it("should throw error when throwOnError is true", async () => {
             authedRequest.mockRejectedValue(new Error("Not found"));
-            await expect(summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true)).rejects.toThrow();
+            await expect(
+                summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true),
+            ).rejects.toThrow();
         });
     });
 
@@ -403,7 +405,7 @@ describe("RoomSummaryManager", () => {
         });
     });
 
-    describe("getPublicRooms", () => {
+    describe("getPublicRooms (error handling)", () => {
         it("should get public rooms", async () => {
             const rooms = await summaryManager.getPublicRooms("example.com");
             expect(rooms).toBeDefined();

@@ -47,4 +47,3 @@ describe("DeviceManager.getDeviceListUpdates (real-backend)", () => {
         TestConfig.timeout.long,
     );
 });
-

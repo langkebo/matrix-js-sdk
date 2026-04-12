@@ -94,4 +94,3 @@ describe("DeviceManager.deleteDevices (real-backend)", () => {
         TestConfig.timeout.long,
     );
 });
-

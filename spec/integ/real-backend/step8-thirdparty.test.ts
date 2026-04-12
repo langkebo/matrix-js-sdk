@@ -1,8 +1,8 @@
 /**
  * Step 8: 第三方与VoIP模块测试
- * 
+ *
  * 测试模块: third-party, third-party-protocols, third-party-user, third-party-location, voip, voip-signaling, voip-push, appservice, bridges
- * 
+ *
  * 运行: npx tsx spec/integ/real-backend/step8-thirdparty.test.ts
  */
 
@@ -32,16 +32,16 @@ async function login(): Promise<MatrixClient> {
         baseUrl: TestConfig.baseUrl,
         allowInsecureHttp: true,
     });
-    
+
     const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-    
+
     const result = await testClient.login("m.login.password", {
         user: username,
-        password: TestConfig.testUser.password
+        password: TestConfig.testUser.password,
     });
-    
+
     testClient.setAccessToken(result.access_token);
-    
+
     return testClient;
 }
 
@@ -51,14 +51,14 @@ async function main(): Promise<void> {
     console.log("========================================\n");
 
     await extendMatrixClientWithManagers();
-    
+
     console.log("1. 登录测试...");
     client = await login();
     console.log(`   ✅ 登录成功: ${client.getUserId()}\n`);
-    
+
     // === Third Party Module ===
     console.log("2. Third Party 模块测试...");
-    
+
     await runTest("getThirdPartyProtocols", async () => {
         try {
             const protocols = await client!.getThirdpartyProtocols();
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Third party protocols not available");
         }
     });
-    
+
     await runTest("getThirdPartyProtocol (deprecated)", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,10 +75,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Third party protocol not available");
         }
     });
-    
+
     // === Third Party Protocols Module ===
     console.log("\n3. Third Party Protocols 模块测试...");
-    
+
     await runTest("thirdPartyProtocol (http)", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Third party protocol (http) not available");
         }
     });
-    
+
     await runTest("thirdPartyProtocol (https)", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,36 +96,36 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Third party protocol (https) not available");
         }
     });
-    
+
     // === Third Party User Module ===
     console.log("\n4. Third Party User 模块测试...");
-    
+
     await runTest("getThirdPartyUser", async () => {
         try {
             const user = await client!.getThirdpartyUser("test-protocol", {
-                userid: "test-user"
+                userid: "test-user",
             });
         } catch (e: any) {
             console.log("    ⚠️ Third party user not available");
         }
     });
-    
+
     // === Third Party Location Module ===
     console.log("\n5. Third Party Location 模块测试...");
-    
+
     await runTest("getThirdPartyLocation", async () => {
         try {
             const location = await client!.getThirdpartyLocation("test-protocol", {
-                searchFields: ["uri"]
+                searchFields: ["uri"],
             });
         } catch (e: any) {
             console.log("    ⚠️ Third party location not available");
         }
     });
-    
+
     // === VoIP Module ===
     console.log("\n6. VoIP 模块测试...");
-    
+
     await runTest("getVoipEventSignatures", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,7 +134,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ VoIP event signatures not available");
         }
     });
-    
+
     await runTest("turnServer", async () => {
         try {
             const turn = await client!.turnServer();
@@ -142,7 +142,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ TURN server not available");
         }
     });
-    
+
     await runTest("getTurnServersUrl", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,18 +151,18 @@ async function main(): Promise<void> {
             console.log("    ⚠️ TURN servers URL not available");
         }
     });
-    
+
     // === VoIP Signaling Module ===
     console.log("\n7. VoIP Signaling 模块测试...");
-    
+
     await runTest(" VoIP Call Events", async () => {
         // VoIP需要初始化完整的客户端
         console.log("    ⚠️ Skipped - requires full client initialization");
     });
-    
+
     // === Appservice Module ===
     console.log("\n8. Appservice 模块测试...");
-    
+
     await runTest("getAppserviceNames", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,7 +171,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Appservice names not available");
         }
     });
-    
+
     await runTest("getAppservice", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -180,7 +180,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Appservice not available");
         }
     });
-    
+
     await runTest("isAppserviceConfigured", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,10 +189,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Appservice config not available");
         }
     });
-    
+
     // === Bridges Module ===
     console.log("\n9. Bridges 模块测试...");
-    
+
     await runTest("getBridgeInfo", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -201,7 +201,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Bridge info not available");
         }
     });
-    
+
     await runTest("setBridgeInfo", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,10 +210,10 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Set bridge info not available");
         }
     });
-    
+
     // === Additional Tests ===
     console.log("\n10. Additional 模块测试...");
-    
+
     await runTest("getProtocols", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,7 +222,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Protocols not available");
         }
     });
-    
+
     await runTest("getIntegrations", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -231,7 +231,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Integrations not available");
         }
     });
-    
+
     await runTest("getIntegrationWidgets", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -240,7 +240,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Integration widgets not available");
         }
     });
-    
+
     await runTest("addIntegrationWidgets", async () => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -249,7 +249,7 @@ async function main(): Promise<void> {
             console.log("    ⚠️ Add integration widgets not available");
         }
     });
-    
+
     // 登出
     console.log("\n11. 清理...");
     try {
@@ -258,26 +258,28 @@ async function main(): Promise<void> {
     } catch (e) {
         console.log("   ⚠️ 登出失败");
     }
-    
+
     // 输出结果
     console.log("\n========================================");
     console.log("测试结果汇总");
     console.log("========================================");
-    
-    const passed = testResults.filter(r => r.passed).length;
-    const failed = testResults.filter(r => !r.passed).length;
+
+    const passed = testResults.filter((r) => r.passed).length;
+    const failed = testResults.filter((r) => !r.passed).length;
     const total = testResults.length;
-    
+
     console.log(`总计: ${total} | ✅ 通过: ${passed} | ❌ 失败: ${failed}`);
     console.log(`通过率: ${((passed / total) * 100).toFixed(1)}%\n`);
-    
+
     if (failed > 0) {
         console.log("失败测试:");
-        testResults.filter(r => !r.passed).forEach(r => {
-            console.log(`  - ${r.name}: ${r.error}`);
-        });
+        testResults
+            .filter((r) => !r.passed)
+            .forEach((r) => {
+                console.log(`  - ${r.name}: ${r.error}`);
+            });
     }
-    
+
     process.exit(failed > 0 ? 1 : 0);
 }
 

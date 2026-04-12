@@ -16,58 +16,47 @@ limitations under the License.
 
 /**
  * Pending Actions Manager - 待处理操作管理
- * 
+ *
  * 提供待发送事件管理功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
+import { type UploadResponse } from "../http-api/index";
 
-export class PendingActionsManager {
-    constructor(private client: MatrixClient) {}
+export interface PendingActionsManagerEvents {
+    pending_event_added: { roomId: string; event: MatrixEvent };
+    pending_event_removed: { roomId: string; eventId: string };
+    upload_cancelled: { uploadId: string };
+}
 
-    /**
-     * Get pending events
-     */
+export class PendingActionsManager extends BaseManager<keyof PendingActionsManagerEvents, PendingActionsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getPendingEvents(roomId: string): MatrixEvent[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getPendingEvents(roomId);
+        return this.client.getPendingEvents(roomId);
     }
 
-    /**
-     * Has pending events
-     */
     public hasPendingEvents(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasPendingEvents(roomId);
+        return this.client.hasPendingEvents(roomId);
     }
 
-    /**
-     * Cancel upload
-     */
-    public cancelUpload(upload: Promise<any>): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).cancelUpload(upload);
+    public cancelUpload(upload: Promise<UploadResponse>): boolean {
+        return this.client.cancelUpload(upload);
     }
 
-    /**
-     * Get unsent events
-     */
     public getUnsentEvents(roomId: string): MatrixEvent[] {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getUnsentEvents(roomId);
+        return this.client.getUnsentEvents(roomId);
     }
 
-    /**
-     * Cancel scheduled event
-     */
-    public async cancelScheduledEvent(eventId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any)._unstable_cancelScheduledDelayedEvent(eventId);
+    public cancelScheduledEvent(eventId: string): void {
+        this.client._unstable_cancelScheduledDelayedEvent(eventId);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getPendingActionsManager(): PendingActionsManager;

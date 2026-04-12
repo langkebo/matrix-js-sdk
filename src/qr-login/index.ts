@@ -82,23 +82,15 @@ export class QrLoginManager {
     constructor(private client: MatrixClient) {}
 
     public async getQrCode(): Promise<QrCodeResponse> {
-        return this.client.http.authedRequest<QrCodeResponse>(
-            Method.Get,
-            "/login/get_qr_code",
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        return this.client.http.authedRequest<QrCodeResponse>(Method.Get, "/login/get_qr_code", undefined, undefined, {
+            prefix: ClientPrefix.V1,
+        });
     }
 
     public async startQrLogin(request: QrLoginStartRequest): Promise<QrLoginStartResponse> {
-        return this.client.http.request<QrLoginStartResponse>(
-            Method.Post,
-            "/login/qr/start",
-            undefined,
-            request,
-            { prefix: ClientPrefix.V1 },
-        );
+        return this.client.http.request<QrLoginStartResponse>(Method.Post, "/login/qr/start", undefined, request, {
+            prefix: ClientPrefix.V1,
+        });
     }
 
     public async confirmQrLogin(request: QrLoginConfirmRequest): Promise<QrLoginConfirmResponse> {
@@ -113,13 +105,9 @@ export class QrLoginManager {
 
     public async getQrStatus(transactionId: string): Promise<QrLoginStatusResponse> {
         const path = encodeUri("/login/qr/$txnId/status", { $txnId: transactionId });
-        return this.client.http.request<QrLoginStatusResponse>(
-            Method.Get,
-            path,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        return this.client.http.request<QrLoginStatusResponse>(Method.Get, path, undefined, undefined, {
+            prefix: ClientPrefix.V1,
+        });
     }
 
     public async invalidateQrLogin(request: QrLoginInvalidateRequest): Promise<QrLoginInvalidateResponse> {

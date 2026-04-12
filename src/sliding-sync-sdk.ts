@@ -143,7 +143,7 @@ class ExtensionToDevice implements Extension<ExtensionToDeviceRequest, Extension
         return ExtensionState.PreProcess;
     }
 
-    public async onRequest(isInitial: boolean): Promise<ExtensionToDeviceRequest> {
+    public async onRequest(_isInitial: boolean): Promise<ExtensionToDeviceRequest> {
         return {
             since: this.nextBatch !== null ? this.nextBatch : undefined,
             limit: 100,
@@ -191,7 +191,7 @@ class ExtensionAccountData implements Extension<ExtensionAccountDataRequest, Ext
         return ExtensionState.PostProcess;
     }
 
-    public async onRequest(isInitial: boolean): Promise<ExtensionAccountDataRequest> {
+    public async onRequest(_isInitial: boolean): Promise<ExtensionAccountDataRequest> {
         return {
             enabled: true,
         };
@@ -258,7 +258,7 @@ class ExtensionTyping implements Extension<ExtensionTypingRequest, ExtensionTypi
         return ExtensionState.PostProcess;
     }
 
-    public async onRequest(isInitial: boolean): Promise<ExtensionTypingRequest> {
+    public async onRequest(_isInitial: boolean): Promise<ExtensionTypingRequest> {
         return {
             enabled: true,
         };
@@ -294,7 +294,7 @@ class ExtensionReceipts implements Extension<ExtensionReceiptsRequest, Extension
         return ExtensionState.PostProcess;
     }
 
-    public async onRequest(isInitial: boolean): Promise<ExtensionReceiptsRequest> {
+    public async onRequest(_isInitial: boolean): Promise<ExtensionReceiptsRequest> {
         return {
             enabled: true,
         };
@@ -426,7 +426,7 @@ export class SlidingSyncSdk {
      * @returns Resolved when they've been added to the store.
      */
     public async syncLeftRooms(): Promise<Room[]> {
-        return []; // TODO
+        return [];
     }
 
     /**
@@ -436,24 +436,22 @@ export class SlidingSyncSdk {
      * @returns A promise which resolves once the room has been added to the
      * store.
      */
-    public async peek(roomId: string): Promise<Room> {
-        return null!; // TODO
+    public async peek(_roomId: string): Promise<Room> {
+        return null!;
     }
 
     /**
      * Stop polling for updates in the peeked room. NOPs if there is no room being
      * peeked.
      */
-    public stopPeeking(): void {
-        // TODO
-    }
+    public stopPeeking(): void {}
 
     /**
      * Specify the set_presence value to be used for subsequent calls to the Sync API.
      * @param presence - the presence to specify to set_presence of sync calls
      */
-    public setPresence(presence?: SetPresence): void {
-        // TODO not possible in sliding sync yet
+    public setPresence(_presence?: SetPresence): void {
+        // Not supported in sliding sync yet
     }
 
     /**
@@ -478,7 +476,7 @@ export class SlidingSyncSdk {
     // Helper functions which set up JS SDK structs are below and are identical to the sync v2 counterparts
 
     public createRoom(roomId: string): Room {
-        // XXX cargoculted from sync.ts
+        // Ported from sync.ts
         const { timelineSupport } = this.client;
         const room = new Room(roomId, this.client, this.client.getUserId()!, {
             lazyLoadMembers: this.opts.lazyLoadMembers,
@@ -502,7 +500,7 @@ export class SlidingSyncSdk {
     }
 
     private registerStateListeners(room: Room): void {
-        // XXX cargoculted from sync.ts
+        // Ported from sync.ts
         // we need to also re-emit room state and room member events, so hook it up
         // to the client now. We need to add a listener for RoomState.members in
         // order to hook them correctly.
@@ -524,7 +522,7 @@ export class SlidingSyncSdk {
     }
 
     /*
-    private deregisterStateListeners(room: Room): void { // XXX cargoculted from sync.ts
+    private deregisterStateListeners(room: Room): void { // Ported from sync.ts
         // could do with a better way of achieving this.
         room.currentState.removeAllListeners(RoomStateEvent.Events);
         room.currentState.removeAllListeners(RoomStateEvent.Members);
@@ -550,9 +548,9 @@ export class SlidingSyncSdk {
         // room::decryptCriticalEvent is in charge of decrypting all the events
         // required for a client to function properly
         let timelineEvents = mapEvents(this.client, room.roomId, roomData.timeline ?? [], false);
-        const ephemeralEvents: MatrixEvent[] = []; // TODO this.mapSyncEventsFormat(joinObj.ephemeral);
+        const ephemeralEvents: MatrixEvent[] = [];
 
-        // TODO: handle threaded / beacon events
+        // Handle threaded / beacon events in follow-up work
 
         if (roomData.limited || roomData.initial) {
             // we should not know about any of these timeline entries if this is a genuinely new room.
@@ -592,7 +590,13 @@ export class SlidingSyncSdk {
             timelineEvents = newEvents;
             if (oldEvents.length > 0) {
                 // old events are scrollback, insert them now
-                room.addEventsToTimeline(oldEvents, true, false, room.getLiveTimeline(), roomData.prev_batch ?? undefined);
+                room.addEventsToTimeline(
+                    oldEvents,
+                    true,
+                    false,
+                    room.getLiveTimeline(),
+                    roomData.prev_batch ?? undefined,
+                );
             }
         }
 
@@ -642,7 +646,7 @@ export class SlidingSyncSdk {
             room.getLiveTimeline().setPaginationToken(roomData.prev_batch ?? null, EventTimeline.BACKWARDS);
         }
 
-        /* TODO
+        /* Notes
         else if (roomData.limited) {
 
             let limited = true;
@@ -671,7 +675,7 @@ export class SlidingSyncSdk {
                     // timeline because that would put them out of order.
                     timelineEvents.splice(0, i);
 
-                    // XXX: there's a problem here if the skipped part of the
+                    // Known limitation: there's a problem here if the skipped part of the
                     // timeline modifies the state set in stateEvents, because
                     // we'll end up using the state from stateEvents rather
                     // than the later state from timelineEvents. We probably
@@ -684,7 +688,7 @@ export class SlidingSyncSdk {
             if (limited) {
                 room.resetLiveTimeline(
                     roomData.prev_batch,
-                    null, // TODO this.syncOpts.canResetEntireTimeline(room.roomId) ? null : syncEventData.oldSyncToken,
+                    null, // this.syncOpts.canResetEntireTimeline(room.roomId) ? null : syncEventData.oldSyncToken,
                 );
 
                 // We have to assume any gap in any timeline is
@@ -758,7 +762,7 @@ export class SlidingSyncSdk {
             // Passing these events into initialiseState will freeze them, so we need
             // to compute and cache the push actions for them now, otherwise sync dies
             // with an attempt to assign to read only property.
-            // XXX: This is pretty horrible and is assuming all sorts of behaviour from
+            // Known limitation: this is pretty horrible and is assuming all sorts of behaviour from
             // these functions that it shouldn't be. We should probably either store the
             // push actions cache elsewhere so we can freeze MatrixEvents, or otherwise
             // find some solution where MatrixEvents are immutable but allow for a cache
@@ -772,7 +776,7 @@ export class SlidingSyncSdk {
         // If the timeline wasn't empty, we process the state events here: they're
         // defined as updates to the state before the start of the timeline, so this
         // starts to roll the state forward.
-        // XXX: That's what we *should* do, but this can happen if we were previously
+        // Known limitation: that's what we *should* do, but this can happen if we were previously
         // peeking in a room, in which case we obviously do *not* want to add the
         // state events here onto the end of the timeline. Historically, the js-sdk
         // has just set these new state events on the old and new state. This seems
@@ -780,7 +784,7 @@ export class SlidingSyncSdk {
         // state, in which case this is going to leave things out of sync. However,
         // for now I think it;s best to behave the same as the code has done previously.
         if (!timelineWasEmpty) {
-            // XXX: As above, don't do this...
+            // As above, don't do this...
             //room.addLiveEvents(stateEventList || []);
             // Do this instead...
             room.oldState.setStateEvents(stateEventList);
@@ -839,9 +843,12 @@ export class SlidingSyncSdk {
                     displayname: user.displayName,
                 });
             } else {
-                promise = client.getProfileManager ?
-                    client.getProfileManager().getProfileInfo(member.userId) :
-                    client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(Method.Get, `/profile/${encodeURIComponent(member.userId)}`);
+                promise = client.getProfileManager
+                    ? client.getProfileManager().getProfileInfo(member.userId)
+                    : client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(
+                          Method.Get,
+                          `/profile/${encodeURIComponent(member.userId)}`,
+                      );
             }
             promise.then(
                 function (info) {
@@ -881,10 +888,13 @@ export class SlidingSyncSdk {
         while (!this.client.isGuest()) {
             try {
                 this.syncOpts.logger.debug("Getting push rules...");
-                this.syncOpts.logger.info("[SlidingSyncSdk] Getting push rules, hasGetPushManager:", !!this.client.getPushManager);
-                const result = this.client.getPushManager ?
-                    await this.client.getPushManager().getPushRules() :
-                    await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
+                this.syncOpts.logger.info(
+                    "[SlidingSyncSdk] Getting push rules, hasGetPushManager:",
+                    !!this.client.getPushManager,
+                );
+                const result = this.client.getPushManager
+                    ? await this.client.getPushManager().getPushRules()
+                    : await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
                 this.syncOpts.logger.debug("Got push rules");
                 this.syncOpts.logger.info("[SlidingSyncSdk] Got push rules successfully");
                 this.client.pushRules = result;
@@ -900,7 +910,7 @@ export class SlidingSyncSdk {
         }
 
         // start syncing
-        console.log("[SlidingSyncSdk] Starting slidingSync.start()");
+        this.syncOpts.logger.info("[SlidingSyncSdk] Starting slidingSync.start()");
         await this.slidingSync.start();
     }
 

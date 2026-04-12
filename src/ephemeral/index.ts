@@ -16,12 +16,12 @@ limitations under the License.
 
 /**
  * Ephemeral Manager - 临时事件管理
- * 
+ *
  * 提供临时事件(如输入状态、已读标记等)相关功能
- * 
+ *
  * 对应后端 API:
  * - GET /_matrix/client/v3/rooms/{room_id}/ephemeral
- * 
+ *
  * 优化特性:
  * - LRU 缓存: 临时事件缓存
  * - 重试机制: 指数退避重试
@@ -34,6 +34,7 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export enum EphemeralEvent {
     EphemeralReceived = "EphemeralReceived",
@@ -77,53 +78,6 @@ interface EphemeralManagerEventMap {
     [EphemeralEvent.EphemeralCleared]: (roomId: string) => void;
     [EphemeralEvent.EphemeralError]: (roomId: string, error: Error) => void;
 }
-
-interface CacheEntry<T> { value: T; timestamp: number; }
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) { this.misses++; return undefined; }
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) { this.cache.delete(key); }
-        else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) this.cache.delete(firstKey);
-        }
-        this.cache.set(key, { value, timestamp: Date.now() });
-    }
-
-    delete(key: string): boolean { return this.cache.delete(key); }
-    clear(): void { this.cache.clear(); this.hits = 0; this.misses = 0; }
-    size(): number { return this.cache.size; }
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return { size: this.cache.size, hits: this.hits, misses: this.misses, hitRate: total > 0 ? this.hits / total : 0 };
-    }
-}
-
 export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, EphemeralManagerEventMap> {
     private client: MatrixClient;
     private ephemeralEventsCache: LRUCache<IEphemeralEventInfo[]>;
@@ -140,12 +94,16 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
 
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            return ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"].includes(error.errcode ?? "") ||
-                [429, 500, 502, 503, 504].includes(error.httpStatus ?? 0);
+            return (
+                ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"].includes(error.errcode ?? "") ||
+                [429, 500, 502, 503, 504].includes(error.httpStatus ?? 0)
+            );
         }
         const err = error as Record<string, unknown>;
-        return ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
-            [429, 500, 502, 503, 504].includes(err?.httpStatus as number);
+        return (
+            ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
+            [429, 500, 502, 503, 504].includes(err?.httpStatus as number)
+        );
     }
 
     private getErrorType(error: unknown): string {
@@ -170,7 +128,7 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
                     logger.warn(`EphemeralManager.${method} failed, retrying in ${delay}ms`);
-                    await new Promise(r => setTimeout(r, delay));
+                    await new Promise((r) => setTimeout(r, delay));
                 }
             }
         }
@@ -190,7 +148,7 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
     }
 
     public async sendEphemeralEvent(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {
-        const userId = this.client.getUserId() ?? '';
+        const userId = this.client.getUserId() ?? "";
         const contentMap = new Map<string, Map<string, Record<string, unknown>>>();
         const roomMap = new Map<string, Record<string, unknown>>();
         roomMap.set(userId, content);
@@ -201,14 +159,16 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
     public getEphemeralEvents(roomId: string): IEphemeralEventInfo[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
-        const ephemeralEvents = room.currentState.getStateEvents('m.ephemeral');
-        return ephemeralEvents.map((event): IEphemeralEventInfo => ({
-            roomId,
-            type: event.getType(),
-            sender: event.getSender() ?? '',
-            content: event.getContent<Record<string, unknown>>(),
-            timestamp: event.getTs(),
-        }));
+        const ephemeralEvents = room.currentState.getStateEvents("m.ephemeral");
+        return ephemeralEvents.map(
+            (event): IEphemeralEventInfo => ({
+                roomId,
+                type: event.getType(),
+                sender: event.getSender() ?? "",
+                content: event.getContent<Record<string, unknown>>(),
+                timestamp: event.getTs(),
+            }),
+        );
     }
 
     public hasEphemeralEvents(roomId: string): boolean {
@@ -230,41 +190,52 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
         if (cached) return cached;
 
         return this.withRetry(async () => {
-            const response = await this.client.http.authedRequest(
-                Method.Get, `/rooms/${encodeURIComponent(roomId)}/ephemeral`,
-                { limit: limit ?? this.defaultLimit }, undefined, { prefix: ClientPrefix.V3 }
-            ) as IServerEphemeralEventsResponse;
+            const response = (await this.client.http.authedRequest(
+                Method.Get,
+                `/rooms/${encodeURIComponent(roomId)}/ephemeral`,
+                { limit: limit ?? this.defaultLimit },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            )) as IServerEphemeralEventsResponse;
 
-            const events: IEphemeralEventInfo[] = (response.chunk || []).map(e => ({
-                roomId, type: e.type, sender: e.sender, content: e.content, timestamp: Date.now()
+            const events: IEphemeralEventInfo[] = (response.chunk || []).map((e) => ({
+                roomId,
+                type: e.type,
+                sender: e.sender,
+                content: e.content,
+                timestamp: Date.now(),
             }));
             this.ephemeralEventsCache.set(roomId, events);
             this.emit(EphemeralEvent.EphemeralReceived, roomId, events);
             return events;
-        }, 'getEphemeralEventsFromServer');
+        }, "getEphemeralEventsFromServer");
     }
 
     public async getTypingEvents(roomId: string): Promise<string[]> {
         try {
             const events = await this.getEphemeralEventsFromServer(roomId);
-            const typingEvent = events.find(e => e.type === "m.typing");
+            const typingEvent = events.find((e) => e.type === "m.typing");
             const content = typingEvent?.content as { user_ids?: string[] } | undefined;
             return content?.user_ids || [];
-        } catch { return []; }
+        } catch {
+            return [];
+        }
     }
 
     public async getReceiptEvents(roomId: string): Promise<Map<string, string>> {
         const receipts = new Map<string, string>();
         try {
             const events = await this.getEphemeralEventsFromServer(roomId);
-            const receiptEvent = events.find(e => e.type === "m.receipt");
+            const receiptEvent = events.find((e) => e.type === "m.receipt");
             if (receiptEvent?.content) {
                 for (const [eventId, data] of Object.entries(receiptEvent.content)) {
-                    const readData = (data as any)?.["m.read"];
+                    const readData = (data as Record<string, Record<string, unknown>>)?.["m.read"];
                     if (readData) for (const userId of Object.keys(readData)) receipts.set(userId, eventId);
                 }
             }
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
         return receipts;
     }
 
@@ -272,18 +243,30 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
         return this.ephemeralEventsCache.get(roomId) || [];
     }
 
-    public clearCache(): void { this.ephemeralEventsCache.clear(); }
-    public setDefaultLimit(limit: number): void { if (limit > 0) this.defaultLimit = limit; }
-    public getDefaultLimit(): number { return this.defaultLimit; }
-    public stop(): void { this.ephemeralEventsCache.clear(); }
+    public clearCache(): void {
+        this.ephemeralEventsCache.clear();
+    }
+    public setDefaultLimit(limit: number): void {
+        if (limit > 0) this.defaultLimit = limit;
+    }
+    public getDefaultLimit(): number {
+        return this.defaultLimit;
+    }
+    public stop(): void {
+        this.ephemeralEventsCache.clear();
+    }
 }
 
 declare module "../client.ts" {
-    interface MatrixClient { getEphemeralManager(): EphemeralManager; }
+    interface MatrixClient {
+        getEphemeralManager(): EphemeralManager;
+    }
 }
 
 export function extendMatrixClient(): void {
-    MatrixClient.prototype.getEphemeralManager = function (): EphemeralManager { return new EphemeralManager(this); };
+    MatrixClient.prototype.getEphemeralManager = function (): EphemeralManager {
+        return new EphemeralManager(this);
+    };
 }
 
 export default extendMatrixClient;

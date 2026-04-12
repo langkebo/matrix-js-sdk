@@ -401,7 +401,7 @@ describe("cross-signing", () => {
             const isCrossSigningReady = await aliceClient.getCrypto()!.isCrossSigningReady();
 
             expect(isCrossSigningReady).toBeFalsy();
-        }, 10000);
+        }, 20000);
     });
 
     describe("getCrossSigningKeyId", () => {

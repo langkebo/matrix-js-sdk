@@ -172,6 +172,48 @@ describe("Call", function () {
         vi.useRealTimers();
     });
 
+    describe("initWithInvite", () => {
+        it("should handle error during initWithInvite when throwOnError is false", async () => {
+            const inviteEvent = {
+                getContent: vi.fn().mockReturnValue({
+                    version: "1",
+                    call_id: "call_id",
+                    party_id: "remote_party_id",
+                    offer: { sdp: "invalid sdp" },
+                }),
+                getSender: () => "@test:foo",
+                getLocalAge: () => 1,
+            } as unknown as MatrixEvent;
+
+            // Mock setRemoteDescription to fail
+            const mockPC = new MockRTCPeerConnection();
+            mockPC.setRemoteDescription = vi.fn().mockRejectedValue(new Error("SDP Error"));
+            vi.spyOn(call as any, "createPeerConnection").mockReturnValue(mockPC);
+
+            await call.initWithInvite(inviteEvent);
+            expect(call.state).toBe(CallState.Ended);
+        });
+
+        it("should throw error during initWithInvite when throwOnError is true", async () => {
+            const inviteEvent = {
+                getContent: vi.fn().mockReturnValue({
+                    version: "1",
+                    call_id: "call_id",
+                    party_id: "remote_party_id",
+                    offer: { sdp: "invalid sdp" },
+                }),
+                getSender: () => "@test:foo",
+                getLocalAge: () => 1,
+            } as unknown as MatrixEvent;
+
+            const mockPC = new MockRTCPeerConnection();
+            mockPC.setRemoteDescription = vi.fn().mockRejectedValue(new Error("SDP Error"));
+            vi.spyOn(call as any, "createPeerConnection").mockReturnValue(mockPC);
+
+            await expect(call.initWithInvite(inviteEvent, true)).rejects.toThrow("SDP Error");
+        });
+    });
+
     it("should ignore candidate events from non-matching party ID", async function () {
         await startVoiceCall(client, call);
 
@@ -538,6 +580,7 @@ describe("Call", function () {
                     if (userId === opponentMember.userId) {
                         return opponentMember;
                     }
+                    return undefined;
                 },
             } as unknown as Room;
         };
@@ -1368,6 +1411,16 @@ describe("Call", function () {
             // when re-enabling the screen share.
             expect(mockPeerConn.transceivers.length).toEqual(2);
         });
+
+        it("returns false when enabling screensharing fails", async () => {
+            const mockMediaHandler = (client.client as any).mediaHandler as MockMediaHandler;
+            mockMediaHandler.getScreensharingStream.mockRejectedValueOnce(new Error("denied"));
+
+            await expect(call.setScreensharingEnabled(true)).resolves.toBe(false);
+            expect(call.getLocalFeeds().filter((f) => f.purpose === SDPStreamMetadataPurpose.Screenshare)).toHaveLength(
+                0,
+            );
+        });
     });
 
     it("falls back to replaceTrack for opponents that don't support stream metadata", async () => {
@@ -1416,6 +1469,27 @@ describe("Call", function () {
                 id: "usermedia_video_track",
             }),
         );
+    });
+
+    it("returns false when fallback screensharing stream acquisition fails", async () => {
+        await startVideoCall(client, call);
+
+        await call.onAnswerReceived(
+            makeMockEvent("@test:foo", {
+                version: 1,
+                call_id: call.callId,
+                party_id: "party_id",
+                answer: {
+                    sdp: DUMMY_SDP,
+                },
+            }),
+        );
+
+        const mockMediaHandler = (client.client as any).mediaHandler as MockMediaHandler;
+        mockMediaHandler.getScreensharingStream.mockRejectedValueOnce(new Error("denied"));
+
+        await expect(call.setScreensharingEnabled(true)).resolves.toBe(false);
+        expect(call.getLocalFeeds().filter((f) => f.purpose === SDPStreamMetadataPurpose.Screenshare)).toHaveLength(0);
     });
 
     describe("call transfers", () => {

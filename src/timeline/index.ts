@@ -16,27 +16,48 @@ limitations under the License.
 
 /**
  * Timeline Manager - 时间线管理
- * 
- * 提供时间线相关功能
+ *
+ * 提供时间线相关功能，包括时间线获取、分页等
  */
 
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
-import { EventTimeline } from "../models/event-timeline";
+import { EventTimeline, Direction } from "../models/event-timeline";
 import { EventTimelineSet } from "../models/event-timeline-set";
+import { MatrixEvent } from "../models/event";
+import { THREAD_RELATION_TYPE } from "../models/thread";
+import { BaseManager } from "../managers/base-manager";
+import type { IContextResponse } from "../@types/requests";
 
-export class TimelineManager {
-    constructor(private client: MatrixClient) {}
+export interface TimelineManagerEvents {
+    timelineFetched: (data: { roomId: string; eventId: string }) => void;
+    timelinePaginated: (data: { roomId: string; direction: Direction }) => void;
+}
+
+type ClientInternals = {
+    timelineSupport: boolean;
+    supportsThreads(): boolean;
+    getEventContext(roomId: string, eventId: string): Promise<IContextResponse>;
+    getEventMapper(): (e: unknown) => MatrixEvent;
+    logger: { warn(msg: string): void };
+    processAggregatedTimelineEvents(room?: unknown, events?: unknown[]): void;
+    processThreadEvents(room: Room, events: MatrixEvent[], shouldAggregate: boolean): void;
+};
+
+export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, TimelineManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getTimelineForRoom(roomId: string): EventTimelineSet | null {
         const room = this.client.getRoom(roomId);
         return room?.getUnfilteredTimelineSet() || null;
     }
 
-    public getEventTimeline(roomId: string, eventId: string): EventTimeline | null {
+    public getEventTimelineSync(roomId: string, eventId: string): EventTimeline | null {
         const room = this.client.getRoom(roomId);
         if (!room) return null;
-        
+
         const timelineSet = room.getUnfilteredTimelineSet();
         return timelineSet?.getTimelineForEvent(eventId) || null;
     }
@@ -61,11 +82,76 @@ export class TimelineManager {
     }
 
     public async stopPeeking(): Promise<void> {
-        this.client.stopPeeking?.();
+        const clientInternals = this.client as unknown as { stopPeeking?: () => void };
+        clientInternals.stopPeeking?.();
+    }
+
+    public async getEventTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | null> {
+        const clientInternals = this.client as unknown as ClientInternals & {
+            getThreadTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | undefined>;
+        };
+
+        if (!clientInternals.timelineSupport) {
+            throw new Error(
+                "timeline support is disabled. Set the 'timelineSupport'" +
+                    " parameter to true when creating MatrixClient to enable it.",
+            );
+        }
+
+        if (!timelineSet?.room) {
+            throw new Error("getEventTimeline only supports room timelines");
+        }
+
+        if (timelineSet.getTimelineForEvent(eventId)) {
+            return timelineSet.getTimelineForEvent(eventId);
+        }
+
+        if (timelineSet.thread && clientInternals.supportsThreads()) {
+            return (await clientInternals.getThreadTimeline(timelineSet, eventId)) ?? null;
+        }
+
+        const res = await clientInternals.getEventContext(timelineSet.room.roomId, eventId);
+
+        if (timelineSet.getTimelineForEvent(eventId)) {
+            return timelineSet.getTimelineForEvent(eventId);
+        }
+
+        const mapper = clientInternals.getEventMapper();
+        const event = mapper(res.event);
+        if (event.isRelation(THREAD_RELATION_TYPE.name)) {
+            clientInternals.logger.warn("Tried loading a regular timeline at the position of a thread event");
+            return null;
+        }
+        const events = [
+            ...(res.events_after ?? []).reverse().map(mapper),
+            event,
+            ...(res.events_before ?? []).map(mapper),
+        ];
+
+        let timeline = timelineSet.getTimelineForEvent(events[0].getId());
+        if (timeline) {
+            timeline.getState(EventTimeline.BACKWARDS)!.setUnknownStateEvents((res.state ?? []).map(mapper));
+        } else {
+            timeline = timelineSet.addTimeline();
+            timeline.initialiseState((res.state ?? []).map(mapper));
+            timeline.getState(EventTimeline.FORWARDS)!.paginationToken = res.end ?? null;
+        }
+
+        const [timelineEvents, threadedEvents, unknownRelations] = timelineSet.room.partitionThreadedEvents(events);
+        clientInternals.processAggregatedTimelineEvents(timelineSet.room, timelineEvents);
+        timelineSet.addEventsToTimeline(timelineEvents, true, false, timeline, res.start);
+        clientInternals.processThreadEvents(timelineSet.room, threadedEvents, true);
+        clientInternals.processAggregatedTimelineEvents(timelineSet.room, timelineEvents);
+        unknownRelations.forEach((e) => timelineSet.relations.aggregateChildEvent(e));
+
+        return (
+            timelineSet.getTimelineForEvent(eventId) ??
+            timelineSet.room.findThreadForEvent(event)?.liveTimeline ??
+            timeline
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getTimelineManager(): TimelineManager;
@@ -73,7 +159,9 @@ declare module "../client.ts" {
 }
 
 export function extendMatrixClient(): void {
-    MatrixClient.prototype.getTimelineManager = function (): TimelineManager {
+    if (MatrixClient.prototype.hasOwnProperty("getTimelineManager")) return;
+
+    MatrixClient.prototype.getTimelineManager = function (this: MatrixClient): TimelineManager {
         return new TimelineManager(this);
     };
 }

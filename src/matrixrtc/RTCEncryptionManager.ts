@@ -42,7 +42,7 @@ import { OutdatedKeyFilter } from "./utils.ts";
  * This manager when used with to-device transport will share the existing key only to new joiners, and rotate
  * if there is a leaver.
  *
- * XXX In the future we want to distribute a ratcheted key not the current one for new joiners.
+ * Known limitation: In the future we want to distribute a ratcheted key not the current one for new joiners.
  */
 export class RTCEncryptionManager implements IEncryptionManager {
     // This is a stop-gap solution for now. The preferred way to handle this case would be instead
@@ -309,7 +309,7 @@ export class RTCEncryptionManager implements IEncryptionManager {
      * This encryption manager is very basic, it will rotate the key everytime this is called.
      * @param oldMemberships - This parameter is not used here, but it is kept for compatibility with the interface.
      */
-    public onMembershipsUpdate(oldMemberships: CallMembership[] = []): void {
+    public onMembershipsUpdate(_oldMemberships: CallMembership[] = []): void {
         this.logger?.trace(`onMembershipsUpdate`);
 
         // Ensure the key is distributed. This will be no-op if the key is already being distributed to everyone.
@@ -390,7 +390,7 @@ export class RTCEncryptionManager implements IEncryptionManager {
             // If the current key is recently created (less than `keyRotationGracePeriodMs`), we can keep it and just distribute it to the new joiners.
             if (keyAge < this.keyRotationGracePeriodMs) {
                 // keep the same key
-                // XXX In the future we want to distribute a ratcheted key, not the current one
+                // Known limitation: In the future we want to distribute a ratcheted key, not the current one
                 this.logger?.debug(`New joiners detected, but the key is recent enough (age:${keyAge}), keeping it`);
                 toDistributeTo = anyJoined;
                 outboundKey = this.outboundSession!;

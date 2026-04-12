@@ -54,7 +54,7 @@ export class ActionScheduler {
     }
 
     // function for the wakeup mechanism (in case we add an action externally and need to leave the current sleep)
-    private wakeup: (update: ActionUpdate) => void = (update: ActionUpdate): void => {
+    private wakeup: (update: ActionUpdate) => void = (_update: ActionUpdate): void => {
         this.logger.error("Cannot call wakeup before calling `startWithJoin()`");
     };
     private _actions: Action[] = [];

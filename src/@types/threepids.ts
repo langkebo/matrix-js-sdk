@@ -19,7 +19,7 @@ export enum ThreepidMedium {
     Phone = "msisdn",
 }
 
-// TODO: Are these types universal, or specific to just /account/3pid?
+// These fields match the /account/3pid representation used by the client APIs.
 export interface IThreepid {
     medium: ThreepidMedium;
     address: string;

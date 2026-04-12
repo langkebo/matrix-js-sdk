@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may May obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,15 +16,24 @@ limitations under the License.
 
 /**
  * Stores Manager - 存储管理
- * 
+ *
  * 提供存储相关功能
  */
 
 import { MatrixClient } from "../client";
 import { IStore } from "../store/index";
+import { BaseManager } from "../managers/base-manager";
 
-export class StoresManager {
-    constructor(private client: MatrixClient) {}
+export interface StoresManagerEvents {
+    store_initialized: void;
+    store_cleared: void;
+    value_stored: { key: string; value: unknown };
+}
+
+export class StoresManager extends BaseManager<keyof StoresManagerEvents, StoresManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getStore(): IStore | undefined {
         return (this.client as unknown as { store?: IStore }).store;
@@ -43,19 +52,30 @@ export class StoresManager {
     }
 
     public async storeValue(key: string, value: unknown): Promise<void> {
-        return (this.client as unknown as {
-            storeValue: (key: string, value: unknown) => Promise<void>;
-        }).storeValue(key, value);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        storeValue: (key: string, value: unknown) => Promise<void>;
+                    }
+                ).storeValue(key, value),
+            "storeValue",
+        );
     }
 
     public async getStoredValue(key: string): Promise<unknown> {
-        return (this.client as unknown as {
-            getStoredValue: (key: string) => Promise<unknown>;
-        }).getStoredValue(key);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getStoredValue: (key: string) => Promise<unknown>;
+                    }
+                ).getStoredValue(key),
+            "getStoredValue",
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getStoresManager(): StoresManager;

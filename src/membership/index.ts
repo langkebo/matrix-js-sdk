@@ -17,9 +17,18 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { RoomMember } from "../models/room-member";
+import { BaseManager } from "../managers/base-manager";
 
-export class MembershipManager {
-    constructor(private client: MatrixClient) {}
+export interface MembershipManagerEvents {
+    membership_changed: { roomId: string; userId: string; membership: string };
+    member_joined: { roomId: string; userId: string };
+    member_left: { roomId: string; userId: string };
+}
+
+export class MembershipManager extends BaseManager<keyof MembershipManagerEvents, MembershipManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getRoomMembers(roomId: string): RoomMember[] {
         const room = this.client.getRoom(roomId);
@@ -27,30 +36,30 @@ export class MembershipManager {
     }
 
     public getInvitedRooms(): Room[] {
-        return this.client.getRooms().filter(r => r.getMyMembership() === 'invite');
+        return this.client.getRooms().filter((r) => r.getMyMembership() === "invite");
     }
 
     public async getJoinedRooms(): Promise<Room[]> {
-        return this.client.getRooms().filter(r => r.getMyMembership() === 'join');
+        return this.client.getRooms().filter((r) => r.getMyMembership() === "join");
     }
 
     public getLeftRooms(): Room[] {
-        return this.client.getRooms().filter(r => r.getMyMembership() === 'leave');
+        return this.client.getRooms().filter((r) => r.getMyMembership() === "leave");
     }
 
     public isRoomJoined(roomId: string): boolean {
         const room = this.client.getRoom(roomId);
-        return room?.getMyMembership() === 'join';
+        return room?.getMyMembership() === "join";
     }
 
     public isRoomInvited(roomId: string): boolean {
         const room = this.client.getRoom(roomId);
-        return room?.getMyMembership() === 'invite';
+        return room?.getMyMembership() === "invite";
     }
 
     public isRoomLeft(roomId: string): boolean {
         const room = this.client.getRoom(roomId);
-        return room?.getMyMembership() === 'leave';
+        return room?.getMyMembership() === "leave";
     }
 
     public getMember(roomId: string, userId: string): RoomMember | null {

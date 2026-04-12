@@ -57,35 +57,38 @@ describe("RoomKeySharingManager real backend integration", () => {
         await client?.logout?.().catch(() => undefined);
     });
 
-    it("should round-trip room key request listing and cancellation through backend HTTP routes", async () => {
-        expect(
-            backendAvailable,
-            `real backend should be reachable for this integration test: ${String(setupError)}`,
-        ).toBe(true);
+    it(
+        "should round-trip room key request listing and cancellation through backend HTTP routes",
+        async () => {
+            expect(
+                backendAvailable,
+                `real backend should be reachable for this integration test: ${String(setupError)}`,
+            ).toBe(true);
 
-        const manager = client.getRoomKeySharingManager();
-        const sessionId = `rk_session_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+            const manager = client.getRoomKeySharingManager();
+            const sessionId = `rk_session_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-        const created = await manager.requestRoomKey(roomId, sessionId);
-        expect(created.request_id).toBeTruthy();
+            const created = await manager.requestRoomKey(roomId, sessionId);
+            expect(created.request_id).toBeTruthy();
 
-        const listed = await manager.getRoomKeyRequests({ room_id: roomId, session_id: sessionId, status: "all" });
-        const pending = listed.requests.find((request) => request.request_id === created.request_id);
-        expect(pending).toBeTruthy();
-        expect(pending?.room_id).toBe(roomId);
-        expect(pending?.session_id).toBe(sessionId);
-        expect(pending?.status).toBe("pending");
+            const listed = await manager.getRoomKeyRequests({ room_id: roomId, session_id: sessionId, status: "all" });
+            const pending = listed.requests.find((request) => request.request_id === created.request_id);
+            expect(pending).toBeTruthy();
+            expect(pending?.room_id).toBe(roomId);
+            expect(pending?.session_id).toBe(sessionId);
+            expect(pending?.status).toBe("pending");
 
-        await manager.deleteRoomKeyRequest(created.request_id);
+            await manager.deleteRoomKeyRequest(created.request_id);
 
-        const cancelled = await manager.getRoomKeyRequests({
-            room_id: roomId,
-            session_id: sessionId,
-            status: "cancelled",
-        });
-        const cancelledRequest = cancelled.requests.find((request) => request.request_id === created.request_id);
-        expect(cancelledRequest).toBeTruthy();
-        expect(cancelledRequest?.status).toBe("cancelled");
-    }, TestConfig.timeout.medium);
+            const cancelled = await manager.getRoomKeyRequests({
+                room_id: roomId,
+                session_id: sessionId,
+                status: "cancelled",
+            });
+            const cancelledRequest = cancelled.requests.find((request) => request.request_id === created.request_id);
+            expect(cancelledRequest).toBeTruthy();
+            expect(cancelledRequest?.status).toBe("cancelled");
+        },
+        TestConfig.timeout.medium,
+    );
 });
-

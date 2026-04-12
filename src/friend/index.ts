@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Friend Manager - 好友管理
- * 
+ *
  * 提供好友请求、好友列表管理功能
  * 对接后端: synapse-rust/src/web/routes/friend_room.rs
  */
@@ -26,9 +26,10 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
-import { SdkError, NotFoundError } from "../errors";
+import { NotFoundError } from "../errors";
 import { BaseManager } from "../managers/base-manager.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 
 export enum FriendEvent {
     Invited = "Invited",
@@ -67,7 +68,7 @@ export interface FriendRequest {
     display_name?: string;
     avatar_url?: string;
     message?: string;
-    direction?: 'incoming' | 'outgoing';
+    direction?: "incoming" | "outgoing";
 }
 
 export enum FriendRelationshipStatus {
@@ -84,7 +85,15 @@ export enum FriendRequestStatus {
     Cancelled = "cancelled",
 }
 
-export type FriendStatus = "pending" | "accepted" | "rejected" | "cancelled" | "favorite" | "normal" | "blocked" | "hidden";
+export type FriendStatus =
+    | "pending"
+    | "accepted"
+    | "rejected"
+    | "cancelled"
+    | "favorite"
+    | "normal"
+    | "blocked"
+    | "hidden";
 
 export interface FriendGroups {
     [groupId: string]: {
@@ -180,12 +189,12 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
-            
+
             if (response.room_id) {
                 this.friendListRoomId = response.room_id;
                 return response.room_id;
             }
-        } catch (e) {
+        } catch {
             logger.debug("Friend list doesn't exist");
         }
 
@@ -196,7 +205,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             undefined,
             { prefix: ClientPrefix.V1 },
         );
-        
+
         this.friendListRoomId = createResponse.room_id ?? null;
         return createResponse.room_id ?? "";
     }
@@ -220,7 +229,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             status: "pending",
             timestamp: Date.now(),
         };
-        
+
         this.outgoingRequests.set(userId, request);
         this.emit(FriendEvent.Invited, userId, request);
     }
@@ -243,13 +252,13 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             request.status = "accepted";
             this.incomingRequests.delete(userId);
         }
-        
+
         this.friends.set(userId, {
             user_id: userId,
             since: Date.now(),
             status: FriendRelationshipStatus.Normal,
         });
-        
+
         this.emit(FriendEvent.Accepted, userId);
         this.emit(FriendEvent.ListUpdated);
     }
@@ -318,11 +327,11 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
             const friends = (response.friends || []).map(normalizeFriend);
             this.friends.clear();
-            friends.forEach(f => this.friends.set(f.user_id, f));
-            
+            friends.forEach((f) => this.friends.set(f.user_id, f));
+
             return friends;
         } catch (e) {
-            throw this.normalizeError(e, 'getFriends');
+            throw this.normalizeError(e, "getFriends");
         }
     }
 
@@ -338,11 +347,11 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
             this.incomingRequests.clear();
-            requests.forEach(r => this.incomingRequests.set(r.user_id, r));
-            
+            requests.forEach((r) => this.incomingRequests.set(r.user_id, r));
+
             return requests;
         } catch (e) {
-            throw this.normalizeError(e, 'getIncomingRequests');
+            throw this.normalizeError(e, "getIncomingRequests");
         }
     }
 
@@ -358,11 +367,11 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
             this.outgoingRequests.clear();
-            requests.forEach(r => this.outgoingRequests.set(r.user_id, r));
-            
+            requests.forEach((r) => this.outgoingRequests.set(r.user_id, r));
+
             return requests;
         } catch (e) {
-            throw this.normalizeError(e, 'getOutgoingRequests');
+            throw this.normalizeError(e, "getOutgoingRequests");
         }
     }
 
@@ -378,7 +387,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
             return (response.suggestions || []).map(normalizeFriend);
         } catch (e) {
-            throw this.normalizeError(e, 'getFriendSuggestions');
+            throw this.normalizeError(e, "getFriendSuggestions");
         }
     }
 
@@ -386,7 +395,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         if (this.friends.has(userId)) {
             return true;
         }
-        
+
         await this.getFriends();
         return this.friends.has(userId);
     }
@@ -404,7 +413,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             this.groups = response.groups || {};
             return this.groups;
         } catch (e) {
-            throw this.normalizeError(e, 'getFriendGroups');
+            throw this.normalizeError(e, "getFriendGroups");
         }
     }
 
@@ -419,7 +428,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
         const groupId = response.group_id;
         this.groups[groupId] = { name, users: [] };
-        
+
         return groupId;
     }
 
@@ -449,18 +458,14 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         );
 
         if (this.groups[groupId]) {
-            this.groups[groupId].users = this.groups[groupId].users.filter(u => u !== userId);
+            this.groups[groupId].users = this.groups[groupId].users.filter((u) => u !== userId);
         }
     }
 
     async deleteFriendGroup(groupId: string): Promise<void> {
-        await this.client.http.authedRequest(
-            Method.Delete,
-            `/friends/groups/${groupId}`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        await this.client.http.authedRequest(Method.Delete, `/friends/groups/${groupId}`, undefined, undefined, {
+            prefix: ClientPrefix.V1,
+        });
 
         delete this.groups[groupId];
     }
@@ -490,7 +495,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             );
             return response.is_friend;
         } catch (e) {
-            throw this.normalizeError(e, 'checkFriendship');
+            throw this.normalizeError(e, "checkFriendship");
         }
     }
 
@@ -631,7 +636,14 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         return this.rejectFriendRequest(userId);
     }
 
-    async getFriendInfo(userId: string): Promise<Friend | null> {
+    /**
+     * 获取好友信息
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 好友信息
+     */
+    async getFriendInfo(userId: string, throwOnError = false): Promise<Friend | null> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
@@ -646,8 +658,12 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             );
             return normalizeFriend(response);
         } catch (e) {
-            const error = this.normalizeError(e, 'getFriendInfo');
+            if (throwOnError) {
+                throw e;
+            }
+            const error = this.normalizeError(e, "getFriendInfo");
             if (error instanceof NotFoundError) {
+                // @swallow-error { owner: "friend", expires: "2026-12-31" }
                 return null;
             }
             throw error;
@@ -675,7 +691,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
     async start(): Promise<void> {
         if (this.initialized) return;
-        
+
         try {
             await this.getFriends();
             await this.getIncomingRequests();
@@ -704,7 +720,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFriendManager = function (): FriendManager {
-        return new FriendManager(this);
+        return getOrCreateManager(this, "friend", () => new FriendManager(this));
     };
 }
 

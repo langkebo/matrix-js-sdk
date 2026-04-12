@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * OTR Manager - OTR加密管理
- * 
+ *
  * 提供OTR(Off-The-Record)加密相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IOtrSession {
     sessionId: string;
@@ -39,47 +40,78 @@ export interface IOtrBeginResponse {
     session: IOtrSession;
 }
 
-export class OtrManager {
-    constructor(private client: MatrixClient) {}
+export interface OtrManagerEvents {
+    otr_session_started: { userId: string; sessionId: string };
+    otr_session_ended: { userId: string };
+    otr_message_sent: { userId: string };
+}
+
+export class OtrManager extends BaseManager<keyof OtrManagerEvents, OtrManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async beginOTR(userId: string, roomId?: string): Promise<IOtrBeginResponse> {
-        return (this.client as unknown as {
-            beginOTR: (userId: string, roomId?: string) => Promise<IOtrBeginResponse>;
-        }).beginOTR(userId, roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        beginOTR: (userId: string, roomId?: string) => Promise<IOtrBeginResponse>;
+                    }
+                ).beginOTR(userId, roomId),
+            "beginOTR",
+        );
     }
 
     public async endOTR(userId: string): Promise<void> {
-        return (this.client as unknown as {
-            endOTR: (userId: string) => Promise<void>;
-        }).endOTR(userId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        endOTR: (userId: string) => Promise<void>;
+                    }
+                ).endOTR(userId),
+            "endOTR",
+        );
     }
 
     public async sendOTRMessage(userId: string, message: IOtrMessage): Promise<void> {
-        return (this.client as unknown as {
-            sendOTRMessage: (userId: string, message: IOtrMessage) => Promise<void>;
-        }).sendOTRMessage(userId, message);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        sendOTRMessage: (userId: string, message: IOtrMessage) => Promise<void>;
+                    }
+                ).sendOTRMessage(userId, message),
+            "sendOTRMessage",
+        );
     }
 
     public isOTREnabled(): boolean {
-        return (this.client as unknown as {
-            isOTREnabled: () => boolean;
-        }).isOTREnabled();
+        return (
+            this.client as unknown as {
+                isOTREnabled: () => boolean;
+            }
+        ).isOTREnabled();
     }
 
     public setOTREnabled(enabled: boolean): void {
-        (this.client as unknown as {
-            setOTREnabled: (enabled: boolean) => void;
-        }).setOTREnabled(enabled);
+        (
+            this.client as unknown as {
+                setOTREnabled: (enabled: boolean) => void;
+            }
+        ).setOTREnabled(enabled);
     }
 
     public getOTRSession(userId: string): IOtrSession | null {
-        return (this.client as unknown as {
-            getOTRSession: (userId: string) => IOtrSession | null;
-        }).getOTRSession(userId);
+        return (
+            this.client as unknown as {
+                getOTRSession: (userId: string) => IOtrSession | null;
+            }
+        ).getOTRSession(userId);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getOtrManager(): OtrManager;

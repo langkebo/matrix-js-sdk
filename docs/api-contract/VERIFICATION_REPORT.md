@@ -13,28 +13,28 @@
 
 ## 已重审文档
 
-| 文档 | 结果 | 说明 |
-|------|------|------|
-| `README.md` | 已更新 | 改为后端优先索引 |
-| `auth.md` | 已更新 | 补上 auth/account/directory/discovery 真实路由 |
-| `account-data.md` | 已新增 | 拆分用户级/房间级 account data 与 filter 契约 |
-| `admin.md` | 已更新 | 按 admin 子模块分组重写 |
-| `device.md` | 已新增 | 补齐设备管理与设备变更查询 |
-| `e2ee.md` | 已新增 | 拆分核心 E2EE、设备信任与 to-device 契约 |
-| `key-backup.md` | 已新增 | 拆分 room key backup / recover / import-export / secure backup |
-| `media.md` | 已新增 | 补齐 Media API 与配额端点 |
-| `presence.md` | 已新增 | 补齐 presence 状态与 v3 presence list |
-| `room.md` | 已更新 | 按 `r0/v1/v3` 真实挂载重写 |
-| `room-summary.md` | 已新增 | 拆分 room summary 读写与内部接口 |
-| `sync.md` | 已更新 | 区分 GET sync 与 POST Sliding Sync |
-| `push.md` | 已更新 | 以 `push.rs` 为准重写 |
-| `space.md` | 已更新 | 以 `space.rs` 为准重写 |
-| `dm.md` | 已更新 | 改为后端真实 DM 路由 |
-| `friend.md` | 已更新 | 改为 `friend_room.rs` 真实路由 |
-| `verification.md` | 已新增 | 拆分 SAS / QR 设备校验兼容路由 |
-| `federation.md` | 已新增 | 拆分 public/protected federation 路由 |
-| `backend-route-inventory.md` | 新增 | 覆盖未单独拆分模块 |
-| `CHANGELOG.md` | 已更新 | 记录本轮重审 |
+| 文档                         | 结果   | 说明                                                           |
+| ---------------------------- | ------ | -------------------------------------------------------------- |
+| `README.md`                  | 已更新 | 改为后端优先索引                                               |
+| `auth.md`                    | 已更新 | 补上 auth/account/directory/discovery 真实路由                 |
+| `account-data.md`            | 已新增 | 拆分用户级/房间级 account data 与 filter 契约                  |
+| `admin.md`                   | 已更新 | 按 admin 子模块分组重写                                        |
+| `device.md`                  | 已新增 | 补齐设备管理与设备变更查询                                     |
+| `e2ee.md`                    | 已新增 | 拆分核心 E2EE、设备信任与 to-device 契约                       |
+| `key-backup.md`              | 已新增 | 拆分 room key backup / recover / import-export / secure backup |
+| `media.md`                   | 已新增 | 补齐 Media API 与配额端点                                      |
+| `presence.md`                | 已新增 | 补齐 presence 状态与 v3 presence list                          |
+| `room.md`                    | 已更新 | 按 `r0/v1/v3` 真实挂载重写                                     |
+| `room-summary.md`            | 已新增 | 拆分 room summary 读写与内部接口                               |
+| `sync.md`                    | 已更新 | 区分 GET sync 与 POST Sliding Sync                             |
+| `push.md`                    | 已更新 | 以 `push.rs` 为准重写                                          |
+| `space.md`                   | 已更新 | 以 `space.rs` 为准重写                                         |
+| `dm.md`                      | 已更新 | 改为后端真实 DM 路由                                           |
+| `friend.md`                  | 已更新 | 改为 `friend_room.rs` 真实路由                                 |
+| `verification.md`            | 已新增 | 拆分 SAS / QR 设备校验兼容路由                                 |
+| `federation.md`              | 已新增 | 拆分 public/protected federation 路由                          |
+| `backend-route-inventory.md` | 新增   | 覆盖未单独拆分模块                                             |
+| `CHANGELOG.md`               | 已更新 | 记录本轮重审                                                   |
 
 ## 已确认排除项
 

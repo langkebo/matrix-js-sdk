@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
 import { DiscoveryManager } from "../../src/discovery/index";
 import { Method } from "../../src/http-api";
 
@@ -62,13 +63,9 @@ describe("DiscoveryManager", () => {
 
             const result = await discoveryManager.getServerDiscoveryInfo();
 
-            expect(mockRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/.well-known/matrix/client",
-                undefined,
-                undefined,
-                { prefix: "" }
-            );
+            expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/.well-known/matrix/client", undefined, undefined, {
+                prefix: "",
+            });
             expect(result).toEqual(discoveryInfo);
         });
     });
@@ -83,10 +80,7 @@ describe("DiscoveryManager", () => {
 
             const result = await discoveryManager.getRoomIdForAlias("#test:example.com");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/directory/room/%23test%3Aexample.com"
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/directory/room/%23test%3Aexample.com");
             expect(result).toEqual(response);
         });
     });
@@ -128,12 +122,9 @@ describe("DiscoveryManager", () => {
 
             const result = await discoveryManager.searchUserDirectory("alice");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/user_directory/search",
-                undefined,
-                { search_term: "alice" }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/user_directory/search", undefined, {
+                search_term: "alice",
+            });
             expect(result).toEqual(response);
         });
 
@@ -146,12 +137,10 @@ describe("DiscoveryManager", () => {
 
             await discoveryManager.searchUserDirectory("alice", 10);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/user_directory/search",
-                undefined,
-                { search_term: "alice", limit: 10 }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/user_directory/search", undefined, {
+                search_term: "alice",
+                limit: 10,
+            });
         });
     });
 
@@ -169,10 +158,7 @@ describe("DiscoveryManager", () => {
 
             const result = await discoveryManager.listUserDirectory();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/user_directory/list"
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/user_directory/list");
             expect(result).toEqual(response);
         });
     });
@@ -190,7 +176,7 @@ describe("DiscoveryManager", () => {
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
-                "/user_directory/profiles/%40alice%3Aexample.com"
+                "/user_directory/profiles/%40alice%3Aexample.com",
             );
             expect(result).toEqual(profile);
         });
@@ -206,10 +192,7 @@ describe("DiscoveryManager", () => {
 
             const result = await discoveryManager.getRoomVisibility("!room:example.com");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/directory/list/room/!room%3Aexample.com"
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/directory/list/room/!room%3Aexample.com");
             expect(result).toEqual(response);
         });
     });
@@ -224,7 +207,7 @@ describe("DiscoveryManager", () => {
                 Method.Put,
                 "/directory/list/room/!room%3Aexample.com",
                 undefined,
-                { visibility: "public" }
+                { visibility: "public" },
             );
         });
 
@@ -237,7 +220,7 @@ describe("DiscoveryManager", () => {
                 Method.Put,
                 "/directory/list/room/!room%3Aexample.com",
                 undefined,
-                { visibility: "private" }
+                { visibility: "private" },
             );
         });
     });
@@ -260,11 +243,7 @@ describe("DiscoveryManager", () => {
 
             const result = await discoveryManager.getPublicRooms();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/publicRooms",
-                {}
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/publicRooms", {});
             expect(result).toEqual(response);
         });
 
@@ -276,11 +255,7 @@ describe("DiscoveryManager", () => {
 
             await discoveryManager.getPublicRooms(20);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/publicRooms",
-                { limit: 20 }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/publicRooms", { limit: 20 });
         });
 
         it("should get public rooms with pagination", async () => {
@@ -291,11 +266,10 @@ describe("DiscoveryManager", () => {
 
             await discoveryManager.getPublicRooms(20, "since_token");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/publicRooms",
-                { limit: 20, since: "since_token" }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/publicRooms", {
+                limit: 20,
+                since: "since_token",
+            });
         });
 
         it("should get public rooms from specific server", async () => {
@@ -306,11 +280,10 @@ describe("DiscoveryManager", () => {
 
             await discoveryManager.getPublicRooms(20, undefined, "other.example.com");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/publicRooms",
-                { limit: 20, server: "other.example.com" }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/publicRooms", {
+                limit: 20,
+                server: "other.example.com",
+            });
         });
     });
 
@@ -335,7 +308,7 @@ describe("DiscoveryManager", () => {
                 Method.Post,
                 "/publicRooms",
                 {},
-                { filter: { generic_search_term: "gaming" } }
+                { filter: { generic_search_term: "gaming" } },
             );
             expect(result).toEqual(response);
         });
@@ -354,7 +327,7 @@ describe("DiscoveryManager", () => {
                 Method.Post,
                 "/publicRooms",
                 {},
-                { filter: { room_types: ["m.space"] } }
+                { filter: { room_types: ["m.space"] } },
             );
         });
 
@@ -364,17 +337,13 @@ describe("DiscoveryManager", () => {
             };
             mockAuthedRequest.mockResolvedValue(response);
 
-            await discoveryManager.queryPublicRooms(
-                { generic_search_term: "test" },
-                10,
-                "since_token"
-            );
+            await discoveryManager.queryPublicRooms({ generic_search_term: "test" }, 10, "since_token");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/publicRooms",
                 { limit: 10, since: "since_token" },
-                { filter: { generic_search_term: "test" } }
+                { filter: { generic_search_term: "test" } },
             );
         });
     });
@@ -389,7 +358,7 @@ describe("DiscoveryManager", () => {
                 Method.Put,
                 "/directory/room/%23test%3Aexample.com",
                 undefined,
-                { room_id: "!room:example.com" }
+                { room_id: "!room:example.com" },
             );
         });
     });
@@ -400,10 +369,7 @@ describe("DiscoveryManager", () => {
 
             await discoveryManager.deleteRoomAlias("#test:example.com");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Delete,
-                "/directory/room/%23test%3Aexample.com"
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Delete, "/directory/room/%23test%3Aexample.com");
         });
     });
 });

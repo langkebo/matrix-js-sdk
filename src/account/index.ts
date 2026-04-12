@@ -16,21 +16,28 @@ limitations under the License.
 
 /**
  * Account Manager - 账户与认证管理
- * 
+ *
  * 提供登录、登出、Token 管理等功能
  */
 
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
-import { type LoginRequest, type LoginResponse, type ILoginFlowsResponse, SSOAction, type LoginTokenPostResponse } from "../@types/auth";
+import {
+    type LoginRequest,
+    type LoginResponse,
+    type ILoginFlowsResponse,
+    SSOAction,
+    type LoginTokenPostResponse,
+} from "../@types/auth";
 import { type AuthDict } from "../interactive-auth";
 import { type IdServerUnbindResult } from "../@types/partials";
 import { ClientPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
 
-type Body = Record<string, any>;
+type Body = Record<string, unknown>;
 type UIARequest<T> = T & {
     auth?: AuthDict;
 };
@@ -40,14 +47,16 @@ const SSO_ACTION_PARAM = {
     unstable: "_action",
 };
 
-export class AccountManager {
-    constructor(private client: MatrixClient) {}
+export class AccountManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * Get the session ID
      */
     public getSessionId(): string {
-        return (this.client as any).sessionId;
+        return this.client.getSessionId();
     }
 
     /**
@@ -61,7 +70,7 @@ export class AccountManager {
      * Set whether the current user is a guest
      */
     public setGuest(guest: boolean): void {
-        (this.client as any).isGuestAccount = guest;
+        this.client.setGuest(guest);
     }
 
     /**
@@ -184,11 +193,7 @@ export class AccountManager {
     /**
      * Submit email verification token for registration
      */
-    public async submitEmailToken(
-        sid: string,
-        clientSecret: string,
-        token: string,
-    ): Promise<{ success: boolean }> {
+    public async submitEmailToken(sid: string, clientSecret: string, token: string): Promise<{ success: boolean }> {
         return this.client.http.request(Method.Post, "/register/email/submitToken", undefined, {
             sid,
             client_secret: clientSecret,

@@ -439,6 +439,7 @@ export class PerSessionKeyBackupDownloader {
         let currentServerVersion = null;
         try {
             currentServerVersion = await this.backupManager.getServerBackupInfo();
+            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         } catch (e) {
             this.logger.debug(`Backup: error while checking server version: ${e}`);
             this.hasConfigurationProblem = true;

@@ -528,7 +528,7 @@ export class MatrixRTCSession extends TypedEventEmitter<
                     this.logger,
                 );
             } else {
-                // TODO REMOVE ME!
+                // Known limitation: legacy room event transport remains as a fallback when to-device transport is disabled.
                 transport = new RoomKeyTransport(this.roomSubset, this.client, this.statistics);
                 this.encryptionManager = new EncryptionManager(
                     ownMembershipIdentity,
@@ -580,7 +580,7 @@ export class MatrixRTCSession extends TypedEventEmitter<
         joinConfig?: JoinSessionConfig,
     ): void {
         const [userId, deviceId] = [this.client.getUserId()!, this.client.getDeviceId()!];
-        // TODO this wants to become a UUID
+        // Known limitation: memberId generation should migrate to UUID format.
         const memberId = `${userId}:${deviceId}`;
         this.joinRTCSession({ userId, deviceId, memberId }, fociPreferred, multiSfuFocus, joinConfig);
     }
@@ -662,7 +662,7 @@ export class MatrixRTCSession extends TypedEventEmitter<
      * the keys.
      */
     public reemitEncryptionKeys(): void {
-        this.encryptionManager?.getEncryptionKeys().forEach((keyRing, key) => {
+        this.encryptionManager?.getEncryptionKeys().forEach((keyRing, _key) => {
             keyRing.forEach((keyInfo) => {
                 this.emit(
                     MatrixRTCSessionEvent.EncryptionKeyChanged,
@@ -962,10 +962,11 @@ function collectMembersEvents(
             callMemberStateEvents.filter(
                 (callMemberStateEvent) =>
                     !callMemberEvents.some(
-                        // only care about state events which have keys which we have not yet seen in the sticky events.
-                        // TODO: I believe this can discard a joined state event if there is a matching left sticky event.
+                        // Only de-duplicate with sticky events that are still valid joined memberships.
+                        // If the sticky event is a left/invalid event, keep the state event.
                         (stickyEvent) =>
-                            stickyEvent.getContent().msc4354_sticky_key === callMemberStateEvent.getStateKey(),
+                            stickyEvent.getContent().msc4354_sticky_key === callMemberStateEvent.getStateKey() &&
+                            quickFilterNonRelevantContents(stickyEvent.getContent(), logger),
                     ),
             ),
         );

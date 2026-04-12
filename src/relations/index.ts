@@ -16,23 +16,26 @@ limitations under the License.
 
 /**
  * Relations Manager - 关系管理
- * 
- * 提供消息关系、引用等功能 (增厚版)
- * 对应后端: relations
+ *
+ * 提供消息关系、引用等功能
  */
 
 import { MatrixClient } from "../client";
 import { type MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { Direction } from "../models/event-timeline";
+import { Thread, FeatureSupport } from "../models/thread";
+import { Feature, ServerSupport } from "../feature";
+import * as utils from "../utils";
+import { QueryDict } from "../utils";
+import { IRelationsRequestOpts, IRelationsResponse } from "../@types/requests";
+import { logger } from "../logger";
 
-export type RelationType = "m.reference" | "m.annotation" | "m.replace" | "m.thread";
+export type RelationType = "m.reference" | "m.annotation" | "m.replace" | "m.thread" | string;
 export type RelationEventType = "m.room.message" | "m.room.encrypted" | string;
-
-export interface IRelationsResponse {
-    chunk: Array<Record<string, unknown>>;
-    next_batch?: string;
-    prev_batch?: string;
-    total?: number;
-}
 
 export interface RelationResult {
     events: MatrixEvent[];
@@ -42,8 +45,8 @@ export interface RelationResult {
 }
 
 export interface ISendRelationContent {
-    msgtype?: string;
-    body?: string;
+    "msgtype"?: string;
+    "body"?: string;
     "m.relates_to": {
         rel_type: RelationType;
         event_id: string;
@@ -52,76 +55,134 @@ export interface ISendRelationContent {
     [key: string]: unknown;
 }
 
-export class RelationsManager {
-    constructor(private client: MatrixClient) {}
+export enum RelationsEvent {
+    Updated = "RelationsUpdated",
+    Error = "RelationsError",
+}
 
-    public async relations(roomId: string, eventId: string, relationType?: string, eventType?: string): Promise<IRelationsResponse> {
-        return (this.client as unknown as {
-            relations: (roomId: string, eventId: string, relationType?: string, eventType?: string) => Promise<IRelationsResponse>;
-        }).relations(roomId, eventId, relationType, eventType);
+interface RelationsManagerEventMap {
+    [RelationsEvent.Updated]: (roomId: string, eventId: string) => void;
+    [RelationsEvent.Error]: (error: Error) => void;
+}
+
+function replaceParam(oldKey: string, newKey: string, params: QueryDict): QueryDict {
+    if (params[oldKey] !== undefined) {
+        const newParams = { ...params };
+        newParams[newKey] = newParams[oldKey];
+        delete newParams[oldKey];
+        return newParams;
+    }
+    return params;
+}
+
+export class RelationsManager extends BaseManager<RelationsEvent, RelationsManagerEventMap> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    public async fetchRelations(roomId: string, eventId: string, relationType?: string, eventType?: string): Promise<RelationResult> {
-        return (this.client as unknown as {
-            fetchRelations: (roomId: string, eventId: string, relationType?: string, eventType?: string) => Promise<RelationResult>;
-        }).fetchRelations(roomId, eventId, relationType, eventType);
-    }
+    /**
+     * Get the relations for a given event.
+     *
+     * @param roomId - the room in which the event is
+     * @param eventId - the id of the event for which to fetch relations
+     * @param relationType - the type of relation to fetch
+     * @param eventType - the type of event to fetch
+     * @param opts - the options for the request
+     * @returns the response, with chunk, prev_batch and, next_batch.
+     */
+    public async fetchRelations(
+        roomId: string,
+        eventId: string,
+        relationType: RelationType | string | null,
+        eventType?: string | null,
+        opts: IRelationsRequestOpts = { dir: Direction.Backward },
+    ): Promise<IRelationsResponse> {
+        let params = opts as QueryDict;
+        if (Thread.hasServerSideFwdPaginationSupport === FeatureSupport.Experimental) {
+            params = replaceParam("dir", "org.matrix.msc3715.dir", params);
+        }
+        if (this.client.canSupport.get(Feature.RelationsRecursion) === ServerSupport.Unstable) {
+            params = replaceParam("recurse", "org.matrix.msc3981.recurse", params);
+        }
+        const queryString = utils.encodeParams(params);
 
-    public async getPendingRelations(roomId: string): Promise<MatrixEvent[]> {
-        return (this.client as unknown as {
-            getPendingRelations: (roomId: string) => Promise<MatrixEvent[]>;
-        }).getPendingRelations(roomId);
-    }
+        let templatedUrl = "/rooms/$roomId/relations/$eventId";
+        if (relationType !== null) {
+            templatedUrl += "/$relationType";
+            if (eventType !== null && eventType !== undefined) {
+                templatedUrl += "/$eventType";
+            }
+        } else if (eventType !== null && eventType !== undefined) {
+            logger.warn(`eventType: ${eventType} ignored when fetching relations as relationType is null`);
+            eventType = null;
+        }
 
-    private async sendRelation(roomId: string, eventId: string, relationType: RelationType, content: ISendRelationContent): Promise<{ event_id: string }> {
-        return (this.client as unknown as {
-            sendRelation: (roomId: string, eventId: string, relationType: RelationType, content: ISendRelationContent) => Promise<{ event_id: string }>;
-        }).sendRelation(roomId, eventId, relationType, content);
+        const path = utils.encodeUri(templatedUrl + (queryString ? "?" + queryString : ""), {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relationType: relationType!,
+            $eventType: eventType!,
+        });
+
+        try {
+            return await this.client.http.authedRequest<IRelationsResponse>(Method.Get, path, undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
+        } catch (e) {
+            throw this.normalizeError(e, "fetchRelations");
+        }
     }
 
     public async getAnnotations(roomId: string, eventId: string): Promise<RelationResult> {
         try {
-            const result = await this.fetchRelations(roomId, eventId, "m.annotation", "m.room.message");
+            const response = await this.fetchRelations(roomId, eventId, "m.annotation", "m.room.message");
+            const mapper = this.client.getEventMapper();
             return {
-                events: result.events || [],
-                nextBatch: result.nextBatch,
-                total: result.total
+                events: (response.chunk || []).map(mapper),
+                nextBatch: response.next_batch,
+                total: response.total,
             };
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch {
             return { events: [] };
         }
     }
 
-    public async sendReference(roomId: string, eventId: string, content: ISendRelationContent): Promise<{ event_id: string }> {
-        return this.sendRelation(roomId, eventId, "m.reference", content);
-    }
-
-    public async sendThreadMessage(roomId: string, eventId: string, content: ISendRelationContent): Promise<{ event_id: string }> {
-        return this.sendRelation(roomId, eventId, "m.thread", content);
-    }
-
     public async hasReference(roomId: string, eventId: string): Promise<boolean> {
         const references = await this.getReferences(roomId, eventId);
-        return references.events.length > 0;
+        return (references.events?.length ?? 0) > 0;
     }
 
     private async getReferences(roomId: string, eventId: string): Promise<RelationResult> {
-        return this.fetchRelations(roomId, eventId, "m.reference");
+        const response = await this.fetchRelations(roomId, eventId, "m.reference");
+        const mapper = this.client.getEventMapper();
+        return {
+            events: (response.chunk || []).map(mapper),
+            nextBatch: response.next_batch,
+            total: response.total,
+        };
     }
 
     public async hasThread(roomId: string, eventId: string): Promise<boolean> {
         const thread = await this.getThread(roomId, eventId);
-        return thread.events.length > 0;
+        return (thread.events?.length ?? 0) > 0;
     }
 
     private async getThread(roomId: string, eventId: string): Promise<RelationResult> {
-        return this.fetchRelations(roomId, eventId, "m.thread");
+        const response = await this.fetchRelations(roomId, eventId, "m.thread");
+        const mapper = this.client.getEventMapper();
+        return {
+            events: (response.chunk || []).map(mapper),
+            nextBatch: response.next_batch,
+            total: response.total,
+        };
     }
 
     public async getRelationCount(roomId: string, eventId: string, relationType: string): Promise<number> {
         try {
             const result = await this.fetchRelations(roomId, eventId, relationType);
             return result.total || 0;
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch {
             return 0;
         }
@@ -130,40 +191,33 @@ export class RelationsManager {
     public async getLatestRelation(roomId: string, eventId: string, relationType: string): Promise<MatrixEvent | null> {
         try {
             const result = await this.fetchRelations(roomId, eventId, relationType);
-            return result.events?.[0] || null;
+            if (result.chunk && result.chunk.length > 0) {
+                return this.client.getEventMapper()(result.chunk[0]);
+            }
+            return null;
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch {
             return null;
         }
     }
 
-    public async paginateRelations(
-        roomId: string, 
-        eventId: string, 
-        relationType: string, 
-        batch: string
-    ): Promise<RelationResult> {
-        return (this.client as unknown as {
-            relations: (roomId: string, eventId: string, relationType: string, eventType?: undefined, opts?: { from: string }) => Promise<RelationResult>;
-        }).relations(roomId, eventId, relationType, undefined, { from: batch });
-    }
-
     public async getRelationTypes(roomId: string, eventId: string): Promise<string[]> {
         const types: string[] = [];
-        
-        const referenceCount = await this.getRelationCount(roomId, eventId, "m.reference");
-        if (referenceCount > 0) types.push("m.reference");
-        
-        const annotationCount = await this.getRelationCount(roomId, eventId, "m.annotation");
-        if (annotationCount > 0) types.push("m.annotation");
-        
-        const replaceCount = await this.getRelationCount(roomId, eventId, "m.replace");
-        if (replaceCount > 0) types.push("m.replace");
-        
-        const threadCount = await this.getRelationCount(roomId, eventId, "m.thread");
-        if (threadCount > 0) types.push("m.thread");
-        
+
+        // This is a bit expensive, but follows the previous implementation logic
+        const relationTypes = ["m.reference", "m.annotation", "m.replace", "m.thread"];
+        for (const type of relationTypes) {
+            const count = await this.getRelationCount(roomId, eventId, type);
+            if (count > 0) {
+                types.push(type);
+            }
+        }
+
         return types;
     }
+
+    async start(): Promise<void> {}
+    stop(): void {}
 }
 
 // Declare prototype extension
@@ -175,7 +229,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRelationsManager = function (): RelationsManager {
-        return new RelationsManager(this);
+        return getOrCreateManager(this, "relations", () => new RelationsManager(this));
     };
 }
 

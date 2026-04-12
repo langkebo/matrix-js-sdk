@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import { MatrixClient } from "../client";
-import { MatrixEvent } from "../models/event";
 import { CachedReceipt, Receipt } from "../@types/read_receipts";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IReadReceipt {
     eventId: string;
@@ -30,8 +30,15 @@ export interface IReadMarkers {
     m_fully_read?: string;
 }
 
-export class ReadReceiptsManager {
-    constructor(private client: MatrixClient) {}
+export interface ReadReceiptsManagerEvents {
+    receipt_sent: { roomId: string; eventId: string };
+    markers_updated: { roomId: string; markers: IReadMarkers };
+}
+
+export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEvents, ReadReceiptsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async sendReadReceipt(roomId: string, eventId: string): Promise<void> {
         const room = this.client.getRoom(roomId);
@@ -54,10 +61,10 @@ export class ReadReceiptsManager {
     public getReceipt(roomId: string, eventId: string): IReadReceipt[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
-        
+
         const event = room.findEventById(eventId);
         if (!event) return [];
-        
+
         const receipts = room.getReceiptsForEvent?.(event) || [];
         return receipts.map((r: CachedReceipt) => ({
             eventId: (r.data as Receipt & { event_id?: string }).event_id || eventId,
@@ -70,10 +77,10 @@ export class ReadReceiptsManager {
     public getReadMarkers(roomId: string): IReadMarkers {
         const room = this.client.getRoom(roomId);
         if (!room) return {};
-        
-        const readMarker = room.getAccountData('m.fully_read');
-        const readReceipt = room.getAccountData('m.read');
-        
+
+        const readMarker = room.getAccountData("m.fully_read");
+        const readReceipt = room.getAccountData("m.read");
+
         return {
             m_read: readReceipt?.getContent()?.event_id,
             m_fully_read: readMarker?.getContent()?.event_id,

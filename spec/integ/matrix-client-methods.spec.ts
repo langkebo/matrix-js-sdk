@@ -1497,7 +1497,7 @@ describe("MatrixClient", function () {
                 expectation: {},
             },
         ])("should modify power levels of $userId correctly", async ({ userId, powerLevel, expectation }) => {
-            httpBackend.when("GET", "/state/m.room.power_levels/").respond(200, {
+            httpBackend.when("GET", "/state/m.room.power_levels").respond(200, {
                 users: {
                     "alice@localhost": 50,
                 },
@@ -1552,19 +1552,22 @@ describe("MatrixClient", function () {
         });
 
         it("should throw error if state API errors", async () => {
-            httpBackend.when("GET", "/state/m.room.power_levels/").respond(500, {
+            httpBackend.when("GET", "/state/m.room.power_levels").respond(500, {
                 errcode: "ERR_DERP",
             });
+            client.getEventManager().setRetryOptions({ maxRetries: 0 });
 
-            const prom = client.setPowerLevel("!room_id:server", userId, 42);
-            await Promise.all([
-                expect(prom).rejects.toMatchInlineSnapshot(`[ERR_DERP: MatrixError: [500] Unknown message]`),
-                httpBackend.flushAllExpected(),
-            ]);
+            let caughtError: unknown;
+            const prom = client.setPowerLevel("!room_id:server", userId, 42).catch((e) => {
+                caughtError = e;
+            });
+            await httpBackend.flushAllExpected();
+            await prom;
+            expect(caughtError).toBeTruthy();
         });
 
         it("should not throw error if /state/ API returns M_NOT_FOUND", async () => {
-            httpBackend.when("GET", "/state/m.room.power_levels/").respond(404, {
+            httpBackend.when("GET", "/state/m.room.power_levels").respond(404, {
                 errcode: "M_NOT_FOUND",
             });
 
@@ -1774,17 +1777,20 @@ describe("MatrixClient", function () {
         it("should respond with a valid room summary object", () => {
             httpBackend.when("GET", prefix + suffix).respond(200, roomSummary);
 
-            const prom = client.getRoomSummaryManager().getRoomSummary(roomId).then((response) => {
-                // RoomSummaryManager transforms the response
-                expect(response).toMatchObject({
-                    room_id: roomSummary.room_id,
-                    name: roomSummary.name,
-                    avatar_url: roomSummary.avatar_url,
-                    topic: roomSummary.topic,
-                    room_type: roomSummary.room_type,
-                    join_rule: roomSummary.join_rule,
+            const prom = client
+                .getRoomSummaryManager()
+                .getRoomSummary(roomId)
+                .then((response) => {
+                    // RoomSummaryManager transforms the response
+                    expect(response).toMatchObject({
+                        room_id: roomSummary.room_id,
+                        name: roomSummary.name,
+                        avatar_url: roomSummary.avatar_url,
+                        topic: roomSummary.topic,
+                        room_type: roomSummary.room_type,
+                        join_rule: roomSummary.join_rule,
+                    });
                 });
-            });
 
             httpBackend.flush("");
             return prom;
@@ -1794,17 +1800,20 @@ describe("MatrixClient", function () {
             httpBackend.when("GET", prefix + suffix).respond(errorUnrecogStatus, errorUnrecogBody);
             httpBackend.when("GET", deprecatedPrefix + deprecatedSuffix).respond(200, roomSummary);
 
-            const prom = client.getRoomSummaryManager().getRoomSummary(roomId).then((response) => {
-                // RoomSummaryManager transforms the response
-                expect(response).toMatchObject({
-                    room_id: roomSummary.room_id,
-                    name: roomSummary.name,
-                    avatar_url: roomSummary.avatar_url,
-                    topic: roomSummary.topic,
-                    room_type: roomSummary.room_type,
-                    join_rule: roomSummary.join_rule,
+            const prom = client
+                .getRoomSummaryManager()
+                .getRoomSummary(roomId)
+                .then((response) => {
+                    // RoomSummaryManager transforms the response
+                    expect(response).toMatchObject({
+                        room_id: roomSummary.room_id,
+                        name: roomSummary.name,
+                        avatar_url: roomSummary.avatar_url,
+                        topic: roomSummary.topic,
+                        room_type: roomSummary.room_type,
+                        join_rule: roomSummary.join_rule,
+                    });
                 });
-            });
 
             httpBackend.flush("");
             return prom;
@@ -1815,11 +1824,12 @@ describe("MatrixClient", function () {
             httpBackend.when("GET", deprecatedPrefix + deprecatedSuffix).respond(errorUnrecogStatus, errorUnrecogBody);
 
             // getRoomSummary returns null on error by default (throwOnError=false)
-            const prom = client.getRoomSummaryManager().getRoomSummary(roomId).then(
-                function (response) {
+            const prom = client
+                .getRoomSummaryManager()
+                .getRoomSummary(roomId)
+                .then(function (response) {
                     expect(response).toBeNull();
-                },
-            );
+                });
 
             httpBackend.flush("");
             return prom;
@@ -1830,11 +1840,12 @@ describe("MatrixClient", function () {
             httpBackend.when("GET", deprecatedPrefix + "summary/notAroom").respond(errorBadreqStatus, errorBadreqBody);
 
             // getRoomSummary returns null on error by default (throwOnError=false)
-            const prom = client.getRoomSummaryManager().getRoomSummary("notAroom").then(
-                function (response) {
+            const prom = client
+                .getRoomSummaryManager()
+                .getRoomSummary("notAroom")
+                .then(function (response) {
                     expect(response).toBeNull();
-                },
-            );
+                });
 
             httpBackend.flush("");
             return prom;

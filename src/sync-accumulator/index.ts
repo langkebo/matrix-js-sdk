@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,12 +16,13 @@ limitations under the License.
 
 /**
  * Sync Accumulator Manager - 同步累积管理
- * 
+ *
  * 提供同步数据累积相关功能
  */
 
 import { MatrixClient } from "../client";
 import { SyncAccumulator } from "../sync-accumulator";
+import { BaseManager } from "../managers/base-manager";
 
 export interface ISyncAccumulatedData {
     rooms?: {
@@ -39,8 +40,18 @@ export interface ISyncAccumulatedData {
     }>;
 }
 
-export class SyncAccumulatorManager {
-    constructor(private client: MatrixClient) {}
+export interface SyncAccumulatorManagerEvents {
+    data_accumulated: { rooms: number };
+    accumulator_reset: void;
+}
+
+export class SyncAccumulatorManager extends BaseManager<
+    keyof SyncAccumulatorManagerEvents,
+    SyncAccumulatorManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getSyncAccumulator(): SyncAccumulator | null {
         return (this.client as unknown as { syncAccumulator?: SyncAccumulator }).syncAccumulator ?? null;
@@ -51,25 +62,34 @@ export class SyncAccumulatorManager {
     }
 
     public async accumulateSyncData(data: Record<string, unknown>): Promise<void> {
-        return (this.client as unknown as {
-            accumulateSyncData: (data: Record<string, unknown>) => Promise<void>;
-        }).accumulateSyncData(data);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        accumulateSyncData: (data: Record<string, unknown>) => Promise<void>;
+                    }
+                ).accumulateSyncData(data),
+            "accumulateSyncData",
+        );
     }
 
     public getAccumulatedData(): ISyncAccumulatedData | null {
-        return (this.client as unknown as {
-            getAccumulatedData: () => ISyncAccumulatedData | null;
-        }).getAccumulatedData();
+        return (
+            this.client as unknown as {
+                getAccumulatedData: () => ISyncAccumulatedData | null;
+            }
+        ).getAccumulatedData();
     }
 
     public resetAccumulator(): void {
-        (this.client as unknown as {
-            resetAccumulator: () => void;
-        }).resetAccumulator();
+        (
+            this.client as unknown as {
+                resetAccumulator: () => void;
+            }
+        ).resetAccumulator();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getSyncAccumulatorManager(): SyncAccumulatorManager;

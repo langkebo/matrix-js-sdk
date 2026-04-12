@@ -18,7 +18,7 @@ import { RoomMember } from "./room-member.ts";
 import { logger } from "../logger.ts";
 import { isNumber, removeHiddenChars } from "../utils.ts";
 import { EventType, UNSTABLE_MSC2716_MARKER } from "../@types/event.ts";
-import { type IEvent, type MatrixEvent, MatrixEventEvent } from "./event.ts";
+import { type MatrixEvent } from "./event.ts";
 import { type MatrixClient } from "../client.ts";
 import { GuestAccess, HistoryVisibility, JoinRule } from "../@types/partials.ts";
 import { TypedEventEmitter } from "./typed-event-emitter.ts";
@@ -154,12 +154,16 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
     private summaryInvitedMemberCount: number | null = null;
     private modified = -1;
 
-    // XXX: Should be read-only
-    // The room member dictionary, keyed on the user's ID.
+    /**
+     * Known limitation: These properties should ideally be read-only but are
+     * currently mutable for backwards compatibility. External mutation is
+     * discouraged and may be removed in a future major version.
+     */
+    /** The room member dictionary, keyed on the user's ID. */
     public members: Record<string, RoomMember> = {}; // userId: RoomMember
-    // The state events dictionary, keyed on the event type and then the state_key value.
+    /** The state events dictionary, keyed on the event type and then the state_key value. */
     public events = new Map<string, Map<string, MatrixEvent>>(); // Map<eventType, Map<stateKey, MatrixEvent>>
-    // The pagination token for this state.
+    /** The pagination token for this state. */
     public paginationToken: string | null = null;
 
     // We only wants to print warnings about bad room state once.

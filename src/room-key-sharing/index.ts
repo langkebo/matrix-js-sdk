@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Room Key Sharing Manager - 房间密钥分享管理
- * 
+ *
  * 提供房间密钥分享相关功能
  */
 
@@ -28,21 +28,30 @@ import {
     MatrixClient,
 } from "../client";
 import { type EmptyObject } from "../@types/common";
+import { BaseManager } from "../managers/base-manager";
 
-export class RoomKeySharingManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomKeyInfo {
+    roomId: string;
+    sessionId: string;
+    algorithm: string;
+}
 
-    /**
-     * Share room key
-     */
-    public async shareRoomKey(roomId: string, users: string[]): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).shareRoomKey(roomId, users);
+export interface RoomKeySharingManagerEvents {
+    key_shared: { roomId: string; users: string[] };
+    key_requested: { roomId: string; sessionId: string };
+    keys_exported: { count: number };
+    keys_imported: { count: number };
+}
+
+export class RoomKeySharingManager extends BaseManager<keyof RoomKeySharingManagerEvents, RoomKeySharingManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Request room key
-     */
+    public async shareRoomKey(roomId: string, users: string[]): Promise<unknown> {
+        return this.withRetry(() => this.client.shareRoomKey(roomId, users), "shareRoomKey");
+    }
+
     public async requestRoomKey(
         roomId: string,
         sessionId: string,
@@ -55,66 +64,48 @@ export class RoomKeySharingManager {
             session_id: sessionId,
             request_type: requestType,
         };
-        return this.client.requestRoomKey(request);
+        return this.withRetry(() => this.client.requestRoomKey(request), "requestRoomKey");
     }
 
-    /**
-     * List room key requests
-     */
     public async getRoomKeyRequests(query: IGetRoomKeyRequestsQuery = {}): Promise<IRoomKeyRequestsResponse> {
-        return this.client.getRoomKeyRequests(query);
+        return this.withRetry(() => this.client.getRoomKeyRequests(query), "getRoomKeyRequests");
     }
 
-    /**
-     * Delete room key request
-     */
     public async deleteRoomKeyRequest(requestId: string): Promise<EmptyObject> {
-        return this.client.deleteRoomKeyRequest(requestId);
+        return this.withRetry(() => this.client.deleteRoomKeyRequest(requestId), "deleteRoomKeyRequest");
     }
 
-    /**
-     * Get shared with users
-     */
     public async getSharedWithUsers(roomId: string): Promise<string[]> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getSharedWithUsers(roomId);
+        return this.withRetry(async () => {
+            const result = await this.client.getSharedWithUsers(roomId);
+            return Object.keys(result);
+        }, "getSharedWithUsers");
     }
 
-    /**
-     * Has shared key with user
-     */
     public async hasSharedKeyWithUser(userId: string): Promise<boolean> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasSharedKeyWithUser(userId);
+        return this.withRetry(() => this.client.hasSharedKeyWithUser(userId), "hasSharedKeyWithUser");
     }
 
-    /**
-     * Export room keys
-     */
     public async exportRoomKeys(): Promise<unknown> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).exportRoomKeys();
+        return this.withRetry(() => this.client.exportRoomKeys(), "exportRoomKeys");
     }
 
-    /**
-     * Import room keys
-     */
-    public async importRoomKeys(keys: Array<{
-        room_id: string;
-        session_id: string;
-        session_key: string;
-        algorithm?: string;
-        forwarding_curve25519_key_chain?: string[];
-        sender_key?: string;
-        sender_claimed_keys?: Record<string, string>;
-        export_format?: number;
-    }>): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).importRoomKeys(keys);
+    public async importRoomKeys(
+        keys: Array<{
+            room_id: string;
+            session_id: string;
+            session_key: string;
+            algorithm?: string;
+            forwarding_curve25519_key_chain?: string[];
+            sender_key?: string;
+            sender_claimed_keys?: Record<string, string>;
+            export_format?: number;
+        }>,
+    ): Promise<unknown> {
+        return this.withRetry(() => this.client.importRoomKeys(keys), "importRoomKeys");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomKeySharingManager(): RoomKeySharingManager;

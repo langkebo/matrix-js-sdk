@@ -16,122 +16,108 @@ limitations under the License.
 
 /**
  * Beacon Manager - 位置信标管理
- * 
+ *
  * 提供位置信标(Beacon)相关功能
  * 对应后端: beacon_service
  */
 
 import { MatrixClient } from "../client";
+import { type ISendEventResponse } from "../@types/requests";
 import { type MBeaconInfoEventContent } from "../@types/beacon";
 import { type MatrixEvent } from "../models/event";
 import { type Room } from "../models/room";
 import { Beacon, type BeaconEventHandlerMap } from "../models/beacon";
+import { BaseManager } from "../managers/base-manager";
 
-export class BeaconManager {
-    constructor(private client: MatrixClient) {}
+export interface BeaconManagerEvents {
+    beacon_created: { roomId: string; beacon: Beacon };
+    beacon_updated: { roomId: string; beacon: Beacon };
+    beacon_stopped: { roomId: string; beaconId: string };
+}
 
-    /**
-     * Create a live beacon event
-     * @deprecated This is an unstable API
-     */
-    public async createLiveBeacon(roomId: string, beaconInfoContent: MBeaconInfoEventContent): Promise<MatrixEvent> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).unstable_createLiveBeacon(roomId, beaconInfoContent);
+export class BeaconManager extends BaseManager<keyof BeaconManagerEvents, BeaconManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Set a live beacon event
-     * @deprecated This is an unstable API
-     */
-    public async setLiveBeacon(roomId: string, beaconInfoContent: MBeaconInfoEventContent): Promise<MatrixEvent> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).unstable_setLiveBeacon(roomId, beaconInfoContent);
+    public async createLiveBeacon(
+        roomId: string,
+        beaconInfoContent: MBeaconInfoEventContent,
+    ): Promise<ISendEventResponse> {
+        return this.withRetry(
+            () => this.client.unstable_createLiveBeacon(roomId, beaconInfoContent),
+            "createLiveBeacon",
+        );
     }
 
-    /**
-     * Process beacon events for a room
-     */
+    public async setLiveBeacon(
+        roomId: string,
+        beaconInfoContent: MBeaconInfoEventContent,
+    ): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.unstable_setLiveBeacon(roomId, beaconInfoContent), "setLiveBeacon");
+    }
+
     public processBeaconEvents(room?: Room, events?: MatrixEvent[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).processBeaconEvents(room, events);
+        this.client.processBeaconEvents(room, events);
     }
 
-    /**
-     * Get beacons for a room
-     */
     public getBeaconsForRoom(roomId: string): Beacon[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (room.currentState as any).beacons || [];
+        return room.currentState.beacons ? Array.from(room.currentState.beacons.values()) : [];
     }
 
-    /**
-     * Get active beacons
-     */
     public getActiveBeacons(): Beacon[] {
         const rooms = this.client.getRooms();
         const activeBeacons: Beacon[] = [];
-        
+
         for (const room of rooms) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const beacons = (room.currentState as any).beacons || [];
+            const beacons = room.currentState.beacons ? Array.from(room.currentState.beacons.values()) : [];
             for (const beacon of beacons) {
                 if (beacon.isLive) {
                     activeBeacons.push(beacon);
                 }
             }
         }
-        
+
         return activeBeacons;
     }
 
-    /**
-     * Stop a beacon
-     */
-    public async stopBeacon(roomId: string, beaconId: string): Promise<void> {
+    public stopBeacon(roomId: string, beaconId: string): void {
         const room = this.client.getRoom(roomId);
         if (!room) return;
-        
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const beacons = (room.currentState as any).beacons || [];
-        const beacon = beacons.find((b: Beacon) => b.identifier === beaconId);
-        
+
+        const beacons = room.currentState.beacons ? Array.from(room.currentState.beacons.values()) : [];
+        const beacon = beacons.find((b) => b.identifier === beaconId);
+
         if (beacon) {
-            await beacon.stop();
+            beacon.destroy();
         }
     }
 
-    /**
-     * Get beacon by ID
-     */
     public getBeacon(roomId: string, beaconId: string): Beacon | undefined {
         const room = this.client.getRoom(roomId);
         if (!room) return undefined;
-        
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const beacons = (room.currentState as any).beacons || [];
-        return beacons.find((b: Beacon) => b.identifier === beaconId);
+
+        const beacons = room.currentState.beacons ? Array.from(room.currentState.beacons.values()) : [];
+        return beacons.find((b) => b.identifier === beaconId);
     }
 
-    /**
-     * On beacon event
-     */
-    public on(event: keyof BeaconEventHandlerMap, handler: BeaconEventHandlerMap[keyof BeaconEventHandlerMap]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).on(event, handler);
+    public subscribeToBeaconEvents(
+        event: keyof BeaconEventHandlerMap,
+        handler: BeaconEventHandlerMap[keyof BeaconEventHandlerMap],
+    ): void {
+        this.client.on(event, handler);
     }
 
-    /**
-     * Off beacon event
-     */
-    public off(event: keyof BeaconEventHandlerMap, handler: BeaconEventHandlerMap[keyof BeaconEventHandlerMap]): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).off(event, handler);
+    public unsubscribeFromBeaconEvents(
+        event: keyof BeaconEventHandlerMap,
+        handler: BeaconEventHandlerMap[keyof BeaconEventHandlerMap],
+    ): void {
+        this.client.off(event, handler);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getBeaconManager(): BeaconManager;

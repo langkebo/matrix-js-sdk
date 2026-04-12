@@ -218,10 +218,11 @@ export abstract class ReadReceipt<
     }
 
     private getLatestReceipt(userId: string, ignoreSynthesized: boolean): WrappedReceipt | null {
-        // XXX: This is very very ugly and I hope I won't have to ever add a new
-        // receipt type here again. IMHO this should be done by the server in
-        // some more intelligent manner or the client should just use timestamps
-
+        /**
+         * Known limitation: This comparison logic is complex and should ideally be
+         * handled by the server in a more intelligent manner, or the client should
+         * use timestamps for comparison instead of positional data.
+         */
         const publicReadReceipt = this.getReadReceiptForUserId(userId, ignoreSynthesized, ReceiptType.Read);
         const privateReadReceipt = this.getReadReceiptForUserId(userId, ignoreSynthesized, ReceiptType.ReadPrivate);
 

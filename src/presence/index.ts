@@ -16,17 +16,18 @@ limitations under the License.
 
 /**
  * Presence Manager - 在线状态管理
- * 
+ *
  * 提供用户在线状态的设置、查询、订阅功能
  * 对应后端: synapse-rust/src/web/routes/presence.rs
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { BaseManager } from "../managers/base-manager.ts";
 import { Method } from "../http-api/method.ts";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError } from "../errors";
 import { logger } from "../logger.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 const PRESENCE_PREFIX = "/_matrix/client/v3";
 
@@ -63,388 +64,282 @@ interface PresenceManagerEventMap {
     [PresenceEvent.PresenceListUpdated]: (presences: IPresenceEvent[]) => void;
     [PresenceEvent.PresenceError]: (error: Error) => void;
 }
-
-interface CacheEntry<T> {
-    value: T;
-    timestamp: number;
-}
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            this.misses++;
-            return undefined;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
-        } else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-        });
-    }
-
-    has(key: string): boolean {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            return false;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            return false;
-        }
-
-        return true;
-    }
-
-    delete(key: string): boolean {
-        return this.cache.delete(key);
-    }
-
-    clear(): void {
-        this.cache.clear();
-        this.hits = 0;
-        this.misses = 0;
-    }
-
-    size(): number {
-        return this.cache.size;
-    }
-
-    entries(): IterableIterator<[string, CacheEntry<T>]> {
-        return this.cache.entries();
-    }
-
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return {
-            size: this.cache.size,
-            hits: this.hits,
-            misses: this.misses,
-            hitRate: total > 0 ? this.hits / total : 0,
-        };
-    }
-}
-
-export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceManagerEventMap> {
-    private client: MatrixClient;
+export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerEventMap> {
     private presenceCache: LRUCache<IPresenceState>;
     private subscribedUsers: Set<string> = new Set();
     private initialized: boolean = false;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
-        this.presenceCache = new LRUCache<IPresenceState>(500, 5 * 60 * 1000);
-    }
-
-    private normalizeError(error: unknown, method: string): Error {
-        const err = error as Error & { httpStatus?: number; errcode?: string };
-        const message = err?.message ?? String(error);
-        const errcode = err?.errcode ?? "UNKNOWN";
-        if (err?.httpStatus === 401 || err?.errcode === "M_UNKNOWN_TOKEN") {
-            return new AuthError(`PresenceManager.${method} failed: ${message}`, err);
-        }
-        if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
-            return new NotFoundError(`PresenceManager.${method} failed: ${message}`, err);
-        }
-        if (this.isRetryableError(err)) {
-            return new RetryableError(`PresenceManager.${method} failed: ${message}`, err);
-        }
-        return new ApiError(`PresenceManager.${method} failed: ${message}`, errcode, err?.httpStatus ?? 0, err);
-    }
-
-    private isRetryableError(error: unknown): boolean {
-        const err = error as Error & { code?: string; errno?: string };
-        return err?.code === "ECONNRESET" ||
-               err?.code === "ETIMEDOUT" ||
-               err?.code === "ENOTFOUND" ||
-               err?.code === "ECONNREFUSED" ||
-               err?.errno === "ECONNRESET" ||
-               err?.errno === "ETIMEDOUT";
-    }
-
-    private async presenceRequest<T>(
-        method: Method,
-        path: string,
-        body?: Record<string, unknown>
-    ): Promise<T> {
-        return await this.client.http.authedRequest(
-            method,
-            path,
-            {},
-            body,
-            { prefix: PRESENCE_PREFIX, priority: undefined }
-        ) as Promise<T>;
-    }
-
-    async setPresence(presence: PresenceState, statusMsg?: string): Promise<void> {
-        if (!presence) {
-            throw new InvalidParamError("Presence state is required");
-        }
-
-        const validStates: PresenceState[] = ["online", "offline", "unavailable", "busy"];
-        if (!validStates.includes(presence)) {
-            throw new InvalidParamError(`Invalid presence state: ${presence}`);
-        }
-
-        try {
-            const userId = this.client.getUserId();
-            if (!userId) {
-                throw new InvalidParamError("User ID is not available");
-            }
-            const body: Record<string, unknown> = { presence };
-
-            if (statusMsg !== undefined) {
-                body.status_msg = statusMsg;
-            }
-
-            await this.presenceRequest(
-                Method.Put,
-                `/presence/${encodeURIComponent(userId)}/status`,
-                body
-            );
-
-            const state: IPresenceState = { presence, status_msg: statusMsg };
-            this.presenceCache.set(userId, state);
-            this.emit(PresenceEvent.PresenceUpdated, userId, state);
-        } catch (error) {
-            this.emit(PresenceEvent.PresenceError, error as Error);
-            throw this.normalizeError(error, 'setPresence');
-        }
-    }
-
-    async getPresence(userId: string): Promise<IPresenceState | null> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-
-        if (this.presenceCache.has(userId)) {
-            return this.presenceCache.get(userId) || null;
-        }
-
-        try {
-            const response = await this.presenceRequest<IPresenceState>(
-                Method.Get,
-                `/presence/${encodeURIComponent(userId)}/status`
-            );
-
-            const state: IPresenceState = {
-                presence: response.presence,
-                status_msg: response.status_msg,
-                last_active_ago: response.last_active_ago,
-                currently_active: response.currently_active,
-            };
-
-            this.presenceCache.set(userId, state);
-            return state;
-        } catch (error: unknown) {
-            const err = error as Error & { httpStatus?: number; errcode?: string };
-            if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
-                return null;
-            }
-            throw this.normalizeError(error, 'getPresence');
-        }
+        super(client);
+        this.presenceCache = new LRUCache<IPresenceState>({
+            maxSize: 500,
+            ttl: 5 * 60 * 1000,
+            name: "index.ts-ipresencestate",
+        });
     }
 
     async getPresences(userIds: string[]): Promise<Map<string, IPresenceState>> {
         const result = new Map<string, IPresenceState>();
-
-        for (const userId of userIds) {
-            const presence = await this.getPresence(userId);
-            if (presence) {
-                result.set(userId, presence);
+        for (const id of userIds ?? []) {
+            const p = await this.getPresence(id);
+            if (p) {
+                result.set(id, p);
             }
         }
-
         return result;
     }
 
-    async subscribeToPresence(userIds: string[]): Promise<void> {
-        if (!userIds || userIds.length === 0) {
-            throw new InvalidParamError("User IDs are required");
+    async setPresence(state: PresenceState, statusMsg?: string): Promise<void> {
+        if (!state) {
+            throw new InvalidParamError("Presence state is required");
+        }
+        const allowed: PresenceState[] = ["online", "offline", "unavailable", "busy"];
+        if (!allowed.includes(state)) {
+            throw new InvalidParamError("Invalid presence state");
+        }
+
+        const userId = this.client.getUserId();
+        if (!userId) {
+            throw new Error("Client not logged in");
         }
 
         try {
-            await this.presenceRequest(
-                Method.Post,
-                "/presence/list",
-                { user_ids: userIds }
+            await this.withRetry(
+                () =>
+                    this.client.http.authedRequest(
+                        Method.Put,
+                        `/presence/${encodeURIComponent(userId)}/status`,
+                        {},
+                        {
+                            presence: state,
+                            status_msg: statusMsg,
+                        },
+                        { prefix: PRESENCE_PREFIX, priority: undefined },
+                    ),
+                "setPresence",
             );
 
-            userIds.forEach(userId => this.subscribedUsers.add(userId));
-        } catch (error) {
-            this.emit(PresenceEvent.PresenceError, error as Error);
-            throw this.normalizeError(error, 'subscribeToPresence');
+            const newState: IPresenceState = {
+                presence: state,
+                status_msg: statusMsg,
+                last_active_ago: 0,
+                currently_active: true,
+            };
+
+            this.presenceCache.set(userId, newState);
+            this.emit(PresenceEvent.PresenceUpdated, userId, newState);
+        } catch (e) {
+            const error = this.normalizeError(e, "setPresence");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
         }
     }
 
-    async unsubscribeFromPresence(userIds: string[]): Promise<void> {
-        if (!userIds || userIds.length === 0) {
-            throw new InvalidParamError("User IDs are required");
-        }
-
-        try {
-            const remainingUsers = Array.from(this.subscribedUsers).filter(
-                u => !userIds.includes(u)
-            );
-
-            await this.presenceRequest(
-                Method.Post,
-                "/presence/list",
-                { user_ids: remainingUsers }
-            );
-
-            userIds.forEach(userId => this.subscribedUsers.delete(userId));
-        } catch (error) {
-            this.emit(PresenceEvent.PresenceError, error as Error);
-            throw this.normalizeError(error, 'unsubscribeFromPresence');
-        }
-    }
-
-    async getSubscribedPresence(): Promise<IPresenceEvent[]> {
-        try {
-            const response = await this.presenceRequest<IPresenceEvent[]>(
-                Method.Get,
-                "/presence/list"
-            );
-
-            const events: IPresenceEvent[] = response || [];
-
-            events.forEach(event => {
-                const state: IPresenceState = {
-                    presence: event.presence,
-                    status_msg: event.status_msg,
-                    last_active_ago: event.last_active_ago,
-                    currently_active: event.currently_active,
-                };
-                this.presenceCache.set(event.user_id, state);
-            });
-
-            this.emit(PresenceEvent.PresenceListUpdated, events);
-            return events;
-        } catch (error: unknown) {
-            const err = error as Error & { httpStatus?: number; errcode?: string };
-            if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
-                return [];
-            }
-            throw this.normalizeError(error, 'getSubscribedPresence');
-        }
-    }
-
-    async getPresenceList(userId: string): Promise<IPresenceEvent[]> {
+    /**
+     * 获取用户在线状态
+     *
+     * @param userId - 用户 ID
+     * @param forceFetch - 是否强制从服务器获取
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 用户在线状态
+     */
+    async getPresence(
+        userId: string,
+        forceFetch: boolean = false,
+        throwOnError = false,
+    ): Promise<IPresenceState | null> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
 
+        if (!forceFetch && this.presenceCache.has(userId)) {
+            return this.presenceCache.get(userId)!;
+        }
+
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<IPresenceState>(
+                    Method.Get,
+                    `/presence/${encodeURIComponent(userId)}/status`,
+                    {},
+                    undefined,
+                    { prefix: PRESENCE_PREFIX, priority: undefined },
+                ),
+            "getPresence",
+        ).then(
+            (response) => {
+                this.presenceCache.set(userId, response);
+                return response;
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getPresence");
+                if (throwOnError) {
+                    throw error;
+                }
+                if (error.name === "NotFoundError") {
+                    logger.warn(`PresenceManager.getPresence failed for ${userId}:`, error);
+                    return null;
+                }
+                throw error;
+            },
+        );
+    }
+
+    async subscribe(userIds: string[]): Promise<void> {
+        if (!userIds || userIds.length === 0) return;
+
         try {
-            const response = await this.presenceRequest<IPresenceEvent[]>(
-                Method.Get,
-                `/presence/list/${encodeURIComponent(userId)}`
+            await this.withRetry(
+                () =>
+                    this.client.http.authedRequest(
+                        Method.Post,
+                        "/presence/list/update",
+                        {},
+                        {
+                            invite: userIds,
+                        },
+                        { prefix: PRESENCE_PREFIX, priority: undefined },
+                    ),
+                "subscribe",
             );
 
-            const events: IPresenceEvent[] = response || [];
-
-            events.forEach(event => {
-                const state: IPresenceState = {
-                    presence: event.presence,
-                    status_msg: event.status_msg,
-                    last_active_ago: event.last_active_ago,
-                    currently_active: event.currently_active,
-                };
-                this.presenceCache.set(event.user_id, state);
-            });
-
-            return events;
-        } catch (error: unknown) {
-            const err = error as Error & { httpStatus?: number; errcode?: string };
-            if (err?.httpStatus === 404 || err?.errcode === "M_NOT_FOUND") {
-                return [];
-            }
-            throw this.normalizeError(error, 'getPresenceList');
+            userIds.forEach((id) => this.subscribedUsers.add(id));
+        } catch (e) {
+            const error = this.normalizeError(e, "subscribe");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
         }
     }
 
-    async setOnline(statusMsg?: string): Promise<void> {
-        await this.setPresence("online", statusMsg);
-    }
+    async unsubscribe(userIds: string[]): Promise<void> {
+        if (!userIds || userIds.length === 0) return;
 
-    async setOffline(statusMsg?: string): Promise<void> {
-        await this.setPresence("offline", statusMsg);
-    }
+        try {
+            await this.withRetry(
+                () =>
+                    this.client.http.authedRequest(
+                        Method.Post,
+                        "/presence/list/update",
+                        {},
+                        {
+                            drop: userIds,
+                        },
+                        { prefix: PRESENCE_PREFIX, priority: undefined },
+                    ),
+                "unsubscribe",
+            );
 
-    async setUnavailable(statusMsg?: string): Promise<void> {
-        await this.setPresence("unavailable", statusMsg);
-    }
-
-    async setBusy(statusMsg?: string): Promise<void> {
-        await this.setPresence("busy", statusMsg);
-    }
-
-    async clearStatusMessage(): Promise<void> {
-        const userId = this.client.getUserId();
-        if (!userId) return;
-        const currentPresence = await this.getPresence(userId);
-        if (currentPresence) {
-            await this.setPresence(currentPresence.presence);
+            userIds.forEach((id) => this.subscribedUsers.delete(id));
+        } catch (e) {
+            const error = this.normalizeError(e, "unsubscribe");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
         }
     }
 
-    updatePresenceFromSync(event: IPresenceEvent): void {
-        const state: IPresenceState = {
-            presence: event.presence,
-            status_msg: event.status_msg,
-            last_active_ago: event.last_active_ago,
-            currently_active: event.currently_active,
-        };
-
-        this.presenceCache.set(event.user_id, state);
-        this.emit(PresenceEvent.PresenceUpdated, event.user_id, state);
-    }
-
-    getCachedPresence(userId: string): IPresenceState | null {
-        return this.presenceCache.get(userId) || null;
-    }
-
-    getCachedPresences(): Map<string, IPresenceState> {
-        const result = new Map<string, IPresenceState>();
-        for (const [key, entry] of this.presenceCache.entries()) {
-            result.set(key, entry.value);
+    /**
+     * 获取在线状态列表
+     *
+     * @param targetUserId - 目标用户 ID（可选）
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 在线状态列表
+     */
+    async getPresenceList(targetUserId?: string, throwOnError = false): Promise<IPresenceEvent[]> {
+        if (typeof targetUserId === "string" && targetUserId.length === 0) {
+            throw new InvalidParamError("User ID is required");
         }
-        return result;
+        const request = targetUserId
+            ? this.withRetry(
+                  () =>
+                      this.client.http.authedRequest<IPresenceEvent[]>(
+                          Method.Get,
+                          `/presence/list/${encodeURIComponent(targetUserId)}`,
+                          {},
+                          undefined,
+                          { prefix: PRESENCE_PREFIX, priority: undefined },
+                      ),
+                  "getPresenceList",
+              )
+            : this.withRetry(
+                  () =>
+                      this.client.http.authedRequest<IPresenceEvent[]>(Method.Get, "/presence/list", {}, undefined, {
+                          prefix: PRESENCE_PREFIX,
+                          priority: undefined,
+                      }),
+                  "getPresenceList",
+              );
+
+        return request.then(
+            (response) => {
+                response.forEach((p) => {
+                    this.presenceCache.set(p.user_id, {
+                        presence: p.presence,
+                        status_msg: p.status_msg,
+                        last_active_ago: p.last_active_ago,
+                        currently_active: p.currently_active,
+                    });
+                });
+                this.emit(PresenceEvent.PresenceListUpdated, response);
+                return response;
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getPresenceList");
+                if (throwOnError) {
+                    throw error;
+                }
+                if (error.name === "NotFoundError") {
+                    logger.warn("PresenceManager.getPresenceList failed:", error);
+                    return [];
+                }
+                throw error;
+            },
+        );
+    }
+
+    /**
+     * 根据用户 ID 列表获取在线状态
+     *
+     * @param userIds - 用户 ID 列表
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 在线状态列表
+     */
+    async getPresenceListByIds(userIds: string[], throwOnError = false): Promise<IPresenceEvent[]> {
+        if (!userIds || userIds.length === 0) return [];
+
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<IPresenceEvent[]>(
+                    Method.Post,
+                    "/presence/list/get",
+                    {},
+                    { user_ids: userIds },
+                    { prefix: PRESENCE_PREFIX, priority: undefined },
+                ),
+            "getPresenceListByIds",
+        ).then(
+            (response) => {
+                response.forEach((p) => {
+                    this.presenceCache.set(p.user_id, {
+                        presence: p.presence,
+                        status_msg: p.status_msg,
+                        last_active_ago: p.last_active_ago,
+                        currently_active: p.currently_active,
+                    });
+                });
+                return response;
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getPresenceListByIds");
+                if (throwOnError) {
+                    throw error;
+                }
+                logger.warn("PresenceManager.getPresenceListByIds failed:", error);
+                if (error.name === "NotFoundError") {
+                    return [];
+                }
+                throw error;
+            },
+        );
     }
 
     getSubscribedUsers(): string[] {
@@ -463,17 +358,114 @@ export class PresenceManager extends TypedEventEmitter<PresenceEvent, PresenceMa
         this.presenceCache.clear();
     }
 
+    getCachedPresence(userId: string): IPresenceState | null {
+        return this.presenceCache.get(userId) ?? null;
+    }
+
+    getCachedPresences(): Map<string, IPresenceState> {
+        const out = new Map<string, IPresenceState>();
+        for (const [k, v] of this.presenceCache.entries()) {
+            out.set(k, v.value);
+        }
+        return out;
+    }
+
+    async subscribeToPresence(userIds: string[]): Promise<void> {
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+            throw new InvalidParamError("userIds cannot be empty");
+        }
+        try {
+            await this.withRetry(
+                () =>
+                    this.client.http.authedRequest(
+                        Method.Post,
+                        "/presence/list",
+                        {},
+                        { user_ids: userIds },
+                        { prefix: PRESENCE_PREFIX, priority: undefined },
+                    ),
+                "subscribeToPresence",
+            );
+            userIds.forEach((id) => this.subscribedUsers.add(id));
+        } catch (e) {
+            const error = this.normalizeError(e, "subscribeToPresence");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
+        }
+    }
+
+    async unsubscribeFromPresence(userIds: string[]): Promise<void> {
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+            throw new InvalidParamError("userIds cannot be empty");
+        }
+        try {
+            await this.withRetry(
+                () =>
+                    this.client.http.authedRequest(
+                        Method.Post,
+                        "/presence/list/update",
+                        {},
+                        { drop: userIds },
+                        { prefix: PRESENCE_PREFIX, priority: undefined },
+                    ),
+                "unsubscribeFromPresence",
+            );
+            userIds.forEach((id) => this.subscribedUsers.delete(id));
+        } catch (e) {
+            const error = this.normalizeError(e, "unsubscribeFromPresence");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
+        }
+    }
+
+    async getSubscribedPresence(): Promise<IPresenceEvent[]> {
+        return this.getPresenceList();
+    }
+
+    async clearStatusMessage(): Promise<void> {
+        const me = this.client.getUserId();
+        if (!me) return;
+        const state = await this.getPresence(me, true);
+        if (!state) return;
+        await this.setPresence(state.presence);
+    }
+
+    async setOnline(status?: string): Promise<void> {
+        await this.setPresence("online", status);
+    }
+
+    async setOffline(status?: string): Promise<void> {
+        await this.setPresence("offline", status);
+    }
+
+    async setUnavailable(status?: string): Promise<void> {
+        await this.setPresence("unavailable", status);
+    }
+
+    async setBusy(status?: string): Promise<void> {
+        await this.setPresence("busy", status);
+    }
+
+    updatePresenceFromSync(event: IPresenceEvent): void {
+        const state: IPresenceState = {
+            presence: event.presence,
+            status_msg: event.status_msg,
+            last_active_ago: event.last_active_ago,
+            currently_active: event.currently_active,
+        };
+        this.presenceCache.set(event.user_id, state);
+        this.emit(PresenceEvent.PresenceUpdated, event.user_id, state);
+    }
+
     async start(): Promise<void> {
         if (this.initialized) return;
 
         try {
-            const userId = this.client.getUserId();
-            if (userId) {
-                await this.getPresence(userId);
-            }
+            await this.getPresenceList();
             this.initialized = true;
         } catch (e) {
-            logger.warn('PresenceManager.start failed:', e);
+            const error = this.normalizeError(e, "start");
+            logger.warn("PresenceManager.start failed:", error);
         }
     }
 
@@ -492,7 +484,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPresenceManager = function (): PresenceManager {
-        return new PresenceManager(this);
+        return getOrCreateManager(this, "presence", () => new PresenceManager(this));
     };
 }
 

@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { SecureBackupManager } from "../../src/secure-backup/index";
 import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
@@ -51,7 +52,7 @@ describe("SecureBackupManager", () => {
                 "/keys/backup/secure",
                 undefined,
                 { passphrase: "my-passphrase" },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -73,7 +74,7 @@ describe("SecureBackupManager", () => {
                 "/keys/backup/secure/backup123",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -88,7 +89,7 @@ describe("SecureBackupManager", () => {
                 "/keys/backup/secure/backup123",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -110,7 +111,7 @@ describe("SecureBackupManager", () => {
                 "/keys/backup/secure/backup123/keys",
                 undefined,
                 { passphrase: "my-passphrase", session_keys: sessionKeys },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -130,7 +131,7 @@ describe("SecureBackupManager", () => {
                 "/keys/backup/secure/backup123/restore",
                 undefined,
                 { passphrase: "my-passphrase" },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -146,7 +147,7 @@ describe("SecureBackupManager", () => {
                 "/keys/backup/secure/backup123/verify",
                 undefined,
                 { passphrase: "my-passphrase" },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });

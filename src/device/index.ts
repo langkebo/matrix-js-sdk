@@ -16,13 +16,13 @@ limitations under the License.
 
 /**
  * Device Manager - 设备管理
- * 
+ *
  * 提供设备查询、更新、删除功能，包括：
  * - 设备列表管理
  * - 设备缓存
  * - 统一错误处理
  * - 性能监控
- * 
+ *
  * 后端实现: synapse-rust/src/web/routes/device.rs
  */
 
@@ -34,6 +34,7 @@ import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError } from "../errors.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -44,7 +45,7 @@ export enum DeviceEvent {
 
 /**
  * 设备信息接口
- * 
+ *
  * 后端实现: synapse-rust/src/web/routes/device.rs:60-68
  */
 export interface IDevice {
@@ -92,7 +93,7 @@ export interface IDeviceChange {
 
 /**
  * 设备列表更新响应
- * 
+ *
  * 后端实现: synapse-rust/src/web/routes/device.rs:174-199
  */
 export interface IDeviceListUpdatesResponse {
@@ -117,7 +118,7 @@ interface IUIAErrorData {
 
 export class UIAError extends Error {
     public readonly data: IUIAErrorData;
-    
+
     constructor(data: IUIAErrorData) {
         super(data.error || "User-Interactive Authentication required");
         this.name = "UIAError";
@@ -136,84 +137,6 @@ interface IDeviceResponse {
     last_seen_ts?: number;
     user_id?: string;
 }
-
-interface CacheEntry<T> {
-    value: T;
-    timestamp: number;
-}
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            this.misses++;
-            return undefined;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
-        } else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-        });
-    }
-
-    delete(key: string): boolean {
-        return this.cache.delete(key);
-    }
-
-    clear(): void {
-        this.cache.clear();
-        this.hits = 0;
-        this.misses = 0;
-    }
-
-    size(): number {
-        return this.cache.size;
-    }
-
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return {
-            size: this.cache.size,
-            hits: this.hits,
-            misses: this.misses,
-            hitRate: total > 0 ? this.hits / total : 0,
-        };
-    }
-}
-
 export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerEventMap> {
     private client: MatrixClient;
     private deviceListCache: LRUCache<IDevice[]>;
@@ -234,14 +157,14 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         super();
         this.client = client;
         this.currentDeviceId = client.deviceId ?? null;
-        
-        this.deviceListCache = new LRUCache<IDevice[]>(10, 5 * 60 * 1000);
-        this.deviceCache = new LRUCache<IDevice>(200, 10 * 60 * 1000);
+
+        this.deviceListCache = new LRUCache<IDevice[]>({ maxSize: 10, ttl: 5 * 60 * 1000, name: "index.ts-idevice" });
+        this.deviceCache = new LRUCache<IDevice>({ maxSize: 200, ttl: 10 * 60 * 1000, name: "index.ts-idevice" });
     }
 
     /**
      * 获取所有设备
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:49-74
      */
     async getDevices(forceRefresh = false): Promise<IDevice[]> {
@@ -259,17 +182,17 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                     "/devices",
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getDevices");
 
             const devices: IDevice[] = result.devices || [];
-            
+
             this.deviceListCache.set("devices", devices);
-            devices.forEach(d => this.deviceCache.set(d.device_id, d));
-            
+            devices.forEach((d) => this.deviceCache.set(d.device_id, d));
+
             this.emit(DeviceEvent.DevicesUpdated, devices);
-            
+
             return devices;
         } catch (error) {
             throw this.normalizeError(error, "getDevices");
@@ -278,10 +201,15 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
     /**
      * 获取单个设备
-     * 
+     *
+     * @param deviceId - 设备 ID
+     * @param forceRefresh - 是否强制刷新
+     * @param throwOnError - 是否抛出错误（默认 false）
+     * @returns 设备信息
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:77-103
      */
-    async getDevice(deviceId: string, forceRefresh = false): Promise<IDevice> {
+    async getDevice(deviceId: string, forceRefresh = false, throwOnError = false): Promise<IDevice | null> {
         if (!deviceId) {
             throw new InvalidParamError("Device ID is required");
         }
@@ -300,7 +228,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                     `/devices/${encodeURIComponent(deviceId)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getDevice");
 
@@ -311,18 +239,26 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                 last_seen_ts: device.last_seen_ts,
                 user_id: device.user_id,
             };
-            
+
             this.deviceCache.set(deviceId, fullDevice);
-            
+
             return fullDevice;
         } catch (error) {
-            throw this.normalizeError(error, "getDevice");
+            const err = this.normalizeError(error, "getDevice");
+            if (throwOnError) {
+                throw err;
+            }
+            if (err instanceof NotFoundError) {
+                logger.warn(`DeviceManager.getDevice failed for ${deviceId}:`, err);
+                return null;
+            }
+            throw err;
         }
     }
 
     /**
      * 更新设备
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:107-131
      */
     async updateDevice(deviceId: string, updates: IDeviceUpdateRequest): Promise<void> {
@@ -341,7 +277,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                     `/devices/${encodeURIComponent(deviceId)}`,
                     undefined,
                     updates,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "updateDevice");
 
@@ -354,11 +290,14 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                 this.deviceCache.set(deviceId, updatedDevice);
                 this.emit(DeviceEvent.DeviceUpdated, updatedDevice);
             }
-            
+
             this.deviceListCache.delete("devices");
         } catch (error) {
             const err = error as Record<string, unknown>;
-            if (err.errcode === 'M_UIA_REQUIRED' || (err.data && typeof err.data === 'object' && 'flows' in (err.data as Record<string, unknown>))) {
+            if (
+                err.errcode === "M_UIA_REQUIRED" ||
+                (err.data && typeof err.data === "object" && "flows" in (err.data as Record<string, unknown>))
+            ) {
                 throw new UIAError((err.data ?? err) as IUIAErrorData);
             }
             throw this.normalizeError(error, "updateDevice");
@@ -371,7 +310,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
     /**
      * 删除设备
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:135-153
      */
     async deleteDevice(deviceId: string, authDict?: IAuthDict): Promise<void> {
@@ -395,7 +334,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                     `/devices/${encodeURIComponent(deviceId)}`,
                     undefined,
                     Object.keys(body).length > 0 ? body : undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "deleteDevice");
 
@@ -404,7 +343,10 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             this.emit(DeviceEvent.DeviceDeleted, deviceId);
         } catch (error) {
             const err = error as Record<string, unknown>;
-            if (err.errcode === 'M_UIA_REQUIRED' || (err.data && typeof err.data === 'object' && 'flows' in (err.data as Record<string, unknown>))) {
+            if (
+                err.errcode === "M_UIA_REQUIRED" ||
+                (err.data && typeof err.data === "object" && "flows" in (err.data as Record<string, unknown>))
+            ) {
                 throw new UIAError((err.data ?? err) as IUIAErrorData);
             }
             throw this.normalizeError(error, "deleteDevice");
@@ -413,22 +355,22 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
     /**
      * 批量删除设备
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:157-170
      */
     async deleteDevices(request: string[] | IDeviceDeleteRequest): Promise<void> {
         const devices = Array.isArray(request) ? request : request.devices;
-        
+
         if (!devices || devices.length === 0) {
             throw new InvalidParamError("No devices to delete");
         }
 
-        if (devices.includes(this.currentDeviceId ?? '')) {
+        if (devices.includes(this.currentDeviceId ?? "")) {
             throw new InvalidParamError("Cannot delete the current device");
         }
 
         const auth = Array.isArray(request) ? undefined : request.auth;
-        
+
         try {
             const body: { devices: string[]; auth?: IAuthDict } = {
                 devices: devices,
@@ -438,25 +380,20 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             }
 
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    "/delete_devices",
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 }
-                );
+                return await this.client.http.authedRequest(Method.Post, "/delete_devices", undefined, body, {
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteDevices");
 
-            devices.forEach(deviceId => {
+            devices.forEach((deviceId) => {
                 this.deviceCache.delete(deviceId);
                 this.emit(DeviceEvent.DeviceDeleted, deviceId);
             });
-            
+
             this.deviceListCache.delete("devices");
         } catch (error) {
-            const err = error as any;
-            if (err.errcode === 'M_UIA_REQUIRED' || err.data?.flows) {
-                throw new UIAError(err.data ?? err);
+            if (error instanceof MatrixError && (error.errcode === "M_UIA_REQUIRED" || error.data?.flows)) {
+                throw new UIAError(error.data ?? { error: error.message });
             }
             throw this.normalizeError(error, "deleteDevices");
         }
@@ -468,7 +405,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
     /**
      * 获取设备列表更新
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:174-199
      */
     async getDeviceListUpdates(users: string[]): Promise<IDeviceListUpdatesResponse> {
@@ -483,7 +420,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                     "/keys/device_list/update",
                     undefined,
                     { users },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getDeviceListUpdates");
 
@@ -517,7 +454,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
     getOtherDevices(): IDevice[] {
         const devices = this.getCachedDevices();
-        return devices.filter(d => d.device_id !== this.currentDeviceId);
+        return devices.filter((d) => d.device_id !== this.currentDeviceId);
     }
 
     /**
@@ -567,7 +504,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             await this.getDevices();
             this.initialized = true;
         } catch (e) {
-            logger.warn('DeviceManager.start failed:', e);
+            logger.warn("DeviceManager.start failed:", e);
         }
     }
 
@@ -579,11 +516,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
     /**
      * 带重试的请求封装
      */
-    private async withRetry<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries
-    ): Promise<T> {
+    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
         let lastError: unknown;
         const startTime = Date.now();
 
@@ -606,28 +539,31 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
                 if (!this.isRetryableError(error)) {
                     this.recordRequest(false, false);
-                    this.emitMetric('api_error', method, {
+                    this.emitMetric("api_error", method, {
                         error: this.getErrorType(error),
                         attempt: attempt + 1,
-                        retryable: false
+                        retryable: false,
                     });
                     throw error;
                 }
 
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`DeviceManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
-                        method,
+                    logger.warn(
+                        `DeviceManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
+                        {
+                            method,
+                            attempt: attempt + 1,
+                            maxAttempts: retries + 1,
+                            delay,
+                            error: this.getErrorType(error),
+                        },
+                    );
+
+                    this.emitMetric("api_retry", method, {
                         attempt: attempt + 1,
-                        maxAttempts: retries + 1,
                         delay,
                         error: this.getErrorType(error),
-                    });
-
-                    this.emitMetric('api_retry', method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error)
                     });
 
                     await this.sleep(delay);
@@ -637,10 +573,10 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
 
         this.recordRequest(false, true);
         const duration = Date.now() - startTime;
-        this.emitMetric('api_failure', method, {
+        this.emitMetric("api_failure", method, {
             attempts: retries + 1,
             duration,
-            error: this.getErrorType(lastError)
+            error: this.getErrorType(lastError),
         });
 
         throw lastError;
@@ -666,15 +602,9 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
      */
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            const retryableCodes = [
-                "M_LIMIT_EXCEEDED",
-                "M_SERVER_UNAVAILABLE",
-            ];
+            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
             const retryableStatus = [429, 500, 502, 503, 504];
-            return (
-                retryableCodes.includes(error.errcode ?? "") ||
-                retryableStatus.includes(error.httpStatus ?? 0)
-            );
+            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
         }
         return false;
     }
@@ -697,14 +627,14 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
                 `DeviceManager.${method} failed: ${error.message}`,
                 error.errcode ?? "UNKNOWN",
                 error.httpStatus,
-                error
+                error,
             );
         }
         return new ApiError(
             `DeviceManager.${method} failed: ${error instanceof Error ? error.message : String(error)}`,
             "UNKNOWN",
             0,
-            error
+            error,
         );
     }
 
@@ -737,7 +667,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
      * 延迟工具函数
      */
     private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

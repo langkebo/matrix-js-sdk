@@ -16,41 +16,37 @@ limitations under the License.
 
 /**
  * Turn Server Manager - TURN服务器管理
- * 
+ *
  * 提供TURN服务器信息获取功能
  */
 
 import { MatrixClient } from "../client";
+import { type ITurnServer } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class TurnServerManager {
-    constructor(private client: MatrixClient) {}
+export interface TurnServerManagerEvents {
+    turn_servers_updated: { servers: ITurnServer[] };
+    turn_server_expired: void;
+}
 
-    /**
-     * Get turn servers
-     */
-    public async getTurnServers(): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getTurnServers();
+export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents, TurnServerManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Get turn server URIs
-     */
+    public getTurnServers(): ITurnServer[] {
+        return this.client.getTurnServers();
+    }
+
     public async getTurnServerURIs(): Promise<string[]> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getTurnServerURIs();
+        return await this.client.getTurnServerURIs();
     }
 
-    /**
-     * Check if turn server needs refresh
-     */
     public getTurnServerExpiry(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).turnServersExpiry || 0;
+        return this.client.getTurnServersExpiry();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getTurnServerManager(): TurnServerManager;

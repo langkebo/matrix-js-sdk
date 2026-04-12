@@ -238,7 +238,7 @@ export class IgnoredInvites {
      */
     public async getOrCreateSourceRooms(): Promise<Room[]> {
         const ignoreInvitesPolicies = this.getIgnoreInvitesPolicies();
-        let sources: string[] = ignoreInvitesPolicies.sources as string[] | undefined ?? [];
+        let sources: string[] = (ignoreInvitesPolicies.sources as string[] | undefined) ?? [];
 
         // Validate `sources`. If it is invalid, trash out the current `sources`
         // and create a new list of sources from `target`.

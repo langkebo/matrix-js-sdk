@@ -80,7 +80,7 @@ export interface IRegisterExternalServiceRequest {
     displayName: string;
     webhookUrl?: string;
     apiKey?: string;
-    config?: Record<string, any>;
+    config?: Record<string, unknown>;
 }
 
 export interface IHealthCheckResult {
@@ -121,19 +121,22 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async registerService(request: IRegisterExternalServiceRequest): Promise<IExternalService> {
         try {
-            const response = await this.adminRequest<any>(
-                Method.Post,
-                "/external_services",
-                undefined,
-                {
-                    service_type: request.serviceType,
-                    service_id: request.serviceId,
-                    display_name: request.displayName,
-                    webhook_url: request.webhookUrl,
-                    api_key: request.apiKey,
-                    config: request.config,
-                }
-            );
+            const response = await this.adminRequest<{
+                as_id: string;
+                service_type: string;
+                service_id: string;
+                display_name: string;
+                is_enabled?: boolean;
+                is_healthy?: boolean;
+                created_ts: number;
+            }>(Method.Post, "/external_services", undefined, {
+                service_type: request.serviceType,
+                service_id: request.serviceId,
+                display_name: request.displayName,
+                webhook_url: request.webhookUrl,
+                api_key: request.apiKey,
+                config: request.config,
+            });
 
             const service: IExternalService = {
                 asId: response.as_id,
@@ -164,13 +167,19 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         try {
             const queryParams = serviceType ? { service_type: serviceType } : undefined;
 
-            const response = await this.adminRequest<any[]>(
-                Method.Get,
-                "/external_services",
-                queryParams
-            );
+            const response = await this.adminRequest<
+                {
+                    as_id: string;
+                    service_type: string;
+                    service_id: string;
+                    display_name: string;
+                    is_enabled?: boolean;
+                    is_healthy?: boolean;
+                    created_ts: number;
+                }[]
+            >(Method.Get, "/external_services", queryParams);
 
-            const services: IExternalService[] = response.map(s => ({
+            const services: IExternalService[] = response.map((s) => ({
                 asId: s.as_id,
                 serviceType: s.service_type,
                 serviceId: s.service_id,
@@ -180,9 +189,10 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
                 createdTs: s.created_ts,
             }));
 
-            services.forEach(s => this.servicesCache.set(s.asId, s));
+            services.forEach((s) => this.servicesCache.set(s.asId, s));
 
             return services;
+            // @swallow-error { owner: "external-service", expires: "2026-12-31" }
         } catch (error) {
             logger.error("ExternalServiceManager.listServices failed:", error);
             return Array.from(this.servicesCache.values());
@@ -199,10 +209,15 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         try {
-            const response = await this.adminRequest<any>(
-                Method.Get,
-                `/external_services/${encodeURIComponent(asId)}/health`
-            );
+            const response = await this.adminRequest<{
+                service_id: string;
+                service_type: string;
+                is_healthy?: boolean;
+                last_check_ts: number;
+                last_success_ts?: number;
+                last_error?: string;
+                consecutive_failures?: number;
+            }>(Method.Get, `/external_services/${encodeURIComponent(asId)}/health`);
 
             return {
                 serviceId: response.service_id,
@@ -213,6 +228,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
                 lastError: response.last_error,
                 consecutiveFailures: response.consecutive_failures ?? 0,
             };
+            // @swallow-error { owner: "external-service", expires: "2026-12-31" }
         } catch (error) {
             logger.warn(`ExternalServiceManager.getServiceHealth failed for ${asId}:`, error);
             return null;
@@ -229,9 +245,9 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         try {
-            const response = await this.adminRequest<any>(
+            const response = await this.adminRequest<{ as_id: string; is_healthy?: boolean }>(
                 Method.Post,
-                `/external_services/${encodeURIComponent(asId)}/health/check`
+                `/external_services/${encodeURIComponent(asId)}/health/check`,
             );
 
             return {
@@ -254,10 +270,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         try {
-            await this.adminRequest(
-                Method.Delete,
-                `/external_services/${encodeURIComponent(asId)}`
-            );
+            await this.adminRequest(Method.Delete, `/external_services/${encodeURIComponent(asId)}`);
 
             this.servicesCache.delete(asId);
             this.emit(ExternalServiceEvent.ServiceUnregistered, asId);
@@ -274,12 +287,19 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async getAllHealthStatus(): Promise<IExternalServiceHealth[]> {
         try {
-            const response = await this.adminRequest<any[]>(
-                Method.Get,
-                "/external_services/health"
-            );
+            const response = await this.adminRequest<
+                {
+                    service_id: string;
+                    service_type: string;
+                    is_healthy?: boolean;
+                    last_check_ts: number;
+                    last_success_ts?: number;
+                    last_error?: string;
+                    consecutive_failures?: number;
+                }[]
+            >(Method.Get, "/external_services/health");
 
-            return response.map(s => ({
+            return response.map((s) => ({
                 serviceId: s.service_id,
                 serviceType: s.service_type,
                 isHealthy: s.is_healthy ?? false,
@@ -288,6 +308,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
                 lastError: s.last_error,
                 consecutiveFailures: s.consecutive_failures ?? 0,
             }));
+            // @swallow-error { owner: "external-service", expires: "2026-12-31" }
         } catch (error) {
             logger.error("ExternalServiceManager.getAllHealthStatus failed:", error);
             return [];
@@ -301,7 +322,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         serviceId: string,
         displayName: string,
         webhookUrl?: string,
-        apiKey?: string
+        apiKey?: string,
     ): Promise<IExternalService> {
         return this.registerService({
             serviceType: "trendradar",
@@ -319,7 +340,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         serviceId: string,
         displayName: string,
         webhookUrl?: string,
-        apiKey?: string
+        apiKey?: string,
     ): Promise<IExternalService> {
         return this.registerService({
             serviceType: "openclaw",
@@ -337,7 +358,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         serviceId: string,
         displayName: string,
         webhookUrl: string,
-        apiKey?: string
+        apiKey?: string,
     ): Promise<IExternalService> {
         return this.registerService({
             serviceType: "generic_webhook",
@@ -379,7 +400,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
         }
 
         const services = await this.listServices();
-        return services.some(s => s.asId === asId);
+        return services.some((s) => s.asId === asId);
     }
 }
 

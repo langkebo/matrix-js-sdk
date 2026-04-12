@@ -206,7 +206,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
 
     public static setServerSideSupport(status: FeatureSupport): void {
         Thread.hasServerSideSupport = status;
-        // XXX: This global latching behaviour is really unexpected and means that you can't undo when moving to a server without support
+        // Known limitation: this global latching behaviour is unexpected and cannot be undone when moving to a server without support
         if (status !== FeatureSupport.Stable) {
             FILTER_RELATED_BY_SENDERS.setPreferUnstable(true);
             FILTER_RELATED_BY_REL_TYPES.setPreferUnstable(true);
@@ -246,7 +246,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
             this.emit(ThreadEvent.Delete, this);
         } else {
             if (this.lastEvent?.getId() === event.getAssociatedId()) {
-                // XXX: If our last event got redacted we query the server for the last event once again
+                // Known limitation: if our last event got redacted we query the server for the last event again
                 await this.processRootEventPromise;
                 this.processRootEventPromise = undefined;
             }
@@ -550,7 +550,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
         this.timelineSet.resetLiveTimeline(backPaginationToken ?? undefined, forwardPaginationToken ?? undefined);
         const newLive = this.liveTimeline;
 
-        // FIXME: Remove the following as soon as https://github.com/matrix-org/synapse/issues/14830 is resolved.
+        // Workaround linked to https://github.com/matrix-org/synapse/issues/14830; remove once the upstream issue is resolved.
         //
         // The pagination API for thread timelines currently can't handle the type of pagination tokens returned by sync
         //
@@ -655,7 +655,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
         this.emit(ThreadEvent.Update, this);
     }
 
-    // XXX: Workaround for https://github.com/matrix-org/matrix-spec-proposals/pull/2676/files#r827240084
+    // Workaround for https://github.com/matrix-org/matrix-spec-proposals/pull/2676/files#r827240084
     private async fetchEditsWhereNeeded(...events: MatrixEvent[]): Promise<unknown> {
         const recursionSupport = this.client.canSupport.get(Feature.RelationsRecursion) ?? ServerSupport.Unsupported;
         if (recursionSupport === ServerSupport.Unsupported) {
@@ -682,6 +682,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
                 }),
             );
         }
+        return undefined;
     }
 
     public setEventMetadata(event: MatrixEvent | null | undefined): void {
@@ -771,7 +772,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
         return this.timelineSet;
     }
 
-    public addReceipt(event: MatrixEvent, synthetic: boolean): void {
+    public addReceipt(_event: MatrixEvent, _synthetic: boolean): void {
         throw new Error("Unsupported function on the thread model");
     }
 
@@ -785,7 +786,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
      * @returns ID of the latest event that the given user has read, or null.
      */
     public getEventReadUpTo(userId: string, ignoreSynthesized?: boolean): string | null {
-        // TODO: we think the implementation here is not right. Here is a sketch
+        // Known limitation: the implementation here is not ideal. Here is a sketch
         // of the right answer:
         //
         // for event in timeline.events.reversed():

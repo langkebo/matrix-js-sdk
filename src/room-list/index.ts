@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Room List Manager - 房间列表管理
- * 
+ *
  * 提供房间列表相关功能
  */
 
@@ -39,7 +39,7 @@ export class RoomListManager {
     }
 
     public getDmUserMap(): Record<string, string[]> {
-        return this.client.store.getAccountData("m.direct")?.getContent() as Record<string, string[]> || {};
+        return (this.client.store.getAccountData("m.direct")?.getContent() as Record<string, string[]>) || {};
     }
 
     public getRoom(roomId: string): Room | null {

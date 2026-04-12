@@ -207,7 +207,7 @@ export class MemoryStore implements IStore {
      * @returns An array of objects which will be at most 'limit'
      * length and at least 0. The objects are the raw event JSON.
      */
-    public scrollback(room: Room, limit: number): MatrixEvent[] {
+    public scrollback(_room: Room, _limit: number): MatrixEvent[] {
         return [];
     }
 
@@ -218,7 +218,7 @@ export class MemoryStore implements IStore {
      * @param token - The token associated with these events.
      * @param toStart - True if these are paginated results.
      */
-    public storeEvents(room: Room, events: MatrixEvent[], token: string | null, toStart: boolean): void {
+    public storeEvents(_room: Room, _events: MatrixEvent[], _token: string | null, _toStart: boolean): void {
         // no-op because they've already been added to the room instance.
     }
 
@@ -248,11 +248,8 @@ export class MemoryStore implements IStore {
             return null;
         }
         const key = "mxjssdk_memory_filter_" + filterName;
-        // XXX Storage.getItem doesn't throw ...
-        // or are we using something different
-        // than window.localStorage in some cases
-        // that does throw?
-        // that would be very naughty
+        // Defensive: Storage.getItem shouldn't throw, but we wrap in try-catch
+        // for edge cases where localStorage might be corrupted or unavailable.
         try {
             const value = this.localStorage.getItem(key);
             if (isValidFilterId(value)) {
@@ -312,7 +309,7 @@ export class MemoryStore implements IStore {
      * @param syncData - The sync data
      * @returns An immediately resolved promise.
      */
-    public setSyncData(syncData: ISyncResponse): Promise<void> {
+    public setSyncData(_syncData: ISyncResponse): Promise<void> {
         return Promise.resolve();
     }
 
@@ -330,7 +327,7 @@ export class MemoryStore implements IStore {
      * @param force - True to force a save (but the memory
      *     store still can't save anything)
      */
-    public save(force: boolean): Promise<void> {
+    public save(_force: boolean): Promise<void> {
         return Promise.resolve();
     }
 

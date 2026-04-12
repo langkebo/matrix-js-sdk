@@ -16,57 +16,45 @@ limitations under the License.
 
 /**
  * Settled Manager - Promise管理
- * 
+ *
  * 提供Settled Promise相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class SettledManager {
-    constructor(private client: MatrixClient) {}
+export interface SettledManagerEvents {
+    sync_complete: void;
+    sync_started: void;
+    sync_error: { error: Error };
+}
 
-    /**
-     * Wait for pending requests
-     */
+export class SettledManager extends BaseManager<keyof SettledManagerEvents, SettledManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public async waitForPendingRequests(timeoutMs?: number): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).waitForPendingRequests(timeoutMs);
+        return this.withRetry(() => this.client.waitForPendingRequests(timeoutMs ?? 0), "waitForPendingRequests");
     }
 
-    /**
-     * Is initial sync complete
-     */
     public isInitialSyncComplete(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isInitialSyncComplete();
+        return this.client.isInitialSyncComplete();
     }
 
-    /**
-     * Has started sync
-     */
     public hasStartedSync(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasStartedSync();
+        return this.client.hasStartedSync();
     }
 
-    /**
-     * Is syncing
-     */
     public isSyncing(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isSyncing();
+        return this.client.isSyncing();
     }
 
-    /**
-     * Wait for sync
-     */
     public async waitForSync(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).waitForSync();
+        return this.client.waitForSync();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getSettledManager(): SettledManager;

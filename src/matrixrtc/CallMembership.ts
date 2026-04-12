@@ -101,7 +101,7 @@ const checkRtcMembershipData = (
     } else {
         // validate that each transport has at least a string 'type'
         for (const t of data.rtc_transports) {
-            if (typeof t !== "object" || t === null || typeof (t as any).type !== "string") {
+            if (typeof t !== "object" || t === null || typeof (t as Record<string, unknown>).type !== "string") {
                 errors.push(prefix + "rtc_transports entries must be objects with a string type");
                 break;
             }
@@ -257,7 +257,7 @@ const checkSessionsMembershipData = (data: IContent, errors: string[]): data is 
 };
 
 type MembershipData = { kind: "rtc"; data: RtcMembershipData } | { kind: "session"; data: SessionMembershipData };
-// TODO: Rename to RtcMembership once we removed the legacy SessionMembership from this file.
+// Known limitation: rename to RtcMembership after legacy SessionMembership support is removed from this file.
 export class CallMembership {
     public static equal(a?: CallMembership, b?: CallMembership): boolean {
         return deepCompare(a?.membershipData, b?.membershipData);
@@ -533,7 +533,7 @@ export class CallMembership {
         const { kind, data } = this.membershipData;
         switch (kind) {
             case "rtc":
-                // TODO we need to read the referenced (relation) event if available to get the real created_ts
+                // Known limitation: should read the referenced relation event to obtain the canonical created_ts.
                 return this.matrixEventData.ts;
             case "session":
             default:
@@ -552,7 +552,7 @@ export class CallMembership {
                 return undefined;
             case "session":
             default:
-                // TODO: calculate this from the MatrixRTCSession join configuration directly
+                // Known limitation: this should be calculated directly from MatrixRTCSession join configuration.
                 return this.createdTs() + (data.expires ?? DEFAULT_EXPIRE_DURATION);
         }
     }

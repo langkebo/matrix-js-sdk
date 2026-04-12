@@ -16,59 +16,49 @@ limitations under the License.
 
 /**
  * Message Manager - 消息管理
- * 
+ *
  * 提供消息发送功能
  */
 
 import { MatrixClient } from "../client";
+import type { ISendEventResponse } from "../@types/requests";
+import { BaseManager } from "../managers/base-manager";
 
-export class MessageManager {
-    constructor(private client: MatrixClient) {}
+export interface MessageManagerEvents {
+    message_sent: { roomId: string; eventId: string };
+    message_failed: { roomId: string; error: Error };
+}
 
-    /**
-     * Send a text message
-     */
-    public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<any> {
-        return (this.client as any).sendTextMessage(roomId, body, txnId);
+export class MessageManager extends BaseManager<keyof MessageManagerEvents, MessageManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Send a notice
-     */
-    public sendNotice(roomId: string, body: string, txnId?: string): Promise<any> {
-        return (this.client as any).sendNotice(roomId, body, txnId);
+    public async sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.sendTextMessage(roomId, body, txnId), "sendTextMessage");
     }
 
-    /**
-     * Send an emote message
-     */
-    public sendEmoteMessage(roomId: string, body: string, txnId?: string): Promise<any> {
-        return (this.client as any).sendEmoteMessage(roomId, body, txnId);
+    public async sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.sendNotice(roomId, body, txnId), "sendNotice");
     }
 
-    /**
-     * Send an HTML message
-     */
-    public sendHtmlMessage(roomId: string, body: string, htmlBody: string): Promise<any> {
-        return (this.client as any).sendHtmlMessage(roomId, body, htmlBody);
+    public async sendEmoteMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.sendEmoteMessage(roomId, body, txnId), "sendEmoteMessage");
     }
 
-    /**
-     * Send an HTML notice
-     */
-    public sendHtmlNotice(roomId: string, body: string, htmlBody: string): Promise<any> {
-        return (this.client as any).sendHtmlNotice(roomId, body, htmlBody);
+    public async sendHtmlMessage(roomId: string, body: string, htmlBody: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.sendHtmlMessage(roomId, body, htmlBody), "sendHtmlMessage");
     }
 
-    /**
-     * Send an HTML emote
-     */
-    public sendHtmlEmote(roomId: string, body: string, htmlBody: string): Promise<any> {
-        return (this.client as any).sendHtmlEmote(roomId, body, htmlBody);
+    public async sendHtmlNotice(roomId: string, body: string, htmlBody: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.sendHtmlNotice(roomId, body, htmlBody), "sendHtmlNotice");
+    }
+
+    public async sendHtmlEmote(roomId: string, body: string, htmlBody: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.sendHtmlEmote(roomId, body, htmlBody), "sendHtmlEmote");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getMessageManager(): MessageManager;

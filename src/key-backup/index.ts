@@ -16,10 +16,10 @@ limitations under the License.
 
 /**
  * Key Backup Manager - 密钥备份管理
- * 
+ *
  * 提供密钥备份、恢复、导入导出等功能
  * 对应后端: synapse-rust/src/web/routes/key_backup.rs
- * 
+ *
  * 后端端点:
  * - GET/POST /room_keys/version
  * - GET/PUT/DELETE /room_keys/version/{version}
@@ -46,6 +46,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export interface EncryptedData {
     ciphertext: string;
@@ -157,80 +158,6 @@ export interface RecoverSessionKeyResult {
     session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
 }
-
-interface CacheEntry<T> {
-    value: T;
-    timestamp: number;
-}
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            this.misses++;
-            return undefined;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
-        } else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-        });
-    }
-
-    delete(key: string): boolean {
-        return this.cache.delete(key);
-    }
-
-    clear(): void {
-        this.cache.clear();
-        this.hits = 0;
-        this.misses = 0;
-    }
-
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return {
-            size: this.cache.size,
-            hits: this.hits,
-            misses: this.misses,
-            hitRate: total > 0 ? this.hits / total : 0,
-        };
-    }
-}
-
 export class KeyBackupManager {
     private client: MatrixClient;
     private currentVersion: string | null = null;
@@ -247,7 +174,11 @@ export class KeyBackupManager {
 
     constructor(client: MatrixClient) {
         this.client = client;
-        this.versionCache = new LRUCache<BackupVersionInfo>(10, 5 * 60 * 1000);
+        this.versionCache = new LRUCache<BackupVersionInfo>({
+            maxSize: 10,
+            ttl: 5 * 60 * 1000,
+            name: "index.ts-backupversioninfo",
+        });
     }
 
     // ==================== 版本管理 ====================
@@ -267,12 +198,12 @@ export class KeyBackupManager {
                     "/room_keys/version",
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getBackupVersions");
 
             if (result.versions && result.versions.length > 0) {
-                result.versions.forEach(v => {
+                result.versions.forEach((v) => {
                     this.versionCache.set(v.version, v);
                 });
             }
@@ -283,7 +214,10 @@ export class KeyBackupManager {
         }
     }
 
-    async createBackupVersion(algorithm: string = "m.megolm.v1.aes-sha2", authData?: AuthData | Record<string, unknown>): Promise<{ version: string }> {
+    async createBackupVersion(
+        algorithm: string = "m.megolm.v1.aes-sha2",
+        authData?: AuthData | Record<string, unknown>,
+    ): Promise<{ version: string }> {
         try {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ version: string }>(
@@ -291,7 +225,7 @@ export class KeyBackupManager {
                     "/room_keys/version",
                     undefined,
                     { algorithm, auth_data: authData },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "createBackupVersion");
 
@@ -317,7 +251,7 @@ export class KeyBackupManager {
                     `/room_keys/version/${version}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getBackupVersion");
 
@@ -328,7 +262,10 @@ export class KeyBackupManager {
         }
     }
 
-    async updateBackupVersion(version: string, authData: AuthData | Record<string, unknown>): Promise<{ version: string }> {
+    async updateBackupVersion(
+        version: string,
+        authData: AuthData | Record<string, unknown>,
+    ): Promise<{ version: string }> {
         try {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ version: string }>(
@@ -336,7 +273,7 @@ export class KeyBackupManager {
                     `/room_keys/version/${version}`,
                     undefined,
                     { auth_data: authData },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "updateBackupVersion");
 
@@ -355,7 +292,7 @@ export class KeyBackupManager {
                     `/room_keys/version/${version}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "deleteBackupVersion");
 
@@ -379,7 +316,7 @@ export class KeyBackupManager {
                     "/room_keys/keys",
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getAllBackupKeys");
         } catch (error) {
@@ -395,7 +332,7 @@ export class KeyBackupManager {
                     "/room_keys/keys",
                     undefined,
                     body,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadKeysToLatest");
         } catch (error) {
@@ -411,7 +348,7 @@ export class KeyBackupManager {
                     `/room_keys/keys/${version}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getBackupKeys");
         } catch (error) {
@@ -427,7 +364,7 @@ export class KeyBackupManager {
                     `/room_keys/keys/${version}`,
                     undefined,
                     body,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadKeysToVersion");
         } catch (error) {
@@ -443,7 +380,7 @@ export class KeyBackupManager {
                     `/room_keys/keys/${version}/${encodeURIComponent(roomId)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getRoomBackupKeys");
         } catch (error) {
@@ -459,7 +396,7 @@ export class KeyBackupManager {
                     `/room_keys/keys/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getSessionBackupKey");
         } catch (error) {
@@ -471,7 +408,7 @@ export class KeyBackupManager {
         version: string,
         roomId: string,
         sessionId: string,
-        sessionData: SessionData
+        sessionData: SessionData,
     ): Promise<{ etag: string }> {
         try {
             return await this.withRetry(async () => {
@@ -480,7 +417,7 @@ export class KeyBackupManager {
                     `/room_keys/keys/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
                     undefined,
                     sessionData,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadSessionKey");
         } catch (error) {
@@ -488,10 +425,7 @@ export class KeyBackupManager {
         }
     }
 
-    async uploadBatchKeys(
-        version: string,
-        keys: Record<string, RoomSessions>
-    ): Promise<UploadKeysResult> {
+    async uploadBatchKeys(version: string, keys: Record<string, RoomSessions>): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<UploadKeysResult>(
@@ -499,7 +433,7 @@ export class KeyBackupManager {
                     `/room_keys/${version}/keys`,
                     undefined,
                     keys,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "uploadBatchKeys");
         } catch (error) {
@@ -517,7 +451,7 @@ export class KeyBackupManager {
                     "/room_keys/recover",
                     undefined,
                     { version, rooms },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "recoverKeys");
         } catch (error) {
@@ -533,7 +467,7 @@ export class KeyBackupManager {
                     `/room_keys/recovery/${version}/progress`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getRecoveryProgress");
         } catch (error) {
@@ -549,7 +483,7 @@ export class KeyBackupManager {
                     `/room_keys/verify/${version}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "verifyBackup");
         } catch (error) {
@@ -557,11 +491,7 @@ export class KeyBackupManager {
         }
     }
 
-    async batchRecover(
-        version: string,
-        roomIds: string[],
-        sessionLimit?: number
-    ): Promise<BatchRecoverResult> {
+    async batchRecover(version: string, roomIds: string[], sessionLimit?: number): Promise<BatchRecoverResult> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<BatchRecoverResult>(
@@ -569,7 +499,7 @@ export class KeyBackupManager {
                     "/room_keys/batch_recover",
                     undefined,
                     { version, room_ids: roomIds, session_limit: sessionLimit },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "batchRecover");
         } catch (error) {
@@ -585,7 +515,7 @@ export class KeyBackupManager {
                     `/room_keys/recover/${version}/${encodeURIComponent(roomId)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "recoverRoomKeys");
         } catch (error) {
@@ -601,7 +531,7 @@ export class KeyBackupManager {
                     `/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "recoverSessionKey");
         } catch (error) {
@@ -619,7 +549,7 @@ export class KeyBackupManager {
                     "/room_keys/export",
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "exportKeys");
         } catch (error) {
@@ -635,7 +565,7 @@ export class KeyBackupManager {
                     `/room_keys/export/${version}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "exportKeysByVersion");
         } catch (error) {
@@ -651,7 +581,7 @@ export class KeyBackupManager {
                     "/room_keys/import",
                     undefined,
                     { room_keys: roomKeys, version },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "importKeys");
         } catch (error) {
@@ -667,7 +597,7 @@ export class KeyBackupManager {
                     `/room_keys/import/${version}`,
                     undefined,
                     { room_keys: roomKeys },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "importKeysToVersion");
         } catch (error) {
@@ -723,11 +653,7 @@ export class KeyBackupManager {
 
     // ==================== 私有方法 ====================
 
-    private async withRetry<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries
-    ): Promise<T> {
+    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
         let lastError: unknown;
         const startTime = Date.now();
 
@@ -750,28 +676,31 @@ export class KeyBackupManager {
 
                 if (!this.isRetryableError(error)) {
                     this.recordRequest(false, false);
-                    this.emitMetric('api_error', method, {
+                    this.emitMetric("api_error", method, {
                         error: this.getErrorType(error),
                         attempt: attempt + 1,
-                        retryable: false
+                        retryable: false,
                     });
                     throw error;
                 }
 
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`KeyBackupManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
-                        method,
+                    logger.warn(
+                        `KeyBackupManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
+                        {
+                            method,
+                            attempt: attempt + 1,
+                            maxAttempts: retries + 1,
+                            delay,
+                            error: this.getErrorType(error),
+                        },
+                    );
+
+                    this.emitMetric("api_retry", method, {
                         attempt: attempt + 1,
-                        maxAttempts: retries + 1,
                         delay,
                         error: this.getErrorType(error),
-                    });
-
-                    this.emitMetric('api_retry', method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error)
                     });
 
                     await this.sleep(delay);
@@ -781,10 +710,10 @@ export class KeyBackupManager {
 
         this.recordRequest(false, true);
         const duration = Date.now() - startTime;
-        this.emitMetric('api_failure', method, {
+        this.emitMetric("api_failure", method, {
             attempts: retries + 1,
             duration,
-            error: this.getErrorType(lastError)
+            error: this.getErrorType(lastError),
         });
 
         throw lastError;
@@ -804,15 +733,9 @@ export class KeyBackupManager {
 
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            const retryableCodes = [
-                "M_LIMIT_EXCEEDED",
-                "M_SERVER_UNAVAILABLE",
-            ];
+            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
             const retryableStatus = [429, 500, 502, 503, 504];
-            return (
-                retryableCodes.includes(error.errcode ?? "") ||
-                retryableStatus.includes(error.httpStatus ?? 0)
-            );
+            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
         }
         return false;
     }
@@ -820,15 +743,23 @@ export class KeyBackupManager {
     private normalizeError(error: unknown, method: string): SdkError {
         const err = error as Error;
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`KeyBackupManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`KeyBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`KeyBackupManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
+                return new NotFoundError(
+                    `KeyBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                    error,
+                );
             }
-            return new ApiError(`KeyBackupManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
+            return new ApiError(
+                `KeyBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error.errcode ?? "UNKNOWN",
+                error.httpStatus ?? 0,
+                error,
+            );
         }
-        return new ApiError(`KeyBackupManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        return new ApiError(`KeyBackupManager.${method} failed: ${err?.message ?? String(error)}`, "UNKNOWN", 0, error);
     }
 
     private getErrorType(error: unknown): string {
@@ -850,7 +781,7 @@ export class KeyBackupManager {
     }
 
     private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

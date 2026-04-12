@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { KeyBackupManager } from "../../src/key-backup/index";
 import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
@@ -36,9 +37,7 @@ describe("KeyBackupManager", () => {
     describe("Version Management", () => {
         it("should get backup versions", async () => {
             const mockResponse = {
-                versions: [
-                    { version: "1", algorithm: "m.megolm.v1.aes-sha2", auth_data: {} },
-                ],
+                versions: [{ version: "1", algorithm: "m.megolm.v1.aes-sha2", auth_data: {} }],
             };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
@@ -49,7 +48,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/version",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -65,7 +64,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/version",
                 undefined,
                 { algorithm: "m.megolm.v1.aes-sha2", auth_data: { key: "value" } },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
             expect(manager.getCurrentVersion()).toBe("1");
@@ -82,7 +81,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/version/1",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -98,7 +97,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/version/1",
                 undefined,
                 { auth_data: { key: "new_value" } },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -115,7 +114,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/version/1",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
             expect(manager.getCurrentVersion()).toBeNull();
@@ -129,13 +128,9 @@ describe("KeyBackupManager", () => {
 
             const result = await manager.getAllBackupKeys();
 
-            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/room_keys/keys",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            );
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/keys", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             expect(result).toEqual(mockResponse);
         });
 
@@ -145,13 +140,9 @@ describe("KeyBackupManager", () => {
 
             const result = await manager.getBackupKeys("1");
 
-            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/room_keys/keys/1",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            );
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/keys/1", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             expect(result).toEqual(mockResponse);
         });
 
@@ -166,7 +157,7 @@ describe("KeyBackupManager", () => {
                 expect.stringContaining("/room_keys/keys/1/"),
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -182,7 +173,7 @@ describe("KeyBackupManager", () => {
                 expect.stringContaining("/room_keys/keys/1/"),
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -204,7 +195,7 @@ describe("KeyBackupManager", () => {
                 expect.stringContaining("/room_keys/keys/1/"),
                 undefined,
                 sessionData,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -227,13 +218,9 @@ describe("KeyBackupManager", () => {
             };
             const result = await manager.uploadBatchKeys("1", keys);
 
-            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/room_keys/1/keys",
-                undefined,
-                keys,
-                { prefix: ClientPrefix.V3 }
-            );
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(Method.Post, "/room_keys/1/keys", undefined, keys, {
+                prefix: ClientPrefix.V3,
+            });
             expect(result).toEqual(mockResponse);
         });
     });
@@ -250,7 +237,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/recover",
                 undefined,
                 { version: "1", rooms: ["!room1:example.com"] },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -274,7 +261,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/recovery/1/progress",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -295,7 +282,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/verify/1",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -315,7 +302,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/batch_recover",
                 undefined,
                 { version: "1", room_ids: ["!room1:example.com"], session_limit: 100 },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -331,7 +318,7 @@ describe("KeyBackupManager", () => {
                 expect.stringContaining("/room_keys/recover/1/"),
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -347,7 +334,7 @@ describe("KeyBackupManager", () => {
                 expect.stringContaining("/room_keys/recover/1/"),
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -356,22 +343,16 @@ describe("KeyBackupManager", () => {
     describe("Export and Import", () => {
         it("should export keys", async () => {
             const mockResponse = {
-                room_keys: [
-                    { room_id: "!room:example.com", session_id: "session1", session_data: {} },
-                ],
+                room_keys: [{ room_id: "!room:example.com", session_id: "session1", session_data: {} }],
                 version: "1",
             };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
             const result = await manager.exportKeys();
 
-            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/room_keys/export",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            );
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/export", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             expect(result).toEqual(mockResponse);
         });
 
@@ -389,7 +370,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/export/1",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -415,7 +396,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/import",
                 undefined,
                 { room_keys: roomKeys, version: "1" },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -441,7 +422,7 @@ describe("KeyBackupManager", () => {
                 "/room_keys/import/1",
                 undefined,
                 { room_keys: roomKeys },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
         });
@@ -468,9 +449,7 @@ describe("KeyBackupManager", () => {
         });
 
         it("should ensure backup version creates new", async () => {
-            mockHttp.authedRequest
-                .mockResolvedValueOnce({ versions: [] })
-                .mockResolvedValueOnce({ version: "1" });
+            mockHttp.authedRequest.mockResolvedValueOnce({ versions: [] }).mockResolvedValueOnce({ version: "1" });
 
             const version = await manager.ensureBackupVersion();
 

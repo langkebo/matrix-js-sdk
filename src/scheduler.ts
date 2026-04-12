@@ -151,8 +151,8 @@ export class MatrixScheduler<T = ISendEventResponse> {
         let removed = false;
         removeElement(this.queues[name], (element) => {
             if (element.event.getId() === event.getId()) {
-                // XXX we should probably reject the promise?
-                // https://github.com/matrix-org/matrix-js-sdk/issues/496
+                // Known limitation: The promise for this event is not rejected when removed.
+                // See: https://github.com/matrix-org/matrix-js-sdk/issues/496
                 removed = true;
                 return true;
             }

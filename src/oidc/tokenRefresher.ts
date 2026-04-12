@@ -148,7 +148,7 @@ export class OidcTokenRefresher {
      * @param tokens.accessToken - new access token
      * @param tokens.refreshToken - OPTIONAL new refresh token
      */
-    protected async persistTokens(tokens: { accessToken: string; refreshToken?: string }): Promise<void> {
+    protected async persistTokens(_tokens: { accessToken: string; refreshToken?: string }): Promise<void> {
         // NOOP
     }
 

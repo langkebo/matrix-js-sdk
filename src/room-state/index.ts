@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,13 +16,14 @@ limitations under the License.
 
 /**
  * Room State Manager - 房间状态管理
- * 
+ *
  * 提供房间状态获取、设置等功能
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IStateEvent {
     type: string;
@@ -43,23 +44,38 @@ export interface IEncryptionConfig {
     rotation_period_msgs?: number;
 }
 
-export class RoomStateManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomStateManagerEvents {
+    state_event_sent: { roomId: string; eventType: string; stateKey: string };
+    state_updated: { roomId: string };
+}
 
-    public async roomState(roomId: string): Promise<IStateEvent[]> {
-        const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
-        return this.client.http.authedRequest<IStateEvent[]>(Method.Get, path);
+export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, RoomStateManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    public async getStateEvents(roomId: string, eventType?: string, stateKey?: string): Promise<IStateEvent | IStateEvent[]> {
-        const path = eventType
-            ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
-                $roomId: roomId,
-                $eventType: eventType,
-                $stateKey: stateKey || "",
-            })
-            : utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
-        return this.client.http.authedRequest<IStateEvent | IStateEvent[]>(Method.Get, path);
+    public async roomState(roomId: string): Promise<IStateEvent[]> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
+            return this.client.http.authedRequest<IStateEvent[]>(Method.Get, path);
+        }, "roomState");
+    }
+
+    public async getStateEvents(
+        roomId: string,
+        eventType?: string,
+        stateKey?: string,
+    ): Promise<IStateEvent | IStateEvent[]> {
+        return this.withRetry(async () => {
+            const path = eventType
+                ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
+                      $roomId: roomId,
+                      $eventType: eventType,
+                      $stateKey: stateKey || "",
+                  })
+                : utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
+            return this.client.http.authedRequest<IStateEvent | IStateEvent[]>(Method.Get, path);
+        }, "getStateEvents");
     }
 
     public async getAllStateEvents(roomId: string): Promise<IStateEvent[]> {
@@ -80,22 +96,27 @@ export class RoomStateManager {
         }
     }
 
-    public async sendStateEvent(roomId: string, eventType: string, content: Record<string, unknown>, stateKey?: string): Promise<ISendStateEventResponse> {
-        const path = utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
-            $roomId: roomId,
-            $eventType: eventType,
-            $stateKey: stateKey || "",
-        });
-        return this.client.http.authedRequest<ISendStateEventResponse>(Method.Put, path, undefined, content);
+    public async sendStateEvent(
+        roomId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+        stateKey?: string,
+    ): Promise<ISendStateEventResponse> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
+                $roomId: roomId,
+                $eventType: eventType,
+                $stateKey: stateKey || "",
+            });
+            return this.client.http.authedRequest<ISendStateEventResponse>(Method.Put, path, undefined, content);
+        }, "sendStateEvent");
     }
 
     public async getRoomEncryption(roomId: string): Promise<IEncryptionConfig | null> {
-        const path = utils.encodeUri("/rooms/$roomId/state/m.room.encryption", { $roomId: roomId });
-        try {
-            return await this.client.http.authedRequest<IEncryptionConfig>(Method.Get, path);
-        } catch {
-            return null;
-        }
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/state/m.room.encryption", { $roomId: roomId });
+            return this.client.http.authedRequest<IEncryptionConfig>(Method.Get, path);
+        }, "getRoomEncryption");
     }
 
     public async setRoomEncryption(roomId: string, config: IEncryptionConfig): Promise<ISendStateEventResponse> {
@@ -103,7 +124,6 @@ export class RoomStateManager {
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomStateManager(): RoomStateManager;

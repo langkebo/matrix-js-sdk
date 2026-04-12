@@ -1,4 +1,4 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -17,7 +17,7 @@ limitations under the License.
 
 /**
  * Room Alias Manager - 房间别名管理
- * 
+ *
  * 提供房间别名的创建、删除、查询功能
  */
 
@@ -65,7 +65,14 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         this.client = client;
     }
 
-    async getAliasRoom(alias: string): Promise<IRoomAliasResponse | null> {
+    /**
+     * 获取别名对应的房间 ID
+     *
+     * @param alias - 房间别名
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 房间别名响应
+     */
+    async getAliasRoom(alias: string, throwOnError = false): Promise<IRoomAliasResponse | null> {
         if (!alias) {
             throw new Error("Alias is required");
         }
@@ -84,7 +91,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
                 `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const info: IRoomAliasInfo = {
@@ -95,8 +102,12 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
             this.aliasCache.set(alias, info);
 
             return response;
+            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('RoomAliasManager.getAliasRoom failed:', e);
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("RoomAliasManager.getAliasRoom failed:", e);
             return null;
         }
     }
@@ -112,7 +123,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
                 `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
                 { room_id: roomId },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const info: IRoomAliasInfo = {
@@ -148,14 +159,14 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
                 `/directory/room/${encodeURIComponent(alias)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             this.aliasCache.delete(alias);
 
             if (roomId) {
                 const aliases = this.roomAliasesCache.get(roomId) || [];
-                const filtered = aliases.filter(a => a !== alias);
+                const filtered = aliases.filter((a) => a !== alias);
                 this.roomAliasesCache.set(roomId, filtered);
                 this.emit(RoomAliasEvent.AliasDeleted, roomId, alias);
             }
@@ -167,7 +178,14 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         }
     }
 
-    async getRoomAliases(roomId: string): Promise<IRoomAliasesResponse | null> {
+    /**
+     * 获取房间的所有别名
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 房间别名列表响应
+     */
+    async getRoomAliases(roomId: string, throwOnError = false): Promise<IRoomAliasesResponse | null> {
         if (!roomId) {
             throw new Error("Room ID is required");
         }
@@ -182,15 +200,19 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
                 `/rooms/${encodeURIComponent(roomId)}/aliases`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const aliases = response.aliases || [];
             this.roomAliasesCache.set(roomId, aliases);
 
             return { aliases };
+            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('RoomAliasManager.getRoomAliases failed:', e);
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("RoomAliasManager.getRoomAliases failed:", e);
             return null;
         }
     }
@@ -217,21 +239,32 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         return response?.room_id || null;
     }
 
-    async getCanonicalAlias(roomId: string): Promise<string | null> {
+    /**
+     * 获取房间的主别名
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 主别名
+     */
+    async getCanonicalAlias(roomId: string, throwOnError = false): Promise<string | null> {
         try {
             const room = this.client.getRoom(roomId);
             if (!room) {
                 return null;
             }
 
-            const canonicalAliasEvent = room.currentState.getStateEvents('m.room.canonical_alias', '');
+            const canonicalAliasEvent = room.currentState.getStateEvents("m.room.canonical_alias", "");
             if (canonicalAliasEvent) {
                 return canonicalAliasEvent.getContent()?.alias || null;
             }
 
             return null;
+            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('RoomAliasManager.getCanonicalAlias failed:', e);
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("RoomAliasManager.getCanonicalAlias failed:", e);
             return null;
         }
     }
@@ -242,35 +275,41 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         }
 
         try {
-            await this.client.sendStateEvent(
-                roomId,
-                'm.room.canonical_alias',
-                alias ? { alias } : {},
-                ''
-            );
+            await this.client.sendStateEvent(roomId, "m.room.canonical_alias", alias ? { alias } : {}, "");
 
-            this.emit(RoomAliasEvent.AliasUpdated, roomId, alias || '');
+            this.emit(RoomAliasEvent.AliasUpdated, roomId, alias || "");
         } catch (error) {
             this.emit(RoomAliasEvent.AliasError, roomId, error as Error);
             throw error;
         }
     }
 
-    async getAltAliases(roomId: string): Promise<string[]> {
+    /**
+     * 获取房间的备选别名列表
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 备选别名列表
+     */
+    async getAltAliases(roomId: string, throwOnError = false): Promise<string[]> {
         try {
             const room = this.client.getRoom(roomId);
             if (!room) {
                 return [];
             }
 
-            const canonicalAliasEvent = room.currentState.getStateEvents('m.room.canonical_alias', '');
+            const canonicalAliasEvent = room.currentState.getStateEvents("m.room.canonical_alias", "");
             if (canonicalAliasEvent) {
                 return canonicalAliasEvent.getContent()?.alt_aliases || [];
             }
 
             return [];
+            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('RoomAliasManager.getAltAliases failed:', e);
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("RoomAliasManager.getAltAliases failed:", e);
             return [];
         }
     }
@@ -290,12 +329,12 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
         await this.client.sendStateEvent(
             roomId,
-            'm.room.canonical_alias',
+            "m.room.canonical_alias",
             {
                 alias: canonicalAlias ?? undefined,
                 alt_aliases: altAliases,
             },
-            ''
+            "",
         );
     }
 
@@ -305,18 +344,18 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         }
 
         const altAliases = await this.getAltAliases(roomId);
-        const filtered = altAliases.filter(a => a !== alias);
+        const filtered = altAliases.filter((a) => a !== alias);
 
         const canonicalAlias = await this.getCanonicalAlias(roomId);
 
         await this.client.sendStateEvent(
             roomId,
-            'm.room.canonical_alias',
+            "m.room.canonical_alias",
             {
                 alias: canonicalAlias ?? undefined,
                 alt_aliases: filtered,
             },
-            ''
+            "",
         );
     }
 
@@ -324,7 +363,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         try {
             const response = await this.getAliasRoom(alias);
             return response === null;
-        } catch (e) {
+        } catch {
             return true;
         }
     }
@@ -336,9 +375,9 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
         await this.client.sendStateEvent(
             roomId,
-            'm.room.aliases',
+            "m.room.aliases",
             { alias: aliasLocalpart },
-            this.client.getDomain() ?? undefined
+            this.client.getDomain() ?? undefined,
         );
     }
 

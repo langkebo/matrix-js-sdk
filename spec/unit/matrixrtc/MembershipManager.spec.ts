@@ -864,6 +864,26 @@ describe("MembershipManager", () => {
             );
             expect(client.sendStateEvent).not.toHaveBeenCalled();
         });
+        it("retries before failing in case of fetch network type error", async () => {
+            const unrecoverableError = vi.fn();
+            (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(new TypeError("Failed to fetch"));
+            const manager = new MembershipManager(
+                { networkErrorRetryMs: 1000, maximumNetworkErrorRetryCount: 3 },
+                room,
+                client,
+                callSession,
+            );
+            manager.join([focus], focusActive, unrecoverableError);
+            for (let retries = 0; retries < 3; retries++) {
+                expect(client._unstable_sendDelayedStateEvent).toHaveBeenCalledTimes(retries + 1);
+                await vi.advanceTimersByTimeAsync(1000);
+            }
+            expect(unrecoverableError).toHaveBeenCalled();
+            expect(unrecoverableError.mock.lastCall![0].message).toMatch(
+                "The MembershipManager shut down because of the end condition",
+            );
+            expect(client.sendStateEvent).not.toHaveBeenCalled();
+        });
         it("falls back to using pure state events when UnsupportedDelayedEventsEndpointError encountered for delayed events", async () => {
             const unrecoverableError = vi.fn();
             (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(

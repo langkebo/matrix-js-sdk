@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Push Notifications Manager - 推送通知管理
- * 
+ *
  * 提供推送通知相关功能
  */
 
@@ -47,27 +47,35 @@ export class PushNotificationsManager {
     constructor(private client: MatrixClient) {}
 
     public async getPushers(): Promise<IPushersResponse> {
-        return (this.client as unknown as {
-            getPushers: () => Promise<IPushersResponse>;
-        }).getPushers();
+        return (
+            this.client as unknown as {
+                getPushers: () => Promise<IPushersResponse>;
+            }
+        ).getPushers();
     }
 
     public async setPushers(pushers: IPusher[]): Promise<void> {
-        return (this.client as unknown as {
-            setPushers: (pushers: IPusher[]) => Promise<void>;
-        }).setPushers(pushers);
+        return (
+            this.client as unknown as {
+                setPushers: (pushers: IPusher[]) => Promise<void>;
+            }
+        ).setPushers(pushers);
     }
 
     public async removePusher(pusherData: IPusher): Promise<void> {
-        return (this.client as unknown as {
-            removePusher: (pusherData: IPusher) => Promise<void>;
-        }).removePusher(pusherData);
+        return (
+            this.client as unknown as {
+                removePusher: (pusherData: IPusher) => Promise<void>;
+            }
+        ).removePusher(pusherData);
     }
 
     public getPusherData(roomId: string, userId: string): IPusherData | null {
-        return (this.client as unknown as {
-            getPusherData: (roomId: string, userId: string) => IPusherData | null;
-        }).getPusherData(roomId, userId);
+        return (
+            this.client as unknown as {
+                getPusherData: (roomId: string, userId: string) => IPusherData | null;
+            }
+        ).getPusherData(roomId, userId);
     }
 }
 

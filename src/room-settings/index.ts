@@ -16,113 +16,77 @@ limitations under the License.
 
 /**
  * Room Settings Manager - 房间设置管理
- * 
+ *
  * 提供房间设置相关功能
  */
 
 import { MatrixClient } from "../client";
+import type { ISendEventResponse } from "../@types/requests";
+import { BaseManager } from "../managers/base-manager";
 
-export class RoomSettingsManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomSettingsManagerEvents {
+    room_name_changed: { roomId: string; name: string };
+    room_topic_changed: { roomId: string; topic: string };
+    room_avatar_changed: { roomId: string; avatarUrl: string };
+    room_history_visibility_changed: { roomId: string; visibility: string };
+    room_guest_access_changed: { roomId: string; allow: boolean };
+    room_join_rule_changed: { roomId: string; joinRule: string };
+}
 
-    /**
-     * Get room name
-     */
+export class RoomSettingsManager extends BaseManager<keyof RoomSettingsManagerEvents, RoomSettingsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getRoomName(roomId: string): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomName(roomId);
+        return this.client.getRoomName(roomId);
     }
 
-    /**
-     * Set room name
-     */
-    public async setRoomName(roomId: string, name: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomName(roomId, name);
+    public async setRoomName(roomId: string, name: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.setRoomName(roomId, name), "setRoomName");
     }
 
-    /**
-     * Get room topic
-     */
     public getRoomTopic(roomId: string): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomTopic(roomId);
+        return this.client.getRoomTopic(roomId);
     }
 
-    /**
-     * Set room topic
-     */
-    public async setRoomTopic(roomId: string, topic: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomTopic(roomId, topic);
+    public async setRoomTopic(roomId: string, topic: string): Promise<ISendEventResponse> {
+        return this.withRetry(() => this.client.setRoomTopic(roomId, topic), "setRoomTopic");
     }
 
-    /**
-     * Get room avatar
-     */
-    public getRoomAvatarUrl(roomId: string): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomAvatarUrl(roomId);
+    public getRoomAvatarUrl(roomId: string): string {
+        return this.client.getRoomAvatarUrl(roomId);
     }
 
-    /**
-     * Set room avatar
-     */
-    public async setRoomAvatar(roomId: string, avatarUrl: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomAvatar(roomId, avatarUrl);
+    public async setRoomAvatar(roomId: string, avatarUrl: string): Promise<void> {
+        await this.client.setRoomAvatar(roomId, avatarUrl);
     }
 
-    /**
-     * Get room history visibility
-     */
     public getRoomHistoryVisibility(roomId: string): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomHistoryVisibility(roomId);
+        return this.client.getRoomHistoryVisibility(roomId);
     }
 
-    /**
-     * Set room history visibility
-     */
-    public async setRoomHistoryVisibility(roomId: string, visibility: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomHistoryVisibility(roomId, visibility);
+    public async setRoomHistoryVisibility(roomId: string, visibility: string): Promise<void> {
+        await this.client.setRoomHistoryVisibility(roomId, visibility);
     }
 
-    /**
-     * Get room guest access
-     */
     public getRoomGuestAccess(roomId: string): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomGuestAccess(roomId);
+        return this.client.getRoomGuestAccess(roomId);
     }
 
-    /**
-     * Set room guest access
-     */
-    public async setRoomGuestAccess(roomId: string, allow: boolean): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomGuestAccess(roomId, allow);
+    public async setRoomGuestAccess(roomId: string, allow: boolean): Promise<void> {
+        await this.client.setRoomGuestAccess(roomId, allow);
     }
 
-    /**
-     * Get room join rule
-     */
     public getRoomJoinRule(roomId: string): string {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getRoomJoinRule(roomId);
+        return this.client.getRoomJoinRule(roomId);
     }
 
-    /**
-     * Set room join rule
-     */
-    public async setRoomJoinRule(roomId: string, joinRule: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).setRoomJoinRule(roomId, joinRule);
+    public async setRoomJoinRule(roomId: string, joinRule: string): Promise<void> {
+        await this.client.setRoomJoinRule(roomId, joinRule);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomSettingsManager(): RoomSettingsManager;

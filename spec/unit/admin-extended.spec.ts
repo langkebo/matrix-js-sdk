@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+
 import { AdminManager, AdminEvent } from "../../src/admin/index";
 import { MatrixError } from "../../src/http-api/errors";
-import { NotFoundError } from "../../src/errors";
 
 describe("AdminManager - Extended Tests", () => {
     let mockClient: any;

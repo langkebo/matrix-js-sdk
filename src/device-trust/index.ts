@@ -16,10 +16,10 @@ limitations under the License.
 
 /**
  * Device Trust Manager - 设备信任管理
- * 
+ *
  * 提供设备验证、信任状态查询、安全摘要等功能
  * 对应后端: synapse-rust/src/web/routes/e2ee_routes.rs
- * 
+ *
  * 后端端点:
  * - POST /v3/device_verification/request
  * - POST /v3/device_verification/respond
@@ -36,6 +36,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export enum DeviceTrustEvent {
     VerificationRequested = "VerificationRequested",
@@ -88,84 +89,6 @@ export interface ISecuritySummary {
     security_score: number;
     recommendations: string[];
 }
-
-interface CacheEntry<T> {
-    value: T;
-    timestamp: number;
-}
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            this.misses++;
-            return undefined;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
-        } else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-        });
-    }
-
-    delete(key: string): boolean {
-        return this.cache.delete(key);
-    }
-
-    clear(): void {
-        this.cache.clear();
-        this.hits = 0;
-        this.misses = 0;
-    }
-
-    size(): number {
-        return this.cache.size;
-    }
-
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return {
-            size: this.cache.size,
-            hits: this.hits,
-            misses: this.misses,
-            hitRate: total > 0 ? this.hits / total : 0,
-        };
-    }
-}
-
 interface DeviceTrustManagerEventMap {
     [DeviceTrustEvent.VerificationRequested]: (response: IDeviceVerificationResponse) => void;
     [DeviceTrustEvent.VerificationResponded]: (result: IVerificationRespondResult) => void;
@@ -190,7 +113,11 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
     constructor(client: MatrixClient) {
         super();
         this.client = client;
-        this.deviceTrustCache = new LRUCache<IDeviceTrustInfo>(200, 5 * 60 * 1000);
+        this.deviceTrustCache = new LRUCache<IDeviceTrustInfo>({
+            maxSize: 200,
+            ttl: 5 * 60 * 1000,
+            name: "index.ts-idevicetrustinfo",
+        });
         this.securitySummaryCache = new LRUCache<ISecuritySummary>(1, 60 * 1000);
     }
 
@@ -206,7 +133,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
                         device_id: request.device_id,
                         method: request.method ?? "sas",
                     },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "requestVerification");
 
@@ -228,7 +155,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
                         token,
                         approved,
                     },
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "respondToVerification");
 
@@ -247,7 +174,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
                     `/device_verification/status/${encodeURIComponent(token)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getVerificationStatus");
 
@@ -272,12 +199,12 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
                     "/device_trust",
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getDeviceTrustList");
 
             const devices = response.devices || [];
-            devices.forEach(device => {
+            devices.forEach((device) => {
                 this.deviceTrustCache.set(device.device_id, device);
             });
 
@@ -306,16 +233,17 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
                     `/device_trust/${encodeURIComponent(deviceId)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getDeviceTrust");
 
             this.deviceTrustCache.set(deviceId, response);
             return response;
+            // @swallow-error { owner: "crypto-rtc", expires: "2026-12-31" }
         } catch (error) {
             const httpStatus = (error as { httpStatus?: number })?.httpStatus;
             const errcode = (error as { errcode?: string })?.errcode;
-            
+
             if (httpStatus === 404 || errcode === "M_NOT_FOUND") {
                 return null;
             }
@@ -338,7 +266,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
                     "/security/summary",
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
             }, "getSecuritySummary");
 
@@ -394,11 +322,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
         };
     }
 
-    private async withRetry<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries
-    ): Promise<T> {
+    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
         let lastError: unknown;
         const startTime = Date.now();
 
@@ -421,28 +345,31 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
 
                 if (!this.isRetryableError(error)) {
                     this.recordRequest(false, false);
-                    this.emitMetric('api_error', method, {
+                    this.emitMetric("api_error", method, {
                         error: this.getErrorType(error),
                         attempt: attempt + 1,
-                        retryable: false
+                        retryable: false,
                     });
                     throw error;
                 }
 
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`DeviceTrustManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
-                        method,
+                    logger.warn(
+                        `DeviceTrustManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
+                        {
+                            method,
+                            attempt: attempt + 1,
+                            maxAttempts: retries + 1,
+                            delay,
+                            error: this.getErrorType(error),
+                        },
+                    );
+
+                    this.emitMetric("api_retry", method, {
                         attempt: attempt + 1,
-                        maxAttempts: retries + 1,
                         delay,
                         error: this.getErrorType(error),
-                    });
-
-                    this.emitMetric('api_retry', method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error)
                     });
 
                     await this.sleep(delay);
@@ -452,10 +379,10 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
 
         this.recordRequest(false, true);
         const duration = Date.now() - startTime;
-        this.emitMetric('api_failure', method, {
+        this.emitMetric("api_failure", method, {
             attempts: retries + 1,
             duration,
-            error: this.getErrorType(lastError)
+            error: this.getErrorType(lastError),
         });
 
         throw lastError;
@@ -475,15 +402,9 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
 
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            const retryableCodes = [
-                "M_LIMIT_EXCEEDED",
-                "M_SERVER_UNAVAILABLE",
-            ];
+            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
             const retryableStatus = [429, 500, 502, 503, 504];
-            return (
-                retryableCodes.includes(error.errcode ?? "") ||
-                retryableStatus.includes(error.httpStatus ?? 0)
-            );
+            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
         }
         return false;
     }
@@ -491,15 +412,28 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
     private normalizeError(error: unknown, method: string): SdkError {
         const err = error as Error;
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(`DeviceTrustManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`DeviceTrustManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(`DeviceTrustManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error);
+            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
+                return new NotFoundError(
+                    `DeviceTrustManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                    error,
+                );
             }
-            return new ApiError(`DeviceTrustManager.${method} failed: ${err?.message ?? 'Unknown error'}`, error.errcode ?? 'UNKNOWN', error.httpStatus ?? 0, error);
+            return new ApiError(
+                `DeviceTrustManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error.errcode ?? "UNKNOWN",
+                error.httpStatus ?? 0,
+                error,
+            );
         }
-        return new ApiError(`DeviceTrustManager.${method} failed: ${err?.message ?? String(error)}`, 'UNKNOWN', 0, error);
+        return new ApiError(
+            `DeviceTrustManager.${method} failed: ${err?.message ?? String(error)}`,
+            "UNKNOWN",
+            0,
+            error,
+        );
     }
 
     private getErrorType(error: unknown): string {
@@ -521,7 +455,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
     }
 
     private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

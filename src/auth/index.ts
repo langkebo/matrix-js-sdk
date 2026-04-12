@@ -16,25 +16,23 @@ limitations under the License.
 
 /**
  * Auth Manager - 认证管理
- * 
+ *
  * 提供认证相关功能，包括：
  * - 登录流程管理
  * - 注册流程管理
  * - 登录流程缓存
  * - 统一错误处理
  * - 性能监控
- * 
+ *
  * 后端实现: synapse-rust/src/web/routes/auth_compat.rs
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { logger } from "../logger";
 import { type ILoginFlowsResponse } from "../@types/auth";
+import { type RegisterRequest, type RegisterResponse } from "../@types/registration";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
-import { MatrixError } from "../http-api/errors";
-import { AuthError, ApiError, RetryableError } from "../errors";
 
 export interface RegisterFlow {
     stages?: string[];
@@ -120,7 +118,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get supported login flows
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:252-259
      */
     public async getSupportedLoginFlows(forceRefresh = false): Promise<ILoginFlowsResponse> {
@@ -138,7 +136,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                     "/login",
                     undefined,
                     undefined,
-                    { prefix: undefined }
+                    { prefix: undefined },
                 );
             });
 
@@ -154,7 +152,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get supported registration flows
-     * 
+     *
      * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:261-269
      */
     public async getRegisterFlows(forceRefresh = false): Promise<RegisterFlowsResponse> {
@@ -172,7 +170,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                     "/register",
                     undefined,
                     undefined,
-                    { prefix: undefined }
+                    { prefix: undefined },
                 );
             });
 
@@ -200,9 +198,78 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     public async hasSSOLogin(): Promise<boolean> {
         const flows = await this.getSupportedLoginFlows();
-        return flows.flows?.some((flow: { type?: string }) => 
-            flow.type === "m.login.sso" || flow.type === "m.login.cas"
-        ) ?? false;
+        return (
+            flows.flows?.some(
+                (flow: { type?: string }) => flow.type === "m.login.sso" || flow.type === "m.login.cas",
+            ) ?? false
+        );
+    }
+
+    /**
+     * Register a user
+     *
+     * @param username - The desired username
+     * @param password - The desired password
+     * @param sessionId - The session ID from a previous registration attempt
+     * @param auth - The auth dictionary
+     * @param bindThreepids - Map of third party IDs to bind
+     * @param guestAccessToken - The guest access token to upgrade
+     * @param inhibitLogin - Whether to inhibit login
+     * @returns Promise which resolves to a RegisterResponse object
+     */
+    public async register(
+        username: string,
+        password: string,
+        sessionId: string | null,
+        auth: { session?: string; type: string },
+        _bindThreepids?: { email?: boolean; msisdn?: boolean },
+        guestAccessToken?: string,
+        inhibitLogin?: boolean,
+    ): Promise<RegisterResponse> {
+        if (sessionId) {
+            auth.session = sessionId;
+        }
+
+        const params: RegisterRequest = {
+            auth: auth,
+            refresh_token: true,
+        };
+        if (username !== undefined && username !== null) {
+            params.username = username;
+        }
+        if (password !== undefined && password !== null) {
+            params.password = password;
+        }
+        if (guestAccessToken !== undefined && guestAccessToken !== null) {
+            params.guest_access_token = guestAccessToken;
+        }
+        if (inhibitLogin !== undefined && inhibitLogin !== null) {
+            params.inhibit_login = inhibitLogin;
+        }
+
+        return this.withRetry(
+            async () =>
+                this.client.http.authedRequest<RegisterResponse>(Method.Post, "/register", undefined, params, {
+                    prefix: undefined,
+                }),
+            "register",
+        );
+    }
+
+    /**
+     * Register a guest account
+     *
+     * @param body - JSON HTTP body to provide
+     * @returns Promise which resolves to RegisterResponse
+     */
+    public async registerGuest(body?: RegisterRequest): Promise<RegisterResponse> {
+        return this.withRetry(
+            async () =>
+                this.client.http.authedRequest<RegisterResponse>(Method.Post, "/register", undefined, body || {}, {
+                    prefix: undefined,
+                }),
+            "registerGuest",
+        );
     }
 
     /**

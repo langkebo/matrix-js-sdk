@@ -295,6 +295,7 @@ export interface IRelationsResponse {
     chunk: IEvent[];
     next_batch?: string;
     prev_batch?: string;
+    total?: number;
 }
 
 export interface IContextResponse {

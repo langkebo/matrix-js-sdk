@@ -43,7 +43,7 @@ export enum AutoDiscoveryError {
     InvalidJson = "Invalid JSON",
     UnsupportedHomeserverSpecVersion = "The homeserver does not meet the version requirements",
 
-    // TODO: Implement when Sydent supports the `/versions` endpoint - https://github.com/matrix-org/sydent/issues/424
+    // Known limitation: enable once Sydent supports the `/versions` endpoint - https://github.com/matrix-org/sydent/issues/424
     //IdentityServerTooOld = "The identity server does not meet the minimum version requirements",
 }
 
@@ -390,29 +390,23 @@ export class AutoDiscovery {
     private static sanitizeWellKnownUrl(url?: string | null): string | false {
         if (!url) return false;
 
-        try {
-            let parsed: URL | undefined;
-            try {
-                parsed = new URL(url);
-            } catch (e) {
-                logger.error("Could not parse url", e);
-            }
-
-            if (!parsed?.hostname) return false;
-            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
-            if (parsed.username || parsed.password || parsed.search || parsed.hash) return false;
-
-            const port = parsed.port ? `:${parsed.port}` : "";
-            const path = parsed.pathname ? parsed.pathname : "";
-            let saferUrl = `${parsed.protocol}//${parsed.hostname}${port}${path}`;
-            if (saferUrl.endsWith("/")) {
-                saferUrl = saferUrl.substring(0, saferUrl.length - 1);
-            }
-            return saferUrl;
-        } catch (e) {
-            logger.error(e);
+        if (!URL.canParse(url)) {
+            logger.error("Could not parse url", url);
             return false;
         }
+
+        const parsed = new URL(url);
+        if (!parsed.hostname) return false;
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+        if (parsed.username || parsed.password || parsed.search || parsed.hash) return false;
+
+        const port = parsed.port ? `:${parsed.port}` : "";
+        const path = parsed.pathname ? parsed.pathname : "";
+        let saferUrl = `${parsed.protocol}//${parsed.hostname}${port}${path}`;
+        if (saferUrl.endsWith("/")) {
+            saferUrl = saferUrl.substring(0, saferUrl.length - 1);
+        }
+        return saferUrl;
     }
 
     private static fetch(resource: URL | string, options?: RequestInit): ReturnType<typeof globalThis.fetch> {

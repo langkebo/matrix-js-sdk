@@ -21,23 +21,25 @@ POST /_matrix/client/v1/rendezvous
 ```
 
 **请求体:**
+
 ```json
 {
-  "intent": "login.start",
-  "transport": "http.v1",
-  "transport_data": {
-    "algorithms": ["sha256"]
-  },
-  "expires_in_ms": 300000
+    "intent": "login.start",
+    "transport": "http.v1",
+    "transport_data": {
+        "algorithms": ["sha256"]
+    },
+    "expires_in_ms": 300000
 }
 ```
 
 **响应:**
+
 ```json
 {
-  "url": "matrix:rendezvous/xxx",
-  "session_id": "session_id",
-  "key": "base64_encoded_key"
+    "url": "matrix:rendezvous/xxx",
+    "session_id": "session_id",
+    "key": "base64_encoded_key"
 }
 ```
 
@@ -52,18 +54,19 @@ GET /_matrix/client/v1/rendezvous/{session_id}
 ```
 
 **响应:**
+
 ```json
 {
-  "session_id": "session_id",
-  "intent": "login.start",
-  "transport": "http.v1",
-  "transport_data": {},
-  "status": "created",
-  "created_ts": 1712345678000,
-  "expires_at": 1712345978000,
-  "user_id": "@user:example.com",
-  "device_id": "DEVICEID",
-  "key": "base64_encoded_key"
+    "session_id": "session_id",
+    "intent": "login.start",
+    "transport": "http.v1",
+    "transport_data": {},
+    "status": "created",
+    "created_ts": 1712345678000,
+    "expires_at": 1712345978000,
+    "user_id": "@user:example.com",
+    "device_id": "DEVICEID",
+    "key": "base64_encoded_key"
 }
 ```
 
@@ -78,22 +81,24 @@ PUT /_matrix/client/v1/rendezvous/{session_id}
 ```
 
 **请求体:**
+
 ```json
 {
-  "status": "connected"
+    "status": "connected"
 }
 ```
 
 **响应:**
+
 ```json
 {
-  "session_id": "session_id",
-  "status": "completed",
-  "login_finish": {
-    "access_token": "access_token",
-    "device_id": "DEVICEID",
-    "user_id": "@user:example.com"
-  }
+    "session_id": "session_id",
+    "status": "completed",
+    "login_finish": {
+        "access_token": "access_token",
+        "device_id": "DEVICEID",
+        "user_id": "@user:example.com"
+    }
 }
 ```
 
@@ -120,22 +125,24 @@ POST /_matrix/client/v1/rendezvous/{session_id}/messages
 ```
 
 **请求体:**
+
 ```json
 {
-  "type": "m.login.start",
-  "content": {
-    "homeserver": "https://matrix.example.com",
-    "user_id": "@user:example.com"
-  }
+    "type": "m.login.start",
+    "content": {
+        "homeserver": "https://matrix.example.com",
+        "user_id": "@user:example.com"
+    }
 }
 ```
 
 **响应:**
+
 ```json
 {
-  "session_id": "session_id",
-  "message_id": "message_id",
-  "sent_ts": 1712345678000
+    "session_id": "session_id",
+    "message_id": "message_id",
+    "sent_ts": 1712345678000
 }
 ```
 
@@ -150,17 +157,18 @@ GET /_matrix/client/v1/rendezvous/{session_id}/messages
 ```
 
 **响应:**
+
 ```json
 {
-  "messages": [
-    {
-      "type": "m.login.start",
-      "content": {
-        "homeserver": "https://matrix.example.com",
-        "user_id": "@user:example.com"
-      }
-    }
-  ]
+    "messages": [
+        {
+            "type": "m.login.start",
+            "content": {
+                "homeserver": "https://matrix.example.com",
+                "user_id": "@user:example.com"
+            }
+        }
+    ]
 }
 ```
 
@@ -176,43 +184,43 @@ created → connected → completed
   expired  cancelled
 ```
 
-| 状态 | 说明 |
-|------|------|
-| `created` | 会话已创建，等待另一端连接 |
-| `connected` | 双方已连接，正在交换信息 |
+| 状态        | 说明                        |
+| ----------- | --------------------------- |
+| `created`   | 会话已创建，等待另一端连接  |
+| `connected` | 双方已连接，正在交换信息    |
 | `completed` | 登录完成，返回 access_token |
-| `expired` | 会话已过期 |
-| `cancelled` | 会话已取消 |
+| `expired`   | 会话已过期                  |
+| `cancelled` | 会话已取消                  |
 
 ---
 
 ## Intent 类型
 
-| Intent | 说明 |
-|--------|------|
-| `login.start` | 在新设备上启动登录流程 |
+| Intent              | 说明                   |
+| ------------------- | ---------------------- |
+| `login.start`       | 在新设备上启动登录流程 |
 | `login.reciprocate` | 在已登录设备上确认登录 |
 
 ---
 
 ## Transport 类型
 
-| Transport | 说明 |
-|-----------|------|
-| `http.v1` | HTTP 轮询传输 |
+| Transport | 说明            |
+| --------- | --------------- |
+| `http.v1` | HTTP 轮询传输   |
 | `http.v2` | HTTP 长轮询传输 |
 
 ---
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 说明 |
-|--------|-------------|------|
-| M_MISSING_TOKEN | 401 | 缺少访问令牌 |
-| M_UNKNOWN_TOKEN | 401 | 无效的访问令牌 |
-| M_NOT_FOUND | 404 | 会话不存在或已过期 |
-| M_RENDEZVOUS_EXPIRED | 410 | 会话已过期 |
-| M_RENDEZVOUS_CANCELLED | 410 | 会话已取消 |
+| 错误码                 | HTTP 状态码 | 说明               |
+| ---------------------- | ----------- | ------------------ |
+| M_MISSING_TOKEN        | 401         | 缺少访问令牌       |
+| M_UNKNOWN_TOKEN        | 401         | 无效的访问令牌     |
+| M_NOT_FOUND            | 404         | 会话不存在或已过期 |
+| M_RENDEZVOUS_EXPIRED   | 410         | 会话已过期         |
+| M_RENDEZVOUS_CANCELLED | 410         | 会话已取消         |
 
 ---
 
@@ -284,7 +292,7 @@ const rendezvousManager = client.getRendezvousManager();
 const session = await rendezvousManager.createSession({
     intent: "login.start",
     transport: "http.v1",
-    expires_in_ms: 300000
+    expires_in_ms: 300000,
 });
 
 // 生成二维码 (session.url)
@@ -296,7 +304,7 @@ const messages = await rendezvousManager.pollForMessages(session.session_id, {
     maxAttempts: 60,
     onMessage: (messages) => {
         console.log("Received messages:", messages);
-    }
+    },
 });
 
 // 完成登录
@@ -320,8 +328,8 @@ await rendezvousManager.sendMessage(sessionId, {
     type: "m.login.reciprocate",
     content: {
         user_id: "@user:example.com",
-        device_id: "EXISTING_DEVICE"
-    }
+        device_id: "EXISTING_DEVICE",
+    },
 });
 
 // 完成会话

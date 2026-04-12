@@ -16,77 +16,77 @@ limitations under the License.
 
 /**
  * Token Manager - Token管理
- * 
+ *
  * 提供各种Token管理功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class TokenManager {
-    constructor(private client: MatrixClient) {}
+export interface TokenInfo {
+    accessToken: string | undefined;
+    deviceId: string | null;
+    userId: string | undefined;
+    homeserverUrl: string;
+    identityServerUrl: string | undefined;
+    sessionId: string | undefined;
+}
 
-    /**
-     * Get access token
-     */
+export interface TokenManagerEvents {
+    token_refreshed: void;
+    token_expired: void;
+    session_created: { sessionId: string };
+}
+
+export class TokenManager extends BaseManager<keyof TokenManagerEvents, TokenManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getAccessToken(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getAccessToken();
+        return this.client.getAccessToken() ?? undefined;
     }
 
-    /**
-     * Get device ID
-     */
     public getDeviceId(): string | null {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).deviceId;
+        return this.client.deviceId;
     }
 
-    /**
-     * Get user ID
-     */
     public getUserId(): string | undefined {
         return this.client.credentials.userId ?? undefined;
     }
 
-    /**
-     * Get homeserver URL
-     */
     public getHomeserverUrl(): string {
         return this.client.baseUrl;
     }
 
-    /**
-     * Get identity server URL
-     */
     public getIdentityServerUrl(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).idBaseUrl;
+        return this.client.idBaseUrl;
     }
 
-    /**
-     * Get session ID
-     */
     public getSessionId(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).sessionId;
+        return this.client.getSessionId();
     }
 
-    /**
-     * Check if has access token
-     */
     public hasAccessToken(): boolean {
         return !!this.getAccessToken();
     }
 
-    /**
-     * Check if has device ID
-     */
     public hasDeviceId(): boolean {
         return !!this.getDeviceId();
     }
+
+    public getTokenInfo(): TokenInfo {
+        return {
+            accessToken: this.getAccessToken(),
+            deviceId: this.getDeviceId(),
+            userId: this.getUserId(),
+            homeserverUrl: this.getHomeserverUrl(),
+            identityServerUrl: this.getIdentityServerUrl(),
+            sessionId: this.getSessionId(),
+        };
+    }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getTokenManager(): TokenManager;

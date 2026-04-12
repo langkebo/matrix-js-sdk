@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { LRUCache } from "../../../src/utils/lru-cache.ts";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+import { LRUCache, CacheRegistry } from "../../../src/utils/lru-cache.ts";
 
 describe("LRUCache", () => {
     let cache: LRUCache<string>;
@@ -121,7 +122,7 @@ describe("LRUCache", () => {
             expect(shortCache.get("key1")).toBe("value1");
 
             // Wait for TTL to expire
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise((resolve) => setTimeout(resolve, 150));
 
             expect(shortCache.get("key1")).toBeUndefined();
         });
@@ -132,7 +133,7 @@ describe("LRUCache", () => {
 
             expect(shortCache.has("key1")).toBe(true);
 
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise((resolve) => setTimeout(resolve, 150));
 
             expect(shortCache.has("key1")).toBe(false);
         });
@@ -144,7 +145,7 @@ describe("LRUCache", () => {
 
             expect(shortCache.values()).toEqual(["value1", "value2"]);
 
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise((resolve) => setTimeout(resolve, 150));
 
             expect(shortCache.values()).toEqual([]);
         });
@@ -241,5 +242,221 @@ describe("LRUCache", () => {
             expect(cache.get("key1")).toBe("updated");
             expect(cache.size()).toBe(1);
         });
+    });
+});
+
+describe("LRUCache with CacheConfig", () => {
+    it("should accept CacheConfig object in constructor", () => {
+        const cache = new LRUCache<string>({ maxSize: 5, ttl: 1000, name: "test-cache" });
+        expect(cache.getName()).toBe("test-cache");
+        expect(cache.getMaxSize()).toBe(5);
+        expect(cache.getTtl()).toBe(1000);
+    });
+
+    it("should generate default name if not provided", () => {
+        const cache = new LRUCache<string>({ maxSize: 5, ttl: 1000 });
+        expect(cache.getName()).toMatch(/^cache-\d+$/);
+    });
+
+    it("should support both constructor formats", () => {
+        const cache1 = new LRUCache<string>(5, 1000);
+        const cache2 = new LRUCache<string>({ maxSize: 5, ttl: 1000 });
+        expect(cache1.getMaxSize()).toBe(cache2.getMaxSize());
+        expect(cache1.getTtl()).toBe(cache2.getTtl());
+    });
+});
+
+describe("LRUCache eviction tracking", () => {
+    it("should track evictions in stats", () => {
+        const cache = new LRUCache<string>({ maxSize: 2, ttl: 10000 });
+        cache.set("key1", "value1");
+        cache.set("key2", "value2");
+        cache.set("key3", "value3"); // Evicts key1
+
+        const stats = cache.getStats();
+        expect(stats.evictions).toBe(1);
+    });
+
+    it("should call eviction listener on capacity eviction", () => {
+        const evicted: Array<{ key: string; value: string; reason: string }> = [];
+        const cache = new LRUCache<string>({ maxSize: 2, ttl: 10000 });
+        cache.onEviction((key, value, reason) => {
+            evicted.push({ key, value, reason });
+        });
+
+        cache.set("key1", "value1");
+        cache.set("key2", "value2");
+        cache.set("key3", "value3");
+
+        expect(evicted).toHaveLength(1);
+        expect(evicted[0]).toEqual({ key: "key1", value: "value1", reason: "capacity" });
+    });
+
+    it("should call eviction listener on manual delete", () => {
+        const evicted: Array<{ key: string; value: string; reason: string }> = [];
+        const cache = new LRUCache<string>({ maxSize: 10, ttl: 10000 });
+        cache.onEviction((key, value, reason) => {
+            evicted.push({ key, value, reason });
+        });
+
+        cache.set("key1", "value1");
+        cache.delete("key1");
+
+        expect(evicted).toHaveLength(1);
+        expect(evicted[0].reason).toBe("manual");
+    });
+
+    it("should call eviction listener on TTL expiration", async () => {
+        const evicted: Array<{ key: string; value: string; reason: string }> = [];
+        const cache = new LRUCache<string>({ maxSize: 10, ttl: 50 });
+        cache.onEviction((key, value, reason) => {
+            evicted.push({ key, value, reason });
+        });
+
+        cache.set("key1", "value1");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        cache.get("key1"); // Triggers TTL check
+
+        expect(evicted).toHaveLength(1);
+        expect(evicted[0].reason).toBe("expired");
+    });
+});
+
+describe("LRUCache purgeExpired", () => {
+    it("should purge expired entries", async () => {
+        const cache = new LRUCache<string>({ maxSize: 10, ttl: 50 });
+        cache.set("key1", "value1");
+        cache.set("key2", "value2");
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const purged = cache.purgeExpired();
+        expect(purged).toBe(2);
+        expect(cache.size()).toBe(0);
+    });
+
+    it("should track expiredPurges in stats", async () => {
+        const cache = new LRUCache<string>({ maxSize: 10, ttl: 50 });
+        cache.set("key1", "value1");
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        cache.purgeExpired();
+        const stats = cache.getStats();
+        expect(stats.expiredPurges).toBe(1);
+    });
+});
+
+describe("CacheRegistry", () => {
+    beforeEach(() => {
+        CacheRegistry.resetInstance();
+    });
+
+    afterEach(() => {
+        CacheRegistry.resetInstance();
+    });
+
+    it("should be a singleton", () => {
+        const registry1 = CacheRegistry.getInstance();
+        const registry2 = CacheRegistry.getInstance();
+        expect(registry1).toBe(registry2);
+    });
+
+    it("should register and unregister caches", () => {
+        const registry = CacheRegistry.getInstance();
+        const cache = new LRUCache<string>({ maxSize: 10, ttl: 1000, name: "test-cache" });
+
+        registry.register(cache);
+        expect(registry.getCacheNames()).toContain("test-cache");
+
+        registry.unregister("test-cache");
+        expect(registry.getCacheNames()).not.toContain("test-cache");
+    });
+
+    it("should aggregate stats from all caches", () => {
+        const registry = CacheRegistry.getInstance();
+        const cache1 = new LRUCache<string>({ maxSize: 10, ttl: 1000, name: "cache1" });
+        const cache2 = new LRUCache<string>({ maxSize: 20, ttl: 1000, name: "cache2" });
+
+        registry.register(cache1);
+        registry.register(cache2);
+
+        cache1.set("key1", "value1");
+        cache1.get("key1"); // hit
+        cache1.get("missing"); // miss
+
+        cache2.set("key2", "value2");
+        cache2.get("key2"); // hit
+
+        const stats = registry.getAggregatedStats();
+        expect(stats.totalCaches).toBe(2);
+        expect(stats.totalSize).toBe(2);
+        expect(stats.totalMaxSize).toBe(30);
+        expect(stats.totalHits).toBe(2);
+        expect(stats.totalMisses).toBe(1);
+        expect(stats.overallHitRate).toBeCloseTo(2 / 3);
+    });
+
+    it("should clear all caches", () => {
+        const registry = CacheRegistry.getInstance();
+        const cache1 = new LRUCache<string>({ maxSize: 10, ttl: 1000, name: "cache1" });
+        const cache2 = new LRUCache<string>({ maxSize: 10, ttl: 1000, name: "cache2" });
+
+        registry.register(cache1);
+        registry.register(cache2);
+
+        cache1.set("key1", "value1");
+        cache2.set("key2", "value2");
+
+        registry.clearAll();
+
+        expect(cache1.size()).toBe(0);
+        expect(cache2.size()).toBe(0);
+    });
+
+    it("should purge expired entries from all caches", async () => {
+        const registry = CacheRegistry.getInstance();
+        const cache1 = new LRUCache<string>({ maxSize: 10, ttl: 50, name: "cache1" });
+        const cache2 = new LRUCache<string>({ maxSize: 10, ttl: 50, name: "cache2" });
+
+        registry.register(cache1);
+        registry.register(cache2);
+
+        cache1.set("key1", "value1");
+        cache2.set("key2", "value2");
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const totalPurged = registry.purgeAllExpired();
+        expect(totalPurged).toBe(2);
+    });
+
+    it("should start and stop purge timer", () => {
+        vi.useFakeTimers();
+        const registry = CacheRegistry.getInstance();
+        // Set purge interval to 50ms for testing
+        registry.setPurgeInterval(50);
+        const cache = new LRUCache<string>({ maxSize: 10, ttl: 100, name: "cache1" });
+        registry.register(cache);
+
+        cache.set("key1", "value1");
+
+        registry.startPurgeTimer();
+        vi.advanceTimersByTime(150);
+        expect(cache.size()).toBe(0);
+
+        registry.stopPurgeTimer();
+        vi.useRealTimers();
+    });
+
+    it("should reset instance", () => {
+        const registry1 = CacheRegistry.getInstance();
+        registry1.register(new LRUCache<string>({ maxSize: 10, ttl: 1000, name: "cache1" }));
+
+        CacheRegistry.resetInstance();
+
+        const registry2 = CacheRegistry.getInstance();
+        expect(registry2.getCacheNames()).toHaveLength(0);
+        expect(registry1).not.toBe(registry2);
     });
 });

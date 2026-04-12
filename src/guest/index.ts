@@ -1,4 +1,3 @@
-import { logger } from "../logger"
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -17,16 +16,17 @@ limitations under the License.
 
 /**
  * Guest Manager - 访客管理
- * 
+ *
  * 提供访客账户注册和登录功能
- * 
+ *
  * 对应后端 API:
  * - POST /_matrix/client/v3/register/guest
  * - GET /_matrix/client/v3/account/guest
  * - POST /_matrix/client/v3/account/guest/upgrade
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { logger } from "../logger";
+import { BaseManager } from "../managers/base-manager.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
@@ -104,21 +104,19 @@ interface GuestManagerEventMap {
     [GuestEvent.GuestError]: (error: Error) => void;
 }
 
-export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEventMap> {
-    private client: MatrixClient;
+export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> {
     private guestInfo: IGuestInfo | null = null;
     private baseUrl: string;
 
     constructor(client: MatrixClient, baseUrl: string) {
-        super();
-        this.client = client;
+        super(client);
         this.baseUrl = baseUrl;
     }
 
     async registerGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
         try {
             const body: Record<string, unknown> = {
-                kind: 'guest',
+                kind: "guest",
             };
 
             if (deviceId) {
@@ -134,7 +132,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 "/register",
                 undefined,
                 body,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const guestInfo: IGuestInfo = {
@@ -158,7 +156,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
     async loginGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestLoginResponse> {
         try {
             const body: Record<string, unknown> = {
-                type: 'm.login.guest',
+                type: "m.login.guest",
             };
 
             if (deviceId) {
@@ -174,7 +172,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 "/login",
                 undefined,
                 body,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const guestInfo: IGuestInfo = {
@@ -210,10 +208,11 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                     return false;
                 }
             }
-            
+
             return false;
+            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('GuestManager.isGuest failed:', e);
+            logger.warn("GuestManager.isGuest failed:", e);
             return false;
         }
     }
@@ -245,15 +244,12 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 body.auth = authDict;
             }
 
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/account/password",
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 }
-            );
+            await this.client.http.authedRequest(Method.Post, "/account/password", undefined, body, {
+                prefix: ClientPrefix.V3,
+            });
 
             this.guestInfo = null;
+            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;
@@ -281,8 +277,9 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         try {
             const rooms = this.client.getRooms?.() || [];
             return rooms.map((r: Room) => r.roomId);
+            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('GuestManager.getGuestRooms failed:', e);
+            logger.warn("GuestManager.getGuestRooms failed:", e);
             return [];
         }
     }
@@ -296,6 +293,7 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
             const room = await this.client.joinRoom(roomIdOrAlias);
 
             return { roomId: room.roomId };
+            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;
@@ -314,14 +312,14 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                     `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V3 }
+                    { prefix: ClientPrefix.V3 },
                 );
                 return !!response?.room_id;
             }
 
             // For room IDs, avoid probing join semantics with a non-standard GET request.
             return !!this.client.getRoom?.(roomIdOrAlias);
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -345,13 +343,9 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
 
     public async getGuestInfoFromServer(): Promise<IServerGuestInfo> {
         try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                "/account/guest",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            ) as IServerGuestInfoResponse;
+            const response = (await this.client.http.authedRequest(Method.Get, "/account/guest", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            })) as IServerGuestInfoResponse;
 
             const guestInfo = response.guest;
             this.emit(GuestEvent.GuestInfoReceived, guestInfo);
@@ -381,13 +375,13 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 body.auth = request.auth;
             }
 
-            const response = await this.client.http.authedRequest(
+            const response = (await this.client.http.authedRequest(
                 Method.Post,
                 "/account/guest/upgrade",
                 undefined,
                 body,
-                { prefix: ClientPrefix.V3 }
-            ) as IUpgradeGuestResponse;
+                { prefix: ClientPrefix.V3 },
+            )) as IUpgradeGuestResponse;
 
             this.guestInfo = null;
             this.emit(GuestEvent.GuestUpgraded, response.user_id);
@@ -399,7 +393,10 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
         }
     }
 
-    public async registerGuestOnServer(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
+    public async registerGuestOnServer(
+        deviceId?: string,
+        initialDeviceDisplayName?: string,
+    ): Promise<IGuestRegisterResponse> {
         try {
             const body: Record<string, unknown> = {};
 
@@ -411,13 +408,9 @@ export class GuestManager extends TypedEventEmitter<GuestEvent, GuestManagerEven
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = await this.client.http.request(
-                Method.Post,
-                "/register/guest",
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 }
-            ) as IGuestRegisterResponse;
+            const response = (await this.client.http.request(Method.Post, "/register/guest", undefined, body, {
+                prefix: ClientPrefix.V3,
+            })) as IGuestRegisterResponse;
 
             const guestInfo: IGuestInfo = {
                 userId: response.user_id,

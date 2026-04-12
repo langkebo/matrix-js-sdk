@@ -23,6 +23,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { BaseManager } from "../managers/base-manager";
 
 const ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
 
@@ -42,11 +43,9 @@ export interface LoginFailuresResponse {
     failures: LoginFailure[];
 }
 
-export class SecurityManager {
-    private client: MatrixClient;
-
+export class SecurityManager extends BaseManager {
     public constructor(client: MatrixClient) {
-        this.client = client;
+        super(client);
     }
 
     /**
@@ -55,20 +54,18 @@ export class SecurityManager {
      */
     public async getAccountStatus(userId: string): Promise<AccountStatus | null> {
         try {
-            const response = await this.client.http.authedRequest<{locked?: boolean, suspended?: boolean, verified?: boolean}>(
-                Method.Get,
-                `/account_status/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                ADMIN_PREFIX,
-            );
+            const response = await this.client.http.authedRequest<{
+                locked?: boolean;
+                suspended?: boolean;
+                verified?: boolean;
+            }>(Method.Get, `/account_status/${encodeURIComponent(userId)}`, undefined, undefined, ADMIN_PREFIX);
 
             return {
                 locked: response.locked ?? false,
                 suspended: response.suspended ?? false,
                 verified: response.verified ?? false,
             };
-        } catch (error) {
+        } catch {
             return null;
         }
     }
@@ -95,13 +92,9 @@ export class SecurityManager {
      */
     public async listLoginFailures(): Promise<LoginFailure[]> {
         try {
-            const response = await this.client.http.authedRequest<{failures?: Record<string, {time: string, ip: string, userAgent?: string}[]>}>(
-                Method.Get,
-                "/login/failures",
-                undefined,
-                undefined,
-                ADMIN_PREFIX,
-            );
+            const response = await this.client.http.authedRequest<{
+                failures?: Record<string, { time: string; ip: string; userAgent?: string }[]>;
+            }>(Method.Get, "/login/failures", undefined, undefined, ADMIN_PREFIX);
 
             const failures: LoginFailure[] = [];
             if (response.failures) {
@@ -116,7 +109,7 @@ export class SecurityManager {
                 }
             }
             return failures;
-        } catch (error) {
+        } catch {
             return [];
         }
     }
@@ -138,7 +131,7 @@ export class SecurityManager {
             isSecure = false;
         }
 
-        const hasVerifiedDevices = devices.some((d) => {
+        const hasVerifiedDevices = devices.some((_d) => {
             return true;
         });
 

@@ -1,6 +1,6 @@
 /**
  * SDK Real Backend Test Configuration
- * 
+ *
  * 用于在真实后端服务器上测试SDK模块
  */
 
@@ -12,40 +12,35 @@ export const TestConfig = {
     testUser: {
         userId: "@sdk_testuser:localhost",
         password: "Test@123",
-        deviceId: "TEST_DEVICE"
+        deviceId: "TEST_DEVICE",
     },
 
     // 辅助用户
     secondaryUser: {
         userId: "@sdk_testuser2:localhost",
-        password: "Test@123"
+        password: "Test@123",
     },
-    
+
     // 测试房间配置
     testRoom: {
         name: "SDK Test Room",
-        topic: "Test Room for SDK Integration Testing"
+        topic: "Test Room for SDK Integration Testing",
     },
-    
+
     // 测试DM配置
     testDM: {
-        name: "SDK Test DM"
+        name: "SDK Test DM",
     },
-    
+
     // 超时配置 (毫秒)
     timeout: {
         short: 5000,
         medium: 15000,
-        long: 30000
+        long: 30000,
     },
-    
+
     // 测试消息
-    testMessages: [
-        "Hello, World!",
-        "Test message 1",
-        "Test message 2",
-        "中文测试消息"
-    ]
+    testMessages: ["Hello, World!", "Test message 1", "Test message 2", "中文测试消息"],
 };
 
 export default TestConfig;

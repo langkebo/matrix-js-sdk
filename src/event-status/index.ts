@@ -16,14 +16,24 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { EventStatus } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
-export class EventStatusManager {
-    constructor(private client: MatrixClient) {}
+export interface EventStatusManagerEvents {
+    status_changed: { roomId: string; eventId: string; status: EventStatus | null };
+    event_sending: { roomId: string; eventId: string };
+    event_sent: { roomId: string; eventId: string };
+    event_failed: { roomId: string; eventId: string };
+}
+
+export class EventStatusManager extends BaseManager<keyof EventStatusManagerEvents, EventStatusManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getEventStatus(roomId: string, eventId: string): EventStatus | null {
         const room = this.client.getRoom(roomId);
         if (!room) return null;
-        
+
         const event = room.findEventById(eventId);
         return event?.status || null;
     }
@@ -31,7 +41,7 @@ export class EventStatusManager {
     public setEventStatus(roomId: string, eventId: string, status: EventStatus): void {
         const room = this.client.getRoom(roomId);
         if (!room) return;
-        
+
         const event = room.findEventById(eventId);
         if (event) {
             event.setStatus(status);

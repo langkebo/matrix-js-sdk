@@ -24,6 +24,7 @@ import { type RouteResponse } from "fetch-mock";
 
 import * as testUtils from "../../test-utils/test-utils";
 import {
+    advanceTimersUntil,
     emitPromise,
     getSyncResponse,
     mkEventCustom,
@@ -217,21 +218,28 @@ describe("crypto", () => {
      * Create the {@link CryptoCallbacks}
      */
     function createCryptoCallbacks(): CryptoCallbacks {
-        // Store the cached secret storage key and return it when `getSecretStorageKey` is called
-        let cachedKey: { keyId: string; key: Uint8Array<ArrayBuffer> };
-        const cacheSecretStorageKey = (
-            keyId: string,
+        type SecretStorageKeyEntry = Exclude<
+            Awaited<ReturnType<NonNullable<CryptoCallbacks["getSecretStorageKey"]>>>,
+            null
+        >;
+        let cachedKey: { keyId: string; key: SecretStorageKeyEntry[1] } | undefined;
+        const cacheSecretStorageKey: NonNullable<CryptoCallbacks["cacheSecretStorageKey"]> = (
+            keyId,
             keyInfo: SecretStorageKeyDescription,
-            key: Uint8Array<ArrayBuffer>,
+            key,
         ) => {
             cachedKey = {
                 keyId,
-                key,
+                key: key.slice(0),
             };
         };
 
-        const getSecretStorageKey = () =>
-            Promise.resolve<[string, Uint8Array<ArrayBuffer>]>([cachedKey.keyId, cachedKey.key]);
+        const getSecretStorageKey: NonNullable<CryptoCallbacks["getSecretStorageKey"]> = () => {
+            if (!cachedKey) {
+                return Promise.resolve(null);
+            }
+            return Promise.resolve([cachedKey.keyId, cachedKey.key]);
+        };
 
         return {
             cacheSecretStorageKey,
@@ -1594,25 +1602,9 @@ describe("crypto", () => {
             // `user` will be added to the room
             syncResponder.sendOrQueueSyncResponse(getSyncResponse([user, "@bob:xyz"]));
 
-            // Advance local date to 2 minutes
-            // The old crypto only runs the upload every 60 seconds
-            vi.setSystemTime(Date.now() + 2 * 60 * 1000);
-
             await syncPromise(aliceClient);
 
-            // Old crypto: for alice: run over the `sleep(5)` in `doQueuedQueries` of `DeviceList`
-            vi.runAllTimers();
-            // Old crypto: for alice: run the `processQueryResponseForUser` in `doQueuedQueries` of `DeviceList`
-            await flushPromises();
-
-            // Wait for alice to query `user` keys
-            await queryPromise;
-
-            // Old crypto: for `user`: run over the `sleep(5)` in `doQueuedQueries` of `DeviceList`
-            vi.runAllTimers();
-            // Old crypto: for `user`: run the `processQueryResponseForUser` in `doQueuedQueries` of `DeviceList`
-            // It will add `@testing_florian1:matrix.org` devices to the DeviceList
-            await flushPromises();
+            await advanceTimersUntil(queryPromise);
 
             const devicesInfo = await aliceClient.getCrypto()!.getUserDeviceInfo([user]);
 
@@ -1928,6 +1920,8 @@ describe("crypto", () => {
             it("Should be able to restore from 4S after bootstrap", async () => {
                 const backupVersion = "1";
                 await bootstrapSecurity(backupVersion);
+
+                accountDataAccumulator.interceptGetAccountData();
 
                 const check = await aliceClient.getCrypto()!.checkKeyBackupAndEnable();
                 fetchMock.get(

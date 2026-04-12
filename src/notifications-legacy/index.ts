@@ -16,73 +16,55 @@ limitations under the License.
 
 /**
  * Notifications Legacy Manager - 旧版通知管理
- * 
+ *
  * 提供通知相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class NotificationsLegacyManager {
-    constructor(private client: MatrixClient) {}
+export interface NotificationsLegacyManagerEvents {
+    notification_count_changed: { roomId: string; count: number };
+    highlight_count_changed: { roomId: string; count: number };
+}
 
-    /**
-     * Get notification count
-     */
+export class NotificationsLegacyManager extends BaseManager<
+    keyof NotificationsLegacyManagerEvents,
+    NotificationsLegacyManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getNotificationCount(roomId: string): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getNotificationCount(roomId);
+        return this.client.getNotificationCount(roomId);
     }
 
-    /**
-     * Get highlight count
-     */
     public getHighlightCount(roomId: string): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getHighlightCount(roomId);
+        return this.client.getHighlightCount(roomId);
     }
 
-    /**
-     * Has unread notifications
-     */
     public hasUnreadNotifications(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasUnreadNotifications(roomId);
+        return this.client.hasUnreadNotifications(roomId);
     }
 
-    /**
-     * Has unread highlights
-     */
     public hasUnreadHighlights(roomId: string): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasUnreadHighlights(roomId);
+        return this.client.hasUnreadHighlights(roomId);
     }
 
-    /**
-     * Set notification callback
-     */
-    public setNotificationCallback(callback: Function): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).notificationCallback = callback;
+    public setNotificationCallback(callback: (count: number) => void): void {
+        this.client.notificationCallback = callback;
     }
 
-    /**
-     * Get total notification count
-     */
     public getTotalNotificationCount(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getTotalNotificationCount();
+        return this.client.getTotalNotificationCount();
     }
 
-    /**
-     * Get total highlight count
-     */
     public getTotalHighlightCount(): number {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getTotalHighlightCount();
+        return this.client.getTotalHighlightCount();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getNotificationsLegacyManager(): NotificationsLegacyManager;

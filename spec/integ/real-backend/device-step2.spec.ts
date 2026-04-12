@@ -92,4 +92,3 @@ describe("Device Step2 (real-backend)", () => {
         TestConfig.timeout.long,
     );
 });
-

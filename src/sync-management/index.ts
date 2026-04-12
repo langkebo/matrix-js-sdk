@@ -17,12 +17,22 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { SyncState } from "../sync";
+import { BaseManager } from "../managers/base-manager";
 
-export class SyncManager {
-    constructor(private client: MatrixClient) {}
+export interface SyncManagerEvents {
+    sync_started: void;
+    sync_stopped: void;
+    sync_state_changed: { state: SyncState };
+    sync_error: { error: Error };
+}
+
+export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getSyncToken(): string | undefined {
-        return (this.client as any).syncToken;
+        return this.client.syncToken ?? undefined;
     }
 
     public getSyncState(): SyncState | null {
@@ -34,7 +44,7 @@ export class SyncManager {
     }
 
     public isSyncing(): boolean {
-        return (this.client as any).syncing || false;
+        return this.client.syncing || false;
     }
 
     public getRooms(): Room[] {
@@ -42,16 +52,18 @@ export class SyncManager {
     }
 
     public async getJoinedRooms(): Promise<string[]> {
-        const response = await this.client.getJoinedRooms();
-        return response.joined_rooms;
+        return this.withRetry(async () => {
+            const response = await this.client.getJoinedRooms();
+            return response.joined_rooms;
+        }, "getJoinedRooms");
     }
 
     public getInvitedRooms(): Room[] {
-        return this.client.getRooms().filter(r => r.getMyMembership() === 'invite');
+        return this.client.getRooms().filter((r) => r.getMyMembership() === "invite");
     }
 
     public getLeftRooms(): Room[] {
-        return this.client.getRooms().filter(r => r.getMyMembership() === 'leave');
+        return this.client.getRooms().filter((r) => r.getMyMembership() === "leave");
     }
 }
 

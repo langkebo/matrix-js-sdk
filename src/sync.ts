@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
- * TODO:
+ * Notes:
  * This class mainly serves to take all the syncing logic out of client.js and
  * into a separate file. It's all very fluid, and this class gut wrenches a lot
  * of MatrixClient props (e.g. http). Given we want to support WebSockets as
@@ -26,7 +26,7 @@ limitations under the License.
 import type { SyncCryptoCallbacks } from "./common-crypto/CryptoBackend.ts";
 import { User } from "./models/user.ts";
 import { NotificationCountType, Room, RoomEvent } from "./models/room.ts";
-import { deepCopy, noUnsafeEventProps, unsafeProp } from "./utils.ts";
+import { deepCopy, noUnsafeEventProps, unsafeProp, type QueryDict } from "./utils.ts";
 import { Filter } from "./filter.ts";
 import { EventTimeline } from "./models/event-timeline.ts";
 import { type Logger } from "./logger.ts";
@@ -70,6 +70,8 @@ import { KnownMembership } from "./@types/membership.ts";
 // to keep open the connection. This constant is *ADDED* to the timeout= value
 // to determine the max time we're willing to wait.
 const BUFFER_PERIOD_MS = 80 * 1000;
+const PEEK_POLL_SERVER_TIMEOUT_MS = 30 * 1000;
+const PEEK_POLL_LOCAL_TIMEOUT_MS = 50 * 1000;
 
 // Number of consecutive failed syncs that will lead to a syncState of ERROR as opposed
 // to RECONNECTING. This is needed to inform the client of server issues when the
@@ -165,7 +167,7 @@ export enum SetPresence {
     Unavailable = "unavailable",
 }
 
-interface ISyncParams {
+interface ISyncParams extends QueryDict {
     "filter"?: string;
     "timeout": number;
     "since"?: string;
@@ -219,6 +221,7 @@ export class SyncApi {
     private storeIsInvalid = false; // flag set if the store needs to be cleared before we can start
     private presence?: SetPresence;
     private peekPollRetryCount = 0; // Number of consecutive peek poll failures
+    private loggedDeviceListsWithoutCrypto = false;
 
     /**
      * Construct an entity which is able to sync with a homeserver.
@@ -342,7 +345,7 @@ export class SyncApi {
             "org.matrix.msc4222.use_state_after": true,
         };
 
-        const data = await client.http.authedRequest<ISyncResponse>(Method.Get, "/sync", qps as any, undefined, {
+        const data = await client.http.authedRequest<ISyncResponse>(Method.Get, "/sync", qps, undefined, {
             localTimeoutMs,
         });
 
@@ -413,26 +416,15 @@ export class SyncApi {
             response.messages.chunk = response.messages.chunk || [];
             response.state = response.state || [];
 
-            // FIXME: Mostly duplicated from injectRoomEvents but not entirely
-            // because "state" in this API is at the BEGINNING of the chunk
             const oldStateEvents = deepCopy(response.state).map(client.getEventMapper());
             const stateEvents = response.state.map(client.getEventMapper());
             const messages = response.messages.chunk.map(client.getEventMapper());
 
-            // XXX: copypasted from /sync until we kill off this minging v1 API stuff)
-            // handle presence events (User objects)
             if (Array.isArray(response.presence)) {
-                response.presence.map(client.getEventMapper()).forEach(function (presenceEvent) {
-                    let user = client.store.getUser(presenceEvent.getContent().user_id);
-                    if (user) {
-                        user.setPresenceEvent(presenceEvent);
-                    } else {
-                        user = User.createUser(presenceEvent.getContent().user_id, client);
-                        user.setPresenceEvent(presenceEvent);
-                        client.store.storeUser(user);
-                    }
-                    client.emit(ClientEvent.Event, presenceEvent);
-                });
+                this.processPresenceEvents(
+                    response.presence.map(client.getEventMapper()),
+                    (presenceEvent) => presenceEvent.getContent().user_id,
+                );
             }
 
             // set the pagination token before adding the events in case people
@@ -476,6 +468,24 @@ export class SyncApi {
         this._peekRoom = null;
     }
 
+    private processPresenceEvents(
+        presenceEvents: MatrixEvent[],
+        getUserId: (presenceEvent: MatrixEvent) => string | undefined,
+    ): void {
+        for (const presenceEvent of presenceEvents) {
+            const userId = getUserId(presenceEvent);
+            if (!userId) continue;
+
+            let user = this.client.store.getUser(userId);
+            if (!user) {
+                user = User.createUser(userId, this.client);
+                this.client.store.storeUser(user);
+            }
+            user.setPresenceEvent(presenceEvent);
+            this.client.emit(ClientEvent.Event, presenceEvent);
+        }
+    }
+
     /**
      * Do a peek room poll.
      * @param token - from= token
@@ -486,19 +496,18 @@ export class SyncApi {
             return;
         }
 
-        // FIXME: gut wrenching; hard-coded timeout values
         this.client.http
             .authedRequest<IEventsResponse>(
                 Method.Get,
                 "/events",
                 {
                     room_id: peekRoom.roomId,
-                    timeout: String(30 * 1000),
+                    timeout: String(PEEK_POLL_SERVER_TIMEOUT_MS),
                     from: token,
                 },
                 undefined,
                 {
-                    localTimeoutMs: 50 * 1000,
+                    localTimeoutMs: PEEK_POLL_LOCAL_TIMEOUT_MS,
                     abortSignal: this.abortController?.signal,
                 },
             )
@@ -515,24 +524,14 @@ export class SyncApi {
                     // peeked room, we handle presence explicitly here. This may result
                     // in duplicate presence events firing for some users, which is a
                     // performance drain, but such is life.
-                    // XXX: copypasted from /sync until we can kill this minging v1 stuff.
-
-                    res.chunk
-                        .filter(function (e) {
-                            return e.type === "m.presence";
-                        })
-                        .map(this.client.getEventMapper())
-                        .forEach((presenceEvent) => {
-                            let user = this.client.store.getUser(presenceEvent.getContent().user_id);
-                            if (user) {
-                                user.setPresenceEvent(presenceEvent);
-                            } else {
-                                user = User.createUser(presenceEvent.getContent().user_id, this.client);
-                                user.setPresenceEvent(presenceEvent);
-                                this.client.store.storeUser(user);
-                            }
-                            this.client.emit(ClientEvent.Event, presenceEvent);
-                        });
+                    this.processPresenceEvents(
+                        res.chunk
+                            .filter(function (e) {
+                                return e.type === "m.presence";
+                            })
+                            .map(this.client.getEventMapper()),
+                        (presenceEvent) => presenceEvent.getContent().user_id,
+                    );
 
                     // strip out events which aren't for the given room_id (e.g presence)
                     // and also ephemeral events (which we're assuming is anything without
@@ -616,9 +615,9 @@ export class SyncApi {
     private getPushRules = async (): Promise<void> => {
         try {
             this.syncOpts.logger.debug("Getting push rules...");
-            const result = this.client.getPushManager ?
-                await this.client.getPushManager().getPushRules() :
-                await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
+            const result = this.client.getPushManager
+                ? await this.client.getPushManager().getPushRules()
+                : await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
             this.syncOpts.logger.debug("Got push rules");
 
             this.client.pushRules = result;
@@ -678,19 +677,16 @@ export class SyncApi {
             filter = this.buildDefaultFilter();
         }
 
-        let filterId: string;
-        try {
-            filterId = await this.client.getOrCreateFilter(getFilterName(this.client.credentials.userId!), filter);
-        } catch (err) {
-            this.syncOpts.logger.error("Getting filter failed", err);
-            if (this.shouldAbortSync(<MatrixError>err)) return {};
-            // wait for saved sync to complete before doing anything else,
-            // otherwise the sync state will end up being incorrect
-            this.syncOpts.logger.debug("Waiting for saved sync before retrying filter...");
-            await this.recoverFromSyncStartupError(this.savedSyncPromise, <Error>err);
-            return this.getFilter(); // try again
-        }
-        return { filter, filterId };
+        return this.client.getOrCreateFilter(getFilterName(this.client.credentials.userId!), filter).then(
+            (filterId) => ({ filter, filterId }),
+            async (err) => {
+                this.syncOpts.logger.error("Getting filter failed", err);
+                if (this.shouldAbortSync(<MatrixError>err)) return {};
+                this.syncOpts.logger.debug("Waiting for saved sync before retrying filter...");
+                await this.recoverFromSyncStartupError(this.savedSyncPromise, <Error>err);
+                return this.getFilter();
+            },
+        );
     };
 
     private savedSyncPromise?: Promise<void>;
@@ -725,6 +721,7 @@ export class SyncApi {
                 if (savedSync) {
                     return this.syncFromCache(savedSync);
                 }
+                return;
             })
             .catch((err) => {
                 this.syncOpts.logger.error("Getting saved sync failed", err);
@@ -939,7 +936,7 @@ export class SyncApi {
 
     private doSyncRequest(syncOptions: ISyncOptions, syncToken: string | null): Promise<ISyncResponse> {
         const qps = this.getSyncParams(syncOptions, syncToken);
-        return this.client.http.authedRequest<ISyncResponse>(Method.Get, "/sync", qps as any, undefined, {
+        return this.client.http.authedRequest<ISyncResponse>(Method.Get, "/sync", qps, undefined, {
             localTimeoutMs: qps.timeout + BUFFER_PERIOD_MS,
             abortSignal: this.abortController?.signal,
         });
@@ -1111,11 +1108,6 @@ export class SyncApi {
         //    }
         // }
 
-        // TODO-arch:
-        // - Each event we pass through needs to be emitted via 'event', can we
-        //   do this in one place?
-        // - The isBrandNewRoom boilerplate is boilerplatey.
-
         // handle presence events (User objects)
         if (Array.isArray(data.presence?.events)) {
             data.presence!.events.filter(noUnsafeEventProps)
@@ -1258,7 +1250,7 @@ export class SyncApi {
                      * bother setting it here. We trust our calculations better than the
                      * server's for this case, and therefore will assume that our non-zero
                      * count is accurate.
-                     * XXX: this is known faulty as the push rule for `.m.room.encrypted` may be disabled so server
+                     * Known limitation: this is known faulty as the push rule for `.m.room.encrypted` may be disabled so server
                      * may issue notification counts of 0 which we wrongly trust.
                      * https://github.com/matrix-org/matrix-spec-proposals/pull/2654 would fix this
                      *
@@ -1349,7 +1341,7 @@ export class SyncApi {
                             // timeline because that would put them out of order.
                             timelineEvents.splice(0, i);
 
-                            // XXX: there's a problem here if the skipped part of the
+                            // Known limitation: there's a problem here if the skipped part of the
                             // timeline modifies the state set in stateEvents, because
                             // we'll end up using the state from stateEvents rather
                             // than the later state from timelineEvents. We probably
@@ -1530,7 +1522,7 @@ export class SyncApi {
         // update the notification timeline, if appropriate.
         // we only do this for live events, as otherwise we can't order them sanely
         // in the timeline relative to ones paginated in by /notifications.
-        // XXX: we could fix this by making EventTimeline support chronological
+        // Future improvement: we could fix this by making EventTimeline support chronological
         // ordering... but it doesn't, right now.
         if (syncEventData.oldSyncToken && this.notifEvents.length) {
             this.notifEvents.sort(function (a, b) {
@@ -1546,9 +1538,12 @@ export class SyncApi {
             if (this.syncOpts.cryptoCallbacks) {
                 await this.syncOpts.cryptoCallbacks.processDeviceLists(data.device_lists);
             } else {
-                // FIXME if we *don't* have a crypto module, we still need to
-                // invalidate the device lists. But that would require a
-                // substantial bit of rework :/.
+                if (!this.loggedDeviceListsWithoutCrypto) {
+                    this.syncOpts.logger.warn(
+                        "Received device_lists update without crypto callbacks; skipping device list processing",
+                    );
+                    this.loggedDeviceListsWithoutCrypto = true;
+                }
             }
         }
 
@@ -1641,10 +1636,7 @@ export class SyncApi {
                     } else {
                         connDidFail = true;
                         const retryDelay = this.calculateKeepAliveRetryDelay();
-                        this.keepAliveTimer = setTimeout(
-                            this.pokeKeepAlive.bind(this, connDidFail),
-                            retryDelay,
-                        );
+                        this.keepAliveTimer = setTimeout(this.pokeKeepAlive.bind(this, connDidFail), retryDelay);
                         // A keepalive has failed, so we emit the
                         // error state (whether or not this is the
                         // first failure).
@@ -1737,9 +1729,12 @@ export class SyncApi {
                     displayname: user.displayName,
                 });
             } else {
-                promise = client.getProfileManager ?
-                    client.getProfileManager().getProfileInfo(member.userId) :
-                    client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(Method.Get, `/profile/${encodeURIComponent(member.userId)}`);
+                promise = client.getProfileManager
+                    ? client.getProfileManager().getProfileInfo(member.userId)
+                    : client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(
+                          Method.Get,
+                          `/profile/${encodeURIComponent(member.userId)}`,
+                      );
             }
             promise.then(
                 function (info: { avatar_url?: string; displayname?: string }) {
@@ -1756,7 +1751,7 @@ export class SyncApi {
                     // fire listeners
                     member.setMembershipEvent(inviteEvent, room.currentState);
                 },
-                function (err: Error) {
+                function (_err: Error) {
                     // OH WELL.
                 },
             );
@@ -1840,7 +1835,7 @@ export class SyncApi {
             // Passing these events into initialiseState will freeze them, so we need
             // to compute and cache the push actions for them now, otherwise sync dies
             // with an attempt to assign to read only property.
-            // XXX: This is pretty horrible and is assuming all sorts of behaviour from
+            // Known limitation: this is pretty horrible and is assuming all sorts of behaviour from
             // these functions that it shouldn't be. We should probably either store the
             // push actions cache elsewhere so we can freeze MatrixEvents, or otherwise
             // find some solution where MatrixEvents are immutable but allow for a cache
@@ -1858,7 +1853,7 @@ export class SyncApi {
 
         // recalculate the room name at this point as adding events to the timeline
         // may make notifications appear which should have the right name.
-        // XXX: This looks suspect: we'll end up recalculating the room once here
+        // Known limitation: this looks suspect: we'll end up recalculating the room once here
         // and then again after adding events (processSyncResponse calls it after
         // calling us) even if no state events were added. It also means that if
         // one of the room events in timelineEventList is something that needs
@@ -1870,7 +1865,7 @@ export class SyncApi {
         // If the timeline wasn't empty, we process the state events here: they're
         // defined as updates to the state before the start of the timeline, so this
         // starts to roll the state forward.
-        // XXX: That's what we *should* do, but this can happen if we were previously
+        // Known limitation: that's what we *should* do, but this can happen if we were previously
         // peeking in a room, in which case we obviously do *not* want to add the
         // state events here onto the end of the timeline. Historically, the js-sdk
         // has just set these new state events on the old and new state. This seems
@@ -1878,7 +1873,7 @@ export class SyncApi {
         // state, in which case this is going to leave things out of sync. However,
         // for now I think it;s best to behave the same as the code has done previously.
         if (!timelineWasEmpty) {
-            // XXX: As above, don't do this...
+            // As above, don't do this...
             //room.addLiveEvents(stateEventList || []);
             // Do this instead...
             room.oldState.setStateEvents(eitherStateEventList);

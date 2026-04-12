@@ -1,0 +1,60 @@
+name: Systemic Refactor Quality Gate
+on:
+    pull_request: {}
+    push:
+        branches: [develop, master]
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+permissions: {}
+jobs:
+    quality_gate:
+        name: Refactor Gate
+        runs-on: ubuntu-24.04
+        timeout-minutes: 20
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  fetch-depth: 0
+
+            - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+            - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  cache: "pnpm"
+                  node-version-file: package.json
+
+            - name: Install Deps
+              run: pnpm install
+
+            - name: Large file change guard
+              env:
+                  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+                  GITHUB_SHA: ${{ github.sha }}
+                  LARGE_FILE_THRESHOLD: "1500"
+              run: pnpm quality:large-file-check
+
+            - name: Lint and Typecheck
+              run: pnpm lint
+
+            - name: Entrypoint contract gates
+              run: pnpm quality:contracts
+
+            - name: Sensitive log scan (warning only)
+              run: pnpm quality:log-sensitive
+
+            - name: Swallow fallback guard
+              run: pnpm quality:swallow-fallbacks
+
+            - name: Unit + integration tests with coverage
+              run: pnpm test --coverage
+
+            - name: Critical modules coverage >= 90%
+              env:
+                  CRITICAL_COVERAGE_THRESHOLD: "90"
+              run: pnpm quality:coverage:critical
+
+            - name: High severity audit gate
+              run: pnpm audit:high
+
+            - name: Performance guard
+              run: pnpm perf:ci

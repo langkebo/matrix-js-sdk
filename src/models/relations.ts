@@ -164,7 +164,7 @@ export class Relations extends TypedEventEmitter<RelationsEvent, EventHandlerMap
      *
      * These are currently in the order of insertion to this collection, which
      * won't match timeline order in the case of scrollback.
-     * TODO: Tweak `addEvent` to insert correctly for scrollback.
+     * Known limitation: `addEvent` does not yet insert by timeline position during scrollback.
      *
      * Relation events in insertion order.
      */

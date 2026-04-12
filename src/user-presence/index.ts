@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * User Presence Manager - 用户在线状态管理
- * 
+ *
  * 提供用户在线状态相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IPresenceResponse {
     presence: string;
@@ -36,41 +37,69 @@ export interface ICachedPresence {
     currentlyActive?: boolean;
 }
 
-export class UserPresenceManager {
-    constructor(private client: MatrixClient) {}
+export interface UserPresenceManagerEvents {
+    presence_updated: { userId: string; presence: IPresenceResponse };
+    presence_subscribed: { userIds: string[] };
+}
+
+export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEvents, UserPresenceManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getUserPresence(userId: string): Promise<IPresenceResponse> {
-        return (this.client as unknown as {
-            getUserPresence: (userId: string) => Promise<IPresenceResponse>;
-        }).getUserPresence(userId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getUserPresence: (userId: string) => Promise<IPresenceResponse>;
+                    }
+                ).getUserPresence(userId),
+            "getUserPresence",
+        );
     }
 
     public async setPresence(presence: string, statusMsg?: string): Promise<{}> {
-        return (this.client as unknown as {
-            setPresence: (presence: string, statusMsg?: string) => Promise<{}>;
-        }).setPresence(presence, statusMsg);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        setPresence: (presence: string, statusMsg?: string) => Promise<{}>;
+                    }
+                ).setPresence(presence, statusMsg),
+            "setPresence",
+        );
     }
 
     public getCachedPresence(userId: string): ICachedPresence | null {
-        return (this.client as unknown as {
-            getCachedPresence: (userId: string) => ICachedPresence | null;
-        }).getCachedPresence(userId);
+        return (
+            this.client as unknown as {
+                getCachedPresence: (userId: string) => ICachedPresence | null;
+            }
+        ).getCachedPresence(userId);
     }
 
     public isPresenceAvailable(): boolean {
-        return (this.client as unknown as {
-            isPresenceAvailable: () => boolean;
-        }).isPresenceAvailable();
+        return (
+            this.client as unknown as {
+                isPresenceAvailable: () => boolean;
+            }
+        ).isPresenceAvailable();
     }
 
     public async subscribeToPresence(userIds: string[]): Promise<void> {
-        return (this.client as unknown as {
-            subscribeToPresence: (userIds: string[]) => Promise<void>;
-        }).subscribeToPresence(userIds);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        subscribeToPresence: (userIds: string[]) => Promise<void>;
+                    }
+                ).subscribeToPresence(userIds),
+            "subscribeToPresence",
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getUserPresenceManager(): UserPresenceManager;

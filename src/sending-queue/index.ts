@@ -16,12 +16,13 @@ limitations under the License.
 
 /**
  * Sending Queue Manager - 发送队列管理
- * 
+ *
  * 提供发送队列相关功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IQueuedEvent {
     event: MatrixEvent;
@@ -29,8 +30,16 @@ export interface IQueuedEvent {
     retries: number;
 }
 
-export class SendingQueueManager {
-    constructor(private client: MatrixClient) {}
+export interface SendingQueueManagerEvents {
+    event_queued: { eventId: string; priority: number };
+    event_dequeued: { eventId: string };
+    queue_cleared: void;
+}
+
+export class SendingQueueManager extends BaseManager<keyof SendingQueueManagerEvents, SendingQueueManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getSendingQueue(): IQueuedEvent[] {
         return (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue || [];
@@ -63,7 +72,6 @@ export class SendingQueueManager {
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getSendingQueueManager(): SendingQueueManager;

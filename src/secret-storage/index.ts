@@ -16,61 +16,68 @@ limitations under the License.
 
 /**
  * Secret Storage Manager - 密钥存储管理
- * 
+ *
  * 提供 secret storage 功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class SecretStorageManager {
-    constructor(private client: MatrixClient) {}
+export type SecretStorageKeyResult = [string, string] | null;
+
+export type SecretStorageKeys = Record<string, string>;
+
+export interface SecretStorageManagerEvents {
+    secret_stored: { name: string };
+    secret_retrieved: { name: string };
+    storage_ready: void;
+}
+
+export class SecretStorageManager extends BaseManager<keyof SecretStorageManagerEvents, SecretStorageManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * Is secret storage enabled
      */
     public isSecretStorageReady(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isSecretStorageReady();
+        return this.client.isSecretStorageReady();
     }
 
     /**
      * Get secret storage key
      */
-    public async getSecretStorageKey(keyId: string): Promise<any> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getSecretStorageKey(keyId);
+    public async getSecretStorageKey(keyId: string): Promise<SecretStorageKeyResult> {
+        return this.withRetry(() => this.client.getSecretStorageKey(keyId), "getSecretStorageKey");
     }
 
     /**
      * Store secret
      */
     public async storeSecret(name: string, secret: string, keys?: string[]): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).storeSecret(name, secret, keys);
+        return this.withRetry(() => this.client.storeSecret(name, secret, keys ?? []), "storeSecret");
     }
 
     /**
      * Get secret
      */
     public async getSecret(name: string): Promise<string | null> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getSecret(name);
+        return this.withRetry(() => this.client.getSecret(name), "getSecret");
     }
 
     /**
      * Check if secret exists
      */
     public async hasSecret(name: string): Promise<boolean> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).hasSecret(name);
+        return this.client.hasSecret(name);
     }
 
     /**
      * Get secret storage keys
      */
-    public async getSecretStorageKeys(): Promise<Record<string, any>> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).getSecretStorageKeys();
+    public async getSecretStorageKeys(): Promise<SecretStorageKeys> {
+        return this.withRetry(() => this.client.getSecretStorageKeys(), "getSecretStorageKeys");
     }
 }
 

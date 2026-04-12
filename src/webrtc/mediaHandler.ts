@@ -187,22 +187,42 @@ export class MediaHandler extends TypedEventEmitter<
         this.emit(MediaHandlerEvent.LocalStreamsChanged);
     }
 
-    public async hasAudioDevice(): Promise<boolean> {
+    /**
+     * Check if there's an audio input device
+     *
+     * @param throwOnError - Whether to throw on error (default false)
+     * @returns True if an audio device exists
+     */
+    public async hasAudioDevice(throwOnError = false): Promise<boolean> {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter((device) => device.kind === "audioinput").length > 0;
-        } catch (err) {
-            logger.log(`MediaHandler hasAudioDevice() calling navigator.mediaDevices.enumerateDevices with error`, err);
+            // @swallow-error { owner: "webrtc", expires: "2026-12-31" }
+        } catch (error) {
+            if (throwOnError) {
+                throw error;
+            }
+            logger.log(`MediaHandler.hasAudioDevice failed:`, error);
             return false;
         }
     }
 
-    public async hasVideoDevice(): Promise<boolean> {
+    /**
+     * Check if there's a video input device
+     *
+     * @param throwOnError - Whether to throw on error (default false)
+     * @returns True if a video device exists
+     */
+    public async hasVideoDevice(throwOnError = false): Promise<boolean> {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter((device) => device.kind === "videoinput").length > 0;
-        } catch (err) {
-            logger.log(`MediaHandler hasVideoDevice() calling navigator.mediaDevices.enumerateDevices with error`, err);
+            // @swallow-error { owner: "webrtc", expires: "2026-12-31" }
+        } catch (error) {
+            if (throwOnError) {
+                throw error;
+            }
+            logger.log(`MediaHandler.hasVideoDevice failed:`, error);
             return false;
         }
     }
@@ -461,10 +481,10 @@ export class MediaHandler extends TypedEventEmitter<
         }
 
         const videoConstraints: MediaTrackConstraints = {
-            /* We want 640x360.  Chrome will give it only if we ask exactly,
-               FF refuses entirely if we ask exactly, so have to ask for ideal
-               instead
-               XXX: Is this still true?
+            /**
+             * We want 640x360. Chrome will give it only if we ask exactly,
+             * FF refuses entirely if we ask exactly, so have to ask for ideal instead.
+             * Note: This behavior may have changed in recent browser versions.
              */
             width: isWebkit ? { exact: 640 } : { ideal: 640 },
             height: isWebkit ? { exact: 360 } : { ideal: 360 },

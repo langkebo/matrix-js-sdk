@@ -15,8 +15,9 @@ limitations under the License.
 */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { MatrixClient } from "../../src/client";
-import { FriendManager, FriendEvent, Friend, FriendRequest } from "../../src/friend/index.ts";
+
+import { type MatrixClient } from "../../src/client";
+import { FriendManager, FriendEvent, type Friend, type FriendRequest } from "../../src/friend/index.ts";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { Method } from "../../src/http-api/method.ts";
 import { ClientPrefix } from "../../src/http-api/prefix.ts";
@@ -56,11 +57,14 @@ describe("FriendManager", () => {
                 { prefix: ClientPrefix.V1 },
             );
 
-            expect(eventSpy).toHaveBeenCalledWith("@bob:example.com", expect.objectContaining({
-                user_id: "@bob:example.com",
-                reason: "Hello!",
-                status: "pending",
-            }));
+            expect(eventSpy).toHaveBeenCalledWith(
+                "@bob:example.com",
+                expect.objectContaining({
+                    user_id: "@bob:example.com",
+                    reason: "Hello!",
+                    status: "pending",
+                }),
+            );
         });
 
         it("should throw InvalidParamError for empty user ID", async () => {
@@ -203,13 +207,9 @@ describe("FriendManager", () => {
 
             const friends = await friendManager.getFriends();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/friends",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
 
             expect(friends).toEqual(mockFriends);
             expect(friendManager.getCachedFriends()).toHaveLength(2);
@@ -302,16 +302,18 @@ describe("FriendManager", () => {
                 { prefix: ClientPrefix.V1 },
             );
 
-            expect(updatedSpy).toHaveBeenCalledWith(expect.objectContaining({
-                user_id: "@bob:example.com",
-                status: "favorite",
-            }));
+            expect(updatedSpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: "@bob:example.com",
+                    status: "favorite",
+                }),
+            );
         });
 
         it("should throw InvalidParamError for invalid status", async () => {
-            await expect(
-                friendManager.updateFriendStatus("@bob:example.com", "invalid"),
-            ).rejects.toThrow(InvalidParamError);
+            await expect(friendManager.updateFriendStatus("@bob:example.com", "invalid")).rejects.toThrow(
+                InvalidParamError,
+            );
         });
 
         it("should throw InvalidParamError for empty user ID", async () => {
@@ -570,6 +572,13 @@ describe("FriendManager", () => {
 
             expect(friend).toBeNull();
         });
+
+        it("should throw on 404 error when throwOnError is true", async () => {
+            const notFoundError = new NotFoundError("Not found");
+            mockAuthedRequest.mockRejectedValue(notFoundError);
+
+            await expect(friendManager.getFriendInfo("@bob:example.com", true)).rejects.toThrow();
+        });
     });
 
     describe("Lifecycle Methods", () => {
@@ -632,13 +641,9 @@ describe("FriendManager", () => {
 
             await friendManager.getFriendsList();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/friends",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
         });
 
         it("should use addFriend as alias for sendFriendRequest", async () => {

@@ -42,14 +42,14 @@ export const SECRET_STORAGE_ALGORITHM_V1_AES = "m.secret_storage.v1.aes-hmac-sha
  */
 export interface SecretStorageKeyDescriptionCommon {
     /** A human-readable name for this key. */
-    // XXX: according to the spec, this is optional
+    // According to the spec, this is optional
     name: string;
 
     /** The encryption algorithm used with this key. */
     algorithm: string;
 
     /** Information for deriving this key from a passphrase. */
-    // XXX: according to the spec, this is optional
+    // According to the spec, this is optional
     passphrase: PassphraseInfo;
 }
 
@@ -61,7 +61,7 @@ export interface SecretStorageKeyDescriptionCommon {
  * @see https://spec.matrix.org/v1.6/client-server-api/#msecret_storagev1aes-hmac-sha2
  */
 export interface SecretStorageKeyDescriptionAesV1 extends SecretStorageKeyDescriptionCommon {
-    // XXX: strictly speaking, we should be able to enforce the algorithm here. But
+    // Strictly speaking, we should be able to enforce the algorithm here. But
     //   this interface ends up being incorrectly used where other algorithms are in use (notably
     //   in device-dehydration support), and unpicking that is too much like hard work
     //   at the moment.
@@ -253,7 +253,7 @@ export interface ServerSideSecretStorage {
      *     for. Defaults to the default key ID if not provided.
      * @returns If the key was found, the return value is an array of
      *     the form [keyId, keyInfo].  Otherwise, null is returned.
-     *     XXX: why is this an array when addKey returns an object?
+     *     Why is this an array when addKey returns an object?
      */
     getKey(keyId?: string | null): Promise<SecretStorageKeyTuple | null>;
 
@@ -437,7 +437,7 @@ export class ServerSideSecretStorageImpl implements ServerSideSecretStorage {
         keyInfo.iv = iv;
         keyInfo.mac = mac;
 
-        // Create a unique key id. XXX: this is racey.
+        // Create a unique key id. This is racey.
         if (!keyId) {
             do {
                 keyId = secureRandomString(32);
@@ -459,7 +459,7 @@ export class ServerSideSecretStorageImpl implements ServerSideSecretStorage {
      *     for. Defaults to the default key ID if not provided.
      * @returns If the key was found, the return value is an array of
      *     the form [keyId, keyInfo].  Otherwise, null is returned.
-     *     XXX: why is this an array when addKey returns an object?
+     *     Why is this an array when addKey returns an object?
      */
     public async getKey(keyId?: string | null): Promise<SecretStorageKeyTuple | null> {
         if (!keyId) {
@@ -544,7 +544,7 @@ export class ServerSideSecretStorageImpl implements ServerSideSecretStorage {
                 const [, encryption] = await this.getSecretStorageKey(keys, name);
                 encrypted[keyId] = await encryption.encrypt(secret);
             } else {
-                logger.warn("unknown algorithm for secret storage key " + keyId + ": " + keyInfo.algorithm);
+                logger.warn("unknown algorithm for secret storage key " + keyId + ": " + keyInfo.algorithm); // @log-allow: only logs keyId and algorithm, not secret value
                 // do nothing if we don't understand the encryption algorithm
             }
         }

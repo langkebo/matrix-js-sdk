@@ -163,7 +163,7 @@ export class LocalStorageCryptoStore extends MemoryCryptoStore implements Crypto
         func(this._getEndToEndSessions(deviceKey) ?? {});
     }
 
-    public storeEndToEndSession(deviceKey: string, sessionId: string, sessionInfo: ISessionInfo, txn: unknown): void {
+    public storeEndToEndSession(deviceKey: string, sessionId: string, sessionInfo: ISessionInfo, _txn: unknown): void {
         const sessions = this._getEndToEndSessions(deviceKey) || {};
         sessions[sessionId] = sessionInfo;
         setJsonItem(this.store, keyEndToEndSessions(deviceKey), sessions);
@@ -224,7 +224,7 @@ export class LocalStorageCryptoStore extends MemoryCryptoStore implements Crypto
     public getEndToEndInboundGroupSession(
         senderCurve25519Key: string,
         sessionId: string,
-        txn: unknown,
+        _txn: unknown,
         func: (groupSession: InboundGroupSessionData | null, groupSessionWithheld: IWithheld | null) => void,
     ): void {
         func(
@@ -237,7 +237,7 @@ export class LocalStorageCryptoStore extends MemoryCryptoStore implements Crypto
         senderCurve25519Key: string,
         sessionId: string,
         sessionData: InboundGroupSessionData,
-        txn: unknown,
+        _txn: unknown,
     ): void {
         setJsonItem(this.store, keyEndToEndInboundGroupSession(senderCurve25519Key, sessionId), sessionData);
     }
@@ -397,6 +397,7 @@ function getJsonItem<T>(store: Storage, key: string): T | null {
         // if the key is absent, store.getItem() returns null, and
         // JSON.parse(null) === null, so this returns null.
         return JSON.parse(store.getItem(key)!);
+        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
     } catch (e) {
         logger.log("Error: Failed to get key %s: %s", key, (<Error>e).message);
         logger.log((<Error>e).stack);

@@ -46,7 +46,10 @@ export type CallEventHandlerEventHandlerMap = {
 };
 
 export class CallEventHandler {
-    // XXX: Most of these are only public because of the tests
+    /**
+     * Internal note: Most of these are only public because of the tests.
+     * Consider refactoring to use dependency injection instead.
+     */
     public calls: Map<string, MatrixCall>;
     public callEventBuffer: MatrixEvent[];
     public nextSeqByCall: Map<string, number> = new Map();

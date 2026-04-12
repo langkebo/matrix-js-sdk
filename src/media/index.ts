@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Media Manager - 媒体管理
- * 
+ *
  * 提供媒体上传、下载、删除、URL预览功能
  */
 
@@ -24,24 +24,30 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { MediaPrefix } from "../http-api/prefix.ts";
 import type { UploadResponse } from "../http-api/interface.ts";
+import { BaseManager } from "../managers/base-manager";
 
 export interface UrlPreview {
-    url?: string;
-    title?: string;
-    description?: string;
-    image_url?: string;
-    image?: string;
-    og_image?: string;
+    "url"?: string;
+    "title"?: string;
+    "description"?: string;
+    "image_url"?: string;
+    "image"?: string;
+    "og_image"?: string;
     "matrix:image"?: string;
 }
 
-export class MediaManager {
-    constructor(private client: MatrixClient) {}
+export class MediaManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * Upload content
      */
-    public uploadContent(file: File | Blob | ArrayBuffer, opts?: { name?: string; type?: string; progress?: (progress: { loaded: number; total: number }) => void }): Promise<{ content_uri: string }> {
+    public uploadContent(
+        file: File | Blob | ArrayBuffer,
+        opts?: { name?: string; type?: string; progress?: (progress: { loaded: number; total: number }) => void },
+    ): Promise<{ content_uri: string }> {
         return this.client.http.uploadContent(file as Blob, opts as Record<string, unknown>);
     }
 
@@ -117,13 +123,9 @@ export class MediaManager {
             params.ts = ts;
         }
 
-        return this.client.http.authedRequest<UrlPreview>(
-            Method.Get,
-            "/media/preview_url",
-            params,
-            undefined,
-            { prefix: MediaPrefix.V1 },
-        );
+        return this.client.http.authedRequest<UrlPreview>(Method.Get, "/media/preview_url", params, undefined, {
+            prefix: MediaPrefix.V1,
+        });
     }
 }
 

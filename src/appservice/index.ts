@@ -1,4 +1,4 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -17,7 +17,7 @@ limitations under the License.
 
 /**
  * Application Service Manager - 应用服务管理
- * 
+ *
  * 提供应用服务的注册、查询、管理功能
  */
 
@@ -84,7 +84,7 @@ export interface RegisterApplicationServiceRequest {
     sender_localpart: string;
     rate_limited?: boolean;
     protocols?: string[];
-    namespaces?: ApplicationService['namespaces'];
+    namespaces?: ApplicationService["namespaces"];
 }
 
 export interface UpdateApplicationServiceRequest extends Partial<ApplicationService> {}
@@ -112,12 +112,12 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         }
 
         try {
-            const response = await this.client.http.authedRequest<ApplicationService>(
+            await this.client.http.authedRequest<ApplicationService>(
                 Method.Post,
                 "/application_services",
                 undefined,
                 request,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             const service: ApplicationService = {
@@ -153,27 +153,31 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
                 undefined,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             const service = response as ApplicationService;
             this.services.set(serviceId, service);
 
             return service;
+            // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ApplicationServiceManager.getApplicationService failed:', e);
+            logger.warn("ApplicationServiceManager.getApplicationService failed:", e);
             return null;
         }
     }
 
-    async updateApplicationService(serviceId: string, request: UpdateApplicationServiceRequest): Promise<ApplicationService> {
+    async updateApplicationService(
+        serviceId: string,
+        request: UpdateApplicationServiceRequest,
+    ): Promise<ApplicationService> {
         try {
-            const response = await this.client.http.authedRequest<ApplicationService>(
+            await this.client.http.authedRequest<ApplicationService>(
                 Method.Put,
                 `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
                 request,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             const existing = this.services.get(serviceId);
@@ -200,7 +204,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 `/application_services/${encodeURIComponent(serviceId)}`,
                 undefined,
                 undefined,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             this.services.delete(serviceId);
@@ -218,15 +222,15 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 "/application_services",
                 undefined,
                 undefined,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             const services = response.application_services || [];
-            services.forEach(s => this.services.set(s.id, s));
+            services.forEach((s) => this.services.set(s.id, s));
 
             return services;
         } catch (e) {
-            logger.warn('ApplicationServiceManager.listApplicationServices failed:', e);
+            logger.warn("ApplicationServiceManager.listApplicationServices failed:", e);
             return Array.from(this.services.values());
         }
     }
@@ -238,11 +242,11 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 "/appservice/user",
                 { user_id: userId },
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return response.exists === true;
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -254,11 +258,11 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 "/appservice/alias",
                 { alias },
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return response.exists === true;
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -266,18 +270,18 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
     async pingApplicationService(serviceId: string): Promise<PingResult> {
         try {
             const startTime = Date.now();
-            
+
             await this.client.http.authedRequest(
                 Method.Post,
                 `/application_services/${encodeURIComponent(serviceId)}/ping`,
                 undefined,
                 undefined,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             return { duration: Date.now() - startTime };
         } catch (e) {
-            logger.warn('ApplicationServiceManager.pingApplicationService failed:', e);
+            logger.warn("ApplicationServiceManager.pingApplicationService failed:", e);
             return { duration: -1 };
         }
     }
@@ -289,12 +293,13 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return response;
+            // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ApplicationServiceManager.getProtocol failed:', e);
+            logger.warn("ApplicationServiceManager.getProtocol failed:", e);
             return null;
         }
     }
@@ -306,12 +311,13 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 "/thirdparty/protocols",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return Object.keys(response || {});
+            // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ApplicationServiceManager.getProtocols failed:', e);
+            logger.warn("ApplicationServiceManager.getProtocols failed:", e);
             return [];
         }
     }
@@ -323,12 +329,13 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 `/thirdparty/user/${encodeURIComponent(protocol)}`,
                 fields,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return response;
+            // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ApplicationServiceManager.queryUsers failed:', e);
+            logger.warn("ApplicationServiceManager.queryUsers failed:", e);
             return [];
         }
     }
@@ -340,12 +347,13 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
                 `/thirdparty/location/${encodeURIComponent(protocol)}`,
                 fields,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             return response;
+            // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
         } catch (e) {
-            logger.warn('ApplicationServiceManager.queryLocations failed:', e);
+            logger.warn("ApplicationServiceManager.queryLocations failed:", e);
             return [];
         }
     }
@@ -369,7 +377,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
             await this.listApplicationServices();
             this.initialized = true;
         } catch (e) {
-            logger.warn('ApplicationServiceManager.start failed:', e);
+            logger.warn("ApplicationServiceManager.start failed:", e);
         }
     }
 

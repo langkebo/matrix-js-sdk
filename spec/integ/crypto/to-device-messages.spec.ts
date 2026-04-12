@@ -81,7 +81,9 @@ describe("to-device-messages", () => {
                 body: { errcode: "M_NOT_FOUND" },
             });
 
+            fetchMock.get(new URL("/_matrix/client/v3/pushrules", homeserverUrl).toString(), {});
             fetchMock.get(new URL("/_matrix/client/v3/pushrules/", homeserverUrl).toString(), {});
+            fetchMock.get(new URL("/_matrix/client/versions", homeserverUrl).toString(), {});
             fetchMock.get(new URL("/_matrix/client/versions/", homeserverUrl).toString(), {});
             fetchMock.post(
                 new URL(

@@ -14,14 +14,20 @@
         "allowImportingTsExtensions": true,
         "lib": ["esnext", "dom", "dom.iterable"],
         "types": ["vitest/globals", "node"],
+
+        // 严格模式
+        "noImplicitAny": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+
+        // 增量编译优化
+        "incremental": true,
+        "tsBuildInfoFile": "node_modules/.tsbuildinfo",
+
         "paths": {
             "#types/*": ["./node_modules/vite/types/*"]
         }
     },
     "include": ["./src/**/*.ts", "./src/**/*.d.ts", "./spec/**/*.ts"],
-    "exclude": [
-        "spec/integ/real-backend/**/*",
-        "spec/integ/sliding-sync-sdk.spec.ts",
-        "spec/unit/account.spec.ts"
-    ]
+    "exclude": ["spec/integ/real-backend/**/*", "spec/integ/sliding-sync-sdk.spec.ts", "spec/unit/account.spec.ts"]
 }

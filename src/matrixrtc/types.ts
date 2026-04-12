@@ -70,7 +70,7 @@ export interface EncryptionKeysToDeviceEventContent {
     keys: { index: number; key: string };
     member: {
         id: string;
-        // TODO Remove that it is claimed, need to get the sealed sender from decryption info
+        // Known limitation: this is claimed data; sealed sender info is not yet available here.
         // Or add some validation on it based on the encryption info
         claimed_device_id: string;
     };

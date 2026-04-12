@@ -78,12 +78,13 @@ export class TokenRefresher {
             return this.tokenRefreshPromise;
         }
         // If we don't know the token expiry, we can't eagerly refresh
-        if (!this.latestTokenRefreshExpiry) return;
+        if (!this.latestTokenRefreshExpiry) return undefined;
 
         const expiresIn = this.latestTokenRefreshExpiry.getTime() - Date.now();
         if (expiresIn <= REFRESH_IF_TOKEN_EXPIRES_WITHIN_MS) {
-            await this._handleUnknownToken();
+            return this._handleUnknownToken();
         }
+        return undefined;
     }
 
     /**

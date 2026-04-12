@@ -1,0 +1,86 @@
+{
+    "timestamp": "2026-04-11",
+    "baselineTimestamp": "2026-04-11",
+    "summary": {
+        "totalChanges": 8,
+        "improvements": 8,
+        "regressions": 0
+    },
+    "bundle": {
+        "current": 2.05,
+        "baseline": 2.05,
+        "change": 0,
+        "percent": "0.0%",
+        "status": "improved"
+    },
+    "criticalModules": {
+        "src/client.ts": {
+            "current": 6670,
+            "baseline": 6670,
+            "change": 0,
+            "percent": "0.0%",
+            "status": "improved"
+        },
+        "src/push/index.ts": {
+            "current": 933,
+            "baseline": 933,
+            "change": 0,
+            "percent": "0.0%",
+            "status": "improved"
+        },
+        "src/room-summary/index.ts": {
+            "current": 1658,
+            "baseline": 1658,
+            "change": 0,
+            "percent": "0.0%",
+            "status": "improved"
+        },
+        "src/admin/index.ts": {
+            "current": 1496,
+            "baseline": 1496,
+            "change": 0,
+            "percent": "0.0%",
+            "status": "improved"
+        },
+        "src/dm/index.ts": {
+            "current": 969,
+            "baseline": 969,
+            "change": 0,
+            "percent": "0.0%",
+            "status": "improved"
+        },
+        "src/space/index.ts": {
+            "current": 634,
+            "baseline": 634,
+            "change": 0,
+            "percent": "0.0%",
+            "status": "improved"
+        }
+    },
+    "managerMigration": {},
+    "testCoverage": {
+        "current": 71.88,
+        "baseline": 71.88,
+        "change": 0,
+        "percent": "0.0%",
+        "status": "improved"
+    },
+    "targets": {
+        "bundleSizeReduction": {
+            "target": "-20%",
+            "status": "pending"
+        },
+        "clientTsLinesReduction": {
+            "target": "-30%",
+            "status": "pending"
+        },
+        "managerCoverage": {
+            "target": ">= 95%",
+            "status": "pending"
+        },
+        "testCoverage": {
+            "target": ">= 80%",
+            "status": "pending"
+        }
+    }
+}

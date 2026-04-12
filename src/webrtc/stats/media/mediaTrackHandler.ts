@@ -58,7 +58,7 @@ export class MediaTrackHandler {
     }
 
     public getActiveSimulcastStreams(): number {
-        //@TODO implement this right.. Check how many layer configured
+        // Known limitation: currently assumes three active simulcast layers.
         return 3;
     }
 

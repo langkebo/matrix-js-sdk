@@ -6,8 +6,8 @@
 
 ## 挂载版本
 
-| 前缀 | 说明 |
-|------|------|
+| 前缀                 | 说明                           |
+| -------------------- | ------------------------------ |
 | `/_matrix/client/v1` | 支持全部 verification 兼容路由 |
 | `/_matrix/client/r0` | 支持全部 verification 兼容路由 |
 
@@ -22,20 +22,20 @@
 
 ## SAS 设备校验流程
 
-| 方法 | 路径 | 版本 | 主要请求参数 | 主要响应字段 |
-|------|------|------|--------------|--------------|
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_start` | v1/r0 | `from_device` `to_user` `to_device?` `transaction_id?` `method?` | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string` |
-| PUT | `/_matrix/client/{v1,r0}/keys/device_signing/verify_accept` | v1/r0 | `transaction_id` `key_agreement_protocol` `hash` `commitment?` | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string` `commitment` |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_key_agreement` | v1/r0 | `transaction_id` `pubkey` | `transaction_id` `confirmed` `short_authentication_string` |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_mac` | v1/r0 | `transaction_id` `mac` | `transaction_id` `verified` |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_done` | v1/r0 | `transaction_id` | `transaction_id` |
+| 方法 | 路径                                                               | 版本  | 主要请求参数                                                     | 主要响应字段                                                                                         |
+| ---- | ------------------------------------------------------------------ | ----- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_start`         | v1/r0 | `from_device` `to_user` `to_device?` `transaction_id?` `method?` | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string`              |
+| PUT  | `/_matrix/client/{v1,r0}/keys/device_signing/verify_accept`        | v1/r0 | `transaction_id` `key_agreement_protocol` `hash` `commitment?`   | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string` `commitment` |
+| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_key_agreement` | v1/r0 | `transaction_id` `pubkey`                                        | `transaction_id` `confirmed` `short_authentication_string`                                           |
+| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_mac`           | v1/r0 | `transaction_id` `mac`                                           | `transaction_id` `verified`                                                                          |
+| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_done`          | v1/r0 | `transaction_id`                                                 | `transaction_id`                                                                                     |
 
 ## 二维码校验
 
-| 方法 | 路径 | 版本 | 主要请求参数 | 主要响应字段 |
-|------|------|------|--------------|--------------|
-| GET | `/_matrix/client/{v1,r0}/keys/qr_code/show` | v1/r0 | 无 | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` |
-| POST | `/_matrix/client/{v1,r0}/keys/qr_code/scan` | v1/r0 | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` | `transaction_id` `state` |
+| 方法 | 路径                                        | 版本  | 主要请求参数                                                                                      | 主要响应字段                                                                                      |
+| ---- | ------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| GET  | `/_matrix/client/{v1,r0}/keys/qr_code/show` | v1/r0 | 无                                                                                                | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` |
+| POST | `/_matrix/client/{v1,r0}/keys/qr_code/scan` | v1/r0 | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` | `transaction_id` `state`                                                                          |
 
 ## 典型请求/响应
 
@@ -52,8 +52,8 @@
 - `verify_accept` 请求体中的 `commitment` 当前只作为入参结构保留，handler 实际调用只使用 `transaction_id`、`key_agreement_protocol`、`hash`。
 - `verify_done` 当前内部通过 `confirm_sas(transaction_id, "")` 标记完成，没有单独的 done service 方法。
 - `verify_key_agreement` 返回的 `short_authentication_string` 形态不固定:
-  - emoji 模式下会包含 `emoji`，并附带 `decimal.points`
-  - decimal 模式下只包含 `decimal.points`
+    - emoji 模式下会包含 `emoji`，并附带 `decimal.points`
+    - decimal 模式下只包含 `decimal.points`
 - `scan_qr_code` 当前构造的 `QrCodeData` 中 `server_public_key` 与 `signature` 被置为空字符串，不在响应中回传。
 
 ## 代码定位

@@ -68,15 +68,9 @@ export async function withErrorHandling<T>(
         if (isSDKError(error)) {
             sdkError = error;
         } else if (error instanceof Error) {
-            sdkError = createError(
-                ErrorCodes.SERVER_ERROR,
-                error.message,
-            );
+            sdkError = createError(ErrorCodes.SERVER_ERROR, error.message);
         } else {
-            sdkError = createError(
-                ErrorCodes.SERVER_ERROR,
-                "Unknown error",
-            );
+            sdkError = createError(ErrorCodes.SERVER_ERROR, "Unknown error");
         }
         onError?.(sdkError);
         if (fallback !== undefined) return fallback;

@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * Search Manager - 搜索管理
- * 
+ *
  * 提供消息、用户搜索功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface ISearchOptions {
     term: string;
@@ -70,35 +71,68 @@ export interface IUserDirectoryResponse {
     limited?: boolean;
 }
 
-export class SearchManager {
-    constructor(private client: MatrixClient) {}
+export interface SearchManagerEvents {
+    search_completed: { term: string; count: number };
+    search_failed: { term: string; error: Error };
+}
+
+export class SearchManager extends BaseManager<keyof SearchManagerEvents, SearchManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async searchMessageText(opts: ISearchOptions): Promise<ISearchResponse> {
-        return (this.client as unknown as {
-            searchMessageText: (opts: ISearchOptions) => Promise<ISearchResponse>;
-        }).searchMessageText(opts);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        searchMessageText: (opts: ISearchOptions) => Promise<ISearchResponse>;
+                    }
+                ).searchMessageText(opts),
+            "searchMessageText",
+        );
     }
 
     public async searchRoomEvents(opts: ISearchOptions): Promise<ISearchResponse> {
-        return (this.client as unknown as {
-            searchRoomEvents: (opts: ISearchOptions) => Promise<ISearchResponse>;
-        }).searchRoomEvents(opts);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        searchRoomEvents: (opts: ISearchOptions) => Promise<ISearchResponse>;
+                    }
+                ).searchRoomEvents(opts),
+            "searchRoomEvents",
+        );
     }
 
     public async searchUserDirectory(opts: { term: string; limit?: number }): Promise<IUserDirectoryResponse> {
-        return (this.client as unknown as {
-            searchUserDirectory: (opts: { term: string; limit?: number }) => Promise<IUserDirectoryResponse>;
-        }).searchUserDirectory(opts);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        searchUserDirectory: (opts: {
+                            term: string;
+                            limit?: number;
+                        }) => Promise<IUserDirectoryResponse>;
+                    }
+                ).searchUserDirectory(opts),
+            "searchUserDirectory",
+        );
     }
 
     public async search(opts: { room_events?: ISearchOptions }): Promise<ISearchResponse> {
-        return (this.client as unknown as {
-            search: (opts: { room_events?: ISearchOptions }) => Promise<ISearchResponse>;
-        }).search(opts);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        search: (opts: { room_events?: ISearchOptions }) => Promise<ISearchResponse>;
+                    }
+                ).search(opts),
+            "search",
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getSearchManager(): SearchManager;

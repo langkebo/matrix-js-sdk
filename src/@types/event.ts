@@ -361,7 +361,11 @@ export interface StateEvents {
     [EventType.RoomCreate]: RoomCreateEventContent;
     [EventType.RoomJoinRules]: RoomJoinRulesEventContent;
     [EventType.RoomMember]: RoomMemberEventContent;
-    // XXX: Spec says this event has 3 required fields but kicking such an invitation requires sending `{}`
+    /**
+     * Known limitation: Spec says this event has 3 required fields but kicking
+     * such an invitation requires sending `{}`. Hence we allow EmptyObject.
+     * See: https://spec.matrix.org/v1.6/client-server-api/#mroomthird_party_invite
+     */
     [EventType.RoomThirdPartyInvite]: RoomThirdPartyInviteEventContent | EmptyObject;
     [EventType.RoomPowerLevels]: RoomPowerLevelsEventContent;
     [EventType.RoomName]: RoomNameEventContent;

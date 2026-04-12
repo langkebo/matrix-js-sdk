@@ -343,24 +343,33 @@ export class IndexedDBStore extends MemoryStore {
                 if (fallbackFn) {
                     return fallbackFn.call(this, ...args);
                 }
+                return undefined as F extends string ? R : void;
             }
         }) as DegradableFn<A, F extends string ? R : void>;
     }
 
-    // XXX: ideally these would be stored in indexeddb as part of the room but,
-    // we don't store rooms as such and instead accumulate entire sync responses atm.
+    /**
+     * Known limitation: Ideally these would be stored in IndexedDB as part of the room,
+     * but we don't store rooms as such and instead accumulate entire sync responses atm.
+     */
     public async getPendingEvents(roomId: string): Promise<Partial<IEvent>[]> {
         if (!this.localStorage) return super.getPendingEvents(roomId);
 
         const serialized = this.localStorage.getItem(pendingEventsKey(roomId));
-        if (serialized) {
-            try {
-                return JSON.parse(serialized);
-            } catch (e) {
-                logger.error("Could not parse persisted pending events", e);
-            }
-        }
-        return [];
+        return Promise.resolve(serialized)
+            .then((value) => {
+                if (!value) {
+                    return [];
+                }
+                return JSON.parse(value) as Partial<IEvent>[];
+            })
+            .then(
+                (value) => value,
+                (error) => {
+                    logger.error("Could not parse persisted pending events", error);
+                    return [];
+                },
+            );
     }
 
     public async setPendingEvents(roomId: string, events: Partial<IEvent>[]): Promise<void> {

@@ -14,14 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * LRU Cache with TTL support
- *
- * A Least Recently Used (LRU) cache implementation with time-to-live (TTL) expiration.
- * When the cache reaches its maximum size, the oldest entry is evicted.
- * Entries automatically expire after the specified TTL.
- */
-
 interface CacheEntry<T> {
     value: T;
     timestamp: number;
@@ -33,42 +25,73 @@ export interface CacheStats {
     hits: number;
     misses: number;
     hitRate: number;
+    evictions: number;
+    expiredPurges: number;
 }
 
-/**
- * LRU Cache with TTL support
- *
- * @example
- * ```typescript
- * const cache = new LRUCache<User>(100, 5 * 60 * 1000); // 100 items, 5 min TTL
- * cache.set('user1', userData);
- * const user = cache.get('user1');
- * ```
- */
+export type EvictionListener<T> = (key: string, value: T, reason: "capacity" | "expired" | "manual") => void;
+
+export interface CacheConfig {
+    maxSize: number;
+    ttl: number;
+    name?: string;
+}
+
+export interface AggregatedCacheStats {
+    totalCaches: number;
+    totalSize: number;
+    totalMaxSize: number;
+    totalHits: number;
+    totalMisses: number;
+    overallHitRate: number;
+    totalEvictions: number;
+    totalExpiredPurges: number;
+    caches: Record<string, CacheStats>;
+}
+
 export class LRUCache<T> {
     private cache = new Map<string, CacheEntry<T>>();
     private readonly maxSize: number;
     private readonly ttl: number;
+    private readonly name: string;
     private hits = 0;
     private misses = 0;
+    private evictions = 0;
+    private expiredPurges = 0;
+    private evictionListener?: EvictionListener<T>;
 
-    /**
-     * Create a new LRU cache
-     *
-     * @param maxSize - Maximum number of entries in the cache
-     * @param ttl - Time-to-live in milliseconds for each entry
-     */
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
+    constructor(config: CacheConfig);
+    constructor(maxSize: number, ttl: number);
+    constructor(maxSizeOrConfig: number | CacheConfig, ttl?: number) {
+        if (typeof maxSizeOrConfig === "object") {
+            this.maxSize = maxSizeOrConfig.maxSize;
+            this.ttl = maxSizeOrConfig.ttl;
+            this.name = maxSizeOrConfig.name ?? `cache-${LRUCache.instanceCounter++}`;
+        } else {
+            this.maxSize = maxSizeOrConfig;
+            this.ttl = ttl!;
+            this.name = `cache-${LRUCache.instanceCounter++}`;
+        }
     }
 
-    /**
-     * Get a value from the cache
-     *
-     * @param key - The cache key
-     * @returns The cached value, or undefined if not found or expired
-     */
+    private static instanceCounter = 0;
+
+    getName(): string {
+        return this.name;
+    }
+
+    getMaxSize(): number {
+        return this.maxSize;
+    }
+
+    getTtl(): number {
+        return this.ttl;
+    }
+
+    onEviction(listener: EvictionListener<T>): void {
+        this.evictionListener = listener;
+    }
+
     get(key: string): T | undefined {
         const entry = this.cache.get(key);
         if (!entry) {
@@ -78,31 +101,30 @@ export class LRUCache<T> {
 
         if (Date.now() - entry.timestamp > this.ttl) {
             this.cache.delete(key);
+            this.expiredPurges++;
+            this.evictionListener?.(key, entry.value, "expired");
             this.misses++;
             return undefined;
         }
 
         this.hits++;
-        // Move to end (most recently used)
         this.cache.delete(key);
         this.cache.set(key, entry);
         return entry.value;
     }
 
-    /**
-     * Set a value in the cache
-     *
-     * @param key - The cache key
-     * @param value - The value to cache
-     */
     set(key: string, value: T): void {
         if (this.cache.has(key)) {
             this.cache.delete(key);
         } else if (this.cache.size >= this.maxSize) {
-            // Evict oldest entry (first in Map)
             const firstKey = this.cache.keys().next().value;
             if (firstKey !== undefined) {
+                const evictedEntry = this.cache.get(firstKey);
                 this.cache.delete(firstKey);
+                this.evictions++;
+                if (evictedEntry) {
+                    this.evictionListener?.(firstKey, evictedEntry.value, "capacity");
+                }
             }
         }
 
@@ -112,12 +134,6 @@ export class LRUCache<T> {
         });
     }
 
-    /**
-     * Check if a key exists in the cache and is not expired
-     *
-     * @param key - The cache key
-     * @returns true if the key exists and is not expired
-     */
     has(key: string): boolean {
         const entry = this.cache.get(key);
         if (!entry) {
@@ -126,45 +142,35 @@ export class LRUCache<T> {
 
         if (Date.now() - entry.timestamp > this.ttl) {
             this.cache.delete(key);
+            this.expiredPurges++;
+            this.evictionListener?.(key, entry.value, "expired");
             return false;
         }
 
         return true;
     }
 
-    /**
-     * Delete a key from the cache
-     *
-     * @param key - The cache key
-     * @returns true if the key was deleted
-     */
     delete(key: string): boolean {
-        return this.cache.delete(key);
+        const entry = this.cache.get(key);
+        const deleted = this.cache.delete(key);
+        if (deleted && entry) {
+            this.evictionListener?.(key, entry.value, "manual");
+        }
+        return deleted;
     }
 
-    /**
-     * Clear all entries from the cache
-     */
     clear(): void {
         this.cache.clear();
         this.hits = 0;
         this.misses = 0;
+        this.evictions = 0;
+        this.expiredPurges = 0;
     }
 
-    /**
-     * Get the current number of entries in the cache
-     *
-     * @returns The number of entries
-     */
     size(): number {
         return this.cache.size;
     }
 
-    /**
-     * Get all non-expired values from the cache
-     *
-     * @returns Array of cached values
-     */
     values(): T[] {
         const now = Date.now();
         const result: T[] = [];
@@ -176,11 +182,24 @@ export class LRUCache<T> {
         return result;
     }
 
-    /**
-     * Get cache statistics
-     *
-     * @returns Cache statistics including hit rate
-     */
+    entries(): IterableIterator<[string, CacheEntry<T>]> {
+        return this.cache.entries();
+    }
+
+    purgeExpired(): number {
+        const now = Date.now();
+        let purged = 0;
+        for (const [key, entry] of this.cache) {
+            if (now - entry.timestamp > this.ttl) {
+                this.cache.delete(key);
+                this.expiredPurges++;
+                this.evictionListener?.(key, entry.value, "expired");
+                purged++;
+            }
+        }
+        return purged;
+    }
+
     getStats(): CacheStats {
         const total = this.hits + this.misses;
         return {
@@ -189,6 +208,120 @@ export class LRUCache<T> {
             hits: this.hits,
             misses: this.misses,
             hitRate: total > 0 ? this.hits / total : 0,
+            evictions: this.evictions,
+            expiredPurges: this.expiredPurges,
         };
+    }
+}
+
+export class CacheRegistry {
+    private static instance: CacheRegistry | null = null;
+    private caches = new Map<string, LRUCache<unknown>>();
+    private purgeTimer: ReturnType<typeof setInterval> | null = null;
+    private purgeIntervalMs: number;
+
+    private constructor(purgeIntervalMs = 60_000) {
+        this.purgeIntervalMs = purgeIntervalMs;
+    }
+
+    static getInstance(): CacheRegistry {
+        if (!CacheRegistry.instance) {
+            CacheRegistry.instance = new CacheRegistry();
+        }
+        return CacheRegistry.instance;
+    }
+
+    static resetInstance(): void {
+        if (CacheRegistry.instance) {
+            CacheRegistry.instance.stopPurgeTimer();
+            CacheRegistry.instance.caches.clear();
+            CacheRegistry.instance = null;
+        }
+    }
+
+    register<T>(cache: LRUCache<T>): void {
+        this.caches.set(cache.getName(), cache as LRUCache<unknown>);
+    }
+
+    unregister(name: string): void {
+        this.caches.delete(name);
+    }
+
+    getCache(name: string): LRUCache<unknown> | undefined {
+        return this.caches.get(name);
+    }
+
+    getCacheNames(): string[] {
+        return Array.from(this.caches.keys());
+    }
+
+    getAggregatedStats(): AggregatedCacheStats {
+        let totalSize = 0;
+        let totalMaxSize = 0;
+        let totalHits = 0;
+        let totalMisses = 0;
+        let totalEvictions = 0;
+        let totalExpiredPurges = 0;
+        const caches: Record<string, CacheStats> = {};
+
+        for (const [name, cache] of this.caches) {
+            const stats = cache.getStats();
+            caches[name] = stats;
+            totalSize += stats.size;
+            totalMaxSize += stats.maxSize;
+            totalHits += stats.hits;
+            totalMisses += stats.misses;
+            totalEvictions += stats.evictions;
+            totalExpiredPurges += stats.expiredPurges;
+        }
+
+        const total = totalHits + totalMisses;
+        return {
+            totalCaches: this.caches.size,
+            totalSize,
+            totalMaxSize,
+            totalHits,
+            totalMisses,
+            overallHitRate: total > 0 ? totalHits / total : 0,
+            totalEvictions,
+            totalExpiredPurges,
+            caches,
+        };
+    }
+
+    purgeAllExpired(): number {
+        let totalPurged = 0;
+        for (const cache of this.caches.values()) {
+            totalPurged += cache.purgeExpired();
+        }
+        return totalPurged;
+    }
+
+    clearAll(): void {
+        for (const cache of this.caches.values()) {
+            cache.clear();
+        }
+    }
+
+    startPurgeTimer(): void {
+        if (this.purgeTimer) return;
+        this.purgeTimer = setInterval(() => {
+            this.purgeAllExpired();
+        }, this.purgeIntervalMs);
+    }
+
+    stopPurgeTimer(): void {
+        if (this.purgeTimer) {
+            clearInterval(this.purgeTimer);
+            this.purgeTimer = null;
+        }
+    }
+
+    setPurgeInterval(ms: number): void {
+        this.purgeIntervalMs = ms;
+        if (this.purgeTimer) {
+            this.stopPurgeTimer();
+            this.startPurgeTimer();
+        }
     }
 }

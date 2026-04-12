@@ -883,6 +883,7 @@ describe("SlidingSync", () => {
                     callbackOrder.push("Lifecycle");
                     return true;
                 }
+                return false;
             });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
@@ -963,6 +964,7 @@ describe("SlidingSync", () => {
                     callbackOrder.push("Lifecycle");
                     return true;
                 }
+                return false;
             });
             await httpBackend!.flushAllExpected();
             await p;

@@ -89,9 +89,9 @@ export interface MSC3575SlidingSyncRequest {
  * (and also a flag to note what format the hero came from).
  */
 export interface MSC4186Hero {
-    user_id: string
-    displayname?: string
-    avatar_url?: string
+    user_id: string;
+    displayname?: string;
+    avatar_url?: string;
 }
 
 export interface MSC3575RoomData {
@@ -589,7 +589,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
      */
     public async start(): Promise<void> {
         logger.debug("SlidingSync.start() called");
-        console.log("[SlidingSync] start() called, proxyBaseUrl:", this.proxyBaseUrl);
+        logger.info("[SlidingSync] start() called, proxyBaseUrl:", this.proxyBaseUrl);
         this.abortController = new AbortController();
 
         let currentPos: string | undefined;
@@ -608,7 +608,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                     clientTimeout: this.timeoutMS + BUFFER_PERIOD_MS,
                     extensions: await this.getExtensionRequest(currentPos === undefined),
                 };
-                console.log("[SlidingSync] Sending request, lists:", JSON.stringify(reqLists));
+                logger.info("[SlidingSync] Sending request, lists:", JSON.stringify(reqLists));
                 logger.debug("SlidingSync sending request");
                 // check if we are (un)subscribing to a room and modify request this one time for it
                 const newSubscriptions = difference(this.desiredRoomSubscriptions, this.confirmedRoomSubscriptions);
@@ -657,7 +657,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 if ((<HTTPError>err).httpStatus) {
                     this.invokeLifecycleListeners(SlidingSyncState.RequestFinished, null, <Error>err);
                     if ((<HTTPError>err).httpStatus === 400) {
-                        // session probably expired TODO: assign an errcode
+                        // Known limitation: session-expiry handling is inferred from status only; no dedicated errcode yet.
                         // so drop state and re-request
                         this.resetup();
                         currentPos = undefined;

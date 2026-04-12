@@ -16,14 +16,14 @@ limitations under the License.
 
 /**
  * Pinned Messages Manager - 置顶消息管理
- * 
+ *
  * 提供置顶消息相关功能
- * 
+ *
  * 对应后端 API:
  * - GET /rooms/{room_id}/pinned_events
  * - POST /rooms/{room_id}/pinned_events
  * - DELETE /rooms/{room_id}/pinned_events/{event_id}
- * 
+ *
  * 优化特性:
  * - LRU 缓存: 置顶消息缓存
  * - 重试机制: 指数退避重试
@@ -36,6 +36,7 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 
 export enum PinnedEvent {
     Pinned = "Pinned",
@@ -72,53 +73,6 @@ interface PinnedMessagesManagerEventMap {
     [PinnedEvent.PinnedUpdated]: (roomId: string, events: IPinnedEventInfo[]) => void;
     [PinnedEvent.PinnedError]: (roomId: string, error: Error) => void;
 }
-
-interface CacheEntry<T> { value: T; timestamp: number; }
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) { this.misses++; return undefined; }
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) { this.cache.delete(key); }
-        else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) this.cache.delete(firstKey);
-        }
-        this.cache.set(key, { value, timestamp: Date.now() });
-    }
-
-    delete(key: string): boolean { return this.cache.delete(key); }
-    clear(): void { this.cache.clear(); this.hits = 0; this.misses = 0; }
-    size(): number { return this.cache.size; }
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return { size: this.cache.size, hits: this.hits, misses: this.misses, hitRate: total > 0 ? this.hits / total : 0 };
-    }
-}
-
 export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, PinnedMessagesManagerEventMap> {
     private client: MatrixClient;
     private pinnedEventsCache: LRUCache<IPinnedEventInfo[]>;
@@ -129,17 +83,25 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
     constructor(client: MatrixClient) {
         super();
         this.client = client;
-        this.pinnedEventsCache = new LRUCache<IPinnedEventInfo[]>(100, 5 * 60 * 1000);
+        this.pinnedEventsCache = new LRUCache<IPinnedEventInfo[]>({
+            maxSize: 100,
+            ttl: 5 * 60 * 1000,
+            name: "index.ts-ipinnedeventinfo",
+        });
     }
 
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
-            return ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"].includes(error.errcode ?? "") ||
-                [429, 500, 502, 503, 504].includes(error.httpStatus ?? 0);
+            return (
+                ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"].includes(error.errcode ?? "") ||
+                [429, 500, 502, 503, 504].includes(error.httpStatus ?? 0)
+            );
         }
         const err = error as Record<string, unknown>;
-        return ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
-            [429, 500, 502, 503, 504].includes(err?.httpStatus as number);
+        return (
+            ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
+            [429, 500, 502, 503, 504].includes(err?.httpStatus as number)
+        );
     }
 
     private getErrorType(error: unknown): string {
@@ -164,7 +126,7 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
                     logger.warn(`PinnedMessagesManager.${method} failed, retrying in ${delay}ms`);
-                    await new Promise(r => setTimeout(r, delay));
+                    await new Promise((r) => setTimeout(r, delay));
                 }
             }
         }
@@ -187,7 +149,7 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
         const room = this.client.getRoom(roomId);
         let pinned: string[] = [];
         if (room) {
-            const pinnedEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+            const pinnedEvent = room.currentState.getStateEvents("m.room.pinned_events", "");
             if (pinnedEvent) {
                 const content = pinnedEvent.getContent<{ pinned?: string[] }>();
                 pinned = content.pinned || [];
@@ -196,23 +158,23 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
         if (!pinned.includes(eventId)) {
             pinned.push(eventId);
         }
-        await this.client.sendStateEvent(roomId, 'm.room.pinned_events', { pinned }, '');
+        await this.client.sendStateEvent(roomId, "m.room.pinned_events", { pinned }, "");
     }
 
     public async unpinMessage(roomId: string, eventId: string): Promise<void> {
         const room = this.client.getRoom(roomId);
         if (!room) return;
-        const pinnedEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+        const pinnedEvent = room.currentState.getStateEvents("m.room.pinned_events", "");
         if (!pinnedEvent) return;
         const content = pinnedEvent.getContent<{ pinned?: string[] }>();
         const pinned = (content.pinned || []).filter((id: string) => id !== eventId);
-        await this.client.sendStateEvent(roomId, 'm.room.pinned_events', { pinned }, '');
+        await this.client.sendStateEvent(roomId, "m.room.pinned_events", { pinned }, "");
     }
 
     public getPinnedMessages(roomId: string): string[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
-        const pinnedEvent = room.currentState.getStateEvents('m.room.pinned_events', '');
+        const pinnedEvent = room.currentState.getStateEvents("m.room.pinned_events", "");
         if (!pinnedEvent) return [];
         const content = pinnedEvent.getContent<{ pinned?: string[] }>();
         return content.pinned || [];
@@ -228,18 +190,24 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
         if (cached) return cached;
 
         return this.withRetry(async () => {
-            const response = await this.client.http.authedRequest(
-                Method.Get, `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
-                undefined, undefined, { prefix: ClientPrefix.V3 }
-            ) as IServerPinnedEventsResponse;
+            const response = (await this.client.http.authedRequest(
+                Method.Get,
+                `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            )) as IServerPinnedEventsResponse;
 
-            const events: IPinnedEventInfo[] = (response.events || []).map(e => ({
-                eventId: e.event_id, roomId, pinnedBy: e.pinned_by, pinnedAt: e.pinned_at
+            const events: IPinnedEventInfo[] = (response.events || []).map((e) => ({
+                eventId: e.event_id,
+                roomId,
+                pinnedBy: e.pinned_by,
+                pinnedAt: e.pinned_at,
             }));
             this.pinnedEventsCache.set(roomId, events);
             this.emit(PinnedEvent.PinnedUpdated, roomId, events);
             return events;
-        }, 'getPinnedEventsFromServer');
+        }, "getPinnedEventsFromServer");
     }
 
     public async pinEventToServer(roomId: string, eventId: string): Promise<void> {
@@ -248,14 +216,17 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
 
         return this.withRetry(async () => {
             await this.client.http.authedRequest(
-                Method.Post, `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
-                undefined, { event_id: eventId }, { prefix: ClientPrefix.V3 }
+                Method.Post,
+                `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
+                undefined,
+                { event_id: eventId },
+                { prefix: ClientPrefix.V3 },
             );
             this.emit(PinnedEvent.Pinned, roomId, eventId);
             const cached = this.pinnedEventsCache.get(roomId) || [];
             cached.push({ eventId, roomId, pinnedBy: this.client.getUserId() || undefined, pinnedAt: Date.now() });
             this.pinnedEventsCache.set(roomId, cached);
-        }, 'pinEventToServer');
+        }, "pinEventToServer");
     }
 
     public async unpinEventFromServer(roomId: string, eventId: string): Promise<void> {
@@ -264,25 +235,37 @@ export class PinnedMessagesManager extends TypedEventEmitter<PinnedEvent, Pinned
 
         return this.withRetry(async () => {
             await this.client.http.authedRequest(
-                Method.Delete, `/rooms/${encodeURIComponent(roomId)}/pinned_events/${encodeURIComponent(eventId)}`,
-                undefined, undefined, { prefix: ClientPrefix.V3 }
+                Method.Delete,
+                `/rooms/${encodeURIComponent(roomId)}/pinned_events/${encodeURIComponent(eventId)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
             );
             this.emit(PinnedEvent.Unpinned, roomId, eventId);
             const cached = this.pinnedEventsCache.get(roomId) || [];
-            this.pinnedEventsCache.set(roomId, cached.filter(e => e.eventId !== eventId));
-        }, 'unpinEventFromServer');
+            this.pinnedEventsCache.set(
+                roomId,
+                cached.filter((e) => e.eventId !== eventId),
+            );
+        }, "unpinEventFromServer");
     }
 
     public getCachedPinnedEvents(roomId: string): IPinnedEventInfo[] {
         return this.pinnedEventsCache.get(roomId) || [];
     }
 
-    public clearCache(): void { this.pinnedEventsCache.clear(); }
-    public stop(): void { this.pinnedEventsCache.clear(); }
+    public clearCache(): void {
+        this.pinnedEventsCache.clear();
+    }
+    public stop(): void {
+        this.pinnedEventsCache.clear();
+    }
 }
 
 declare module "../client.ts" {
-    interface MatrixClient { getPinnedMessagesManager(): PinnedMessagesManager; }
+    interface MatrixClient {
+        getPinnedMessagesManager(): PinnedMessagesManager;
+    }
 }
 
 export function extendMatrixClient(): void {

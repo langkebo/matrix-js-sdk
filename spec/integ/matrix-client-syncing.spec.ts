@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import "fake-indexeddb/auto";
+import { vi } from "vitest";
 
 import type HttpBackend from "matrix-mock-request";
 import {
@@ -116,6 +117,32 @@ describe("MatrixClient syncing", () => {
 
             await httpBackend!.flushAllExpected();
         });
+
+        it("should recover from transient filter creation failure before syncing", async () => {
+            const testClient = new TestClient(selfUserId, "DEVICE", selfAccessToken);
+            httpBackend = testClient.httpBackend;
+            client = testClient.client;
+
+            const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+            httpBackend!.when("GET", "/_matrix/client/versions").respond(200, { versions: ["v1.0"] });
+            httpBackend!.when("GET", "/_matrix/client/versions").respond(200, { versions: ["v1.0"] });
+            httpBackend!.when("GET", "/capabilities").respond(200, {
+                capabilities: {},
+            });
+            httpBackend!.when("POST", "/filter").respond(429, {});
+            httpBackend!.when("POST", "/filter").respond(200, { filter_id: "recovered filter id" });
+            httpBackend!.when("GET", "/pushrules").respond(200, {});
+            httpBackend!.when("GET", "/sync").respond(200, syncData);
+
+            try {
+                client!.startClient();
+                await httpBackend!.flushAllExpected({ timeout: 10000 });
+                expect(randomSpy).toHaveBeenCalled();
+            } finally {
+                randomSpy.mockRestore();
+            }
+        }, 20000);
 
         it("should emit RoomEvent.MyMembership for invite->leave->invite cycles", async () => {
             await client!.initRustCrypto();
@@ -2540,7 +2567,7 @@ describe("MatrixClient syncing (IndexedDB version)", () => {
         const idbHttpBackend = idbTestClient.httpBackend;
         const idbClient = idbTestClient.client;
         idbHttpBackend.when("GET", "/versions").respond(200, {});
-        idbHttpBackend.when("GET", "/pushrules/").respond(200, {});
+        idbHttpBackend.when("GET", "/pushrules").respond(200, {});
         idbHttpBackend.when("POST", "/filter").respond(200, { filter_id: "a filter id" });
 
         await idbClient.initRustCrypto();
@@ -2624,7 +2651,7 @@ describe("MatrixClient syncing (IndexedDB version)", () => {
         await idbClient.store.startup();
 
         idbHttpBackend.when("GET", "/versions").respond(200, { versions: ["v1.4"] });
-        idbHttpBackend.when("GET", "/pushrules/").respond(200, {});
+        idbHttpBackend.when("GET", "/pushrules").respond(200, {});
         idbHttpBackend.when("POST", "/filter").respond(200, { filter_id: "a filter id" });
 
         const syncRoomSection = {
@@ -2696,7 +2723,7 @@ describe("MatrixClient syncing (IndexedDB version)", () => {
         await idbClient.store.startup();
 
         idbHttpBackend.when("GET", "/versions").respond(200, { versions: ["v1.4"] });
-        idbHttpBackend.when("GET", "/pushrules/").respond(200, {});
+        idbHttpBackend.when("GET", "/pushrules").respond(200, {});
         idbHttpBackend.when("POST", "/filter").respond(200, { filter_id: "a filter id" });
         idbHttpBackend.when("GET", "/sync").respond(200, syncData);
 

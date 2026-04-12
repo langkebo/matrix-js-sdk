@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * User Report Manager - 用户举报管理
- * 
+ *
  * 提供用户举报功能
  * 对应后端 API:
  * - POST /users/{user_id}/report
@@ -24,6 +24,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
 
 export interface ReportUserRequest {
@@ -31,8 +32,10 @@ export interface ReportUserRequest {
     room_id?: string;
 }
 
-export class UserReportManager {
-    constructor(private client: MatrixClient) {}
+export class UserReportManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async reportUser(userId: string, reason: string, roomId?: string): Promise<void> {
         const path = utils.encodeUri("/users/$userId/report", { $userId: userId });

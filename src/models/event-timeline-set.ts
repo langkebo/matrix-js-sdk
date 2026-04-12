@@ -621,7 +621,7 @@ export class EventTimelineSet extends TypedEventEmitter<EmittedEvents, EventTime
                         EventTimeline.setEventMetadata(event, roomState!, false);
                         tlEvents[j] = event;
 
-                        // XXX: we need to fire an event when this happens.
+                        // Known limitation: We should fire an event when this happens.
                         break;
                     }
                 }
@@ -806,7 +806,7 @@ export class EventTimelineSet extends TypedEventEmitter<EmittedEvents, EventTime
      * Fires {@link RoomEvent.Timeline}
      */
     public handleRemoteEcho(localEvent: MatrixEvent, oldEventId: string, newEventId: string): void {
-        // XXX: why don't we infer newEventId from localEvent?
+        // Note: newEventId could be inferred from localEvent, but is passed explicitly for clarity.
         const existingTimeline = this._eventIdToTimeline.get(oldEventId);
         if (existingTimeline) {
             this._eventIdToTimeline.delete(oldEventId);

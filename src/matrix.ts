@@ -22,6 +22,10 @@ import { MatrixScheduler } from "./scheduler";
 import { MatrixClient, type ICreateClientOpts } from "./client";
 import { RoomWidgetClient, type ICapabilities } from "./embedded";
 import { type CryptoStore } from "./crypto/store/base";
+import { logger } from "./logger";
+import { extendMatrixClientWithManagers, isManagerExtensionsInitialized } from "./manager-extensions";
+import { extendMatrixClient as extendRoom } from "./room";
+import { extendMatrixClient as extendEvent } from "./event";
 
 export * from "./client";
 export * from "./serverCapabilities";
@@ -79,48 +83,8 @@ export * from "./models/event-status";
 export * from "./models/profile-keys";
 export * from "./models/related-relations";
 export type { RoomSummary } from "./client";
-export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
-export { AccountManager } from "./account";
-export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
-export { DirectMessageManager } from "./dm";
-export { DiscoveryManager, type UserDirectorySearchResponse, type UserDirectoryListResponse, type PublicRoomsResponse } from "./discovery";
-export { PushManager } from "./push";
-export { QrLoginManager, type QrCodeResponse, type QrLoginStatus } from "./qr-login";
-export { UserReportManager } from "./user-report";
-export {
-    SpaceManager,
-    type Space,
-    type SpaceChild,
-    type SpaceMember,
-    type SpaceHierarchy,
-    type SpaceListResponse,
-    type SpaceHierarchyPage,
-    type SpaceStatistics,
-    type SpaceQueryOptions,
-    type CreateSpaceOptions,
-    type UpdateSpaceOptions,
-    type AddChildOptions,
-} from "./space";
-export { FriendManager } from "./friend";
-export { KeyVerificationManager } from "./key-verification";
-export { RoomSummaryManager } from "./room-summary";
-export { BeaconManager } from "./beacon";
-export { Beacon, BeaconEvent, getBeaconInfoIdentifier } from "./models/beacon";
-export type { BeaconIdentifier, BeaconEventHandlerMap } from "./models/beacon";
-export type {
-    RoomSummaryMember,
-    RoomStats,
-    IRoomSummaryState,
-    RoomSummaryStateContent,
-    RoomSummaryHero,
-    RoomSummaryOptions,
-    RoomSummaryListResponse,
-} from "./room-summary";
-export { RoomKeySharingManager } from "./room-key-sharing";
-export { PresenceManager } from "./presence";
-export { FederationManager } from "./federation";
-export { DeviceManager } from "./device";
-export { ProfileManager } from "./profile";
+export * from "./matrix-managers";
+
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
 export type { LoginResponse } from "./@types/auth";
@@ -158,8 +122,14 @@ export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as Hierarc
 export { DebugLogger } from "./logger";
 export {
     extendMatrixClientWithManagers,
+    offManagerExtensionsLifecycle,
+    onManagerExtensionsLifecycle,
     isManagerExtensionsInitialized,
     resetManagerExtensions,
+    type ManagerExtensionsLifecycleEvent,
+    type ManagerExtensionsLifecycleListener,
+    type ManagerExtensionsLifecyclePhase,
+    type ManagerExtensionsLifecycleStatus,
     type ManagerExtensionsOptions,
 } from "./manager-extensions";
 
@@ -186,6 +156,27 @@ function amendClientOpts(opts: ICreateClientOpts): ICreateClientOpts {
     return opts;
 }
 
+function autoInitManagerExtensions(opts: ICreateClientOpts): void {
+    if (opts.disableDynamicExtensions) {
+        return;
+    }
+
+    extendRoom();
+    extendEvent();
+
+    if (isManagerExtensionsInitialized()) {
+        return;
+    }
+
+    void initializeManagerExtensions().catch((error) => {
+        logger.warn("createClient auto manager extension init failed:", error);
+    });
+}
+
+export async function initializeManagerExtensions(): Promise<void> {
+    await extendMatrixClientWithManagers();
+}
+
 /**
  * Construct a Matrix Client. Similar to {@link MatrixClient}
  * except that the 'request', 'store' and 'scheduler' dependencies are satisfied.
@@ -197,6 +188,7 @@ function amendClientOpts(opts: ICreateClientOpts): ICreateClientOpts {
  * `opts`.
  */
 export function createClient(opts: ICreateClientOpts): MatrixClient {
+    autoInitManagerExtensions(opts);
     return new MatrixClient(amendClientOpts(opts));
 }
 
@@ -221,5 +213,6 @@ export function createRoomWidgetClient(
     opts: ICreateClientOpts,
     sendContentLoaded = true,
 ): MatrixClient {
+    autoInitManagerExtensions(opts);
     return new RoomWidgetClient(widgetApi, capabilities, roomId, amendClientOpts(opts), sendContentLoaded);
 }

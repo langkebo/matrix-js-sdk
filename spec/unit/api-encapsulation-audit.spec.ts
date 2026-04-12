@@ -22,13 +22,7 @@ describe("API encapsulation audit", () => {
 
         await manager.getSupportedLoginFlows();
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/login",
-            undefined,
-            undefined,
-            { prefix: undefined }
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, { prefix: undefined });
         expect(request).not.toHaveBeenCalled();
     });
 
@@ -117,7 +111,13 @@ describe("API encapsulation audit", () => {
 
         await manager.registerGuest();
 
-        expect(request).toHaveBeenCalledWith(Method.Post, "/register", undefined, { kind: "guest" }, { prefix: ClientPrefix.V3 });
+        expect(request).toHaveBeenCalledWith(
+            Method.Post,
+            "/register",
+            undefined,
+            { kind: "guest" },
+            { prefix: ClientPrefix.V3 },
+        );
     });
 
     it("uses public well-known discovery without inheriting the client prefix", async () => {
@@ -158,27 +158,40 @@ describe("API encapsulation audit", () => {
 
         await manager.initiateLogin();
 
-        expect(request).toHaveBeenCalledWith(Method.Post, "/login/saml/redirect", undefined, { redirect_url: undefined }, {
-            prefix: ClientPrefix.V3,
-        });
+        expect(request).toHaveBeenCalledWith(
+            Method.Post,
+            "/login/saml/redirect",
+            undefined,
+            { redirect_url: undefined },
+            {
+                prefix: ClientPrefix.V3,
+            },
+        );
     });
 
     it("uses relative voice api paths with the r0 client prefix", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ url: "mxc://x/y", duration: 1, confidence: 0.5 });
-        const manager = new VoiceMessageManager({ 
+        const manager = new VoiceMessageManager({
             http: { authedRequest },
             mxcToHttp: vi.fn().mockReturnValue("http://example.com/mxc/x/y"),
         } as any);
 
-        await manager.convertVoiceMessage({ inputUrl: "mxc://x/y" });
+        await manager.convertVoiceMessage({ messageId: "$event123" });
 
-        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/voice/convert", undefined, {
-            input_url: "mxc://x/y",
-            output_format: "mp3",
-            bitrate: 128,
-        }, {
-            prefix: "/_matrix/client/r0",
-        });
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/voice/convert",
+            undefined,
+            {
+                message_id: "$event123",
+                target_format: "mp3",
+                quality: 128,
+                bitrate: 128000,
+            },
+            {
+                prefix: "/_matrix/client/r0",
+            },
+        );
     });
 
     it("uses relative spaces endpoints with the v3 client prefix", async () => {

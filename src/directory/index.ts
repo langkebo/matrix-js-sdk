@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,13 +16,14 @@ limitations under the License.
 
 /**
  * Directory Manager - 目录管理
- * 
+ *
  * 提供公共房间列表、房间目录等功能
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IPublicRoom {
     room_id: string;
@@ -54,45 +55,72 @@ export interface IRoomAliasesResponse {
     aliases: string[];
 }
 
-export class DirectoryManager {
-    constructor(private client: MatrixClient) {}
+export interface DirectoryManagerEvents {
+    public_rooms_updated: { rooms: IPublicRoom[] };
+    alias_created: { alias: string; roomId: string };
+    alias_deleted: { alias: string };
+}
 
-    public async getPublicRoomsList(opts?: { server?: string; limit?: number; since?: string }): Promise<IPublicRoomsResponse> {
-        const path = "/publicRooms";
-        return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Get, path, opts as Record<string, string>);
+export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, DirectoryManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
+    public async getPublicRoomsList(opts?: {
+        server?: string;
+        limit?: number;
+        since?: string;
+    }): Promise<IPublicRoomsResponse> {
+        return this.withRetry(() => {
+            const path = "/publicRooms";
+            return this.client.http.authedRequest<IPublicRoomsResponse>(
+                Method.Get,
+                path,
+                opts as Record<string, string>,
+            );
+        }, "getPublicRoomsList");
     }
 
     public async getPublicRooms(server: string, limit?: number, since?: string): Promise<IPublicRoomsResponse> {
-        const path = "/publicRooms";
-        const opts: Record<string, string | number> = { server };
-        if (limit) opts.limit = limit;
-        if (since) opts.since = since;
-        return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Post, path, undefined, opts);
+        return this.withRetry(() => {
+            const path = "/publicRooms";
+            const reqOpts: Record<string, string | number> = { server };
+            if (limit) reqOpts.limit = limit;
+            if (since) reqOpts.since = since;
+            return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Post, path, undefined, reqOpts);
+        }, "getPublicRooms");
     }
 
     public async getRoomIdForAlias(alias: string): Promise<IRoomAliasResponse> {
-        const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        return this.client.http.authedRequest<IRoomAliasResponse>(Method.Get, path);
+        return this.withRetry(() => {
+            const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
+            return this.client.http.authedRequest<IRoomAliasResponse>(Method.Get, path);
+        }, "getRoomIdForAlias");
     }
 
     public async createRoomAlias(roomId: string, alias: string): Promise<void> {
-        const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
+            await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+        }, "createRoomAlias");
     }
 
     public async deleteRoomAlias(alias: string): Promise<void> {
-        const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-        await this.client.http.authedRequest(Method.Delete, path);
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
+            await this.client.http.authedRequest(Method.Delete, path);
+        }, "deleteRoomAlias");
     }
 
     public async getAliasesForRoom(roomId: string): Promise<string[]> {
-        const path = utils.encodeUri("/rooms/$roomId/aliases", { $roomId: roomId });
-        const response = await this.client.http.authedRequest<IRoomAliasesResponse>(Method.Get, path);
-        return response.aliases || [];
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/aliases", { $roomId: roomId });
+            const response = await this.client.http.authedRequest<IRoomAliasesResponse>(Method.Get, path);
+            return response.aliases || [];
+        }, "getAliasesForRoom");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getDirectoryManager(): DirectoryManager;

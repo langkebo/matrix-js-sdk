@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,12 +16,12 @@ limitations under the License.
 
 /**
  * Room Creation Manager - 房间创建管理
- * 
+ *
  * 提供房间创建相关功能
  */
 
 import { MatrixClient } from "../client";
-import { Room } from "../models/room";
+import { BaseManager } from "../managers/base-manager";
 
 export interface ICreateRoomOptions {
     room_alias_name?: string;
@@ -55,39 +55,65 @@ export interface ICreateRoomOptionsConfig extends ICreateRoomOptions {
     [key: string]: unknown;
 }
 
-export class RoomCreationManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomCreationManagerEvents {
+    room_created: { roomId: string };
+    room_creation_failed: { error: Error };
+    direct_room_created: { roomId: string; userId: string };
+}
+
+export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEvents, RoomCreationManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async createRoom(options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
-        return this.client.createRoom(options as Record<string, unknown>);
+        return this.withRetry(() => this.client.createRoom(options as Record<string, unknown>), "createRoom");
     }
 
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
-        return (this.client as unknown as {
-            createDirectRoom: (userId: string, options?: ICreateRoomOptions) => Promise<ICreateRoomResponse>;
-        }).createDirectRoom(userId, options);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        createDirectRoom: (
+                            userId: string,
+                            options?: ICreateRoomOptions,
+                        ) => Promise<ICreateRoomResponse>;
+                    }
+                ).createDirectRoom(userId, options),
+            "createDirectRoom",
+        );
     }
 
     public async findOrCreateDirectRoom(userId: string): Promise<ICreateRoomResponse> {
-        return (this.client as unknown as {
-            findOrCreateDirectRoom: (userId: string) => Promise<ICreateRoomResponse>;
-        }).findOrCreateDirectRoom(userId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        findOrCreateDirectRoom: (userId: string) => Promise<ICreateRoomResponse>;
+                    }
+                ).findOrCreateDirectRoom(userId),
+            "findOrCreateDirectRoom",
+        );
     }
 
     public getCreateRoomOptions(): ICreateRoomOptionsConfig {
-        return (this.client as unknown as {
-            getCreateRoomOptions: () => ICreateRoomOptionsConfig;
-        }).getCreateRoomOptions();
+        return (
+            this.client as unknown as {
+                getCreateRoomOptions: () => ICreateRoomOptionsConfig;
+            }
+        ).getCreateRoomOptions();
     }
 
     public setCreateRoomOptions(options: ICreateRoomOptionsConfig): void {
-        (this.client as unknown as {
-            setCreateRoomOptions: (options: ICreateRoomOptionsConfig) => void;
-        }).setCreateRoomOptions(options);
+        (
+            this.client as unknown as {
+                setCreateRoomOptions: (options: ICreateRoomOptionsConfig) => void;
+            }
+        ).setCreateRoomOptions(options);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomCreationManager(): RoomCreationManager;

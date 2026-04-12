@@ -16,89 +16,94 @@ limitations under the License.
 
 /**
  * Room Member Manager - 房间成员管理
- * 
+ *
  * 提供房间成员邀请、踢出、封禁等功能
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
+import { BaseManager } from "../managers/base-manager";
 
-export class RoomMemberManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomMemberInfo {
+    user_id: string;
+    displayname?: string;
+    avatar_url?: string;
+    membership: string;
+    reason?: string;
+}
 
-    /**
-     * Invite user to room
-     */
-    public async invite(roomId: string, userId: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { user_id: userId });
+export interface RoomMemberManagerEvents {
+    member_invited: { roomId: string; userId: string };
+    member_kicked: { roomId: string; userId: string; reason?: string };
+    member_banned: { roomId: string; userId: string; reason?: string };
+    member_unbanned: { roomId: string; userId: string };
+}
+
+export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents, RoomMemberManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Invite by ThreePID
-     */
-    public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { 
-            id_server: this.client.baseUrl, 
-            medium, 
-            address 
-        });
+    public async invite(roomId: string, userId: string): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, { user_id: userId });
+        }, "invite");
     }
 
-    /**
-     * Kick user from room
-     */
-    public async kick(roomId: string, userId: string, reason?: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/state/m.room.member/$userId", { 
-            $roomId: roomId, 
-            $userId: userId 
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Put, path, undefined, { 
-            membership: "leave",
-            reason
-        });
+    public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, {
+                id_server: this.client.baseUrl,
+                medium,
+                address,
+            });
+        }, "inviteByThreePid");
     }
 
-    /**
-     * Ban user from room
-     */
-    public async ban(roomId: string, userId: string, reason?: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/ban", { $roomId: roomId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { 
-            user_id: userId,
-            reason
-        });
+    public async kick(roomId: string, userId: string, reason?: string): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/state/m.room.member/$userId", {
+                $roomId: roomId,
+                $userId: userId,
+            });
+            await this.client.http.authedRequest(Method.Put, path, undefined, {
+                membership: "leave",
+                reason,
+            });
+        }, "kick");
     }
 
-    /**
-     * Unban user from room
-     */
-    public async unban(roomId: string, userId: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/unban", { $roomId: roomId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { user_id: userId });
+    public async ban(roomId: string, userId: string, reason?: string): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/ban", { $roomId: roomId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, {
+                user_id: userId,
+                reason,
+            });
+        }, "ban");
     }
 
-    /**
-     * Get room member
-     */
-    public async getRoomMember(roomId: string, userId: string): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/state/m.room.member/$userId", { 
-            $roomId: roomId, 
-            $userId: userId 
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path);
+    public async unban(roomId: string, userId: string): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/unban", { $roomId: roomId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, { user_id: userId });
+        }, "unban");
+    }
+
+    public async getRoomMember(roomId: string, userId: string): Promise<RoomMemberInfo> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/state/m.room.member/$userId", {
+                $roomId: roomId,
+                $userId: userId,
+            });
+            return this.client.http.authedRequest<RoomMemberInfo>(Method.Get, path);
+        }, "getRoomMember");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomMemberManager(): RoomMemberManager;

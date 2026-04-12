@@ -97,7 +97,7 @@ export class EventContext {
      * @param atStart -   true to insert new events at the start
      */
     public addEvents(events: MatrixEvent[], atStart = false): void {
-        // TODO: should we share logic with Room.addEventsToTimeline?
+        // Known limitation: timeline insertion logic is duplicated with Room.addEventsToTimeline.
         // Should Room even use EventContext?
 
         if (atStart) {

@@ -1,4 +1,4 @@
-import { logger } from "../logger"
+import { logger } from "../logger";
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
@@ -49,7 +49,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
             const invites: IInviteInfo[] = [];
 
             for (const room of rooms) {
-                if (room.getMyMembership?.() === 'invite') {
+                if (room.getMyMembership?.() === "invite") {
                     const invite = await this.buildInviteInfo(room);
                     invites.push(invite);
                     this.invites.set(invite.roomId, invite);
@@ -57,10 +57,10 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
             }
 
             this.emit(InviteListEvent.InviteListUpdated, invites);
-            
+
             return invites;
         } catch (e) {
-            logger.warn('InviteListManager.getInvites failed:', e);
+            logger.warn("InviteListManager.getInvites failed:", e);
             return Array.from(this.invites.values());
         }
     }
@@ -68,15 +68,15 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
     private async buildInviteInfo(room: Room): Promise<IInviteInfo> {
         const roomId = room.roomId;
         const inviteState = room.getLiveTimeline?.()?.getState?.(Direction.Forward) || room.currentState;
-        
-        let inviterId = '';
-        let inviterName = '';
-        
-        const memberEvents = inviteState?.getStateEvents?.('m.room.member') || [];
+
+        let inviterId = "";
+        let inviterName = "";
+
+        const memberEvents = inviteState?.getStateEvents?.("m.room.member") || [];
         for (const event of memberEvents) {
             const content = event.getContent?.();
-            if (content?.membership === 'invite' && event.getStateKey?.() === this.client.getUserId()) {
-                inviterId = event.getSender?.() || '';
+            if (content?.membership === "invite" && event.getStateKey?.() === this.client.getUserId()) {
+                inviterId = event.getSender?.() || "";
                 break;
             }
         }
@@ -86,12 +86,14 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
             inviterName = inviterMember?.name || inviterId;
         }
 
-        const roomNameEvent = inviteState.getStateEvents?.('m.room.name', '');
+        const roomNameEvent = inviteState.getStateEvents?.("m.room.name", "");
         const roomName = roomNameEvent?.getContent?.()?.name || room.name || roomId;
 
-        const mDirectEvent = this.client.getAccountData?.('m.direct');
+        const mDirectEvent = this.client.getAccountData?.("m.direct");
         const directRooms = mDirectEvent?.getContent?.() as Record<string, string[]> | undefined;
-        const isDirect = directRooms ? Object.values(directRooms).some(users => users.includes(this.client.getUserId() || '')) : false;
+        const isDirect = directRooms
+            ? Object.values(directRooms).some((users) => users.includes(this.client.getUserId() || ""))
+            : false;
 
         return {
             roomId,
@@ -110,7 +112,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
 
         try {
             await this.client.joinRoom(roomId);
-            
+
             this.invites.delete(roomId);
             this.emit(InviteListEvent.InviteAccepted, roomId);
             this.emit(InviteListEvent.InviteListUpdated, Array.from(this.invites.values()));
@@ -127,7 +129,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
 
         try {
             await this.client.leave(roomId);
-            
+
             this.invites.delete(roomId);
             this.emit(InviteListEvent.InviteRejected, roomId);
             this.emit(InviteListEvent.InviteListUpdated, Array.from(this.invites.values()));
@@ -139,7 +141,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
 
     async acceptAllInvites(): Promise<void> {
         const invites = Array.from(this.invites.keys());
-        
+
         for (const roomId of invites) {
             try {
                 await this.acceptInvite(roomId);
@@ -151,7 +153,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
 
     async rejectAllInvites(): Promise<void> {
         const invites = Array.from(this.invites.keys());
-        
+
         for (const roomId of invites) {
             try {
                 await this.rejectInvite(roomId);
@@ -184,7 +186,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
     }
 
     handleMembershipChange(roomId: string, membership: string): void {
-        if (membership !== 'invite' && this.invites.has(roomId)) {
+        if (membership !== "invite" && this.invites.has(roomId)) {
             this.invites.delete(roomId);
             this.emit(InviteListEvent.InviteListUpdated, Array.from(this.invites.values()));
         }
@@ -201,7 +203,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
             await this.getInvites();
             this.initialized = true;
         } catch (e) {
-            logger.warn('InviteListManager.start failed:', e);
+            logger.warn("InviteListManager.start failed:", e);
         }
     }
 

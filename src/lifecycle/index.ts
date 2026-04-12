@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,11 +16,12 @@ limitations under the License.
 
 /**
  * Lifecycle Manager - 生命周期管理
- * 
+ *
  * 提供客户端生命周期相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IClientOptions {
     baseUrl?: string;
@@ -35,15 +36,24 @@ export interface IClientOptions {
     verificationMethods?: string[];
 }
 
-export class LifecycleManager {
-    constructor(private client: MatrixClient) {}
+export interface LifecycleManagerEvents {
+    client_started: void;
+    client_stopped: void;
+    client_reset: void;
+    client_terminated: void;
+}
+
+export class LifecycleManager extends BaseManager<keyof LifecycleManagerEvents, LifecycleManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async startClient(): Promise<void> {
-        return this.client.startClient();
+        return this.withRetry(() => this.client.startClient(), "startClient");
     }
 
     public async stopClient(): Promise<void> {
-        return this.client.stopClient();
+        await this.client.stopClient();
     }
 
     public isClientRunning(): boolean {
@@ -51,31 +61,38 @@ export class LifecycleManager {
     }
 
     public async exit(code?: number): Promise<void> {
-        return (this.client as unknown as {
-            exit: (code?: number) => Promise<void>;
-        }).exit(code);
+        await (
+            this.client as unknown as {
+                exit: (code?: number) => Promise<void>;
+            }
+        ).exit(code);
     }
 
     public terminate(): void {
-        (this.client as unknown as {
-            terminate: () => void;
-        }).terminate();
+        (
+            this.client as unknown as {
+                terminate: () => void;
+            }
+        ).terminate();
     }
 
     public async reset(): Promise<void> {
-        return (this.client as unknown as {
-            reset: () => Promise<void>;
-        }).reset();
+        await (
+            this.client as unknown as {
+                reset: () => Promise<void>;
+            }
+        ).reset();
     }
 
     public async prepare(clientOptions?: IClientOptions): Promise<void> {
-        return (this.client as unknown as {
-            prepare: (clientOptions?: IClientOptions) => Promise<void>;
-        }).prepare(clientOptions);
+        await (
+            this.client as unknown as {
+                prepare: (clientOptions?: IClientOptions) => Promise<void>;
+            }
+        ).prepare(clientOptions);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getLifecycleManager(): LifecycleManager;

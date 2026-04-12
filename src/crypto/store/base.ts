@@ -376,7 +376,7 @@ interface IDevice {
     algorithms: string[];
     verified: DeviceVerification;
     known: boolean;
-    unsigned?: Record<string, any>;
+    unsigned?: Record<string, unknown>;
     signatures?: ISignatures;
 }
 

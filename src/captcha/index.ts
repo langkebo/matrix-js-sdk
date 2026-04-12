@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,13 +16,13 @@ limitations under the License.
 
 /**
  * Captcha Manager - 验证码管理
- * 
+ *
  * 提供验证码相关功能
- * 对应后端: captcha_service
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api";
+import { BaseManager } from "../managers/base-manager";
 
 export interface CaptchaInfo {
     public_url: string;
@@ -43,36 +43,49 @@ export interface ICaptchaVerifyResponse {
     session: string;
 }
 
-export class CaptchaManager {
-    constructor(private client: MatrixClient) {}
+export interface CaptchaManagerEvents {
+    captcha_required: { session: string };
+    captcha_verified: { session: string };
+}
+
+export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, CaptchaManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getCaptchaInfo(): Promise<CaptchaInfo | null> {
-        const flows = await (this.client as unknown as {
-            getLoginFlows: () => Promise<ILoginFlowsResponse>;
-        }).getLoginFlows();
-        
-        const captchaFlow = flows.flows?.find((flow) => flow.type === "m.login.captcha");
-        
-        if (!captchaFlow) {
-            return null;
-        }
-        
-        const response = await this.client.http.authedRequest<{
-            public_url: string;
-            session: string;
-        }>(Method.Get, "/captcha/_/login");
-        
-        return {
-            public_url: response.public_url,
-            session: response.session
-        };
+        return this.withRetry(async () => {
+            const flows = await (
+                this.client as unknown as {
+                    getLoginFlows: () => Promise<ILoginFlowsResponse>;
+                }
+            ).getLoginFlows();
+
+            const captchaFlow = flows.flows?.find((flow) => flow.type === "m.login.captcha");
+
+            if (!captchaFlow) {
+                return null;
+            }
+
+            const response = await this.client.http.authedRequest<{
+                public_url: string;
+                session: string;
+            }>(Method.Get, "/captcha/_/login");
+
+            return {
+                public_url: response.public_url,
+                session: response.session,
+            };
+        }, "getCaptchaInfo");
     }
 
     public async isCaptchaRequired(): Promise<boolean> {
         try {
-            const flows = await (this.client as unknown as {
-                getLoginFlows: () => Promise<ILoginFlowsResponse>;
-            }).getLoginFlows();
+            const flows = await (
+                this.client as unknown as {
+                    getLoginFlows: () => Promise<ILoginFlowsResponse>;
+                }
+            ).getLoginFlows();
             return flows.flows?.some((flow) => flow.type === "m.login.captcha") ?? false;
         } catch {
             return false;
@@ -80,14 +93,13 @@ export class CaptchaManager {
     }
 
     public async verifyCaptcha(session: string, captchaResponse: string): Promise<ICaptchaVerifyResponse> {
-        return this.client.http.authedRequest<ICaptchaVerifyResponse>(
-            Method.Post,
-            "/captcha/_/login",
-            undefined,
-            {
-                session,
-                captcha_response: captchaResponse
-            }
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<ICaptchaVerifyResponse>(Method.Post, "/captcha/_/login", undefined, {
+                    session,
+                    captcha_response: captchaResponse,
+                }),
+            "verifyCaptcha",
         );
     }
 
@@ -100,7 +112,6 @@ export class CaptchaManager {
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCaptchaManager(): CaptchaManager;

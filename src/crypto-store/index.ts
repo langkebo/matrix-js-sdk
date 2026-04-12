@@ -16,49 +16,46 @@ limitations under the License.
 
 /**
  * Crypto Store Manager - 加密存储管理
- * 
+ *
  * 提供加密存储相关功能
  */
 
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 
-export class CryptoStoreManager {
-    constructor(private client: MatrixClient) {}
+export interface CryptoStoreInfo {
+    type: string;
+    exists: boolean;
+}
 
-    /**
-     * Get crypto store
-     */
+export interface CryptoStoreManagerEvents {
+    store_created: void;
+    store_deleted: void;
+    store_ready: void;
+}
+
+export class CryptoStoreManager extends BaseManager<keyof CryptoStoreManagerEvents, CryptoStoreManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getCryptoStore(): unknown {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).cryptoStore;
+        return this.client.cryptoStore;
     }
 
-    /**
-     * Set crypto store
-     */
     public setCryptoStore(store: unknown): void {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.client as any).cryptoStore = store;
+        this.client.cryptoStore = store;
     }
 
-    /**
-     * Delete crypto store
-     */
     public async deleteCryptoStore(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).deleteCryptoStore();
+        return this.withRetry(() => this.client.deleteCryptoStore(), "deleteCryptoStore");
     }
 
-    /**
-     * Is crypto store ready
-     */
     public isCryptoStoreReady(): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).isCryptoStoreReady();
+        return this.client.isCryptoStoreReady();
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCryptoStoreManager(): CryptoStoreManager;

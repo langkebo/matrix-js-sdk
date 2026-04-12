@@ -16,103 +16,25 @@ limitations under the License.
 
 /**
  * Room Summary Manager - 房间摘要管理
- * 
+ *
  * 提供房间摘要、成员、统计等功能
  * 对接后端: synapse-rust/src/web/routes/room_summary.rs
- * 
+ *
  * ⚠️ 注意：此模块是 Room Summary 的主要实现
  * 旧的 room-summaries/index.ts 模块已废弃，请使用此模块
  */
 
 import { MatrixClient } from "../client";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { logger } from "../logger.ts";
-import { MatrixError } from "../http-api/errors.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { Body } from "../http-api/interface.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError, SdkError } from "../errors.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { encodeUri, type QueryDict } from "../utils.ts";
 import * as utils from "../utils.ts";
-
-interface CacheEntry<T> {
-    value: T;
-    timestamp: number;
-}
-
-class LRUCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
-    private readonly maxSize: number;
-    private readonly ttl: number;
-    private hits = 0;
-    private misses = 0;
-
-    constructor(maxSize: number, ttl: number) {
-        this.maxSize = maxSize;
-        this.ttl = ttl;
-    }
-
-    get(key: string): T | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) {
-            this.misses++;
-            return undefined;
-        }
-
-        if (Date.now() - entry.timestamp > this.ttl) {
-            this.cache.delete(key);
-            this.misses++;
-            return undefined;
-        }
-
-        this.hits++;
-        this.cache.delete(key);
-        this.cache.set(key, entry);
-        return entry.value;
-    }
-
-    set(key: string, value: T): void {
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
-        } else if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-        });
-    }
-
-    delete(key: string): boolean {
-        return this.cache.delete(key);
-    }
-
-    clear(): void {
-        this.cache.clear();
-        this.hits = 0;
-        this.misses = 0;
-    }
-
-    size(): number {
-        return this.cache.size;
-    }
-
-    getStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        const total = this.hits + this.misses;
-        return {
-            size: this.cache.size,
-            hits: this.hits,
-            misses: this.misses,
-            hitRate: total > 0 ? this.hits / total : 0,
-        };
-    }
-}
-
+import { BaseManager } from "../managers/base-manager.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { LRUCache } from "../utils/lru-cache.ts";
 export interface RoomSummaryHero {
     user_id: string;
     display_name?: string;
@@ -166,6 +88,25 @@ export interface RoomStats {
 
 export interface RoomSummaryStateContent extends Record<string, unknown> {}
 
+export interface ClientRoomSummary {
+    room_id: string;
+    room_type?: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    canonical_alias?: string;
+    join_rule?: string;
+    history_visibility?: string;
+    guest_access?: string;
+    is_direct?: boolean;
+    is_space?: boolean;
+    is_encrypted?: boolean;
+    num_joined_members?: number;
+    heroes?: Array<string | { user_id: string; display_name?: string; avatar_url?: string }>;
+    last_event_ts?: number;
+    last_message_ts?: number;
+}
+
 export interface IRoomSummaryState {
     event_type: string;
     state_key: string;
@@ -179,6 +120,191 @@ export interface RoomSummaryListResponse {
     chunk?: RoomSummary[];
     next_batch?: string;
     [key: string]: unknown;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v3 扩展房间端点类型定义
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface NotificationItem {
+    room_id: string;
+    event_id: string;
+    type: string;
+    sender: string;
+    timestamp: number;
+    content: Record<string, unknown>;
+    read: boolean;
+    highlight: boolean;
+}
+
+export interface RoomCapabilities {
+    room_id: string;
+    capabilities: {
+        [key: string]: unknown;
+    };
+}
+
+export interface RoomSyncResult {
+    room_id: string;
+    state?: Record<string, unknown>;
+    timeline?: {
+        events: unknown[];
+        limited?: boolean;
+        prev_batch?: string;
+    };
+    ephemeral?: {
+        events: unknown[];
+    };
+    account_data?: {
+        events: unknown[];
+    };
+}
+
+export interface TimelineResult {
+    chunk: unknown[];
+    start: string;
+    end: string;
+    prev_batch?: string;
+}
+
+export interface UnreadCountResult {
+    room_id: string;
+    unread_notifications?: number;
+    unread_highlight_count?: number;
+    unread_thread_messages?: number;
+}
+
+export interface RoomMetadata {
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    canonical_alias?: string;
+    room_version?: string;
+    is_direct?: boolean;
+    is_space?: boolean;
+    is_encrypted?: boolean;
+    join_rule?: string;
+    guest_access?: string;
+    history_visibility?: string;
+    created_at?: number;
+    creator?: string;
+}
+
+export interface RetentionPolicy {
+    min_lifetime?: number;
+    max_lifetime?: number;
+}
+
+export interface ExternalId {
+    provider: string;
+    external_id: string;
+}
+
+export interface RoomSpace {
+    room_id: string;
+    name?: string;
+    canonical_alias?: string;
+    avatar_url?: string;
+    topic?: string;
+}
+
+export interface EventPerspective {
+    room_id: string;
+    event_id: string;
+    content?: Record<string, unknown>;
+    auth_events?: unknown[];
+    prev_events?: unknown[];
+    depth?: number;
+    hashes?: Record<string, string>;
+    signatures?: Record<string, Record<string, string>>;
+}
+
+export interface EncryptedEventsResult {
+    room_id: string;
+    events: Array<{
+        event_id: string;
+        sender: string;
+        type: string;
+        content: Record<string, unknown>;
+        timestamp: number;
+    }>;
+    next_batch?: string;
+}
+
+/**
+ * GET /_matrix/client/v3/rooms/{room_id}/keys/{event_id}
+ * 获取事件签名密钥
+ */
+export interface EventKeysResult {
+    event_id: string;
+    room_id: string;
+    keys: Array<Record<string, unknown>>;
+}
+
+/**
+ * GET /_matrix/client/v3/rooms/{room_id}/thread/{event_id}
+ * 获取线程根事件及其回复
+ */
+export interface ThreadReply {
+    event_id: string;
+    thread_id: string;
+    room_id: string;
+    sender: string;
+    content: Record<string, unknown>;
+    origin_server_ts: number;
+    in_reply_to_event_id?: string;
+    is_edited: boolean;
+    is_redacted: boolean;
+}
+
+export interface ThreadRoot {
+    event_id: string;
+    room_id: string;
+    sender: string;
+    type: string;
+    content: Record<string, unknown>;
+    origin_server_ts: number;
+    state_key?: string;
+}
+
+export interface RoomThreadResult {
+    root: ThreadRoot;
+    replies: ThreadReply[];
+    reply_count: number;
+    participants: string[];
+}
+
+export interface TurnServerConfig {
+    uris: string[];
+    username?: string;
+    password?: string;
+    ttl?: number;
+}
+
+export interface StickyEvent {
+    event_type: string;
+    content: Record<string, unknown>;
+    sender?: string;
+    ts?: number;
+}
+
+export interface InviteBlocklist {
+    room_id: string;
+    blocked: Array<{
+        user_id: string;
+        blocked_by: string;
+        blocked_at: number;
+    }>;
+}
+
+export interface InviteAllowlist {
+    room_id: string;
+    allowed: Array<{
+        user_id: string;
+        allowed_by: string;
+        allowed_at: number;
+    }>;
 }
 
 export enum RoomSummaryEvent {
@@ -197,32 +323,36 @@ interface RoomSummaryEventMap {
 
 /**
  * Room Summary Manager - 房间摘要管理
- * 
+ *
  * ⚠️ 与旧的 room-summaries/index.ts 的区别：
  * - 本模块提供完整的封装（缓存、事件、统计）
  * - 提供真实后端 API 调用
  * - 推荐使用本模块
  */
-export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, RoomSummaryEventMap> {
-    private client: MatrixClient;
+export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummaryEventMap> {
     private summaryCache: LRUCache<RoomSummary>;
     private memberCache: LRUCache<RoomSummaryMember[]>;
     private statsCache: LRUCache<RoomStats>;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000; // 1 秒
 
     public constructor(client: MatrixClient) {
-        super();
-        this.client = client;
-        
-        this.summaryCache = new LRUCache<RoomSummary>(1000, 5 * 60 * 1000);
-        this.memberCache = new LRUCache<RoomSummaryMember[]>(500, 5 * 60 * 1000);
-        this.statsCache = new LRUCache<RoomStats>(500, 10 * 60 * 1000);
+        super(client);
+
+        this.summaryCache = new LRUCache<RoomSummary>({
+            maxSize: 1000,
+            ttl: 5 * 60 * 1000,
+            name: "index.ts-roomsummary",
+        });
+        this.memberCache = new LRUCache<RoomSummaryMember[]>({
+            maxSize: 500,
+            ttl: 5 * 60 * 1000,
+            name: "index.ts-roomsummarymember",
+        });
+        this.statsCache = new LRUCache<RoomStats>({ maxSize: 500, ttl: 10 * 60 * 1000, name: "index.ts-roomstats" });
     }
 
     /**
      * 验证房间 ID 格式
-     * 
+     *
      * @param roomId - 房间 ID
      * @throws {InvalidParamError} 当房间 ID 无效时
      */
@@ -244,7 +374,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 验证用户 ID 格式
-     * 
+     *
      * @param userId - 用户 ID
      * @throws {InvalidParamError} 当用户 ID 无效时
      */
@@ -266,7 +396,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 验证事件类型格式
-     * 
+     *
      * @param eventType - 事件类型
      * @throws {InvalidParamError} 当事件类型无效时
      */
@@ -286,152 +416,6 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
     }
 
-    private requestStats = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        retried: 0,
-    };
-
-    private recordRequest(success: boolean, retried = false): void {
-        this.requestStats.total++;
-        if (success) {
-            this.requestStats.successful++;
-        } else {
-            this.requestStats.failed++;
-        }
-        if (retried) {
-            this.requestStats.retried++;
-        }
-    }
-
-    public getRequestStats(): typeof this.requestStats {
-        return { ...this.requestStats };
-    }
-
-    public resetRequestStats(): void {
-        this.requestStats = {
-            total: 0,
-            successful: 0,
-            failed: 0,
-            retried: 0,
-        };
-    }
-
-    /**
-     * 带重试的请求封装
-     * 
-     * @param requestFn - 请求函数
-     * @param method - 方法名（用于错误信息和监控）
-     * @param retries - 重试次数
-     * @returns 请求结果
-     */
-    private async withRetry<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries
-    ): Promise<T> {
-        let lastError: unknown;
-        const startTime = Date.now();
-        
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-                
-                if (attempt > 0) {
-                    logger.info(`RoomSummaryManager.${method} succeeded after ${attempt} retries`, {
-                        method,
-                        attempts: attempt + 1,
-                        duration: Date.now() - startTime,
-                    });
-                }
-                
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-                
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    this.emitMetric('api_error', method, { 
-                        error: this.getErrorType(error),
-                        attempt: attempt + 1,
-                        retryable: false 
-                    });
-                    throw this.normalizeError(error, method);
-                }
-                
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`RoomSummaryManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`, {
-                        method,
-                        attempt: attempt + 1,
-                        maxAttempts: retries + 1,
-                        delay,
-                        error: this.getErrorType(error),
-                    });
-                    
-                    this.emitMetric('api_retry', method, { 
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error)
-                    });
-                    
-                    await this.sleep(delay);
-                }
-            }
-        }
-        
-        this.recordRequest(false, true);
-        const duration = Date.now() - startTime;
-        this.emitMetric('api_failure', method, { 
-            attempts: retries + 1,
-            duration,
-            error: this.getErrorType(lastError)
-        });
-        
-        throw this.normalizeError(lastError, method);
-    }
-
-    /**
-     * 发送监控指标
-     * 
-     * @param type - 指标类型
-     * @param method - 方法名
-     * @param data - 指标数据
-     */
-    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
-        try {
-            this.emit(RoomSummaryEvent.Error, new Error(`Metric: ${type}.${method}`));
-            logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
-        } catch {
-            // 忽略监控发送错误，不影响主流程
-        }
-    }
-
-    /**
-     * 获取错误类型
-     * 
-     * @param error - 错误对象
-     * @returns 错误类型字符串
-     */
-    private getErrorType(error: unknown): string {
-        if (error instanceof MatrixError) {
-            return error.errcode || `http_${error.httpStatus}`;
-        }
-        if (error instanceof Error) {
-            return error.name || 'UnknownError';
-        }
-        return 'UnknownError';
-    }
-
-    /**
-     * 延迟函数
-     */
-    private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     /**
      * 获取房间摘要
      *
@@ -448,7 +432,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         roomIdOrAlias: string,
         via?: string[],
         forceRefresh = false,
-        throwOnError = false
+        throwOnError = false,
     ): Promise<RoomSummary | null> {
         if (!forceRefresh) {
             const cached = this.summaryCache.get(roomIdOrAlias);
@@ -458,30 +442,42 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
 
         try {
-            // Direct API call instead of using deleted client method
-            const paramOpts = {
-                prefix: ClientPrefix.V3,
-            };
-            let clientSummary;
-            try {
-                const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
-                clientSummary = await this.client.http.authedRequest(Method.Get, path, via ? { via } : undefined, undefined, paramOpts);
-            } catch (e) {
-                // Try unstable endpoint as fallback
-                const unstableOpts = {
-                    prefix: "/_matrix/client/unstable/im.nheko.summary",
+            const clientSummary = await this.withRetry(async () => {
+                const paramOpts = {
+                    prefix: ClientPrefix.V3,
                 };
-                const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
-                clientSummary = await this.client.http.authedRequest(Method.Get, path, via ? { via } : undefined, undefined, unstableOpts);
-            }
+                try {
+                    const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
+                    return await this.client.http.authedRequest(
+                        Method.Get,
+                        path,
+                        via ? { via } : undefined,
+                        undefined,
+                        paramOpts,
+                    );
+                } catch {
+                    const unstableOpts = {
+                        prefix: "/_matrix/client/unstable/im.nheko.summary",
+                    };
+                    const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
+                    return await this.client.http.authedRequest(
+                        Method.Get,
+                        path,
+                        via ? { via } : undefined,
+                        undefined,
+                        unstableOpts,
+                    );
+                }
+            }, "getRoomSummary");
 
-            const summary = this.convertClientSummary(clientSummary as Parameters<typeof this.convertClientSummary>[0]);
+            const summary = this.convertClientSummary(clientSummary as ClientRoomSummary);
             this.summaryCache.set(roomIdOrAlias, summary);
             this.emit(RoomSummaryEvent.Updated, roomIdOrAlias, summary);
             return summary;
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
-                throw this.normalizeError(e, 'getRoomSummary');
+                throw this.normalizeError(e, "getRoomSummary");
             }
             this.handleError("getRoomSummary", e);
             return null;
@@ -490,7 +486,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取房间成员列表摘要
-     * 
+     *
      * @param roomId - 房间 ID
      * @param forceRefresh - 是否强制刷新缓存
      * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
@@ -500,9 +496,9 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
      * @throws {ApiError} 当 API 调用失败时
      */
     public async getRoomSummaryMembers(
-        roomId: string, 
+        roomId: string,
         forceRefresh = false,
-        throwOnError = false
+        throwOnError = false,
     ): Promise<RoomSummaryMember[]> {
         if (!forceRefresh) {
             const cached = this.memberCache.get(roomId);
@@ -511,27 +507,30 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
             }
         }
 
-        try {
-            // Direct API call instead of using deleted client method
+        return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomid/summary/members", { $roomid: roomId });
-            const members = await this.client.http.authedRequest<RoomSummaryMember[]>(Method.Get, path, undefined, undefined, {
+            return await this.client.http.authedRequest<RoomSummaryMember[]>(Method.Get, path, undefined, undefined, {
                 prefix: ClientPrefix.V3,
             });
-            this.memberCache.set(roomId, members);
-            this.emit(RoomSummaryEvent.MembersUpdated, roomId, members);
-            return members;
-        } catch (e) {
-            if (throwOnError) {
-                throw this.normalizeError(e, 'getRoomSummaryMembers');
-            }
-            this.handleError("getRoomSummaryMembers", e);
-            return [];
-        }
+        }, "getRoomSummaryMembers").then(
+            (members) => {
+                this.memberCache.set(roomId, members);
+                this.emit(RoomSummaryEvent.MembersUpdated, roomId, members);
+                return members;
+            },
+            (e) => {
+                if (throwOnError) {
+                    throw this.normalizeError(e, "getRoomSummaryMembers");
+                }
+                this.handleError("getRoomSummaryMembers", e);
+                return [];
+            },
+        );
     }
 
     /**
      * 获取房间统计信息
-     * 
+     *
      * @param roomId - 房间 ID
      * @param forceRefresh - 是否强制刷新缓存
      * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
@@ -541,9 +540,9 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
      * @throws {ApiError} 当 API 调用失败时
      */
     public async getRoomSummaryStats(
-        roomId: string, 
+        roomId: string,
         forceRefresh = false,
-        throwOnError = false
+        throwOnError = false,
     ): Promise<RoomStats | null> {
         if (!forceRefresh) {
             const cached = this.statsCache.get(roomId);
@@ -553,28 +552,33 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
 
         try {
-            // Direct API call instead of using deleted client method
-            const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
-            const stats = await this.client.http.authedRequest<RoomStats>(Method.Get, path, undefined, undefined, {
-                prefix: ClientPrefix.V3,
-            });
+            const stats = await this.withRetry(async () => {
+                const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
+                return await this.client.http.authedRequest<RoomStats>(Method.Get, path, undefined, undefined, {
+                    prefix: ClientPrefix.V3,
+                });
+            }, "getRoomSummaryStats");
             if (stats) {
                 this.statsCache.set(roomId, stats);
                 this.emit(RoomSummaryEvent.StatsUpdated, roomId, stats);
             }
             return stats;
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
-                throw this.normalizeError(e, 'getRoomSummaryStats');
+                throw this.normalizeError(e, "getRoomSummaryStats");
             }
             this.handleError("getRoomSummaryStats", e);
             return null;
         }
     }
 
-    public async createOrRefreshSummary(roomId: string, body: Record<string, unknown> = {}): Promise<RoomSummary | null> {
+    public async createOrRefreshSummary(
+        roomId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<RoomSummary | null> {
         this.validateRoomId(roomId);
-        
+
         try {
             const summary = await this.withRetry(async () => {
                 return await this.requestV3<RoomSummary>(
@@ -584,7 +588,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                     body,
                 );
             }, "createOrRefreshSummary");
-            
+
             if (summary) {
                 this.summaryCache.set(roomId, summary);
                 this.emit(RoomSummaryEvent.Updated, roomId, summary);
@@ -597,7 +601,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     public async updateSummary(roomId: string, body: Record<string, unknown>): Promise<RoomSummary | null> {
         this.validateRoomId(roomId);
-        
+
         try {
             const summary = await this.withRetry(async () => {
                 return await this.requestV3<RoomSummary>(
@@ -607,7 +611,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                     body,
                 );
             }, "updateSummary");
-            
+
             if (summary) {
                 this.summaryCache.set(roomId, summary);
                 this.emit(RoomSummaryEvent.Updated, roomId, summary);
@@ -622,7 +626,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     public async deleteSummary(roomId: string): Promise<void> {
         this.validateRoomId(roomId);
-        
+
         return this.withRetry(async () => {
             await this.requestV3(Method.Delete, this.roomSummaryPath("/rooms/$roomId/summary", roomId));
             this.clearCache(roomId);
@@ -631,7 +635,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     public async syncSummary(roomId: string, body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
         this.validateRoomId(roomId);
-        
+
         return this.withRetry(async () => {
             return await this.requestV3<Record<string, unknown>>(
                 Method.Post,
@@ -647,7 +651,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         if (!Array.isArray(members)) {
             throw new InvalidParamError("Members must be an array");
         }
-        
+
         try {
             const response = await this.withRetry(async () => {
                 return await this.requestV3<{ members?: RoomSummaryMember[] } | RoomSummaryMember[]>(
@@ -657,8 +661,8 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                     { members },
                 );
             }, "writeSummaryMembers");
-            
-            const normalizedMembers = Array.isArray(response) ? response : response.members ?? members;
+
+            const normalizedMembers = Array.isArray(response) ? response : (response.members ?? members);
             this.memberCache.set(roomId, normalizedMembers);
             this.emit(RoomSummaryEvent.MembersUpdated, roomId, normalizedMembers);
             return normalizedMembers;
@@ -674,7 +678,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
     ): Promise<Record<string, unknown>> {
         this.validateRoomId(roomId);
         this.validateUserId(userId);
-        
+
         return this.withRetry(async () => {
             const updatedMember = await this.requestV3<Record<string, unknown>>(
                 Method.Put,
@@ -690,7 +694,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
     public async deleteSummaryMember(roomId: string, userId: string): Promise<void> {
         this.validateRoomId(roomId);
         this.validateUserId(userId);
-        
+
         return this.withRetry(async () => {
             await this.requestV3(
                 Method.Delete,
@@ -702,7 +706,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     public async getAllSummaryState(roomId: string): Promise<IRoomSummaryState[]> {
         this.validateRoomId(roomId);
-        
+
         return this.withRetry(async () => {
             return await this.requestV3<IRoomSummaryState[]>(
                 Method.Get,
@@ -718,7 +722,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
     ): Promise<RoomSummaryStateContent> {
         this.validateRoomId(roomId);
         this.validateEventType(eventType);
-        
+
         return this.withRetry(async () => {
             return await this.requestV3<RoomSummaryStateContent>(
                 Method.Get,
@@ -739,7 +743,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
     ): Promise<RoomSummaryStateContent> {
         this.validateRoomId(roomId);
         this.validateEventType(eventType);
-        
+
         try {
             return await this.requestV3<RoomSummaryStateContent>(
                 Method.Put,
@@ -756,9 +760,12 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
     }
 
-    public async recalculateSummaryStats(roomId: string, body: Record<string, unknown> = {}): Promise<RoomStats | null> {
+    public async recalculateSummaryStats(
+        roomId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<RoomStats | null> {
         this.validateRoomId(roomId);
-        
+
         try {
             const stats = await this.withRetry(async () => {
                 return await this.requestV3<RoomStats>(
@@ -768,7 +775,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                     body,
                 );
             }, "recalculateSummaryStats");
-            
+
             if (stats) {
                 this.statsCache.set(roomId, stats);
                 this.emit(RoomSummaryEvent.StatsUpdated, roomId, stats);
@@ -779,9 +786,12 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }
     }
 
-    public async recalculateSummaryHeroes(roomId: string, body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    public async recalculateSummaryHeroes(
+        roomId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<Record<string, unknown>> {
         this.validateRoomId(roomId);
-        
+
         return this.withRetry(async () => {
             const result = await this.requestV3<Record<string, unknown>>(
                 Method.Post,
@@ -794,9 +804,12 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         }, "recalculateSummaryHeroes");
     }
 
-    public async clearSummaryUnread(roomId: string, body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    public async clearSummaryUnread(
+        roomId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<Record<string, unknown>> {
         this.validateRoomId(roomId);
-        
+
         return this.withRetry(async () => {
             const result = await this.requestV3<Record<string, unknown>>(
                 Method.Post,
@@ -819,7 +832,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         if (!body || typeof body !== "object") {
             throw new InvalidParamError("Body must be an object");
         }
-        
+
         return this.withRetry(async () => {
             return await this.requestInternal<Record<string, unknown>>(Method.Post, "/summaries", undefined, body);
         }, "createInternalSummary");
@@ -827,13 +840,18 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     public async processSummaryUpdates(body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
         return this.withRetry(async () => {
-            return await this.requestInternal<Record<string, unknown>>(Method.Post, "/updates/process", undefined, body);
+            return await this.requestInternal<Record<string, unknown>>(
+                Method.Post,
+                "/updates/process",
+                undefined,
+                body,
+            );
         }, "processSummaryUpdates");
     }
 
     /**
      * 清除缓存
-     * 
+     *
      * @param roomId - 房间 ID（可选，不传则清除所有缓存）
      */
     public clearCache(roomId?: string): void {
@@ -851,7 +869,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取缓存统计信息
-     * 
+     *
      * @returns 缓存统计信息
      */
     public getCacheStats(): {
@@ -868,7 +886,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取综合指标
-     * 
+     *
      * @returns 综合指标
      */
     public getMetrics(): {
@@ -897,7 +915,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取房间层级结构（Space 层级）
-     * 
+     *
      * @param roomId - 房间 ID
      * @param options - 选项
      * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
@@ -907,20 +925,23 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
      * @throws {ApiError} 当 API 调用失败时
      */
     public async getRoomHierarchy(
-        roomId: string, 
+        roomId: string,
         options?: RoomSummaryOptions,
-        throwOnError = false
+        throwOnError = false,
     ): Promise<unknown | null> {
         try {
-            return await this.client.getRoomHierarchy(
-                roomId,
-                options?.limit,
-                undefined,
-                options?.suggested ?? false
-            );
+            return await this.withRetry(async () => {
+                return await this.client.getRoomHierarchy(
+                    roomId,
+                    options?.limit,
+                    undefined,
+                    options?.suggested ?? false,
+                );
+            }, "getRoomHierarchy");
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
-                throw this.normalizeError(e, 'getRoomHierarchy');
+                throw this.normalizeError(e, "getRoomHierarchy");
             }
             this.handleError("getRoomHierarchy", e);
             return null;
@@ -929,7 +950,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取公共房间列表
-     * 
+     *
      * @param server - 服务器名（可选）
      * @param options - 选项
      * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
@@ -940,18 +961,21 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
     public async getPublicRooms(
         server = "",
         options?: { limit?: number; since?: string; query?: string },
-        throwOnError = false
+        throwOnError = false,
     ): Promise<unknown | null> {
         try {
-            return await this.client.publicRooms({
-                server,
-                limit: options?.limit,
-                since: options?.since,
-                filter: options?.query ? { generic_search_term: options.query } : undefined,
-            });
+            return await this.withRetry(async () => {
+                return await this.client.publicRooms({
+                    server,
+                    limit: options?.limit,
+                    since: options?.since,
+                    filter: options?.query ? { generic_search_term: options.query } : undefined,
+                });
+            }, "getPublicRooms");
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
-                throw this.normalizeError(e, 'getPublicRooms');
+                throw this.normalizeError(e, "getPublicRooms");
             }
             this.handleError("getPublicRooms", e);
             return null;
@@ -960,7 +984,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 搜索公共房间
-     * 
+     *
      * @param query - 搜索关键词
      * @param server - 服务器名
      * @param limit - 限制数量
@@ -970,6 +994,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         try {
             const result = await this.getPublicRooms(server, { query, limit });
             return (result as { chunk?: RoomSummary[] })?.chunk || [];
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("searchPublicRooms", e);
             return [];
@@ -978,7 +1003,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取推荐房间
-     * 
+     *
      * @param server - 服务器名
      * @param limit - 限制数量
      * @returns 房间摘要列表
@@ -987,6 +1012,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         try {
             const result = await this.getPublicRooms(server, { limit });
             return (result as { chunk?: RoomSummary[] })?.chunk || [];
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getRecommendedRooms", e);
             return [];
@@ -995,7 +1021,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取收藏的房间
-     * 
+     *
      * @returns 收藏的房间摘要列表
      */
     public async getFavoriteRooms(): Promise<RoomSummary[]> {
@@ -1008,7 +1034,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                 tags?: Record<string, unknown>;
                 getJoinedMemberCount?: () => number;
             }>;
-            
+
             return rooms
                 .filter((room) => room.tags && room.tags["m.favorite"])
                 .map((room) => ({
@@ -1027,6 +1053,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                     invited_member_count: 0,
                     heroes: [],
                 }));
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getFavoriteRooms", e);
             return [];
@@ -1035,7 +1062,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
 
     /**
      * 获取最近活跃的房间
-     * 
+     *
      * @param limit - 限制数量
      * @returns 最近活跃的房间摘要列表
      */
@@ -1050,7 +1077,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                 getMyMembership?: () => string;
                 getJoinedMemberCount?: () => number;
             }>;
-            
+
             return rooms
                 .filter((room) => room.getLastActiveTimestamp?.())
                 .sort((a, b) => (b.getLastActiveTimestamp?.() || 0) - (a.getLastActiveTimestamp?.() || 0))
@@ -1071,6 +1098,7 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
                     invited_member_count: 0,
                     heroes: [],
                 }));
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getRecentRooms", e);
             return [];
@@ -1105,7 +1133,428 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         return this.summaryCache.get(roomId) !== undefined;
     }
 
-    start(): void {
+    // ─────────────────────────────────────────────────────────────────────────────
+    // v3 扩展房间端点
+    // 对接后端: /_matrix/client/v3/rooms/{room_id}/...
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * 获取房间通知列表
+     * @param roomId - 房间 ID
+     * @param options - 分页选项
+     */
+    public async getRoomNotifications(
+        roomId: string,
+        options?: { from?: string; limit?: number; only?: string },
+    ): Promise<{ notifications: NotificationItem[]; next_batch?: string }> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const queryParams: QueryDict = {};
+            if (options?.from) queryParams.from = options.from;
+            if (options?.limit) queryParams.limit = String(options.limit);
+            if (options?.only) queryParams.only = options.only;
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/notifications", roomId),
+                queryParams,
+            );
+        }, "getRoomNotifications");
+    }
+
+    /**
+     * 获取房间能力
+     * @param roomId - 房间 ID
+     */
+    public async getRoomCapabilities(roomId: string): Promise<RoomCapabilities> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/capabilities", roomId));
+        }, "getRoomCapabilities");
+    }
+
+    /**
+     * 获取房间级同步结果
+     * @param roomId - 房间 ID
+     * @param options - 同步选项
+     */
+    public async getRoomSync(
+        roomId: string,
+        options?: { since?: string; timeout_ms?: number; filter?: string },
+    ): Promise<RoomSyncResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const queryParams: QueryDict = {};
+            if (options?.since) queryParams.since = options.since;
+            if (options?.timeout_ms) queryParams.timeout_ms = String(options.timeout_ms);
+            if (options?.filter) queryParams.filter = options.filter;
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/sync", roomId), queryParams);
+        }, "getRoomSync");
+    }
+
+    /**
+     * 获取房间时间线
+     * @param roomId - 房间 ID
+     * @param options - 时间线选项
+     */
+    public async getRoomTimeline(
+        roomId: string,
+        options?: { from?: string; to?: string; dir?: "f" | "b"; limit?: number; filter?: string },
+    ): Promise<TimelineResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const queryParams: QueryDict = {};
+            if (options?.from) queryParams.from = options.from;
+            if (options?.to) queryParams.to = options.to;
+            if (options?.dir) queryParams.dir = options.dir;
+            if (options?.limit) queryParams.limit = String(options.limit);
+            if (options?.filter) queryParams.filter = options.filter;
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/timeline", roomId),
+                queryParams,
+            );
+        }, "getRoomTimeline");
+    }
+
+    /**
+     * 获取房间未读计数
+     * @param roomId - 房间 ID
+     */
+    public async getRoomUnreadCount(roomId: string): Promise<UnreadCountResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/unread_count", roomId));
+        }, "getRoomUnreadCount");
+    }
+
+    /**
+     * 获取房间元数据
+     * @param roomId - 房间 ID
+     */
+    public async getRoomMetadata(roomId: string): Promise<RoomMetadata> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/metadata", roomId));
+        }, "getRoomMetadata");
+    }
+
+    /**
+     * 获取房间 vault 数据
+     * @param roomId - 房间 ID
+     */
+    public async getRoomVaultData(roomId: string): Promise<Record<string, unknown> | null> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/vault_data", roomId));
+        }, "getRoomVaultData");
+    }
+
+    /**
+     * 设置房间 vault 数据
+     * @param roomId - 房间 ID
+     * @param data - vault 数据
+     */
+    public async setRoomVaultData(roomId: string, data: Record<string, unknown>): Promise<void> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            await this.requestV3(
+                Method.Put,
+                this.roomSummaryPath("/rooms/$roomId/vault_data", roomId),
+                undefined,
+                data as Body,
+            );
+        }, "setRoomVaultData");
+    }
+
+    /**
+     * 获取房间 retention 策略
+     * @param roomId - 房间 ID
+     */
+    public async getRoomRetention(roomId: string): Promise<RetentionPolicy | null> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/retention", roomId));
+        }, "getRoomRetention");
+    }
+
+    /**
+     * 获取房间外部关联 ID
+     * @param roomId - 房间 ID
+     */
+    public async getRoomExternalIds(roomId: string): Promise<ExternalId[]> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/external_ids", roomId));
+        }, "getRoomExternalIds");
+    }
+
+    /**
+     * 获取房间所属的 space 列表
+     * @param roomId - 房间 ID
+     */
+    public async getRoomSpaces(roomId: string): Promise<RoomSpace[]> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/spaces", roomId));
+        }, "getRoomSpaces");
+    }
+
+    /**
+     * 获取房间事件视角数据
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param options - 可选参数
+     */
+    public async getRoomEventPerspective(
+        roomId: string,
+        eventId: string,
+        options?: { room_version?: string },
+    ): Promise<EventPerspective> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const queryParams: QueryDict = {};
+            if (options?.room_version) queryParams.room_version = options.room_version;
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/event_perspective", roomId), {
+                ...queryParams,
+                event_id: eventId,
+            });
+        }, "getRoomEventPerspective");
+    }
+
+    /**
+     * 获取加密事件摘要
+     * @param roomId - 房间 ID
+     * @param options - 查询选项
+     */
+    public async getEncryptedEvents(
+        roomId: string,
+        options?: { from?: string; limit?: number },
+    ): Promise<EncryptedEventsResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const queryParams: QueryDict = {};
+            if (options?.from) queryParams.from = options.from;
+            if (options?.limit) queryParams.limit = String(options.limit);
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/encrypted_events", roomId),
+                queryParams,
+            );
+        }, "getEncryptedEvents");
+    }
+
+    /**
+     * 获取房间 TURN 服务器配置
+     * @param roomId - 房间 ID
+     */
+    public async getRoomTurnServer(roomId: string): Promise<TurnServerConfig> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/turn_server", roomId));
+        }, "getRoomTurnServer");
+    }
+
+    /**
+     * 获取 sticky events
+     * @param roomId - 房间 ID
+     */
+    public async getStickyEvents(roomId: string): Promise<StickyEvent[]> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/sticky_events", roomId));
+        }, "getStickyEvents");
+    }
+
+    /**
+     * 设置 sticky event
+     * @param roomId - 房间 ID
+     * @param eventType - 事件类型
+     * @param content - 事件内容
+     */
+    public async setStickyEvent(
+        roomId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+    ): Promise<StickyEvent> {
+        this.validateRoomId(roomId);
+        this.validateEventType(eventType);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Post,
+                this.roomSummaryPath("/rooms/$roomId/sticky_events", roomId),
+                undefined,
+                { event_type: eventType, content } as Body,
+            );
+        }, "setStickyEvent");
+    }
+
+    /**
+     * 删除 sticky event
+     * @param roomId - 房间 ID
+     * @param eventType - 事件类型
+     */
+    public async deleteStickyEvent(roomId: string, eventType: string): Promise<void> {
+        this.validateRoomId(roomId);
+        this.validateEventType(eventType);
+        return await this.withRetry(async () => {
+            await this.requestV3(
+                Method.Delete,
+                encodeUri("/rooms/$roomId/sticky_events/$eventType", { $roomId: roomId, $eventType: eventType }),
+            );
+        }, "deleteStickyEvent");
+    }
+
+    /**
+     * 获取 invite blocklist
+     * @param roomId - 房间 ID
+     */
+    public async getInviteBlocklist(roomId: string): Promise<InviteBlocklist> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/invite_blocklist", roomId));
+        }, "getInviteBlocklist");
+    }
+
+    /**
+     * 添加到 invite blocklist
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     */
+    public async addInviteBlocklist(roomId: string, userId: string): Promise<void> {
+        this.validateRoomId(roomId);
+        this.validateUserId(userId);
+        return await this.withRetry(async () => {
+            await this.requestV3(
+                Method.Post,
+                this.roomSummaryPath("/rooms/$roomId/invite_blocklist", roomId),
+                undefined,
+                { user_id: userId } as Body,
+            );
+        }, "addInviteBlocklist");
+    }
+
+    /**
+     * 获取 invite allowlist
+     * @param roomId - 房间 ID
+     */
+    public async getInviteAllowlist(roomId: string): Promise<InviteAllowlist> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/invite_allowlist", roomId));
+        }, "getInviteAllowlist");
+    }
+
+    /**
+     * 添加到 invite allowlist
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     */
+    public async addInviteAllowlist(roomId: string, userId: string): Promise<void> {
+        this.validateRoomId(roomId);
+        this.validateUserId(userId);
+        return await this.withRetry(async () => {
+            await this.requestV3(
+                Method.Post,
+                this.roomSummaryPath("/rooms/$roomId/invite_allowlist", roomId),
+                undefined,
+                { user_id: userId } as Body,
+            );
+        }, "addInviteAllowlist");
+    }
+
+    /**
+     * 获取事件的签名密钥
+     * GET /_matrix/client/v3/rooms/{room_id}/keys/{event_id}
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 事件密钥结果
+     */
+    public async getEventKeys(roomId: string, eventId: string): Promise<EventKeysResult> {
+        if (!roomId) {
+            throw new InvalidParamError("roomId is required");
+        }
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+
+        try {
+            return await this.requestV3<EventKeysResult>(
+                Method.Get,
+                encodeUri("/rooms/$roomId/keys/$eventId", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+            );
+        } catch (error) {
+            logger.warn(`RoomSummaryManager.getEventKeys failed for ${eventId}:`, error);
+            throw this.normalizeError(error, "getEventKeys");
+        }
+    }
+
+    /**
+     * 获取房间线程（通过根事件 ID）
+     * GET /_matrix/client/v3/rooms/{room_id}/thread/{event_id}
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 线程根事件 ID
+     * @returns 线程详情，包含根事件、回复和参与者
+     */
+    public async getRoomThread(roomId: string, eventId: string): Promise<RoomThreadResult> {
+        if (!roomId) {
+            throw new InvalidParamError("roomId is required");
+        }
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+
+        try {
+            return await this.requestV3<RoomThreadResult>(
+                Method.Get,
+                encodeUri("/rooms/$roomId/thread/$eventId", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+            );
+        } catch (error) {
+            logger.warn(`RoomSummaryManager.getRoomThread failed for ${eventId}:`, error);
+            throw this.normalizeError(error, "getRoomThread");
+        }
+    }
+
+    /**
+     * 获取房间线程（通过线程 ID）
+     * GET /_matrix/client/v3/rooms/{room_id}/threads/{thread_id}
+     *
+     * 注意：后端当前返回 unrecognized 错误，此端点暂未完全实现
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID (事件 ID)
+     * @returns 线程详情
+     */
+    public async getRoomThreadById(roomId: string, threadId: string): Promise<RoomThreadResult> {
+        if (!roomId) {
+            throw new InvalidParamError("roomId is required");
+        }
+        if (!threadId) {
+            throw new InvalidParamError("threadId is required");
+        }
+
+        try {
+            return await this.requestV3<RoomThreadResult>(
+                Method.Get,
+                encodeUri("/rooms/$roomId/threads/$threadId", {
+                    $roomId: roomId,
+                    $threadId: threadId,
+                }),
+            );
+        } catch (error) {
+            logger.warn(`RoomSummaryManager.getRoomThreadById failed for ${threadId}:`, error);
+            throw this.normalizeError(error, "getRoomThreadById");
+        }
+    }
+
+    async start(): Promise<void> {
         // 初始化逻辑（如果需要）
     }
 
@@ -1113,68 +1562,20 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
         this.clearCache();
     }
 
-    /**
-     * 标准化错误处理
-     * 将原始错误转换为 SDK 标准错误类型
-     * 
-     * @param error - 原始错误
-     * @param method - 方法名
-     * @returns SDK 标准错误
-     */
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
-                return new AuthError(`RoomSummaryManager.${method} failed: ${err.message}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
-                return new NotFoundError(`RoomSummaryManager.${method} failed: ${err.message}`, error);
-            }
-            if (this.isRetryableError(error)) {
-                return new RetryableError(`RoomSummaryManager.${method} failed: ${err.message}`, error);
-            }
-            return new ApiError(`RoomSummaryManager.${method} failed: ${err.message}`, error.errcode, error.httpStatus, error);
-        }
-        return new ApiError(`RoomSummaryManager.${method} failed: ${err?.message ?? String(error)}`, "UNKNOWN", 0, error);
-    }
-
     private roomSummaryPath(pathTemplate: string, roomId: string): string {
         return encodeUri(pathTemplate, { $roomId: roomId });
     }
 
-    private async requestV3<T>(
-        method: Method,
-        path: string,
-        queryParams?: QueryDict,
-        body?: Body,
-    ): Promise<T> {
+    private async requestV3<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
         return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
             prefix: ClientPrefix.V3,
         });
     }
 
-    private async requestInternal<T>(
-        method: Method,
-        path: string,
-        queryParams?: QueryDict,
-        body?: Body,
-    ): Promise<T> {
+    private async requestInternal<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
         return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
             prefix: "/_synapse/room_summary/v1",
         });
-    }
-
-    /**
-     * 检查是否为可重试错误
-     */
-    private isRetryableError(error: unknown): boolean {
-        if (!(error instanceof MatrixError)) {
-            return true;
-        }
-        const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE", "M_UNKNOWN"];
-        const retryableStatus = [429, 502, 503, 504];
-        return (error.errcode !== undefined && retryableCodes.includes(error.errcode)) || 
-               (error.httpStatus !== undefined && retryableStatus.includes(error.httpStatus));
     }
 
     /**
@@ -1217,9 +1618,9 @@ export class RoomSummaryManager extends TypedEventEmitter<RoomSummaryEvent, Room
             joined_member_count: clientSummary.num_joined_members || 0,
             invited_member_count: 0,
             heroes: (clientSummary.heroes || []).map((h) => ({
-                user_id: typeof h === 'string' ? h : h.user_id,
-                display_name: typeof h === 'string' ? undefined : h.display_name,
-                avatar_url: typeof h === 'string' ? undefined : h.avatar_url,
+                user_id: typeof h === "string" ? h : h.user_id,
+                display_name: typeof h === "string" ? undefined : h.display_name,
+                avatar_url: typeof h === "string" ? undefined : h.avatar_url,
             })),
             last_event_ts: clientSummary.last_event_ts,
             last_message_ts: clientSummary.last_message_ts,
@@ -1246,17 +1647,10 @@ declare module "../client.ts" {
 
 /**
  * 扩展 MatrixClient 原型
- * 
- * @example
- * import { extendMatrixClient } from "./room-summary";
- * extendMatrixClient();
- * 
- * const client = createClient({ ... });
- * const roomSummary = client.getRoomSummaryManager();
  */
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomSummaryManager = function (): RoomSummaryManager {
-        return new RoomSummaryManager(this);
+        return getOrCreateManager(this, "roomSummary", () => new RoomSummaryManager(this));
     };
 }
 

@@ -1,0 +1,11 @@
+{
+    "generatedAt": "2026-04-11T10:17:40.019Z",
+    "ids": [
+        "src/rust-crypto/RoomEncryptor.ts:TODO:cbdd3de8bea90fbde12741e1e819874a1cf2e157",
+        "src/rust-crypto/verification.ts:TODO:e8ac7c631f7b8209e990b9bc8f7ada1f76d886f9",
+        "src/sliding-sync.ts:TODO:6c1306cf8d5dd272bc271138ce5b7ab243afd2fc",
+        "src/webrtc/groupCallEventHandler.ts:TODO:ea76c8479585a7b845f84f8c99975f1a8ec787d6",
+        "src/webrtc/groupCallEventHandler.ts:TODO:0633d6038b1da8f8c00692e6bb4804c32ca59ceb",
+        "src/webrtc/stats/media/mediaTrackHandler.ts:TODO:da8f8be2144683d71d074ad5139751cff1277ff8"
+    ]
+}

@@ -59,7 +59,7 @@ export const generateScope = (deviceId?: string): string => {
 // https://www.rfc-editor.org/rfc/rfc7636
 const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
     if (!globalThis.crypto.subtle) {
-        // @TODO(kerrya) should this be allowed? configurable?
+        // Known limitation: plaintext code challenge fallback is currently unconditional in insecure contexts.
         logger.warn("A secure context is required to generate code challenge. Using plain text code challenge");
         return codeVerifier;
     }
@@ -271,7 +271,7 @@ export const completeAuthorizationCodeGrant = async (
         const errorType = (error as Error).message;
 
         // rethrow errors that we recognise
-        if (Object.values(OidcError).includes(errorType as any)) {
+        if (Object.values(OidcError).includes(errorType as OidcError)) {
             throw error;
         }
         throw new Error(OidcError.CodeExchangeFailed);

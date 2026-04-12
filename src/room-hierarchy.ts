@@ -76,20 +76,20 @@ export class RoomHierarchy {
             this.nextBatch,
         );
 
-        let rooms: IHierarchyRoom[];
-        try {
-            ({ rooms, next_batch: this.nextBatch } = await this.loadRequest);
-        } catch (e) {
-            if ((<MatrixError>e).errcode === "M_UNRECOGNIZED") {
-                this.serverSupportError = <MatrixError>e;
-            } else {
-                throw e;
-            }
+        const loadResult = await this.loadRequest
+            .then((response) => ({ response }))
+            .catch((error: MatrixError) => ({ error }));
+        this.loadRequest = undefined;
 
-            return [];
-        } finally {
-            this.loadRequest = undefined;
+        if ("error" in loadResult) {
+            if (loadResult.error.errcode === "M_UNRECOGNIZED") {
+                this.serverSupportError = loadResult.error;
+                return [];
+            }
+            throw loadResult.error;
         }
+        const { rooms, next_batch: nextBatch } = loadResult.response;
+        this.nextBatch = nextBatch;
 
         if (this._rooms) {
             this._rooms = this._rooms.concat(rooms);

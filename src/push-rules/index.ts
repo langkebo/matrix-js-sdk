@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,12 +16,13 @@ limitations under the License.
 
 /**
  * Push Rules Manager - 推送规则管理
- * 
+ *
  * 提供推送规则相关功能
  */
 
 import { MatrixClient } from "../client";
 import { IPushRules } from "../@types/PushRules";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IPushRule {
     rule_id: string;
@@ -48,37 +49,75 @@ export interface ISetPushRuleBody {
     actions?: Array<string | Record<string, unknown>>;
 }
 
-export class PushRulesManager {
-    constructor(private client: MatrixClient) {}
+export interface PushRulesManagerEvents {
+    push_rules_updated: { rules: IPushRules };
+    push_rule_added: { kind: string; ruleId: string };
+    push_rule_deleted: { kind: string; ruleId: string };
+}
+
+export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, PushRulesManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getPushRules(): Promise<IPushRules> {
-        return (this.client as unknown as {
-            getPushRules: () => Promise<IPushRules>;
-        }).getPushRules();
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getPushRules: () => Promise<IPushRules>;
+                    }
+                ).getPushRules(),
+            "getPushRules",
+        );
     }
 
     public async getPushRule(kind: string, ruleId: string): Promise<IPushRule | null> {
-        return (this.client as unknown as {
-            getPushRule: (kind: string, ruleId: string) => Promise<IPushRule | null>;
-        }).getPushRule(kind, ruleId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getPushRule: (kind: string, ruleId: string) => Promise<IPushRule | null>;
+                    }
+                ).getPushRule(kind, ruleId),
+            "getPushRule",
+        );
     }
 
     public async setPushRule(kind: string, ruleId: string, body: ISetPushRuleBody): Promise<void> {
-        return (this.client as unknown as {
-            setPushRule: (kind: string, ruleId: string, body: ISetPushRuleBody) => Promise<void>;
-        }).setPushRule(kind, ruleId, body);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        setPushRule: (kind: string, ruleId: string, body: ISetPushRuleBody) => Promise<void>;
+                    }
+                ).setPushRule(kind, ruleId, body),
+            "setPushRule",
+        );
     }
 
     public async deletePushRule(kind: string, ruleId: string): Promise<void> {
-        return (this.client as unknown as {
-            deletePushRule: (kind: string, ruleId: string) => Promise<void>;
-        }).deletePushRule(kind, ruleId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        deletePushRule: (kind: string, ruleId: string) => Promise<void>;
+                    }
+                ).deletePushRule(kind, ruleId),
+            "deletePushRule",
+        );
     }
 
     public async enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<void> {
-        return (this.client as unknown as {
-            enablePushRule: (kind: string, ruleId: string, enabled: boolean) => Promise<void>;
-        }).enablePushRule(kind, ruleId, enabled);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        enablePushRule: (kind: string, ruleId: string, enabled: boolean) => Promise<void>;
+                    }
+                ).enablePushRule(kind, ruleId, enabled),
+            "enablePushRule",
+        );
     }
 
     public getPushRulesCached(): IPushRules | null {
@@ -86,7 +125,6 @@ export class PushRulesManager {
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getPushRulesManager(): PushRulesManager;

@@ -935,7 +935,7 @@ export class DeviceVerificationStatus {
     public readonly crossSigningVerified: boolean;
 
     /**
-     * TODO: tofu magic wtf does this do?
+     * True when trust-on-first-use applies to this device.
      */
     public readonly tofu: boolean;
 

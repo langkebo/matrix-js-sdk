@@ -110,7 +110,7 @@ export class RoomEncryptor {
             });
         }
 
-        // TODO: handle leaves (including our own)
+        // Known limitation: leave events (including the local user) are not yet handled here.
     }
 
     /**
@@ -224,7 +224,7 @@ export class RoomEncryptor {
             // We don't have API to only get the keys queries related to this member list, so we just
             // process the pending requests from the olmMachine. (usually these are processed
             // at the end of the sync, but we can't wait for that).
-            // XXX future improvement process only KeysQueryRequests for the users that have never been queried.
+            // Future improvement: Process only KeysQueryRequests for the users that have never been queried.
             logger.debug(`Processing outgoing requests`);
 
             await logDuration(logger, "doProcessOutgoingRequests", async () => {

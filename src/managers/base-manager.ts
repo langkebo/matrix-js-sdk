@@ -25,7 +25,7 @@ limitations under the License.
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
-import { MatrixError } from "../http-api/errors";
+import { MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
 import { AuthError, NotFoundError, ApiError, SdkError, RetryableError } from "../errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
@@ -50,9 +50,10 @@ export interface RequestStats {
  */
 export abstract class BaseManager<
     Events extends string = string,
-    EventMap extends Record<Events, any> = Record<Events, any>
+    EventMap extends Record<Events, any> = Record<Events, any>,
 > extends TypedEventEmitter<Events, EventMap> {
     protected readonly client: MatrixClient;
+    protected retryOptions: RetryOptions = {};
     protected requestStats: RequestStats = {
         total: 0,
         successful: 0,
@@ -60,9 +61,22 @@ export abstract class BaseManager<
         retried: 0,
     };
 
-    constructor(client: MatrixClient) {
+    constructor(client: MatrixClient, retryOptions?: RetryOptions) {
         super();
         this.client = client;
+        if (retryOptions) {
+            this.retryOptions = retryOptions;
+        }
+    }
+
+    /**
+     * Set retry options for this manager.
+     * This is intended for internal use by the SDK to configure retry behavior.
+     * @param options - The retry options to set.
+     * @internal
+     */
+    public setRetryOptions(options: RetryOptions): void {
+        this.retryOptions = options;
     }
 
     /**
@@ -75,6 +89,10 @@ export abstract class BaseManager<
     protected normalizeError(error: unknown, method: string): SdkError {
         const managerName = this.constructor.name;
         const err = error as Error;
+        const plain = error as Record<string, unknown>;
+        const httpStatus = plain?.httpStatus as number | undefined;
+        const errcode = plain?.errcode as string | undefined;
+        const code = plain?.code as string | undefined;
 
         // If already a SdkError, return as-is
         if (error instanceof SdkError) {
@@ -82,37 +100,54 @@ export abstract class BaseManager<
         }
 
         if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === 'M_UNKNOWN_TOKEN') {
-                return new AuthError(
-                    `${managerName}.${method} failed: ${err?.message ?? 'Unknown error'}`,
-                    error
-                );
+            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
+                return new AuthError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
-            if (error.httpStatus === 404 || error.errcode === 'M_NOT_FOUND') {
-                return new NotFoundError(
-                    `${managerName}.${method} failed: ${err?.message ?? 'Unknown error'}`,
-                    error
-                );
+            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
+                return new NotFoundError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            if (error.httpStatus === 429 || error.errcode === "M_LIMIT_EXCEEDED" || error.isRateLimitError()) {
+                return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Rate limited"}`, error);
             }
             if (error.httpStatus && error.httpStatus >= 500) {
-                return new RetryableError(
-                    `${managerName}.${method} failed: ${err?.message ?? 'Unknown error'}`,
-                    error
-                );
+                return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
             return new ApiError(
-                `${managerName}.${method} failed: ${err?.message ?? 'Unknown error'}`,
+                `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
                 error.errcode,
                 error.httpStatus,
-                error
+                error,
+            );
+        }
+
+        if (httpStatus === 401 || errcode === "M_UNKNOWN_TOKEN") {
+            return new AuthError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error as Error);
+        }
+        if (httpStatus === 404 || errcode === "M_NOT_FOUND") {
+            return new NotFoundError(
+                `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error as Error,
+            );
+        }
+        if (code === "ECONNRESET" || code === "ETIMEDOUT" || code === "ENOTFOUND" || code === "ECONNABORTED") {
+            return new RetryableError(
+                `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error as Error,
+            );
+        }
+
+        if (typeof httpStatus === "number" && httpStatus >= 500) {
+            return new RetryableError(
+                `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
+                error as Error,
             );
         }
 
         return new ApiError(
             `${managerName}.${method} failed: ${err?.message ?? String(error)}`,
-            'UNKNOWN',
-            0,
-            error
+            errcode ?? "UNKNOWN",
+            httpStatus ?? 0,
+            error,
         );
     }
 
@@ -120,17 +155,17 @@ export abstract class BaseManager<
      * Execute a function with retry logic
      *
      * @param fn - The function to execute
-     * @param options - Retry options
+     * @param optionsOrLabel - Retry options or a label for logging
      * @returns The result of the function
      */
-    protected async withRetry<T>(
-        fn: () => Promise<T>,
-        options: RetryOptions = {}
-    ): Promise<T> {
+    protected async withRetry<T>(fn: () => Promise<T>, optionsOrLabel: RetryOptions | string = {}): Promise<T> {
+        const options = typeof optionsOrLabel === "string" ? {} : optionsOrLabel;
+        const label = typeof optionsOrLabel === "string" ? optionsOrLabel : "withRetry";
+
         const {
-            maxRetries = 3,
-            retryDelay = 1000,
-            backoffMultiplier = 2,
+            maxRetries = this.retryOptions.maxRetries ?? 3,
+            retryDelay = this.retryOptions.retryDelay ?? 1000,
+            backoffMultiplier = this.retryOptions.backoffMultiplier ?? 2,
         } = options;
 
         let lastError: unknown;
@@ -148,15 +183,21 @@ export abstract class BaseManager<
 
                 if (attempt < maxRetries) {
                     // Check if error is retryable
-                    const normalizedError = this.normalizeError(error, 'withRetry');
-                    if (normalizedError instanceof RetryableError ||
-                        (error instanceof MatrixError && error.httpStatus && error.httpStatus >= 500)) {
+                    const normalizedError = this.normalizeError(error, label);
+                    if (
+                        normalizedError instanceof RetryableError ||
+                        (error instanceof MatrixError && error.httpStatus && error.httpStatus >= 500)
+                    ) {
                         this.requestStats.retried++;
+                        let delay = currentDelay;
+                        if (error instanceof MatrixError && error.isRateLimitError()) {
+                            delay = safeGetRetryAfterMs(error, currentDelay);
+                        }
                         logger.warn(
-                            `${this.constructor.name}: Retry attempt ${attempt + 1}/${maxRetries} after ${currentDelay}ms`,
-                            error
+                            `${this.constructor.name}.${label}: Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+                            error,
                         );
-                        await this.sleep(currentDelay);
+                        await this.sleep(delay);
                         currentDelay *= backoffMultiplier;
                         continue;
                     }
@@ -196,6 +237,6 @@ export abstract class BaseManager<
      * @param ms - Duration in milliseconds
      */
     protected sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }

@@ -13,18 +13,34 @@
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
         "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
-        "lint": "pnpm lint:types && pnpm lint:js && pnpm lint:workflows",
+        "lint": "pnpm lint:types && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers",
         "lint:js": "eslint --max-warnings 0 src spec && prettier --check .",
         "lint:js-fix": "prettier --log-level=warn --write . && eslint --fix src spec",
         "lint:types": "tsc --noEmit",
+        "lint:types:real-backend": "tsc -p tsconfig.real-backend.json --noEmit",
         "lint:workflows": "find .github/workflows -type f \\( -iname '*.yaml' -o -iname '*.yml' \\) | xargs -I {} sh -c 'echo \"Linting {}\"; action-validator \"{}\"'",
         "lint:knip": "knip",
-        "test": "vitest",
+        "test": "vitest run",
         "test:real-backend": "pnpm test:real-backend:verification",
         "test:real-backend:verification": "vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/key-verification-manager.spec.ts",
         "test:real-backend:device": "vitest run --no-file-parallelism --config vitest.real-backend.config.ts spec/integ/real-backend/device-manager.spec.ts spec/integ/real-backend/device-step2.spec.ts spec/integ/real-backend/device-delete-devices.spec.ts spec/integ/real-backend/device-list-updates.spec.ts",
         "test:watch": "vitest --watch",
-        "coverage": "pnpm test --coverage"
+        "test:perf": "vitest run spec/perf",
+        "perf:ci": "pnpm test:perf",
+        "perf:baseline": "node scripts/perf/benchmark-baseline.mjs",
+        "perf:memory": "node scripts/perf/measure-memory.mjs",
+        "perf:compare": "node scripts/perf/generate-comparison-report.mjs",
+        "coverage": "pnpm test --coverage",
+        "quality:coverage:critical": "node scripts/quality/check-critical-coverage.mjs coverage/lcov.info",
+        "quality:exports": "node scripts/quality/check-exports-docs.mjs",
+        "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
+        "quality:swallow-fallbacks": "node scripts/quality/check-swallow-fallbacks.mjs",
+        "quality:debt-markers": "node scripts/quality/scan-technical-debt.mjs",
+        "quality:log-sensitive": "node scripts/quality/check-log-sensitive.mjs",
+        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints",
+        "quality:report": "node scripts/quality-report.mjs",
+        "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
+        "audit:high": "pnpm audit --audit-level=high"
     },
     "repository": {
         "type": "git",
@@ -41,6 +57,18 @@
         ".": {
             "import": "./lib/index.js",
             "types": "./lib/index.d.ts"
+        },
+        "./core": {
+            "import": "./lib/core.js",
+            "types": "./lib/core.d.ts"
+        },
+        "./advanced": {
+            "import": "./lib/advanced.js",
+            "types": "./lib/advanced.d.ts"
+        },
+        "./legacy": {
+            "import": "./lib/legacy.js",
+            "types": "./lib/legacy.d.ts"
         },
         "./crypto": {
             "import": "./lib/crypto-api/index.js",
@@ -134,9 +162,21 @@
             "import": "./lib/manager-extensions/index.js",
             "types": "./lib/manager-extensions/index.d.ts"
         },
+        "./src/filter": {
+            "import": "./lib/filter/index.js",
+            "types": "./lib/filter/index.d.ts"
+        },
+        "./src/filter-manager": {
+            "import": "./lib/filter-manager/index.js",
+            "types": "./lib/filter-manager/index.d.ts"
+        },
         "./src/telemetry": {
             "import": "./lib/telemetry/index.js",
             "types": "./lib/telemetry/index.d.ts"
+        },
+        "./device": {
+            "import": "./lib/device/index.js",
+            "types": "./lib/device/index.d.ts"
         }
     },
     "sideEffects": false,
@@ -229,6 +269,19 @@
         "expect": "30.2.0"
     },
     "pnpm": {
+        "overrides": {
+            "vite@<7.3.2": "7.3.2",
+            "rollup@<4.59.0": "4.59.0",
+            "picomatch@<2.3.2": "2.3.2",
+            "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+            "minimatch@<3.1.4": "3.1.4",
+            "minimatch@>=9.0.0 <9.0.7": "9.0.7",
+            "flatted@<3.4.2": "3.4.2",
+            "ajv@<6.14.0": "6.14.0",
+            "brace-expansion@<1.1.13": "1.1.13",
+            "smol-toml@<1.6.1": "1.6.1",
+            "yaml@<2.8.3": "2.8.3"
+        },
         "peerDependencyRules": {
             "allowedVersions": {
                 "eslint": "8"

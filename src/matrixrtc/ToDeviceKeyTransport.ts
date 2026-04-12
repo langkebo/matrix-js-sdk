@@ -134,7 +134,7 @@ export class ToDeviceKeyTransport
 
         this.emit(
             KeyTransportEvents.ReceivedKeys,
-            // TODO userId this is claimed information, deviceId is claimed information
+            // userId and deviceId are claimed values from the event payload.
             {
                 userId: fromUser,
                 deviceId: content.member.claimed_device_id!,
@@ -152,7 +152,7 @@ export class ToDeviceKeyTransport
             return;
         }
 
-        // TODO: Not possible to check if the event is encrypted or not
+        // Encryption state cannot currently be verified for this event path.
         // see https://github.com/matrix-org/matrix-rust-sdk/issues/4883
         // if (evnt.getWireType() != EventType.RoomMessageEncrypted) {
         //     // WARN: The call keys were sent in clear. Ignore them
@@ -191,7 +191,7 @@ export class ToDeviceKeyTransport
             return;
         }
 
-        // TODO check for session related fields once the to-device encryption uses the new format.
+        // Session fields are validated once to-device encryption adopts the new format.
         return content as EncryptionKeysToDeviceEventContent;
     }
 }

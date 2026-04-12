@@ -56,10 +56,13 @@ export function eventMapperFor(client: MatrixClient, options: MapperOpts): Event
         const bundledEdit = event.getServerAggregatedRelation<Partial<IEvent>>(RelationType.Replace);
         if (bundledEdit?.content) {
             const replacement = mapper(bundledEdit);
-            // XXX: it's worth noting that the spec says we should only respect encrypted edits if, once decrypted, the
-            //   replacement has a `m.new_content` property. The problem is that we haven't yet decrypted the replacement
-            //   (it should be happening in the background), so we can't enforce this. Possibly we should for decryption
-            //   to complete, but that sounds a bit racy. For now, we just assume it's ok.
+            /**
+             * Known limitation: The spec says we should only respect encrypted edits if,
+             * once decrypted, the replacement has a `m.new_content` property. The problem
+             * is that we haven't yet decrypted the replacement (it should be happening in
+             * the background), so we can't enforce this. Possibly we should wait for
+             * decryption to complete, but that could be racy. For now, we assume it's ok.
+             */
             event.makeReplaced(replacement);
         }
 

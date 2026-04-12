@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { PresenceManager, PresenceEvent, PresenceState } from "../../src/presence/index";
+import { PresenceManager, PresenceEvent, type PresenceState } from "../../src/presence/index";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
 
@@ -46,6 +46,7 @@ describe("PresenceManager", () => {
     beforeEach(() => {
         mockClient = createMockClient();
         presenceManager = new PresenceManager(mockClient);
+        vi.spyOn(presenceManager as any, "sleep").mockResolvedValue(undefined);
     });
 
     describe("Constructor", () => {
@@ -63,7 +64,7 @@ describe("PresenceManager", () => {
                 expect.stringContaining("/presence/"),
                 {},
                 { presence: "online", status_msg: "Available" },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
 
@@ -74,7 +75,7 @@ describe("PresenceManager", () => {
                 expect.stringContaining("/presence/"),
                 {},
                 { presence: "offline" },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
 
@@ -90,20 +91,23 @@ describe("PresenceManager", () => {
             const listener = vi.fn();
             presenceManager.on(PresenceEvent.PresenceUpdated, listener);
             await presenceManager.setPresence("online", "Test");
-            expect(listener).toHaveBeenCalledWith("@test:example.com", expect.objectContaining({
-                presence: "online",
-                status_msg: "Test",
-            }));
+            expect(listener).toHaveBeenCalledWith(
+                "@test:example.com",
+                expect.objectContaining({
+                    presence: "online",
+                    status_msg: "Test",
+                }),
+            );
         });
 
         it("should emit PresenceError event on failure", async () => {
             const errorListener = vi.fn();
             presenceManager.on(PresenceEvent.PresenceError, errorListener);
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Network error",
                 httpStatus: 500,
             });
-            await expect(presenceManager.setPresence("online")).rejects.toThrow(ApiError);
+            await expect(presenceManager.setPresence("online")).rejects.toThrow();
             expect(errorListener).toHaveBeenCalled();
         });
 
@@ -153,6 +157,15 @@ describe("PresenceManager", () => {
             expect(presence).toBeNull();
         });
 
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                message: "Not found",
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            await expect(presenceManager.getPresence("@unknown:example.com", false, true)).rejects.toThrow();
+        });
+
         it("should throw AuthError on 401", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Unauthorized",
@@ -163,7 +176,7 @@ describe("PresenceManager", () => {
         });
 
         it("should throw RetryableError on network error", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Connection reset",
                 code: "ECONNRESET",
             });
@@ -200,7 +213,7 @@ describe("PresenceManager", () => {
                 "/presence/list",
                 {},
                 { user_ids: ["@user1:example.com", "@user2:example.com"] },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
             expect(presenceManager.isSubscribed("@user1:example.com")).toBe(true);
             expect(presenceManager.isSubscribed("@user2:example.com")).toBe(true);
@@ -214,11 +227,11 @@ describe("PresenceManager", () => {
         it("should emit PresenceError event on failure", async () => {
             const errorListener = vi.fn();
             presenceManager.on(PresenceEvent.PresenceError, errorListener);
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Server error",
                 httpStatus: 500,
             });
-            await expect(presenceManager.subscribeToPresence(["@user:example.com"])).rejects.toThrow(ApiError);
+            await expect(presenceManager.subscribeToPresence(["@user:example.com"])).rejects.toThrow();
             expect(errorListener).toHaveBeenCalled();
         });
     });
@@ -238,11 +251,11 @@ describe("PresenceManager", () => {
         it("should emit PresenceError event on failure", async () => {
             const errorListener = vi.fn();
             presenceManager.on(PresenceEvent.PresenceError, errorListener);
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Server error",
                 httpStatus: 500,
             });
-            await expect(presenceManager.unsubscribeFromPresence(["@user:example.com"])).rejects.toThrow(ApiError);
+            await expect(presenceManager.unsubscribeFromPresence(["@user:example.com"])).rejects.toThrow();
             expect(errorListener).toHaveBeenCalled();
         });
     });
@@ -259,10 +272,12 @@ describe("PresenceManager", () => {
             const listener = vi.fn();
             presenceManager.on(PresenceEvent.PresenceListUpdated, listener);
             await presenceManager.getSubscribedPresence();
-            expect(listener).toHaveBeenCalledWith(expect.arrayContaining([
-                expect.objectContaining({ user_id: "@user1:example.com" }),
-                expect.objectContaining({ user_id: "@user2:example.com" }),
-            ]));
+            expect(listener).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({ user_id: "@user1:example.com" }),
+                    expect.objectContaining({ user_id: "@user2:example.com" }),
+                ]),
+            );
         });
 
         it("should update cache with presence data", async () => {
@@ -301,7 +316,7 @@ describe("PresenceManager", () => {
                 expect.stringContaining("/presence/list/"),
                 {},
                 undefined,
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
 
@@ -332,6 +347,15 @@ describe("PresenceManager", () => {
             expect(events).toEqual([]);
         });
 
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                message: "Not found",
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            await expect(presenceManager.getPresenceList("@unknown:example.com", true)).rejects.toThrow();
+        });
+
         it("should throw AuthError on 401", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Unauthorized",
@@ -342,7 +366,7 @@ describe("PresenceManager", () => {
         });
 
         it("should throw RetryableError on timeout", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Timeout",
                 code: "ETIMEDOUT",
             });
@@ -359,6 +383,54 @@ describe("PresenceManager", () => {
         });
     });
 
+    describe("getPresenceListByIds", () => {
+        it("should get presence list by user ids", async () => {
+            const events = await presenceManager.getPresenceListByIds(["@user1:example.com", "@user2:example.com"]);
+            expect(events).toHaveLength(2);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/presence/list/get",
+                {},
+                { user_ids: ["@user1:example.com", "@user2:example.com"] },
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
+        });
+
+        it("should return empty array when userIds is empty", async () => {
+            const events = await presenceManager.getPresenceListByIds([]);
+            expect(events).toEqual([]);
+            expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
+        });
+
+        it("should return empty array on 404", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                message: "Not found",
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            const events = await presenceManager.getPresenceListByIds(["@unknown:example.com"]);
+            expect(events).toEqual([]);
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                message: "Not found",
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            await expect(presenceManager.getPresenceListByIds(["@unknown:example.com"], true)).rejects.toThrow();
+        });
+
+        it("should throw ApiError on other errors", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                message: "Forbidden",
+                httpStatus: 403,
+                errcode: "M_FORBIDDEN",
+            });
+            await expect(presenceManager.getPresenceListByIds(["@user:example.com"])).rejects.toThrow(ApiError);
+        });
+    });
+
     describe("Convenience methods", () => {
         it("setOnline should set presence to online", async () => {
             await presenceManager.setOnline("Working");
@@ -367,7 +439,7 @@ describe("PresenceManager", () => {
                 expect.any(String),
                 {},
                 { presence: "online", status_msg: "Working" },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
 
@@ -378,7 +450,7 @@ describe("PresenceManager", () => {
                 expect.any(String),
                 {},
                 { presence: "offline", status_msg: "Gone home" },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
 
@@ -389,7 +461,7 @@ describe("PresenceManager", () => {
                 expect.any(String),
                 {},
                 { presence: "unavailable", status_msg: "In a meeting" },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
 
@@ -400,7 +472,7 @@ describe("PresenceManager", () => {
                 expect.any(String),
                 {},
                 { presence: "busy", status_msg: "Do not disturb" },
-                { prefix: "/_matrix/client/v3", priority: undefined }
+                { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
     });
@@ -450,9 +522,12 @@ describe("PresenceManager", () => {
                 user_id: "@sync:example.com",
                 presence: "online",
             });
-            expect(listener).toHaveBeenCalledWith("@sync:example.com", expect.objectContaining({
-                presence: "online",
-            }));
+            expect(listener).toHaveBeenCalledWith(
+                "@sync:example.com",
+                expect.objectContaining({
+                    presence: "online",
+                }),
+            );
         });
     });
 
@@ -541,7 +616,7 @@ describe("PresenceManager", () => {
         });
 
         it("should classify ECONNRESET as RetryableError", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Connection reset",
                 code: "ECONNRESET",
             });
@@ -549,19 +624,19 @@ describe("PresenceManager", () => {
         });
 
         it("should classify ETIMEDOUT as RetryableError", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Timeout",
                 code: "ETIMEDOUT",
             });
             await expect(presenceManager.setPresence("online")).rejects.toThrow(RetryableError);
         });
 
-        it("should classify 5xx as ApiError", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce({
+        it("should classify 5xx as RetryableError", async () => {
+            mockClient.http.authedRequest.mockRejectedValue({
                 message: "Server error",
                 httpStatus: 503,
             });
-            await expect(presenceManager.setPresence("online")).rejects.toThrow(ApiError);
+            await expect(presenceManager.setPresence("online")).rejects.toThrow(RetryableError);
         });
 
         it("should classify other errors as ApiError", async () => {

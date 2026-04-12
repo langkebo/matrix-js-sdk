@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Discovery Manager - 服务发现与目录管理
- * 
+ *
  * 提供服务端点发现、房间别名解析、用户目录搜索等功能
  * 对应后端 API:
  * - GET/POST /publicRooms
@@ -29,6 +29,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
 
 export interface UserDirectorySearchResponse {
@@ -75,8 +76,10 @@ export interface PublicRoomsResponse {
     total_room_count_estimate?: number;
 }
 
-export class DiscoveryManager {
-    constructor(private client: MatrixClient) {}
+export class DiscoveryManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getHomeserverUrl(): string {
         return this.client.baseUrl;
@@ -90,7 +93,13 @@ export class DiscoveryManager {
     }
 
     public async getServerDiscoveryInfo(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(Method.Get, "/.well-known/matrix/client", undefined, undefined, { prefix: "" });
+        return this.client.http.request<Record<string, unknown>>(
+            Method.Get,
+            "/.well-known/matrix/client",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
     }
 
     public async getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
@@ -107,11 +116,8 @@ export class DiscoveryManager {
         }
     }
 
-    public async searchUserDirectory(
-        searchTerm: string,
-        limit?: number,
-    ): Promise<UserDirectorySearchResponse> {
-        const body: Record<string, any> = { search_term: searchTerm };
+    public async searchUserDirectory(searchTerm: string, limit?: number): Promise<UserDirectorySearchResponse> {
+        const body: Record<string, string | number> = { search_term: searchTerm };
         if (limit !== undefined) {
             body.limit = limit;
         }
@@ -124,10 +130,7 @@ export class DiscoveryManager {
     }
 
     public async listUserDirectory(): Promise<UserDirectoryListResponse> {
-        return this.client.http.authedRequest<UserDirectoryListResponse>(
-            Method.Post,
-            "/user_directory/list",
-        );
+        return this.client.http.authedRequest<UserDirectoryListResponse>(Method.Post, "/user_directory/list");
     }
 
     public async getUserDirectoryProfile(userId: string): Promise<UserDirectoryProfile> {
@@ -140,19 +143,12 @@ export class DiscoveryManager {
         return this.client.http.authedRequest<RoomVisibilityResponse>(Method.Get, path);
     }
 
-    public async setRoomVisibility(
-        roomId: string,
-        visibility: "public" | "private",
-    ): Promise<void> {
+    public async setRoomVisibility(roomId: string, visibility: "public" | "private"): Promise<void> {
         const path = utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId });
         await this.client.http.authedRequest(Method.Put, path, undefined, { visibility });
     }
 
-    public async getPublicRooms(
-        limit?: number,
-        since?: string,
-        server?: string,
-    ): Promise<PublicRoomsResponse> {
+    public async getPublicRooms(limit?: number, since?: string, server?: string): Promise<PublicRoomsResponse> {
         const queryParams: Record<string, string | number> = {};
         if (limit !== undefined) {
             queryParams.limit = limit;
@@ -163,11 +159,7 @@ export class DiscoveryManager {
         if (server !== undefined) {
             queryParams.server = server;
         }
-        return this.client.http.authedRequest<PublicRoomsResponse>(
-            Method.Get,
-            "/publicRooms",
-            queryParams,
-        );
+        return this.client.http.authedRequest<PublicRoomsResponse>(Method.Get, "/publicRooms", queryParams);
     }
 
     public async queryPublicRooms(
@@ -182,12 +174,9 @@ export class DiscoveryManager {
         if (since !== undefined) {
             queryParams.since = since;
         }
-        return this.client.http.authedRequest<PublicRoomsResponse>(
-            Method.Post,
-            "/publicRooms",
-            queryParams,
-            { filter },
-        );
+        return this.client.http.authedRequest<PublicRoomsResponse>(Method.Post, "/publicRooms", queryParams, {
+            filter,
+        });
     }
 
     public async setRoomAlias(roomId: string, alias: string): Promise<void> {

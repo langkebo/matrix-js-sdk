@@ -19,9 +19,14 @@ import { Filter, IFilterDefinition } from "../filter";
 import * as utils from "../utils";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
+import { buildCreateFilterPath, buildFilterPath } from "../client-account-data-requests";
+import { BaseManager } from "../managers/base-manager";
+import { ApiError, NotFoundError } from "../errors";
 
-export class FilterManager {
-    constructor(private client: MatrixClient) {}
+export class FilterManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async createFilter(definition: IFilterDefinition): Promise<{ filterId: string }> {
         const userId = this.client.getUserId();
@@ -29,19 +34,22 @@ export class FilterManager {
             throw new Error("User ID is required");
         }
 
-        const path = utils.encodeUri("/user/$userId/filter", { $userId: userId });
-        const response = await this.client.http.authedRequest<{ filter_id: string }>(
-            Method.Post,
-            path,
-            undefined,
-            definition,
-            { prefix: ClientPrefix.V3 }
-        );
+        try {
+            const path = buildCreateFilterPath(userId);
+            const response = await this.client.http.authedRequest<{ filter_id: string }>(
+                Method.Post,
+                path,
+                undefined,
+                definition,
+                { prefix: ClientPrefix.V3 },
+            );
 
-        const filter = Filter.fromJson(userId, response.filter_id, definition);
-        this.client.store.storeFilter(filter);
-        
-        return { filterId: response.filter_id };
+            const filter = Filter.fromJson(userId, response.filter_id, definition);
+            this.client.store.storeFilter(filter);
+            return { filterId: response.filter_id };
+        } catch (e) {
+            throw this.normalizeError(e, "createFilter");
+        }
     }
 
     public async getFilter(userId: string, filterId: string, allowCached = true): Promise<Filter> {
@@ -52,22 +60,23 @@ export class FilterManager {
             }
         }
 
-        const path = utils.encodeUri("/user/$userId/filter/$filterId", {
-            $userId: userId,
-            $filterId: filterId,
-        });
+        const path = buildFilterPath(userId, filterId);
 
-        const response = await this.client.http.authedRequest<IFilterDefinition>(
-            Method.Get,
-            path,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 }
-        );
-        
-        const filter = Filter.fromJson(userId, filterId, response);
-        this.client.store.storeFilter(filter);
-        return filter;
+        try {
+            const response = await this.client.http.authedRequest<IFilterDefinition>(
+                Method.Get,
+                path,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+
+            const filter = Filter.fromJson(userId, filterId, response);
+            this.client.store.storeFilter(filter);
+            return filter;
+        } catch (e) {
+            throw this.normalizeError(e, "getFilter");
+        }
     }
 
     public async getOrCreateFilter(filterName: string, filter: Filter): Promise<string> {
@@ -86,9 +95,12 @@ export class FilterManager {
                     }
                 }
             } catch (error) {
-                const err = error as Error & { errcode?: string };
-                if (err.errcode !== "M_UNKNOWN" && err.errcode !== "M_NOT_FOUND") {
-                    throw error;
+                const normalized = this.normalizeError(error, "getFilter");
+                const isUnknown =
+                    normalized instanceof ApiError &&
+                    (normalized.code === "M_UNKNOWN" || normalized.code === "UNKNOWN");
+                if (!(normalized instanceof NotFoundError) && !isUnknown) {
+                    throw normalized;
                 }
             }
             if (!existingId) {

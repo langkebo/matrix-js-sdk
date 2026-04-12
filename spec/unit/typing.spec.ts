@@ -13,7 +13,7 @@ describe("TypingManager", () => {
             getUserId: vi.fn().mockReturnValue("@user:example.com"),
             getTypingUsers: vi.fn().mockResolvedValue([
                 { userId: "@user1:example.com", since: Date.now() },
-                { userId: "@user2:example.com", since: Date.now() }
+                { userId: "@user2:example.com", since: Date.now() },
             ]),
             getRoom: vi.fn().mockReturnValue({
                 currentState: {
@@ -69,6 +69,21 @@ describe("TypingManager", () => {
             mockClient.getRoom.mockReturnValueOnce(null);
             const users = await typingManager.getTypingUsers("!unknown:example.com");
             expect(users).toHaveLength(0);
+        });
+
+        it("should return empty array when typing content user_ids is invalid", async () => {
+            mockClient.getRoom.mockReturnValueOnce({
+                currentState: {
+                    getStateEvents: vi.fn().mockReturnValue({
+                        getContent: vi.fn().mockReturnValue({
+                            user_ids: undefined,
+                            timeout: 30000,
+                        }),
+                    }),
+                },
+            });
+            const users = await typingManager.getTypingUsers("!room:example.com");
+            expect(users).toEqual([]);
         });
     });
 

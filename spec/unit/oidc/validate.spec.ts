@@ -278,4 +278,3 @@ describe("validateStoredUserState()", () => {
         expect(() => validateStoredUserState(userState)).toThrow(new Error(OidcError.MissingOrInvalidStoredState));
     });
 });
-

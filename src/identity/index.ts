@@ -16,73 +16,90 @@ limitations under the License.
 
 /**
  * Identity Manager - 身份管理
- * 
+ *
  * 提供身份服务器相关功能
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { BaseManager } from "../managers/base-manager";
 
-export class IdentityManager {
-    constructor(private client: MatrixClient) {}
+export interface Lookup3PidResult {
+    mxid: string;
+    display_name?: string;
+}
 
-    /**
-     * Get identity server URL
-     */
+export interface Store3PidResult {
+    token: string;
+    public_keys: string[];
+    display_name: string;
+}
+
+export interface VerificationTokenResult {
+    sid: string;
+    submit_url?: string;
+}
+
+export interface Bind3PidResult {
+    mxid: string;
+    address: string;
+    medium: string;
+}
+
+export interface IdentityManagerEvents {
+    identity_verified: { medium: string; address: string };
+    identity_bound: { mxid: string; medium: string };
+}
+
+export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, IdentityManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
+
     public getIdentityServerUrl(): string | undefined {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).idBaseUrl;
+        return this.client.idBaseUrl;
     }
 
-    /**
-     * Lookup 3PID
-     */
-    public async lookup3pid(medium: string, address: string): Promise<any> {
-        const path = "/_matrix/identity/v1/lookup";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Get, path, { medium, address });
+    public async lookup3pid(medium: string, address: string): Promise<Lookup3PidResult | null> {
+        return this.withRetry(async () => {
+            const path = "/_matrix/identity/v1/lookup";
+            return this.client.http.authedRequest<Lookup3PidResult | null>(Method.Get, path, { medium, address });
+        }, "lookup3pid");
     }
 
-    /**
-     * Store 3PID
-     */
-    public async store3pid(medium: string, address: string, validationToken: string): Promise<any> {
-        const path = "/_matrix/identity/v1/store-invite";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, {
-            medium,
-            address,
-            token: validationToken
-        });
+    public async store3pid(medium: string, address: string, validationToken: string): Promise<Store3PidResult> {
+        return this.withRetry(async () => {
+            const path = "/_matrix/identity/v1/store-invite";
+            return this.client.http.authedRequest<Store3PidResult>(Method.Post, path, undefined, {
+                medium,
+                address,
+                token: validationToken,
+            });
+        }, "store3pid");
     }
 
-    /**
-     * Request verification token
-     */
-    public async requestVerificationToken(medium: string, address: string): Promise<any> {
-        const path = "/_matrix/identity/v1/validate/email/requestToken";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, {
-            email: address,
-            sendAttempt: 1
-        });
+    public async requestVerificationToken(medium: string, address: string): Promise<VerificationTokenResult> {
+        return this.withRetry(async () => {
+            const path = "/_matrix/identity/v1/validate/email/requestToken";
+            return this.client.http.authedRequest<VerificationTokenResult>(Method.Post, path, undefined, {
+                email: address,
+                sendAttempt: 1,
+            });
+        }, "requestVerificationToken");
     }
 
-    /**
-     * Bind 3PID
-     */
-    public async bind3pid(medium: string, address: string, mxid: string, token: string): Promise<any> {
-        const path = "/_matrix/identity/v1/3pid/bind";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, {
-            sid: token,
-            client_secret: mxid,
-            mxid
-        });
+    public async bind3pid(medium: string, address: string, mxid: string, token: string): Promise<Bind3PidResult> {
+        return this.withRetry(async () => {
+            const path = "/_matrix/identity/v1/3pid/bind";
+            return this.client.http.authedRequest<Bind3PidResult>(Method.Post, path, undefined, {
+                sid: token,
+                client_secret: mxid,
+                mxid,
+            });
+        }, "bind3pid");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getIdentityManager(): IdentityManager;

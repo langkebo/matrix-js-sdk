@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
 import { AuthManager, AuthEvent } from "../../src/auth/index";
 import { Method } from "../../src/http-api";
 
@@ -81,22 +82,15 @@ describe("AuthManager", () => {
     describe("Login Flows", () => {
         it("should get supported login flows", async () => {
             const flows = {
-                flows: [
-                    { type: "m.login.password" },
-                    { type: "m.login.sso" },
-                ],
+                flows: [{ type: "m.login.password" }, { type: "m.login.sso" }],
             };
             mockAuthedRequest.mockResolvedValue(flows);
 
             const result = await authManager.getSupportedLoginFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/login",
-                undefined,
-                undefined,
-                { prefix: undefined }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, {
+                prefix: undefined,
+            });
             expect(result).toEqual(flows);
         });
 
@@ -139,10 +133,7 @@ describe("AuthManager", () => {
 
         it("should check if login flow exists", async () => {
             const flows = {
-                flows: [
-                    { type: "m.login.password" },
-                    { type: "m.login.sso" },
-                ],
+                flows: [{ type: "m.login.password" }, { type: "m.login.sso" }],
             };
             mockAuthedRequest.mockResolvedValue(flows);
 
@@ -172,23 +163,16 @@ describe("AuthManager", () => {
     describe("Register Flows", () => {
         it("should get register flows", async () => {
             const flows = {
-                flows: [
-                    { stages: ["m.login.email.identity", "m.login.msisdn"] },
-                    { stages: ["m.login.dummy"] },
-                ],
+                flows: [{ stages: ["m.login.email.identity", "m.login.msisdn"] }, { stages: ["m.login.dummy"] }],
                 params: {},
             };
             mockAuthedRequest.mockResolvedValue(flows);
 
             const result = await authManager.getRegisterFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/register",
-                undefined,
-                undefined,
-                { prefix: undefined }
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/register", undefined, undefined, {
+                prefix: undefined,
+            });
             expect(result).toEqual(flows);
         });
 

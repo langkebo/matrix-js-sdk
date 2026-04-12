@@ -1,4 +1,3 @@
-import { logger } from "../logger"
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -17,14 +16,16 @@ limitations under the License.
 
 /**
  * Federation Manager - 联邦管理
- * 
+ *
  * 提供联邦服务器管理、黑名单管理功能
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { BaseManager } from "../managers/base-manager.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { logger } from "../logger.ts";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -59,38 +60,43 @@ interface FederationManagerEventMap {
     [FederationEvent.FederationError]: (error: Error) => void;
 }
 
-export class FederationManager extends TypedEventEmitter<FederationEvent, FederationManagerEventMap> {
-    private client: MatrixClient;
+export class FederationManager extends BaseManager<FederationEvent, FederationManagerEventMap> {
     private blacklist: Map<string, IBlacklistEntry> = new Map();
     private serverCache: Map<string, IFederationServer> = new Map();
     private initialized: boolean = false;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
-    async getBlacklist(): Promise<IBlacklistEntry[]> {
-        try {
-            const response = await this.client.http.authedRequest<{ blacklist?: IBlacklistEntry[] }>(
-                Method.Get,
-                "/federation/blacklist",
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 }
+    /**
+     * 获取联邦黑名单
+     *
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 黑名单列表
+     */
+    async getBlacklist(throwOnError = false): Promise<IBlacklistEntry[]> {
+        return this.client.http
+            .authedRequest<{
+                blacklist?: IBlacklistEntry[];
+            }>(Method.Get, "/federation/blacklist", undefined, undefined, { prefix: AdminPrefix.V1 })
+            .then(
+                (response) => {
+                    const entries: IBlacklistEntry[] = response.blacklist || [];
+                    this.blacklist.clear();
+                    entries.forEach((e) => this.blacklist.set(e.serverName, e));
+                    this.emit(FederationEvent.BlacklistUpdated, entries);
+                    return entries;
+                },
+                (e) => {
+                    const error = this.normalizeError(e, "getBlacklist");
+                    if (throwOnError) {
+                        throw error;
+                    }
+                    logger.warn("FederationManager.getBlacklist failed:", error);
+                    return Array.from(this.blacklist.values());
+                },
             );
-
-            const entries: IBlacklistEntry[] = response.blacklist || [];
-            this.blacklist.clear();
-            entries.forEach(e => this.blacklist.set(e.serverName, e));
-
-            this.emit(FederationEvent.BlacklistUpdated, entries);
-
-            return entries;
-        } catch (e) {
-            logger.warn('FederationManager.getBlacklist failed:', e);
-            return Array.from(this.blacklist.values());
-        }
     }
 
     async addToBlacklist(serverName: string, reason?: string): Promise<void> {
@@ -104,7 +110,7 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
                 "/federation/blacklist/add",
                 undefined,
                 { server_name: serverName, reason },
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             const entry: IBlacklistEntry = {
@@ -116,8 +122,9 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
 
             this.blacklist.set(serverName, entry);
             this.emit(FederationEvent.BlacklistUpdated, Array.from(this.blacklist.values()));
-        } catch (error) {
-            this.emit(FederationEvent.FederationError, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "addToBlacklist");
+            this.emit(FederationEvent.FederationError, error);
             throw error;
         }
     }
@@ -133,13 +140,14 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
                 "/federation/blacklist/remove",
                 undefined,
                 { server_name: serverName },
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
 
             this.blacklist.delete(serverName);
             this.emit(FederationEvent.BlacklistUpdated, Array.from(this.blacklist.values()));
-        } catch (error) {
-            this.emit(FederationEvent.FederationError, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "removeFromBlacklist");
+            this.emit(FederationEvent.FederationError, error);
             throw error;
         }
     }
@@ -153,53 +161,71 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
         return this.blacklist.has(serverName);
     }
 
-    async getServerStatus(serverName: string): Promise<IFederationStatus | null> {
+    /**
+     * 获取服务器状态
+     *
+     * @param serverName - 服务器名称
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 服务器状态
+     */
+    async getServerStatus(serverName: string, throwOnError = false): Promise<IFederationStatus | null> {
         if (!serverName) {
             throw new Error("Server name is required");
         }
 
-        try {
-            const response = await this.client.http.authedRequest<{
+        return this.client.http
+            .authedRequest<{
                 online?: boolean;
                 last_successful_connect?: number;
                 latency?: number;
-            }>(
-                Method.Get,
-                `/federation/status/${encodeURIComponent(serverName)}`,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 }
+            }>(Method.Get, `/federation/status/${encodeURIComponent(serverName)}`, undefined, undefined, {
+                prefix: AdminPrefix.V1,
+            })
+            .then(
+                (response) => {
+                    return {
+                        online: response.online || false,
+                        lastSuccessfulConnect: response.last_successful_connect,
+                        latency: response.latency,
+                    };
+                },
+                (e) => {
+                    const error = this.normalizeError(e, "getServerStatus");
+                    if (throwOnError) {
+                        throw error;
+                    }
+                    logger.warn("FederationManager.getServerStatus failed:", error);
+                    return null;
+                },
             );
-
-            return {
-                online: response.online || false,
-                lastSuccessfulConnect: response.last_successful_connect,
-                latency: response.latency,
-            };
-        } catch (e) {
-            logger.warn('FederationManager.getServerStatus failed:', e);
-            return null;
-        }
     }
 
-    async getFederationDestinations(): Promise<IFederationServer[]> {
-        try {
-            const response = await this.client.http.authedRequest<{ destinations?: IFederationServer[] }>(
-                Method.Get,
-                "/federation/destinations",
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 }
+    /**
+     * 获取联邦目的地列表
+     *
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 目的地列表
+     */
+    async getFederationDestinations(throwOnError = false): Promise<IFederationServer[]> {
+        return this.client.http
+            .authedRequest<{
+                destinations?: IFederationServer[];
+            }>(Method.Get, "/federation/destinations", undefined, undefined, { prefix: AdminPrefix.V1 })
+            .then(
+                (response) => {
+                    const servers: IFederationServer[] = response.destinations || [];
+                    servers.forEach((s) => this.serverCache.set(s.serverName, s));
+                    return servers;
+                },
+                (e) => {
+                    const error = this.normalizeError(e, "getFederationDestinations");
+                    if (throwOnError) {
+                        throw error;
+                    }
+                    logger.warn("FederationManager.getFederationDestinations failed:", error);
+                    return Array.from(this.serverCache.values());
+                },
             );
-
-            const servers: IFederationServer[] = response.destinations || [];
-            servers.forEach(s => this.serverCache.set(s.serverName, s));
-
-            return servers;
-        } catch (e) {
-            logger.warn('FederationManager.getFederationDestinations failed:', e);
-            return Array.from(this.serverCache.values());
-        }
     }
 
     async disconnectServer(serverName: string): Promise<void> {
@@ -213,10 +239,11 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
                 `/federation/disconnect/${encodeURIComponent(serverName)}`,
                 undefined,
                 undefined,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
-        } catch (error) {
-            this.emit(FederationEvent.FederationError, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "disconnectServer");
+            this.emit(FederationEvent.FederationError, error);
             throw error;
         }
     }
@@ -232,38 +259,53 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
                 `/federation/reconnect/${encodeURIComponent(serverName)}`,
                 undefined,
                 undefined,
-                { prefix: AdminPrefix.V1 }
+                { prefix: AdminPrefix.V1 },
             );
-        } catch (error) {
-            this.emit(FederationEvent.FederationError, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "reconnectServer");
+            this.emit(FederationEvent.FederationError, error);
             throw error;
         }
     }
 
-    async getServerVersion(serverName: string): Promise<{ version: string } | null> {
+    /**
+     * 获取服务器版本
+     *
+     * @param serverName - 服务器名称
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 服务器版本
+     */
+    async getServerVersion(serverName: string, throwOnError = false): Promise<{ version: string } | null> {
         if (!serverName) {
             throw new Error("Server name is required");
         }
 
-        try {
-            const response = await this.client.http.authedRequest<{ server?: { version?: string } }>(
-                Method.Get,
-                `/_matrix/federation/v1/version`,
-                undefined,
-                undefined,
-                { prefix: '' }
+        return this.client.http
+            .authedRequest<{
+                server?: { version?: string };
+            }>(Method.Get, `/_matrix/federation/v1/version`, undefined, undefined, { prefix: "" })
+            .then(
+                (response) => {
+                    return {
+                        version: response.server?.version || "unknown",
+                    };
+                },
+                (e) => {
+                    const error = this.normalizeError(e, "getServerVersion");
+                    if (throwOnError) {
+                        throw error;
+                    }
+                    logger.warn("FederationManager.getServerVersion failed:", error);
+                    return null;
+                },
             );
-
-            return {
-                version: response.server?.version || 'unknown',
-            };
-        } catch (e) {
-            logger.warn('FederationManager.getServerVersion failed:', e);
-            return null;
-        }
     }
 
-    async getPublicRoomsOnServer(serverName: string, limit?: number, since?: string): Promise<{ chunk: unknown[]; next_batch?: string; prev_batch?: string }> {
+    async getPublicRoomsOnServer(
+        serverName: string,
+        limit?: number,
+        since?: string,
+    ): Promise<{ chunk: unknown[]; next_batch?: string; prev_batch?: string }> {
         if (!serverName) {
             throw new Error("Server name is required");
         }
@@ -273,13 +315,11 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
             if (limit !== undefined) params.limit = limit;
             if (since !== undefined) params.since = since;
 
-            const response = await this.client.http.authedRequest<{ chunk?: unknown[]; next_batch?: string; prev_batch?: string }>(
-                Method.Get,
-                "/publicRooms",
-                params,
-                undefined,
-                { prefix: ClientPrefix.V3 }
-            );
+            const response = await this.client.http.authedRequest<{
+                chunk?: unknown[];
+                next_batch?: string;
+                prev_batch?: string;
+            }>(Method.Get, "/publicRooms", params, undefined, { prefix: ClientPrefix.V3 });
 
             const result: { chunk: unknown[]; next_batch?: string; prev_batch?: string } = {
                 chunk: response.chunk || [],
@@ -288,8 +328,9 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
             if (response.prev_batch) result.prev_batch = response.prev_batch;
 
             return result;
-        } catch (error) {
-            this.emit(FederationEvent.FederationError, error as Error);
+        } catch (e) {
+            const error = this.normalizeError(e, "getPublicRoomsOnServer");
+            this.emit(FederationEvent.FederationError, error);
             throw error;
         }
     }
@@ -318,7 +359,8 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
             await this.getBlacklist();
             this.initialized = true;
         } catch (e) {
-            logger.warn('FederationManager.start failed:', e);
+            const error = this.normalizeError(e, "start");
+            logger.warn("FederationManager.start failed:", error);
         }
     }
 
@@ -329,34 +371,40 @@ export class FederationManager extends TypedEventEmitter<FederationEvent, Federa
     }
 }
 
-export class FederationBlacklistManager extends TypedEventEmitter<FederationEvent, FederationManagerEventMap> {
-    private client: MatrixClient;
+export class FederationBlacklistManager extends BaseManager<FederationEvent, FederationManagerEventMap> {
     private blacklist: Map<string, IBlacklistEntry> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
-    async getBlacklist(): Promise<IBlacklistEntry[]> {
-        try {
-            const response = await this.client.http.authedRequest<{ blacklist?: IBlacklistEntry[] }>(
-                Method.Get,
-                "/federation/blacklist",
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 }
+    /**
+     * 获取联邦黑名单
+     *
+     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @returns 黑名单列表
+     */
+    async getBlacklist(throwOnError = false): Promise<IBlacklistEntry[]> {
+        return this.client.http
+            .authedRequest<{
+                blacklist?: IBlacklistEntry[];
+            }>(Method.Get, "/federation/blacklist", undefined, undefined, { prefix: AdminPrefix.V1 })
+            .then(
+                (response) => {
+                    const entries: IBlacklistEntry[] = response.blacklist || [];
+                    this.blacklist.clear();
+                    entries.forEach((e) => this.blacklist.set(e.serverName, e));
+                    return entries;
+                },
+                (e) => {
+                    const error = this.normalizeError(e, "getBlacklist");
+                    if (throwOnError) {
+                        throw error;
+                    }
+                    logger.warn("FederationBlacklistManager.getBlacklist failed:", error);
+                    return Array.from(this.blacklist.values());
+                },
             );
-
-            const entries: IBlacklistEntry[] = response.blacklist || [];
-            this.blacklist.clear();
-            entries.forEach(e => this.blacklist.set(e.serverName, e));
-
-            return entries;
-        } catch (e) {
-            logger.warn('FederationBlacklistManager.getBlacklist failed:', e);
-            return Array.from(this.blacklist.values());
-        }
     }
 
     async addServer(serverName: string, reason?: string): Promise<void> {
@@ -364,22 +412,27 @@ export class FederationBlacklistManager extends TypedEventEmitter<FederationEven
             throw new Error("Server name is required");
         }
 
-        await this.client.http.authedRequest(
-            Method.Post,
-            "/federation/blacklist/add",
-            undefined,
-            { server_name: serverName, reason },
-            { prefix: AdminPrefix.V1 }
-        );
+        try {
+            await this.client.http.authedRequest(
+                Method.Post,
+                "/federation/blacklist/add",
+                undefined,
+                { server_name: serverName, reason },
+                { prefix: AdminPrefix.V1 },
+            );
 
-        const entry: IBlacklistEntry = {
-            serverName,
-            reason,
-            addedAt: Date.now(),
-        };
+            const entry: IBlacklistEntry = {
+                serverName,
+                reason,
+                addedAt: Date.now(),
+            };
 
-        this.blacklist.set(serverName, entry);
-        this.emit(FederationEvent.ServerAdded, serverName);
+            this.blacklist.set(serverName, entry);
+            this.emit(FederationEvent.ServerAdded, serverName);
+        } catch (e) {
+            const error = this.normalizeError(e, "addServer");
+            throw error;
+        }
     }
 
     async removeServer(serverName: string): Promise<void> {
@@ -387,16 +440,21 @@ export class FederationBlacklistManager extends TypedEventEmitter<FederationEven
             throw new Error("Server name is required");
         }
 
-        await this.client.http.authedRequest(
-            Method.Post,
-            "/federation/blacklist/remove",
-            undefined,
-            { server_name: serverName },
-            { prefix: AdminPrefix.V1 }
-        );
+        try {
+            await this.client.http.authedRequest(
+                Method.Post,
+                "/federation/blacklist/remove",
+                undefined,
+                { server_name: serverName },
+                { prefix: AdminPrefix.V1 },
+            );
 
-        this.blacklist.delete(serverName);
-        this.emit(FederationEvent.ServerRemoved, serverName);
+            this.blacklist.delete(serverName);
+            this.emit(FederationEvent.ServerRemoved, serverName);
+        } catch (e) {
+            const error = this.normalizeError(e, "removeServer");
+            throw error;
+        }
     }
 
     isBlacklisted(serverName: string): boolean {
@@ -420,7 +478,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFederationManager = function (): FederationManager {
-        return new FederationManager(this);
+        return getOrCreateManager(this, "federation", () => new FederationManager(this));
     };
 }
 

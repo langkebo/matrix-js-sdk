@@ -1,0 +1,61 @@
+{
+    "timestamp": "2026-04-11",
+    "baseline": {
+        "bundle": {
+            "entries": {
+                "index.js": {
+                    "bytes": 854,
+                    "kb": "0.83"
+                },
+                "browser-index.js": {
+                    "bytes": 1245,
+                    "kb": "1.22"
+                }
+            },
+            "totalKB": "2.05"
+        },
+        "criticalModules": {
+            "src/client.ts": {
+                "lines": 6670,
+                "bytes": 264035
+            },
+            "src/push/index.ts": {
+                "lines": 933,
+                "bytes": 32307
+            },
+            "src/room-summary/index.ts": {
+                "lines": 1658,
+                "bytes": 55983
+            },
+            "src/admin/index.ts": {
+                "lines": 1496,
+                "bytes": 43853
+            },
+            "src/dm/index.ts": {
+                "lines": 969,
+                "bytes": 30347
+            },
+            "src/space/index.ts": {
+                "lines": 634,
+                "bytes": 23339
+            }
+        },
+        "managerMigration": {
+            "coverage": 99.0,
+            "migrated": "101",
+            "total": "102"
+        },
+        "testCoverage": {
+            "lines": "71.88",
+            "linesFound": 24439,
+            "linesHit": 17567
+        }
+    },
+    "targets": {
+        "bundleSizeReduction": "-20%",
+        "pushRulesP95Ms": "<= 2.0ms (warm cache)",
+        "roomSummaryP95Ms": "<= 5.0ms",
+        "memoryPeakMB": "<= 100MB baseline",
+        "managerCoverage": ">= 95%"
+    }
+}

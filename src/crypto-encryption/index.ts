@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,7 +16,7 @@ limitations under the License.
 
 /**
  * Crypto Encryption Manager - 加密管理
- * 
+ *
  * 提供加密相关功能
  */
 
@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { Room } from "../models/room";
 import { CryptoApi } from "../crypto-api";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IEncryptionResult {
     event: MatrixEvent;
@@ -45,8 +46,19 @@ export interface IEncryptionInfo {
     deviceId?: string;
 }
 
-export class CryptoEncryptionManager {
-    constructor(private client: MatrixClient) {}
+export interface CryptoEncryptionManagerEvents {
+    encryption_enabled: void;
+    encryption_disabled: void;
+    device_verified: { userId: string; deviceId: string };
+}
+
+export class CryptoEncryptionManager extends BaseManager<
+    keyof CryptoEncryptionManagerEvents,
+    CryptoEncryptionManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public isE2eEnabled(): boolean {
         return this.client.getCrypto() !== undefined;
@@ -57,9 +69,11 @@ export class CryptoEncryptionManager {
     }
 
     public isCryptoReady(): boolean {
-        return (this.client as unknown as {
-            isCryptoReady: () => boolean;
-        }).isCryptoReady();
+        return (
+            this.client as unknown as {
+                isCryptoReady: () => boolean;
+            }
+        ).isCryptoReady();
     }
 
     public getDeviceList(): unknown {
@@ -67,49 +81,90 @@ export class CryptoEncryptionManager {
     }
 
     public async encryptEvent(event: MatrixEvent, room: Room): Promise<IEncryptionResult> {
-        return (this.client as unknown as {
-            encryptEvent: (event: MatrixEvent, room: Room) => Promise<IEncryptionResult>;
-        }).encryptEvent(event, room);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        encryptEvent: (event: MatrixEvent, room: Room) => Promise<IEncryptionResult>;
+                    }
+                ).encryptEvent(event, room),
+            "encryptEvent",
+        );
     }
 
     public async decryptEvent(event: MatrixEvent): Promise<IDecryptionResult> {
-        return (this.client as unknown as {
-            decryptEvent: (event: MatrixEvent) => Promise<IDecryptionResult>;
-        }).decryptEvent(event);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        decryptEvent: (event: MatrixEvent) => Promise<IDecryptionResult>;
+                    }
+                ).decryptEvent(event),
+            "decryptEvent",
+        );
     }
 
     public async getUserDevices(userId: string): Promise<Record<string, unknown>> {
-        return (this.client as unknown as {
-            getUserDevices: (userId: string) => Promise<Record<string, unknown>>;
-        }).getUserDevices(userId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getUserDevices: (userId: string) => Promise<Record<string, unknown>>;
+                    }
+                ).getUserDevices(userId),
+            "getUserDevices",
+        );
     }
 
     public async setDeviceVerified(userId: string, deviceId: string): Promise<void> {
-        return (this.client as unknown as {
-            setDeviceVerified: (userId: string, deviceId: string) => Promise<void>;
-        }).setDeviceVerified(userId, deviceId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        setDeviceVerified: (userId: string, deviceId: string) => Promise<void>;
+                    }
+                ).setDeviceVerified(userId, deviceId),
+            "setDeviceVerified",
+        );
     }
 
     public async markDeviceAsVerified(userId: string, deviceId: string): Promise<void> {
-        return (this.client as unknown as {
-            markDeviceAsVerified: (userId: string, deviceId: string) => Promise<void>;
-        }).markDeviceAsVerified(userId, deviceId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        markDeviceAsVerified: (userId: string, deviceId: string) => Promise<void>;
+                    }
+                ).markDeviceAsVerified(userId, deviceId),
+            "markDeviceAsVerified",
+        );
     }
 
     public async markAllDevicesAsVerified(userId: string): Promise<void> {
-        return (this.client as unknown as {
-            markAllDevicesAsVerified: (userId: string) => Promise<void>;
-        }).markAllDevicesAsVerified(userId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        markAllDevicesAsVerified: (userId: string) => Promise<void>;
+                    }
+                ).markAllDevicesAsVerified(userId),
+            "markAllDevicesAsVerified",
+        );
     }
 
     public async getEncryptionInfoForRoom(roomId: string): Promise<IEncryptionInfo> {
-        return (this.client as unknown as {
-            getEncryptionInfoForRoom: (roomId: string) => Promise<IEncryptionInfo>;
-        }).getEncryptionInfoForRoom(roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getEncryptionInfoForRoom: (roomId: string) => Promise<IEncryptionInfo>;
+                    }
+                ).getEncryptionInfoForRoom(roomId),
+            "getEncryptionInfoForRoom",
+        );
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getCryptoEncryptionManager(): CryptoEncryptionManager;

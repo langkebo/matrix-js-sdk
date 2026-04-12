@@ -16,13 +16,13 @@ limitations under the License.
 
 /**
  * Room State Management Manager - 房间状态管理
- * 
+ *
  * 提供房间状态管理相关功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
-import { Room } from "../models/room";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IRoomStateEvent {
     type: string;
@@ -32,41 +32,84 @@ export interface IRoomStateEvent {
     event_id: string;
 }
 
-export class RoomStateManagementManager {
-    constructor(private client: MatrixClient) {}
+export interface RoomStateManagementManagerEvents {
+    state_event_sent: { roomId: string; eventType: string };
+    state_updated: { roomId: string };
+}
+
+export class RoomStateManagementManager extends BaseManager<
+    keyof RoomStateManagementManagerEvents,
+    RoomStateManagementManagerEvents
+> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getRoomState(roomId: string): Promise<IRoomStateEvent[]> {
-        return (this.client as unknown as {
-            getRoomState: (roomId: string) => Promise<IRoomStateEvent[]>;
-        }).getRoomState(roomId);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getRoomState: (roomId: string) => Promise<IRoomStateEvent[]>;
+                    }
+                ).getRoomState(roomId),
+            "getRoomState",
+        );
     }
 
     public async getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]> {
-        return (this.client as unknown as {
-            getRoomStateEvents: (roomId: string, eventType: string, stateKey?: string) => Promise<MatrixEvent[]>;
-        }).getRoomStateEvents(roomId, eventType, stateKey);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        getRoomStateEvents: (
+                            roomId: string,
+                            eventType: string,
+                            stateKey?: string,
+                        ) => Promise<MatrixEvent[]>;
+                    }
+                ).getRoomStateEvents(roomId, eventType, stateKey),
+            "getRoomStateEvents",
+        );
     }
 
     public getStateEvents(eventType: string, stateKey: string): MatrixEvent[] {
-        return (this.client as unknown as {
-            getStateEvents: (eventType: string, stateKey: string) => MatrixEvent[];
-        }).getStateEvents(eventType, stateKey);
+        return (
+            this.client as unknown as {
+                getStateEvents: (eventType: string, stateKey: string) => MatrixEvent[];
+            }
+        ).getStateEvents(eventType, stateKey);
     }
 
-    public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void> {
-        return (this.client as unknown as {
-            setRoomAccountData: (roomId: string, eventType: string, content: Record<string, unknown>) => Promise<void>;
-        }).setRoomAccountData(roomId, eventType, content);
+    public async setRoomAccountData(
+        roomId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+    ): Promise<void> {
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        setRoomAccountData: (
+                            roomId: string,
+                            eventType: string,
+                            content: Record<string, unknown>,
+                        ) => Promise<void>;
+                    }
+                ).setRoomAccountData(roomId, eventType, content),
+            "setRoomAccountData",
+        );
     }
 
     public getRoomAccountData(roomId: string, eventType: string): Record<string, unknown> | null {
-        return (this.client as unknown as {
-            getRoomAccountData: (roomId: string, eventType: string) => Record<string, unknown> | null;
-        }).getRoomAccountData(roomId, eventType);
+        return (
+            this.client as unknown as {
+                getRoomAccountData: (roomId: string, eventType: string) => Record<string, unknown> | null;
+            }
+        ).getRoomAccountData(roomId, eventType);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomStateManagementManager(): RoomStateManagementManager;

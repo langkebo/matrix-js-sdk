@@ -63,7 +63,7 @@ export class GlobalLogoutManager {
         const devices = await this.getActiveSessions();
         const currentDeviceId = this.client.deviceId;
 
-        const otherDevices = devices.filter(d => d.deviceId !== currentDeviceId);
+        const otherDevices = devices.filter((d) => d.deviceId !== currentDeviceId);
 
         for (const device of otherDevices) {
             await this.logoutDevice(device.deviceId);

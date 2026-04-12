@@ -47,7 +47,14 @@ import {
     VerifierEvent,
 } from "../../../src/crypto-api/verification";
 import { escapeRegExp, sleep } from "../../../src/utils";
-import { awaitDecryption, emitPromise, getSyncResponse, syncPromise, waitFor } from "../../test-utils/test-utils";
+import {
+    advanceTimersUntil,
+    awaitDecryption,
+    emitPromise,
+    getSyncResponse,
+    syncPromise,
+    waitFor,
+} from "../../test-utils/test-utils";
 import { SyncResponder } from "../../test-utils/SyncResponder";
 import {
     BACKUP_DECRYPTION_KEY_BASE64,
@@ -1213,14 +1220,25 @@ describe("verification", () => {
             await awaitDecryption(matrixEvent);
             expect(matrixEvent.getContent().msgtype).toEqual("m.bad.encrypted");
 
-            // Advance time by 5mins, the verification request should be ignored after that
-            vi.advanceTimersByTime(5 * 60 * 1000);
+            // Advance time by 5mins, the verification request should be ignored after that.
+            // We need to advance in small steps to avoid breaking the /sync loop
+            // (the /sync request has a ~110s timeout, so advancing 5 mins at once would kill it).
+            // Instead, we keep the /sync loop alive by responding to sync requests while advancing time.
+            const fiveMinutes = 5 * 60 * 1000;
+            const step = 10 * 1000; // 10 seconds per step
+            for (let elapsed = 0; elapsed < fiveMinutes; elapsed += step) {
+                // Queue an empty sync response to keep the /sync loop alive
+                syncResponder.sendOrQueueSyncResponse({});
+                await syncPromise(aliceClient);
+                await vi.advanceTimersByTimeAsync(step);
+            }
 
             // Send Bob the room keys
             returnToDeviceMessageFromSync(toDeviceEvent);
 
             // Wait for the message to be decrypted
-            await awaitDecryption(matrixEvent, { waitOnDecryptionFailure: true });
+            const decryptionPromise = awaitDecryption(matrixEvent, { waitOnDecryptionFailure: true });
+            await advanceTimersUntil(decryptionPromise, 100);
 
             const request = aliceClient.getCrypto()!.findVerificationRequestDMInProgress(TEST_ROOM_ID, "@bob:xyz");
             // the request should not be present

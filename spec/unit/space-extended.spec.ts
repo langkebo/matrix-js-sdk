@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
 import { SpaceManager } from "../../src/space/index";
 import { ClientPrefix, MatrixError, Method } from "../../src/http-api";
 import { NotFoundError } from "../../src/errors";
@@ -85,13 +86,9 @@ describe("SpaceManager - Extended Tests", () => {
 
             const result = await spaceManager.getPublicSpaces({ limit: 10 });
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/spaces/public",
-                { limit: 10 },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/public", { limit: 10 }, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             expect(result.chunk).toHaveLength(2);
             expect(result.next_batch).toBe("next_token");
         });
@@ -105,13 +102,9 @@ describe("SpaceManager - Extended Tests", () => {
 
             const stats = await spaceManager.getSpaceStatistics();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/spaces/statistics",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/statistics", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             expect(stats.total_spaces).toBe(50);
         });
     });
@@ -262,7 +255,7 @@ describe("SpaceManager - Extended Tests", () => {
                 rooms: [{ room_id: "!space:test" }],
             });
 
-            const page = await spaceManager.getSpaceHierarchyV1("!space:test", { max_depth: 2 });
+            await spaceManager.getSpaceHierarchyV1("!space:test", { max_depth: 2 });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,

@@ -16,46 +16,53 @@ limitations under the License.
 
 /**
  * Reporting Manager - 举报管理
- * 
+ *
  * 提供内容举报功能
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
+import { BaseManager } from "../managers/base-manager";
 
-export class ReportingManager {
-    constructor(private client: MatrixClient) {}
+export interface ReportResult {
+    report_id: string;
+    status: string;
+}
 
-    /**
-     * Report room
-     */
-    public async reportRoom(roomId: string, reason: string, score?: number): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { reason, score });
+export interface ReportingManagerEvents {
+    room_reported: { roomId: string; reason: string };
+    event_reported: { roomId: string; eventId: string; reason: string };
+    user_reported: { userId: string; reason: string };
+}
+
+export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, ReportingManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
     }
 
-    /**
-     * Report event
-     */
-    public async reportEvent(roomId: string, eventId: string, reason: string, score?: number): Promise<any> {
-        const path = utils.encodeUri("/rooms/$roomId/report/$eventId", { $roomId: roomId, $eventId: eventId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { reason, score });
+    public async reportRoom(roomId: string, reason: string, score?: number): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, { reason, score });
+        }, "reportRoom");
     }
 
-    /**
-     * Report user
-     */
-    public async reportUser(userId: string, reason: string): Promise<any> {
-        const path = utils.encodeUri("/users/$userId/report", { $userId: userId });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.client as any).http.authedRequest(Method.Post, path, undefined, { reason });
+    public async reportEvent(roomId: string, eventId: string, reason: string, score?: number): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/report/$eventId", { $roomId: roomId, $eventId: eventId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, { reason, score });
+        }, "reportEvent");
+    }
+
+    public async reportUser(userId: string, reason: string): Promise<void> {
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/users/$userId/report", { $userId: userId });
+            await this.client.http.authedRequest(Method.Post, path, undefined, { reason });
+        }, "reportUser");
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getReportingManager(): ReportingManager;

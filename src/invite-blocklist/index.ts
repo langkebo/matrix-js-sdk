@@ -87,7 +87,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
                 `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const blocklist = response.blocklist || [];
@@ -118,7 +118,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
                 `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
                 undefined,
                 { user_ids: userIds },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             this.blocklistCache.set(roomId, userIds);
@@ -149,7 +149,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
      */
     public async removeFromBlocklist(roomId: string, userIds: string[]): Promise<IBlocklistResult> {
         const currentBlocklist = await this.getBlocklist(roomId);
-        const newBlocklist = currentBlocklist.filter(id => !userIds.includes(id));
+        const newBlocklist = currentBlocklist.filter((id) => !userIds.includes(id));
         return this.setBlocklist(roomId, newBlocklist);
     }
 
@@ -175,7 +175,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
                 `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             const allowlist = response.allowlist || [];
@@ -206,7 +206,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
                 `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
                 undefined,
                 { user_ids: userIds },
-                { prefix: ClientPrefix.V3 }
+                { prefix: ClientPrefix.V3 },
             );
 
             this.allowlistCache.set(roomId, userIds);
@@ -237,7 +237,7 @@ export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEve
      */
     public async removeFromAllowlist(roomId: string, userIds: string[]): Promise<IAllowlistResult> {
         const currentAllowlist = await this.getAllowlist(roomId);
-        const newAllowlist = currentAllowlist.filter(id => !userIds.includes(id));
+        const newAllowlist = currentAllowlist.filter((id) => !userIds.includes(id));
         return this.setAllowlist(roomId, newAllowlist);
     }
 

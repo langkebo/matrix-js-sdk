@@ -4,40 +4,40 @@
 
 ## 挂载版本
 
-| 前缀 | 路由 |
-|------|------|
-| `/_matrix/client/v1` | `/presence/{user_id}/status` |
-| `/_matrix/client/r0` | `/presence/{user_id}/status` |
+| 前缀                 | 路由                                               |
+| -------------------- | -------------------------------------------------- |
+| `/_matrix/client/v1` | `/presence/{user_id}/status`                       |
+| `/_matrix/client/r0` | `/presence/{user_id}/status`                       |
 | `/_matrix/client/v3` | `/presence/{user_id}/status` 与 `/presence/list/*` |
 
 ## 路由清单
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 获取指定用户 presence 状态 | 用户 |
-| PUT | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 更新指定用户 presence 状态 | 用户 |
-| GET | `/_matrix/client/v3/presence/list` | 获取当前用户的 presence list | 用户 |
-| POST | `/_matrix/client/v3/presence/list` | 批量订阅/管理 presence list | 用户 |
-| GET | `/_matrix/client/v3/presence/list/{user_id}` | 获取指定用户的 presence list | 用户 |
+| 方法 | 路径                                                   | 说明                         | 认证 |
+| ---- | ------------------------------------------------------ | ---------------------------- | ---- |
+| GET  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 获取指定用户 presence 状态   | 用户 |
+| PUT  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 更新指定用户 presence 状态   | 用户 |
+| GET  | `/_matrix/client/v3/presence/list`                     | 获取当前用户的 presence list | 用户 |
+| POST | `/_matrix/client/v3/presence/list`                     | 批量订阅/管理 presence list  | 用户 |
+| GET  | `/_matrix/client/v3/presence/list/{user_id}`           | 获取指定用户的 presence list | 用户 |
 
 ## 响应与请求要点
 
 - `status` 端点通常围绕以下字段:
-  - `presence`
-  - `currently_active?`
-  - `last_active_ago?`
-  - `status_msg?`
+    - `presence`
+    - `currently_active?`
+    - `last_active_ago?`
+    - `status_msg?`
 - `PUT /status` 请求体通常为 presence 更新内容
 - `presence/list` 路由是 v3 专有扩展
 
 ## 常见状态码
 
-| 状态码 | 说明 |
-|--------|------|
-| `200` | 请求成功 |
-| `400` | presence 状态值不合法 |
-| `401` | Token 无效或缺失 |
-| `404` | 用户不存在或条目不存在 |
+| 状态码 | 说明                   |
+| ------ | ---------------------- |
+| `200`  | 请求成功               |
+| `400`  | presence 状态值不合法  |
+| `401`  | Token 无效或缺失       |
+| `404`  | 用户不存在或条目不存在 |
 
 ## 代码定位
 
@@ -53,18 +53,18 @@
 
 ### Presence 状态
 
-| 端点 | SDK Manager | 方法 | 状态 |
-|------|-------------|------|------|
+| 端点                             | SDK Manager       | 方法            | 状态      |
+| -------------------------------- | ----------------- | --------------- | --------- |
 | `GET /presence/{user_id}/status` | `PresenceManager` | `getPresence()` | ✅ 已封装 |
 | `PUT /presence/{user_id}/status` | `PresenceManager` | `setPresence()` | ✅ 已封装 |
 
 ### Presence List
 
-| 端点 | SDK Manager | 方法 | 状态 |
-|------|-------------|------|------|
-| `GET /presence/list` | `PresenceManager` | `getSubscribedPresence()` | ✅ 已封装 |
-| `POST /presence/list` | `PresenceManager` | `subscribeToPresence()` | ✅ 已封装 |
-| `GET /presence/list/{user_id}` | `PresenceManager` | `getPresenceList()` | ✅ 已封装 |
+| 端点                           | SDK Manager       | 方法                      | 状态      |
+| ------------------------------ | ----------------- | ------------------------- | --------- |
+| `GET /presence/list`           | `PresenceManager` | `getSubscribedPresence()` | ✅ 已封装 |
+| `POST /presence/list`          | `PresenceManager` | `subscribeToPresence()`   | ✅ 已封装 |
+| `GET /presence/list/{user_id}` | `PresenceManager` | `getPresenceList()`       | ✅ 已封装 |
 
 ---
 
@@ -111,8 +111,8 @@
 
 ## 修复状态
 
-| 优先级 | 问题 | 影响 | 状态 |
-|--------|------|------|------|
-| ⚠️ P1 | 契约文档缺少端点 | 文档不完整 | ✅ 已修复 |
-| ⚠️ P1 | 缺少 getPresenceList 方法 | 功能不完整 | ✅ 已修复 |
-| 📝 P2 | SDK 错误处理不完善 | 问题难以排查 | ✅ 已修复 |
+| 优先级 | 问题                      | 影响         | 状态      |
+| ------ | ------------------------- | ------------ | --------- |
+| ⚠️ P1  | 契约文档缺少端点          | 文档不完整   | ✅ 已修复 |
+| ⚠️ P1  | 缺少 getPresenceList 方法 | 功能不完整   | ✅ 已修复 |
+| 📝 P2  | SDK 错误处理不完善        | 问题难以排查 | ✅ 已修复 |

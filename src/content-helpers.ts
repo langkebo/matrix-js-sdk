@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { MsgType } from "./@types/event.ts";
-import { type IMessageRendering, M_TEXT } from "./@types/extensible_events.ts";
+import { type IMessageRendering } from "./@types/extensible_events.ts";
 import { type MRoomTopicEventContent, type MTopicContent, M_TOPIC, type MTopicEvent } from "./@types/topic.ts";
 import { type RoomMessageEventContent } from "./@types/events.ts";
 import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types/beacon.ts";
@@ -134,7 +134,7 @@ export type TopicState = {
 export const parseTopicContent = (content: MRoomTopicEventContent): TopicState => {
     const mtopicParent = M_TOPIC.findIn<MTopicContent | IMessageRendering[]>(content as MTopicEvent);
     const mtopic = Array.isArray(mtopicParent) ? mtopicParent : mtopicParent?.["m.text"];
-    // TODO remove support for the old malformed m.topic arrays after a few releases (only allow array in m.text)
+    // Known limitation: still accepts old malformed m.topic arrays; target format is array only in m.text.
     //      https://github.com/matrix-org/matrix-js-sdk/pull/4984#pullrequestreview-3174251065
     //const mtopic = M_TOPIC.findIn<MTopicContent>(content)?.["m.text"];
     if (!Array.isArray(mtopic)) {
@@ -165,8 +165,11 @@ export interface BeaconLocationState {
 }
 
 export const parseBeaconInfoContent = (content: MBeaconInfoEventContent): BeaconInfoState => {
-    const ts = (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
-    const asset = (content as Record<string, unknown>)["org.matrix.msc3488.asset"] ?? (content as Record<string, unknown>)["m.asset"];
+    const ts =
+        (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
+    const asset =
+        (content as Record<string, unknown>)["org.matrix.msc3488.asset"] ??
+        (content as Record<string, unknown>)["m.asset"];
     return {
         description: content.description,
         timeout: content.timeout,
@@ -177,8 +180,11 @@ export const parseBeaconInfoContent = (content: MBeaconInfoEventContent): Beacon
 };
 
 export const parseBeaconContent = (content: MBeaconEventContent): BeaconLocationState => {
-    const location = (content as Record<string, unknown>)["org.matrix.msc3488.location"] ?? (content as Record<string, unknown>)["m.location"];
-    const ts = (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
+    const location =
+        (content as Record<string, unknown>)["org.matrix.msc3488.location"] ??
+        (content as Record<string, unknown>)["m.location"];
+    const ts =
+        (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
     return {
         uri: (location as { uri?: string })?.uri,
         description: (location as { description?: string })?.description,

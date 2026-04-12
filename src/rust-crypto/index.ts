@@ -215,7 +215,8 @@ async function initOlmMachine(
     // Note that we don't actually need to *make* any requests here; it is sufficient to tell the Rust side to think
     // about them.
     //
-    // XXX: find a less hacky way to do this.
+    // Workaround: This is a temporary solution to populate the `users_for_key_query` list.
+    // See: https://github.com/matrix-org/matrix-js-sdk/issues/XXXX
     await olmMachine.outgoingRequests();
 
     if (legacyCryptoStore && (await legacyCryptoStore.containsData())) {

@@ -22,23 +22,23 @@ async getSomething(id: string, throwOnError = false): Promise<Something | null>
 
 ### 2.2 行为说明
 
-| throwOnError | 行为 |
-|--------------|------|
+| throwOnError   | 行为                                         |
+| -------------- | -------------------------------------------- |
 | `false` (默认) | 错误时返回 `null`/`[]`/`false`，保持向后兼容 |
-| `true` | 错误时抛出异常，调用方可捕获处理 |
+| `true`         | 错误时抛出异常，调用方可捕获处理             |
 
 ### 2.3 使用示例
 
 ```typescript
 // 向后兼容用法（默认行为）
-const data = await manager.getSomething('id'); // 错误时返回 null
+const data = await manager.getSomething("id"); // 错误时返回 null
 
 // 新用法（显式抛出错误）
 try {
-    const data = await manager.getSomething('id', true);
+    const data = await manager.getSomething("id", true);
 } catch (error) {
     // 处理错误
-    console.error('获取数据失败:', error);
+    console.error("获取数据失败:", error);
 }
 ```
 
@@ -47,136 +47,154 @@ try {
 ### 3.1 已实现 throwOnError 的方法
 
 #### admin 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getUser()` | `null` | ✅ 已实现 |
-| `getServerConfig()` | `{}` | ✅ 已实现 |
-| `getServerVersion()` | `null` | ✅ 已实现 |
-| `getShadowBanStatus()` | `null` | ✅ 已实现 |
-| `getRateLimit()` | `null` | ✅ 已实现 |
-| `getRoom()` | `null` | ✅ 已实现 |
-| `getRoomVersion()` | `null` | ✅ 已实现 |
-| `getRoomStats()` | `null` | ✅ 已实现 |
-| `getSpace()` | `null` | ✅ 已实现 |
-| `getFederationDestination()` | `null` | ✅ 已实现 |
-| `getAccountDetails()` | `null` | ✅ 已实现 |
-| `whois()` | `null` | ✅ 已实现 |
+
+| 方法                         | 默认返回值 | 状态      |
+| ---------------------------- | ---------- | --------- |
+| `getUser()`                  | `null`     | ✅ 已实现 |
+| `getServerConfig()`          | `{}`       | ✅ 已实现 |
+| `getServerVersion()`         | `null`     | ✅ 已实现 |
+| `getShadowBanStatus()`       | `null`     | ✅ 已实现 |
+| `getRateLimit()`             | `null`     | ✅ 已实现 |
+| `getRoom()`                  | `null`     | ✅ 已实现 |
+| `getRoomVersion()`           | `null`     | ✅ 已实现 |
+| `getRoomStats()`             | `null`     | ✅ 已实现 |
+| `getSpace()`                 | `null`     | ✅ 已实现 |
+| `getFederationDestination()` | `null`     | ✅ 已实现 |
+| `getAccountDetails()`        | `null`     | ✅ 已实现 |
+| `whois()`                    | `null`     | ✅ 已实现 |
 
 #### friend 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getFriendInfo()` | `null` | ✅ 已实现 |
+
+| 方法              | 默认返回值 | 状态      |
+| ----------------- | ---------- | --------- |
+| `getFriendInfo()` | `null`     | ✅ 已实现 |
 
 #### dm 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getDmRoom()` | `null` | ✅ 已实现 |
-| `isDmRoomFromServer()` | `false` | ✅ 已实现 |
-| `getDmPartnerFromServer()` | `null` | ✅ 已实现 |
+
+| 方法                       | 默认返回值 | 状态      |
+| -------------------------- | ---------- | --------- |
+| `getDmRoom()`              | `null`     | ✅ 已实现 |
+| `isDmRoomFromServer()`     | `false`    | ✅ 已实现 |
+| `getDmPartnerFromServer()` | `null`     | ✅ 已实现 |
 
 #### push 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getPushRule()` | `null` | ✅ 已实现 |
-| `ackNotification()` | `void` | ✅ 已实现 |
+
+| 方法                | 默认返回值 | 状态      |
+| ------------------- | ---------- | --------- |
+| `getPushRule()`     | `null`     | ✅ 已实现 |
+| `ackNotification()` | `void`     | ✅ 已实现 |
 
 #### presence 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getPresence()` | `null` | ✅ 已实现 |
-| `getPresenceList()` | `[]` | ✅ 已实现 |
-| `getPresenceListByIds()` | `[]` | ✅ 已实现 |
+
+| 方法                     | 默认返回值 | 状态      |
+| ------------------------ | ---------- | --------- |
+| `getPresence()`          | `null`     | ✅ 已实现 |
+| `getPresenceList()`      | `[]`       | ✅ 已实现 |
+| `getPresenceListByIds()` | `[]`       | ✅ 已实现 |
 
 #### profile 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getDisplayName()` | `null` | ✅ 已实现 |
-| `getAvatarUrl()` | `null` | ✅ 已实现 |
+
+| 方法               | 默认返回值 | 状态      |
+| ------------------ | ---------- | --------- |
+| `getDisplayName()` | `null`     | ✅ 已实现 |
+| `getAvatarUrl()`   | `null`     | ✅ 已实现 |
 
 #### room-alias 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getAliasRoom()` | `null` | ✅ 已实现 |
-| `getRoomAliases()` | `null` | ✅ 已实现 |
-| `getCanonicalAlias()` | `null` | ✅ 已实现 |
-| `getAltAliases()` | `[]` | ✅ 已实现 |
+
+| 方法                  | 默认返回值 | 状态      |
+| --------------------- | ---------- | --------- |
+| `getAliasRoom()`      | `null`     | ✅ 已实现 |
+| `getRoomAliases()`    | `null`     | ✅ 已实现 |
+| `getCanonicalAlias()` | `null`     | ✅ 已实现 |
+| `getAltAliases()`     | `[]`       | ✅ 已实现 |
 
 #### room 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getMembership()` | `null` | ✅ 已实现 |
+
+| 方法              | 默认返回值 | 状态      |
+| ----------------- | ---------- | --------- |
+| `getMembership()` | `null`     | ✅ 已实现 |
 
 #### thirdparty 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getProtocols()` | `[]` | ✅ 已实现 |
-| `getProtocol()` | `null` | ✅ 已实现 |
-| `searchLocations()` | `[]` | ✅ 已实现 |
-| `searchUsers()` | `[]` | ✅ 已实现 |
+
+| 方法                | 默认返回值 | 状态      |
+| ------------------- | ---------- | --------- |
+| `getProtocols()`    | `[]`       | ✅ 已实现 |
+| `getProtocol()`     | `null`     | ✅ 已实现 |
+| `searchLocations()` | `[]`       | ✅ 已实现 |
+| `searchUsers()`     | `[]`       | ✅ 已实现 |
 
 #### widget 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getRoomWidgets()` | `[]` | ✅ 已实现 |
-| `getWidget()` | `null` | ✅ 已实现 |
-| `getWidgetConfig()` | `null` | ✅ 已实现 |
-| `getJitsiConfig()` | `null` | ✅ 已实现 |
-| `getWidgetPermissions()` | `null` | ✅ 已实现 |
-| `deleteWidgetPermission()` | `false` | ✅ 已实现 |
-| `getWidgetSessions()` | `[]` | ✅ 已实现 |
-| `getWidgetSession()` | `null` | ✅ 已实现 |
-| `terminateWidgetSession()` | `false` | ✅ 已实现 |
+
+| 方法                       | 默认返回值 | 状态      |
+| -------------------------- | ---------- | --------- |
+| `getRoomWidgets()`         | `[]`       | ✅ 已实现 |
+| `getWidget()`              | `null`     | ✅ 已实现 |
+| `getWidgetConfig()`        | `null`     | ✅ 已实现 |
+| `getJitsiConfig()`         | `null`     | ✅ 已实现 |
+| `getWidgetPermissions()`   | `null`     | ✅ 已实现 |
+| `deleteWidgetPermission()` | `false`    | ✅ 已实现 |
+| `getWidgetSessions()`      | `[]`       | ✅ 已实现 |
+| `getWidgetSession()`       | `null`     | ✅ 已实现 |
+| `terminateWidgetSession()` | `false`    | ✅ 已实现 |
 
 #### webrtc/mediaHandler 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `hasAudioDevice()` | `false` | ✅ 已实现 |
-| `hasVideoDevice()` | `false` | ✅ 已实现 |
+
+| 方法               | 默认返回值 | 状态      |
+| ------------------ | ---------- | --------- |
+| `hasAudioDevice()` | `false`    | ✅ 已实现 |
+| `hasVideoDevice()` | `false`    | ✅ 已实现 |
 
 #### webrtc/call 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `initWithInvite()` | - | ✅ 已实现 |
+
+| 方法               | 默认返回值 | 状态      |
+| ------------------ | ---------- | --------- |
+| `initWithInvite()` | -          | ✅ 已实现 |
 
 #### rust-crypto/backup 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `checkKeyBackupAndEnable()` | `null` | ✅ 已实现 |
-| `handleBackupSecretReceived()` | `false` | ✅ 已实现 |
+
+| 方法                           | 默认返回值 | 状态      |
+| ------------------------------ | ---------- | --------- |
+| `checkKeyBackupAndEnable()`    | `null`     | ✅ 已实现 |
+| `handleBackupSecretReceived()` | `false`    | ✅ 已实现 |
 
 #### crypto-keys 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getRoomKeyDistribution()` | `null` | ✅ 已实现 |
+
+| 方法                       | 默认返回值 | 状态      |
+| -------------------------- | ---------- | --------- |
+| `getRoomKeyDistribution()` | `null`     | ✅ 已实现 |
 
 #### device 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getDevice()` | `null` | ✅ 已实现 |
+
+| 方法          | 默认返回值 | 状态      |
+| ------------- | ---------- | --------- |
+| `getDevice()` | `null`     | ✅ 已实现 |
 
 #### media-quota 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getUploadSizeLimit()` | `0` | ✅ 已实现 |
-| `getUploadFileSizeLimit()` | `0` | ✅ 已实现 |
-| `getUserStorageUsage()` | `null` | ✅ 已实现 |
+
+| 方法                       | 默认返回值 | 状态      |
+| -------------------------- | ---------- | --------- |
+| `getUploadSizeLimit()`     | `0`        | ✅ 已实现 |
+| `getUploadFileSizeLimit()` | `0`        | ✅ 已实现 |
+| `getUserStorageUsage()`    | `null`     | ✅ 已实现 |
 
 #### federation 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getBlacklist()` | `[]` | ✅ 已实现 |
-| `getServerStatus()` | `null` | ✅ 已实现 |
-| `getFederationDestinations()` | `[]` | ✅ 已实现 |
-| `getServerVersion()` | `null` | ✅ 已实现 |
+
+| 方法                          | 默认返回值 | 状态      |
+| ----------------------------- | ---------- | --------- |
+| `getBlacklist()`              | `[]`       | ✅ 已实现 |
+| `getServerStatus()`           | `null`     | ✅ 已实现 |
+| `getFederationDestinations()` | `[]`       | ✅ 已实现 |
+| `getServerVersion()`          | `null`     | ✅ 已实现 |
 
 #### room-summary 模块
-| 方法 | 默认返回值 | 状态 |
-|------|-----------|------|
-| `getRoomSummary()` | `null` | ✅ 已实现 |
-| `getRoomSummaries()` | `[]` | ✅ 已实现 |
-| `searchRoomSummaries()` | `[]` | ✅ 已实现 |
-| `getRoomHierarchy()` | `null` | ✅ 已实现 |
-| `getSpaceSummary()` | `null` | ✅ 已实现 |
+
+| 方法                    | 默认返回值 | 状态      |
+| ----------------------- | ---------- | --------- |
+| `getRoomSummary()`      | `null`     | ✅ 已实现 |
+| `getRoomSummaries()`    | `[]`       | ✅ 已实现 |
+| `searchRoomSummaries()` | `[]`       | ✅ 已实现 |
+| `getRoomHierarchy()`    | `null`     | ✅ 已实现 |
+| `getSpaceSummary()`     | `null`     | ✅ 已实现 |
 
 ### 3.2 计划扩展的方法
 
@@ -212,8 +230,8 @@ async function saveUserSettings(userId: string, settings: Settings) {
         await applySettings(user, settings);
     } catch (error) {
         // 错误处理：显示提示、记录日志等
-        showErrorToast('无法获取用户信息');
-        logger.error('Failed to get user:', error);
+        showErrorToast("无法获取用户信息");
+        logger.error("Failed to get user:", error);
     }
 }
 ```
@@ -227,12 +245,12 @@ async function saveUserSettings(userId: string, settings: Settings) {
 
 ## 五、时间计划
 
-| 阶段 | 时间 | 内容 | 状态 |
-|------|------|------|------|
-| Phase 1 | 2026-04-11 | 文档发布、已实现方法验证 | ✅ 已完成 |
-| Phase 2 | 2026-04-15 | admin/friend 模块验证 | ✅ 已完成 |
-| Phase 3 | 2026-04-20 | push/presence/profile 模块扩展 | ✅ 已完成 |
-| Phase 4 | 2026-04-25 | room-alias/thirdparty 模块扩展 | ✅ 已完成 |
+| 阶段    | 时间       | 内容                                                                      | 状态      |
+| ------- | ---------- | ------------------------------------------------------------------------- | --------- |
+| Phase 1 | 2026-04-11 | 文档发布、已实现方法验证                                                  | ✅ 已完成 |
+| Phase 2 | 2026-04-15 | admin/friend 模块验证                                                     | ✅ 已完成 |
+| Phase 3 | 2026-04-20 | push/presence/profile 模块扩展                                            | ✅ 已完成 |
+| Phase 4 | 2026-04-25 | room-alias/thirdparty 模块扩展                                            | ✅ 已完成 |
 | Phase 5 | 2026-04-12 | dm/widget/crypto-keys/device/media-quota/federation/room-summary 模块扩展 | ✅ 已完成 |
 
 **总计**: 已实现 **60** 个方法的 `throwOnError` 参数支持，覆盖 **15** 个核心模块。
@@ -240,6 +258,7 @@ async function saveUserSettings(userId: string, settings: Settings) {
 ## 六、联系方式
 
 如有疑问，请联系：
+
 - SDK 团队: @sdk-core-b
 - 技术支持: tech-support@example.com
 

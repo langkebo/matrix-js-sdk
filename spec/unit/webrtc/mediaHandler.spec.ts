@@ -249,6 +249,11 @@ describe("Media Handler", function () {
             mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("No Permission"));
             expect(await mediaHandler.hasAudioDevice()).toEqual(false);
         });
+
+        it("throws if throwOnError is true and enumerateDevices fails", async () => {
+            mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("Boom"));
+            await expect(mediaHandler.hasAudioDevice(true)).rejects.toThrow("Boom");
+        });
     });
 
     describe("hasVideoDevice", () => {
@@ -266,6 +271,11 @@ describe("Media Handler", function () {
         it("returns false if the system not permitting access video inputs", async () => {
             mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("No Permission"));
             expect(await mediaHandler.hasVideoDevice()).toEqual(false);
+        });
+
+        it("throws if throwOnError is true and enumerateDevices fails", async () => {
+            mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("Boom"));
+            await expect(mediaHandler.hasVideoDevice(true)).rejects.toThrow("Boom");
         });
     });
 

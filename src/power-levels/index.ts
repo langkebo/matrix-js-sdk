@@ -3,7 +3,7 @@ Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You May obtain a copy of the License at
+You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,13 +16,14 @@ limitations under the License.
 
 /**
  * Power Levels Manager - 权限级别管理
- * 
+ *
  * 提供权限级别相关功能
  */
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { Room } from "../models/room";
+import { BaseManager } from "../managers/base-manager";
 
 export interface IPowerLevelContent {
     users_default?: number;
@@ -39,53 +40,77 @@ export interface IPowerLevelContent {
     };
 }
 
-export class PowerLevelsManager {
-    constructor(private client: MatrixClient) {}
+export interface PowerLevelsManagerEvents {
+    power_level_changed: { roomId: string; userId: string; level: number };
+    permissions_updated: { roomId: string };
+}
+
+export class PowerLevelsManager extends BaseManager<keyof PowerLevelsManagerEvents, PowerLevelsManagerEvents> {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public getUserPowerLevel(userId: string, roomId: string): number {
-        return (this.client as unknown as {
-            getUserPowerLevel: (userId: string, roomId: string) => number;
-        }).getUserPowerLevel(userId, roomId);
+        return (
+            this.client as unknown as {
+                getUserPowerLevel: (userId: string, roomId: string) => number;
+            }
+        ).getUserPowerLevel(userId, roomId);
     }
 
     public getPowerLevelEventContent(roomId: string): IPowerLevelContent | null {
-        return (this.client as unknown as {
-            getPowerLevelEventContent: (roomId: string) => IPowerLevelContent | null;
-        }).getPowerLevelEventContent(roomId);
+        return (
+            this.client as unknown as {
+                getPowerLevelEventContent: (roomId: string) => IPowerLevelContent | null;
+            }
+        ).getPowerLevelEventContent(roomId);
     }
 
     public async setUserPowerLevel(userId: string, roomId: string, powerLevel: number): Promise<void> {
-        return (this.client as unknown as {
-            setUserPowerLevel: (userId: string, roomId: string, powerLevel: number) => Promise<void>;
-        }).setUserPowerLevel(userId, roomId, powerLevel);
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        setUserPowerLevel: (userId: string, roomId: string, powerLevel: number) => Promise<void>;
+                    }
+                ).setUserPowerLevel(userId, roomId, powerLevel),
+            "setUserPowerLevel",
+        );
     }
 
     public canSendEvent(eventType: string, roomId: string): boolean {
-        return (this.client as unknown as {
-            canSendEvent: (eventType: string, roomId: string) => boolean;
-        }).canSendEvent(eventType, roomId);
+        return (
+            this.client as unknown as {
+                canSendEvent: (eventType: string, roomId: string) => boolean;
+            }
+        ).canSendEvent(eventType, roomId);
     }
 
     public checkAuthEvent(event: MatrixEvent, room: Room): boolean {
-        return (this.client as unknown as {
-            checkAuthEvent: (event: MatrixEvent, room: Room) => boolean;
-        }).checkAuthEvent(event, room);
+        return (
+            this.client as unknown as {
+                checkAuthEvent: (event: MatrixEvent, room: Room) => boolean;
+            }
+        ).checkAuthEvent(event, room);
     }
 
     public isRoomAdmin(roomId: string): boolean {
-        return (this.client as unknown as {
-            isRoomAdmin: (roomId: string) => boolean;
-        }).isRoomAdmin(roomId);
+        return (
+            this.client as unknown as {
+                isRoomAdmin: (roomId: string) => boolean;
+            }
+        ).isRoomAdmin(roomId);
     }
 
     public isRoomModerator(roomId: string): boolean {
-        return (this.client as unknown as {
-            isRoomModerator: (roomId: string) => boolean;
-        }).isRoomModerator(roomId);
+        return (
+            this.client as unknown as {
+                isRoomModerator: (roomId: string) => boolean;
+            }
+        ).isRoomModerator(roomId);
     }
 }
 
-// Declare prototype extension
 declare module "../client.ts" {
     interface MatrixClient {
         getPowerLevelsManager(): PowerLevelsManager;
