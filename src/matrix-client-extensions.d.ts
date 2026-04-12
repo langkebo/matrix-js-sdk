@@ -325,10 +325,10 @@ interface MatrixClientInternalMethods {
 
     // ============ Server Capabilities ============
     getServerCapabilities(): Promise<Record<string, unknown>>;
-    hasServerSupport(feature: string): Promise<boolean>;
+    hasServerSupport(feature: string): boolean;
     getServerVersion(): Promise<string>;
-    supportsThreads(): Promise<boolean>;
-    supportsLocation(): Promise<boolean>;
+    supportsThreads(): boolean;
+    supportsLocation(): boolean;
 
     // ============ Room Key Sharing ============
     shareRoomKey(roomId: string, users: string[]): Promise<unknown>;

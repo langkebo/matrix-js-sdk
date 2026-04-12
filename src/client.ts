@@ -6691,14 +6691,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getServerCapabilities(): Promise<Record<string, unknown>> {
         return Promise.resolve({});
     }
-    public hasServerSupport(_feature: string): Promise<boolean> {
-        return Promise.resolve(false);
+    public hasServerSupport(_feature: string): boolean {
+        return false;
     }
     public getServerVersion(): Promise<string> {
         return Promise.resolve("");
     }
-    public supportsLocation(): Promise<boolean> {
-        return Promise.resolve(false);
+    public supportsLocation(): boolean {
+        return false;
     }
     public serverClockDiff: number = 0;
     public getLocalTimestampForServerTime(serverTs: number): number {
@@ -6737,6 +6737,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
     public getAllWidgetEvents(_roomId: string): Promise<MatrixEvent[]> {
         return Promise.resolve([]);
+    }
+    public getProfileManager(): any {
+        return null;
     }
 }
 
