@@ -124,17 +124,19 @@ describe("WidgetManager", () => {
     describe("getWidgetConfig", () => {
         it("should return widget config successfully", async () => {
             const mockResponse = {
-                config: {
-                    theme: "dark",
-                    language: "en",
-                },
+                widget_id: "widget1",
+                room_id: "!room:example.com",
+                url: "https://example.com/widget",
+                name: "Test Widget",
+                data: { theme: "dark", language: "en" },
+                type: "customwidget",
             };
             mockClient.http.authedRequest.mockResolvedValueOnce(mockResponse);
 
             const result = await widgetManager.getWidgetConfig("widget1");
 
             expect(result).toBeDefined();
-            expect(result?.config).toEqual({ theme: "dark", language: "en" });
+            expect(result?.data).toEqual({ theme: "dark", language: "en" });
         });
 
         it("should return null on error when throwOnError is false", async () => {

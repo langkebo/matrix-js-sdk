@@ -62,14 +62,14 @@ describe("RoomSummaryManager", () => {
         });
 
         it("should return null for error when throwOnError is false", async () => {
-            authedRequest.mockRejectedValue(new Error("Not found"));
-            const summary = await summaryManager.getRoomSummary("!unknown:example.com");
+            authedRequest.mockRejectedValueOnce(new Error("Not found"));
+            const summary = await summaryManager.getRoomSummary("!unknown1:example.com");
             expect(summary).toBeNull();
         });
 
         it("should throw error when throwOnError is true", async () => {
             authedRequest.mockRejectedValueOnce(new Error("Not found"));
-            await expect(summaryManager.getRoomSummary("!unknown:example.com", undefined, false, true)).rejects.toThrow();
+            await expect(summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true)).rejects.toThrow();
         });
     });
 
