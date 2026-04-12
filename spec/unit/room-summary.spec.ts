@@ -1,7 +1,12 @@
 import "../../src/room-summary/index";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { RoomSummaryManager, RoomSummary, RoomSummaryMember, RoomStats, RoomSummaryEvent } from "../../src/room-summary/index";
+import {
+    RoomSummaryManager,
+    type RoomSummary,
+    type RoomSummaryMember,
+    type RoomStats,
+} from "../../src/room-summary/index";
 import { ClientPrefix, Method } from "../../src/http-api";
 import { MatrixError } from "../../src/http-api/errors";
 
@@ -56,10 +61,15 @@ describe("RoomSummaryManager", () => {
             expect(summary?.room_id).toBe("!room:example.com");
         });
 
-        it("should return null for error", async () => {
+        it("should return null for error when throwOnError is false", async () => {
             authedRequest.mockRejectedValue(new Error("Not found"));
             const summary = await summaryManager.getRoomSummary("!unknown:example.com");
             expect(summary).toBeNull();
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            authedRequest.mockRejectedValueOnce(new Error("Not found"));
+            await expect(summaryManager.getRoomSummary("!unknown:example.com", undefined, false, true)).rejects.toThrow();
         });
     });
 
@@ -67,6 +77,17 @@ describe("RoomSummaryManager", () => {
         it("should get room hierarchy", async () => {
             const hierarchy = await summaryManager.getRoomHierarchy("!space:example.com");
             expect(hierarchy).toBeDefined();
+        });
+
+        it("should return null on error when throwOnError is false", async () => {
+            mockClient.getRoomHierarchy.mockRejectedValueOnce(new Error("Not found"));
+            const hierarchy = await summaryManager.getRoomHierarchy("!space:example.com");
+            expect(hierarchy).toBeNull();
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.getRoomHierarchy.mockRejectedValueOnce(new Error("Not found"));
+            await expect(summaryManager.getRoomHierarchy("!space:example.com", undefined, true)).rejects.toThrow();
         });
     });
 
@@ -85,11 +106,21 @@ describe("RoomSummaryManager", () => {
             ]);
             const members = await summaryManager.getRoomSummaryMembers("!room:example.com");
             expect(Array.isArray(members)).toBe(true);
-            if (members.length > 0) {
-                expect(members[0]).toHaveProperty("user_id");
-                expect(members[0]).toHaveProperty("membership");
-                expect(members[0]).toHaveProperty("is_hero");
-            }
+            const firstMember = members[0];
+            expect(firstMember).toHaveProperty("user_id");
+            expect(firstMember).toHaveProperty("membership");
+            expect(firstMember).toHaveProperty("is_hero");
+        });
+
+        it("should return empty array on error when throwOnError is false", async () => {
+            authedRequest.mockRejectedValueOnce(new Error("boom"));
+            const members = await summaryManager.getRoomSummaryMembers("!room:example.com");
+            expect(members).toEqual([]);
+        });
+
+        it("should throw on error when throwOnError is true", async () => {
+            authedRequest.mockRejectedValueOnce(new Error("boom"));
+            await expect(summaryManager.getRoomSummaryMembers("!room:example.com", false, true)).rejects.toThrow();
         });
     });
 
@@ -130,6 +161,17 @@ describe("RoomSummaryManager", () => {
             expect(stats).toHaveProperty("total_messages");
             expect(stats).toHaveProperty("total_media");
             expect(stats).toHaveProperty("storage_size");
+        });
+
+        it("should return null on error when throwOnError is false", async () => {
+            authedRequest.mockRejectedValueOnce(new Error("Not found"));
+            const stats = await summaryManager.getRoomSummaryStats("!room:example.com");
+            expect(stats).toBeNull();
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            authedRequest.mockRejectedValueOnce(new Error("Not found"));
+            await expect(summaryManager.getRoomSummaryStats("!room:example.com", false, true)).rejects.toThrow();
         });
     });
 
@@ -271,9 +313,13 @@ describe("RoomSummaryManager", () => {
         });
 
         it("should write summary members via v3 endpoint", async () => {
-            authedRequest.mockResolvedValueOnce({ members: [{ user_id: "@alice:example.com", membership: "join", is_hero: false }] });
+            authedRequest.mockResolvedValueOnce({
+                members: [{ user_id: "@alice:example.com", membership: "join", is_hero: false }],
+            });
 
-            await summaryManager.writeSummaryMembers("!room:example.com", [{ user_id: "@alice:example.com", membership: "join", is_hero: false }]);
+            await summaryManager.writeSummaryMembers("!room:example.com", [
+                { user_id: "@alice:example.com", membership: "join", is_hero: false },
+            ]);
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -287,7 +333,9 @@ describe("RoomSummaryManager", () => {
         it("should update summary member via v3 endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ user_id: "@alice:example.com", display_name: "Alice" });
 
-            await summaryManager.updateSummaryMember("!room:example.com", "@alice:example.com", { display_name: "Alice" });
+            await summaryManager.updateSummaryMember("!room:example.com", "@alice:example.com", {
+                display_name: "Alice",
+            });
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Put,
@@ -451,19 +499,15 @@ describe("RoomSummaryManager", () => {
             await expect(summaryManager.updateSummary("", {})).rejects.toThrow();
             await expect(summaryManager.deleteSummary("invalid")).rejects.toThrow();
         });
-        
+
         it("should validate user ID format", async () => {
             // validateUserId is called synchronously but async method wraps it in Promise
-            await expect(
-                summaryManager.updateSummaryMember("!room:server", "", {})
-            ).rejects.toThrow();
+            await expect(summaryManager.updateSummaryMember("!room:server", "", {})).rejects.toThrow();
         });
-        
+
         it("should validate event type format", async () => {
             // validateEventType is called synchronously but async method wraps it in Promise
-            await expect(
-                summaryManager.updateSummaryState("!room:server", "invalid type", "", {})
-            ).rejects.toThrow();
+            await expect(summaryManager.updateSummaryState("!room:server", "invalid type", "", {})).rejects.toThrow();
         });
     });
 
@@ -480,21 +524,42 @@ describe("RoomSummaryManager", () => {
                 }
                 return {};
             });
-            
+
             // Use a method that uses withRetry (updateSummary uses direct HTTP)
             await summaryManager.updateSummary("!room:example.com", { name: "test" });
             expect(callCount).toBe(3); // Initial + 2 retries
         });
-        
+
         it("should not retry on non-retryable errors", async () => {
-            authedRequest.mockRejectedValueOnce(new MatrixError({
-                errcode: "M_NOT_FOUND",
-                httpStatus: 404,
-            } as any));
-            
-            await expect(
-                summaryManager.updateSummary("!room:example.com", { name: "test" })
-            ).rejects.toThrow();
+            authedRequest.mockRejectedValueOnce(
+                new MatrixError({
+                    errcode: "M_NOT_FOUND",
+                    httpStatus: 404,
+                } as any),
+            );
+
+            await expect(summaryManager.updateSummary("!room:example.com", { name: "test" })).rejects.toThrow();
+        });
+    });
+
+    describe("getPublicRooms", () => {
+        it("should get public rooms successfully", async () => {
+            mockClient.publicRooms.mockResolvedValueOnce({
+                chunk: [{ room_id: "!room1:example.com", name: "Public Room" }],
+            });
+            const result = await summaryManager.getPublicRooms();
+            expect(result).toBeDefined();
+        });
+
+        it("should return null on error when throwOnError is false", async () => {
+            mockClient.publicRooms.mockRejectedValueOnce(new Error("Failed to get public rooms"));
+            const result = await summaryManager.getPublicRooms("", undefined, false);
+            expect(result).toBeNull();
+        });
+
+        it("should throw error when throwOnError is true", async () => {
+            mockClient.publicRooms.mockRejectedValueOnce(new Error("Failed to get public rooms"));
+            await expect(summaryManager.getPublicRooms("", undefined, true)).rejects.toThrow();
         });
     });
 
@@ -504,19 +569,17 @@ describe("RoomSummaryManager", () => {
             const stats = summaryManager.getRequestStats();
             expect(stats.successful).toBe(1);
         });
-        
+
         it("should track request stats on failure", async () => {
-            authedRequest.mockRejectedValueOnce(new MatrixError({
-                errcode: "M_NOT_FOUND",
-                httpStatus: 404,
-            } as any));
-            
-            try {
-                await summaryManager.updateSummary("!room:example.com", { name: "test" });
-            } catch (e) {
-                // Expected
-            }
-            
+            authedRequest.mockRejectedValueOnce(
+                new MatrixError({
+                    errcode: "M_NOT_FOUND",
+                    httpStatus: 404,
+                } as any),
+            );
+
+            await expect(summaryManager.updateSummary("!room:example.com", { name: "test" })).rejects.toThrow();
+
             const stats = summaryManager.getRequestStats();
             expect(stats.failed).toBe(1);
         });
