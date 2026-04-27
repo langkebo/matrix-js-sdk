@@ -1896,6 +1896,20 @@ describe("MatrixClient", function () {
             await testClient.stop();
         });
     });
+
+    describe("manager extensions", () => {
+        it("should expose key rotation manager on MatrixClient", () => {
+            const manager = client.getKeyRotationManager();
+
+            expect(manager).toBeTruthy();
+            expect(typeof manager.getStatus).toBe("function");
+            expect(typeof manager.rotateKey).toBe("function");
+            expect(typeof manager.getRotationHistory).toBe("function");
+            expect(typeof manager.revokeKey).toBe("function");
+            expect(typeof manager.updateConfig).toBe("function");
+            expect(typeof manager.checkKeyValidity).toBe("function");
+        });
+    });
 });
 
 function withThreadId(event: MatrixEvent, newThreadId: string): MatrixEvent {

@@ -23,14 +23,7 @@ import { type FileType } from "../http-api/index.ts";
 import type { ISendEventResponse } from "../@types/requests.ts";
 import { type EncryptedFile } from "../@types/media.ts";
 
-export interface MSC3089EventContent {
-    active?: boolean;
-    name?: string;
-    locked?: boolean;
-    version?: number;
-}
-
-export interface MSC3089EventContent {
+export interface MSC3089EventContent extends IContent {
     active?: boolean;
     name?: string;
     locked?: boolean;
@@ -51,6 +44,10 @@ export class MSC3089Branch {
         // Nothing to do
     }
 
+    private getIndexContent(): MSC3089EventContent {
+        return this.indexEvent.getContent<MSC3089EventContent>();
+    }
+
     /**
      * The file ID.
      */
@@ -66,14 +63,14 @@ export class MSC3089Branch {
      * Whether this branch is active/valid.
      */
     public get isActive(): boolean {
-        return this.indexEvent.getContent()["active"] === true;
+        return this.getIndexContent().active === true;
     }
 
     /**
      * Version for the file, one-indexed.
      */
     public get version(): number {
-        return this.indexEvent.getContent()["version"] ?? 1;
+        return this.getIndexContent().version ?? 1;
     }
 
     private get roomId(): string {
@@ -97,7 +94,7 @@ export class MSC3089Branch {
      * @returns The name, or "Unnamed File" if unknown.
      */
     public getName(): string {
-        return this.indexEvent.getContent()["name"] || "Unnamed File";
+        return this.getIndexContent().name || "Unnamed File";
     }
 
     /**
@@ -110,7 +107,7 @@ export class MSC3089Branch {
             this.roomId,
             UNSTABLE_MSC3089_BRANCH.name,
             {
-                ...this.indexEvent.getContent(),
+                ...this.getIndexContent(),
                 name: name,
             },
             this.id,
@@ -122,7 +119,7 @@ export class MSC3089Branch {
      * @returns True if locked, false otherwise.
      */
     public isLocked(): boolean {
-        return this.indexEvent.getContent()["locked"] || false;
+        return this.getIndexContent().locked || false;
     }
 
     /**
@@ -135,7 +132,7 @@ export class MSC3089Branch {
             this.roomId,
             UNSTABLE_MSC3089_BRANCH.name,
             {
-                ...this.indexEvent.getContent(),
+                ...this.getIndexContent(),
                 locked: locked,
             },
             this.id,
@@ -148,12 +145,14 @@ export class MSC3089Branch {
      */
     public async getFileInfo(): Promise<{ info: EncryptedFile; httpUrl: string }> {
         const event = await this.getFileEvent();
-
-        const file = event.getOriginalContent()["file"];
-        const httpUrl = this.client.getProfileManager().mxcUrlToHttp(file["url"]);
+        const file = event.getOriginalContent<{ file?: EncryptedFile }>().file;
+        if (!file || typeof file.url !== "string") {
+            throw new Error("No encrypted file info available");
+        }
+        const httpUrl = this.client.getProfileManager().mxcUrlToHttp(file.url);
 
         if (!httpUrl) {
-            throw new Error(`No HTTP URL available for ${file["url"]}`);
+            throw new Error(`No HTTP URL available for ${file.url}`);
         }
 
         return { info: file, httpUrl: httpUrl };
@@ -223,7 +222,7 @@ export class MSC3089Branch {
             this.roomId,
             UNSTABLE_MSC3089_BRANCH.name,
             {
-                ...this.indexEvent.getContent(),
+                ...this.getIndexContent(),
                 active: false,
             },
             this.id,

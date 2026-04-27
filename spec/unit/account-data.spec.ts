@@ -220,6 +220,73 @@ describe("AccountDataManager", () => {
         });
     });
 
+    describe("setRoomAccountData", () => {
+        it("should set room account data", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await accountDataManager.setRoomAccountData("!room:example.com", "m.fully_read", {
+                event_id: "$event:example.com",
+            });
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/account_data/m.fully_read",
+                undefined,
+                { event_id: "$event:example.com" },
+            );
+        });
+    });
+
+    describe("deleteRoomAccountData", () => {
+        it("should delete room account data", async () => {
+            mockAuthedRequest.mockResolvedValue({});
+
+            await accountDataManager.deleteRoomAccountData("!room:example.com", "m.fully_read");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/account_data/m.fully_read",
+            );
+        });
+    });
+
+    describe("Data Validation", () => {
+        it("should reject data_type longer than 128 characters", async () => {
+            const longType = "a".repeat(129);
+
+            await expect(accountDataManager.setAccountData(longType, { data: "value" })).rejects.toThrow(
+                "data_type too long (max 128 characters)",
+            );
+        });
+
+        it("should accept data_type with exactly 128 characters", async () => {
+            const maxType = "a".repeat(128);
+            mockSetAccountData.mockResolvedValue({});
+
+            await accountDataManager.setAccountData(maxType, { data: "value" });
+
+            expect(mockSetAccountData).toHaveBeenCalledWith(maxType, { data: "value" });
+        });
+
+        it("should reject content larger than 64KB", async () => {
+            const largeContent = { data: "x".repeat(65537) };
+
+            await expect(accountDataManager.setAccountData("m.test", largeContent)).rejects.toThrow(
+                "Account data too large (max 65536 bytes)",
+            );
+        });
+
+        it("should accept content with exactly 64KB", async () => {
+            // Create content that serializes to exactly 64KB
+            const content = { data: "x".repeat(65520) }; // Accounting for JSON overhead
+            mockSetAccountData.mockResolvedValue({});
+
+            await accountDataManager.setAccountData("m.test", content);
+
+            expect(mockSetAccountData).toHaveBeenCalled();
+        });
+    });
+
     describe("Error Handling", () => {
         it("should throw error on server failure", async () => {
             const error = new Error("Server error");
@@ -233,6 +300,18 @@ describe("AccountDataManager", () => {
             mockAuthedRequest.mockRejectedValue(error);
 
             await expect(accountDataManager.deleteAccountData("m.direct")).rejects.toThrow("Delete failed");
+        });
+
+        it("should emit AccountDataError event on setAccountData failure", async () => {
+            const error = new Error("Set failed");
+            mockSetAccountData.mockRejectedValue(error);
+
+            const errorHandler = vi.fn();
+            accountDataManager.on("AccountDataError" as any, errorHandler);
+
+            await expect(accountDataManager.setAccountData("m.test", { data: "value" })).rejects.toThrow();
+
+            expect(errorHandler).toHaveBeenCalled();
         });
     });
 });

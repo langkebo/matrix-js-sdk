@@ -101,6 +101,12 @@ export class MSC3089TreeSpace {
         if (!this.room) throw new Error("Unknown room");
     }
 
+    private getPowerLevelsContent(): RoomPowerLevelsEventContent {
+        const currentPls = this.room.currentState.getStateEvents(EventType.RoomPowerLevels, "");
+        if (Array.isArray(currentPls)) throw new Error("Unexpected return type for power levels");
+        return currentPls?.getContent<RoomPowerLevelsEventContent>() || {};
+    }
+
     /**
      * Syntactic sugar for room ID of the Space.
      */
@@ -116,7 +122,7 @@ export class MSC3089TreeSpace {
         // but is safe for a managed usecase like we offer in the SDK.
         const parentEvents = this.room.currentState.getStateEvents(EventType.SpaceParent);
         if (!parentEvents?.length) return true;
-        return parentEvents.every((e) => !e.getContent()?.["via"]);
+        return parentEvents.every((e) => !e.getContent<{ via?: string[] }>()?.via);
     }
 
     /**
@@ -166,10 +172,7 @@ export class MSC3089TreeSpace {
      * @returns Promise which resolves when complete.
      */
     public async setPermissions(userId: string, role: TreePermissions): Promise<void> {
-        const currentPls = this.room.currentState.getStateEvents(EventType.RoomPowerLevels, "");
-        if (Array.isArray(currentPls)) throw new Error("Unexpected return type for power levels");
-
-        const pls = currentPls?.getContent<RoomPowerLevelsEventContent>() || {};
+        const pls = this.getPowerLevelsContent();
         const viewLevel = pls["users_default"] || 0;
         const editLevel = pls["events_default"] || 50;
         const adminLevel = pls["events"]?.[EventType.RoomPowerLevels] || 100;
@@ -201,10 +204,7 @@ export class MSC3089TreeSpace {
      * @returns The permissions for the user, defaulting to Viewer.
      */
     public getPermissions(userId: string): TreePermissions {
-        const currentPls = this.room.currentState.getStateEvents(EventType.RoomPowerLevels, "");
-        if (Array.isArray(currentPls)) throw new Error("Unexpected return type for power levels");
-
-        const pls = currentPls?.getContent() || {};
+        const pls = this.getPowerLevelsContent();
         const viewLevel = pls["users_default"] || 0;
         const editLevel = pls["events_default"] || 50;
         const adminLevel = pls["events"]?.[EventType.RoomPowerLevels] || 100;
@@ -289,7 +289,8 @@ export class MSC3089TreeSpace {
         const members = this.room.currentState.getStateEvents(EventType.RoomMember);
         for (const member of members) {
             const isNotUs = member.getStateKey() !== this.client.getUserId();
-            if (isNotUs && kickMemberships.includes(member.getContent().membership! as KnownMembership)) {
+            const membership = member.getContent<{ membership?: KnownMembership }>().membership;
+            if (isNotUs && membership && kickMemberships.includes(membership)) {
                 const stateKey = member.getStateKey();
                 if (!stateKey) {
                     throw new Error("State key not found for branch");
@@ -303,7 +304,7 @@ export class MSC3089TreeSpace {
 
     private getOrderedChildren(children: MatrixEvent[]): { roomId: string; order: string }[] {
         const ordered: { roomId: string; order: string }[] = children
-            .map((c) => ({ roomId: c.getStateKey(), order: c.getContent()["order"] }))
+            .map((c) => ({ roomId: c.getStateKey(), order: c.getContent<SpaceChildEventContent>().order ?? "" }))
             .filter((c) => c.roomId) as { roomId: string; order: string }[];
         ordered.sort((a, b) => {
             if (a.order && !b.order) {

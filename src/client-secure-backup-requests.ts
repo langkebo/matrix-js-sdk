@@ -34,6 +34,35 @@ export function getMyRoomsRequest<T>(authedRequest: AuthedRequestFn): Promise<T>
     });
 }
 
+/** POST /_matrix/client/v3/search_rooms */
+export function searchRoomsRequest<T>(
+    authedRequest: AuthedRequestFn,
+    searchTerm: string,
+    limit?: number,
+): Promise<T> {
+    return authedRequest<T>(
+        Method.Post,
+        "/search_rooms",
+        undefined,
+        { search_term: searchTerm, limit },
+        { prefix: ClientPrefix.V3 },
+    );
+}
+
+/** GET /_matrix/client/v1/config/client */
+export function getClientConfigRequest<T>(authedRequest: AuthedRequestFn): Promise<T> {
+    return authedRequest<T>(Method.Get, "/config/client", undefined, undefined, {
+        prefix: ClientPrefix.V1,
+    });
+}
+
+/** GET /_matrix/client/v3/login/sso/userinfo */
+export function getSSOUserInfoRequest<T>(authedRequest: AuthedRequestFn): Promise<T> {
+    return authedRequest<T>(Method.Get, "/login/sso/userinfo", undefined, undefined, {
+        prefix: ClientPrefix.V3,
+    });
+}
+
 export function createSecureBackupRequest<T>(passphrase: string, authedRequest: AuthedRequestFn): Promise<T> {
     return authedRequest<T>(Method.Post, "/keys/backup/secure", undefined, { passphrase }, { prefix: ClientPrefix.V3 });
 }

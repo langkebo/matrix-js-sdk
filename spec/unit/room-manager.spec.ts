@@ -280,11 +280,11 @@ describe("RoomManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw on 404 when throwOnError is true", async () => {
+        it("should throw on 404 by default", async () => {
             const error = new Error("Not found") as any;
             error.httpStatus = 404;
             mockClient.http.authedRequest.mockRejectedValue(error);
-            await expect(roomManager.getMembership("!room:example.com", "@user:example.com", true)).rejects.toThrow();
+            await expect(roomManager.getMembership("!room:example.com", "@user:example.com")).rejects.toThrow();
         });
     });
 
@@ -487,6 +487,26 @@ describe("RoomManager", () => {
             });
             await roomManager.getEventContext("!room:example.com", "$event:example.com", { limit: 10 });
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
+        });
+
+        it("should preserve zero-valued limit parameter", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                event: { event_id: "$event:example.com" },
+                events_before: [],
+                events_after: [],
+                start: "start",
+                end: "end",
+                state: [],
+            });
+
+            await roomManager.getEventContext("!room:example.com", "$event:example.com", { limit: 0 });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/rooms/!room%3Aexample.com/context/%24event%3Aexample.com",
+                { limit: "0" },
+                undefined,
+            );
         });
     });
 

@@ -35,6 +35,9 @@ import * as utils from "../utils.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types.ts";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 export interface RoomSummaryHero {
     user_id: string;
     display_name?: string;
@@ -122,6 +125,8 @@ export interface RoomSummaryListResponse {
     [key: string]: unknown;
 }
 
+type RawRoomSummaryListResponse = RoomSummaryListResponse | RoomSummary[];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // v3 扩展房间端点类型定义
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,19 +134,42 @@ export interface RoomSummaryListResponse {
 export interface NotificationItem {
     room_id: string;
     event_id: string;
-    type: string;
+    notification_type: string;
     sender: string;
-    timestamp: number;
+    ts: number;
     content: Record<string, unknown>;
-    read: boolean;
-    highlight: boolean;
+    is_read: boolean;
+    client_action: string;
+    type?: string;
+    timestamp?: number;
+    read?: boolean;
+    highlight?: boolean;
+}
+
+export interface RoomNotificationsResult {
+    notifications: NotificationItem[];
+    next_token?: string | null;
+    next_batch?: string | null;
 }
 
 export interface RoomCapabilities {
     room_id: string;
+    room_version: string;
     capabilities: {
+        knock: boolean;
+        restricted: boolean;
+        threading: boolean;
+        read_receipts: boolean;
+        typing_notifications: boolean;
         [key: string]: unknown;
     };
+    features: {
+        encryption: boolean;
+        federation: boolean;
+        guest_access: boolean;
+        [key: string]: unknown;
+    };
+    join_rule: string;
 }
 
 export interface RoomSyncResult {
@@ -168,7 +196,9 @@ export interface TimelineResult {
 }
 
 export interface UnreadCountResult {
-    room_id: string;
+    notification_count: number;
+    highlight_count: number;
+    room_id?: string;
     unread_notifications?: number;
     unread_highlight_count?: number;
     unread_thread_messages?: number;
@@ -184,10 +214,14 @@ export interface RoomMetadata {
     is_direct?: boolean;
     is_space?: boolean;
     is_encrypted?: boolean;
+    encryption?: string;
+    is_public?: boolean;
     join_rule?: string;
     guest_access?: string;
     history_visibility?: string;
+    member_count?: number;
     created_at?: number;
+    created_ts?: number;
     creator?: string;
 }
 
@@ -253,7 +287,7 @@ export interface ThreadReply {
     sender: string;
     content: Record<string, unknown>;
     origin_server_ts: number;
-    in_reply_to_event_id?: string;
+    in_reply_to_event_id?: string | null;
     is_edited: boolean;
     is_redacted: boolean;
 }
@@ -273,6 +307,90 @@ export interface RoomThreadResult {
     replies: ThreadReply[];
     reply_count: number;
     participants: string[];
+}
+
+export interface RoomThreadDetailRoot {
+    id: number;
+    room_id: string;
+    root_event_id: string;
+    sender: string;
+    thread_id: string | null;
+    reply_count: number;
+    last_reply_event_id: string | null;
+    last_reply_sender: string | null;
+    last_reply_ts: number | null;
+    participants: unknown;
+    is_fetched: boolean;
+    created_ts: number;
+    updated_ts: number | null;
+}
+
+export interface RoomThreadDetailReply {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    event_id: string;
+    root_event_id: string;
+    sender: string;
+    in_reply_to_event_id: string | null;
+    content: Record<string, unknown>;
+    origin_server_ts: number;
+    is_edited: boolean;
+    is_redacted: boolean;
+    created_ts: number;
+}
+
+export interface RoomThreadSummary {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    root_event_id: string;
+    root_sender: string;
+    root_content: Record<string, unknown>;
+    root_origin_server_ts: number;
+    latest_event_id: string | null;
+    latest_sender: string | null;
+    latest_content: Record<string, unknown> | null;
+    latest_origin_server_ts: number | null;
+    reply_count: number;
+    participants: unknown;
+    is_frozen: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface RoomThreadReadReceipt {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    user_id: string;
+    last_read_event_id: string | null;
+    last_read_ts: number;
+    unread_count: number;
+    updated_ts: number;
+}
+
+export interface RoomThreadSubscription {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    user_id: string;
+    notification_level: string;
+    is_muted: boolean;
+    subscribed_ts: number;
+    updated_ts: number;
+}
+
+export interface RoomThreadDetailResult {
+    room_id: string;
+    thread_id: string;
+    root: RoomThreadDetailRoot;
+    replies: RoomThreadDetailReply[];
+    reply_count: number;
+    participants: string[];
+    summary: RoomThreadSummary | null;
+    user_receipt: RoomThreadReadReceipt | null;
+    user_subscription: RoomThreadSubscription | null;
 }
 
 export interface TurnServerConfig {
@@ -422,8 +540,28 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      * @param roomIdOrAlias - 房间 ID 或别名
      * @param via - The list of servers which know about the room if only an ID was provided
      * @param forceRefresh - 是否强制刷新缓存
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 房间摘要
+     *
+     * @example
+     * ```typescript
+     * // 获取房间摘要
+     * const summary = await roomSummaryManager.getRoomSummary("!abc:example.com");
+     * console.log("Room name:", summary.name);
+     * console.log("Members:", summary.member_count);
+     * console.log("Is encrypted:", summary.is_encrypted);
+     *
+     * // 强制刷新
+     * const freshSummary = await roomSummaryManager.getRoomSummary(
+     *     "!abc:example.com",
+     *     undefined,
+     *     true
+     * );
+     *
+     * // 使用房间别名
+     * const summary = await roomSummaryManager.getRoomSummary("#room:example.com");
+     * ```
+     *
      * @throws {AuthError} 当认证失败时
      * @throws {NotFoundError} 当房间不存在时
      * @throws {ApiError} 当 API 调用失败时
@@ -489,7 +627,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param roomId - 房间 ID
      * @param forceRefresh - 是否强制刷新缓存
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 成员列表
      * @throws {AuthError} 当认证失败时
      * @throws {NotFoundError} 当房间不存在时
@@ -498,7 +636,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomSummaryMembers(
         roomId: string,
         forceRefresh = false,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<RoomSummaryMember[]> {
         if (!forceRefresh) {
             const cached = this.memberCache.get(roomId);
@@ -533,7 +671,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param roomId - 房间 ID
      * @param forceRefresh - 是否强制刷新缓存
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 房间统计
      * @throws {AuthError} 当认证失败时
      * @throws {NotFoundError} 当房间不存在时
@@ -542,7 +680,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomSummaryStats(
         roomId: string,
         forceRefresh = false,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<RoomStats | null> {
         if (!forceRefresh) {
             const cached = this.statsCache.get(roomId);
@@ -824,7 +962,19 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     public async listUserSummaries(queryParams: QueryDict = {}): Promise<RoomSummaryListResponse> {
         return this.withRetry(async () => {
-            return await this.requestInternal<RoomSummaryListResponse>(Method.Get, "/summaries", queryParams);
+            const result = await this.requestInternal<RawRoomSummaryListResponse>(
+                Method.Get,
+                "/summaries",
+                queryParams,
+            );
+            if (Array.isArray(result)) {
+                return {
+                    summaries: result,
+                    rooms: result,
+                    chunk: result,
+                };
+            }
+            return result;
         }, "listUserSummaries");
     }
 
@@ -918,7 +1068,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param roomId - 房间 ID
      * @param options - 选项
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 层级结构
      * @throws {AuthError} 当认证失败时
      * @throws {NotFoundError} 当房间不存在时
@@ -927,7 +1077,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomHierarchy(
         roomId: string,
         options?: RoomSummaryOptions,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<unknown | null> {
         try {
             return await this.withRetry(async () => {
@@ -953,7 +1103,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param server - 服务器名（可选）
      * @param options - 选项
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 公共房间列表
      * @throws {AuthError} 当认证失败时
      * @throws {ApiError} 当 API 调用失败时
@@ -961,8 +1111,8 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getPublicRooms(
         server = "",
         options?: { limit?: number; since?: string; query?: string },
-        throwOnError = false,
-    ): Promise<unknown | null> {
+        throwOnError = true,
+    ): Promise<IPublicRoomsResponse | null> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.publicRooms({
@@ -988,12 +1138,12 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      * @param query - 搜索关键词
      * @param server - 服务器名
      * @param limit - 限制数量
-     * @returns 房间摘要列表
+     * @returns 公共房间列表
      */
-    public async searchPublicRooms(query: string, server = "", limit = 20): Promise<RoomSummary[]> {
+    public async searchPublicRooms(query: string, server = "", limit = 20): Promise<IPublicRoomsChunkRoom[]> {
         try {
             const result = await this.getPublicRooms(server, { query, limit });
-            return (result as { chunk?: RoomSummary[] })?.chunk || [];
+            return result?.chunk ?? [];
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("searchPublicRooms", e);
@@ -1006,12 +1156,12 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param server - 服务器名
      * @param limit - 限制数量
-     * @returns 房间摘要列表
+     * @returns 推荐公共房间列表
      */
-    public async getRecommendedRooms(server = "", limit = 20): Promise<RoomSummary[]> {
+    public async getRecommendedRooms(server = "", limit = 20): Promise<IPublicRoomsChunkRoom[]> {
         try {
             const result = await this.getPublicRooms(server, { limit });
-            return (result as { chunk?: RoomSummary[] })?.chunk || [];
+            return result?.chunk ?? [];
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getRecommendedRooms", e);
@@ -1146,18 +1296,29 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomNotifications(
         roomId: string,
         options?: { from?: string; limit?: number; only?: string },
-    ): Promise<{ notifications: NotificationItem[]; next_batch?: string }> {
+    ): Promise<RoomNotificationsResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
             const queryParams: QueryDict = {};
             if (options?.from) queryParams.from = options.from;
-            if (options?.limit) queryParams.limit = String(options.limit);
+            if (options?.limit !== undefined) queryParams.limit = String(options.limit);
             if (options?.only) queryParams.only = options.only;
-            return await this.requestV3(
+            const result = await this.requestV3<RoomNotificationsResult>(
                 Method.Get,
                 this.roomSummaryPath("/rooms/$roomId/notifications", roomId),
                 queryParams,
             );
+            return {
+                ...result,
+                notifications: result.notifications.map((notification) => ({
+                    ...notification,
+                    type: notification.type ?? notification.notification_type,
+                    timestamp: notification.timestamp ?? notification.ts,
+                    read: notification.read ?? notification.is_read,
+                    highlight: notification.highlight ?? false,
+                })),
+                next_batch: result.next_batch ?? result.next_token,
+            };
         }, "getRoomNotifications");
     }
 
@@ -1168,7 +1329,10 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomCapabilities(roomId: string): Promise<RoomCapabilities> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/capabilities", roomId));
+            return await this.requestV3<RoomCapabilities>(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/capabilities", roomId),
+            );
         }, "getRoomCapabilities");
     }
 
@@ -1185,7 +1349,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return await this.withRetry(async () => {
             const queryParams: QueryDict = {};
             if (options?.since) queryParams.since = options.since;
-            if (options?.timeout_ms) queryParams.timeout_ms = String(options.timeout_ms);
+            if (options?.timeout_ms !== undefined) queryParams.timeout_ms = String(options.timeout_ms);
             if (options?.filter) queryParams.filter = options.filter;
             return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/sync", roomId), queryParams);
         }, "getRoomSync");
@@ -1206,7 +1370,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             if (options?.from) queryParams.from = options.from;
             if (options?.to) queryParams.to = options.to;
             if (options?.dir) queryParams.dir = options.dir;
-            if (options?.limit) queryParams.limit = String(options.limit);
+            if (options?.limit !== undefined) queryParams.limit = String(options.limit);
             if (options?.filter) queryParams.filter = options.filter;
             return await this.requestV3(
                 Method.Get,
@@ -1223,7 +1387,16 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomUnreadCount(roomId: string): Promise<UnreadCountResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/unread_count", roomId));
+            const result = await this.requestV3<UnreadCountResult>(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/unread_count", roomId),
+            );
+            return {
+                ...result,
+                room_id: result.room_id ?? roomId,
+                unread_notifications: result.unread_notifications ?? result.notification_count,
+                unread_highlight_count: result.unread_highlight_count ?? result.highlight_count,
+            };
         }, "getRoomUnreadCount");
     }
 
@@ -1234,7 +1407,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async getRoomMetadata(roomId: string): Promise<RoomMetadata> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/metadata", roomId));
+            const result = await this.requestV3<RoomMetadata>(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/metadata", roomId),
+            );
+            return {
+                ...result,
+                created_at: result.created_at ?? result.created_ts,
+                is_encrypted: result.is_encrypted ?? Boolean(result.encryption),
+            };
         }, "getRoomMetadata");
     }
 
@@ -1263,6 +1444,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 undefined,
                 data as Body,
             );
+            this.summaryCache.delete(roomId);
         }, "setRoomVaultData");
     }
 
@@ -1334,7 +1516,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return await this.withRetry(async () => {
             const queryParams: QueryDict = {};
             if (options?.from) queryParams.from = options.from;
-            if (options?.limit) queryParams.limit = String(options.limit);
+            if (options?.limit !== undefined) queryParams.limit = String(options.limit);
             return await this.requestV3(
                 Method.Get,
                 this.roomSummaryPath("/rooms/$roomId/encrypted_events", roomId),
@@ -1379,12 +1561,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         this.validateRoomId(roomId);
         this.validateEventType(eventType);
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            const result = await this.requestV3<StickyEvent>(
                 Method.Post,
                 this.roomSummaryPath("/rooms/$roomId/sticky_events", roomId),
                 undefined,
                 { event_type: eventType, content } as Body,
             );
+            this.summaryCache.delete(roomId);
+            return result;
         }, "setStickyEvent");
     }
 
@@ -1401,6 +1585,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 Method.Delete,
                 encodeUri("/rooms/$roomId/sticky_events/$eventType", { $roomId: roomId, $eventType: eventType }),
             );
+            this.summaryCache.delete(roomId);
         }, "deleteStickyEvent");
     }
 
@@ -1430,6 +1615,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 undefined,
                 { user_id: userId } as Body,
             );
+            this.summaryCache.delete(roomId);
         }, "addInviteBlocklist");
     }
 
@@ -1459,6 +1645,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 undefined,
                 { user_id: userId } as Body,
             );
+            this.summaryCache.delete(roomId);
         }, "addInviteAllowlist");
     }
 
@@ -1532,7 +1719,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      * @param threadId - 线程 ID (事件 ID)
      * @returns 线程详情
      */
-    public async getRoomThreadById(roomId: string, threadId: string): Promise<RoomThreadResult> {
+    public async getRoomThreadById(roomId: string, threadId: string): Promise<RoomThreadDetailResult> {
         if (!roomId) {
             throw new InvalidParamError("roomId is required");
         }
@@ -1541,7 +1728,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         try {
-            return await this.requestV3<RoomThreadResult>(
+            return await this.requestV3<RoomThreadDetailResult>(
                 Method.Get,
                 encodeUri("/rooms/$roomId/threads/$threadId", {
                     $roomId: roomId,

@@ -939,9 +939,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     /**
      * Configure this call from an invite event. Used by MatrixClient.
      * @param event - The m.call.invite event
-     * @param throwOnError - Whether to throw on error (default false)
+     * @param throwOnError - Whether to throw on error (default true)
      */
-    public async initWithInvite(event: MatrixEvent, throwOnError = false): Promise<void> {
+    public async initWithInvite(event: MatrixEvent, throwOnError = true): Promise<void> {
         const invite = event.getContent<MCallInviteNegotiate>();
         this.direction = CallDirection.Inbound;
 
@@ -1442,7 +1442,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
             this.stopVideoTrackTimer = undefined;
         }
 
-        if (!(await this.client.getMediaHandler().hasVideoDevice())) {
+        if (!(await this.client.getMediaHandler().hasVideoDevice(false))) {
             return this.isLocalVideoMuted();
         }
 
@@ -1503,7 +1503,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
      */
     public async setMicrophoneMuted(muted: boolean): Promise<boolean> {
         logger.log(`Call ${this.callId} setMicrophoneMuted() running ${muted}`);
-        if (!(await this.client.getMediaHandler().hasAudioDevice())) {
+        if (!(await this.client.getMediaHandler().hasAudioDevice(false))) {
             return this.isMicrophoneMuted();
         }
 

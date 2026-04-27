@@ -976,9 +976,10 @@ describe("verification", () => {
                 .getCrypto()!
                 .requestVerificationDM(BOB_TEST_USER_ID, TEST_ROOM_ID);
             const requestContent = await messageRequestPromise;
+            const methods = requestContent.methods as string[];
 
             expect(requestContent.from_device).toBe(aliceClient.getDeviceId());
-            expect(requestContent.methods.sort()).toStrictEqual(
+            expect(methods.sort()).toStrictEqual(
                 ["m.sas.v1", "m.qr_code.scan.v1", "m.qr_code.show.v1", "m.reciprocate.v1"].sort(),
             );
             expect(requestContent.msgtype).toBe("m.key.verification.request");

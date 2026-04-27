@@ -38,6 +38,8 @@ import { encodeUri, type QueryDict } from "../utils";
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 
 type JsonObject = Record<string, unknown>;
 
@@ -232,7 +234,46 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         return { cache: this.cache.getStats(), requests: { ...this.requestStats } };
     }
 
+    /**
+     * 创建 Space
+     *
+     * @param options - 创建选项
+     * @param options.name - Space 名称
+     * @param options.topic - Space 主题（可选）
+     * @param options.avatar_url - 头像 URL（可选）
+     * @param options.join_rule - 加入规则（可选）
+     * @param options.visibility - 可见性（public/private，可选）
+     *
+     * @example
+     * ```typescript
+     * // 创建公开 Space
+     * const space = await spaceManager.createSpace({
+     *     name: "My Public Space",
+     *     topic: "A space for everyone",
+     *     visibility: "public"
+     * });
+     * console.log("Created space:", space.space_id);
+     *
+     * // 创建私有 Space
+     * const privateSpace = await spaceManager.createSpace({
+     *     name: "Private Team Space",
+     *     visibility: "private",
+     *     join_rule: "invite"
+     * });
+     *
+     * // 监听 Space 创建事件
+     * spaceManager.on(SpaceEvent.SpaceCreated, (space) => {
+     *     console.log(`Space created: ${space.name}`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果名称为空或过长
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async createSpace(options: CreateSpaceOptions): Promise<Space> {
+        if (options.name && options.name.length > 255) {
+            throw new ValidationError("Space name too long (max 255 characters)");
+        }
         const response = await this.withRetryRequest(async () => {
             return await this.request<JsonObject>(Method.Post, "/spaces", undefined, options);
         }, "createSpace");
@@ -242,7 +283,30 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         return space;
     }
 
+    /**
+     * 获取 Space 信息
+     *
+     * @param spaceId - Space ID（格式：!localpart:homeserver）
+     * @returns Space 信息
+     *
+     * @example
+     * ```typescript
+     * // 获取 Space 信息
+     * const space = await spaceManager.getSpace("!abc:example.com");
+     * console.log("Space name:", space.name);
+     * console.log("Topic:", space.topic);
+     * console.log("Members:", space.members);
+     *
+     * // 使用缓存（第二次调用会使用缓存）
+     * const cachedSpace = await spaceManager.getSpace("!abc:example.com");
+     * ```
+     *
+     * @throws {ValidationError} 如果 Space ID 格式无效
+     * @throws {NotFoundError} 如果 Space 不存在
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async getSpace(spaceId: string): Promise<Space> {
+        AdminValidators.validateRoomId(spaceId);
         const cached = this.spaceCache.get(spaceId);
         if (cached) return cached;
 
@@ -331,7 +395,42 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         return this.extractChildren(response, spaceId);
     }
 
+    /**
+     * 添加子房间到 Space
+     *
+     * @param spaceId - Space ID（格式：!localpart:homeserver）
+     * @param options - 添加选项
+     * @param options.room_id - 子房间 ID
+     * @param options.via_servers - 服务器列表（可选）
+     * @param options.order - 排序（可选）
+     * @param options.suggested - 是否推荐（可选）
+     *
+     * @example
+     * ```typescript
+     * // 添加房间到 Space
+     * await spaceManager.addChild("!space:example.com", {
+     *     room_id: "!room:example.com"
+     * });
+     *
+     * // 添加推荐房间
+     * await spaceManager.addChild("!space:example.com", {
+     *     room_id: "!room:example.com",
+     *     suggested: true,
+     *     order: "01"
+     * });
+     *
+     * // 监听子房间添加事件
+     * spaceManager.on(SpaceEvent.ChildAdded, (spaceId, roomId) => {
+     *     console.log(`Room ${roomId} added to space ${spaceId}`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果 Space ID 或房间 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async addChild(spaceId: string, options: AddChildOptions): Promise<void> {
+        AdminValidators.validateRoomId(spaceId);
+        AdminValidators.validateRoomId(options.room_id);
         await this.withRetryRequest(async () => {
             await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
                 room_id: options.room_id,
@@ -477,11 +576,18 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         }, "getSpaceTreePath");
     }
 
-    async getRoomSpace(roomId: string): Promise<Space> {
+    async getSpaceByRoom(roomId: string): Promise<Space> {
         const response = await this.withRetryRequest(async () => {
             return await this.request<JsonObject>(Method.Get, encodeUri("/spaces/room/$roomId", { $roomId: roomId }));
-        }, "getRoomSpace");
+        }, "getSpaceByRoom");
         return this.normalizeSpace(response);
+    }
+
+    /**
+     * @deprecated Use {@link getSpaceByRoom}. Kept for backward compatibility.
+     */
+    async getRoomSpace(roomId: string): Promise<Space> {
+        return this.getSpaceByRoom(roomId);
     }
 
     async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
@@ -497,7 +603,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
     async isSpace(roomId: string): Promise<boolean> {
         try {
-            await this.getRoomSpace(roomId);
+            await this.getSpaceByRoom(roomId);
             return true;
             // @swallow-error { owner: "space", expires: "2026-12-31" }
         } catch (error) {

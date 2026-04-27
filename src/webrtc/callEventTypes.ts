@@ -3,6 +3,7 @@
 
 import { type CallErrorCode } from "./call.ts";
 import { NamespacedValue } from "../NamespacedValue.ts";
+import { type IContent } from "../models/event.ts";
 
 export const SDPStreamMetadataKey = new NamespacedValue(
     "sdp_stream_metadata",
@@ -35,7 +36,7 @@ export interface CallReplacesTarget {
     avatar_url: string;
 }
 
-export interface MCallBase {
+export interface MCallBase extends IContent {
     call_id: string;
     conf_id?: string;
     version: string | number;

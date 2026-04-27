@@ -44,7 +44,7 @@ type Member = {
     id: string;
 };
 
-export interface RtcMembershipData {
+export interface RtcMembershipData extends IContent {
     "slot_id": string;
     "member": Member;
     "m.relates_to"?: {
@@ -62,6 +62,11 @@ export interface RtcMembershipData {
     "sticky_key"?: string;
 }
 
+type MembershipApplication = {
+    type?: string;
+    [key: string]: unknown;
+};
+
 const checkRtcMembershipData = (
     data: IContent,
     errors: string[],
@@ -78,22 +83,24 @@ const checkRtcMembershipData = (
     if (typeof data.member !== "object" || data.member === null) {
         errors.push(prefix + "member must be an object");
     } else {
-        if (typeof data.member.user_id !== "string") errors.push(prefix + "member.user_id must be string");
-        else if (!MXID_PATTERN.test(data.member.user_id)) errors.push(prefix + "member.user_id must be a valid mxid");
+        const member = data.member as Partial<Member>;
+        if (typeof member.user_id !== "string") errors.push(prefix + "member.user_id must be string");
+        else if (!MXID_PATTERN.test(member.user_id)) errors.push(prefix + "member.user_id must be a valid mxid");
         // This is not what the spec enforces but there currently are no rules what power levels are required to
         // send a m.rtc.member event for a other user. So we add this check for simplicity and to avoid possible attacks until there
         // is a proper definition when this is allowed.
-        else if (data.member.user_id !== referenceUserId) errors.push(prefix + "member.user_id must match the sender");
-        if (typeof data.member.device_id !== "string") errors.push(prefix + "member.device_id must be string");
-        if (typeof data.member.id !== "string") errors.push(prefix + "member.id must be string");
+        else if (member.user_id !== referenceUserId) errors.push(prefix + "member.user_id must match the sender");
+        if (typeof member.device_id !== "string") errors.push(prefix + "member.device_id must be string");
+        if (typeof member.id !== "string") errors.push(prefix + "member.id must be string");
     }
     if (typeof data.application !== "object" || data.application === null) {
         errors.push(prefix + "application must be an object");
     } else {
-        if (typeof data.application.type !== "string") {
+        const application = data.application as MembershipApplication;
+        if (typeof application.type !== "string") {
             errors.push(prefix + "application.type must be a string");
         } else {
-            if (data.application.type.includes("#")) errors.push(prefix + 'application.type must not include "#"');
+            if (application.type.includes("#")) errors.push(prefix + 'application.type must not include "#"');
         }
     }
     if (data.rtc_transports === undefined || !Array.isArray(data.rtc_transports)) {
@@ -147,7 +154,7 @@ const checkRtcMembershipData = (
  * MSC4143 (MatrixRTC) session membership data.
  * Represents the `session` in the memberships section of an m.call.member event as it is on the wire.
  **/
-export type SessionMembershipData = {
+export type SessionMembershipData = IContent & {
     /**
      * The RTC application defines the type of the RTC session.
      */
@@ -226,7 +233,8 @@ const checkSessionsMembershipData = (data: IContent, errors: string[]): data is 
     if (typeof data.device_id !== "string") errors.push(prefix + "device_id must be string");
     if (typeof data.call_id !== "string") errors.push(prefix + "call_id must be string");
     if (typeof data.application !== "string") errors.push(prefix + "application must be a string");
-    if (typeof data.focus_active?.type !== "string") errors.push(prefix + "focus_active.type must be a string");
+    const focusActive = data.focus_active as { type?: string } | undefined;
+    if (typeof focusActive?.type !== "string") errors.push(prefix + "focus_active.type must be a string");
     if (data.focus_active === undefined) {
         errors.push(prefix + "focus_active has an invalid type");
     }

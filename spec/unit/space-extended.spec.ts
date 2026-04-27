@@ -311,7 +311,7 @@ describe("SpaceManager - Extended Tests", () => {
                 name: "Parent Space",
             });
 
-            const space = await spaceManager.getRoomSpace("!room:test");
+            const space = await spaceManager.getSpaceByRoom("!room:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -320,6 +320,19 @@ describe("SpaceManager - Extended Tests", () => {
                 undefined,
                 { prefix: ClientPrefix.V3 },
             );
+            expect(space.space_id).toBe("!space:test");
+        });
+
+        it("should keep getRoomSpace as a backward-compatible alias", async () => {
+            const getSpaceByRoomSpy = vi.spyOn(spaceManager, "getSpaceByRoom").mockResolvedValue({
+                room_id: "!space:test",
+                space_id: "!space:test",
+                name: "Parent Space",
+            });
+
+            const space = await spaceManager.getRoomSpace("!room:test");
+
+            expect(getSpaceByRoomSpy).toHaveBeenCalledWith("!room:test");
             expect(space.space_id).toBe("!space:test");
         });
 
@@ -385,11 +398,11 @@ describe("SpaceManager - Extended Tests", () => {
             await expect(spaceManager.getSpace("!missing:test")).rejects.toBeInstanceOf(NotFoundError);
         });
 
-        it("should handle 404 for getRoomSpace", async () => {
+        it("should handle 404 for getSpaceByRoom", async () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockAuthedRequest.mockRejectedValue(notFoundError);
 
-            await expect(spaceManager.getRoomSpace("!room:test")).rejects.toBeInstanceOf(NotFoundError);
+            await expect(spaceManager.getSpaceByRoom("!room:test")).rejects.toBeInstanceOf(NotFoundError);
         });
 
         it("should handle network errors", async () => {

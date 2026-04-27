@@ -18,8 +18,11 @@ limitations under the License.
 /**
  * Voice Message Manager - 语音消息管理
  *
- * 提供语音消息上传、播放、转换功能
- * 对接后端: synapse-rust/src/services/voice_service.rs
+ * 对接后端: synapse-rust/src/web/routes/voice.rs
+ * 后端已简化为标准 media 适配层，仅提供:
+ *   - POST /_matrix/client/r0/voice/upload  (专用语音上传)
+ *   - GET  /_matrix/client/r0/voice/config  (获取语音配置)
+ * 语音消息使用 m.audio + org.matrix.msc3245.voice 事件格式
  */
 
 import { BaseManager } from "../managers/base-manager.ts";
@@ -29,7 +32,6 @@ import { getHttpUriForMxc } from "../content-repo.ts";
 import type { RoomMessageEventContent } from "../@types/events.ts";
 
 const VOICE_R0_PREFIX = "/_matrix/client/r0";
-const VOICE_V1_PREFIX = "/_matrix/client/v1";
 
 export enum VoiceEvent {
     StateChanged = "StateChanged",
@@ -41,8 +43,6 @@ export enum VoiceEvent {
     UploadError = "UploadError",
     VoiceUploaded = "VoiceUploaded",
     VoiceDeleted = "VoiceDeleted",
-    VoiceConverted = "VoiceConverted",
-    VoiceOptimized = "VoiceOptimized",
 }
 
 export interface VoiceConfig {
@@ -66,7 +66,6 @@ export interface VoiceMessageUploadParams {
 
 export interface VoiceMessageUploadResult {
     eventId: string;
-    message_id?: string;
     url: string;
     duration: number;
     size: number;
@@ -98,54 +97,6 @@ export interface VoiceStats {
     totalSize: number;
 }
 
-export interface VoiceConvertParams {
-    inputUrl?: string;
-    messageId?: string;
-    outputFormat?: string;
-    bitrate?: number;
-}
-
-export interface VoiceConvertResult {
-    message_id?: string;
-    event_id?: string;
-    url: string;
-    duration: number;
-    format: string;
-}
-
-export interface VoiceOptimizeParams {
-    inputUrl: string;
-    quality?: number;
-    targetSize?: number;
-}
-
-export interface VoiceOptimizeResult {
-    message_id?: string;
-    event_id?: string;
-    url: string;
-    originalSize: number;
-    optimizedSize: number;
-    compressionRatio: number;
-}
-
-export interface VoiceTranscriptionParams {
-    audioUrl: string;
-    language?: string;
-    model?: string;
-}
-
-export interface VoiceTranscriptionResult {
-    text: string;
-    confidence?: number;
-    language?: string;
-    words?: Array<{
-        word: string;
-        start: number;
-        end: number;
-        confidence: number;
-    }>;
-}
-
 export interface VoiceUploadProgress {
     loaded: number;
     total: number;
@@ -162,8 +113,6 @@ interface VoiceMessageManagerEventMap {
     [VoiceEvent.UploadError]: (roomId: string, error: Error) => void;
     [VoiceEvent.VoiceUploaded]: (roomId: string, eventId: string) => void;
     [VoiceEvent.VoiceDeleted]: (roomId: string, eventId: string) => void;
-    [VoiceEvent.VoiceConverted]: (roomId: string, eventId: string, result: VoiceConvertResult) => void;
-    [VoiceEvent.VoiceOptimized]: (roomId: string, eventId: string, result: VoiceOptimizeResult) => void;
 }
 
 export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageManagerEventMap> {
@@ -175,10 +124,32 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
         super(client);
         this.config = {
             enabled: config?.enabled ?? true,
-            maxDuration: config?.maxDuration ?? 300000, // 5 minutes
+            maxDuration: config?.maxDuration ?? 300000,
             sampleRate: config?.sampleRate ?? 48000,
             channels: config?.channels ?? 1,
         };
+    }
+
+    async getServerConfig(): Promise<VoiceConfig> {
+        try {
+            const response = await this.client.http.authedRequest<{
+                enabled: boolean;
+                max_duration_ms?: number;
+                max_size_bytes?: number;
+                supported_formats?: string[];
+            }>(Method.Get, "/voice/config", undefined, undefined, { prefix: VOICE_R0_PREFIX });
+
+            return {
+                enabled: response.enabled ?? true,
+                max_duration_ms: response.max_duration_ms,
+                max_size_bytes: response.max_size_bytes,
+                supported_formats: response.supported_formats,
+            };
+        } catch (e) {
+            const error = this.normalizeError(e, "getServerConfig");
+            logger.warn("VoiceMessageManager.getServerConfig failed:", error);
+            return { enabled: true };
+        }
     }
 
     async uploadVoiceMessage(params: VoiceMessageUploadParams): Promise<VoiceMessageUploadResult> {
@@ -230,6 +201,7 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
                     mimetype: actualMimeType,
                     waveform: waveform,
                 },
+                "org.matrix.msc3245.voice": duration ? { duration } : undefined,
                 "m.mentions": {},
             };
 
@@ -278,7 +250,6 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
                 mimeType: (info.mimetype as string) || "audio/ogg",
                 size: info.size as number | undefined,
             };
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getVoiceMessageInfo");
             logger.warn("VoiceMessageManager.getVoiceMessageInfo failed:", error);
@@ -302,7 +273,7 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
 
             for (const event of events) {
                 if (event.getType() === "m.room.message") {
-                    const content = event.getContent();
+                    const content = event.getContent<{ msgtype?: string; info?: { duration?: number; size?: number } }>();
                     if (content.msgtype === "m.audio" && content.info) {
                         totalDuration += content.info.duration || 0;
                         totalSize += content.info.size || 0;
@@ -312,116 +283,10 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
             }
 
             return { totalDuration, messageCount, totalSize };
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getVoiceStats");
             logger.warn("VoiceMessageManager.getVoiceStats failed:", error);
             return { totalDuration: 0, messageCount: 0, totalSize: 0 };
-        }
-    }
-
-    async convertVoiceMessage(params: VoiceConvertParams): Promise<VoiceConvertResult> {
-        const { inputUrl, messageId, outputFormat = "mp3", bitrate = 128 } = params;
-
-        if (!inputUrl && !messageId) {
-            throw new Error("Either inputUrl or messageId is required");
-        }
-
-        const body: Record<string, unknown> = {
-            target_format: outputFormat,
-            quality: 128,
-            bitrate: bitrate * 1000,
-        };
-        if (inputUrl) body.input_url = inputUrl;
-        if (messageId) body.message_id = messageId;
-
-        try {
-            const response = await this.client.http.authedRequest<{ url: string; duration: number }>(
-                Method.Post,
-                "/voice/convert",
-                undefined,
-                body,
-                { prefix: VOICE_R0_PREFIX },
-            );
-
-            return {
-                url: response.url,
-                duration: response.duration,
-                format: outputFormat,
-            };
-        } catch (e) {
-            const error = this.normalizeError(e, "convertVoiceMessage");
-            logger.warn("VoiceMessageManager.convertVoiceMessage failed:", error);
-            throw error;
-        }
-    }
-
-    async optimizeVoiceMessage(params: VoiceOptimizeParams): Promise<VoiceOptimizeResult> {
-        const { inputUrl, quality = 0.8, targetSize } = params;
-
-        try {
-            const response = await this.client.http.authedRequest<{
-                url: string;
-                original_size: number;
-                optimized_size: number;
-            }>(
-                Method.Post,
-                "/voice/optimize",
-                undefined,
-                {
-                    input_url: inputUrl,
-                    quality,
-                    target_size: targetSize,
-                },
-                { prefix: VOICE_R0_PREFIX },
-            );
-
-            return {
-                url: response.url,
-                originalSize: response.original_size,
-                optimizedSize: response.optimized_size,
-                compressionRatio: response.original_size / response.optimized_size,
-            };
-        } catch (e) {
-            const error = this.normalizeError(e, "optimizeVoiceMessage");
-            logger.warn("VoiceMessageManager.optimizeVoiceMessage failed:", error);
-            throw error;
-        }
-    }
-
-    async transcribeVoiceMessage(params: VoiceTranscriptionParams): Promise<VoiceTranscriptionResult> {
-        const { audioUrl, language, model } = params;
-
-        try {
-            const response = await this.client.http.authedRequest<{
-                text: string;
-                confidence?: number;
-                language?: string;
-                words?: unknown[];
-            }>(
-                Method.Post,
-                "/voice/transcription",
-                undefined,
-                {
-                    audio_url: audioUrl,
-                    language,
-                    model,
-                },
-                { prefix: VOICE_V1_PREFIX },
-            );
-
-            const result: VoiceTranscriptionResult = {
-                text: response.text,
-            };
-            if (response.confidence !== undefined) result.confidence = response.confidence;
-            if (response.language !== undefined) result.language = response.language;
-            if (response.words !== undefined) result.words = response.words as VoiceTranscriptionResult["words"];
-
-            return result;
-        } catch (e) {
-            const error = this.normalizeError(e, "transcribeVoiceMessage");
-            logger.warn("VoiceMessageManager.transcribeVoiceMessage failed:", error);
-            throw error;
         }
     }
 
@@ -448,7 +313,6 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
             const waveform = await this.generateWaveform(blob);
             this.waveformCache.set(mxcUrl, waveform);
             return waveform;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWaveform");
             logger.warn("VoiceMessageManager.getWaveform failed:", error);
@@ -494,7 +358,6 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
             await audioContext.close();
 
             return normalizedWaveform;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "generateWaveform");
             logger.warn("VoiceMessageManager.generateWaveform failed:", error);
@@ -525,7 +388,6 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
         return this.activeSessions.get(sessionId) || null;
     }
 
-    // 前端兼容方法
     async deleteVoice(roomId: string, eventId: string): Promise<void> {
         try {
             await this.client.redactEvent(roomId, eventId);
@@ -544,46 +406,6 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
             logger.warn("VoiceMessageManager.getVoicePlaybackUrl failed:", e);
             throw e;
         }
-    }
-
-    async getUserVoices(roomId: string, userId: string): Promise<VoiceMessageInfo[]> {
-        // Get user's voice messages
-        logger.debug(`[Voice] Get user voices: ${roomId}/${userId}`);
-        return [];
-    }
-
-    async getRoomVoices(roomId: string): Promise<VoiceMessageInfo[]> {
-        // Get room's voice messages
-        logger.debug(`[Voice] Get room voices: ${roomId}`);
-        return [];
-    }
-
-    async getMyStats(roomId: string): Promise<VoiceStats | null> {
-        // Get current user's voice stats
-        logger.debug(`[Voice] Get my stats: ${roomId}`);
-        return null;
-    }
-
-    async getUserStats(roomId: string, userId: string): Promise<VoiceStats | null> {
-        // Get user's voice stats
-        logger.debug(`[Voice] Get user stats: ${roomId}/${userId}`);
-        return null;
-    }
-
-    async convertVoice(
-        roomId: string,
-        eventId: string,
-        _params?: { target_format: string },
-    ): Promise<VoiceConvertResult | null> {
-        // Convert voice message format
-        logger.debug(`[Voice] Convert voice: ${roomId}/${eventId}`);
-        return null;
-    }
-
-    async optimizeVoice(roomId: string, eventId: string, _targetFormat?: string): Promise<VoiceOptimizeResult | null> {
-        // Optimize voice message
-        logger.debug(`[Voice] Optimize voice: ${roomId}/${eventId}`);
-        return null;
     }
 
     setConfig(config: Partial<VoiceConfig>): void {

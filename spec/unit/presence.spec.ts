@@ -19,19 +19,21 @@ describe("PresenceManager", () => {
                     });
                 }
                 if (path.includes("/presence/list")) {
-                    return Promise.resolve([
-                        {
-                            user_id: "@user1:example.com",
-                            presence: "online",
-                            last_active_ago: 1000,
-                            status_msg: "Working",
-                        },
-                        {
-                            user_id: "@user2:example.com",
-                            presence: "offline",
-                            last_active_ago: 60000,
-                        },
-                    ]);
+                    return Promise.resolve({
+                        presences: [
+                            {
+                                user_id: "@user1:example.com",
+                                presence: "online",
+                                last_active_ago: 1000,
+                                status_msg: "Working",
+                            },
+                            {
+                                user_id: "@user2:example.com",
+                                presence: "offline",
+                                last_active_ago: 60000,
+                            },
+                        ],
+                    });
                 }
                 return Promise.resolve({});
             }),
@@ -147,23 +149,23 @@ describe("PresenceManager", () => {
             expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
         });
 
-        it("should return null on 404 error", async () => {
+        it("should return null on 404 error when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Not found",
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            const presence = await presenceManager.getPresence("@unknown:example.com");
+            const presence = await presenceManager.getPresence("@unknown:example.com", false, false);
             expect(presence).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error on 404 by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Not found",
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            await expect(presenceManager.getPresence("@unknown:example.com", false, true)).rejects.toThrow();
+            await expect(presenceManager.getPresence("@unknown:example.com")).rejects.toThrow();
         });
 
         it("should throw AuthError on 401", async () => {
@@ -212,7 +214,7 @@ describe("PresenceManager", () => {
                 "POST",
                 "/presence/list",
                 {},
-                { user_ids: ["@user1:example.com", "@user2:example.com"] },
+                { subscribe: ["@user1:example.com", "@user2:example.com"] },
                 { prefix: "/_matrix/client/v3", priority: undefined },
             );
             expect(presenceManager.isSubscribed("@user1:example.com")).toBe(true);
@@ -238,8 +240,40 @@ describe("PresenceManager", () => {
 
     describe("unsubscribeFromPresence", () => {
         it("should unsubscribe from user presences", async () => {
+            mockClient.http.authedRequest
+                .mockResolvedValueOnce({
+                    presences: [
+                        {
+                            user_id: "@user1:example.com",
+                            presence: "online",
+                            last_active_ago: 1000,
+                            status_msg: "Working",
+                        },
+                        {
+                            user_id: "@user2:example.com",
+                            presence: "offline",
+                            last_active_ago: 60000,
+                        },
+                    ],
+                })
+                .mockResolvedValueOnce({
+                    presences: [
+                        {
+                            user_id: "@user2:example.com",
+                            presence: "offline",
+                            last_active_ago: 60000,
+                        },
+                    ],
+                });
             await presenceManager.subscribeToPresence(["@user1:example.com", "@user2:example.com"]);
             await presenceManager.unsubscribeFromPresence(["@user1:example.com"]);
+            expect(mockClient.http.authedRequest).toHaveBeenLastCalledWith(
+                "POST",
+                "/presence/list",
+                {},
+                { unsubscribe: ["@user1:example.com"] },
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
             expect(presenceManager.isSubscribed("@user1:example.com")).toBe(false);
             expect(presenceManager.isSubscribed("@user2:example.com")).toBe(true);
         });
@@ -320,6 +354,18 @@ describe("PresenceManager", () => {
             );
         });
 
+        it("should use POST /presence/list for the current user's subscriptions", async () => {
+            const events = await presenceManager.getPresenceList();
+            expect(events).toHaveLength(2);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/presence/list",
+                {},
+                {},
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
+        });
+
         it("should throw InvalidParamError when userId is empty", async () => {
             await expect(presenceManager.getPresenceList("")).rejects.toThrow(InvalidParamError);
         });
@@ -337,23 +383,23 @@ describe("PresenceManager", () => {
             expect(cached?.presence).toBe("online");
         });
 
-        it("should return empty array on 404", async () => {
+        it("should return empty array on 404 when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Not found",
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            const events = await presenceManager.getPresenceList("@unknown:example.com");
+            const events = await presenceManager.getPresenceList("@unknown:example.com", false);
             expect(events).toEqual([]);
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error on 404 by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Not found",
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            await expect(presenceManager.getPresenceList("@unknown:example.com", true)).rejects.toThrow();
+            await expect(presenceManager.getPresenceList("@unknown:example.com")).rejects.toThrow();
         });
 
         it("should throw AuthError on 401", async () => {
@@ -387,11 +433,20 @@ describe("PresenceManager", () => {
         it("should get presence list by user ids", async () => {
             const events = await presenceManager.getPresenceListByIds(["@user1:example.com", "@user2:example.com"]);
             expect(events).toHaveLength(2);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/presence/list/get",
+            expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+                1,
+                "GET",
+                `/presence/${encodeURIComponent("@user1:example.com")}/status`,
                 {},
-                { user_ids: ["@user1:example.com", "@user2:example.com"] },
+                undefined,
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
+            expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+                2,
+                "GET",
+                `/presence/${encodeURIComponent("@user2:example.com")}/status`,
+                {},
+                undefined,
                 { prefix: "/_matrix/client/v3", priority: undefined },
             );
         });
@@ -402,23 +457,23 @@ describe("PresenceManager", () => {
             expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
         });
 
-        it("should return empty array on 404", async () => {
+        it("should return empty array on 404 when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Not found",
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            const events = await presenceManager.getPresenceListByIds(["@unknown:example.com"]);
+            const events = await presenceManager.getPresenceListByIds(["@unknown:example.com"], false);
             expect(events).toEqual([]);
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error on 404 by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 message: "Not found",
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            await expect(presenceManager.getPresenceListByIds(["@unknown:example.com"], true)).rejects.toThrow();
+            await expect(presenceManager.getPresenceListByIds(["@unknown:example.com"])).rejects.toThrow();
         });
 
         it("should throw ApiError on other errors", async () => {

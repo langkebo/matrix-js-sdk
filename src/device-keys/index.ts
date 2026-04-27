@@ -60,6 +60,19 @@ export interface UploadKeysResponse {
     one_time_key_counts?: Record<string, number>;
 }
 
+export interface FallbackKeys {
+    [keyId: string]: {
+        key: string;
+        signatures?: Record<string, Record<string, string>>;
+    };
+}
+
+export interface UploadKeysOptions {
+    deviceKeys?: DeviceKeys;
+    oneTimeKeys?: OneTimeKeys;
+    fallbackKeys?: FallbackKeys;
+}
+
 export interface QueryKeysRequest {
     device_keys?: Record<string, string[]>;
     token?: string;
@@ -143,7 +156,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
      * 上传设备密钥和一次性密钥
      * POST /_matrix/client/r0/keys/upload
      */
-    async uploadKeys(options: { deviceKeys?: DeviceKeys; oneTimeKeys?: OneTimeKeys }): Promise<UploadKeysResponse> {
+    async uploadKeys(options: UploadKeysOptions): Promise<UploadKeysResponse> {
         try {
             const body: Record<string, unknown> = {};
 
@@ -153,6 +166,10 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
             if (options.oneTimeKeys) {
                 body.one_time_keys = options.oneTimeKeys;
+            }
+
+            if (options.fallbackKeys) {
+                body.fallback_keys = options.fallbackKeys;
             }
 
             const response = await this.client.http.authedRequest<UploadKeysResponse>(
@@ -465,6 +482,90 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
                 getDevice: (deviceId: string) => DeviceKeys | null;
             }
         ).getDevice(deviceId);
+    }
+
+    async requestDeviceVerification(targetUserId: string, targetDeviceId: string): Promise<{ token: string }> {
+        try {
+            return await this.client.http.authedRequest<{ token: string }>(
+                Method.Post,
+                "/device_verification/request",
+                undefined,
+                { target_user_id: targetUserId, target_device_id: targetDeviceId },
+                { prefix: ClientPrefix.V3 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "requestDeviceVerification");
+        }
+    }
+
+    async respondDeviceVerification(token: string, action: "accept" | "reject"): Promise<void> {
+        try {
+            await this.client.http.authedRequest(
+                Method.Post,
+                "/device_verification/respond",
+                undefined,
+                { token, action },
+                { prefix: ClientPrefix.V3 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "respondDeviceVerification");
+        }
+    }
+
+    async getVerificationStatus(token: string): Promise<Record<string, unknown>> {
+        try {
+            return await this.client.http.authedRequest<Record<string, unknown>>(
+                Method.Get,
+                `/device_verification/status/${encodeURIComponent(token)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "getVerificationStatus");
+        }
+    }
+
+    async getDeviceTrustList(): Promise<Record<string, unknown>> {
+        try {
+            return await this.client.http.authedRequest<Record<string, unknown>>(
+                Method.Get,
+                "/device_trust",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "getDeviceTrustList");
+        }
+    }
+
+    async getDeviceTrust(deviceId: string): Promise<Record<string, unknown>> {
+        try {
+            return await this.client.http.authedRequest<Record<string, unknown>>(
+                Method.Get,
+                `/device_trust/${encodeURIComponent(deviceId)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "getDeviceTrust");
+        }
+    }
+
+    async getSecuritySummary(): Promise<Record<string, unknown>> {
+        try {
+            return await this.client.http.authedRequest<Record<string, unknown>>(
+                Method.Get,
+                "/security/summary",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "getSecuritySummary");
+        }
     }
 }
 

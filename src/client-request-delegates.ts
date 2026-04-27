@@ -81,9 +81,12 @@ export { getRoomHierarchyRequest, timestampToEventRequest } from "./client-room-
 export {
     createSecureBackupRequest,
     deleteSecureBackupRequest,
+    getClientConfigRequest,
     getMyRoomsRequest,
+    getSSOUserInfoRequest,
     getSecureBackupRequest,
     restoreSecureBackupRequest,
+    searchRoomsRequest,
     storeSecureBackupKeysRequest,
     verifySecureBackupPassphraseRequest,
 } from "./client-secure-backup-requests.ts";

@@ -1,71 +1,140 @@
 # Space 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/space.rs`
+> 审查来源: `synapse-rust/src/web/routes/space.rs`、`space/lifecycle_query.rs`、`space/children_hierarchy.rs`、`space/membership_state.rs`、`space/summary.rs`、`space/types.rs`
+> 更新日期: 2026-04-27
 
 ## 挂载版本
 
-| 前缀                 | 说明                             |
-| -------------------- | -------------------------------- |
-| `/_matrix/client/v1` | 与 `r0/v3` 使用同一组 space 路由 |
-| `/_matrix/client/r0` | 与 `v1/v3` 使用同一组 space 路由 |
-| `/_matrix/client/v3` | 与 `v1/r0` 使用同一组 space 路由 |
+`create_space_router()` 将同一套路由同时挂到以下前缀：
 
-## Space 端点
+| 前缀                 | 说明 |
+| -------------------- | ---- |
+| `/_matrix/client/v1` | 与 `r0/v3` 共用同一组 space 处理器 |
+| `/_matrix/client/r0` | 与 `v1/v3` 共用同一组 space 处理器 |
+| `/_matrix/client/v3` | 与 `v1/r0` 共用同一组 space 处理器 |
 
-| 方法   | 路径                                                                 | 主要请求参数                                                                                        | 主要响应字段              |
-| ------ | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------- |
-| POST   | `/_matrix/client/{v1,r0,v3}/spaces`                                  | `room_id` `name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?` `parent_space_id?` | 创建结果                  |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/public`                           | 查询参数                                                                                            | 公开 space 列表           |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/search`                           | 查询参数                                                                                            | 搜索结果                  |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/statistics`                       | 无                                                                                                  | 统计信息                  |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/user`                             | 无                                                                                                  | 当前用户可见的 space 列表 |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}`                       | `space_id`                                                                                          | space 对象                |
-| PUT    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}`                       | 更新 body                                                                                           | 更新后的 space / 空对象   |
-| DELETE | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}`                       | `space_id`                                                                                          | 空对象                    |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children`              | 查询参数                                                                                            | 子房间列表                |
-| POST   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children`              | `room_id` `via_servers?` `order?` `suggested?`                                                      | 空对象                    |
-| DELETE | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children/{room_id}`    | 路径参数                                                                                            | 空对象                    |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/members`               | 查询参数                                                                                            | 成员列表                  |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/rooms`                 | 查询参数                                                                                            | room 列表                 |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/state`                 | 无                                                                                                  | state 快照                |
-| POST   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/invite`                | `user_id` 等                                                                                        | 空对象                    |
-| POST   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/join`                  | join body                                                                                           | 空对象 / `room_id`        |
-| POST   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/leave`                 | leave body                                                                                          | 空对象                    |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy`             | `from?` `limit?` `max_depth?` `suggested_only?`                                                     | hierarchy 响应            |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy/v1`          | 同上                                                                                                | hierarchy v1 响应         |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary`               | 查询参数                                                                                            | summary                   |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary/with_children` | 查询参数                                                                                            | summary + children        |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/tree_path`             | 查询参数                                                                                            | tree path                 |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}`                   | `room_id`                                                                                           | room 对应的 space         |
-| GET    | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}/parents`           | `room_id`                                                                                           | parent spaces             |
+## 认证规则
 
-## 认证与状态码
+| 场景 | 实际要求 |
+| ---- | -------- |
+| 公开只读接口 | `GET /spaces/public` 无认证；私有 space 可见性由 `OptionalAuthenticatedUser` + `ensure_space_visible()` 决定 |
+| 私有只读接口 | 未登录访问私有 space 返回 `401`；已登录但无权限返回 `403` |
+| 写接口 | 创建、更新、删除、加子房间、邀请、加入、离开均要求 `AuthenticatedUser` |
+| 搜索接口 | `GET /spaces/search` 要求 `AuthenticatedUser`，后端会把当前用户 ID 传给 `space_service.search_spaces()` |
 
-- 默认需要用户 access token。
-- 常见错误码: `400` 参数错误、`401` 未认证、`403` 无权限、`404` space/room 不存在。
+## 路由总表
 
-## 错误语义对齐（BaseManager）
+| 方法 | 路径 | 认证 | 请求参数/请求体 | 实际响应 |
+| ---- | ---- | ---- | --------------- | -------- |
+| `POST` | `/_matrix/client/{v1,r0,v3}/spaces` | `AuthenticatedUser` | `CreateSpaceBody`：`room_id` 必填；`name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?` `parent_space_id?` | `201` + `SpaceResponse` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/public` | 无 | `limit?` 默认 `100`，`offset?` 默认 `0` | `200` + `SpaceResponse[]` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/search` | `AuthenticatedUser` | 查询参数 `query`，支持别名 `search_term`；`limit?` 默认 `10` | `200` + `SpaceResponse[]` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/statistics` | 可匿名 | 无 | `200` + `serde_json::Value[]`，仅返回当前调用方可见 space 的统计条目 |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/user` | `AuthenticatedUser` | 无 | `200` + `SpaceResponse[]` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `SpaceResponse` |
+| `PUT` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}` | `AuthenticatedUser` | `UpdateSpaceBody`：`name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?` | `200` + `SpaceResponse` |
+| `DELETE` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}` | `AuthenticatedUser` | 路径参数 `space_id` | `204 No Content` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children` | 可匿名读公开 space | 无 | `200` + `SpaceChildResponse[]` |
+| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children` | `AuthenticatedUser` | `AddChildBody`：`room_id` 必填，`via_servers` 为字符串数组，`suggested?` 默认 `false` | `201` + `SpaceChildResponse` |
+| `DELETE` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children/{room_id}` | `AuthenticatedUser` | 路径参数 `space_id`、`room_id` | `204 No Content` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy` | 可匿名读公开 space | 查询参数仅消费 `max_depth?`，默认 `1` | `200` + `SpaceHierarchyResponse` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy/v1` | 可匿名读公开 space | `max_depth?` 默认 `1`，`suggested_only?` 默认 `false`，并透传 `limit?`、`from?` | `200` + service 直接序列化结果 |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/tree_path` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `SpaceResponse[]` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}/parents` | 可匿名读公开 parent space | 路径参数 `room_id` | `200` + `SpaceResponse[]` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/members` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `SpaceMemberResponse[]` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/rooms` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `{ "space_id": string, "rooms": string[] }` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/state` | 可匿名读公开 space | 路径参数 `space_id` | `200` + service 直接序列化的状态对象 |
+| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/invite` | `AuthenticatedUser` | `InviteUserBody`：`user_id` 必填 | `201` + `SpaceMemberResponse` |
+| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/join` | `AuthenticatedUser` | 无 body | `200` + `SpaceMemberResponse` |
+| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/leave` | `AuthenticatedUser` | 无 body | `204 No Content` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary` | 可匿名读公开 space | 路径参数 `space_id` | `200` + summary 对象；不存在时 `404` |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary/with_children` | 可匿名读公开 space | 路径参数 `space_id` | `200` + service 直接序列化结果 |
+| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}` | 可匿名读公开 space | 路径参数 `room_id` | `200` + `SpaceResponse` |
 
-| 场景                | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                               |
-| ------------------- | -------------------------------------- | ---------------- | ---------------------------------------- |
-| 未认证或 token 失效 | `401` / `M_UNKNOWN_TOKEN`              | `AuthError`      | 触发登录态恢复，不继续执行空间写操作     |
-| space/room 不存在   | `404` / `M_NOT_FOUND`                  | `NotFoundError`  | 视为目标已失效，刷新空间树并中止当前流程 |
-| 无权限访问或修改    | `403` / `M_FORBIDDEN`                  | `ApiError`       | 终止重试并提示权限不足                   |
-| 参数非法            | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正请求参数后重试                       |
-| 限流或短暂服务异常  | `429` / `M_LIMIT_EXCEEDED`，`5xx`      | `RetryableError` | 使用指数退避重试                         |
-| 其他 API 错误       | 其他 `4xx/5xx`                         | `ApiError`       | 按 `code` 与 `statusCode` 统一兜底       |
+## 稳定请求/响应结构
 
-## 典型 errcode
+### `SpaceResponse`
 
-| errcode            | 常见 HTTP | 说明                          |
-| ------------------ | --------- | ----------------------------- |
-| `M_UNKNOWN_TOKEN`  | `401`     | access token 无效、过期或缺失 |
-| `M_NOT_FOUND`      | `404`     | 目标 space/room 不存在        |
-| `M_FORBIDDEN`      | `403`     | 无权限进行读取或写入          |
-| `M_BAD_JSON`       | `400`     | body 结构不合法               |
-| `M_INVALID_PARAM`  | `400`     | 路径参数或查询参数非法        |
-| `M_LIMIT_EXCEEDED` | `429`     | 触发限流                      |
+```json
+{
+  "space_id": "space_123",
+  "room_id": "!room:example.com",
+  "name": "My Space",
+  "topic": "optional",
+  "avatar_url": "mxc://example.com/avatar",
+  "creator": "@alice:example.com",
+  "join_rule": "invite",
+  "visibility": "private",
+  "is_public": false,
+  "created_ts": 1710000000000,
+  "updated_ts": 1710000100000,
+  "parent_space_id": "space_parent"
+}
+```
+
+### `SpaceChildResponse`
+
+```json
+{
+  "space_id": "space_123",
+  "room_id": "!child:example.com",
+  "via_servers": ["example.com"],
+  "sender": "@alice:example.com",
+  "is_suggested": true,
+  "added_ts": 1710000000000
+}
+```
+
+### `SpaceMemberResponse`
+
+```json
+{
+  "space_id": "space_123",
+  "user_id": "@alice:example.com",
+  "membership": "join",
+  "joined_ts": 1710000000000,
+  "inviter": "@admin:example.com"
+}
+```
+
+### `SpaceHierarchyResponse`
+
+```json
+{
+  "space": { "space_id": "space_123", "room_id": "!space:example.com", "join_rule": "invite", "is_public": false, "creator": "@alice:example.com", "created_ts": 1710000000000, "updated_ts": null, "name": "My Space", "topic": null, "avatar_url": null, "visibility": "private", "parent_space_id": null },
+  "children": [],
+  "members": []
+}
+```
+
+## 校验与业务规则
+
+- `CreateSpaceBody.room_id` 长度 `1..=255`。
+- `CreateSpaceBody.name` 最大 `255`；`topic` 最大 `1000`；`avatar_url` 最大 `2048`。
+- `join_rule`、`visibility` 最大 `50` 字符。
+- `AddChildBody.room_id` 长度 `1..=255`；`via_servers` 中每个元素最大 `100` 字符。
+- `HierarchyQuery.max_depth` 在非 `v1` 层级接口中限制为 `1..=20`；`hierarchy/v1` 只做默认值填充，不额外调用 `validator`。
+- `search_spaces` 支持 `query` 与 `search_term` 双写法，后端统一映射到 `SearchQuery.query`。
+- `ensure_space_visible()` 的分支明确区分未登录访问私有 space (`401`) 与已登录但无权限 (`403`)。
+
+## 错误与兼容性
+
+| 场景 | 实际返回 |
+| ---- | -------- |
+| 私有 space 未认证访问 | `401` |
+| 无权查看或修改 space | `403` |
+| space / summary 不存在 | `404` |
+| `validator` 校验失败 | `400`，错误文本前缀为 `Validation error:` |
+
+- 文档只声明 `space/types.rs` 中显式可见的稳定 DTO 字段。
+- `GET /summary`、`GET /summary/with_children`、`GET /state`、`GET /statistics`、`GET /hierarchy/v1` 的具体深层字段由 service 直接序列化，当前文档不虚构未在路由层稳定暴露的子字段。
+- SDK 侧 `SpaceManager.getSpaceByRoom()` 对应后端 `GET /spaces/room/{room_id}`；若存在 `getRoomSpace()` 等别名，应视为 SDK 兼容封装，不影响后端契约。
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/space.rs`
+- 路由装配: `synapse-rust/src/web/routes/space.rs`
+- 生命周期/查询: `synapse-rust/src/web/routes/space/lifecycle_query.rs`
+- 子房间与层级: `synapse-rust/src/web/routes/space/children_hierarchy.rs`
+- 成员与状态: `synapse-rust/src/web/routes/space/membership_state.rs`
+- 摘要: `synapse-rust/src/web/routes/space/summary.rs`
+- DTO: `synapse-rust/src/web/routes/space/types.rs`

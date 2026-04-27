@@ -1,4 +1,3 @@
-import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -18,9 +17,11 @@ limitations under the License.
 /**
  * SAML Authentication Manager - SAML认证管理
  *
- * 提供SAML认证登录、用户映射、属性管理功能
+ * 提供SAML认证登录、回调处理、登出、元数据查询功能
+ * 对应后端: /_matrix/client/r0/login/sso/redirect/saml, /login/saml/callback, /saml/metadata 等
  */
 
+import { logger } from "../logger";
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
@@ -30,18 +31,11 @@ export enum SamlEvent {
     LoginInitiated = "LoginInitiated",
     LoginCompleted = "LoginCompleted",
     LoginFailed = "LoginFailed",
-    UserMapped = "UserMapped",
-    UserUnmapped = "UserUnmapped",
+    LogoutCompleted = "LogoutCompleted",
     SamlError = "SamlError",
 }
 
-export interface SamlLoginRequest {
-    redirectUrl?: string;
-}
-
 export interface SamlLoginResponse {
-    saml_request: string;
-    saml_request_id: string;
     redirect_url: string;
 }
 
@@ -49,9 +43,20 @@ export interface SamlCallbackResponse {
     user_id: string;
     access_token: string;
     device_id: string;
+    expires_in: number;
     refresh_token?: string;
-    expires_in?: number;
-    is_new_user?: boolean;
+}
+
+export interface SamlLogoutResponse {
+    redirect_url?: string;
+    message?: string;
+}
+
+export interface SamlMetadataResponse {
+    entity_id: string;
+    sso_url: string;
+    slo_url?: string;
+    certificate?: string;
 }
 
 export interface SamlUserMapping {
@@ -93,11 +98,10 @@ export interface SamlConfig {
 }
 
 interface SamlAuthManagerEventMap {
-    [SamlEvent.LoginInitiated]: (requestId: string) => void;
+    [SamlEvent.LoginInitiated]: (redirectUrl: string) => void;
     [SamlEvent.LoginCompleted]: (userId: string, response: SamlCallbackResponse) => void;
     [SamlEvent.LoginFailed]: (error: Error) => void;
-    [SamlEvent.UserMapped]: (mapping: SamlUserMapping) => void;
-    [SamlEvent.UserUnmapped]: (nameId: string) => void;
+    [SamlEvent.LogoutCompleted]: () => void;
     [SamlEvent.SamlError]: (error: Error) => void;
 }
 
@@ -105,27 +109,23 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
     private client: MatrixClient;
     private config: SamlConfig | null = null;
     private userMappings: Map<string, SamlUserMapping> = new Map();
-    private pendingRequests: Map<string, string> = new Map();
 
     constructor(client: MatrixClient) {
         super();
         this.client = client;
     }
 
-    async initiateLogin(request?: SamlLoginRequest): Promise<SamlLoginResponse> {
+    async initiateLogin(redirectUrl?: string): Promise<SamlLoginResponse> {
         try {
             const response = await this.client.http.request<SamlLoginResponse>(
                 Method.Post,
-                "/login/saml/redirect",
+                "/login/sso/redirect/saml",
+                redirectUrl ? { redirect_url: redirectUrl } : undefined,
                 undefined,
-                {
-                    redirect_url: request?.redirectUrl,
-                },
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.R0 },
             );
 
-            this.pendingRequests.set(response.saml_request_id, response.redirect_url);
-            this.emit(SamlEvent.LoginInitiated, response.saml_request_id);
+            this.emit(SamlEvent.LoginInitiated, response.redirect_url);
 
             return response;
         } catch (error) {
@@ -134,37 +134,90 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         }
     }
 
-    async handleCallback(samlResponse: string, requestId?: string): Promise<SamlCallbackResponse> {
+    async handleCallback(samlResponse: string, relayState?: string): Promise<SamlCallbackResponse> {
         try {
             const response = await this.client.http.request<SamlCallbackResponse>(
                 Method.Post,
                 "/login/saml/callback",
                 undefined,
                 {
-                    SAMLResponse: samlResponse,
-                    RelayState: requestId,
+                    saml_response: samlResponse,
+                    relay_state: relayState,
                 },
-                { prefix: ClientPrefix.V3 },
+                { prefix: ClientPrefix.R0 },
             );
 
-            const result: SamlCallbackResponse = {
-                user_id: response.user_id,
-                access_token: response.access_token,
-                device_id: response.device_id,
-                refresh_token: response.refresh_token,
-                expires_in: response.expires_in,
-                is_new_user: response.is_new_user,
-            };
+            this.emit(SamlEvent.LoginCompleted, response.user_id, response);
 
-            if (requestId) {
-                this.pendingRequests.delete(requestId);
-            }
-
-            this.emit(SamlEvent.LoginCompleted, result.user_id, result);
-
-            return result;
+            return response;
         } catch (error) {
             this.emit(SamlEvent.LoginFailed, error as Error);
+            throw error;
+        }
+    }
+
+    async logout(): Promise<SamlLogoutResponse> {
+        try {
+            const response = await this.client.http.authedRequest<SamlLogoutResponse>(
+                Method.Get,
+                "/logout/saml",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+
+            this.emit(SamlEvent.LogoutCompleted);
+
+            return response;
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async handleLogoutCallback(samlResponse: string): Promise<void> {
+        try {
+            await this.client.http.authedRequest(
+                Method.Get,
+                "/logout/saml/callback",
+                { saml_response: samlResponse },
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async getIdpMetadata(): Promise<SamlMetadataResponse> {
+        try {
+            return await this.client.http.request<SamlMetadataResponse>(
+                Method.Get,
+                "/saml/metadata",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async getSpMetadata(): Promise<string> {
+        try {
+            const response = await this.client.http.request<string>(
+                Method.Get,
+                "/saml/sp_metadata",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+
+            return typeof response === "string" ? response : JSON.stringify(response);
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
             throw error;
         }
     }
@@ -181,7 +234,6 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
             this.config = response as SamlConfig;
             return this.config;
-            // @swallow-error { owner: "saml", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("SamlAuthManager.getConfig failed:", e);
             return null;
@@ -219,7 +271,6 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
             this.userMappings.set(nameId, mapping);
 
             return mapping;
-            // @swallow-error { owner: "saml", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("SamlAuthManager.getUserMapping failed:", e);
             return null;
@@ -260,8 +311,6 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
             const existing = this.userMappings.get(nameId);
             const updated = { ...existing, ...mapping, name_id: nameId } as SamlUserMapping;
             this.userMappings.set(nameId, updated);
-
-            this.emit(SamlEvent.UserMapped, updated);
         } catch (error) {
             this.emit(SamlEvent.SamlError, error as Error);
             throw error;
@@ -279,50 +328,10 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
             );
 
             this.userMappings.delete(nameId);
-            this.emit(SamlEvent.UserUnmapped, nameId);
         } catch (error) {
             this.emit(SamlEvent.SamlError, error as Error);
             throw error;
         }
-    }
-
-    async getMetadata(): Promise<string> {
-        try {
-            const response = await this.client.http.request<{ metadata?: string }>(
-                Method.Get,
-                "/login/saml/metadata",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
-
-            return response.metadata || "";
-        } catch (e) {
-            logger.warn("SamlAuthManager.getMetadata failed:", e);
-            return "";
-        }
-    }
-
-    async logout(userId: string, sessionId?: string): Promise<void> {
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/saml/logout",
-                undefined,
-                {
-                    user_id: userId,
-                    session_id: sessionId,
-                },
-                { prefix: AdminPrefix.V1 },
-            );
-        } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
-            throw error;
-        }
-    }
-
-    getPendingRequest(requestId: string): string | null {
-        return this.pendingRequests.get(requestId) || null;
     }
 
     getCachedMapping(nameId: string): SamlUserMapping | null {
@@ -335,7 +344,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     clearCache(): void {
         this.userMappings.clear();
-        this.pendingRequests.clear();
+        this.config = null;
     }
 
     async start(): Promise<void> {
@@ -349,7 +358,6 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     stop(): void {
         this.userMappings.clear();
-        this.pendingRequests.clear();
         this.config = null;
     }
 }

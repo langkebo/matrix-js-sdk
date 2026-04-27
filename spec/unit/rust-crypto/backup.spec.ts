@@ -141,4 +141,20 @@ describe("Upload keys to backup", () => {
         expect(outgoingRequestProcessor.makeOutgoingRequest).toHaveBeenCalledTimes(1);
         expect(mockOlmMachine.roomKeyCounts).toHaveBeenCalledTimes(0);
     });
+
+    it("throws on backup check failure by default and returns null when explicitly downgraded", async () => {
+        vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
+        await expect(rustBackupManager.checkKeyBackupAndEnable(true)).rejects.toThrow("Boom");
+
+        vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
+        await expect(rustBackupManager.checkKeyBackupAndEnable(true, false)).resolves.toBeNull();
+    });
+
+    it("throws on backup secret validation failure by default and returns false when explicitly downgraded", async () => {
+        vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
+        await expect(rustBackupManager.handleBackupSecretReceived("secret")).rejects.toThrow("Boom");
+
+        vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
+        await expect(rustBackupManager.handleBackupSecretReceived("secret", false)).resolves.toBe(false);
+    });
 });

@@ -18,13 +18,14 @@ import { type RoomType } from "./event.ts";
 import { type GuestAccess, type HistoryVisibility, type JoinRule, type RestrictedAllowType } from "./partials.ts";
 import { type ImageInfo } from "./media.ts";
 import { type PolicyRecommendation } from "../models/invites-ignorer.ts";
+import { type IContent } from "../models/event.ts";
 
-export interface RoomCanonicalAliasEventContent {
+export interface RoomCanonicalAliasEventContent extends IContent {
     alias?: string;
     alt_aliases?: string[];
 }
 
-export interface RoomCreateEventContent {
+export interface RoomCreateEventContent extends IContent {
     "creator"?: string;
     "m.federate"?: boolean;
     "predecessor"?: {
@@ -70,7 +71,7 @@ export interface RoomThirdPartyInviteEventContent {
     }[];
 }
 
-export interface RoomPowerLevelsEventContent {
+export interface RoomPowerLevelsEventContent extends IContent {
     ban?: number;
     events?: { [eventType: string]: number };
     events_default?: number;
@@ -85,69 +86,69 @@ export interface RoomPowerLevelsEventContent {
     users_default?: number;
 }
 
-export interface RoomNameEventContent {
+export interface RoomNameEventContent extends IContent {
     name: string;
 }
 
-export interface RoomTopicEventContent {
+export interface RoomTopicEventContent extends IContent {
     topic: string | undefined | null;
 }
 
-export interface RoomAvatarEventContent {
+export interface RoomAvatarEventContent extends IContent {
     url?: string;
     // The spec says that an encrypted file can be used for the thumbnail but this isn't true
     // https://github.com/matrix-org/matrix-spec/issues/562 so omit those fields
     info?: Omit<ImageInfo, "thumbnail_file">;
 }
 
-export interface RoomPinnedEventsEventContent {
+export interface RoomPinnedEventsEventContent extends IContent {
     pinned: string[];
 }
 
-export interface RoomEncryptionEventContent {
+export interface RoomEncryptionEventContent extends IContent {
     "algorithm": "m.megolm.v1.aes-sha2";
     "io.element.msc4362.encrypt_state_events"?: boolean;
     "rotation_period_ms"?: number;
     "rotation_period_msgs"?: number;
 }
 
-export interface RoomHistoryVisibilityEventContent {
+export interface RoomHistoryVisibilityEventContent extends IContent {
     history_visibility: HistoryVisibility;
 }
 
-export interface RoomGuestAccessEventContent {
+export interface RoomGuestAccessEventContent extends IContent {
     guest_access: GuestAccess;
 }
 
-export interface RoomServerAclEventContent {
+export interface RoomServerAclEventContent extends IContent {
     allow?: string[];
     allow_ip_literals?: boolean;
     deny?: string[];
 }
 
-export interface RoomTombstoneEventContent {
+export interface RoomTombstoneEventContent extends IContent {
     body: string;
     replacement_room: string;
 }
 
-export interface SpaceChildEventContent {
+export interface SpaceChildEventContent extends IContent {
     order?: string;
     suggested?: boolean;
     via?: string[];
 }
 
-export interface SpaceParentEventContent {
+export interface SpaceParentEventContent extends IContent {
     canonical?: boolean;
     via?: string[];
 }
 
-export interface PolicyRuleEventContent {
+export interface PolicyRuleEventContent extends IContent {
     entity: string;
     reason: string;
     recommendation: PolicyRecommendation;
 }
 
-export interface RoomPolicyContent {
+export interface RoomPolicyContent extends IContent {
     via: string;
     public_key: string;
 }

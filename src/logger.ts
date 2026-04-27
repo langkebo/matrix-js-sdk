@@ -52,35 +52,35 @@ export interface BaseLogger {
      *
      * @param msg - Data to log.
      */
-    trace(this: void, ...msg: any[]): void;
+    trace(this: void, ...msg: unknown[]): void;
 
     /**
      * Output debug message to the logger.
      *
      * @param msg - Data to log.
      */
-    debug(this: void, ...msg: any[]): void;
+    debug(this: void, ...msg: unknown[]): void;
 
     /**
      * Output info message to the logger.
      *
      * @param msg - Data to log.
      */
-    info(this: void, ...msg: any[]): void;
+    info(this: void, ...msg: unknown[]): void;
 
     /**
      * Output warn message to the logger.
      *
      * @param msg - Data to log.
      */
-    warn(this: void, ...msg: any[]): void;
+    warn(this: void, ...msg: unknown[]): void;
 
     /**
      * Output error message to the logger.
      *
      * @param msg - Data to log.
      */
-    error(this: void, ...msg: any[]): void;
+    error(this: void, ...msg: unknown[]): void;
 }
 
 // This is to demonstrate, that you can use any namespace you want.
@@ -122,7 +122,9 @@ loglevel.methodFactory = function (methodName, _logLevel, _loggerName) {
 /**
  * Implementation of {@link Logger} based on `loglevel`.
  */
-interface PrefixedLogger extends Omit<loglevel.Logger, "log">, LoggerWithLogMethod {
+interface PrefixedLogger
+    extends Omit<loglevel.Logger, "log" | "trace" | "debug" | "info" | "warn" | "error">,
+        LoggerWithLogMethod {
     prefix?: string;
 }
 

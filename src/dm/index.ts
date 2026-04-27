@@ -38,8 +38,9 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { MatrixError } from "../http-api/errors.ts";
-import { NotFoundError } from "../errors.ts";
+import { NotFoundError, ValidationError } from "../errors.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { AdminValidators } from "../admin/validators";
 
 export enum DMEvent {
     DMCreated = "DMCreated",
@@ -132,12 +133,37 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     }
 
     /**
-     * 创建私信
+     * 创建私信房间
+     *
+     * @param options - 创建选项或用户 ID 数组
+     * @returns 新创建的 DM 房间 ID
+     *
+     * @example
+     * ```typescript
+     * // 简单创建（使用用户 ID 数组）
+     * const roomId = await dmManager.createDm(["@alice:example.com"]);
+     * console.log("Created DM room:", roomId);
+     *
+     * // 使用完整选项
+     * const roomId = await dmManager.createDm({
+     *     userIds: ["@alice:example.com"],
+     *     name: "Chat with Alice",
+     *     topic: "Private conversation",
+     *     isEncrypted: true
+     * });
+     *
+     * // 创建群聊 DM
+     * const roomId = await dmManager.createDm({
+     *     userIds: ["@alice:example.com", "@bob:example.com"],
+     *     name: "Group Chat"
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {InvalidParamError} 如果未提供用户 ID
+     * @throws {ApiError} 如果 API 调用失败
      *
      * 后端实现: synapse-rust/src/web/routes/dm.rs:185-200
-     *
-     * @param options - 创建选项
-     * @returns 新创建的 DM 房间 ID
      */
     async createDm(options: CreateDmOptions | string[]): Promise<string> {
         const opts = Array.isArray(options) ? { userIds: options } : options;
@@ -145,6 +171,11 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         if (!opts.userIds || opts.userIds.length === 0) {
             throw new InvalidParamError("At least one user ID is required");
         }
+
+        // 验证所有用户 ID
+        opts.userIds.forEach((userId) => {
+            AdminValidators.validateUserId(userId);
+        });
 
         const existingDm = await this.getDmForUser(opts.userIds[0]);
         if (existingDm) {
@@ -397,10 +428,29 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     /**
      * 获取用户的 DM 房间
      *
-     * @param userId - 用户 ID
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
      * @returns DM 房间 ID 或 null
+     *
+     * @example
+     * ```typescript
+     * // 获取与用户的 DM 房间
+     * const roomId = await dmManager.getDmForUser("@alice:example.com");
+     * if (roomId) {
+     *     console.log("DM room:", roomId);
+     *     // 发送消息
+     *     await dmManager.sendDmMessage(roomId, "Hello!");
+     * } else {
+     *     console.log("No DM room exists");
+     *     // 创建新的 DM
+     *     const newRoomId = await dmManager.createDm(["@alice:example.com"]);
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     async getDmForUser(userId: string): Promise<string | null> {
+        AdminValidators.validateUserId(userId);
         const cached = this.userDmMapCache.get(userId);
         if (cached) {
             return cached;
@@ -425,9 +475,20 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     /**
      * 离开 DM 房间
      *
-     * @param roomId - 房间 ID
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 离开 DM 房间
+     * await dmManager.leaveDm("!abc:example.com");
+     * console.log("Left DM room");
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     async leaveDm(roomId: string): Promise<void> {
+        AdminValidators.validateRoomId(roomId);
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
@@ -569,9 +630,20 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     /**
      * 标记 DM 为已读
      *
-     * @param roomId - 房间 ID
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 标记 DM 为已读
+     * await dmManager.markDmAsRead("!abc:example.com");
+     * console.log("DM marked as read");
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     async markDmAsRead(roomId: string): Promise<void> {
+        AdminValidators.validateRoomId(roomId);
         try {
             await this.withRetry(async () => {
                 const room = this.client.getRoom(roomId);
@@ -739,7 +811,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @param roomId - 房间 ID
      * @returns Room 对象或 null
      */
-    async getDmRoom(roomId: string, throwOnError = false): Promise<Room | null> {
+    async getDmRoom(roomId: string, throwOnError = true): Promise<Room | null> {
         const room = this.client.getRoom(roomId);
         if (room) {
             return room;
@@ -842,10 +914,10 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * 检查房间是否为 DM 房间（从服务器获取）
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 是否为 DM 房间
      */
-    async isDmRoomFromServer(roomId: string, throwOnError = false): Promise<boolean> {
+    async isDmRoomFromServer(roomId: string, throwOnError = true): Promise<boolean> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
@@ -880,10 +952,10 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * 获取 DM 伙伴（从服务器获取）
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 伙伴信息
      */
-    async getDmPartnerFromServer(roomId: string, throwOnError = false): Promise<DmPartnerResponse | null> {
+    async getDmPartnerFromServer(roomId: string, throwOnError = true): Promise<DmPartnerResponse | null> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }

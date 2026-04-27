@@ -4,40 +4,39 @@
 
 ## 挂载版本
 
-| 前缀                 | 路由                                               |
-| -------------------- | -------------------------------------------------- |
-| `/_matrix/client/v1` | `/presence/{user_id}/status`                       |
-| `/_matrix/client/r0` | `/presence/{user_id}/status`                       |
-| `/_matrix/client/v3` | `/presence/{user_id}/status` 与 `/presence/list/*` |
+| 前缀                 | 路由                                                                         |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `/_matrix/client/v1` | `/presence/{user_id}/status`                                                 |
+| `/_matrix/client/r0` | `/presence/{user_id}/status`                                                 |
+| `/_matrix/client/v3` | `/presence/{user_id}/status`、`/presence/list` 与 `/presence/list/{user_id}` |
 
 ## 路由清单
 
 | 方法 | 路径                                                   | 说明                         | 认证 |
 | ---- | ------------------------------------------------------ | ---------------------------- | ---- |
-| GET  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 获取指定用户 presence 状态   | 用户 |
+| GET  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 获取指定用户 presence 状态   | 用户；当前仅允许本人或管理员 |
 | PUT  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 更新指定用户 presence 状态   | 用户 |
-| GET  | `/_matrix/client/v3/presence/list`                     | 获取当前用户的 presence list | 用户 |
 | POST | `/_matrix/client/v3/presence/list`                     | 批量订阅/管理 presence list  | 用户 |
 | GET  | `/_matrix/client/v3/presence/list/{user_id}`           | 获取指定用户的 presence list | 用户 |
 
 ## 响应与请求要点
 
-- `status` 端点通常围绕以下字段:
-    - `presence`
-    - `currently_active?`
-    - `last_active_ago?`
-    - `status_msg?`
-- `PUT /status` 请求体通常为 presence 更新内容
-- `presence/list` 路由是 v3 专有扩展
+- `GET /presence/{user_id}/status` 稳定返回 `presence` 与 `status_msg`；若用户存在但未写入状态，则回落为 `{ "presence": "offline", "status_msg": null }`
+- `GET /presence/{user_id}/status` 当前与写入权限一致，仅允许本人或管理员访问；跨用户读取返回 `403`
+- `PUT /presence/{user_id}/status` 请求体要求 `presence`，可选 `status_msg`
+- `POST /presence/list` 请求体可包含 `subscribe`、`unsubscribe` 两个数组，响应为 `{ "presences": [...] }`
+- `GET /presence/list/{user_id}` 返回 `{ "presences": [...] }`，元素稳定字段为 `user_id`、`presence`、`status_msg`、`last_active_ago`
+- `presence/list` 路由是 v3 专有扩展，其中当前仅 `POST /presence/list` 与 `GET /presence/list/{user_id}` 已挂载，未提供 `GET /presence/list`
 
 ## 常见状态码
 
-| 状态码 | 说明                   |
-| ------ | ---------------------- |
-| `200`  | 请求成功               |
-| `400`  | presence 状态值不合法  |
-| `401`  | Token 无效或缺失       |
-| `404`  | 用户不存在或条目不存在 |
+| 状态码 | 说明                                              |
+| ------ | ------------------------------------------------- |
+| `200`  | 请求成功                                          |
+| `400`  | presence 状态值不合法或消息过长                   |
+| `401`  | Token 无效或缺失                                  |
+| `403`  | 尝试读取/修改其他用户状态，或读取他人订阅表       |
+| `404`  | `GET /presence/{user_id}/status` 的目标用户不存在 |
 
 ## 代码定位
 
@@ -48,8 +47,8 @@
 
 ## SDK Manager 对应关系
 
-> 更新日期: 2026-04-04
-> 审计状态: ✅ 完整
+> 更新日期: 2026-04-12
+> 审计状态: ✅ 当前实现已与文档对齐
 
 ### Presence 状态
 
@@ -60,59 +59,19 @@
 
 ### Presence List
 
-| 端点                           | SDK Manager       | 方法                      | 状态      |
-| ------------------------------ | ----------------- | ------------------------- | --------- |
-| `GET /presence/list`           | `PresenceManager` | `getSubscribedPresence()` | ✅ 已封装 |
-| `POST /presence/list`          | `PresenceManager` | `subscribeToPresence()`   | ✅ 已封装 |
-| `GET /presence/list/{user_id}` | `PresenceManager` | `getPresenceList()`       | ✅ 已封装 |
+| 端点                           | SDK Manager       | 方法                    | 状态      |
+| ------------------------------ | ----------------- | ----------------------- | --------- |
+| `POST /presence/list`          | `PresenceManager` | `subscribeToPresence()` | ✅ 已封装 |
+| `GET /presence/list/{user_id}` | `PresenceManager` | `getPresenceList()`     | ✅ 已封装 |
 
----
+## 当前对齐结论
 
-## 审计发现的问题
-
-> 审计日期: 2026-04-04
-> 修复日期: 2026-04-04
-
-### ⚠️ 中优先级问题
-
-#### 1. ~~契约文档缺少端点记录~~ ✅ 已修复
-
-**问题描述**: 后端实现了 `GET /_matrix/client/v3/presence/list/{user_id}` 端点，但契约文档未记录。
-
-**修复状态**: ✅ 已更新契约文档
-
----
-
-#### 2. ~~SDK 缺少 getPresenceList 方法~~ ✅ 已修复
-
-**问题描述**: SDK 没有封装 `GET /_matrix/client/v3/presence/list/{user_id}` 端点。
-
-**修复状态**: ✅ 已添加 `getPresenceList(userId)` 方法
-
----
-
-### 📝 低优先级问题
-
-#### 3. ~~SDK 错误处理不完善~~ ✅ 已修复
-
-**问题描述**: `getPresence()` 和 `getSubscribedPresence()` 方法吞掉错误返回默认值。
-
-**修复状态**: ✅ 已添加 `normalizeError()` 和 `isRetryableError()` 方法，使用统一的错误分类处理
-
----
+- `GET /presence/list/{user_id}` 已纳入当前契约，并由 `PresenceManager.getPresenceList()` 直接封装。
+- `getPresence()`、`getSubscribedPresence()`、`getPresenceList()` 均按统一错误模型走 `normalizeError()`，不再以静默默认值掩盖请求失败。
+- 当前文档仅保留可直接验证的现状，不再重复保留已关闭的历史审计项。
 
 ## 封装覆盖率
 
 - **后端路由总数**: 5 个端点
-- **SDK 已封装**: 5 个方法
-- **完全正确封装**: 5/5 (100%)
-
----
-
-## 修复状态
-
-| 优先级 | 问题                      | 影响         | 状态      |
-| ------ | ------------------------- | ------------ | --------- |
-| ⚠️ P1  | 契约文档缺少端点          | 文档不完整   | ✅ 已修复 |
-| ⚠️ P1  | 缺少 getPresenceList 方法 | 功能不完整   | ✅ 已修复 |
-| 📝 P2  | SDK 错误处理不完善        | 问题难以排查 | ✅ 已修复 |
+- **SDK 已封装**: 4 个方法
+- **完全正确封装**: 4/5 (80%)

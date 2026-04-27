@@ -308,10 +308,10 @@ export class CryptoKeysManager {
      * 获取房间密钥分发信息
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 分发信息
      */
-    async getRoomKeyDistribution(roomId: string, throwOnError = false): Promise<IRoomKeyDistributionResponse | null> {
+    async getRoomKeyDistribution(roomId: string, throwOnError = true): Promise<IRoomKeyDistributionResponse | null> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IRoomKeyDistributionResponse>(

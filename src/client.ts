@@ -76,6 +76,7 @@ import {
     type UploadResponse,
 } from "./http-api/index.ts";
 import { User, UserEvent, type UserEventHandlerMap } from "./models/user.ts";
+import { ProfileManager } from "./profile/index.ts";
 import { SearchResult } from "./models/search-result.ts";
 import { type IIdentityServerProvider } from "./@types/IIdentityServerProvider.ts";
 import { type MatrixScheduler } from "./scheduler.ts";
@@ -341,6 +342,9 @@ import {
     getJoinedRoomsRequest,
     getKeyChangesRequest,
     getMyRoomsRequest,
+    getSSOUserInfoRequest,
+    searchRoomsRequest,
+    getClientConfigRequest,
     getOpenIdTokenRequest,
     getRoomHierarchyRequest,
     getRoomKeyRequestsHttpRequest,
@@ -773,6 +777,10 @@ const SSO_ACTION_PARAM = new UnstableValue("action", "org.matrix.msc3824.action"
  * custom modules. Normally, {@link createClient} should be used
  * as it specifies 'sensible' defaults for these modules.
  */
+import type { MatrixClientExtensionMethods, MatrixClientInternalMethods } from "./matrix-client-extensions.d.ts";
+
+export interface MatrixClient extends MatrixClientExtensionMethods, MatrixClientInternalMethods {}
+
 export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHandlerMap> {
     public static readonly RESTORE_BACKUP_ERROR_BAD_KEY = "RESTORE_BACKUP_ERROR_BAD_KEY";
 
@@ -1985,8 +1993,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      */
     public getIgnoredUsers(): string[] {
         const event = this.getAccountData(EventType.IgnoredUserList);
-        if (!event?.getContent()["ignored_users"]) return [];
-        return Object.keys(event.getContent()["ignored_users"]);
+        const ignoredUsers = event?.getContent()["ignored_users"];
+        if (!ignoredUsers || typeof ignoredUsers !== "object") return [];
+        return Object.keys(ignoredUsers);
     }
 
     /**
@@ -3105,6 +3114,37 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             return Promise.resolve({}); // guests cannot send typing notifications so don't bother.
         }
         return sendTypingRequest(roomId, this.getUserId()!, isTyping, timeoutMs, this.authedRequestProxy);
+    }
+
+    /**
+     * Get typing users in a room
+     * @param roomId - The room ID
+     * @returns Array of user IDs currently typing
+     */
+    public async getRoomTyping(roomId: string): Promise<string[]> {
+        const path = `/rooms/${encodeURIComponent(roomId)}/typing`;
+        const response = await this.http.authedRequest<{ user_ids: string[] }>(Method.Get, path, undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+        return response.user_ids || [];
+    }
+
+    /**
+     * Get typing users in multiple rooms
+     * @param roomIds - Array of room IDs
+     * @returns Map of room ID to array of typing user IDs
+     */
+    public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>> {
+        const path = "/rooms/typing";
+        const response = await this.http.authedRequest<{
+            rooms: Record<string, { user_ids: string[] }>;
+        }>(Method.Post, path, undefined, { room_ids: roomIds }, { prefix: ClientPrefix.V3 });
+
+        const result: Record<string, string[]> = {};
+        for (const [roomId, data] of Object.entries(response.rooms || {})) {
+            result[roomId] = data.user_ids || [];
+        }
+        return result;
     }
 
     /**
@@ -4574,6 +4614,26 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             nextBatch: result.next_batch ?? null,
             prevBatch: result.prev_batch ?? null,
         };
+    }
+
+    /**
+     * Get aggregations for an event
+     * @param roomId - The room ID
+     * @param eventId - The event ID
+     * @param relType - The relation type
+     * @returns Aggregation data
+     */
+    public async getAggregations(
+        roomId: string,
+        eventId: string,
+        relType: string,
+    ): Promise<{ chunk: Array<{ type: string; key: string; count: number }> }> {
+        const path = utils.encodeUri("/rooms/$roomId/aggregations/$eventId/$relType", {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relType: relType,
+        });
+        return this.http.authedRequest(Method.Get, path, undefined, undefined, { prefix: ClientPrefix.V1 });
     }
 
     /**
@@ -6203,6 +6263,33 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     /**
+     * Score a report
+     * @param roomId - The room ID
+     * @param eventId - The event ID
+     * @param score - The score (-100 to 0)
+     */
+    public async scoreReport(roomId: string, eventId: string, score: number): Promise<void> {
+        const path = utils.encodeUri("/rooms/$roomId/report/$eventId/score", {
+            $roomId: roomId,
+            $eventId: eventId,
+        });
+        await this.http.authedRequest(Method.Put, path, undefined, { score }, { prefix: ClientPrefix.V3 });
+    }
+
+    /**
+     * Get scanner info for a report
+     * @param roomId - The room ID
+     * @param eventId - The event ID
+     */
+    public async getScannerInfo(roomId: string, eventId: string): Promise<any> {
+        const path = utils.encodeUri("/rooms/$roomId/report/$eventId/scanner_info", {
+            $roomId: roomId,
+            $eventId: eventId,
+        });
+        return this.http.authedRequest(Method.Get, path, undefined, undefined, { prefix: ClientPrefix.V1 });
+    }
+
+    /**
      * Reports a room as inappropriate to the server, which may then notify the appropriate people.
      *
      * This API was introduced in Matrix v1.13.
@@ -6290,17 +6377,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         abortSignal?: AbortSignal,
     ): Promise<MSC3575SlidingSyncResponse> {
         const qps: QueryDict = {};
-        if (req.pos) {
+        if (req.pos !== undefined) {
             qps.pos = req.pos;
-            delete req.pos;
         }
-        if (req.timeout) {
+        if (req.timeout !== undefined) {
             qps.timeout = req.timeout;
-            delete req.timeout;
         }
         const clientTimeout = req.clientTimeout;
-        delete req.clientTimeout;
-        return this.http.authedRequest<MSC3575SlidingSyncResponse>(Method.Post, "/sync", qps, req, {
+        const { pos: _pos, timeout: _timeout, clientTimeout: _clientTimeout, ...body } = req;
+        return this.http.authedRequest<MSC3575SlidingSyncResponse>(Method.Post, "/sync", qps, body, {
             prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
             baseUrl: proxyBaseUrl,
             localTimeoutMs: clientTimeout,
@@ -6330,7 +6415,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Custom endpoint for synapse-rust.
      */
     public async getMyRooms(): Promise<{ rooms: IMyRoomInfo[]; total: number }> {
-        return getMyRoomsRequest<{ rooms: IMyRoomInfo[]; total: number }>(this.authedRequestProxy);
+        const response = await getMyRoomsRequest<{ rooms: IMyRoomInfo[]; total: number }>(this.authedRequestProxy);
+        return {
+            ...response,
+            rooms: response.rooms.map((room) => {
+                const membership = room.membership ?? room.join_state;
+                const joinState = room.join_state ?? room.membership;
+                if (membership === room.membership && joinState === room.join_state) {
+                    return room;
+                }
+
+                return {
+                    ...room,
+                    membership,
+                    join_state: joinState,
+                };
+            }),
+        };
     }
 
     /**
@@ -6338,6 +6439,49 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      */
     public async createSecureBackup(passphrase: string): Promise<ISecureBackupInfo> {
         return createSecureBackupRequest<ISecureBackupInfo>(passphrase, this.authedRequestProxy);
+    }
+
+    /**
+     * Search rooms by term (synapse-rust specific).
+     * POST /_matrix/client/v3/search_rooms
+     */
+    public async searchRooms(
+        searchTerm: string,
+        limit?: number,
+    ): Promise<{ results: unknown[]; count: number; next_batch: string | null }> {
+        return searchRoomsRequest<{ results: unknown[]; count: number; next_batch: string | null }>(
+            this.authedRequestProxy,
+            searchTerm,
+            limit,
+        );
+    }
+
+    /**
+     * Get client-facing server config (synapse-rust specific).
+     * GET /_matrix/client/v1/config/client
+     */
+    public async getClientConfig(): Promise<{
+        homeserver: { base_url: string; server_name: string };
+        identity_server: { base_url: string };
+        push: { enabled: boolean };
+        email: { enabled: boolean };
+        features: Record<string, boolean>;
+        defaults: Record<string, unknown>;
+    }> {
+        return getClientConfigRequest(this.authedRequestProxy);
+    }
+
+    /**
+     * Get SSO/OIDC userinfo (synapse-rust specific).
+     * GET /_matrix/client/v3/login/sso/userinfo
+     */
+    public async getSSOUserInfo(): Promise<{
+        sub: string;
+        name?: string;
+        picture?: string;
+        email?: string;
+    }> {
+        return getSSOUserInfoRequest(this.authedRequestProxy);
     }
 
     /**
@@ -6738,7 +6882,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getAllWidgetEvents(_roomId: string): Promise<MatrixEvent[]> {
         return Promise.resolve([]);
     }
-    public getProfileManager(): any {
+    public getProfileManager(): ProfileManager | null {
         return null;
     }
 }

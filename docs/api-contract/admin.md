@@ -1,6 +1,8 @@
 # Admin 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/admin/mod.rs` 及其子模块
+> 挂载版本: `/_synapse/admin/v1`
+> 更新日期: 2026-04-13
 
 ## 认证要求
 
@@ -140,6 +142,15 @@
 | GET  | `/_synapse/admin/v1/login/failures`           | 获取登录失败记录                   |
 | POST | `/_synapse/admin/v1/deactivate/{user_id}`     | 停用用户（兼容路由）               |
 
+## 常见状态码
+
+- `200` / `201`: 查询、修改、创建成功
+- `400`: 参数不合法、分页或过滤条件无效
+- `401` / `403`: 缺少管理员认证、token 无效或当前用户无管理员权限
+- `404`: 用户、房间、任务、媒体或令牌不存在
+- `409`: 重复创建资源、冲突性更新或当前状态不允许执行该管理操作
+- `500`: 存储层、通知投递或后台任务执行失败
+
 ## 常见响应
 
 - 列表接口: `users`、`rooms`、`spaces`、`reports`、`notifications` 等数组
@@ -164,3 +175,42 @@
 - 报表: `admin/report.rs`
 - 保留策略: `admin/retention.rs`
 - 注册: `admin/register.rs`
+
+## SDK 契约对齐（2026-04-23 更新）
+
+下列 SDK 方法与后端一一校对，均有单测覆盖（`spec/unit/admin.spec.ts` / `admin-extended.spec.ts` / `admin-new-endpoints.spec.ts`）：
+
+### 修正（breaking）
+
+| SDK 方法                          | 变更                                                                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `setAdmin`                        | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                                             |
+| `addToFederationBlacklist`        | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}`                          |
+| `removeFromFederationBlacklist`   | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**                                    |
+| `getRoomStats(roomId)`            | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                                          |
+| `getAccountStatus`                | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                                              |
+| `getServerInfo`                   | `/v1/info`（不存在）→ 并行合并 `/v1/status` + `/v1/config` + `/v1/server_version`                                                 |
+| `resetPassword(userId, pw)`       | 移除 `logout_devices` 参数（后端忽略）                                                                                          |
+| `deactivateUser(userId)`          | 移除 `erase` body 参数（后端无 body extractor）                                                                                 |
+| `disconnectFederation`            | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）                                  |
+
+### 新增封装
+
+| 领域                  | SDK 方法                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Retention policy      | `getRetentionPolicy` / `setRetentionPolicy` / `getRoomRetentionPolicy` / `setRoomRetentionPolicy` / `runRetention` / `getRetentionStatus` |
+| Audit events          | `listAuditEvents` / `getAuditEvent` / `createAuditEvent`                                                                           |
+| Feature flags         | `listFeatureFlags` / `getFeatureFlag` / `createFeatureFlag` / `updateFeatureFlag`                                                  |
+| Federation detail     | `resolveFederation` / `rewriteFederation` / `deleteFederationDestination` / `getFederationDestinationRooms`                        |
+| Modules               | `listModules` / `listModulesByType` / `getModule` / `createModule` / `updateModuleConfig` / `setModuleEnabled` / `deleteModule` / `checkModuleSpam` / `getModuleLogs` |
+| Event report limit    | `checkEventReportRateLimit` / `blockEventReportUser` / `unblockEventReportUser`                                                    |
+| Telemetry             | `listTelemetryAlerts` / `acknowledgeTelemetryAlert`                                                                                |
+| Media quota           | `getMediaQuota`                                                                                                                    |
+
+### 分页规范
+
+`PaginatedResponse<T>` 现在包含 `total` 字段；`getUsersPaginated` / `getRoomsPaginated` 为真实现，`getUsers` / `getRooms` 为 `@deprecated` 委托层。
+
+### 相关文档
+
+Worker admin（独立前缀 `/_synapse/worker/v1`）参见 [`worker-admin.md`](./worker-admin.md)。

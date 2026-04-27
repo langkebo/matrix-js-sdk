@@ -10,6 +10,17 @@
 
 E2EE API 提供端到端加密功能，包括设备密钥管理、一次性密钥、跨设备签名、安全备份等。
 
+## 挂载版本
+
+| 前缀                 | 说明                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `/_matrix/client/r0` | 兼容核心 E2EE 路由：`keys/*`、`room_keys/request*`、`rooms/{room_id}/keys/distribution`、`sendToDevice`  |
+| `/_matrix/client/v1` | 与 r0 共享同一组兼容核心 E2EE 路由                                                                       |
+| `/_matrix/client/v3` | 兼容核心 E2EE 路由 + `device_verification/*`、`device_trust*`、`security/summary`、`keys/backup/secure*` |
+
+- 下文示例默认以 `v3` 展示。
+- 对于 `keys/upload`、`keys/query`、`keys/claim`、`keys/changes`、`room_keys/request*`、`sendToDevice` 等兼容接口，`r0`、`v1`、`v3` 的请求与响应结构保持一致。
+
 ---
 
 ## API 端点

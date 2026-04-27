@@ -4,7 +4,7 @@ import readline from "readline";
 import sdk, { ClientEvent, EventType, MsgType, RoomEvent } from "matrix-js-sdk";
 import { KnownMembership } from "matrix-js-sdk/lib/@types/membership.js";
 
-var myHomeServer = "http://localhost:8008";
+var myHomeServer = "http://localhost:28008";
 var myUserId = "@example:localhost";
 var myAccessToken = "QGV4YW1wbGU6bG9jYWxob3N0.qPEvLuYfNBjxikiCjP";
 

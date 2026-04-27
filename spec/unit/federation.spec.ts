@@ -45,18 +45,18 @@ describe("FederationManager", () => {
             expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
         });
 
-        it("should return cached blacklist on error", async () => {
+        it("should throw on error by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
-            const blacklist = await federationManager.getBlacklist();
-
-            expect(blacklist).toHaveLength(0);
+            await expect(federationManager.getBlacklist()).rejects.toThrow("Error");
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return cached blacklist on error when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
 
-            await expect(federationManager.getBlacklist(true)).rejects.toThrow("Boom");
+            const blacklist = await federationManager.getBlacklist(false);
+
+            expect(blacklist).toHaveLength(0);
         });
     });
 
@@ -167,18 +167,18 @@ describe("FederationManager", () => {
             await expect(federationManager.getServerStatus("")).rejects.toThrow("Server name is required");
         });
 
-        it("should return null on error", async () => {
+        it("should throw on error by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
-            const status = await federationManager.getServerStatus("example.org");
-
-            expect(status).toBeNull();
+            await expect(federationManager.getServerStatus("example.org")).rejects.toThrow("Error");
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return null on error when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
 
-            await expect(federationManager.getServerStatus("example.org", true)).rejects.toThrow("Boom");
+            const status = await federationManager.getServerStatus("example.org", false);
+
+            expect(status).toBeNull();
         });
     });
 
@@ -204,18 +204,18 @@ describe("FederationManager", () => {
             expect(cached).toHaveLength(1);
         });
 
-        it("should return cached on error", async () => {
+        it("should throw on error by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
-            const destinations = await federationManager.getFederationDestinations();
-
-            expect(destinations).toHaveLength(0);
+            await expect(federationManager.getFederationDestinations()).rejects.toThrow("Error");
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return cached destinations on error when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
 
-            await expect(federationManager.getFederationDestinations(true)).rejects.toThrow("Boom");
+            const destinations = await federationManager.getFederationDestinations(false);
+
+            expect(destinations).toHaveLength(0);
         });
     });
 
@@ -279,18 +279,18 @@ describe("FederationManager", () => {
             expect(version?.version).toBe("1.0.0");
         });
 
-        it("should return null on error", async () => {
+        it("should throw on error by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
-            const version = await federationManager.getServerVersion("example.org");
-
-            expect(version).toBeNull();
+            await expect(federationManager.getServerVersion("example.org")).rejects.toThrow("Error");
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return null on error when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
 
-            await expect(federationManager.getServerVersion("example.org", true)).rejects.toThrow("Boom");
+            const version = await federationManager.getServerVersion("example.org", false);
+
+            expect(version).toBeNull();
         });
     });
 
@@ -440,18 +440,18 @@ describe("FederationBlacklistManager", () => {
             expect(blacklist[0].serverName).toBe("evil1.example.com");
         });
 
-        it("should return cached blacklist on error", async () => {
+        it("should throw on error by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
 
-            const blacklist = await blacklistManager.getBlacklist();
-
-            expect(blacklist).toHaveLength(0);
+            await expect(blacklistManager.getBlacklist()).rejects.toThrow("Error");
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return cached blacklist on error when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
 
-            await expect(blacklistManager.getBlacklist(true)).rejects.toThrow("Boom");
+            const blacklist = await blacklistManager.getBlacklist(false);
+
+            expect(blacklist).toHaveLength(0);
         });
     });
 

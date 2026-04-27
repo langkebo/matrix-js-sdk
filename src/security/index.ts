@@ -24,6 +24,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
+import { logger } from "../logger";
 
 const ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
 
@@ -65,7 +66,8 @@ export class SecurityManager extends BaseManager {
                 suspended: response.suspended ?? false,
                 verified: response.verified ?? false,
             };
-        } catch {
+        } catch (e) {
+            logger.debug("SecurityManager.getAccountStatus failed", e);
             return null;
         }
     }
@@ -109,7 +111,8 @@ export class SecurityManager extends BaseManager {
                 }
             }
             return failures;
-        } catch {
+        } catch (e) {
+            logger.debug("SecurityManager.listLoginFailures failed", e);
             return [];
         }
     }

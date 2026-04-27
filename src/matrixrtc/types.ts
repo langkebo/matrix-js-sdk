@@ -56,7 +56,7 @@ export type OutboundEncryptionSession = {
     keyId: number;
 };
 
-export interface EncryptionKeysEventContent {
+export interface EncryptionKeysEventContent extends IContent {
     keys: EncryptionKeyEntry[];
     device_id: string;
     call_id: string;
@@ -66,7 +66,7 @@ export interface EncryptionKeysEventContent {
 /**
  * THe content of a to-device event that contains encryption keys.
  */
-export interface EncryptionKeysToDeviceEventContent {
+export interface EncryptionKeysToDeviceEventContent extends IContent {
     keys: { index: number; key: string };
     member: {
         id: string;
@@ -126,7 +126,8 @@ export function parseCallNotificationContent(content: IContent): IRTCNotificatio
         throw new Error("Missing or invalid lifetime");
     }
 
-    if (content["relation"] && content["relation"]["rel_type"] !== "m.reference") {
+    const relation = content["relation"] as { rel_type?: string } | undefined;
+    if (relation && relation.rel_type !== "m.reference") {
         throw new Error("Invalid relation");
     }
     if (content["m.call.intent"] && typeof content["m.call.intent"] !== "string") {

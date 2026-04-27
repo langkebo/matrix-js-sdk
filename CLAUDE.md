@@ -63,7 +63,7 @@ cd docs && python -m http.server 8005  # Serve docs locally
 
 - **MatrixClient** (`src/client.ts`): Main entry point, orchestrates all SDK functionality
 - **Manager Pattern**: Domain-specific managers handle specialized operations:
-    - `AdminManager` - Admin operations (user/room management)
+    - `AdminManager` - Admin operations (user/room management, server monitoring)
     - `AuthManager` - Authentication and registration
     - `DirectMessageManager` - DM-specific operations
     - `FriendManager` - Friend relationships
@@ -72,6 +72,39 @@ cd docs && python -m http.server 8005  # Serve docs locally
     - `KeyVerificationManager` - Cross-signing and device verification
     - `PresenceManager` - User presence
     - `PushManager` - Push notification rules
+
+### Admin Module Architecture
+
+The Admin module (`src/admin/`) provides comprehensive server management capabilities:
+
+**Core Components**:
+- `AdminManager` (`src/admin/index.ts`) - Main admin operations manager
+- `AdminValidators` (`src/admin/validators.ts`) - Input validation utilities
+- `AdminUtils` (`src/admin/utils.ts`) - Helper functions for query building
+
+**Key Features**:
+- **User Management**: Create, deactivate, reset passwords, manage devices
+- **Room Management**: List, delete, block rooms, manage members
+- **Server Management**: Monitor status, health, statistics
+- **Federation Management**: Blacklist servers, manage connections
+- **Notification Management**: Send server notices
+
+**Security**:
+- Input validation for all user IDs, room IDs, and parameters
+- Protection against injection attacks
+- Rate limiting support
+- Comprehensive error handling
+
+**API Design**:
+- Unified pagination format (`PaginatedResponse<T>`)
+- Consistent error types (`ValidationError`, `AuthError`, `NotFoundError`)
+- Backward compatibility with deprecated methods
+- Comprehensive JSDoc documentation with examples
+
+**Documentation**:
+- Usage guide: `docs/ADMIN_GUIDE.md`
+- API coverage: `docs/api-contract/ADMIN_SDK_COVERAGE_REPORT.md`
+- Version policy: `docs/VERSION_POLICY.md`
 
 ### Module Organization
 
@@ -163,6 +196,33 @@ See `docs/SDK真实服务器测试方案.md` for comprehensive testing documenta
 - Strict mode enabled
 - Node.js v22+ required
 
+### Code Quality Standards
+
+**Error Handling**:
+- ❌ Never use empty catch blocks: `catch {}`
+- ✅ Always log errors: `catch (error) { logger.warn("...", error); }`
+- ✅ Use typed errors: `ValidationError`, `AuthError`, `NotFoundError`, `ApiError`
+- ✅ Provide clear error messages
+
+**Input Validation**:
+- ✅ Validate all user inputs before processing
+- ✅ Use `AdminValidators` for user IDs, room IDs, limits
+- ✅ Throw `ValidationError` for invalid inputs
+- ✅ Document validation rules in JSDoc
+
+**API Design**:
+- ✅ Use consistent naming conventions (camelCase)
+- ✅ Use unified pagination format (`PaginatedResponse<T>`)
+- ✅ Mark deprecated methods with `@deprecated` tag
+- ✅ Provide migration paths for deprecated APIs
+- ✅ Add `@example` and `@throws` to all public methods
+
+**Type Safety**:
+- ❌ Avoid using `any` type
+- ✅ Define explicit interfaces for all data structures
+- ✅ Use generics for reusable components
+- ✅ Ensure all public APIs have proper type definitions
+
 ### Event Emitters
 
 The SDK uses EventEmitter pattern extensively:
@@ -198,6 +258,75 @@ When adding new manager functionality, follow the pattern in `src/manager-extens
 3. **Multiple entrypoints**: The SDK has multiple entry points - import from the correct one
 4. **Authenticated media**: Servers may require `Authorization` header for media endpoints
 5. **Crypto is not thread-safe**: Only one MatrixClient instance per IndexedDB at a time
+6. **Empty catch blocks**: Never use `catch {}` - always log errors explicitly
+7. **Input validation**: Always validate user inputs before processing (use `AdminValidators`)
+8. **Deprecated APIs**: Check for `@deprecated` tags and migrate to new APIs
+
+## Best Practices
+
+### For New Features
+
+1. **Input Validation**
+   ```typescript
+   import { AdminValidators } from "./admin/validators";
+   
+   async myMethod(userId: string) {
+       AdminValidators.validateUserId(userId);
+       // ... implementation
+   }
+   ```
+
+2. **Error Handling**
+   ```typescript
+   try {
+       // operation
+   } catch (error) {
+       logger.warn("Operation failed", error);
+       throw new ApiError("Failed to ...", "ERROR_CODE", 500, error);
+   }
+   ```
+
+3. **Documentation**
+   ```typescript
+   /**
+    * Method description
+    *
+    * @param userId - User ID (e.g., "@alice:example.com")
+    * @returns User details
+    *
+    * @example
+    * ```typescript
+    * const user = await manager.getUser("@alice:example.com");
+    * console.log(user.displayname);
+    * ```
+    *
+    * @throws {ValidationError} If user ID format is invalid
+    * @throws {AuthError} If authentication fails
+    */
+   ```
+
+4. **Testing**
+   - Add unit tests for all new methods
+   - Add boundary condition tests
+   - Test error handling paths
+   - Ensure 100% test coverage for critical paths
+
+### For Refactoring
+
+1. **Maintain Backward Compatibility**
+   - Mark old methods as `@deprecated`
+   - Provide migration path
+   - Keep old methods working for at least 2 minor versions
+
+2. **Extract Reusable Code**
+   - Use utility functions from `src/admin/utils.ts`
+   - Avoid code duplication
+   - Create helper functions for common patterns
+
+3. **Type Safety**
+   - Define explicit interfaces
+   - Avoid `any` type
+   - Use generics for reusable components
 
 ## API Contract Documentation
 

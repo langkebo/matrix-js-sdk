@@ -626,24 +626,24 @@ describe("DirectMessageManager", () => {
                 expect(result).toBe(false);
             });
 
-            it("should return false on 404 error", async () => {
+            it("should return false on 404 error when throwOnError is false", async () => {
                 const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
                 mockClient.http = {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                const result = await dmManager.isDmRoomFromServer("!unknown:example.com");
+                const result = await dmManager.isDmRoomFromServer("!unknown:example.com", false);
 
                 expect(result).toBe(false);
             });
 
-            it("should throw on 404 error when throwOnError is true", async () => {
+            it("should throw on 404 error by default", async () => {
                 const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
                 mockClient.http = {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                await expect(dmManager.isDmRoomFromServer("!unknown:example.com", true)).rejects.toThrow();
+                await expect(dmManager.isDmRoomFromServer("!unknown:example.com")).rejects.toThrow();
             });
 
             it("should throw error for empty roomId", async () => {
@@ -675,24 +675,24 @@ describe("DirectMessageManager", () => {
                 );
             });
 
-            it("should return null on 404 error", async () => {
+            it("should return null on 404 error when throwOnError is false", async () => {
                 const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
                 mockClient.http = {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                const result = await dmManager.getDmPartnerFromServer("!unknown:example.com");
+                const result = await dmManager.getDmPartnerFromServer("!unknown:example.com", false);
 
                 expect(result).toBeNull();
             });
 
-            it("should throw on 404 error when throwOnError is true", async () => {
+            it("should throw on 404 error by default", async () => {
                 const error = new MatrixError({ errcode: "M_NOT_FOUND" }, 404);
                 mockClient.http = {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                await expect(dmManager.getDmPartnerFromServer("!unknown:example.com", true)).rejects.toThrow();
+                await expect(dmManager.getDmPartnerFromServer("!unknown:example.com")).rejects.toThrow();
             });
 
             it("should throw error for empty roomId", async () => {
@@ -852,18 +852,18 @@ describe("DirectMessageManager", () => {
                 expect(room).toEqual(mockRoom);
             });
 
-            it("should return null for non-existent room", async () => {
+            it("should return null for non-existent room when throwOnError is false", async () => {
                 mockClient.getRoom.mockReturnValue(null);
 
-                const room = await dmManager.getDmRoom("!missing:example.com");
+                const room = await dmManager.getDmRoom("!missing:example.com", false);
 
                 expect(room).toBeNull();
             });
 
-            it("should throw NotFoundError for non-existent room when throwOnError is true", async () => {
+            it("should throw NotFoundError for non-existent room by default", async () => {
                 mockClient.getRoom.mockReturnValue(null);
 
-                await expect(dmManager.getDmRoom("!missing:example.com", true)).rejects.toThrow("DM room not found");
+                await expect(dmManager.getDmRoom("!missing:example.com")).rejects.toThrow("DM room not found");
             });
         });
 

@@ -246,7 +246,8 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
             );
 
             return response.exists === true;
-        } catch {
+        } catch (e) {
+            logger.debug("AppServiceManager.checkUser failed", e);
             return false;
         }
     }
@@ -262,7 +263,8 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
             );
 
             return response.exists === true;
-        } catch {
+        } catch (e) {
+            logger.debug("AppServiceManager.checkAlias failed", e);
             return false;
         }
     }

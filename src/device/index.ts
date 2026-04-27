@@ -33,8 +33,9 @@ import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError } from "../errors.ts";
+import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { AdminValidators } from "../admin/validators";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -165,6 +166,26 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
     /**
      * 获取所有设备
      *
+     * @param forceRefresh - 是否强制刷新缓存（默认 false）
+     * @returns 设备列表
+     *
+     * @example
+     * ```typescript
+     * // 获取所有设备
+     * const devices = await deviceManager.getDevices();
+     * devices.forEach(device => {
+     *     console.log(`Device: ${device.device_id}`);
+     *     console.log(`  Name: ${device.display_name}`);
+     *     console.log(`  Last seen: ${device.last_seen_ts}`);
+     * });
+     *
+     * // 强制刷新缓存
+     * const freshDevices = await deviceManager.getDevices(true);
+     * ```
+     *
+     * @throws {AuthError} 如果认证失败
+     * @throws {ApiError} 如果 API 调用失败
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:49-74
      */
     async getDevices(forceRefresh = false): Promise<IDevice[]> {
@@ -204,14 +225,34 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
      *
      * @param deviceId - 设备 ID
      * @param forceRefresh - 是否强制刷新
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 设备信息
+     *
+     * @example
+     * ```typescript
+     * // 获取设备详情
+     * const device = await deviceManager.getDevice("ABCDEFGH");
+     * if (device) {
+     *     console.log(`Device name: ${device.display_name}`);
+     *     console.log(`Last seen: ${new Date(device.last_seen_ts!)}`);
+     * }
+     *
+     * // 不抛出错误
+     * const device = await deviceManager.getDevice("INVALID", false, false);
+     * if (!device) {
+     *     console.log("Device not found");
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果设备 ID 为空
+     * @throws {NotFoundError} 如果设备不存在且 throwOnError 为 true
+     * @throws {ApiError} 如果 API 调用失败
      *
      * 后端实现: synapse-rust/src/web/routes/device.rs:77-103
      */
-    async getDevice(deviceId: string, forceRefresh = false, throwOnError = false): Promise<IDevice | null> {
+    async getDevice(deviceId: string, forceRefresh = false, throwOnError = true): Promise<IDevice | null> {
         if (!deviceId) {
-            throw new InvalidParamError("Device ID is required");
+            throw new ValidationError("Device ID is required");
         }
 
         if (!forceRefresh) {
@@ -311,11 +352,40 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
     /**
      * 删除设备
      *
+     * @param deviceId - 设备 ID
+     * @param authDict - 认证字典（用于 UIA）
+     *
+     * @example
+     * ```typescript
+     * // 删除设备
+     * try {
+     *     await deviceManager.deleteDevice("ABCDEFGH");
+     *     console.log("Device deleted successfully");
+     * } catch (error) {
+     *     if (error instanceof UIAError) {
+     *         // 需要用户交互认证
+     *         console.log("UIA required:", error.data);
+     *         // 提供认证信息后重试
+     *         await deviceManager.deleteDevice("ABCDEFGH", {
+     *             type: "m.login.password",
+     *             session: error.data.session,
+     *             user: "@alice:example.com",
+     *             password: "password"
+     *         });
+     *     }
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果设备 ID 为空
+     * @throws {InvalidParamError} 如果尝试删除当前设备
+     * @throws {UIAError} 如果需要用户交互认证
+     * @throws {ApiError} 如果 API 调用失败
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:135-153
      */
     async deleteDevice(deviceId: string, authDict?: IAuthDict): Promise<void> {
         if (!deviceId) {
-            throw new InvalidParamError("Device ID is required");
+            throw new ValidationError("Device ID is required");
         }
 
         if (deviceId === this.currentDeviceId) {

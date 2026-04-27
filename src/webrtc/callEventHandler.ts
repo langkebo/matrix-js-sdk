@@ -19,13 +19,32 @@ import { logger } from "../logger.ts";
 import { CallDirection, CallError, CallErrorCode, CallState, createNewMatrixCall, type MatrixCall } from "./call.ts";
 import { EventType } from "../@types/event.ts";
 import { ClientEvent, type MatrixClient } from "../client.ts";
-import { type MCallAnswer, type MCallHangupReject } from "./callEventTypes.ts";
+import { type MCallAnswer, type MCallBase, type MCallHangupReject } from "./callEventTypes.ts";
 import { type GroupCall, GroupCallErrorCode, GroupCallEvent, GroupCallUnknownDeviceError } from "./groupCall.ts";
 import { RoomEvent } from "../models/room.ts";
 
 // Don't ring unless we'd be ringing for at least 3 seconds: the user needs some
 // time to press the 'accept' button
 const RING_GRACE_PERIOD = 3000;
+
+type ToDeviceCallContent = Partial<MCallBase> & {
+    seq?: number;
+    device_id?: string;
+    invitee?: string;
+    lifetime?: number;
+};
+
+function getCallContent(event: MatrixEvent): ToDeviceCallContent {
+    return event.getContent<ToDeviceCallContent>();
+}
+
+function hasCallId(content: ToDeviceCallContent): content is ToDeviceCallContent & Pick<MCallBase, "call_id"> {
+    return typeof content.call_id === "string" && content.call_id.length > 0;
+}
+
+function hasSequence(content: ToDeviceCallContent): content is ToDeviceCallContent & { seq: number } {
+    return typeof content.seq === "number";
+}
 
 export enum CallEventHandlerEvent {
     Incoming = "Call.incoming",
@@ -86,6 +105,10 @@ export class CallEventHandler {
         this.client.removeListener(ClientEvent.ToDeviceEvent, this.onToDeviceEvent);
     }
 
+    private static hasEnded(call: MatrixCall): boolean {
+        return call.state === CallState.Ended;
+    }
+
     private onSync = (): void => {
         // Process the current event buffer and start queuing into a new one.
         const currentEventBuffer = this.callEventBuffer;
@@ -117,16 +140,19 @@ export class CallEventHandler {
             const eventType = event.getType();
 
             if (eventType === EventType.CallAnswer || eventType === EventType.CallHangup) {
-                ignoreCallIds.add(event.getContent().call_id);
+                const content = getCallContent(event);
+                if (hasCallId(content)) {
+                    ignoreCallIds.add(content.call_id);
+                }
             }
         }
 
         // Process call events in the order that they were received
         for (const event of callEvents) {
             const eventType = event.getType();
-            const callId = event.getContent().call_id;
+            const callId = getCallContent(event).call_id;
 
-            if (eventType === EventType.CallInvite && ignoreCallIds.has(callId)) {
+            if (eventType === EventType.CallInvite && callId && ignoreCallIds.has(callId)) {
                 // This call has previously been answered or hung up: ignore it
                 continue;
             }
@@ -144,9 +170,9 @@ export class CallEventHandler {
     };
 
     private onToDeviceEvent = (event: MatrixEvent): void => {
-        const content = event.getContent();
+        const content = getCallContent(event);
 
-        if (!content.call_id) {
+        if (!hasCallId(content)) {
             this.callEventBuffer.push(event);
             return;
         }
@@ -155,7 +181,7 @@ export class CallEventHandler {
             this.nextSeqByCall.set(content.call_id, 0);
         }
 
-        if (content.seq === undefined) {
+        if (!hasSequence(content)) {
             this.callEventBuffer.push(event);
             return;
         }
@@ -168,7 +194,7 @@ export class CallEventHandler {
             }
 
             const buffer = this.toDeviceEventBuffers.get(content.call_id)!;
-            const index = buffer.findIndex((e) => e.getContent().seq > content.seq);
+            const index = buffer.findIndex((e) => (getCallContent(e).seq ?? -1) > content.seq);
 
             if (index === -1) {
                 buffer.push(event);
@@ -184,9 +210,9 @@ export class CallEventHandler {
 
             let nextEvent = buffer && buffer.shift();
 
-            while (nextEvent && nextEvent.getContent().seq === this.nextSeqByCall.get(callId)) {
+            while (nextEvent && getCallContent(nextEvent).seq === this.nextSeqByCall.get(callId)) {
                 this.callEventBuffer.push(nextEvent);
-                this.nextSeqByCall.set(callId, nextEvent.getContent().seq + 1);
+                this.nextSeqByCall.set(callId, (getCallContent(nextEvent).seq ?? 0) + 1);
                 nextEvent = buffer!.shift();
             }
         }
@@ -195,13 +221,14 @@ export class CallEventHandler {
     private async handleCallEvent(event: MatrixEvent): Promise<void> {
         this.client.emit(ClientEvent.ReceivedVoipEvent, event);
 
-        const content = event.getContent();
+        const content = getCallContent(event);
+        const groupCallId = typeof content.conf_id === "string" ? content.conf_id : undefined;
         const callRoomId =
-            event.getRoomId() || this.client.groupCallEventHandler!.getGroupCallById(content.conf_id)?.room?.roomId;
-        const groupCallId = content.conf_id;
+            event.getRoomId() || (groupCallId ? this.client.groupCallEventHandler!.getGroupCallById(groupCallId)?.room?.roomId : undefined);
         const type = event.getType() as EventType;
         const senderId = event.getSender()!;
-        let call = content.call_id ? this.calls.get(content.call_id) : undefined;
+        const callId = hasCallId(content) ? content.call_id : undefined;
+        let call = callId ? this.calls.get(callId) : undefined;
 
         let opponentDeviceId: string | undefined;
 
@@ -216,7 +243,7 @@ export class CallEventHandler {
                 return;
             }
 
-            opponentDeviceId = content.device_id;
+            opponentDeviceId = typeof content.device_id === "string" ? content.device_id : undefined;
 
             if (!opponentDeviceId) {
                 logger.warn(
@@ -226,7 +253,7 @@ export class CallEventHandler {
                 return;
             }
 
-            if (content.dest_session_id !== this.client.getSessionId()) {
+            if (typeof content.dest_session_id !== "string" || content.dest_session_id !== this.client.getSessionId()) {
                 logger.warn(
                     "CallEventHandler handleCallEvent() call event does not match current session id - ignoring",
                 );
@@ -241,6 +268,10 @@ export class CallEventHandler {
         if (!callRoomId) return;
 
         if (type === EventType.CallInvite) {
+            if (!callId || typeof content.lifetime !== "number") {
+                logger.warn("CallEventHandler handleCallEvent() ignoring malformed invite without call_id/lifetime");
+                return;
+            }
             // ignore invites you send
             if (weSentTheEvent) return;
             // expired call
@@ -254,7 +285,7 @@ export class CallEventHandler {
                 );
             }
 
-            if (content.invitee && content.invitee !== this.client.getUserId()) {
+            if (typeof content.invitee === "string" && content.invitee !== this.client.getUserId()) {
                 return; // This invite was meant for another user in the room
             }
 
@@ -267,7 +298,7 @@ export class CallEventHandler {
                     forceTURN: this.client.forceTURN,
                     opponentDeviceId,
                     groupCallId,
-                    opponentSessionId: content.sender_session_id,
+                    opponentSessionId: typeof content.sender_session_id === "string" ? content.sender_session_id : undefined,
                 }) ?? undefined;
             if (!call) {
                 logger.log(
@@ -279,14 +310,14 @@ export class CallEventHandler {
                 return;
             }
 
-            call.callId = content.call_id;
+            call.callId = callId;
             const stats = groupCall?.getGroupCallStats();
             if (stats) {
                 call.initStats(stats);
             }
 
             try {
-                await call.initWithInvite(event);
+                await call.initWithInvite(event, false);
             } catch (e) {
                 if (e instanceof CallError) {
                     if (e.code === GroupCallErrorCode.UnknownDevice) {
@@ -344,10 +375,14 @@ export class CallEventHandler {
 
             if (!call) {
                 // store the candidates; we may get a call eventually.
-                if (!this.candidateEventsByCall.has(content.call_id)) {
-                    this.candidateEventsByCall.set(content.call_id, []);
+                if (!callId) {
+                    logger.warn("CallEventHandler handleCallEvent() ignoring candidate event without call_id");
+                    return;
                 }
-                this.candidateEventsByCall.get(content.call_id)!.push(event);
+                if (!this.candidateEventsByCall.has(callId)) {
+                    this.candidateEventsByCall.set(callId, []);
+                }
+                this.candidateEventsByCall.get(callId)!.push(event);
             } else {
                 call.onRemoteIceCandidatesReceived(event);
             }
@@ -356,31 +391,34 @@ export class CallEventHandler {
             // Note that we also observe our own hangups here so we can see
             // if we've already rejected a call that would otherwise be valid
             if (!call) {
+                if (!callId) {
+                    logger.warn("CallEventHandler handleCallEvent() ignoring hangup/reject event without call_id");
+                    return;
+                }
                 // if not live, store the fact that the call has ended because
                 // we're probably getting events backwards so
                 // the hangup will come before the invite
                 call =
                     createNewMatrixCall(this.client, callRoomId, {
                         opponentDeviceId,
-                        opponentSessionId: content.sender_session_id,
+                        opponentSessionId: typeof content.sender_session_id === "string" ? content.sender_session_id : undefined,
                     }) ?? undefined;
                 if (call) {
-                    call.callId = content.call_id;
+                    call.callId = callId;
                     call.initWithHangup(event);
-                    this.calls.set(content.call_id, call);
+                    this.calls.set(callId, call);
                 }
             } else {
                 if (call.state !== CallState.Ended) {
                     if (type === EventType.CallHangup) {
-                        call.onHangupReceived(content as MCallHangupReject);
+                        call.onHangupReceived(event.getContent<MCallHangupReject>());
                     } else {
-                        call.onRejectReceived(content as MCallHangupReject);
+                        call.onRejectReceived(event.getContent<MCallHangupReject>());
                     }
 
-                    // @ts-expect-error typescript thinks the state can't be 'ended' because we're
-                    // inside the if block where it wasn't, but it could have changed because
-                    // on[Hangup|Reject]Received are side-effecty.
-                    if (call.state === CallState.Ended) this.calls.delete(content.call_id);
+                    if (callId && CallEventHandler.hasEnded(call)) {
+                        this.calls.delete(callId);
+                    }
                 }
             }
             return;
@@ -394,13 +432,13 @@ export class CallEventHandler {
             return;
         }
         // Ignore remote echo
-        if (event.getContent().party_id === call.ourPartyId) return;
+        if (content.party_id === call.ourPartyId) return;
 
         switch (type) {
             case EventType.CallAnswer:
                 if (weSentTheEvent) {
                     if (call.state === CallState.Ringing) {
-                        call.onAnsweredElsewhere(content as MCallAnswer);
+                        call.onAnsweredElsewhere(event.getContent<MCallAnswer>());
                     }
                 } else {
                     call.onAnswerReceived(event);

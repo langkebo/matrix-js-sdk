@@ -7,13 +7,34 @@ describe("MediaQuotaManager", () => {
     let manager: MediaQuotaManager;
 
     beforeEach(() => {
+        const authedRequest = vi.fn().mockImplementation((_method: string, path: string) => {
+            if (path === "/quota/stats") {
+                return Promise.resolve({
+                    user_id: "@me:hs",
+                    storage_bytes: 500,
+                    media_count: 2,
+                    limit_bytes: 2000,
+                });
+            }
+            if (path === "/quota/check") {
+                return Promise.resolve({
+                    limit: 2000,
+                    used: 500,
+                    remaining: 1500,
+                    rule: "user_quota",
+                });
+            }
+            if (path === "/quota/alerts") {
+                return Promise.resolve({ alerts: [{ alert_id: "a1" }] });
+            }
+            return Promise.resolve({});
+        });
         mockClient = {
             getMediaConfig: vi.fn().mockResolvedValue({ "m.upload.size": 1234 }),
             getUserId: vi.fn().mockReturnValue("@me:hs"),
-            getUserStorageUsage: vi.fn().mockResolvedValue({ size: 500, ntFiles: 2 }),
             getRoom: vi.fn(),
             http: {
-                authedRequest: vi.fn().mockResolvedValue({ alerts: [{ alert_id: "a1" }] }),
+                authedRequest,
             },
         };
         manager = new MediaQuotaManager(mockClient);
@@ -29,9 +50,10 @@ describe("MediaQuotaManager", () => {
     it("handles usage and derived metrics", async () => {
         await expect(manager.getUserStorageUsage()).resolves.toEqual({ size: 500, ntFiles: 2 });
         await expect(manager.getUsedStorage()).resolves.toBe(500);
-        await expect(manager.getStorageQuota()).resolves.toBe(500);
-        await expect(manager.getStorageUsagePercent()).resolves.toBe(100);
-        await expect(manager.hasStorageSpace(10000)).resolves.toBe(true);
+        await expect(manager.getStorageQuota()).resolves.toBe(2000);
+        await expect(manager.getStorageUsagePercent()).resolves.toBe(25);
+        await expect(manager.hasStorageSpace(1000)).resolves.toBe(true);
+        await expect(manager.hasStorageSpace(2000)).resolves.toBe(false);
 
         mockClient.getUserId.mockReturnValue(null);
         await expect(manager.getUserStorageUsage()).resolves.toBeNull();
@@ -47,6 +69,9 @@ describe("MediaQuotaManager", () => {
         });
         await expect(manager.getRoomMediaSize("!r:hs")).resolves.toBe(300);
         await expect(manager.getQuotaAlerts()).resolves.toEqual([{ alert_id: "a1" }]);
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/quota/alerts", undefined, undefined, {
+            prefix: "/_matrix/media/v1",
+        });
 
         mockClient.getRoom.mockReturnValue(undefined);
         await expect(manager.getRoomMediaSize("!missing:hs")).resolves.toBe(0);
@@ -55,13 +80,18 @@ describe("MediaQuotaManager", () => {
     it("uses fallback values for swallowed errors", async () => {
         const e = new Error("boom");
         mockClient.getMediaConfig.mockRejectedValue(e);
-        await expect(manager.getUploadSizeLimit()).resolves.toBe(10 * 1024 * 1024);
-        await expect(manager.getUploadFileSizeLimit()).resolves.toBe(10 * 1024 * 1024);
-        await expect(manager.getUploadSizeLimit(true)).rejects.toThrow("boom");
+        await expect(manager.getUploadSizeLimit(false)).resolves.toBe(10 * 1024 * 1024);
+        await expect(manager.getUploadFileSizeLimit(false)).resolves.toBe(10 * 1024 * 1024);
+        await expect(manager.getUploadSizeLimit()).rejects.toThrow("boom");
+        await expect(manager.isFileSizeAllowed(1)).resolves.toBe(true);
 
         mockClient.getUserId.mockReturnValue("@me:hs");
-        mockClient.getUserStorageUsage.mockRejectedValue(e);
-        await expect(manager.getUserStorageUsage()).resolves.toBeNull();
-        await expect(manager.getUserStorageUsage(true)).rejects.toThrow("boom");
+        mockClient.http.authedRequest.mockRejectedValue(e);
+        await expect(manager.getUserStorageUsage(false)).resolves.toBeNull();
+        await expect(manager.getUserStorageUsage()).rejects.toThrow("boom");
+        await expect(manager.getStorageQuota()).resolves.toBe(0);
+        await expect(manager.getStorageUsagePercent()).resolves.toBe(0);
+        await expect(manager.hasStorageSpace(1)).resolves.toBe(true);
+        await expect(manager.getUsedStorage()).resolves.toBe(0);
     });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { WidgetManager } from "../../src/widget/index";
+import { WidgetEvent, WidgetManager } from "../../src/widget/index";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("WidgetManager", () => {
@@ -47,11 +47,23 @@ describe("WidgetManager", () => {
             expect(result).toEqual([]);
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should emit WidgetError and return empty array when fallback mode is enabled", async () => {
+            const errorSpy = vi.fn();
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Room not found" }, 404, undefined);
+            widgetManager.on(WidgetEvent.WidgetError, errorSpy);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(widgetManager.getRoomWidgets("!room:example.com", false)).resolves.toEqual([]);
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            expect(errorSpy.mock.calls[0][0]).toBe("!room:example.com");
+            expect(errorSpy.mock.calls[0][1]).toBeUndefined();
+        });
+
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Room not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getRoomWidgets("!room:example.com", true)).rejects.toThrow();
+            await expect(widgetManager.getRoomWidgets("!room:example.com")).rejects.toThrow();
         });
 
         it("should throw error when roomId is missing", async () => {
@@ -108,11 +120,16 @@ describe("WidgetManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should emit WidgetError and throw by default", async () => {
+            const errorSpy = vi.fn();
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Widget not found" }, 404, undefined);
+            widgetManager.on(WidgetEvent.WidgetError, errorSpy);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getWidget("widget1", true)).rejects.toThrow();
+            await expect(widgetManager.getWidget("widget1")).rejects.toThrow();
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            expect(errorSpy.mock.calls[0][0]).toBeUndefined();
+            expect(errorSpy.mock.calls[0][1]).toBe("widget1");
         });
 
         it("should throw error when widgetId is missing", async () => {
@@ -147,11 +164,11 @@ describe("WidgetManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Widget not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getWidgetConfig("widget1", true)).rejects.toThrow();
+            await expect(widgetManager.getWidgetConfig("widget1")).rejects.toThrow();
         });
     });
 
@@ -178,11 +195,11 @@ describe("WidgetManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Room not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getJitsiConfig("!room:example.com", true)).rejects.toThrow();
+            await expect(widgetManager.getJitsiConfig("!room:example.com")).rejects.toThrow();
         });
     });
 
@@ -208,11 +225,36 @@ describe("WidgetManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Widget not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getWidgetPermissions("widget1", true)).rejects.toThrow();
+            await expect(widgetManager.getWidgetPermissions("widget1")).rejects.toThrow();
+        });
+    });
+
+    describe("setWidgetPermission", () => {
+        it("should emit WidgetError and return null when fallback mode is enabled", async () => {
+            const errorSpy = vi.fn();
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            widgetManager.on(WidgetEvent.WidgetError, errorSpy);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(
+                widgetManager.setWidgetPermission("widget1", "@user:example.com", ["send_message"], false),
+            ).resolves.toBeNull();
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            expect(errorSpy.mock.calls[0][0]).toBeUndefined();
+            expect(errorSpy.mock.calls[0][1]).toBe("widget1");
+        });
+
+        it("should throw error by default", async () => {
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(
+                widgetManager.setWidgetPermission("widget1", "@user:example.com", ["send_message"]),
+            ).rejects.toThrow();
         });
     });
 
@@ -234,11 +276,54 @@ describe("WidgetManager", () => {
             expect(result).toBe(false);
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Widget not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.deleteWidgetPermission("widget1", "@user:example.com", true)).rejects.toThrow();
+            await expect(widgetManager.deleteWidgetPermission("widget1", "@user:example.com")).rejects.toThrow();
+        });
+    });
+
+    describe("createWidgetSession", () => {
+        it("should omit optional fields when options are not provided", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                session: {
+                    session_id: "session1",
+                    widget_id: "widget1",
+                    user_id: "@user:example.com",
+                    device_id: null,
+                    expires_at: 1234567890,
+                },
+            });
+
+            await widgetManager.createWidgetSession("widget1");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/widgets/widget1/sessions",
+                undefined,
+                { widget_id: "widget1" },
+                { prefix: "/_matrix/client/v1" },
+            );
+        });
+
+        it("should emit WidgetError and return null when fallback mode is enabled", async () => {
+            const errorSpy = vi.fn();
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            widgetManager.on(WidgetEvent.WidgetError, errorSpy);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(widgetManager.createWidgetSession("widget1", undefined, false)).resolves.toBeNull();
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            expect(errorSpy.mock.calls[0][0]).toBeUndefined();
+            expect(errorSpy.mock.calls[0][1]).toBe("widget1");
+        });
+
+        it("should throw error by default", async () => {
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(widgetManager.createWidgetSession("widget1")).rejects.toThrow();
         });
     });
 
@@ -267,11 +352,11 @@ describe("WidgetManager", () => {
             expect(result).toEqual([]);
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Widget not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getWidgetSessions("widget1", true)).rejects.toThrow();
+            await expect(widgetManager.getWidgetSessions("widget1")).rejects.toThrow();
         });
     });
 
@@ -300,11 +385,152 @@ describe("WidgetManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Session not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.getWidgetSession("session1", true)).rejects.toThrow();
+            await expect(widgetManager.getWidgetSession("session1")).rejects.toThrow();
+        });
+    });
+
+    describe("getWidgetCapabilities", () => {
+        it("should return widget capabilities successfully", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                capabilities: ["org.matrix.msc2762.receive.state_event:m.room.member"],
+            });
+
+            const result = await widgetManager.getWidgetCapabilities("!room:example.com", "widget1");
+
+            expect(result).toEqual({
+                capabilities: ["org.matrix.msc2762.receive.state_event:m.room.member"],
+            });
+        });
+
+        it("should emit WidgetError and throw when capabilities lookup fails", async () => {
+            const errorSpy = vi.fn();
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Widget not found" }, 404, undefined);
+            widgetManager.on(WidgetEvent.WidgetError, errorSpy);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(widgetManager.getWidgetCapabilities("!room:example.com", "widget1")).rejects.toThrow();
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            expect(errorSpy.mock.calls[0][0]).toBe("!room:example.com");
+            expect(errorSpy.mock.calls[0][1]).toBe("widget1");
+        });
+
+        it("should call the v3 capability endpoint", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                capabilities: [],
+            });
+
+            await widgetManager.getWidgetCapabilities("!room:example.com", "widget1");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/rooms/${encodeURIComponent("!room:example.com")}/widgets/${encodeURIComponent("widget1")}/capabilities`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("setWidgetCapabilities", () => {
+        it("should update widget capabilities successfully", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                capabilities: ["org.matrix.msc2762.send.event:m.room.message"],
+            });
+
+            const result = await widgetManager.setWidgetCapabilities("!room:example.com", "widget1", [
+                "org.matrix.msc2762.send.event:m.room.message",
+            ]);
+
+            expect(result).toEqual({
+                capabilities: ["org.matrix.msc2762.send.event:m.room.message"],
+            });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "PUT",
+                `/rooms/${encodeURIComponent("!room:example.com")}/widgets/${encodeURIComponent("widget1")}/capabilities`,
+                undefined,
+                { capabilities: ["org.matrix.msc2762.send.event:m.room.message"] },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("sendWidgetMessage", () => {
+        it("should return widget message response successfully", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                event_id: "$event",
+                widget_id: "widget1",
+                room_id: "!room:example.com",
+                type: "ping",
+                content: { api: "widget", ok: true },
+            });
+
+            const result = await widgetManager.sendWidgetMessage("!room:example.com", "widget1", {
+                api: "widget",
+                action: "ping",
+                data: { ok: true },
+            });
+
+            expect(result.eventId).toBe("$event");
+            expect(result.widgetId).toBe("widget1");
+            expect(result.roomId).toBe("!room:example.com");
+            expect(result.type).toBe("ping");
+            expect(result.content).toEqual({ api: "widget", ok: true });
+            expect(result.requestId).toBeDefined();
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/rooms/${encodeURIComponent("!room:example.com")}/widgets/${encodeURIComponent("widget1")}/send`,
+                undefined,
+                {
+                    type: "ping",
+                    content: { api: "widget", ok: true },
+                },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should emit WidgetError and throw when sending a widget message fails", async () => {
+            const errorSpy = vi.fn();
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            widgetManager.on(WidgetEvent.WidgetError, errorSpy);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(
+                widgetManager.sendWidgetMessage("!room:example.com", "widget1", {
+                    api: "widget",
+                    action: "ping",
+                }),
+            ).rejects.toThrow();
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            expect(errorSpy.mock.calls[0][0]).toBe("!room:example.com");
+            expect(errorSpy.mock.calls[0][1]).toBe("widget1");
+        });
+
+        it("should support direct type and content payloads", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                event_id: "$event",
+                type: "m.room.message",
+                content: { body: "hello" },
+            });
+
+            await widgetManager.sendWidgetMessage("!room:example.com", "widget1", {
+                type: "m.room.message",
+                content: { body: "hello" },
+            });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/rooms/${encodeURIComponent("!room:example.com")}/widgets/${encodeURIComponent("widget1")}/send`,
+                undefined,
+                {
+                    type: "m.room.message",
+                    content: { body: "hello" },
+                },
+                { prefix: "/_matrix/client/v3" },
+            );
         });
     });
 
@@ -326,11 +552,11 @@ describe("WidgetManager", () => {
             expect(result).toBe(false);
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Session not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(widgetManager.terminateWidgetSession("session1", true)).rejects.toThrow();
+            await expect(widgetManager.terminateWidgetSession("session1")).rejects.toThrow();
         });
     });
 });

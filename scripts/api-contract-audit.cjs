@@ -275,6 +275,73 @@ function normalizePathLiteral(text) {
     return trimmed;
 }
 
+function splitTableCells(line) {
+    if (!line.trim().startsWith("|")) return [];
+    return line
+        .split("|")
+        .slice(1, -1)
+        .map((cell) => cell.trim());
+}
+
+function isTableDividerRow(cells) {
+    return (
+        cells.length > 0 &&
+        cells.every((cell) => {
+            const normalized = cell.replace(/\s+/g, "");
+            return normalized.length > 0 && /^:?-{3,}:?$/.test(normalized);
+        })
+    );
+}
+
+function parseTableMethodCell(cell) {
+    const normalized = cell.replace(/`/g, "").replace(/\s+/g, "");
+    if (!/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)(\/(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS))*$/.test(normalized)) {
+        return undefined;
+    }
+    return normalized.split("/").map((method) => canonicalizeMethod(method));
+}
+
+function parseTablePathCell(cell) {
+    const codeSpanMatch = cell.match(/`([^`]+)`/);
+    const candidate = normalizePathLiteral(codeSpanMatch ? codeSpanMatch[1] : cell);
+    return typeof candidate === "string" && candidate.startsWith("/") ? candidate : undefined;
+}
+
+function extractEndpointsFromTableLine(line, contract) {
+    const cells = splitTableCells(line);
+    if (cells.length === 0 || isTableDividerRow(cells)) return [];
+
+    const endpoints = [];
+    for (const cell of cells) {
+        for (const match of cell.matchAll(/`([A-Z]+(?:\/[A-Z]+)*)\s+([^`\s][^`]*)`/g)) {
+            const methods = match[1]
+                .split("/")
+                .map((item) => canonicalizeMethod(item.trim()))
+                .filter(Boolean);
+            const endpointPath = normalizePathLiteral(match[2]);
+            if (!endpointPath || !endpointPath.startsWith("/")) continue;
+            for (const method of methods) {
+                endpoints.push({
+                    contract,
+                    method,
+                    path: endpointPath,
+                });
+            }
+        }
+    }
+    if (endpoints.length > 0) return endpoints;
+
+    const methods = parseTableMethodCell(cells[0]);
+    const endpointPath = cells.length > 1 ? parseTablePathCell(cells[1]) : undefined;
+    if (!methods || !endpointPath) return [];
+
+    return methods.map((method) => ({
+        contract,
+        method,
+        path: endpointPath,
+    }));
+}
+
 function expandContractPath(contractPath) {
     if (!contractPath.includes("{")) return [contractPath];
     let paths = [contractPath];
@@ -333,25 +400,200 @@ function normalizePathForMatch(p) {
     return s;
 }
 
+function classifyRouteFamily(p) {
+    if (typeof p !== "string") {
+        return {
+            family: "unknown",
+            suffix: undefined,
+        };
+    }
+
+    const normalizedPath = normalizePathForMatch(p);
+    if (!normalizedPath) {
+        return {
+            family: "unknown",
+            suffix: undefined,
+        };
+    }
+
+    const matchers = [
+        {
+            family: "client-stable",
+            regex: /^\/_matrix\/client\/(?:\{\}|\{stable\}|r0|v1|v3)(?=\/|$)/,
+        },
+        {
+            family: "client-unstable",
+            regex: /^\/_matrix\/client\/unstable\/[^/]+(?=\/|$)/,
+        },
+        {
+            family: "media-stable",
+            regex: /^\/_matrix\/media\/(?:\{\}|\{stable\}|r0|v1|v3)(?=\/|$)/,
+        },
+        {
+            family: "identity-stable",
+            regex: /^\/_matrix\/identity\/(?:\{\}|\{stable\}|v1|v2)(?=\/|$)/,
+        },
+        {
+            family: "admin-v1",
+            regex: /^\/_synapse\/admin\/v1(?=\/|$)/,
+        },
+        {
+            family: "app-v1",
+            regex: /^\/_matrix\/app\/v1(?=\/|$)/,
+        },
+    ];
+
+    for (const matcher of matchers) {
+        const matched = normalizedPath.match(matcher.regex);
+        if (!matched) continue;
+        const suffix = normalizedPath.slice(matched[0].length) || "/";
+        return {
+            family: matcher.family,
+            suffix,
+        };
+    }
+
+    return {
+        family: "relative",
+        suffix: normalizedPath,
+    };
+}
+
+function contractPreferredRouteFamilies(contract) {
+    const basename = String(contract ?? "")
+        .replace(/\.md$/i, "")
+        .toLowerCase();
+
+    if (basename.includes("media")) {
+        return new Set(["media-stable", "client-stable"]);
+    }
+
+    if (basename.includes("identity")) {
+        return new Set(["identity-stable"]);
+    }
+
+    if (basename.includes("admin")) {
+        return new Set(["admin-v1"]);
+    }
+
+    if (basename.includes("appservice")) {
+        return new Set(["app-v1"]);
+    }
+
+    return new Set(["client-stable"]);
+}
+
+function buildRouteAliasGroups(contractRecords, requestRecords) {
+    const requestByAliasKey = new Map();
+    for (const record of requestRecords) {
+        if (!record.route?.suffix || !record.route?.family || record.route.family === "relative") continue;
+        const aliasKey = `${record.method} ${record.route.suffix}`;
+        const existing = requestByAliasKey.get(aliasKey) ?? [];
+        existing.push(record);
+        requestByAliasKey.set(aliasKey, existing);
+    }
+
+    const groupedMissingKeys = new Set();
+    const groupedExtraKeys = new Set();
+    const aliasGroups = [];
+
+    for (const record of contractRecords) {
+        if (record.route?.family !== "relative" || !record.route?.suffix) continue;
+        if (requestRecords.some((item) => item.key === record.key)) continue;
+
+        const aliasKey = `${record.method} ${record.route.suffix}`;
+        const candidates = (requestByAliasKey.get(aliasKey) ?? []).filter((candidate) =>
+            contractPreferredRouteFamilies(record.contract).has(candidate.route.family),
+        );
+        if (candidates.length === 0) continue;
+
+        groupedMissingKeys.add(record.key);
+        for (const candidate of candidates) {
+            groupedExtraKeys.add(candidate.key);
+        }
+
+        aliasGroups.push({
+            contract: record.contract,
+            aliasRoute: record.key,
+            canonicalRoutes: [...new Set(candidates.map((candidate) => candidate.key))].sort(),
+        });
+    }
+
+    return {
+        aliasGroups: aliasGroups.sort((a, b) => a.aliasRoute.localeCompare(b.aliasRoute)),
+        groupedMissingKeys,
+        groupedExtraKeys,
+    };
+}
+
 function extractContractEndpoints(filePath) {
+    const contract = path.basename(filePath);
+    const endpointKeys = new Set();
     const endpoints = [];
     const content = fs.readFileSync(filePath, "utf8");
+    const pushEndpoint = (method, endpointPath) => {
+        const key = `${method} ${endpointPath}`;
+        if (endpointKeys.has(key)) return;
+        endpointKeys.add(key);
+        endpoints.push({
+            contract,
+            method,
+            path: endpointPath,
+        });
+    };
+    let inCodeFence = false;
     for (const line of content.split(/\r?\n/)) {
-        const match = line.match(/^\|\s*([A-Z\/]+)\s*\|\s*`([^`]+)`\s*\|/);
-        if (!match) continue;
-        const methods = match[1]
-            .split("/")
-            .map((item) => item.trim())
-            .filter(Boolean);
-        for (const method of methods) {
-            endpoints.push({
-                contract: path.basename(filePath),
-                method,
-                path: match[2],
-            });
+        if (line.trimStart().startsWith("```")) {
+            inCodeFence = !inCodeFence;
+            continue;
         }
+
+        const tableEndpoints = extractEndpointsFromTableLine(line, contract);
+        if (tableEndpoints.length > 0) {
+            for (const endpoint of tableEndpoints) {
+                pushEndpoint(endpoint.method, endpoint.path);
+            }
+            continue;
+        }
+
+        if (!inCodeFence) continue;
+
+        const codeBlockMatch = line.trim().match(/^([A-Z]+)\s+([/][^\s]*)$/);
+        if (!codeBlockMatch) continue;
+
+        pushEndpoint(codeBlockMatch[1], codeBlockMatch[2]);
     }
     return endpoints;
+}
+
+function getRequestCallMetadata(expression) {
+    if (ts.isPropertyAccessExpression(expression)) {
+        return {
+            callee: expression.name.text,
+            isPropertyCall: true,
+        };
+    }
+
+    if (ts.isIdentifier(expression)) {
+        return {
+            callee: expression.text,
+            isPropertyCall: false,
+        };
+    }
+
+    return undefined;
+}
+
+function isTrackedRequestCall(callee) {
+    return ["authedRequest", "request", "requestOtherUrl"].includes(callee);
+}
+
+function getRequestCallPrefixVariants(callee, args, sourceFile, node) {
+    if (callee === "requestOtherUrl") {
+        return [undefined];
+    }
+
+    return resolvePrefixVariants(args[4], sourceFile, node) ?? [undefined];
 }
 
 function scanSourceFile(filePath) {
@@ -369,19 +611,16 @@ function scanSourceFile(filePath) {
             }
         }
 
-        if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
-            const callee = node.expression.name.text;
-            if (["authedRequest", "request", "requestOtherUrl"].includes(callee)) {
+        if (ts.isCallExpression(node)) {
+            const callMetadata = getRequestCallMetadata(node.expression);
+            if (callMetadata && isTrackedRequestCall(callMetadata.callee)) {
                 const args = node.arguments;
                 const methods = resolveMethodVariants(args[0], sourceFile, node) ?? [];
                 const requestPathExpr = args[1]?.getText(sourceFile);
                 const requestPathVariants = (resolveStringVariants(args[1], sourceFile, node) ?? [])
                     .map(normalizePathLiteral)
                     .filter(Boolean);
-                const prefixExprs =
-                    callee === "requestOtherUrl"
-                        ? [undefined]
-                        : (resolvePrefixVariants(args[4], sourceFile, node) ?? [undefined]);
+                const prefixExprs = getRequestCallPrefixVariants(callMetadata.callee, args, sourceFile, node);
 
                 for (const method of methods) {
                     for (const requestPath of requestPathVariants) {
@@ -391,7 +630,7 @@ function scanSourceFile(filePath) {
                             const prefix = resolvePrefix(prefixExpr);
                             const effectivePrefix =
                                 prefix ??
-                                (callee === "requestOtherUrl" || pathIncludesAbsolutePrefix
+                                (callMetadata.callee === "requestOtherUrl" || pathIncludesAbsolutePrefix
                                     ? undefined
                                     : PREFIX_MAP["ClientPrefix.V3"]);
                             if (
@@ -409,7 +648,7 @@ function scanSourceFile(filePath) {
                                 effectivePrefix !== "";
                             requestCalls.push({
                                 file: path.relative(repoRoot, filePath),
-                                callee,
+                                callee: callMetadata.callee,
                                 method,
                                 path: requestPathExpr,
                                 normalizedPath: requestPath,
@@ -434,27 +673,36 @@ function scanSourceFile(filePath) {
 function scanManagerDeclarations() {
     const file = path.join(srcRoot, "matrix-client-extensions.d.ts");
     const content = fs.readFileSync(file, "utf8");
-    return [...content.matchAll(/\b(get[A-Z][A-Za-z0-9]+Manager)\(\):/g)].map((match) => match[1]);
+    return [...content.matchAll(/^\s*(get[A-Z][A-Za-z0-9]+Manager)\([\s\S]*?\):/gm)].map((match) => match[1]);
 }
 
 function scanDefaultManagerModules() {
     const file = path.join(srcRoot, "manager-extensions", "index.ts");
     const content = fs.readFileSync(file, "utf8");
-    return [...content.matchAll(/import\("\.\.\/([^"]+?)(?:\/index)?"\)\.then\(m => m\.extendMatrixClient\(\)\)/g)].map(
-        (match) => match[1],
-    );
+    return [
+        ...content.matchAll(
+            /import\("\.\.\/([^"]+?)(?:\/index)?\.js"\)\.then\(\(m\)\s*=>\s*m\.extendMatrixClient\(\)\)/g,
+        ),
+    ].map((match) => match[1]);
 }
 
 function main() {
-    const contractFiles = walk(
+    const contractFileCandidates = walk(
         contractsRoot,
         (filePath) =>
             filePath.endsWith(".md") &&
             !["README.md", "CHANGELOG.md", "VERIFICATION_REPORT.md"].includes(path.basename(filePath)),
     );
+    const contractFileSummaries = contractFileCandidates
+        .map((filePath) => ({
+            filePath,
+            endpoints: extractContractEndpoints(filePath),
+        }))
+        .filter((item) => item.endpoints.length > 0);
+    const contractFiles = contractFileSummaries.map((item) => item.filePath);
     const sourceFiles = walk(srcRoot, (filePath) => filePath.endsWith(".ts") || filePath.endsWith(".d.ts"));
 
-    const contractEndpoints = contractFiles.flatMap(extractContractEndpoints);
+    const contractEndpoints = contractFileSummaries.flatMap((item) => item.endpoints);
     const sourceScan = sourceFiles.map(scanSourceFile);
     const requestCalls = sourceScan.flatMap((item) => item.requestCalls);
     const implementedManagers = [...new Set(sourceScan.flatMap((item) => item.managerPrototypeMethods))].sort();
@@ -467,42 +715,67 @@ function main() {
 
     const contractKeys = new Set();
     const contractMatchKeys = new Set();
+    const contractMatchRecords = [];
     for (const ep of contractEndpoints) {
         const method = canonicalizeMethod(ep.method);
         for (const p0 of expandContractPath(ep.path)) {
             for (const p of expandOptionalSegments(p0)) {
                 contractKeys.add(`${method} ${p}`);
                 const mp = normalizePathForMatch(p);
-                if (mp) contractMatchKeys.add(`${method} ${mp}`);
+                if (mp) {
+                    const key = `${method} ${mp}`;
+                    contractMatchKeys.add(key);
+                    contractMatchRecords.push({
+                        key,
+                        method,
+                        contract: ep.contract,
+                        path: p,
+                        route: classifyRouteFamily(mp),
+                    });
+                }
             }
         }
     }
 
     const requestKeys = new Set();
     const requestMatchKeys = new Set();
+    const requestMatchRecords = [];
     for (const rc of requestCalls) {
         if (typeof rc.fullPath !== "string" || typeof rc.method !== "string") continue;
         requestKeys.add(`${rc.method} ${rc.fullPath}`);
         const mp = normalizePathForMatch(rc.fullPath);
-        if (mp) requestMatchKeys.add(`${rc.method} ${mp}`);
+        if (mp) {
+            const key = `${rc.method} ${mp}`;
+            requestMatchKeys.add(key);
+            requestMatchRecords.push({
+                key,
+                method: rc.method,
+                path: rc.fullPath,
+                file: rc.file,
+                route: classifyRouteFamily(mp),
+            });
+        }
     }
 
-    const missingEndpoints = [...contractMatchKeys].filter((k) => !requestMatchKeys.has(k)).sort();
-    const extraEndpoints = [...requestMatchKeys].filter((k) => !contractMatchKeys.has(k)).sort();
+    const rawMissingEndpoints = [...contractMatchKeys].filter((k) => !requestMatchKeys.has(k)).sort();
+    const rawExtraEndpoints = [...requestMatchKeys].filter((k) => !contractMatchKeys.has(k)).sort();
+    const { aliasGroups, groupedMissingKeys, groupedExtraKeys } = buildRouteAliasGroups(
+        contractMatchRecords.filter((record) => rawMissingEndpoints.includes(record.key)),
+        requestMatchRecords.filter((record) => rawExtraEndpoints.includes(record.key)),
+    );
+    const missingEndpoints = rawMissingEndpoints.filter((key) => !groupedMissingKeys.has(key));
+    const extraEndpoints = rawExtraEndpoints.filter((key) => !groupedExtraKeys.has(key));
 
     const result = {
         generatedAt: new Date().toISOString(),
         contracts: {
             files: contractFiles.length,
             endpointRows: contractEndpoints.length,
-            byFile: contractFiles
-                .map((filePath) => {
-                    const endpoints = extractContractEndpoints(filePath);
-                    return {
-                        file: path.basename(filePath),
-                        endpoints: endpoints.length,
-                    };
-                })
+            byFile: contractFileSummaries
+                .map((item) => ({
+                    file: path.basename(item.filePath),
+                    endpoints: item.endpoints.length,
+                }))
                 .sort((a, b) => b.endpoints - a.endpoints),
         },
         source: {
@@ -512,6 +785,10 @@ function main() {
             coverage: {
                 contractExpandedEndpoints: contractMatchKeys.size,
                 matchedEndpoints: [...contractMatchKeys].filter((k) => requestMatchKeys.has(k)).length,
+                aliasRouteGroupsCount: aliasGroups.length,
+                aliasRouteGroups: aliasGroups.slice(0, 100),
+                rawMissingEndpointsCount: rawMissingEndpoints.length,
+                rawExtraEndpointsCount: rawExtraEndpoints.length,
                 missingEndpointsCount: missingEndpoints.length,
                 extraEndpointsCount: extraEndpoints.length,
                 missingEndpoints: missingEndpoints.slice(0, 200),

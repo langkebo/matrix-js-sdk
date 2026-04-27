@@ -1123,7 +1123,7 @@ describe("MatrixClient event timelines", function () {
                 "m.relations": {
                     ...THREAD_ROOT.unsigned!["m.relations"],
                     "io.element.thread": {
-                        ...THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"],
+                        ...(THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"] as Record<string, unknown>),
                         count: 3,
                         latest_event: THREAD_REPLY3.event,
                     },
@@ -1225,7 +1225,7 @@ describe("MatrixClient event timelines", function () {
                 "m.relations": {
                     ...THREAD_ROOT.unsigned!["m.relations"],
                     "io.element.thread": {
-                        ...THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"],
+                        ...(THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"] as Record<string, unknown>),
                         count: 3,
                         latest_event: THREAD_REPLY3.event,
                     },
@@ -1512,7 +1512,10 @@ describe("MatrixClient event timelines", function () {
                         "m.relations": {
                             ...THREAD_ROOT.unsigned!["m.relations"],
                             "io.element.thread": {
-                                ...THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"],
+                                ...(THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"] as Record<
+                                    string,
+                                    unknown
+                                >),
                                 count: 2,
                                 latest_event: THREAD_REPLY2.event,
                             },
@@ -1635,7 +1638,10 @@ describe("MatrixClient event timelines", function () {
                         "m.relations": {
                             ...THREAD_ROOT.unsigned!["m.relations"],
                             "io.element.thread": {
-                                ...THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"],
+                                ...(THREAD_ROOT.unsigned!["m.relations"]!["io.element.thread"] as Record<
+                                    string,
+                                    unknown
+                                >),
                                 count: 1,
                                 latest_event: THREAD_REPLY,
                             },

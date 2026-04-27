@@ -75,7 +75,7 @@ import {
     PolicyScope,
 } from "../../src/models/invites-ignorer";
 import { type QueryDict } from "../../src/utils";
-import { type SyncState } from "../../src/sync";
+import { SetPresence, type SyncState } from "../../src/sync";
 import * as featureUtils from "../../src/feature";
 import { StubStore } from "../../src/store/stub";
 import { type ServerSideSecretStorageImpl } from "../../src/secret-storage";
@@ -1868,6 +1868,48 @@ describe("MatrixClient", function () {
         await syncPromise;
     });
 
+    describe("sync contract alignment", () => {
+        it("passes the created filter id to /sync", async () => {
+            httpLookups = [
+                PUSH_RULES_RESPONSE,
+                FILTER_RESPONSE,
+                {
+                    method: "GET",
+                    path: "/sync",
+                    expectQueryParams: {
+                        "filter": "f1lt3r",
+                        "org.matrix.msc4222.use_state_after": true,
+                    },
+                    data: SYNC_DATA,
+                },
+            ];
+
+            const filter = new Filter(userId);
+            filter.setDefinition({ room: { timeline: { limit: 8 } } });
+
+            await client.startClient({ filter });
+        });
+
+        it("forwards set_presence to /sync", async () => {
+            httpLookups = [
+                PUSH_RULES_RESPONSE,
+                FILTER_RESPONSE,
+                {
+                    method: "GET",
+                    path: "/sync",
+                    expectQueryParams: {
+                        "set_presence": SetPresence.Unavailable,
+                        "org.matrix.msc4222.use_state_after": true,
+                    },
+                    data: SYNC_DATA,
+                },
+            ];
+
+            await client.setSyncPresence(SetPresence.Unavailable);
+            await client.startClient();
+        });
+    });
+
     describe("getSyncState", function () {
         it("should return null if the client isn't started", function () {
             expect(client.getSyncState()).toBe(null);
@@ -2141,6 +2183,109 @@ describe("MatrixClient", function () {
             client.setGuest(true);
             await client.startClient();
             expect(httpLookups.length).toBe(0);
+        });
+    });
+
+    describe("peek contract alignment", () => {
+        it("uses /events chunk and end tokens when peeking", async () => {
+            const roomId = "!peek:example.org";
+            httpLookups = [
+                {
+                    method: "GET",
+                    path: `/rooms/${encodeURIComponent(roomId)}/initialSync`,
+                    data: {
+                        state: [
+                            {
+                                type: "m.room.name",
+                                state_key: "",
+                                event_id: "$state:example.org",
+                                sender: userId,
+                                origin_server_ts: 1,
+                                room_id: roomId,
+                                content: { name: "Peek room" },
+                            },
+                        ],
+                        messages: {
+                            start: "start-token",
+                            chunk: [
+                                {
+                                    type: "m.room.message",
+                                    event_id: "$initial:example.org",
+                                    sender: userId,
+                                    origin_server_ts: 2,
+                                    room_id: roomId,
+                                    content: { body: "Initial event", msgtype: MsgType.Text },
+                                },
+                            ],
+                        },
+                    },
+                },
+                {
+                    method: "GET",
+                    path: "/events",
+                    expectQueryParams: {
+                        room_id: roomId,
+                        timeout: "30000",
+                    },
+                    data: {
+                        start: "poll-start",
+                        end: "poll-end",
+                        chunk: [
+                            {
+                                type: "m.presence",
+                                sender: "@bob:example.org",
+                                content: {
+                                    user_id: "@bob:example.org",
+                                    presence: "online",
+                                },
+                            },
+                            {
+                                type: "m.room.message",
+                                event_id: "$poll:example.org",
+                                sender: "@bob:example.org",
+                                origin_server_ts: 3,
+                                room_id: roomId,
+                                content: { body: "Polled event", msgtype: MsgType.Text },
+                            },
+                            {
+                                type: "m.room.message",
+                                sender: "@bob:example.org",
+                                origin_server_ts: 4,
+                                room_id: roomId,
+                                content: { body: "Ephemeral event", msgtype: MsgType.Text },
+                            },
+                        ],
+                    },
+                },
+                {
+                    method: "GET",
+                    path: "/events",
+                    expectQueryParams: {
+                        room_id: roomId,
+                        timeout: "30000",
+                        from: "poll-end",
+                    },
+                    thenCall: () => {
+                        client.stopPeeking();
+                    },
+                    data: {
+                        start: "poll-end",
+                        end: "poll-end-2",
+                        chunk: [],
+                    },
+                },
+            ];
+
+            const room = await client.peekInRoom(roomId, 20);
+
+            await vi.waitFor(() =>
+                expect(vi.mocked(client.http.authedRequest).mock.calls.length).toBeGreaterThanOrEqual(3),
+            );
+
+            expect(room.name).toBe("Peek room");
+            expect(room.timeline.map((event) => event.getId())).toEqual(["$initial:example.org", "$poll:example.org"]);
+            expect(room.timeline[1].getContent().body).toBe("Polled event");
+            expect(store.storeUser).toHaveBeenCalled();
         });
     });
 
@@ -2845,6 +2990,136 @@ describe("MatrixClient", function () {
         });
     });
 
+    describe("sync contract alignment", () => {
+        beforeEach(() => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                pos: "p1",
+                lists: {},
+                rooms: {},
+                extensions: {},
+            });
+        });
+
+        it("keeps sliding sync query params out of the body without mutating the caller request", async () => {
+            const request = {
+                pos: "p0",
+                timeout: 0,
+                clientTimeout: 2500,
+                lists: {
+                    main: {
+                        ranges: [[0, 20]],
+                    },
+                },
+                extensions: {
+                    to_device: {
+                        enabled: true,
+                    },
+                },
+            };
+
+            await client.slidingSync(request);
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/sync");
+            expect(queryParams).toEqual({ pos: "p0", timeout: 0 });
+            expect(requestContent).toEqual({
+                lists: {
+                    main: {
+                        ranges: [[0, 20]],
+                    },
+                },
+                extensions: {
+                    to_device: {
+                        enabled: true,
+                    },
+                },
+            });
+            expect(opts).toMatchObject({
+                prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
+                localTimeoutMs: 2500,
+            });
+            expect(request).toEqual({
+                pos: "p0",
+                timeout: 0,
+                clientTimeout: 2500,
+                lists: {
+                    main: {
+                        ranges: [[0, 20]],
+                    },
+                },
+                extensions: {
+                    to_device: {
+                        enabled: true,
+                    },
+                },
+            });
+        });
+
+        it("maps getMyRooms membership to a legacy join_state alias without dropping the original field", async () => {
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    rooms: [
+                        {
+                            room_id: "!room:example.org",
+                            membership: "invite",
+                            name: "Invite room",
+                            avatar_url: "mxc://example.org/avatar",
+                        },
+                    ],
+                    total: 1,
+                });
+
+            const response = await client.getMyRooms();
+
+            expect(response).toEqual({
+                rooms: [
+                    {
+                        room_id: "!room:example.org",
+                        membership: "invite",
+                        join_state: "invite",
+                        name: "Invite room",
+                        avatar_url: "mxc://example.org/avatar",
+                    },
+                ],
+                total: 1,
+            });
+        });
+
+        it("maps legacy getMyRooms join_state back to membership without dropping the alias", async () => {
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    rooms: [
+                        {
+                            room_id: "!legacy:example.org",
+                            join_state: "leave",
+                            name: "Legacy room",
+                            avatar_url: "mxc://example.org/legacy",
+                        },
+                    ],
+                    total: 1,
+                });
+
+            const response = await client.getMyRooms();
+
+            expect(response).toEqual({
+                rooms: [
+                    {
+                        room_id: "!legacy:example.org",
+                        membership: "leave",
+                        join_state: "leave",
+                        name: "Legacy room",
+                        avatar_url: "mxc://example.org/legacy",
+                    },
+                ],
+                total: 1,
+            });
+        });
+    });
+
     describe("getLocalAliases", () => {
         it("should call the right endpoint", async () => {
             const response = {
@@ -3282,10 +3557,12 @@ describe("MatrixClient", function () {
             // Fetch the list of sources and check that we do not have the new room yet.
             const policies = await client.getAccountData(POLICIES_ACCOUNT_EVENT_TYPE.name)!.getContent();
             expect(policies).toBeTruthy();
-            const ignoreInvites = policies[IGNORE_INVITES_ACCOUNT_EVENT_KEY.name];
+            const ignoreInvites = policies[IGNORE_INVITES_ACCOUNT_EVENT_KEY.name] as
+                | { sources?: string[]; target?: string }
+                | undefined;
             expect(ignoreInvites).toBeTruthy();
-            expect(ignoreInvites.sources).toBeTruthy();
-            expect(ignoreInvites.sources).not.toContain(NEW_SOURCE_ROOM_ID);
+            expect(ignoreInvites!.sources).toBeTruthy();
+            expect(ignoreInvites!.sources).not.toContain(NEW_SOURCE_ROOM_ID);
 
             // Add a source.
             const added = await client.ignoredInvites.addSource(NEW_SOURCE_ROOM_ID);
@@ -3296,16 +3573,18 @@ describe("MatrixClient", function () {
             // Fetch the list of sources and check that we have added the new room.
             const policies2 = await client.getAccountData(POLICIES_ACCOUNT_EVENT_TYPE.name)!.getContent();
             expect(policies2).toBeTruthy();
-            const ignoreInvites2 = policies2[IGNORE_INVITES_ACCOUNT_EVENT_KEY.name];
+            const ignoreInvites2 = policies2[IGNORE_INVITES_ACCOUNT_EVENT_KEY.name] as
+                | { sources?: string[]; target?: string }
+                | undefined;
             expect(ignoreInvites2).toBeTruthy();
-            expect(ignoreInvites2.sources).toBeTruthy();
-            expect(ignoreInvites2.sources).toContain(NEW_SOURCE_ROOM_ID);
+            expect(ignoreInvites2!.sources).toBeTruthy();
+            expect(ignoreInvites2!.sources).toContain(NEW_SOURCE_ROOM_ID);
 
             // Add a rule.
             const eventId = await client.ignoredInvites.addRule(PolicyScope.User, "*:example.org", "just a test");
 
             // Check where it shows up.
-            const targetRoomId = ignoreInvites2.target;
+            const targetRoomId = ignoreInvites2!.target;
             const targetRoom = client.getRoom(targetRoomId) as WrappedRoom;
             expect(targetRoom._state.get(EventType.PolicyRuleUser)[eventId]).toBeTruthy();
             expect(newSourceRoom._state.get(EventType.PolicyRuleUser)?.[eventId]).toBeFalsy();

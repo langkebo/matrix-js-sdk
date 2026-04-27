@@ -23,8 +23,15 @@ limitations under the License.
  * - 登录流程缓存
  * - 统一错误处理
  * - 性能监控
+ * - 客户端数据验证
  *
  * 后端实现: synapse-rust/src/web/routes/auth_compat.rs
+ * 契约文档: docs/api-contract/auth-enhanced.md
+ *
+ * 数据约束:
+ * - username 最大长度: 255 字符
+ * - password 最大长度: 128 字符
+ * - device_id 长度: 16 字符（服务器生成）
  */
 
 import { MatrixClient } from "../client";
@@ -33,6 +40,12 @@ import { type ILoginFlowsResponse } from "../@types/auth";
 import { type RegisterRequest, type RegisterResponse } from "../@types/registration";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
+import { ValidationError } from "../errors";
+
+// 数据约束常量
+const USERNAME_MAX_LENGTH = 255;
+const PASSWORD_MAX_LENGTH = 128;
+const DEVICE_ID_LENGTH = 16;
 
 export interface RegisterFlow {
     stages?: string[];
@@ -77,6 +90,36 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     }
 
     /**
+     * 验证用户名长度
+     * @throws {ValidationError} 当用户名过长时
+     */
+    private validateUsername(username: string): void {
+        if (username.length > USERNAME_MAX_LENGTH) {
+            throw new ValidationError(`Username too long (max ${USERNAME_MAX_LENGTH} characters)`);
+        }
+    }
+
+    /**
+     * 验证密码长度
+     * @throws {ValidationError} 当密码过长时
+     */
+    private validatePassword(password: string): void {
+        if (password.length > PASSWORD_MAX_LENGTH) {
+            throw new ValidationError(`Password too long (max ${PASSWORD_MAX_LENGTH} characters)`);
+        }
+    }
+
+    /**
+     * 验证 device_id 格式
+     * @throws {ValidationError} 当 device_id 格式不正确时
+     */
+    private validateDeviceId(deviceId: string): void {
+        if (deviceId.length !== DEVICE_ID_LENGTH) {
+            throw new ValidationError(`Invalid device_id length (expected ${DEVICE_ID_LENGTH} characters)`);
+        }
+    }
+
+    /**
      * Check if authenticated
      */
     public isAuthenticated(): boolean {
@@ -118,6 +161,27 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get supported login flows
+     *
+     * @param forceRefresh - 是否强制刷新缓存（默认 false）
+     * @returns 支持的登录流程列表
+     *
+     * @example
+     * ```typescript
+     * // 获取支持的登录流程
+     * const flows = await authManager.getSupportedLoginFlows();
+     * console.log("Supported flows:", flows.flows);
+     *
+     * // 检查是否支持密码登录
+     * const hasPassword = flows.flows?.some(f => f.type === "m.login.password");
+     * if (hasPassword) {
+     *     console.log("Password login is supported");
+     * }
+     *
+     * // 强制刷新缓存
+     * const freshFlows = await authManager.getSupportedLoginFlows(true);
+     * ```
+     *
+     * @throws {ApiError} 如果 API 调用失败
      *
      * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:252-259
      */
@@ -186,16 +250,59 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Check if a specific login flow is supported
+     *
+     * @param flowType - 登录流程类型（如 "m.login.password", "m.login.sso"）
+     * @returns 是否支持该登录流程
+     *
+     * @example
+     * ```typescript
+     * // 检查是否支持密码登录
+     * const hasPassword = await authManager.hasLoginFlow("m.login.password");
+     * if (hasPassword) {
+     *     console.log("Password login is available");
+     * }
+     *
+     * // 检查是否支持 SSO
+     * const hasSSO = await authManager.hasLoginFlow("m.login.sso");
+     * ```
+     *
+     * @throws {ApiError} 如果获取登录流程失败
      */
     public async hasLoginFlow(flowType: string): Promise<boolean> {
         const flows = await this.getSupportedLoginFlows();
         return flows.flows?.some((flow: { type?: string }) => flow.type === flowType) ?? false;
     }
 
+    /**
+     * 检查是否支持密码登录
+     *
+     * @returns 是否支持密码登录
+     *
+     * @example
+     * ```typescript
+     * if (await authManager.hasPasswordLogin()) {
+     *     // 显示密码登录表单
+     *     showPasswordLoginForm();
+     * }
+     * ```
+     */
     public async hasPasswordLogin(): Promise<boolean> {
         return this.hasLoginFlow("m.login.password");
     }
 
+    /**
+     * 检查是否支持 SSO 登录
+     *
+     * @returns 是否支持 SSO 或 CAS 登录
+     *
+     * @example
+     * ```typescript
+     * if (await authManager.hasSSOLogin()) {
+     *     // 显示 SSO 登录按钮
+     *     showSSOLoginButton();
+     * }
+     * ```
+     */
     public async hasSSOLogin(): Promise<boolean> {
         const flows = await this.getSupportedLoginFlows();
         return (
@@ -208,14 +315,61 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Register a user
      *
-     * @param username - The desired username
-     * @param password - The desired password
+     * @param username - The desired username (max 255 characters)
+     * @param password - The desired password (max 128 characters, min 8 characters)
      * @param sessionId - The session ID from a previous registration attempt
      * @param auth - The auth dictionary
      * @param bindThreepids - Map of third party IDs to bind
      * @param guestAccessToken - The guest access token to upgrade
      * @param inhibitLogin - Whether to inhibit login
      * @returns Promise which resolves to a RegisterResponse object
+     *
+     * @example
+     * ```typescript
+     * // 基本注册
+     * const response = await authManager.register(
+     *     "alice",
+     *     "securePassword123",
+     *     null,
+     *     { type: "m.login.dummy" }
+     * );
+     * console.log("Registered:", response.user_id);
+     *
+     * // 注册前验证输入
+     * const usernameCheck = AuthManager.validateUsernameFormat("alice");
+     * if (!usernameCheck.valid) {
+     *     console.error(usernameCheck.error);
+     *     return;
+     * }
+     *
+     * const passwordCheck = AuthManager.validatePasswordFormat("securePassword123");
+     * if (!passwordCheck.valid) {
+     *     console.error(passwordCheck.error);
+     *     return;
+     * }
+     *
+     * // 继续注册流程（带 session）
+     * const response = await authManager.register(
+     *     "alice",
+     *     "securePassword123",
+     *     "session_abc123",
+     *     { type: "m.login.email.identity", session: "session_abc123" }
+     * );
+     * ```
+     *
+     * @throws {ValidationError} 当用户名或密码超过长度限制时
+     * @throws {ApiError} 当注册失败时
+     *   - M_USER_IN_USE (409): 用户名已被占用
+     *   - M_INVALID_USERNAME (400): 用户名不符合规范
+     *   - M_WEAK_PASSWORD (400): 密码不满足策略
+     *
+     * **安全提示**:
+     * - 密码最少 8 个字符
+     * - 建议使用强密码（包含大小写字母、数字、特殊字符）
+     * - 不要在客户端存储明文密码
+     * - 使用 HTTPS 传输
+     *
+     * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:11-65
      */
     public async register(
         username: string,
@@ -226,6 +380,10 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
         guestAccessToken?: string,
         inhibitLogin?: boolean,
     ): Promise<RegisterResponse> {
+        // 客户端验证
+        this.validateUsername(username);
+        this.validatePassword(password);
+
         if (sessionId) {
             auth.session = sessionId;
         }
@@ -291,6 +449,55 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             loginFlows: this.loginFlowCache.getStats(),
             registerFlows: this.registerFlowCache.getStats(),
         };
+    }
+
+    /**
+     * 获取数据约束常量
+     */
+    public static getConstraints() {
+        return {
+            USERNAME_MAX_LENGTH,
+            PASSWORD_MAX_LENGTH,
+            DEVICE_ID_LENGTH,
+        };
+    }
+
+    /**
+     * 验证用户名格式（客户端验证）
+     * @param username - 用户名
+     * @returns 验证结果和错误消息
+     */
+    public static validateUsernameFormat(username: string): { valid: boolean; error?: string } {
+        if (!username || username.length === 0) {
+            return { valid: false, error: "Username is required" };
+        }
+        if (username.length > USERNAME_MAX_LENGTH) {
+            return { valid: false, error: `Username too long (max ${USERNAME_MAX_LENGTH} characters)` };
+        }
+        // 基本格式检查（Matrix ID 规范）
+        if (!/^[a-z0-9._=\-/]+$/.test(username)) {
+            return { valid: false, error: "Username contains invalid characters" };
+        }
+        return { valid: true };
+    }
+
+    /**
+     * 验证密码格式（客户端验证）
+     * @param password - 密码
+     * @returns 验证结果和错误消息
+     */
+    public static validatePasswordFormat(password: string): { valid: boolean; error?: string } {
+        if (!password || password.length === 0) {
+            return { valid: false, error: "Password is required" };
+        }
+        if (password.length > PASSWORD_MAX_LENGTH) {
+            return { valid: false, error: `Password too long (max ${PASSWORD_MAX_LENGTH} characters)` };
+        }
+        // 基本强度检查（可根据需要调整）
+        if (password.length < 8) {
+            return { valid: false, error: "Password too short (min 8 characters)" };
+        }
+        return { valid: true };
     }
 }
 

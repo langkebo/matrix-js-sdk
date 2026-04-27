@@ -423,7 +423,7 @@ export class SyncApi {
             if (Array.isArray(response.presence)) {
                 this.processPresenceEvents(
                     response.presence.map(client.getEventMapper()),
-                    (presenceEvent) => presenceEvent.getContent().user_id,
+                    (presenceEvent) => presenceEvent.getContent<{ user_id?: string }>().user_id,
                 );
             }
 
@@ -530,7 +530,7 @@ export class SyncApi {
                                 return e.type === "m.presence";
                             })
                             .map(this.client.getEventMapper()),
-                        (presenceEvent) => presenceEvent.getContent().user_id,
+                        (presenceEvent) => presenceEvent.getContent<{ user_id?: string }>().user_id,
                     );
 
                     // strip out events which aren't for the given room_id (e.g presence)
@@ -2001,8 +2001,8 @@ export function processToDeviceMessages(toDeviceMessages: ReceivedToDeviceMessag
             // so we can flag the verification events as cancelled in the loop
             // below.
             if (processedMessage.message.type === "m.key.verification.cancel") {
-                const txnId: string = processedMessage.message.content["transaction_id"];
-                if (txnId) {
+                const txnId = processedMessage.message.content["transaction_id"];
+                if (typeof txnId === "string") {
                     cancelledKeyVerificationTxns.push(txnId);
                 }
             }
@@ -2025,7 +2025,7 @@ export function processToDeviceMessages(toDeviceMessages: ReceivedToDeviceMessag
                     toDeviceEvent.type === "m.key.verification.request"
                 ) {
                     const txnId = content["transaction_id"];
-                    if (cancelledKeyVerificationTxns.includes(txnId)) {
+                    if (typeof txnId === "string" && cancelledKeyVerificationTxns.includes(txnId)) {
                         deprecatedCompatibilityEvent.flagCancelled();
                     }
                 }

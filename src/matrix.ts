@@ -82,6 +82,7 @@ export * from "./models/room-summary";
 export * from "./models/event-status";
 export * from "./models/profile-keys";
 export * from "./models/related-relations";
+export * from "./runtime-schemas/index";
 export type { RoomSummary } from "./client";
 export * from "./matrix-managers";
 
@@ -108,6 +109,13 @@ export {
 export { SyncState, SetPresence } from "./sync";
 export type { ISyncStateData as SyncStateData } from "./sync";
 export { SlidingSyncEvent, SlidingSyncState, SlidingSync } from "./sliding-sync";
+export type {
+    MSC3575SlidingSyncResponse,
+    MSC3575RoomData,
+    MSC3575List,
+    MSC3575RoomSubscription,
+    MSC3575Filter,
+} from "./sliding-sync";
 export { SlidingSyncSdk } from "./sliding-sync-sdk";
 export { VoiceEvent } from "./voice/index";
 export { MediaHandlerEvent } from "./webrtc/mediaHandler";

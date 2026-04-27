@@ -421,7 +421,10 @@ export class InteractiveAuth<T> {
         while (this.submitPromise) {
             try {
                 await this.submitPromise;
-            } catch {}
+            } catch (error) {
+                // Intentionally ignore errors - we only care that the promise is resolved
+                logger.debug("Submit promise rejected, continuing", error);
+            }
         }
 
         // use the sessionid from the last request, if one is present.

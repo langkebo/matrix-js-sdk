@@ -1767,6 +1767,10 @@ describe("RustCrypto", () => {
             });
 
             it("should return null if not available", async () => {
+                fetchMock.get("path:/_matrix/client/v3/room_keys/version", {
+                    status: 404,
+                    body: { errcode: "M_NOT_FOUND", error: "No backup found" },
+                });
                 const rustCrypto = await makeTestRustCrypto(makeMatrixHttpApi());
                 await expect(rustCrypto.getKeyBackupInfo()).resolves.toBeNull();
             });

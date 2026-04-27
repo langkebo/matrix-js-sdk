@@ -1,0 +1,40 @@
+/**
+ * Get typing users in a room
+ * @param roomId - The room ID
+ * @returns Array of user IDs currently typing
+ */
+public async getRoomTyping(roomId: string): Promise<string[]> {
+    const path = `/rooms/${encodeURIComponent(roomId)}/typing`;
+    const response = await this.http.authedRequest<{ user_ids: string[] }>(
+        Method.Get,
+        path,
+        undefined,
+        undefined,
+        { prefix: ClientPrefix.V3 },
+    );
+    return response.user_ids || [];
+}
+
+/**
+ * Get typing users in multiple rooms
+ * @param roomIds - Array of room IDs
+ * @returns Map of room ID to array of typing user IDs
+ */
+public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>> {
+    const path = "/rooms/typing";
+    const response = await this.http.authedRequest<{
+        rooms: Record<string, { user_ids: string[] }>;
+    }>(
+        Method.Post,
+        path,
+        undefined,
+        { room_ids: roomIds },
+        { prefix: ClientPrefix.V3 },
+    );
+
+    const result: Record<string, string[]> = {};
+    for (const [roomId, data] of Object.entries(response.rooms || {})) {
+        result[roomId] = data.user_ids || [];
+    }
+    return result;
+}

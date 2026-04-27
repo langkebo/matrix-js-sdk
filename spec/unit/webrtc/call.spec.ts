@@ -173,7 +173,7 @@ describe("Call", function () {
     });
 
     describe("initWithInvite", () => {
-        it("should handle error during initWithInvite when throwOnError is false", async () => {
+        it("should throw error during initWithInvite by default", async () => {
             const inviteEvent = {
                 getContent: vi.fn().mockReturnValue({
                     version: "1",
@@ -190,11 +190,10 @@ describe("Call", function () {
             mockPC.setRemoteDescription = vi.fn().mockRejectedValue(new Error("SDP Error"));
             vi.spyOn(call as any, "createPeerConnection").mockReturnValue(mockPC);
 
-            await call.initWithInvite(inviteEvent);
-            expect(call.state).toBe(CallState.Ended);
+            await expect(call.initWithInvite(inviteEvent)).rejects.toThrow("SDP Error");
         });
 
-        it("should throw error during initWithInvite when throwOnError is true", async () => {
+        it("should end call without throwing when throwOnError is false", async () => {
             const inviteEvent = {
                 getContent: vi.fn().mockReturnValue({
                     version: "1",
@@ -210,7 +209,8 @@ describe("Call", function () {
             mockPC.setRemoteDescription = vi.fn().mockRejectedValue(new Error("SDP Error"));
             vi.spyOn(call as any, "createPeerConnection").mockReturnValue(mockPC);
 
-            await expect(call.initWithInvite(inviteEvent, true)).rejects.toThrow("SDP Error");
+            await call.initWithInvite(inviteEvent, false);
+            expect(call.state).toBe(CallState.Ended);
         });
     });
 
@@ -607,19 +607,22 @@ describe("Call", function () {
     describe("should deduce the call type correctly", () => {
         beforeEach(async () => {
             // start an incoming  call, but add no feeds
-            await call.initWithInvite({
-                getContent: vi.fn().mockReturnValue({
-                    version: "1",
-                    call_id: "call_id",
-                    party_id: "remote_party_id",
-                    lifetime: CALL_LIFETIME,
-                    offer: {
-                        sdp: DUMMY_SDP,
-                    },
-                }),
-                getSender: () => "@test:foo",
-                getLocalAge: () => 1,
-            } as unknown as MatrixEvent);
+            await call.initWithInvite(
+                {
+                    getContent: vi.fn().mockReturnValue({
+                        version: "1",
+                        call_id: "call_id",
+                        party_id: "remote_party_id",
+                        lifetime: CALL_LIFETIME,
+                        offer: {
+                            sdp: DUMMY_SDP,
+                        },
+                    }),
+                    getSender: () => "@test:foo",
+                    getLocalAge: () => 1,
+                } as unknown as MatrixEvent,
+                false,
+            );
         });
 
         it("if no video", async () => {
@@ -1645,18 +1648,21 @@ describe("Call", function () {
         it("ends call on onHangupReceived() if party id matches", async () => {
             expect(call.callHasEnded()).toBe(false);
 
-            await call.initWithInvite({
-                getContent: vi.fn().mockReturnValue({
-                    version: "1",
-                    call_id: "call_id",
-                    party_id: "remote_party_id",
-                    lifetime: CALL_LIFETIME,
-                    offer: {
-                        sdp: DUMMY_SDP,
-                    },
-                }),
-                getSender: () => "@test:foo",
-            } as unknown as MatrixEvent);
+            await call.initWithInvite(
+                {
+                    getContent: vi.fn().mockReturnValue({
+                        version: "1",
+                        call_id: "call_id",
+                        party_id: "remote_party_id",
+                        lifetime: CALL_LIFETIME,
+                        offer: {
+                            sdp: DUMMY_SDP,
+                        },
+                    }),
+                    getSender: () => "@test:foo",
+                } as unknown as MatrixEvent,
+                false,
+            );
             call.onHangupReceived({ version: "1", party_id: "remote_party_id" } as MCallHangupReject);
 
             expect(call.callHasEnded()).toBe(true);

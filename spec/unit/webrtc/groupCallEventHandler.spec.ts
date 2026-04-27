@@ -202,9 +202,9 @@ describe("Group Call Event Handler", function () {
         await groupCallEventHandler.start();
 
         const dataChannelOptions = {
-            maxPacketLifeTime: "life_time",
-            maxRetransmits: "retransmits",
-            ordered: "ordered",
+            maxPacketLifeTime: 3000,
+            maxRetransmits: 5,
+            ordered: true,
             protocol: "protocol",
         };
 

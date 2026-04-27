@@ -52,7 +52,7 @@ export { EventStatus } from "./event-status.ts";
 
 /* eslint-disable camelcase */
 export interface IContent {
-    [key: string]: any;
+    [key: string]: unknown;
     "msgtype"?: MsgType | string;
     "membership"?: Membership;
     "avatar_url"?: string;
@@ -60,12 +60,15 @@ export interface IContent {
     "m.relates_to"?: IEventRelation;
 
     "m.mentions"?: IMentions;
+    "body"?: string;
+    "url"?: string;
+    "info"?: unknown; // TODO: refine info type later if needed
 }
 
 type StrippedState = Required<Pick<IEvent, "content" | "state_key" | "type" | "sender">>;
 
 export interface IUnsigned {
-    [key: string]: any;
+    [key: string]: unknown;
     "age"?: number;
     "prev_sender"?: string;
     "prev_content"?: IContent;
@@ -73,7 +76,7 @@ export interface IUnsigned {
     "replaces_state"?: string;
     "transaction_id"?: string;
     "invite_room_state"?: StrippedState[];
-    "m.relations"?: Record<RelationType | string, any>;
+    "m.relations"?: Record<RelationType | string, unknown>;
     "msc4354_sticky_duration_ttl_ms"?: number;
     [UNSIGNED_THREAD_ID_FIELD.name]?: string;
     "membership"?: Membership;
@@ -638,9 +641,9 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         if (this._localRedactionEvent) {
             return {} as T;
         } else if (this._replacingEvent) {
-            return this._replacingEvent.getContent()["m.new_content"] ?? {};
+            return (this._replacingEvent.getContent()["m.new_content"] ?? {}) as T;
         } else {
-            return this.getOriginalContent();
+            return this.getOriginalContent() as T;
         }
     }
 
@@ -812,7 +815,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
      */
     public makeEncrypted(
         cryptoType: string,
-        cryptoContent: object,
+        cryptoContent: IContent,
         senderCurve25519Key: string,
         claimedEd25519Key: string,
     ): void {
@@ -1349,7 +1352,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         }
         const content = this.getWireContent();
         const visible = !!content.visible;
-        const reason = content.reason;
+        const reason = content.reason as string | undefined;
         if (reason && typeof reason != "string") {
             // Ill-formed, ignore this event.
             return null;
@@ -1357,7 +1360,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         // Well-formed visibility change event.
         return {
             visible,
-            reason,
+            reason: reason ?? null,
             eventId,
         };
     }
@@ -1426,7 +1429,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
      * Replace the `event` property and recalculate any properties based on it.
      * @param event - the object to assign to the `event` property
      */
-    public handleRemoteEcho(event: object): void {
+    public handleRemoteEcho(event: Partial<IEvent>): void {
         const oldUnsigned = this.getUnsigned();
         const oldId = this.getId();
         this.event = event;
@@ -1548,7 +1551,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
     }
 
     public getServerAggregatedRelation<T>(relType: RelationType | string): T | undefined {
-        return this.getUnsigned()["m.relations"]?.[relType];
+        return this.getUnsigned()["m.relations"]?.[relType] as T | undefined;
     }
 
     /**
@@ -1671,14 +1674,8 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
      */
     public toSnapshot(): MatrixEvent {
         const ev = new MatrixEvent(JSON.parse(JSON.stringify(this.event)));
-        for (const [p, v] of Object.entries(this)) {
-            if (p !== "event") {
-                // exclude the thing we just cloned
-                // @ts-ignore - Known limitation: This copy operation is necessary for snapshot functionality
-                // but bypasses type safety. Future refactoring should use a proper clone method.
-                ev[p as keyof MatrixEvent] = v;
-            }
-        }
+        const snapshotProperties = Object.fromEntries(Object.entries(this).filter(([property]) => property !== "event"));
+        Object.assign(ev as unknown as Record<string, unknown>, snapshotProperties);
         return ev;
     }
 

@@ -215,6 +215,7 @@ describe("CallEventHandler", () => {
                     room_id: "!room:id",
                     content: {
                         call_id: "123",
+                        lifetime: 60000,
                     },
                 }),
                 room,
@@ -256,6 +257,7 @@ describe("CallEventHandler", () => {
                         device_id: DEVICE_ID,
                         sender_session_id: SESSION_ID,
                         dest_session_id: client.getSessionId(),
+                        lifetime: 60000,
                     },
                 }),
                 room,

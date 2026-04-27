@@ -18,10 +18,10 @@ import { type IMinimalEvent } from "./sync-accumulator.ts";
 import { EventType } from "./@types/event.ts";
 import { isSupportedReceiptType, MapWithDefault, recursiveMapToObject } from "./utils.ts";
 import { type IContent } from "./models/event.ts";
-import { type ReceiptContent, type ReceiptType } from "./@types/read_receipts.ts";
+import { type Receipt, type ReceiptContent, type ReceiptType } from "./@types/read_receipts.ts";
 
 interface AccumulatedReceipt {
-    data: IMinimalEvent;
+    data: Receipt;
     type: ReceiptType;
     eventId: string;
 }
@@ -94,6 +94,7 @@ export class ReceiptAccumulator {
                 // seems okay.
                 return;
             }
+            const receiptContent = e.content as ReceiptContent;
 
             // Handle m.receipt events. They clobber based on:
             //   (user_id, receipt_type)
@@ -105,15 +106,18 @@ export class ReceiptAccumulator {
             // moment (m.read) and nested JSON objects are slower and more
             // of a hassle to work with. We'll inflate this back out when
             // getJSON() is called.
-            Object.keys(e.content).forEach((eventId) => {
-                Object.entries<ReceiptContent>(e.content[eventId]).forEach(([key, value]) => {
+            Object.keys(receiptContent).forEach((eventId) => {
+                const eventReceipts = receiptContent[eventId];
+                if (!eventReceipts) return;
+
+                Object.entries(eventReceipts).forEach(([key, value]) => {
                     if (!isSupportedReceiptType(key)) return;
 
                     for (const userId of Object.keys(value)) {
-                        const data = e.content[eventId][key][userId];
+                        const data = value[userId];
 
                         const receipt = {
-                            data: e.content[eventId][key][userId],
+                            data,
                             type: key as ReceiptType,
                             eventId,
                         };

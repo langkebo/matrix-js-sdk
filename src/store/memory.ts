@@ -28,6 +28,7 @@ import { type Filter } from "../filter.ts";
 import { type ISavedSync, type IStore, type UserCreator } from "./index.ts";
 import { type RoomSummary } from "../models/room-summary.ts";
 import { type ISyncResponse } from "../sync-accumulator.ts";
+import { logger } from "../logger.ts";
 import { type IStateEventWithRoomId } from "../@types/search.ts";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage.ts";
 import { type IStoredClientOpts } from "../client.ts";
@@ -255,7 +256,9 @@ export class MemoryStore implements IStore {
             if (isValidFilterId(value)) {
                 return value;
             }
-        } catch {}
+        } catch (error) {
+            logger.warn(`Failed to get filter ID for ${filterName} from localStorage`, error);
+        }
         return null;
     }
 
@@ -273,7 +276,9 @@ export class MemoryStore implements IStore {
             } else {
                 this.localStorage.removeItem(key);
             }
-        } catch {}
+        } catch (error) {
+            logger.warn(`Failed to set filter ID for ${filterName} in localStorage`, error);
+        }
     }
 
     /**

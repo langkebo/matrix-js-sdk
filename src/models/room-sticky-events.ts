@@ -313,7 +313,7 @@ export class RoomStickyEventsStore extends TypedEventEmitter<RoomStickyEventsEve
         // Faster method of finding the event since we have the event cached.
         if (typeof redactedEvent !== "string" && !redactedEvent.isRedacted()) {
             const stickyKey = redactedEvent.getContent().msc4354_sticky_key;
-            if (typeof stickyKey !== "string" && stickyKey !== undefined) {
+            if (typeof stickyKey !== "string") {
                 return; // Not a sticky event.
             }
             const eventType = redactedEvent.getType();

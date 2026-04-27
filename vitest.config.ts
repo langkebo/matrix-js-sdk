@@ -7,9 +7,10 @@ Please see LICENSE files in the repository root for full details.
 
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 import { type Reporter } from "vitest/reporters";
-import { env } from "process";
+import { argv, env } from "process";
 
 const reporters: NonNullable<NonNullable<ViteUserConfig["test"]>["reporters"]> = [["default"]];
+const isCoverageRun = argv.includes("--coverage");
 
 const slowTestReporter: Reporter = {
     onTestRunEnd(testModules, unhandledErrors, reason) {
@@ -48,8 +49,8 @@ if (env["GITHUB_ACTIONS"] !== undefined) {
 
 export default defineConfig({
     test: {
-        testTimeout: 10000,
-        hookTimeout: 10000,
+        testTimeout: isCoverageRun ? 120000 : 10000,
+        hookTimeout: isCoverageRun ? 30000 : 10000,
         teardownTimeout: 10000,
         coverage: {
             provider: "v8",

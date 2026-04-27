@@ -22,21 +22,22 @@
 
 ## 代码中可见稳定响应
 
-| 路径                              | 响应要点                                                                                |
-| --------------------------------- | --------------------------------------------------------------------------------------- |
-| `GET /devices`                    | `{ "devices": [{ "device_id", "display_name", "last_seen_ts", "last_seen_ip" }, ...] }` |
-| `GET /devices/{device_id}`        | 同时返回扁平字段和嵌套 `device` 对象                                                    |
-| `PUT/DELETE /devices/{device_id}` | 空对象                                                                                  |
-| `POST /delete_devices`            | 空对象                                                                                  |
-| `POST /keys/device_list_updates`  | `{ "changed": [...], "left": [...] }`                                                   |
+| 路径                             | 响应要点                                                                                                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /devices`                   | `{ "devices": [{ "device_id", "display_name", "last_seen_ts", "last_seen_ip" }, ...] }`                                                                   |
+| `GET /devices/{device_id}`       | 同时返回扁平字段和嵌套 `device` 对象                                                                                                                      |
+| `PUT /devices/{device_id}`       | 返回 `{ "device_id", "display_name", "updated_ts" }`                                                                                                      |
+| `DELETE /devices/{device_id}`    | 空对象                                                                                                                                                    |
+| `POST /delete_devices`           | 空对象                                                                                                                                                    |
+| `POST /keys/device_list_updates` | 不带 `since/from` 时返回 `{ "changed": [...], "left": [...] }`；带游标时返回 `{ "changed": [...], "deleted": [...], "left": [...], "stream_id": number }` |
 
 ## 请求体要点
 
-| 路径                             | 请求字段                                    |
-| -------------------------------- | ------------------------------------------- |
-| `POST /delete_devices`           | `device_ids` 或 `devices`，必须为字符串数组 |
-| `PUT /devices/{device_id}`       | `display_name`                              |
-| `POST /keys/device_list_updates` | `users`，字符串数组                         |
+| 路径                             | 请求字段                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `POST /delete_devices`           | `device_ids` 或 `devices`，要求提供数组，数组元素不是字符串时返回 `400`    |
+| `PUT /devices/{device_id}`       | `display_name`                                                             |
+| `POST /keys/device_list_updates` | `users` 数组；可选 `since/from` 与 `to`，游标支持数字或带 `s` 前缀的字符串 |
 
 ## 常见状态码
 

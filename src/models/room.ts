@@ -630,7 +630,9 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         let capabilities: Capabilities = {};
         try {
             capabilities = await this.client.getCapabilities();
-        } catch {}
+        } catch (error) {
+            logger.warn("Failed to get capabilities, using defaults", error);
+        }
         let versionCap = capabilities["m.room_versions"];
         if (!versionCap) {
             versionCap = {
@@ -990,8 +992,9 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
      */
     private getFunctionalMembers(): string[] {
         const mFunctionalMembers = this.currentState.getStateEvents(UNSTABLE_ELEMENT_FUNCTIONAL_USERS.name, "");
-        if (Array.isArray(mFunctionalMembers?.getContent().service_members)) {
-            return mFunctionalMembers!.getContent().service_members;
+        const content = mFunctionalMembers?.getContent<{ service_members?: string[] }>();
+        if (Array.isArray(content?.service_members)) {
+            return content.service_members;
         }
         return [];
     }
@@ -1418,7 +1421,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         let threadIds: string[] = [];
         let hasUnthreadedReceipt = false;
 
-        const content = event.getContent();
+        const content = event.getContent<Record<string, Record<string, unknown>>>();
 
         for (const receiptGroup of Object.values(content)) {
             for (const [receiptType, userReceipt] of Object.entries(receiptGroup)) {
@@ -3412,7 +3415,8 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         // }
 
         // Do we need to deep copy here?
-        this.tags = event.getContent().tags || {};
+        const content = event.getContent<{ tags?: Record<string, Record<string, unknown>> }>();
+        this.tags = content.tags || {};
 
         // We could do a deep-comparison to see if the tags have really
         // changed - but do we want to bother?
@@ -3515,9 +3519,9 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     public canInvite(userId: string): boolean {
         let canInvite = this.getMyMembership() === KnownMembership.Join;
         const powerLevelsEvent = this.currentState.getStateEvents(EventType.RoomPowerLevels, "");
-        const powerLevels = powerLevelsEvent && powerLevelsEvent.getContent();
+        const powerLevels = powerLevelsEvent?.getContent<{ invite?: number }>();
         const me = this.getMember(userId);
-        if (powerLevels && me && powerLevels.invite > me.powerLevel) {
+        if (powerLevels && me && typeof powerLevels.invite === "number" && powerLevels.invite > me.powerLevel) {
             canInvite = false;
         }
         return canInvite;
@@ -3560,7 +3564,8 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
             }
             return undefined;
         }
-        return createEvent.getContent()[RoomCreateTypeField];
+        const createContent = createEvent.getContent<{ [RoomCreateTypeField]?: string }>();
+        return createContent[RoomCreateTypeField];
     }
 
     /**
@@ -3736,9 +3741,9 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
             const thirdPartyInvites = this.currentState.getStateEvents(EventType.RoomThirdPartyInvite);
 
             if (thirdPartyInvites?.length) {
-                const thirdPartyNames = thirdPartyInvites.map((i) => {
-                    return i.getContent().display_name;
-                });
+                const thirdPartyNames = thirdPartyInvites
+                    .map((i) => i.getContent<{ display_name?: string }>().display_name)
+                    .filter((name): name is string => typeof name === "string");
 
                 return this.roomNameGenerator({
                     type: RoomNameType.Generated,

@@ -40,7 +40,7 @@ describe("SlidingSync", () => {
     let httpBackend: MockHttpBackend | undefined;
     const selfUserId = "@alice:localhost";
     const selfAccessToken = "aseukfgwef";
-    const proxyBaseUrl = "http://localhost:8008";
+    const proxyBaseUrl = "http://localhost:28008";
     const syncUrl = proxyBaseUrl + "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync";
 
     // assign client/httpBackend globals

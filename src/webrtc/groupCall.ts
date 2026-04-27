@@ -18,7 +18,7 @@ import { RoomStateEvent } from "../models/room-state.ts";
 import { logger } from "../logger.ts";
 import { ReEmitter } from "../ReEmitter.ts";
 import { SDPStreamMetadataPurpose } from "./callEventTypes.ts";
-import { type MatrixEvent } from "../models/event.ts";
+import { type IContent, type MatrixEvent } from "../models/event.ts";
 import { EventType } from "../@types/event.ts";
 import { CallEventHandlerEvent } from "./callEventHandler.ts";
 import { GroupCallEventHandlerEvent } from "./groupCallEventHandler.ts";
@@ -164,7 +164,7 @@ export interface IGroupCallDataChannelOptions {
     protocol: string;
 }
 
-export interface IGroupCallRoomState {
+export interface IGroupCallRoomState extends IContent {
     "m.intent": GroupCallIntent;
     "m.type": GroupCallType;
     "m.terminated"?: GroupCallTerminationReason;
@@ -647,7 +647,7 @@ export class GroupCall extends TypedEventEmitter<
                 this.room.roomId,
                 EventType.GroupCallPrefix,
                 {
-                    ...existingStateEvent.getContent(),
+                    ...existingStateEvent.getContent<IGroupCallRoomState>(),
                     "m.terminated": GroupCallTerminationReason.CallEnded,
                 },
                 this.groupCallId,
@@ -684,7 +684,7 @@ export class GroupCall extends TypedEventEmitter<
         // hasAudioDevice can block indefinitely if the window has lost focus,
         // and it doesn't make much sense to keep a device from being muted, so
         // we always allow muted = true changes to go through
-        if (!muted && !(await this.client.getMediaHandler().hasAudioDevice())) {
+        if (!muted && !(await this.client.getMediaHandler().hasAudioDevice(false))) {
             return false;
         }
 
@@ -796,7 +796,7 @@ export class GroupCall extends TypedEventEmitter<
         // hasAudioDevice can block indefinitely if the window has lost focus,
         // and it doesn't make much sense to keep a device from being muted, so
         // we always allow muted = true changes to go through
-        if (!muted && !(await this.client.getMediaHandler().hasVideoDevice())) {
+        if (!muted && !(await this.client.getMediaHandler().hasVideoDevice(false))) {
             return false;
         }
 

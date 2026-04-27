@@ -1,4 +1,5 @@
 export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
+export { WorkerAdminManager } from "./worker-admin";
 export { AccountManager } from "./account";
 export { AccountDataManager } from "./account-data";
 export { AIConnectionManager } from "./ai-connection";
@@ -78,7 +79,20 @@ export { TagManager, TagEvent } from "./tags";
 export type { IRoomTags, IRoomTag } from "./tags";
 export { AggregationsManager } from "./aggregations";
 export { ApplicationServiceManager } from "./appservice";
-export { BurnAfterReadManager } from "./burn-after-read";
+export {
+    BurnAfterReadManager,
+    BurnAfterReadEvent,
+    type IBurnAfterReadMessage,
+    type IBurnAfterReadConfig,
+    type IBurnSettings,
+    type IBurnStats,
+    type IBurnPendingEvent,
+    type ISendBurnAfterReadMessageRequest,
+    type IBurnAfterReadMessageResponse,
+    type IMarkBurnReadResponse,
+    type ICancelBurnResponse,
+    type ISetBurnConfigResponse,
+} from "./burn-after-read";
 export { CaptchaManager } from "./captcha";
 export { ContentScanManager } from "./content-scan";
 export { CredentialsManager } from "./credentials";
@@ -111,6 +125,7 @@ export { IdentityManager } from "./identity";
 export { InviteListManager } from "./invite-list";
 export { InvitesManager } from "./invites";
 export { KeyBackupManager } from "./key-backup";
+export { KeyRotationManager } from "./key-rotation";
 export { KeyClaimManager } from "./key-claim";
 export { KeyForwardingManager } from "./key-forwarding";
 export { LifecycleManager } from "./lifecycle";

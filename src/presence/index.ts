@@ -28,6 +28,8 @@ import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { AdminValidators } from "../admin/validators";
+import { AuthError, ValidationError } from "../errors";
 
 const PRESENCE_PREFIX = "/_matrix/client/v3";
 
@@ -37,7 +39,7 @@ export enum PresenceEvent {
     PresenceError = "PresenceError",
 }
 
-export type PresenceState = "online" | "offline" | "unavailable" | "busy";
+export type PresenceState = "online" | "offline" | "unavailable" | "away" | "busy";
 
 export interface IPresenceState {
     presence: PresenceState;
@@ -55,8 +57,7 @@ export interface IPresenceEvent {
 }
 
 export interface IPresenceList {
-    presence: string[];
-    presence_list: IPresenceEvent[];
+    presences: IPresenceEvent[];
 }
 
 interface PresenceManagerEventMap {
@@ -81,7 +82,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     async getPresences(userIds: string[]): Promise<Map<string, IPresenceState>> {
         const result = new Map<string, IPresenceState>();
         for (const id of userIds ?? []) {
-            const p = await this.getPresence(id);
+            const p = await this.getPresence(id, false, false);
             if (p) {
                 result.set(id, p);
             }
@@ -89,18 +90,45 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         return result;
     }
 
+    /**
+     * 设置当前用户的在线状态
+     *
+     * @param state - 在线状态（online, offline, unavailable, busy）
+     * @param statusMsg - 状态消息（可选）
+     *
+     * @example
+     * ```typescript
+     * // 设置为在线
+     * await presenceManager.setPresence("online");
+     *
+     * // 设置为忙碌并添加状态消息
+     * await presenceManager.setPresence("busy", "In a meeting");
+     *
+     * // 设置为离线
+     * await presenceManager.setPresence("offline");
+     *
+     * // 监听在线状态更新
+     * presenceManager.on(PresenceEvent.PresenceUpdated, (userId, presence) => {
+     *     console.log(`${userId} is now ${presence.presence}`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果状态值无效
+     * @throws {AuthError} 如果用户未登录
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async setPresence(state: PresenceState, statusMsg?: string): Promise<void> {
         if (!state) {
             throw new InvalidParamError("Presence state is required");
         }
-        const allowed: PresenceState[] = ["online", "offline", "unavailable", "busy"];
+        const allowed: PresenceState[] = ["online", "offline", "unavailable", "away", "busy"];
         if (!allowed.includes(state)) {
-            throw new InvalidParamError("Invalid presence state");
+            throw new InvalidParamError(`Invalid presence state. Must be one of: ${allowed.join(", ")}`);
         }
 
         const userId = this.client.getUserId();
         if (!userId) {
-            throw new Error("Client not logged in");
+            throw new AuthError("Client not logged in");
         }
 
         try {
@@ -123,7 +151,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
                 presence: state,
                 status_msg: statusMsg,
                 last_active_ago: 0,
-                currently_active: true,
+                currently_active: state === "online",
             };
 
             this.presenceCache.set(userId, newState);
@@ -138,19 +166,41 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     /**
      * 获取用户在线状态
      *
-     * @param userId - 用户 ID
-     * @param forceFetch - 是否强制从服务器获取
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
-     * @returns 用户在线状态
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @param forceFetch - 是否强制从服务器获取（默认 false，使用缓存）
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 用户在线状态，如果不存在或出错则返回 null
+     *
+     * @example
+     * ```typescript
+     * // 获取用户在线状态
+     * const presence = await presenceManager.getPresence("@alice:example.com");
+     * if (presence) {
+     *     console.log("Status:", presence.presence);
+     *     console.log("Message:", presence.status_msg);
+     *     console.log("Last active:", presence.last_active_ago, "ms ago");
+     * }
+     *
+     * // 强制刷新（不使用缓存）
+     * const freshPresence = await presenceManager.getPresence("@alice:example.com", true);
+     *
+     * // 不抛出错误
+     * const presence = await presenceManager.getPresence("@bob:example.com", false, false);
+     * if (!presence) {
+     *     console.log("User not found or offline");
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {NotFoundError} 如果用户不存在且 throwOnError 为 true
+     * @throws {ApiError} 如果 API 调用失败
      */
     async getPresence(
         userId: string,
         forceFetch: boolean = false,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<IPresenceState | null> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
+        AdminValidators.validateUserId(userId);
 
         if (!forceFetch && this.presenceCache.has(userId)) {
             return this.presenceCache.get(userId)!;
@@ -185,73 +235,99 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         );
     }
 
+    /**
+     * 订阅用户在线状态
+     *
+     * @param userIds - 用户 ID 列表
+     *
+     * @example
+     * ```typescript
+     * // 订阅多个用户的在线状态
+     * await presenceManager.subscribe([
+     *     "@alice:example.com",
+     *     "@bob:example.com"
+     * ]);
+     *
+     * // 监听在线状态变化
+     * presenceManager.on(PresenceEvent.PresenceChanged, (userId, state) => {
+     *     console.log(`${userId} is now ${state.presence}`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 列表为空或格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async subscribe(userIds: string[]): Promise<void> {
-        if (!userIds || userIds.length === 0) return;
-
-        try {
-            await this.withRetry(
-                () =>
-                    this.client.http.authedRequest(
-                        Method.Post,
-                        "/presence/list/update",
-                        {},
-                        {
-                            invite: userIds,
-                        },
-                        { prefix: PRESENCE_PREFIX, priority: undefined },
-                    ),
-                "subscribe",
-            );
-
-            userIds.forEach((id) => this.subscribedUsers.add(id));
-        } catch (e) {
-            const error = this.normalizeError(e, "subscribe");
-            this.emit(PresenceEvent.PresenceError, error);
-            throw error;
+        if (!userIds || userIds.length === 0) {
+            throw new ValidationError("User IDs list cannot be empty");
         }
+        userIds.forEach(userId => AdminValidators.validateUserId(userId));
+        await this.subscribeToPresence(userIds);
     }
 
+    /**
+     * 取消订阅用户在线状态
+     *
+     * @param userIds - 用户 ID 列表
+     *
+     * @example
+     * ```typescript
+     * // 取消订阅用户的在线状态
+     * await presenceManager.unsubscribe([
+     *     "@alice:example.com",
+     *     "@bob:example.com"
+     * ]);
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 列表为空或格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async unsubscribe(userIds: string[]): Promise<void> {
-        if (!userIds || userIds.length === 0) return;
-
-        try {
-            await this.withRetry(
-                () =>
-                    this.client.http.authedRequest(
-                        Method.Post,
-                        "/presence/list/update",
-                        {},
-                        {
-                            drop: userIds,
-                        },
-                        { prefix: PRESENCE_PREFIX, priority: undefined },
-                    ),
-                "unsubscribe",
-            );
-
-            userIds.forEach((id) => this.subscribedUsers.delete(id));
-        } catch (e) {
-            const error = this.normalizeError(e, "unsubscribe");
-            this.emit(PresenceEvent.PresenceError, error);
-            throw error;
+        if (!userIds || userIds.length === 0) {
+            throw new ValidationError("User IDs list cannot be empty");
         }
+        userIds.forEach(userId => AdminValidators.validateUserId(userId));
+        await this.unsubscribeFromPresence(userIds);
     }
 
     /**
      * 获取在线状态列表
      *
      * @param targetUserId - 目标用户 ID（可选）
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 在线状态列表
+     *
+     * @example
+     * ```typescript
+     * // 获取所有订阅的用户在线状态
+     * const presences = await presenceManager.getPresenceList();
+     * presences.forEach(p => {
+     *     console.log(`${p.user_id}: ${p.presence}`);
+     * });
+     *
+     * // 获取特定用户的在线状态列表
+     * const presences = await presenceManager.getPresenceList("@alice:example.com");
+     *
+     * // 监听在线状态列表更新
+     * presenceManager.on(PresenceEvent.PresenceListUpdated, (presences) => {
+     *     console.log(`Received ${presences.length} presence updates`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
-    async getPresenceList(targetUserId?: string, throwOnError = false): Promise<IPresenceEvent[]> {
-        if (typeof targetUserId === "string" && targetUserId.length === 0) {
-            throw new InvalidParamError("User ID is required");
+    async getPresenceList(targetUserId?: string, throwOnError = true): Promise<IPresenceEvent[]> {
+        if (targetUserId !== undefined && !targetUserId) {
+            throw new InvalidParamError("User ID cannot be empty");
+        }
+        if (targetUserId) {
+            AdminValidators.validateUserId(targetUserId);
         }
         const request = targetUserId
             ? this.withRetry(
                   () =>
-                      this.client.http.authedRequest<IPresenceEvent[]>(
+                      this.client.http.authedRequest<IPresenceList>(
                           Method.Get,
                           `/presence/list/${encodeURIComponent(targetUserId)}`,
                           {},
@@ -262,25 +338,33 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
               )
             : this.withRetry(
                   () =>
-                      this.client.http.authedRequest<IPresenceEvent[]>(Method.Get, "/presence/list", {}, undefined, {
-                          prefix: PRESENCE_PREFIX,
-                          priority: undefined,
-                      }),
+                      this.client.http.authedRequest<IPresenceList>(
+                          Method.Post,
+                          "/presence/list",
+                          {},
+                          {},
+                          {
+                              prefix: PRESENCE_PREFIX,
+                              priority: undefined,
+                          },
+                      ),
                   "getPresenceList",
               );
 
         return request.then(
             (response) => {
-                response.forEach((p) => {
+                const presences = response.presences ?? [];
+                presences.forEach((p) => {
                     this.presenceCache.set(p.user_id, {
                         presence: p.presence,
                         status_msg: p.status_msg,
                         last_active_ago: p.last_active_ago,
                         currently_active: p.currently_active,
                     });
+                    this.subscribedUsers.add(p.user_id);
                 });
-                this.emit(PresenceEvent.PresenceListUpdated, response);
-                return response;
+                this.emit(PresenceEvent.PresenceListUpdated, presences);
+                return presences;
             },
             (e) => {
                 const error = this.normalizeError(e, "getPresenceList");
@@ -300,46 +384,27 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
      * 根据用户 ID 列表获取在线状态
      *
      * @param userIds - 用户 ID 列表
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时保留兼容 fallback）
      * @returns 在线状态列表
      */
-    async getPresenceListByIds(userIds: string[], throwOnError = false): Promise<IPresenceEvent[]> {
+    async getPresenceListByIds(userIds: string[], throwOnError = true): Promise<IPresenceEvent[]> {
         if (!userIds || userIds.length === 0) return [];
-
-        return this.withRetry(
-            () =>
-                this.client.http.authedRequest<IPresenceEvent[]>(
-                    Method.Post,
-                    "/presence/list/get",
-                    {},
-                    { user_ids: userIds },
-                    { prefix: PRESENCE_PREFIX, priority: undefined },
-                ),
-            "getPresenceListByIds",
-        ).then(
-            (response) => {
-                response.forEach((p) => {
-                    this.presenceCache.set(p.user_id, {
-                        presence: p.presence,
-                        status_msg: p.status_msg,
-                        last_active_ago: p.last_active_ago,
-                        currently_active: p.currently_active,
-                    });
-                });
-                return response;
-            },
-            (e) => {
-                const error = this.normalizeError(e, "getPresenceListByIds");
-                if (throwOnError) {
-                    throw error;
+        const presences = await Promise.all<IPresenceEvent | null>(
+            userIds.map(async (userId): Promise<IPresenceEvent | null> => {
+                const presence = await this.getPresence(userId, true, throwOnError);
+                if (!presence) {
+                    return null;
                 }
-                logger.warn("PresenceManager.getPresenceListByIds failed:", error);
-                if (error.name === "NotFoundError") {
-                    return [];
-                }
-                throw error;
-            },
+                return {
+                    user_id: userId,
+                    presence: presence.presence,
+                    status_msg: presence.status_msg,
+                    last_active_ago: presence.last_active_ago,
+                    currently_active: presence.currently_active,
+                };
+            }),
         );
+        return presences.filter((presence): presence is IPresenceEvent => presence !== null);
     }
 
     getSubscribedUsers(): string[] {
@@ -375,18 +440,27 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
             throw new InvalidParamError("userIds cannot be empty");
         }
         try {
-            await this.withRetry(
+            const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest(
+                    this.client.http.authedRequest<IPresenceList>(
                         Method.Post,
                         "/presence/list",
                         {},
-                        { user_ids: userIds },
+                        { subscribe: userIds },
                         { prefix: PRESENCE_PREFIX, priority: undefined },
                     ),
                 "subscribeToPresence",
             );
             userIds.forEach((id) => this.subscribedUsers.add(id));
+            (response.presences ?? []).forEach((presence) => {
+                this.presenceCache.set(presence.user_id, {
+                    presence: presence.presence,
+                    status_msg: presence.status_msg,
+                    last_active_ago: presence.last_active_ago,
+                    currently_active: presence.currently_active,
+                });
+            });
+            this.emit(PresenceEvent.PresenceListUpdated, response.presences ?? []);
         } catch (e) {
             const error = this.normalizeError(e, "subscribeToPresence");
             this.emit(PresenceEvent.PresenceError, error);
@@ -399,18 +473,28 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
             throw new InvalidParamError("userIds cannot be empty");
         }
         try {
-            await this.withRetry(
+            const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest(
+                    this.client.http.authedRequest<IPresenceList>(
                         Method.Post,
-                        "/presence/list/update",
+                        "/presence/list",
                         {},
-                        { drop: userIds },
+                        { unsubscribe: userIds },
                         { prefix: PRESENCE_PREFIX, priority: undefined },
                     ),
                 "unsubscribeFromPresence",
             );
             userIds.forEach((id) => this.subscribedUsers.delete(id));
+            (response.presences ?? []).forEach((presence) => {
+                this.presenceCache.set(presence.user_id, {
+                    presence: presence.presence,
+                    status_msg: presence.status_msg,
+                    last_active_ago: presence.last_active_ago,
+                    currently_active: presence.currently_active,
+                });
+                this.subscribedUsers.add(presence.user_id);
+            });
+            this.emit(PresenceEvent.PresenceListUpdated, response.presences ?? []);
         } catch (e) {
             const error = this.normalizeError(e, "unsubscribeFromPresence");
             this.emit(PresenceEvent.PresenceError, error);
@@ -419,25 +503,76 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     }
 
     async getSubscribedPresence(): Promise<IPresenceEvent[]> {
-        return this.getPresenceList();
+        return this.getPresenceList(undefined, false);
     }
 
+    /**
+     * 清除状态消息
+     *
+     * @example
+     * ```typescript
+     * // 清除状态消息，保持当前在线状态
+     * await presenceManager.clearStatusMessage();
+     * ```
+     */
     async clearStatusMessage(): Promise<void> {
         const me = this.client.getUserId();
         if (!me) return;
-        const state = await this.getPresence(me, true);
+        const state = await this.getPresence(me, true, false);
         if (!state) return;
         await this.setPresence(state.presence);
     }
 
+    /**
+     * 设置为在线状态
+     *
+     * @param status - 状态消息（可选）
+     *
+     * @example
+     * ```typescript
+     * // 设置为在线
+     * await presenceManager.setOnline();
+     *
+     * // 设置为在线并附带状态消息
+     * await presenceManager.setOnline("Working on project");
+     * ```
+     */
     async setOnline(status?: string): Promise<void> {
         await this.setPresence("online", status);
     }
 
+    /**
+     * 设置为离线状态
+     *
+     * @param status - 状态消息（可选）
+     *
+     * @example
+     * ```typescript
+     * // 设置为离线
+     * await presenceManager.setOffline();
+     *
+     * // 设置为离线并附带状态消息
+     * await presenceManager.setOffline("Away from keyboard");
+     * ```
+     */
     async setOffline(status?: string): Promise<void> {
         await this.setPresence("offline", status);
     }
 
+    /**
+     * 设置为忙碌状态
+     *
+     * @param status - 状态消息（可选）
+     *
+     * @example
+     * ```typescript
+     * // 设置为忙碌
+     * await presenceManager.setUnavailable();
+     *
+     * // 设置为忙碌并附带状态消息
+     * await presenceManager.setUnavailable("In a meeting");
+     * ```
+     */
     async setUnavailable(status?: string): Promise<void> {
         await this.setPresence("unavailable", status);
     }

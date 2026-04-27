@@ -642,10 +642,11 @@ export class PushProcessor {
     ): boolean {
         // Since servers don't support properly sending push notification
         // about MSC3401 call events, we do the handling ourselves
+        const content = ev.getContent<{ "m.intent"?: string; "m.terminated"?: unknown }>();
         return (
-            ["m.ring", "m.prompt"].includes(ev.getContent()["m.intent"]) &&
-            !("m.terminated" in ev.getContent()) &&
-            (ev.getPrevContent()["m.terminated"] !== ev.getContent()["m.terminated"] ||
+            ["m.ring", "m.prompt"].includes(content["m.intent"] ?? "") &&
+            !("m.terminated" in content) &&
+            (ev.getPrevContent()["m.terminated"] !== content["m.terminated"] ||
                 deepCompare(ev.getPrevContent(), {}))
         );
     }

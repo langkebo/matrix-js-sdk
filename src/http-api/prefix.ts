@@ -16,6 +16,10 @@ limitations under the License.
 
 export enum ClientPrefix {
     /**
+     * A constant representing the URI path for Client-Server API endpoints versioned at r0 (legacy).
+     */
+    R0 = "/_matrix/client/r0",
+    /**
      * A constant representing the URI path for Client-Server API endpoints versioned at v1.
      */
     V1 = "/_matrix/client/v1",

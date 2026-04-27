@@ -33,6 +33,7 @@ limitations under the License.
 import { BaseManager } from "../managers/base-manager.js";
 import { Method } from "../http-api/method.js";
 import { MatrixClient } from "../client.js";
+import { InvalidParamError } from "../common/errors";
 
 /** 根路径前缀: ai_connection router 直接 merge 到主路由, 无 Matrix prefix */
 const AI_CONNECTION_PREFIX = "";
@@ -133,7 +134,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
      */
     public async createConnection(options: CreateConnectionOptions): Promise<AIConnection> {
         if (!options.provider) {
-            throw new Error("provider is required");
+            throw new InvalidParamError("provider is required");
         }
 
         try {
@@ -164,7 +165,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
      */
     public async getConnection(connectionId: string): Promise<AIConnection> {
         if (!connectionId) {
-            throw new Error("connectionId is required");
+            throw new InvalidParamError("connectionId is required");
         }
 
         try {
@@ -191,7 +192,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
      */
     public async deleteConnection(connectionId: string): Promise<void> {
         if (!connectionId) {
-            throw new Error("connectionId is required");
+            throw new InvalidParamError("connectionId is required");
         }
 
         try {
@@ -217,7 +218,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
      */
     public async listMcpTools(provider: string): Promise<unknown> {
         if (!provider) {
-            throw new Error("provider is required");
+            throw new InvalidParamError("provider is required");
         }
 
         try {
@@ -241,10 +242,10 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
      */
     public async callMcpTool(options: McpToolCallOptions): Promise<unknown> {
         if (!options.provider) {
-            throw new Error("provider is required");
+            throw new InvalidParamError("provider is required");
         }
         if (!options.toolName) {
-            throw new Error("toolName is required");
+            throw new InvalidParamError("toolName is required");
         }
 
         try {

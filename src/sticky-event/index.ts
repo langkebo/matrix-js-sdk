@@ -25,10 +25,11 @@ import { logger } from "../logger.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
-import { MatrixEvent } from "../models/event.ts";
+import { type IContent, MatrixEvent } from "../models/event.ts";
 import { EventType } from "../@types/event.ts";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { InvalidParamError } from "../common/errors";
 
 export enum StickyEvent {
     StickySet = "StickySet",
@@ -37,7 +38,7 @@ export enum StickyEvent {
     StickyError = "StickyError",
 }
 
-export interface IStickyEventData {
+export interface IStickyEventData extends IContent {
     event_id: string;
     event_type: string;
     content: Record<string, unknown>;
@@ -128,7 +129,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
     async setStickyEvent(roomId: string, eventId: string, content?: Record<string, unknown>): Promise<void> {
         if (!roomId || !eventId) {
-            throw new Error("Room ID and event ID are required");
+            throw new InvalidParamError("Room ID and event ID are required");
         }
 
         try {
@@ -175,7 +176,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
     async getStickyEvent(roomId: string): Promise<IStickyEventInfo | null> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         const cached = this.stickyEventsCache.get(roomId);
@@ -194,14 +195,14 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
                 return null;
             }
 
-            const content = stickyStateEvent.getContent();
+            const content = stickyStateEvent.getContent<IStickyEventData>();
             const stickyInfo: IStickyEventInfo = {
                 roomId,
-                eventId: content.event_id || "",
-                eventType: content.event_type || "m.room.message",
-                content: content.content || content,
+                eventId: typeof content.event_id === "string" ? content.event_id : "",
+                eventType: typeof content.event_type === "string" ? content.event_type : "m.room.message",
+                content: content.content || (content as Record<string, unknown>),
                 sender: stickyStateEvent.getSender() || "",
-                timestamp: content.ts || stickyStateEvent.getTs(),
+                timestamp: typeof content.ts === "number" ? content.ts : stickyStateEvent.getTs(),
             };
 
             this.stickyEventsCache.set(roomId, stickyInfo);
@@ -216,7 +217,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
     async clearStickyEvent(roomId: string): Promise<void> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         try {
@@ -330,11 +331,11 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         } else {
             const stickyInfo: IStickyEventInfo = {
                 roomId,
-                eventId: content.event_id || "",
-                eventType: content.event_type || "m.room.message",
-                content: content.content || content,
+                eventId: typeof content.event_id === "string" ? content.event_id : "",
+                eventType: typeof content.event_type === "string" ? content.event_type : "m.room.message",
+                content: content.content || (content as Record<string, unknown>),
                 sender: event.getSender() || "",
-                timestamp: content.ts || event.getTs(),
+                timestamp: typeof content.ts === "number" ? content.ts : event.getTs(),
             };
 
             this.stickyEventsCache.set(roomId, stickyInfo);
@@ -369,7 +370,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
     public async getStickyEventsFromServer(roomId: string, eventType?: string): Promise<IServerStickyEvent[]> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         const cacheKey = `${roomId}:${eventType || "all"}`;
@@ -396,11 +397,11 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
     public async setStickyEventsToServer(roomId: string, events: ISetStickyEventsRequest): Promise<void> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         if (!events || !events.events || events.events.length === 0) {
-            throw new Error("Events array is required");
+            throw new InvalidParamError("Events array is required");
         }
 
         return this.withRetry(async () => {
@@ -426,11 +427,11 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
     public async clearStickyEventFromServer(roomId: string, eventType: string): Promise<void> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         if (!eventType) {
-            throw new Error("Event type is required");
+            throw new InvalidParamError("Event type is required");
         }
 
         return this.withRetry(async () => {
@@ -465,9 +466,10 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
                 this.stickyEventsCache.set(roomId, stickyInfo);
                 return stickyInfo;
             }
-        } catch {
+        } catch (e) {
             logger.warn(
                 "StickyEventManager.getStickyEventWithFallback: server API failed, falling back to state event",
+                e,
             );
         }
 

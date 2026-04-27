@@ -16,13 +16,50 @@ limitations under the License.
 
 import { type MatrixEvent } from "../models/event.ts";
 import { type MatrixClient, ClientEvent } from "../client.ts";
-import { GroupCall, GroupCallIntent, GroupCallType, type IGroupCallDataChannelOptions } from "./groupCall.ts";
+import {
+    GroupCall,
+    GroupCallIntent,
+    GroupCallType,
+    type IGroupCallDataChannelOptions,
+    type IGroupCallRoomState,
+} from "./groupCall.ts";
 import { type Room } from "../models/room.ts";
 import { type RoomState, RoomStateEvent } from "../models/room-state.ts";
 import { type RoomMember } from "../models/room-member.ts";
 import { logger } from "../logger.ts";
 import { EventType } from "../@types/event.ts";
 import { SyncState } from "../sync.ts";
+
+function isGroupCallType(value: unknown): value is GroupCallType {
+    return typeof value === "string" && Object.values(GroupCallType).includes(value as GroupCallType);
+}
+
+function isGroupCallIntent(value: unknown): value is GroupCallIntent {
+    return typeof value === "string" && Object.values(GroupCallIntent).includes(value as GroupCallIntent);
+}
+
+function parseDataChannelOptions(value: unknown): IGroupCallDataChannelOptions | undefined {
+    if (!value || typeof value !== "object") {
+        return undefined;
+    }
+
+    const options = value as Partial<IGroupCallDataChannelOptions>;
+    if (
+        typeof options.ordered !== "boolean" ||
+        typeof options.maxPacketLifeTime !== "number" ||
+        typeof options.maxRetransmits !== "number" ||
+        typeof options.protocol !== "string"
+    ) {
+        return undefined;
+    }
+
+    return {
+        ordered: options.ordered,
+        maxPacketLifeTime: options.maxPacketLifeTime,
+        maxRetransmits: options.maxRetransmits,
+        protocol: options.protocol,
+    };
+}
 
 export enum GroupCallEventHandlerEvent {
     Incoming = "GroupCall.incoming",
@@ -138,7 +175,7 @@ export class GroupCallEventHandler {
 
     private createGroupCallFromRoomStateEvent(event: MatrixEvent): GroupCall | undefined {
         const roomId = event.getRoomId();
-        const content = event.getContent();
+        const content = event.getContent<Partial<IGroupCallRoomState>>();
 
         const room = this.client.getRoom(roomId);
 
@@ -153,7 +190,7 @@ export class GroupCallEventHandler {
 
         const callType = content["m.type"];
 
-        if (!Object.values(GroupCallType).includes(callType)) {
+        if (!isGroupCallType(callType)) {
             logger.warn(
                 `GroupCallEventHandler createGroupCallFromRoomStateEvent() received invalid call type (type=${callType}, roomId=${roomId})`,
             );
@@ -162,7 +199,7 @@ export class GroupCallEventHandler {
 
         const callIntent = content["m.intent"];
 
-        if (!Object.values(GroupCallIntent).includes(callIntent)) {
+        if (!isGroupCallIntent(callIntent)) {
             logger.warn(`Received invalid group call intent (type=${callType}, roomId=${roomId})`);
             return;
         }
@@ -172,9 +209,7 @@ export class GroupCallEventHandler {
         let dataChannelOptions: IGroupCallDataChannelOptions | undefined;
 
         if (content?.dataChannelsEnabled && content?.dataChannelOptions) {
-            // Pull out just the dataChannelOptions we want to support.
-            const { ordered, maxPacketLifeTime, maxRetransmits, protocol } = content.dataChannelOptions;
-            dataChannelOptions = { ordered, maxPacketLifeTime, maxRetransmits, protocol };
+            dataChannelOptions = parseDataChannelOptions(content.dataChannelOptions);
         }
 
         const groupCall = new GroupCall(

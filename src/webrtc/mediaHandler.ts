@@ -190,10 +190,10 @@ export class MediaHandler extends TypedEventEmitter<
     /**
      * Check if there's an audio input device
      *
-     * @param throwOnError - Whether to throw on error (default false)
+     * @param throwOnError - Whether to throw on error (default true)
      * @returns True if an audio device exists
      */
-    public async hasAudioDevice(throwOnError = false): Promise<boolean> {
+    public async hasAudioDevice(throwOnError = true): Promise<boolean> {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter((device) => device.kind === "audioinput").length > 0;
@@ -210,10 +210,10 @@ export class MediaHandler extends TypedEventEmitter<
     /**
      * Check if there's a video input device
      *
-     * @param throwOnError - Whether to throw on error (default false)
+     * @param throwOnError - Whether to throw on error (default true)
      * @returns True if a video device exists
      */
-    public async hasVideoDevice(throwOnError = false): Promise<boolean> {
+    public async hasVideoDevice(throwOnError = true): Promise<boolean> {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter((device) => device.kind === "videoinput").length > 0;
@@ -247,8 +247,8 @@ export class MediaHandler extends TypedEventEmitter<
     }
 
     private async getUserMediaStreamInternal(audio: boolean, video: boolean, reusable: boolean): Promise<MediaStream> {
-        const shouldRequestAudio = audio && (await this.hasAudioDevice());
-        const shouldRequestVideo = video && (await this.hasVideoDevice());
+        const shouldRequestAudio = audio && (await this.hasAudioDevice(false));
+        const shouldRequestVideo = video && (await this.hasVideoDevice(false));
 
         let stream: MediaStream;
 

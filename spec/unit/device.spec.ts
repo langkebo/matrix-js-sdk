@@ -108,20 +108,20 @@ describe("DeviceManager", () => {
             expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
         });
 
-        it("should return null on 404 error", async () => {
+        it("should throw on 404 error by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            const device = await deviceManager.getDevice("device1");
-
-            expect(device).toBeNull();
+            await expect(deviceManager.getDevice("device1")).rejects.toThrow();
         });
 
-        it("should throw on 404 error when throwOnError is true", async () => {
+        it("should return null on 404 error when throwOnError is false", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(deviceManager.getDevice("device1", false, true)).rejects.toThrow();
+            const device = await deviceManager.getDevice("device1", false, false);
+
+            expect(device).toBeNull();
         });
 
         it("should throw error for empty deviceId", async () => {

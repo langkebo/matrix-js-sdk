@@ -46,12 +46,11 @@ describe("AdminManager - Extended Tests", () => {
         it("should reset password successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValue({});
 
-            await adminManager.resetPassword("@user:example.com", "newpass123", true);
+            await adminManager.resetPassword("@user:example.com", "newpass123");
 
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
             const call = mockClient.http.authedRequest.mock.calls[0];
             expect(call[3]).toHaveProperty("new_password", "newpass123");
-            expect(call[3]).toHaveProperty("logout_devices", true);
         });
 
         it("should set admin status successfully", async () => {
@@ -117,11 +116,11 @@ describe("AdminManager - Extended Tests", () => {
             expect(status?.user_id).toBe("@user:example.com");
         });
 
-        it("should return null for non-existent shadow ban status", async () => {
+        it("should return null for non-existent shadow ban status when throwOnError is false", async () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(notFoundError);
 
-            const status = await adminManager.getShadowBanStatus("@user:example.com");
+            const status = await adminManager.getShadowBanStatus("@user:example.com", false);
 
             expect(status).toBeNull();
         });
@@ -140,11 +139,11 @@ describe("AdminManager - Extended Tests", () => {
             expect(rateLimit?.burst_count).toBe(20);
         });
 
-        it("should return null for non-existent rate limit", async () => {
+        it("should return null for non-existent rate limit when throwOnError is false", async () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(notFoundError);
 
-            const rateLimit = await adminManager.getRateLimit("@user:example.com");
+            const rateLimit = await adminManager.getRateLimit("@user:example.com", false);
 
             expect(rateLimit).toBeNull();
         });
@@ -185,11 +184,11 @@ describe("AdminManager - Extended Tests", () => {
             expect(room?.name).toBe("Test Room");
         });
 
-        it("should return null for non-existent room", async () => {
+        it("should return null for non-existent room when throwOnError is false", async () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(notFoundError);
 
-            const room = await adminManager.getRoom("!room:example.com");
+            const room = await adminManager.getRoom("!room:example.com", false);
 
             expect(room).toBeNull();
         });
@@ -263,6 +262,29 @@ describe("AdminManager - Extended Tests", () => {
             });
 
             expect(messages.chunk).toHaveLength(2);
+        });
+
+        it("should preserve zero-valued room message limits", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                chunk: [],
+                start: "t1",
+                end: "t2",
+            });
+
+            await adminManager.getRoomMessages("!room:example.com", {
+                limit: 0,
+                dir: "b",
+            });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/v1/rooms/!room%3Aexample.com/messages",
+                { limit: "0", dir: "b" },
+                undefined,
+                {
+                    prefix: "/_synapse/admin",
+                },
+            );
         });
 
         it("should get room aliases successfully", async () => {
@@ -409,11 +431,11 @@ describe("AdminManager - Extended Tests", () => {
             expect(dest?.destination).toBe("server1.com");
         });
 
-        it("should return null for non-existent federation destination", async () => {
+        it("should return null for non-existent federation destination when throwOnError is false", async () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(notFoundError);
 
-            const dest = await adminManager.getFederationDestination("unknown.com");
+            const dest = await adminManager.getFederationDestination("unknown.com", false);
 
             expect(dest).toBeNull();
         });

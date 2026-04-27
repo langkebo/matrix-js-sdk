@@ -29,9 +29,184 @@ import type { IRelationsResponse, IContextResponse } from "../@types/requests";
 import { getRelationsThreadFilter } from "../thread-utils";
 import { ServerSupport, Feature } from "../feature";
 import { BaseManager } from "../managers/base-manager";
+import { ClientPrefix, Method } from "../http-api";
+import type { Body } from "../http-api/interface";
 
 export interface ThreadingManagerEvents {
     threadTimelineFetched: (data: { threadId: string; eventId: string }) => void;
+}
+
+export interface ThreadListQuery {
+    limit?: number;
+    from?: string;
+    includeAll?: boolean;
+}
+
+export interface ThreadSearchQuery {
+    q: string;
+    limit?: number;
+}
+
+export interface ThreadRepliesQuery {
+    limit?: number;
+    from?: string;
+}
+
+export interface ThreadDetailQuery {
+    includeReplies?: boolean;
+    replyLimit?: number;
+}
+
+export interface ThreadSummaryResponse {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    root_event_id: string;
+    root_sender: string;
+    root_content: Record<string, unknown>;
+    root_origin_server_ts: number;
+    latest_event_id: string | null;
+    latest_sender: string | null;
+    latest_content: Record<string, unknown> | null;
+    latest_origin_server_ts: number | null;
+    reply_count: number;
+    participants: unknown;
+    is_frozen: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface ThreadReadReceiptResponse {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    user_id: string;
+    last_read_event_id: string | null;
+    last_read_ts: number;
+    unread_count: number;
+    updated_ts: number;
+}
+
+export interface ThreadSubscriptionResponse {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    user_id: string;
+    notification_level: string;
+    is_muted: boolean;
+    subscribed_ts: number;
+    updated_ts: number;
+}
+
+export interface ThreadReplyResponse {
+    event_id: string;
+    thread_id: string;
+    room_id: string;
+    sender: string;
+    content: Record<string, unknown>;
+    origin_server_ts: number;
+    in_reply_to_event_id: string | null;
+    is_edited: boolean;
+    is_redacted: boolean;
+}
+
+export interface ThreadCreateResponse {
+    thread_id: string | null;
+    root_event_id: string;
+    room_id: string;
+    sender: string;
+    reply_count: number;
+    last_reply_event_id: string | null;
+    last_reply_sender: string | null;
+    last_reply_ts: number | null;
+    participants: unknown;
+    is_fetched: boolean;
+    created_ts: number;
+}
+
+export interface ThreadRootResponse {
+    id: number;
+    room_id: string;
+    root_event_id: string;
+    sender: string;
+    thread_id: string | null;
+    reply_count: number;
+    last_reply_event_id: string | null;
+    last_reply_sender: string | null;
+    last_reply_ts: number | null;
+    participants: unknown;
+    is_fetched: boolean;
+    created_ts: number;
+    updated_ts: number | null;
+}
+
+export interface ThreadCreateParams {
+    roomId?: string;
+    rootEventId: string;
+    content?: Record<string, unknown>;
+    originServerTs?: number;
+}
+
+export interface ThreadReplyCreateParams {
+    eventId: string;
+    rootEventId: string;
+    content: Record<string, unknown>;
+    inReplyToEventId?: string;
+    originServerTs?: number;
+}
+
+export interface ThreadDetailResponse {
+    root: ThreadRootResponse;
+    replies: ThreadReplyResponse[];
+    reply_count: number;
+    participants: string[];
+    summary: ThreadSummaryResponse | null;
+    user_receipt: ThreadReadReceiptResponse | null;
+    user_subscription: ThreadSubscriptionResponse | null;
+}
+
+export interface ThreadListResponse {
+    threads: ThreadSummaryResponse[];
+    next_batch: string | null;
+    total: number;
+}
+
+export interface ThreadUnreadResponse {
+    threads: ThreadReadReceiptResponse[];
+    total_unread: number;
+    total_threads: number;
+}
+
+export interface SubscribedThreadsResponse {
+    threads: ThreadSummaryResponse[];
+    subscribed: ThreadSubscriptionResponse[];
+}
+
+export interface ThreadLegacyChunkItem {
+    event_id: string;
+    sender: string;
+    content: Record<string, unknown>;
+    origin_server_ts: number;
+}
+
+export interface ThreadLegacySearchResponse {
+    chunk: ThreadLegacyChunkItem[];
+    next_batch: string | null;
+}
+
+export interface ThreadStatisticsResponse {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    total_replies: number;
+    total_participants: number;
+    total_edits: number;
+    total_redactions: number;
+    first_reply_ts: number | null;
+    last_reply_ts: number | null;
+    avg_reply_time_ms: number | null;
+    created_ts: number;
+    updated_ts: number;
 }
 
 type ClientInternals = {
@@ -53,6 +228,48 @@ type ClientInternals = {
 export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, ThreadingManagerEvents> {
     constructor(client: MatrixClient) {
         super(client);
+    }
+
+    private buildQuery(
+        query: Record<string, string | number | boolean | undefined>,
+    ): Record<string, string | number | boolean> | undefined {
+        const result: Record<string, string | number | boolean> = {};
+        for (const [key, value] of Object.entries(query)) {
+            if (value !== undefined) {
+                result[key] = value;
+            }
+        }
+        return Object.keys(result).length > 0 ? result : undefined;
+    }
+
+    private async requestThreadV1<T>(
+        methodName: string,
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string | number | boolean>,
+        body?: Body,
+    ): Promise<T> {
+        try {
+            return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+                prefix: ClientPrefix.V1,
+            });
+        } catch (e) {
+            throw this.normalizeError(e, methodName);
+        }
+    }
+
+    private async requestThreadV3<T>(
+        methodName: string,
+        path: string,
+        queryParams?: Record<string, string | number | boolean>,
+    ): Promise<T> {
+        try {
+            return await this.client.http.authedRequest<T>(Method.Get, path, queryParams, undefined, {
+                prefix: ClientPrefix.V3,
+            });
+        } catch (e) {
+            throw this.normalizeError(e, methodName);
+        }
     }
 
     public getThread(threadId: string): Thread | null {
@@ -80,6 +297,219 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
 
     public hasThread(threadId: string): boolean {
         return this.getThread(threadId) !== null;
+    }
+
+    public async getGlobalThreadList(query: ThreadListQuery = {}): Promise<ThreadListResponse> {
+        return await this.requestThreadV1(
+            "getGlobalThreadList",
+            Method.Get,
+            "/threads",
+            this.buildQuery({ limit: query.limit, from: query.from }),
+        );
+    }
+
+    public async getSubscribedThreads(): Promise<SubscribedThreadsResponse> {
+        return await this.requestThreadV1("getSubscribedThreads", Method.Get, "/threads/subscribed");
+    }
+
+    public async getGlobalUnreadThreads(): Promise<ThreadUnreadResponse> {
+        return await this.requestThreadV1("getGlobalUnreadThreads", Method.Get, "/threads/unread");
+    }
+
+    public async getRoomThreadList(roomId: string, query: ThreadListQuery = {}): Promise<ThreadListResponse> {
+        return await this.requestThreadV1(
+            "getRoomThreadList",
+            Method.Get,
+            `/rooms/${encodeURIComponent(roomId)}/threads`,
+            this.buildQuery({ limit: query.limit, from: query.from, include_all: query.includeAll }),
+        );
+    }
+
+    public async searchRoomThreads(roomId: string, query: ThreadSearchQuery): Promise<ThreadSummaryResponse[]> {
+        return await this.requestThreadV1(
+            "searchRoomThreads",
+            Method.Get,
+            `/rooms/${encodeURIComponent(roomId)}/threads/search`,
+            this.buildQuery({ q: query.q, limit: query.limit }),
+        );
+    }
+
+    public async getLegacyRoomThreadList(
+        userId: string,
+        roomId: string,
+        query: ThreadListQuery = {},
+    ): Promise<ThreadLegacySearchResponse> {
+        return await this.requestThreadV3(
+            "getLegacyRoomThreadList",
+            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`,
+            this.buildQuery({ limit: query.limit, from: query.from, include_all: query.includeAll }),
+        );
+    }
+
+    public async getRoomUnreadThreads(roomId: string): Promise<ThreadUnreadResponse> {
+        return await this.requestThreadV1(
+            "getRoomUnreadThreads",
+            Method.Get,
+            `/rooms/${encodeURIComponent(roomId)}/threads/unread`,
+        );
+    }
+
+    public async getRoomThread(
+        roomId: string,
+        threadId: string,
+        query: ThreadDetailQuery = {},
+    ): Promise<ThreadDetailResponse> {
+        return await this.requestThreadV1(
+            "getRoomThread",
+            Method.Get,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`,
+            this.buildQuery({ include_replies: query.includeReplies, reply_limit: query.replyLimit }),
+        );
+    }
+
+    public async createGlobalThread(params: ThreadCreateParams): Promise<ThreadCreateResponse> {
+        return await this.requestThreadV1("createGlobalThread", Method.Post, "/threads", undefined, {
+            room_id: params.roomId,
+            root_event_id: params.rootEventId,
+            content: params.content ?? {},
+            origin_server_ts: params.originServerTs,
+        });
+    }
+
+    public async createRoomThread(
+        roomId: string,
+        rootEventId: string,
+        options: Pick<ThreadCreateParams, "content" | "originServerTs"> = {},
+    ): Promise<ThreadCreateResponse> {
+        return await this.requestThreadV1(
+            "createRoomThread",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads`,
+            undefined,
+            {
+                root_event_id: rootEventId,
+                content: options.content ?? {},
+                origin_server_ts: options.originServerTs,
+            },
+        );
+    }
+
+    public async deleteRoomThread(roomId: string, threadId: string): Promise<void> {
+        await this.requestThreadV1(
+            "deleteRoomThread",
+            Method.Delete,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`,
+        );
+    }
+
+    public async freezeThread(roomId: string, threadId: string): Promise<void> {
+        await this.requestThreadV1(
+            "freezeThread",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`,
+        );
+    }
+
+    public async unfreezeThread(roomId: string, threadId: string): Promise<void> {
+        await this.requestThreadV1(
+            "unfreezeThread",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`,
+        );
+    }
+
+    public async addThreadReply(
+        roomId: string,
+        threadId: string,
+        params: ThreadReplyCreateParams,
+    ): Promise<ThreadReplyResponse> {
+        return await this.requestThreadV1(
+            "addThreadReply",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`,
+            undefined,
+            {
+                event_id: params.eventId,
+                root_event_id: params.rootEventId,
+                content: params.content,
+                in_reply_to_event_id: params.inReplyToEventId,
+                origin_server_ts: params.originServerTs,
+            },
+        );
+    }
+
+    public async getThreadReplies(
+        roomId: string,
+        threadId: string,
+        query: ThreadRepliesQuery = {},
+    ): Promise<ThreadReplyResponse[]> {
+        return await this.requestThreadV1(
+            "getThreadReplies",
+            Method.Get,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`,
+            this.buildQuery({ limit: query.limit, from: query.from }),
+        );
+    }
+
+    public async subscribeToThread(
+        roomId: string,
+        threadId: string,
+        notificationLevel = "all",
+    ): Promise<ThreadSubscriptionResponse> {
+        return await this.requestThreadV1(
+            "subscribeToThread",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/subscribe`,
+            undefined,
+            { notification_level: notificationLevel },
+        );
+    }
+
+    public async unsubscribeFromThread(roomId: string, threadId: string): Promise<void> {
+        await this.requestThreadV1(
+            "unsubscribeFromThread",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unsubscribe`,
+        );
+    }
+
+    public async muteThread(roomId: string, threadId: string): Promise<ThreadSubscriptionResponse> {
+        return await this.requestThreadV1(
+            "muteThread",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`,
+        );
+    }
+
+    public async markThreadRead(
+        roomId: string,
+        threadId: string,
+        eventId: string,
+        originServerTs = Date.now(),
+    ): Promise<ThreadReadReceiptResponse> {
+        return await this.requestThreadV1(
+            "markThreadRead",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`,
+            undefined,
+            { event_id: eventId, origin_server_ts: originServerTs },
+        );
+    }
+
+    public async getThreadStats(roomId: string, threadId: string): Promise<ThreadStatisticsResponse | null> {
+        return await this.requestThreadV1(
+            "getThreadStats",
+            Method.Get,
+            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`,
+        );
+    }
+
+    public async redactThreadReply(roomId: string, eventId: string): Promise<void> {
+        await this.requestThreadV1(
+            "redactThreadReply",
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/replies/${encodeURIComponent(eventId)}/redact`,
+        );
     }
 
     public async createThread(roomId: string, eventId: string): Promise<Thread | null> {

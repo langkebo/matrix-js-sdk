@@ -47,6 +47,8 @@ import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 
 export interface EncryptedData {
     ciphertext: string;
@@ -214,10 +216,39 @@ export class KeyBackupManager {
         }
     }
 
+    /**
+     * 创建密钥备份版本
+     *
+     * @param algorithm - 加密算法（默认：m.megolm.v1.aes-sha2）
+     * @param authData - 认证数据（可选）
+     * @returns 包含版本号的对象
+     *
+     * @example
+     * ```typescript
+     * // 创建默认备份版本
+     * const result = await keyBackupManager.createBackupVersion();
+     * console.log("Backup version:", result.version);
+     *
+     * // 创建带认证数据的备份版本
+     * const result = await keyBackupManager.createBackupVersion(
+     *     "m.megolm.v1.aes-sha2",
+     *     {
+     *         public_key: "base64_public_key",
+     *         signatures: {}
+     *     }
+     * );
+     * ```
+     *
+     * @throws {ValidationError} 如果算法格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async createBackupVersion(
         algorithm: string = "m.megolm.v1.aes-sha2",
         authData?: AuthData | Record<string, unknown>,
     ): Promise<{ version: string }> {
+        if (!algorithm || algorithm.trim().length === 0) {
+            throw new ValidationError("Algorithm is required");
+        }
         try {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ version: string }>(
@@ -236,7 +267,32 @@ export class KeyBackupManager {
         }
     }
 
+    /**
+     * 获取密钥备份版本信息
+     *
+     * @param version - 备份版本号
+     * @param forceRefresh - 是否强制刷新缓存（默认 false）
+     * @returns 备份版本信息
+     *
+     * @example
+     * ```typescript
+     * // 获取备份版本信息
+     * const info = await keyBackupManager.getBackupVersion("1");
+     * console.log("Algorithm:", info.algorithm);
+     * console.log("Auth data:", info.auth_data);
+     *
+     * // 强制刷新
+     * const freshInfo = await keyBackupManager.getBackupVersion("1", true);
+     * ```
+     *
+     * @throws {ValidationError} 如果版本号为空
+     * @throws {NotFoundError} 如果版本不存在
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async getBackupVersion(version: string, forceRefresh = false): Promise<BackupVersionInfo> {
+        if (!version || version.trim().length === 0) {
+            throw new ValidationError("Version is required");
+        }
         if (!forceRefresh) {
             const cached = this.versionCache.get(version);
             if (cached) {
@@ -602,6 +658,104 @@ export class KeyBackupManager {
             }, "importKeysToVersion");
         } catch (error) {
             throw this.normalizeError(error, "importKeysToVersion");
+        }
+    }
+
+    // ==================== 安全备份 (v3-only) ====================
+
+    async createSecureBackup(algorithm: string, authData?: Record<string, unknown>): Promise<{ backup_id: string }> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ backup_id: string }>(
+                    Method.Post,
+                    "/keys/backup/secure",
+                    undefined,
+                    { algorithm, auth_data: authData },
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "createSecureBackup");
+        } catch (error) {
+            throw this.normalizeError(error, "createSecureBackup");
+        }
+    }
+
+    async getSecureBackup(backupId: string): Promise<Record<string, unknown>> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<Record<string, unknown>>(
+                    Method.Get,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "getSecureBackup");
+        } catch (error) {
+            throw this.normalizeError(error, "getSecureBackup");
+        }
+    }
+
+    async deleteSecureBackup(backupId: string): Promise<{ deleted: boolean }> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ deleted: boolean }>(
+                    Method.Delete,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "deleteSecureBackup");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteSecureBackup");
+        }
+    }
+
+    async storeSecureBackupKeys(backupId: string, keys: Record<string, unknown>): Promise<{ stored: boolean }> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ stored: boolean }>(
+                    Method.Post,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}/keys`,
+                    undefined,
+                    keys,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "storeSecureBackupKeys");
+        } catch (error) {
+            throw this.normalizeError(error, "storeSecureBackupKeys");
+        }
+    }
+
+    async restoreSecureBackup(backupId: string, passphrase?: string): Promise<Record<string, unknown>> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<Record<string, unknown>>(
+                    Method.Post,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}/restore`,
+                    undefined,
+                    { passphrase },
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "restoreSecureBackup");
+        } catch (error) {
+            throw this.normalizeError(error, "restoreSecureBackup");
+        }
+    }
+
+    async verifySecureBackupPassphrase(backupId: string, passphrase: string): Promise<{ valid: boolean }> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ valid: boolean }>(
+                    Method.Post,
+                    `/keys/backup/secure/${encodeURIComponent(backupId)}/verify`,
+                    undefined,
+                    { passphrase },
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "verifySecureBackupPassphrase");
+        } catch (error) {
+            throw this.normalizeError(error, "verifySecureBackupPassphrase");
         }
     }
 

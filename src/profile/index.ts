@@ -36,6 +36,8 @@ import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 
 export enum ProfileEvent {
     ProfileUpdated = "ProfileUpdated",
@@ -50,17 +52,91 @@ export interface IProfile {
 export interface IExtendedProfile extends IProfile {
     [key: string]: unknown;
 }
+
+type ProfileField = keyof IProfile;
+const ALL_PROFILE_FIELDS: readonly ProfileField[] = ["displayname", "avatar_url"];
+
+interface CachedProfileEntry {
+    profile: IProfile;
+    isComplete: boolean;
+    fields: Set<ProfileField>;
+}
+
+interface SetProfileFieldCacheOptions {
+    mergeWithExisting?: boolean;
+}
+
 interface ProfileManagerEventMap {
     [ProfileEvent.ProfileUpdated]: (userId: string, profile: IProfile) => void;
     [ProfileEvent.ProfileError]: (error: Error) => void;
 }
 
 export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEventMap> {
-    private profileCache: LRUCache<IProfile>;
+    private profileCache: LRUCache<CachedProfileEntry>;
 
     constructor(client: MatrixClient) {
         super(client);
-        this.profileCache = new LRUCache<IProfile>({ maxSize: 200, ttl: 10 * 60 * 1000, name: "index.ts-iprofile" });
+        this.profileCache = new LRUCache<CachedProfileEntry>({
+            maxSize: 200,
+            ttl: 10 * 60 * 1000,
+            name: "index.ts-iprofile",
+        });
+    }
+
+    private getCachedProfileEntry(userId: string): CachedProfileEntry | undefined {
+        return this.profileCache.get(userId);
+    }
+
+    private setCompleteProfileCache(userId: string, profile: IProfile): IProfile {
+        const cachedProfile = { ...profile };
+        this.profileCache.set(userId, {
+            profile: cachedProfile,
+            isComplete: true,
+            fields: new Set<ProfileField>(ALL_PROFILE_FIELDS),
+        });
+        return cachedProfile;
+    }
+
+    private setProfileFieldCache<K extends ProfileField>(
+        userId: string,
+        field: K,
+        value: IProfile[K],
+        options: SetProfileFieldCacheOptions = {},
+    ): IProfile {
+        const cachedEntry = options.mergeWithExisting === false ? undefined : this.getCachedProfileEntry(userId);
+        const profile = {
+            ...(cachedEntry?.profile ?? {}),
+            [field]: value,
+        };
+        const fields = new Set<ProfileField>(cachedEntry?.fields ?? []);
+        fields.add(field);
+        const isComplete =
+            cachedEntry?.isComplete === true || ALL_PROFILE_FIELDS.every((profileField) => fields.has(profileField));
+        this.profileCache.set(userId, {
+            profile,
+            isComplete,
+            fields,
+        });
+        return profile;
+    }
+
+    private async getProfileField<K extends ProfileField>(
+        userId: string,
+        field: K,
+        options: SetProfileFieldCacheOptions = {},
+    ): Promise<IProfile[K]> {
+        const path = utils.encodeUri("/profile/$userId/$field", {
+            $userId: userId,
+            $field: field,
+        });
+
+        const response = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<Pick<IProfile, K>>(Method.Get, path);
+        });
+
+        const profile = this.setProfileFieldCache(userId, field, response[field], options);
+        this.emit(ProfileEvent.ProfileUpdated, userId, profile);
+        return response[field];
     }
 
     /**
@@ -68,7 +144,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      */
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
     public setProfileInfo(info: "displayname", data: { displayname: string }): Promise<EmptyObject>;
-    public async setProfileInfo(info: "avatar_url" | "displayname", data: object): Promise<EmptyObject> {
+    public async setProfileInfo<K extends ProfileField>(info: K, data: Pick<IProfile, K>): Promise<EmptyObject> {
         const path = utils.encodeUri("/profile/$userId/$info", {
             $userId: this.client.credentials.userId!,
             $info: info,
@@ -81,7 +157,8 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
             const userId = this.client.getUserId();
             if (userId) {
-                this.profileCache.delete(userId);
+                const profile = this.setProfileFieldCache(userId, info, data[info]);
+                this.emit(ProfileEvent.ProfileUpdated, userId, profile);
             }
 
             return result;
@@ -94,8 +171,32 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
     /**
      * Set display name
+     *
+     * @param name - 显示名称
+     * @returns Promise that resolves when the display name is set
+     *
+     * @example
+     * ```typescript
+     * // 设置显示名称
+     * await profileManager.setDisplayName("Alice");
+     *
+     * // 监听资料更新事件
+     * profileManager.on(ProfileEvent.ProfileUpdated, (userId, profile) => {
+     *     console.log(`Profile updated for ${userId}:`, profile);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果显示名称为空或过长
+     * @throws {ApiError} 如果 API 调用失败
      */
     public async setDisplayName(name: string): Promise<EmptyObject> {
+        if (!name || name.trim().length === 0) {
+            throw new ValidationError("Display name cannot be empty");
+        }
+        if (name.length > 255) {
+            throw new ValidationError("Display name too long (max 255 characters)");
+        }
+
         try {
             const prom = await this.setProfileInfo("displayname", { displayname: name });
             const user = this.client.getUser(this.client.getUserId()!);
@@ -111,8 +212,28 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
     /**
      * Set avatar URL
+     *
+     * @param url - MXC URL of the avatar (e.g., mxc://example.com/abc123)
+     * @returns Promise that resolves when the avatar is set
+     *
+     * @example
+     * ```typescript
+     * // 上传头像并设置
+     * const uploadResponse = await client.uploadContent(file);
+     * await profileManager.setAvatarUrl(uploadResponse.content_uri);
+     *
+     * // 清除头像
+     * await profileManager.setAvatarUrl("");
+     * ```
+     *
+     * @throws {ValidationError} 如果 URL 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     public async setAvatarUrl(url: string): Promise<EmptyObject> {
+        if (url && !url.startsWith("mxc://") && url !== "") {
+            throw new ValidationError("Avatar URL must be a valid MXC URL (mxc://...) or empty string");
+        }
+
         try {
             const prom = await this.setProfileInfo("avatar_url", { avatar_url: url });
             const user = this.client.getUser(this.client.getUserId()!);
@@ -128,10 +249,32 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
     /**
      * Get profile information
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @returns 用户资料信息
+     *
+     * @example
+     * ```typescript
+     * // 获取用户资料
+     * const profile = await profileManager.getProfileInfo("@alice:example.com");
+     * console.log("Display name:", profile.displayname);
+     * console.log("Avatar URL:", profile.avatar_url);
+     *
+     * // 使用缓存
+     * const cachedProfile = await profileManager.getProfileInfo("@alice:example.com");
+     * // 第二次调用会使用缓存（10 分钟 TTL）
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {NotFoundError} 如果用户不存在
+     * @throws {ApiError} 如果 API 调用失败
      */
     public async getProfileInfo(userId: string): Promise<IProfile> {
-        if (this.profileCache.has(userId)) {
-            return this.profileCache.get(userId)!;
+        AdminValidators.validateUserId(userId);
+
+        const cachedEntry = this.getCachedProfileEntry(userId);
+        if (cachedEntry?.isComplete) {
+            return cachedEntry.profile;
         }
 
         const path = utils.encodeUri("/profile/$userId", {
@@ -143,9 +286,9 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
                 return await this.client.http.authedRequest<IProfile>(Method.Get, path);
             });
 
-            this.profileCache.set(userId, response);
-            this.emit(ProfileEvent.ProfileUpdated, userId, response);
-            return response;
+            const profile = this.setCompleteProfileCache(userId, response);
+            this.emit(ProfileEvent.ProfileUpdated, userId, profile);
+            return profile;
         } catch (e) {
             const error = this.normalizeError(e, "getProfileInfo");
             this.emit(ProfileEvent.ProfileError, error);
@@ -155,40 +298,100 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
     /**
      * Get display name
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @param forceRefresh - 是否强制刷新缓存（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 显示名称，如果不存在或出错则返回 null
+     *
+     * @example
+     * ```typescript
+     * // 获取显示名称
+     * const displayName = await profileManager.getDisplayName("@alice:example.com");
+     * console.log("Display name:", displayName);
+     *
+     * // 强制刷新缓存
+     * const freshName = await profileManager.getDisplayName("@alice:example.com", true);
+     *
+     * // 不抛出错误
+     * const name = await profileManager.getDisplayName("@invalid:example.com", false, false);
+     * if (!name) {
+     *     console.log("User not found or error occurred");
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
-    public async getDisplayName(userId: string, forceRefresh = false, throwOnError = false): Promise<string | null> {
+    public async getDisplayName(userId: string, forceRefresh = false, throwOnError = true): Promise<string | null> {
+        AdminValidators.validateUserId(userId);
+
         try {
-            if (!forceRefresh && this.profileCache.has(userId)) {
-                return this.profileCache.get(userId)?.displayname ?? null;
+            const cachedEntry = !forceRefresh ? this.getCachedProfileEntry(userId) : undefined;
+            if (cachedEntry && (cachedEntry.isComplete || cachedEntry.fields.has("displayname"))) {
+                return cachedEntry.profile.displayname ?? null;
             }
-            const info = await this.getProfileInfo(userId);
-            return info.displayname ?? null;
+            const displayName = await this.getProfileField(userId, "displayname", {
+                mergeWithExisting: !forceRefresh,
+            });
+            return displayName ?? null;
             // @swallow-error { owner: "profile", expires: "2026-12-31" }
         } catch (error) {
+            const normalizedError = this.normalizeError(error, "getDisplayName");
+            this.emit(ProfileEvent.ProfileError, normalizedError);
             if (throwOnError) {
-                throw this.normalizeError(error, "getDisplayName");
+                throw normalizedError;
             }
-            logger.warn(`ProfileManager.getDisplayName failed for ${userId}:`, error);
+            logger.warn(`ProfileManager.getDisplayName failed for ${userId}:`, normalizedError);
             return null;
         }
     }
 
     /**
      * Get avatar URL
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @param forceRefresh - 是否强制刷新缓存（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns MXC URL，如果不存在或出错则返回 null
+     *
+     * @example
+     * ```typescript
+     * // 获取头像 URL
+     * const avatarUrl = await profileManager.getAvatarUrl("@alice:example.com");
+     * if (avatarUrl) {
+     *     // 转换为 HTTP URL
+     *     const httpUrl = profileManager.getHttpUriForMxc(avatarUrl, 96, 96);
+     *     console.log("Avatar HTTP URL:", httpUrl);
+     * }
+     *
+     * // 强制刷新缓存
+     * const freshUrl = await profileManager.getAvatarUrl("@alice:example.com", true);
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
-    public async getAvatarUrl(userId: string, forceRefresh = false, throwOnError = false): Promise<string | null> {
+    public async getAvatarUrl(userId: string, forceRefresh = false, throwOnError = true): Promise<string | null> {
+        AdminValidators.validateUserId(userId);
+
         try {
-            if (!forceRefresh && this.profileCache.has(userId)) {
-                return this.profileCache.get(userId)?.avatar_url ?? null;
+            const cachedEntry = !forceRefresh ? this.getCachedProfileEntry(userId) : undefined;
+            if (cachedEntry && (cachedEntry.isComplete || cachedEntry.fields.has("avatar_url"))) {
+                return cachedEntry.profile.avatar_url ?? null;
             }
-            const info = await this.getProfileInfo(userId);
-            return info.avatar_url ?? null;
+            const avatarUrl = await this.getProfileField(userId, "avatar_url", {
+                mergeWithExisting: !forceRefresh,
+            });
+            return avatarUrl ?? null;
             // @swallow-error { owner: "profile", expires: "2026-12-31" }
         } catch (error) {
+            const normalizedError = this.normalizeError(error, "getAvatarUrl");
+            this.emit(ProfileEvent.ProfileError, normalizedError);
             if (throwOnError) {
-                throw this.normalizeError(error, "getAvatarUrl");
+                throw normalizedError;
             }
-            logger.warn(`ProfileManager.getAvatarUrl failed for ${userId}:`, error);
+            logger.warn(`ProfileManager.getAvatarUrl failed for ${userId}:`, normalizedError);
             return null;
         }
     }
@@ -222,14 +425,14 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @deprecated Use {@link getDisplayName}
      */
     public async getStateDisplayName(userId: string, forceRefresh = false): Promise<string | null> {
-        return this.getDisplayName(userId, forceRefresh);
+        return this.getDisplayName(userId, forceRefresh, false);
     }
 
     /**
      * @deprecated Use {@link getAvatarUrl}
      */
     public async getStateAvatarUrl(userId: string, forceRefresh = false): Promise<string | null> {
-        return this.getAvatarUrl(userId, forceRefresh);
+        return this.getAvatarUrl(userId, forceRefresh, false);
     }
 
     /**

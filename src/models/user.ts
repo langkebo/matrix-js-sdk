@@ -196,41 +196,46 @@ export class User extends TypedEventEmitter<UserEvent, UserEventHandlerMap> {
         if (event.getType() !== "m.presence") {
             return;
         }
+        const content = event.getContent<{
+            presence: string;
+            avatar_url?: string;
+            displayname?: string;
+            currently_active?: boolean;
+            status_msg?: string;
+            last_active_ago?: number;
+        }>();
         const firstFire = this.events.presence === null;
         this.events.presence = event;
 
         const eventsToFire: UserEvent[] = [];
-        if (event.getContent().presence !== this.presence || firstFire) {
+        if (content.presence !== this.presence || firstFire) {
             eventsToFire.push(UserEvent.Presence);
         }
-        if (event.getContent().avatar_url && event.getContent().avatar_url !== this.avatarUrl) {
+        if (content.avatar_url && content.avatar_url !== this.avatarUrl) {
             eventsToFire.push(UserEvent.AvatarUrl);
         }
-        if (event.getContent().displayname && event.getContent().displayname !== this.displayName) {
+        if (content.displayname && content.displayname !== this.displayName) {
             eventsToFire.push(UserEvent.DisplayName);
         }
-        if (
-            event.getContent().currently_active !== undefined &&
-            event.getContent().currently_active !== this.currentlyActive
-        ) {
+        if (content.currently_active !== undefined && content.currently_active !== this.currentlyActive) {
             eventsToFire.push(UserEvent.CurrentlyActive);
         }
 
-        this.presence = event.getContent().presence;
+        this.presence = content.presence;
         eventsToFire.push(UserEvent.LastPresenceTs);
 
-        if (event.getContent().status_msg) {
-            this.presenceStatusMsg = event.getContent().status_msg;
+        if (content.status_msg) {
+            this.presenceStatusMsg = content.status_msg;
         }
-        if (event.getContent().displayname) {
-            this.displayName = event.getContent().displayname;
+        if (content.displayname) {
+            this.displayName = content.displayname;
         }
-        if (event.getContent().avatar_url) {
-            this.avatarUrl = event.getContent().avatar_url;
+        if (content.avatar_url) {
+            this.avatarUrl = content.avatar_url;
         }
-        this.lastActiveAgo = event.getContent().last_active_ago;
+        this.lastActiveAgo = content.last_active_ago ?? 0;
         this.lastPresenceTs = Date.now();
-        this.currentlyActive = event.getContent().currently_active;
+        this.currentlyActive = content.currently_active ?? false;
 
         this.updateModifiedTime();
 

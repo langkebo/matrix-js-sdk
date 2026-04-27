@@ -36,7 +36,10 @@ globalThis.__js_sdk_entrypoint = true;
 let indexedDB: IDBFactory | undefined;
 try {
     indexedDB = globalThis.indexedDB;
-} catch {}
+} catch (error) {
+    // IndexedDB may not be available in some environments (e.g., private browsing)
+    console.warn("IndexedDB not available, crypto store will not be initialized", error);
+}
 
 if (indexedDB) {
     setCryptoStoreFactory(() => new IndexedDBCryptoStore(indexedDB!, "matrix-js-sdk:crypto"));

@@ -5,12 +5,12 @@
  *   node test-local-backend.js
  *
  * 或使用环境变量指定:
- *   HOMESERVER=http://localhost:8008 USER_ID=@testuser:cjystx.top ACCESS_TOKEN=your_token node test-local-backend.js
+ *   HOMESERVER=http://localhost:28008 USER_ID=@testuser:cjystx.top ACCESS_TOKEN=your_token node test-local-backend.js
  */
 
 import sdk from "./lib/index.js";
 
-const HOMESERVER = process.env.HOMESERVER || "http://localhost:8008";
+const HOMESERVER = process.env.HOMESERVER || "http://localhost:28008";
 const USER_ID = process.env.USER_ID || "@testuser:cjystx.top";
 let ACTUAL_USER_ID = USER_ID;
 

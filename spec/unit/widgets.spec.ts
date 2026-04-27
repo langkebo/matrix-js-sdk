@@ -79,4 +79,85 @@ describe("WidgetsManager", () => {
             expect(result).toHaveLength(1);
         });
     });
+
+    describe("REST widget wrappers (synapse-rust)", () => {
+        let mockAuthedRequest: ReturnType<typeof vi.fn>;
+
+        beforeEach(() => {
+            mockAuthedRequest = vi.fn().mockResolvedValue({ widget: { widget_id: "w1" } });
+            mockClient.http = { authedRequest: mockAuthedRequest };
+        });
+
+        it("createWidget posts to /widgets under V1 prefix", async () => {
+            await widgetsManager.createWidget({
+                room_id: "!r:x",
+                widget_type: "jitsi",
+                url: "https://jitsi/",
+                name: "Call",
+            });
+            const call = mockAuthedRequest.mock.calls[0];
+            expect(call[0]).toBe("POST");
+            expect(call[1]).toBe("/widgets");
+            expect(call[3]).toMatchObject({ widget_type: "jitsi", name: "Call" });
+            expect(call[4]).toMatchObject({ prefix: "/_matrix/client/v1" });
+        });
+
+        it("getWidgetById encodes path and uses GET", async () => {
+            await widgetsManager.getWidgetById("w/1");
+            const call = mockAuthedRequest.mock.calls[0];
+            expect(call[0]).toBe("GET");
+            expect(call[1]).toBe("/widgets/w%2F1");
+        });
+
+        it("updateWidget uses PUT", async () => {
+            await widgetsManager.updateWidget("w1", { name: "renamed" });
+            const call = mockAuthedRequest.mock.calls[0];
+            expect(call[0]).toBe("PUT");
+            expect(call[3]).toEqual({ name: "renamed" });
+        });
+
+        it("deleteWidget uses DELETE", async () => {
+            mockAuthedRequest.mockResolvedValue(undefined);
+            await widgetsManager.deleteWidget("w1");
+            expect(mockAuthedRequest.mock.calls[0][0]).toBe("DELETE");
+        });
+
+        it("listRoomWidgets hits /rooms/{id}/widgets", async () => {
+            mockAuthedRequest.mockResolvedValue({ widgets: [] });
+            await widgetsManager.listRoomWidgets("!r:x");
+            expect(mockAuthedRequest.mock.calls[0][1]).toBe("/rooms/!r%3Ax/widgets");
+        });
+
+        it("getJitsiConfig hits /rooms/{id}/widgets/jitsi/config", async () => {
+            mockAuthedRequest.mockResolvedValue({ server: "jitsi.example" });
+            await widgetsManager.getJitsiConfig("!r:x");
+            expect(mockAuthedRequest.mock.calls[0][1]).toBe("/rooms/!r%3Ax/widgets/jitsi/config");
+        });
+
+        it("setWidgetPermission posts body with user_id+permissions", async () => {
+            await widgetsManager.setWidgetPermission("w1", {
+                user_id: "@a:x",
+                permissions: ["read"],
+            });
+            expect(mockAuthedRequest.mock.calls[0][3]).toEqual({
+                user_id: "@a:x",
+                permissions: ["read"],
+            });
+        });
+
+        it("createWidgetSession POSTs to /widgets/{id}/sessions", async () => {
+            mockAuthedRequest.mockResolvedValue({ session_id: "s1" });
+            await widgetsManager.createWidgetSession("w1", { expires_in_ms: 5000 });
+            expect(mockAuthedRequest.mock.calls[0][0]).toBe("POST");
+            expect(mockAuthedRequest.mock.calls[0][1]).toBe("/widgets/w1/sessions");
+            expect(mockAuthedRequest.mock.calls[0][3]).toEqual({ expires_in_ms: 5000 });
+        });
+
+        it("terminateWidgetSession uses DELETE on /widgets/sessions/{id}", async () => {
+            mockAuthedRequest.mockResolvedValue(undefined);
+            await widgetsManager.terminateWidgetSession("s1");
+            expect(mockAuthedRequest.mock.calls[0][0]).toBe("DELETE");
+            expect(mockAuthedRequest.mock.calls[0][1]).toBe("/widgets/sessions/s1");
+        });
+    });
 });

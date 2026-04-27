@@ -25,6 +25,7 @@ import { Method } from "../http-api/method.ts";
 import { MediaPrefix } from "../http-api/prefix.ts";
 import type { UploadResponse } from "../http-api/interface.ts";
 import { BaseManager } from "../managers/base-manager";
+import { ValidationError } from "../errors";
 
 export interface UrlPreview {
     "url"?: string;
@@ -42,12 +43,47 @@ export class MediaManager extends BaseManager {
     }
 
     /**
-     * Upload content
+     * 上传媒体内容
+     *
+     * @param file - 文件内容（File, Blob 或 ArrayBuffer）
+     * @param opts - 上传选项
+     * @param opts.name - 文件名（可选）
+     * @param opts.type - MIME 类型（可选）
+     * @param opts.progress - 进度回调（可选）
+     * @returns 包含 content_uri 的对象
+     *
+     * @example
+     * ```typescript
+     * // 上传文件
+     * const file = document.querySelector('input[type="file"]').files[0];
+     * const result = await mediaManager.uploadContent(file);
+     * console.log("Uploaded:", result.content_uri);
+     *
+     * // 带进度回调
+     * const result = await mediaManager.uploadContent(file, {
+     *     progress: ({ loaded, total }) => {
+     *         console.log(`Progress: ${(loaded / total * 100).toFixed(2)}%`);
+     *     }
+     * });
+     *
+     * // 上传 Blob
+     * const blob = new Blob(['Hello, world!'], { type: 'text/plain' });
+     * const result = await mediaManager.uploadContent(blob, {
+     *     name: 'hello.txt',
+     *     type: 'text/plain'
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果文件为空
+     * @throws {ApiError} 如果上传失败
      */
     public uploadContent(
         file: File | Blob | ArrayBuffer,
         opts?: { name?: string; type?: string; progress?: (progress: { loaded: number; total: number }) => void },
     ): Promise<{ content_uri: string }> {
+        if (!file) {
+            throw new ValidationError("File content is required");
+        }
         return this.client.http.uploadContent(file as Blob, opts as Record<string, unknown>);
     }
 
@@ -63,7 +99,7 @@ export class MediaManager extends BaseManager {
     ): Promise<{ content_uri: string }> {
         const response = await this.client.http.authedRequest<{ content_uri: string }>(
             Method.Put,
-            `/media/upload/${serverName}/${mediaId}`,
+            `/upload/${serverName}/${mediaId}`,
             undefined,
             content,
             {
@@ -104,27 +140,51 @@ export class MediaManager extends BaseManager {
      * POST /_matrix/media/v1/delete/{server_name}/{media_id}
      */
     public async deleteMedia(serverName: string, mediaId: string): Promise<void> {
-        await this.client.http.authedRequest(
-            Method.Post,
-            `/media/delete/${serverName}/${mediaId}`,
-            undefined,
-            undefined,
-            { prefix: MediaPrefix.V1 },
-        );
+        await this.client.http.authedRequest(Method.Post, `/delete/${serverName}/${mediaId}`, undefined, undefined, {
+            prefix: MediaPrefix.V1,
+        });
     }
 
     /**
-     * Get URL preview
-     * GET /_matrix/media/v1/preview_url
+     * 获取 URL 预览
+     *
+     * @param url - 要预览的 URL
+     * @param ts - 时间戳（可选，用于缓存控制）
+     * @returns URL 预览信息
+     *
+     * @example
+     * ```typescript
+     * // 获取 URL 预览
+     * const preview = await mediaManager.previewUrl("https://example.com");
+     * console.log("Title:", preview.title);
+     * console.log("Description:", preview.description);
+     * console.log("Image:", preview["og_image"]);
+     *
+     * // 带时间戳（强制刷新）
+     * const preview = await mediaManager.previewUrl(
+     *     "https://example.com",
+     *     Date.now()
+     * );
+     * ```
+     *
+     * @throws {ValidationError} 如果 URL 为空或格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     public async previewUrl(url: string, ts?: number): Promise<UrlPreview> {
+        if (!url || url.trim().length === 0) {
+            throw new ValidationError("URL is required");
+        }
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            throw new ValidationError("URL must start with http:// or https://");
+        }
+
         const params: Record<string, string | number> = { url };
         if (ts !== undefined) {
             params.ts = ts;
         }
 
-        return this.client.http.authedRequest<UrlPreview>(Method.Get, "/media/preview_url", params, undefined, {
-            prefix: MediaPrefix.V1,
+        return this.client.http.authedRequest<UrlPreview>(Method.Get, "/preview_url", params, undefined, {
+            prefix: MediaPrefix.V3,
         });
     }
 }

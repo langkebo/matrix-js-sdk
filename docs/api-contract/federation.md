@@ -1,6 +1,8 @@
 # Federation 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/federation.rs`
+> 挂载版本: `federation v1/v2`、`key v2`
+> 更新日期: 2026-04-13
 
 ## 认证模型
 

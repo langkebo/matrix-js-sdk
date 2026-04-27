@@ -25,6 +25,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
+import { InvalidParamError } from "../common/errors";
 
 export enum RoomAliasEvent {
     AliasCreated = "AliasCreated",
@@ -69,12 +70,12 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
      * 获取别名对应的房间 ID
      *
      * @param alias - 房间别名
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名响应
      */
-    async getAliasRoom(alias: string, throwOnError = false): Promise<IRoomAliasResponse | null> {
+    async getAliasRoom(alias: string, throwOnError = true): Promise<IRoomAliasResponse | null> {
         if (!alias) {
-            throw new Error("Alias is required");
+            throw new InvalidParamError("Alias is required");
         }
 
         if (this.aliasCache.has(alias)) {
@@ -114,7 +115,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async setRoomAlias(roomId: string, alias: string): Promise<void> {
         if (!roomId || !alias) {
-            throw new Error("Room ID and alias are required");
+            throw new InvalidParamError("Room ID and alias are required");
         }
 
         try {
@@ -147,7 +148,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async deleteRoomAlias(alias: string): Promise<void> {
         if (!alias) {
-            throw new Error("Alias is required");
+            throw new InvalidParamError("Alias is required");
         }
 
         const info = this.aliasCache.get(alias);
@@ -182,12 +183,12 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
      * 获取房间的所有别名
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名列表响应
      */
-    async getRoomAliases(roomId: string, throwOnError = false): Promise<IRoomAliasesResponse | null> {
+    async getRoomAliases(roomId: string, throwOnError = true): Promise<IRoomAliasesResponse | null> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         if (this.roomAliasesCache.has(roomId)) {
@@ -219,7 +220,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async createAlias(roomId: string, aliasLocalpart: string): Promise<string> {
         if (!roomId || !aliasLocalpart) {
-            throw new Error("Room ID and alias localpart are required");
+            throw new InvalidParamError("Room ID and alias localpart are required");
         }
 
         const domain = this.client.getDomain();
@@ -235,7 +236,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
     }
 
     async resolveAlias(alias: string): Promise<string | null> {
-        const response = await this.getAliasRoom(alias);
+        const response = await this.getAliasRoom(alias, false);
         return response?.room_id || null;
     }
 
@@ -243,10 +244,10 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
      * 获取房间的主别名
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 主别名
      */
-    async getCanonicalAlias(roomId: string, throwOnError = false): Promise<string | null> {
+    async getCanonicalAlias(roomId: string, throwOnError = true): Promise<string | null> {
         try {
             const room = this.client.getRoom(roomId);
             if (!room) {
@@ -255,7 +256,8 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
             const canonicalAliasEvent = room.currentState.getStateEvents("m.room.canonical_alias", "");
             if (canonicalAliasEvent) {
-                return canonicalAliasEvent.getContent()?.alias || null;
+                const content = canonicalAliasEvent.getContent<{ alias?: string; alt_aliases?: string[] }>();
+                return content.alias || null;
             }
 
             return null;
@@ -271,7 +273,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async setCanonicalAlias(roomId: string, alias: string | null): Promise<void> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         try {
@@ -288,10 +290,10 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
      * 获取房间的备选别名列表
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 备选别名列表
      */
-    async getAltAliases(roomId: string, throwOnError = false): Promise<string[]> {
+    async getAltAliases(roomId: string, throwOnError = true): Promise<string[]> {
         try {
             const room = this.client.getRoom(roomId);
             if (!room) {
@@ -300,7 +302,8 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
             const canonicalAliasEvent = room.currentState.getStateEvents("m.room.canonical_alias", "");
             if (canonicalAliasEvent) {
-                return canonicalAliasEvent.getContent()?.alt_aliases || [];
+                const content = canonicalAliasEvent.getContent<{ alias?: string; alt_aliases?: string[] }>();
+                return Array.isArray(content.alt_aliases) ? content.alt_aliases : [];
             }
 
             return [];
@@ -316,15 +319,15 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async addAltAlias(roomId: string, alias: string): Promise<void> {
         if (!roomId || !alias) {
-            throw new Error("Room ID and alias are required");
+            throw new InvalidParamError("Room ID and alias are required");
         }
 
-        const altAliases = await this.getAltAliases(roomId);
+        const altAliases = await this.getAltAliases(roomId, false);
         if (altAliases.includes(alias)) {
             return;
         }
 
-        const canonicalAlias = await this.getCanonicalAlias(roomId);
+        const canonicalAlias = await this.getCanonicalAlias(roomId, false);
         altAliases.push(alias);
 
         await this.client.sendStateEvent(
@@ -340,13 +343,13 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async removeAltAlias(roomId: string, alias: string): Promise<void> {
         if (!roomId || !alias) {
-            throw new Error("Room ID and alias are required");
+            throw new InvalidParamError("Room ID and alias are required");
         }
 
-        const altAliases = await this.getAltAliases(roomId);
+        const altAliases = await this.getAltAliases(roomId, false);
         const filtered = altAliases.filter((a) => a !== alias);
 
-        const canonicalAlias = await this.getCanonicalAlias(roomId);
+        const canonicalAlias = await this.getCanonicalAlias(roomId, false);
 
         await this.client.sendStateEvent(
             roomId,
@@ -361,16 +364,17 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
 
     async isAliasAvailable(alias: string): Promise<boolean> {
         try {
-            const response = await this.getAliasRoom(alias);
+            const response = await this.getAliasRoom(alias, false);
             return response === null;
-        } catch {
+        } catch (e) {
+            logger.debug("RoomAliasManager.isAliasAvailable failed, assuming available", e);
             return true;
         }
     }
 
     async suggestAlias(roomId: string, aliasLocalpart: string): Promise<void> {
         if (!roomId || !aliasLocalpart) {
-            throw new Error("Room ID and alias localpart are required");
+            throw new InvalidParamError("Room ID and alias localpart are required");
         }
 
         await this.client.sendStateEvent(
@@ -398,7 +402,7 @@ export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAlia
         const rooms = this.client.getRooms?.() || [];
         for (const room of rooms) {
             try {
-                await this.getRoomAliases(room.roomId);
+                await this.getRoomAliases(room.roomId, false);
             } catch (e) {
                 logger.warn(`Failed to load aliases for room ${room.roomId}:`, e);
             }

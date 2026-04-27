@@ -35,6 +35,113 @@ describe("AuthManager", () => {
         authManager = new AuthManager(mockClient);
     });
 
+    describe("Data Validation", () => {
+        it("should reject username longer than 255 characters", async () => {
+            const longUsername = "a".repeat(256);
+            const auth = { type: "m.login.dummy" };
+
+            await expect(authManager.register(longUsername, "password123", null, auth)).rejects.toThrow(
+                "Username too long (max 255 characters)",
+            );
+        });
+
+        it("should accept username with exactly 255 characters", async () => {
+            const maxUsername = "a".repeat(255);
+            const auth = { type: "m.login.dummy" };
+            mockAuthedRequest.mockResolvedValue({
+                access_token: "token",
+                user_id: "@user:example.com",
+                device_id: "ABCDEFGHIJKLMNOP",
+            });
+
+            await authManager.register(maxUsername, "password123", null, auth);
+
+            expect(mockAuthedRequest).toHaveBeenCalled();
+        });
+
+        it("should reject password longer than 128 characters", async () => {
+            const longPassword = "a".repeat(129);
+            const auth = { type: "m.login.dummy" };
+
+            await expect(authManager.register("alice", longPassword, null, auth)).rejects.toThrow(
+                "Password too long (max 128 characters)",
+            );
+        });
+
+        it("should accept password with exactly 128 characters", async () => {
+            const maxPassword = "a".repeat(128);
+            const auth = { type: "m.login.dummy" };
+            mockAuthedRequest.mockResolvedValue({
+                access_token: "token",
+                user_id: "@alice:example.com",
+                device_id: "ABCDEFGHIJKLMNOP",
+            });
+
+            await authManager.register("alice", maxPassword, null, auth);
+
+            expect(mockAuthedRequest).toHaveBeenCalled();
+        });
+    });
+
+    describe("Static Validation Methods", () => {
+        it("should validate username format - valid", () => {
+            const result = AuthManager.validateUsernameFormat("alice");
+            expect(result.valid).toBe(true);
+            expect(result.error).toBeUndefined();
+        });
+
+        it("should validate username format - empty", () => {
+            const result = AuthManager.validateUsernameFormat("");
+            expect(result.valid).toBe(false);
+            expect(result.error).toBe("Username is required");
+        });
+
+        it("should validate username format - too long", () => {
+            const result = AuthManager.validateUsernameFormat("a".repeat(256));
+            expect(result.valid).toBe(false);
+            expect(result.error).toBe("Username too long (max 255 characters)");
+        });
+
+        it("should validate username format - invalid characters", () => {
+            const result = AuthManager.validateUsernameFormat("alice@domain");
+            expect(result.valid).toBe(false);
+            expect(result.error).toBe("Username contains invalid characters");
+        });
+
+        it("should validate password format - valid", () => {
+            const result = AuthManager.validatePasswordFormat("password123");
+            expect(result.valid).toBe(true);
+            expect(result.error).toBeUndefined();
+        });
+
+        it("should validate password format - empty", () => {
+            const result = AuthManager.validatePasswordFormat("");
+            expect(result.valid).toBe(false);
+            expect(result.error).toBe("Password is required");
+        });
+
+        it("should validate password format - too short", () => {
+            const result = AuthManager.validatePasswordFormat("pass");
+            expect(result.valid).toBe(false);
+            expect(result.error).toBe("Password too short (min 8 characters)");
+        });
+
+        it("should validate password format - too long", () => {
+            const result = AuthManager.validatePasswordFormat("a".repeat(129));
+            expect(result.valid).toBe(false);
+            expect(result.error).toBe("Password too long (max 128 characters)");
+        });
+    });
+
+    describe("Constraints", () => {
+        it("should return data constraints", () => {
+            const constraints = AuthManager.getConstraints();
+            expect(constraints.USERNAME_MAX_LENGTH).toBe(255);
+            expect(constraints.PASSWORD_MAX_LENGTH).toBe(128);
+            expect(constraints.DEVICE_ID_LENGTH).toBe(16);
+        });
+    });
+
     describe("Authentication State", () => {
         it("should check if authenticated", () => {
             mockClient.isAuthenticated.mockReturnValue(true);

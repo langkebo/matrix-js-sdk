@@ -73,7 +73,10 @@ export class FilterComponent {
      * @returns true if the event matches the filter
      */
     public check(event: MatrixEvent): boolean {
-        const bundledRelationships = event.getUnsigned()?.["m.relations"] || {};
+        const bundledRelationships = (event.getUnsigned()?.["m.relations"] as Record<
+            string,
+            { current_user_participated?: boolean }
+        > | undefined) || {};
         const relations: Array<string | RelationType> = Object.keys(bundledRelationships);
         // Relation senders allows in theory a look-up of any senders
         // however clients can only know about the current user participation status

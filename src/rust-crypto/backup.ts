@@ -29,7 +29,7 @@ import {
     type KeyBackupRoomSessions,
 } from "../crypto-api/keybackup.ts";
 import { type Logger } from "../logger.ts";
-import { ClientPrefix, type IHttpOpts, MatrixError, type MatrixHttpApi, Method } from "../http-api/index.ts";
+import { ClientPrefix, type IHttpOpts, MatrixError, type MatrixHttpApi, Method, HTTPError } from "../http-api/index.ts";
 import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { encodeUri, logDuration } from "../utils.ts";
 import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
@@ -102,7 +102,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Get the backup version we are currently backing up to, if any
      */
     public async getActiveBackupVersion(): Promise<string | null> {
-        if (!(await this.olmMachine.isBackupEnabled())) return null;
+        if (this.stopped) return null;
+        try {
+            if (!(await this.olmMachine.isBackupEnabled())) return null;
+        } catch {
+            return null;
+        }
         return this.activeBackupVersion;
     }
 
@@ -115,9 +120,7 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * If there was no backup on the server, `null`. If our attempt to check resulted in an error, `undefined`.
      */
     public async getServerBackupInfo(): Promise<KeyBackupInfo | null | undefined> {
-        // Do a validity check if we haven't already done one. The check is likely to fail if we don't yet have the
-        // backup keys -- but as a side-effect, it will populate `serverBackupInfo`.
-        await this.checkKeyBackupAndEnable(false);
+        await this.checkKeyBackupAndEnable(true, false);
         return this.serverBackupInfo;
     }
 
@@ -143,9 +146,9 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Re-check the key backup and enable/disable it as appropriate.
      *
      * @param force - whether we should force a re-check even if one has already happened.
-     * @param throwOnError - Whether to throw on error (default false)
+     * @param throwOnError - Whether to throw on error (default true)
      */
-    public checkKeyBackupAndEnable(force: boolean, throwOnError = false): Promise<KeyBackupCheck | null> {
+    public checkKeyBackupAndEnable(force: boolean, throwOnError = true): Promise<KeyBackupCheck | null> {
         if (!force && this.checkedForBackup) {
             return Promise.resolve(null);
         }
@@ -163,10 +166,10 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Handles a backup secret received event and store it if it matches the current backup version.
      *
      * @param secret - The secret as received from a `m.secret.send` event for secret `m.megolm_backup.v1`.
-     * @param throwOnError - Whether to throw on error (default false)
+     * @param throwOnError - Whether to throw on error (default true)
      * @returns true if the secret is valid and has been stored, false otherwise.
      */
-    public async handleBackupSecretReceived(secret: string, throwOnError = false): Promise<boolean> {
+    public async handleBackupSecretReceived(secret: string, throwOnError = true): Promise<boolean> {
         // Currently we only receive the decryption key without any key backup version. It is important to
         // check that the secret is valid for the current version before storing it.
         // We force a check to ensure to have the latest version.
@@ -295,6 +298,11 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
 
     /** Helper for `checkKeyBackup` */
     private async doCheckKeyBackup(throwOnError = false): Promise<KeyBackupCheck | null> {
+        if (this.stopped) {
+            this.logger.debug("Skipping key backup check: manager is stopped");
+            return null;
+        }
+
         this.logger.debug("Checking key backup status...");
         let backupInfo: KeyBackupInfo | null | undefined;
         // @swallow-error { owner: "crypto", expires: "2026-12-31" }
@@ -489,7 +497,7 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
                             // There was an active backup and we are out of sync with the server
                             // force a check server side
                             this.backupKeysLoopRunning = false;
-                            this.checkKeyBackupAndEnable(true);
+                            void this.checkKeyBackupAndEnable(true, false);
                             return;
                         } else if (err.isRateLimitError()) {
                             // wait for that and then continue?
@@ -541,6 +549,10 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * @returns Information object from API or null if there is no active backup.
      */
     public async requestKeyBackupVersion(version?: string): Promise<KeyBackupInfo | null> {
+        if (this.stopped) {
+            this.logger.debug("Skipping key backup version request: manager is stopped");
+            return null;
+        }
         return await requestKeyBackupVersion(this.http, version);
     }
 
@@ -904,7 +916,11 @@ export async function requestKeyBackupVersion(
         });
         // @swallow-error { owner: "crypto", expires: "2026-12-31" }
     } catch (e) {
-        if ((<MatrixError>e).errcode === "M_NOT_FOUND") {
+        if (
+            (<MatrixError>e).errcode === "M_NOT_FOUND" ||
+            (<MatrixError>e).httpStatus === 404 ||
+            (e instanceof HTTPError && e.httpStatus === 404)
+        ) {
             return null;
         } else {
             throw e;

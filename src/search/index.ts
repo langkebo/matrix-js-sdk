@@ -22,6 +22,8 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 
 export interface ISearchOptions {
     term: string;
@@ -81,7 +83,50 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         super(client);
     }
 
+    /**
+     * 搜索消息文本
+     *
+     * @param opts - 搜索选项
+     * @param opts.term - 搜索关键词
+     * @param opts.room_id - 房间 ID（可选）
+     * @param opts.limit - 结果数量限制（可选）
+     * @param opts.order_by_recency - 是否按时间排序（可选）
+     *
+     * @example
+     * ```typescript
+     * // 搜索所有房间的消息
+     * const results = await searchManager.searchMessageText({
+     *     term: "hello"
+     * });
+     * console.log(`Found ${results.search_categories.room_events?.count} results`);
+     *
+     * // 在特定房间搜索
+     * const roomResults = await searchManager.searchMessageText({
+     *     term: "meeting",
+     *     room_id: "!abc:example.com",
+     *     limit: 20
+     * });
+     *
+     * // 按时间排序
+     * const recentResults = await searchManager.searchMessageText({
+     *     term: "update",
+     *     order_by_recency: true
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果搜索关键词为空或房间 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     public async searchMessageText(opts: ISearchOptions): Promise<ISearchResponse> {
+        if (!opts.term || opts.term.trim().length === 0) {
+            throw new ValidationError("Search term is required");
+        }
+        if (opts.room_id) {
+            AdminValidators.validateRoomId(opts.room_id);
+        }
+        if (opts.limit !== undefined) {
+            AdminValidators.validateLimit(opts.limit);
+        }
         return this.withRetry(
             () =>
                 (
@@ -105,7 +150,40 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         );
     }
 
+    /**
+     * 搜索用户目录
+     *
+     * @param opts - 搜索选项
+     * @param opts.term - 搜索关键词
+     * @param opts.limit - 结果数量限制（可选）
+     *
+     * @example
+     * ```typescript
+     * // 搜索用户
+     * const users = await searchManager.searchUserDirectory({
+     *     term: "alice"
+     * });
+     * users.results.forEach(user => {
+     *     console.log(`${user.display_name} (${user.user_id})`);
+     * });
+     *
+     * // 限制结果数量
+     * const limitedUsers = await searchManager.searchUserDirectory({
+     *     term: "bob",
+     *     limit: 10
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果搜索关键词为空或 limit 超出范围
+     * @throws {ApiError} 如果 API 调用失败
+     */
     public async searchUserDirectory(opts: { term: string; limit?: number }): Promise<IUserDirectoryResponse> {
+        if (!opts.term || opts.term.trim().length === 0) {
+            throw new ValidationError("Search term is required");
+        }
+        if (opts.limit !== undefined) {
+            AdminValidators.validateLimit(opts.limit);
+        }
         return this.withRetry(
             () =>
                 (

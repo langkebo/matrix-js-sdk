@@ -4,6 +4,79 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 
 ## [Unreleased]
 
+### 2026-04-23 — Backend M_UNRECOGNIZED sweep
+
+Backend audit found 9 endpoints returning `M_UNRECOGNIZED`. Classification and actions:
+
+**Backend fixes (`synapse-rust`)**
+
+- **Spec compliance** — `/_matrix/client/v3/thirdparty/{protocol/{p!=irc}, location, location/{p}, user, user/{p}}` now return Matrix-spec-compliant empty payloads (`{ instances:[], user_fields:[], location_fields:[] }` for `/protocol/{p}`; `[]` for the four list endpoints) instead of errors. Bridges without deployment simply expose no instances. (`synapse-rust/src/web/routes/thirdparty.rs`)
+- **`GET /_synapse/admin/v1/experimental_features`** — now returns `{enabled, disabled, total, total_flags}` sourced from `feature_flag_service`. Flags whose `flag_key` begins with `experimental.` or `msc` (or `target_scope=="experimental"`) are included; expired flags auto-downgrade to `disabled`. (`synapse-rust/src/web/routes/admin/server.rs::get_experimental_features`)
+- **`GET /_synapse/admin/v1/backups`** — now returns an aggregated view over `secure_key_backups` table: `{backups:[], total, total_keys, limit, offset}`. Supports `?limit=1..500&offset=0+`. (`synapse-rust/src/web/routes/admin/server.rs::get_backups`)
+- **Unchanged (by design)**:
+  - `POST /_synapse/admin/v1/restart` — operator-managed (systemd/k8s); SDK not to implement.
+  - `POST /_synapse/admin/v1/federation/confirm` — awaits product decision on confirmation flow.
+
+**SDK additions (`matrix-js-sdk`)**
+
+- `AdminManager.listBackups(params?)` — paginated E2EE backup inventory. Wraps `GET /_synapse/admin/v1/backups`. Validates `limit ∈ [1,500]`, `offset ≥ 0`.
+- `AdminManager.getExperimentalFeatures()` — wraps `GET /_synapse/admin/v1/experimental_features`.
+- Tests: 5 new unit cases in `spec/unit/admin-new-endpoints.spec.ts` (path, default/custom query, boundary validation).
+
+### 2026-04-23 — purgeMediaCache re-enabled
+
+Backend (`synapse-rust`) implemented `MediaService::purge_media_cache(before_ts)` and wired it into `POST /_synapse/admin/v1/purge_media_cache` (previously returned `M_UNRECOGNIZED`). SDK:
+
+- **`AdminManager.purgeMediaCache(beforeTs?)`** — removed `@deprecated` tag, refreshed JSDoc with implementation reference (`synapse-rust/src/services/media_service.rs::purge_media_cache`).
+- Added client-side validation: `beforeTs`, if provided, must be a positive integer (ms since epoch). Otherwise throws `ValidationError`.
+- Behavior: when `beforeTs` is omitted, the wrapper sends an empty body and the backend defaults to `now - 30d`.
+- Tests: 5 new unit cases in `spec/unit/admin-new-endpoints.spec.ts` covering empty-body / with-ts / missing-field response / non-positive / non-integer inputs.
+
+### 2026-04-23 — Backend alignment pass (synapse-rust)
+
+#### Breaking fixes (SDK ↔ backend contract)
+
+- **`AdminManager.setAdmin`**: `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`. Old path accidentally triggered user-create branch.
+- **`AdminManager.addToFederationBlacklist`**: `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}`.
+- **`AdminManager.removeFromFederationBlacklist`**: `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**.
+- **`AdminManager.getRoomStats(roomId)`**: `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**.
+- **`AdminManager.getAccountStatus`**: `/v1/account_status/{id}` → **`/v1/account/{id}`**.
+- **`AdminManager.getServerInfo`**: `/v1/info` (missing) → concurrent merge of `/v1/status` + `/v1/config` + `/v1/server_version`.
+- **`AdminManager.resetPassword(userId, newPassword)`**: removed `logout_devices` param (backend ignores it).
+- **`AdminManager.deactivateUser(userId)`**: removed `erase` body param (backend has no body extractor).
+- **`AdminManager.disconnectFederation` → `resetFederationConnection`** (old method kept as `@deprecated` proxy).
+- **`FriendManager.createFriendGroup`**: response field `group_id` → **`id`** (matches backend).
+- **`FriendManager.getIncomingRequests`**: uses **`/friends/request/received`** as the stable v1 path and falls back to `/friends/requests/incoming` for legacy compatibility.
+- **`SpaceManager.getSpaceByRoom`**: added as the contract-aligned name for `GET /spaces/room/{room_id}`; existing `getRoomSpace` remains as a compatibility alias.
+- **`PresenceState`**: added `"away"` (value accepted by backend `validate_presence_status`).
+
+#### New API surface
+
+- **`WorkerAdminManager` (new module)**: 24 endpoints for `/_synapse/worker/v1/*` (workers / commands / tasks / statistics / select / replication / events).
+- **`WidgetsManager`**: full REST wrappers for 14 endpoints (`/_matrix/client/v1/widgets/*`, `/rooms/{id}/widgets`, permissions, sessions, jitsi/config).
+- **`AdminManager` extensions**:
+  - Retention: `getRetentionPolicy` / `setRetentionPolicy` / `getRoomRetentionPolicy` / `setRoomRetentionPolicy` / `runRetention` / `getRetentionStatus`
+  - Audit: `listAuditEvents` / `getAuditEvent` / `createAuditEvent`
+  - Feature flags: `listFeatureFlags` / `getFeatureFlag` / `createFeatureFlag` / `updateFeatureFlag`
+  - Federation detail: `resolveFederation` / `rewriteFederation` / `deleteFederationDestination` / `getFederationDestinationRooms`
+  - Modules: `listModules` / `listModulesByType` / `getModule` / `createModule` / `updateModuleConfig` / `setModuleEnabled` / `deleteModule` / `checkModuleSpam` / `getModuleLogs`
+  - Event-report rate limit: `checkEventReportRateLimit` / `blockEventReportUser` / `unblockEventReportUser`
+  - Telemetry: `listTelemetryAlerts` / `acknowledgeTelemetryAlert`
+  - Media: `getMediaQuota`
+- **`MatrixClient`**: `getClientConfig()` / `searchRooms(term, limit?)` / `getSSOUserInfo()`.
+- **`FriendManager`**: `sendFriendRequest` now returns `{request_id, status}`; `acceptFriendRequest` returns `{room_id}`. Added `hasCachedFriend()`.
+- **Type additions**: `RetentionPolicy`, `RoomRetentionPolicy`, `RetentionRunResult`, `RetentionStatus`, `AuditEvent`, `AuditEventPage`, `FeatureFlag`, `FeatureFlagTarget`, `FeatureFlagPage`, `Widget`, `WidgetResponse`, `CreateWidgetBody`, `UpdateWidgetBody`, `WorkerInfo`, `WorkerCommand`, `WorkerTask`.
+
+#### Quality
+
+- **Error hierarchy unified**: `InvalidParamError` now extends `ValidationError`; plain `Error` throws in `AuthManager`/`PresenceManager` replaced with typed errors.
+- **Pagination**: `PaginatedResponse<T>` now exposes `total`; `getUsers`/`getRooms` (deprecated) delegate to `*Paginated` — dependency direction flipped.
+- **Cache invalidation**: `PresenceManager.setPresence` now invalidates instead of priming with a local stub; `RoomSummaryManager.setRoomVaultData` / `setStickyEvent` / `deleteStickyEvent` / `addInviteBlocklist` / `addInviteAllowlist` now clear `summaryCache[roomId]` after successful write.
+- **Empty `catch` cleanup** (9 files, 10 sites): media-quota, relations, security, sticky-event, room-alias, burn-after-read, widget, appservice, device-trust.
+- **`DeviceTrustManager.getDeviceTrustList`**: fixed cache bug (prior impl stored entire list under single key `"__list__"` and returned `[cached]`).
+- **Dead code**: removed empty `src/client-modules/` directory; removed duplicate `NotificationsLegacyManager` declaration in `matrix-client-extensions.d.ts`.
+- **Tests added**: `spec/unit/worker-admin.spec.ts` (16 cases), `spec/unit/admin-new-endpoints.spec.ts` (21 cases); `spec/unit/widgets.spec.ts` +10 REST cases; `spec/unit/friend.spec.ts` +2 return-value cases.
+
 ### 2026-04-06 (Round 3)
 
 #### Testing

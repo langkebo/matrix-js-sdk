@@ -80,10 +80,12 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
 
         const readMarker = room.getAccountData("m.fully_read");
         const readReceipt = room.getAccountData("m.read");
+        const readReceiptContent = readReceipt?.getContent<{ event_id?: string }>();
+        const readMarkerContent = readMarker?.getContent<{ event_id?: string }>();
 
         return {
-            m_read: readReceipt?.getContent()?.event_id,
-            m_fully_read: readMarker?.getContent()?.event_id,
+            m_read: readReceiptContent?.event_id,
+            m_fully_read: readMarkerContent?.event_id,
         };
     }
 }

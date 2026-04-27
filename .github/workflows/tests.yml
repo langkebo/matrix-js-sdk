@@ -64,12 +64,41 @@ jobs:
     # Dummy completion job to simplify branch protections
     complete:
         name: Tests
-        needs: test
+        needs:
+            - test
+            - type-safety
         if: always()
         runs-on: ubuntu-24.04
         steps:
-            - if: needs.test.result != 'skipped' && needs.test.result != 'success'
+            - if: contains(fromJSON('["skipped","success"]'), needs.test.result) == false || contains(fromJSON('["skipped","success"]'), needs.type-safety.result) == false
               run: exit 1
+
+    type-safety:
+        name: "Type Safety (Node 22)"
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+            - name: Setup Node
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  cache: "pnpm"
+                  node-version: 22
+
+            - name: Install dependencies
+              run: "pnpm install"
+
+            - name: Run type checks
+              run: pnpm lint:types
+
+            - name: Run type definition tests
+              run: pnpm test:types
+
+            - name: Check type coverage
+              run: pnpm quality:type-coverage
 
     element-web:
         name: Downstream test element-web

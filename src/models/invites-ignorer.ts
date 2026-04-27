@@ -153,7 +153,7 @@ export class IgnoredInvites {
                         continue;
                     }
                     const glob = content?.entity;
-                    if (!glob) {
+                    if (typeof glob !== "string" || glob.length === 0) {
                         // Invalid event.
                         continue;
                     }

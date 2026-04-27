@@ -197,7 +197,7 @@ describe("DeviceTrustManager", () => {
             expect(result).toEqual(devices);
         });
 
-        it("should not cache device trust list by default", async () => {
+        it("should cache device trust list within TTL", async () => {
             const devices = [
                 {
                     device_id: "DEVICE1",
@@ -207,10 +207,11 @@ describe("DeviceTrustManager", () => {
             mockAuthedRequest.mockResolvedValue({ devices });
 
             await deviceTrustManager.getDeviceTrustList();
-            await deviceTrustManager.getDeviceTrustList();
+            const second = await deviceTrustManager.getDeviceTrustList();
 
-            // getDeviceTrustList doesn't cache the full list, only individual devices
-            expect(mockAuthedRequest).toHaveBeenCalledTimes(2);
+            // TTL not elapsed → second call served from cache
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(second).toEqual(devices);
         });
 
         it("should force refresh when requested", async () => {

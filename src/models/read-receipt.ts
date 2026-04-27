@@ -65,7 +65,7 @@ const ReceiptPairSyntheticIndex = 1;
 export abstract class ReadReceipt<
     Events extends string,
     Arguments extends ListenerMap<Events>,
-    SuperclassArguments extends ListenerMap<any> = Arguments,
+    SuperclassArguments extends ListenerMap<string> = Arguments,
 > extends TypedEventEmitter<Events, Arguments, SuperclassArguments> {
     // receipts should clobber based on receipt_type and user_id pairs hence
     // the form of this structure. This is sub-optimal for the exposed APIs

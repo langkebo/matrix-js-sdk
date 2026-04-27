@@ -61,17 +61,15 @@ describe("RoomSummaryManager", () => {
             expect(summary?.room_id).toBe("!room:example.com");
         });
 
-        it("should return null for error when throwOnError is false", async () => {
+        it("should return null on error by default", async () => {
             authedRequest.mockRejectedValue(new Error("Not found"));
             const summary = await summaryManager.getRoomSummary("!unknown1:example.com", undefined, true);
             expect(summary).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw on error when throwOnError is true", async () => {
             authedRequest.mockRejectedValue(new Error("Not found"));
-            await expect(
-                summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true),
-            ).rejects.toThrow();
+            await expect(summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true)).rejects.toThrow();
         });
     });
 
@@ -81,15 +79,15 @@ describe("RoomSummaryManager", () => {
             expect(hierarchy).toBeDefined();
         });
 
-        it("should return null on error when throwOnError is false", async () => {
+        it("should throw on error by default", async () => {
             mockClient.getRoomHierarchy.mockRejectedValueOnce(new Error("Not found"));
-            const hierarchy = await summaryManager.getRoomHierarchy("!space:example.com");
-            expect(hierarchy).toBeNull();
+            await expect(summaryManager.getRoomHierarchy("!space:example.com")).rejects.toThrow();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return null on error when throwOnError is false", async () => {
             mockClient.getRoomHierarchy.mockRejectedValueOnce(new Error("Not found"));
-            await expect(summaryManager.getRoomHierarchy("!space:example.com", undefined, true)).rejects.toThrow();
+            const hierarchy = await summaryManager.getRoomHierarchy("!space:example.com", undefined, false);
+            expect(hierarchy).toBeNull();
         });
     });
 
@@ -114,15 +112,15 @@ describe("RoomSummaryManager", () => {
             expect(firstMember).toHaveProperty("is_hero");
         });
 
-        it("should return empty array on error when throwOnError is false", async () => {
+        it("should throw on error by default", async () => {
             authedRequest.mockRejectedValueOnce(new Error("boom"));
-            const members = await summaryManager.getRoomSummaryMembers("!room:example.com");
-            expect(members).toEqual([]);
+            await expect(summaryManager.getRoomSummaryMembers("!room:example.com")).rejects.toThrow();
         });
 
-        it("should throw on error when throwOnError is true", async () => {
+        it("should return empty array on error when throwOnError is false", async () => {
             authedRequest.mockRejectedValueOnce(new Error("boom"));
-            await expect(summaryManager.getRoomSummaryMembers("!room:example.com", false, true)).rejects.toThrow();
+            const members = await summaryManager.getRoomSummaryMembers("!room:example.com", false, false);
+            expect(members).toEqual([]);
         });
     });
 
@@ -165,19 +163,285 @@ describe("RoomSummaryManager", () => {
             expect(stats).toHaveProperty("storage_size");
         });
 
-        it("should return null on error when throwOnError is false", async () => {
+        it("should throw on error by default", async () => {
             authedRequest.mockRejectedValueOnce(new Error("Not found"));
-            const stats = await summaryManager.getRoomSummaryStats("!room:example.com");
-            expect(stats).toBeNull();
+            await expect(summaryManager.getRoomSummaryStats("!room:example.com")).rejects.toThrow();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should return null on error when throwOnError is false", async () => {
             authedRequest.mockRejectedValueOnce(new Error("Not found"));
-            await expect(summaryManager.getRoomSummaryStats("!room:example.com", false, true)).rejects.toThrow();
+            const stats = await summaryManager.getRoomSummaryStats("!room:example.com", false, false);
+            expect(stats).toBeNull();
         });
     });
 
     describe("write paths", () => {
+        it("should get event-thread view via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                root: {
+                    event_id: "$root",
+                    room_id: "!room:example.com",
+                    sender: "@alice:example.com",
+                    type: "m.room.message",
+                    content: { body: "root" },
+                    origin_server_ts: 123,
+                    state_key: undefined,
+                },
+                replies: [
+                    {
+                        event_id: "$reply",
+                        thread_id: "$thread",
+                        room_id: "!room:example.com",
+                        sender: "@bob:example.com",
+                        content: { body: "reply" },
+                        origin_server_ts: 124,
+                        in_reply_to_event_id: null,
+                        is_edited: false,
+                        is_redacted: false,
+                    },
+                ],
+                reply_count: 1,
+                participants: ["@alice:example.com", "@bob:example.com"],
+            });
+
+            const thread = await summaryManager.getRoomThread("!room:example.com", "$root");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/thread/${encodeURIComponent("$root")}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(thread.root.event_id).toBe("$root");
+            expect(thread.replies[0].event_id).toBe("$reply");
+            expect(thread.reply_count).toBe(1);
+        });
+
+        it("should get thread-detail view via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                room_id: "!room:example.com",
+                thread_id: "$thread",
+                root: {
+                    id: 1,
+                    room_id: "!room:example.com",
+                    root_event_id: "$root",
+                    sender: "@alice:example.com",
+                    thread_id: "$thread",
+                    reply_count: 1,
+                    last_reply_event_id: "$reply",
+                    last_reply_sender: "@bob:example.com",
+                    last_reply_ts: 124,
+                    participants: ["@alice:example.com", "@bob:example.com"],
+                    is_fetched: false,
+                    created_ts: 123,
+                    updated_ts: 124,
+                },
+                replies: [
+                    {
+                        id: 2,
+                        room_id: "!room:example.com",
+                        thread_id: "$thread",
+                        event_id: "$reply",
+                        root_event_id: "$root",
+                        sender: "@bob:example.com",
+                        in_reply_to_event_id: null,
+                        content: { body: "reply" },
+                        origin_server_ts: 124,
+                        is_edited: false,
+                        is_redacted: false,
+                        created_ts: 124,
+                    },
+                ],
+                reply_count: 1,
+                participants: ["@alice:example.com", "@bob:example.com"],
+                summary: {
+                    id: 1,
+                    room_id: "!room:example.com",
+                    thread_id: "$thread",
+                    root_event_id: "$root",
+                    root_sender: "@alice:example.com",
+                    root_content: { body: "root" },
+                    root_origin_server_ts: 123,
+                    latest_event_id: "$reply",
+                    latest_sender: "@bob:example.com",
+                    latest_content: { body: "reply" },
+                    latest_origin_server_ts: 124,
+                    reply_count: 1,
+                    participants: ["@alice:example.com", "@bob:example.com"],
+                    is_frozen: false,
+                    created_ts: 123,
+                    updated_ts: 124,
+                },
+                user_receipt: {
+                    id: 1,
+                    room_id: "!room:example.com",
+                    thread_id: "$thread",
+                    user_id: "@alice:example.com",
+                    last_read_event_id: "$reply",
+                    last_read_ts: 124,
+                    unread_count: 0,
+                    updated_ts: 124,
+                },
+                user_subscription: {
+                    id: 1,
+                    room_id: "!room:example.com",
+                    thread_id: "$thread",
+                    user_id: "@alice:example.com",
+                    notification_level: "all",
+                    is_muted: false,
+                    subscribed_ts: 123,
+                    updated_ts: 124,
+                },
+            });
+
+            const thread = await summaryManager.getRoomThreadById("!room:example.com", "$thread");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/threads/${encodeURIComponent("$thread")}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(thread.thread_id).toBe("$thread");
+            expect(thread.root.root_event_id).toBe("$root");
+            expect(thread.summary?.latest_event_id).toBe("$reply");
+            expect(thread.user_receipt?.unread_count).toBe(0);
+            expect(thread.user_subscription?.notification_level).toBe("all");
+        });
+
+        it("should get room capabilities with full backend fields", async () => {
+            authedRequest.mockResolvedValueOnce({
+                room_id: "!room:example.com",
+                room_version: "10",
+                capabilities: {
+                    knock: false,
+                    restricted: false,
+                    threading: true,
+                    read_receipts: true,
+                    typing_notifications: true,
+                },
+                features: {
+                    encryption: true,
+                    federation: true,
+                    guest_access: false,
+                },
+                join_rule: "invite",
+            });
+
+            const capabilities = await summaryManager.getRoomCapabilities("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/capabilities`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(capabilities.room_version).toBe("10");
+            expect(capabilities.features.encryption).toBe(true);
+            expect(capabilities.capabilities.threading).toBe(true);
+            expect(capabilities.join_rule).toBe("invite");
+        });
+
+        it("should normalize room unread count aliases while preserving backend fields", async () => {
+            authedRequest.mockResolvedValueOnce({
+                notification_count: 7,
+                highlight_count: 2,
+            });
+
+            const unread = await summaryManager.getRoomUnreadCount("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/unread_count`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(unread.notification_count).toBe(7);
+            expect(unread.highlight_count).toBe(2);
+            expect(unread.room_id).toBe("!room:example.com");
+            expect(unread.unread_notifications).toBe(7);
+            expect(unread.unread_highlight_count).toBe(2);
+        });
+
+        it("should normalize room metadata aliases while preserving backend fields", async () => {
+            authedRequest.mockResolvedValueOnce({
+                room_id: "!room:example.com",
+                name: "Test Room",
+                topic: "Topic",
+                avatar_url: "mxc://example.com/avatar",
+                canonical_alias: "#test:example.com",
+                join_rule: "invite",
+                history_visibility: "shared",
+                creator: "@alice:example.com",
+                room_version: "10",
+                encryption: "m.megolm.v1.aes-sha2",
+                is_public: false,
+                member_count: 5,
+                created_ts: 1234567890,
+            });
+
+            const metadata = await summaryManager.getRoomMetadata("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/metadata`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(metadata.encryption).toBe("m.megolm.v1.aes-sha2");
+            expect(metadata.is_encrypted).toBe(true);
+            expect(metadata.created_ts).toBe(1234567890);
+            expect(metadata.created_at).toBe(1234567890);
+            expect(metadata.member_count).toBe(5);
+            expect(metadata.is_public).toBe(false);
+        });
+
+        it("should normalize room notifications pagination and legacy aliases", async () => {
+            authedRequest.mockResolvedValueOnce({
+                notifications: [
+                    {
+                        room_id: "!room:example.com",
+                        event_id: "$event",
+                        notification_type: "message",
+                        sender: "@system:server",
+                        ts: 123,
+                        content: { body: "Notification for $event" },
+                        is_read: false,
+                        client_action: "notify",
+                    },
+                ],
+                next_token: "token-1",
+            });
+
+            const result = await summaryManager.getRoomNotifications("!room:example.com", {
+                from: "token-0",
+                limit: 20,
+                only: "highlight",
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/notifications`,
+                { from: "token-0", limit: "20", only: "highlight" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.next_token).toBe("token-1");
+            expect(result.next_batch).toBe("token-1");
+            expect(result.notifications[0].notification_type).toBe("message");
+            expect(result.notifications[0].type).toBe("message");
+            expect(result.notifications[0].ts).toBe(123);
+            expect(result.notifications[0].timestamp).toBe(123);
+            expect(result.notifications[0].is_read).toBe(false);
+            expect(result.notifications[0].read).toBe(false);
+            expect(result.notifications[0].highlight).toBe(false);
+        });
+
         it("should sync room summary via v3 endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ ok: true });
 
@@ -250,6 +514,18 @@ describe("RoomSummaryManager", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/summaries", { limit: 20 }, undefined, {
                 prefix: "/_synapse/room_summary/v1",
+            });
+        });
+
+        it("should normalize bare summary arrays into a list response object", async () => {
+            authedRequest.mockResolvedValueOnce([{ room_id: "!room:example.com", name: "Test Room" }]);
+
+            const result = await summaryManager.listUserSummaries({ limit: 20 });
+
+            expect(result).toEqual({
+                summaries: [{ room_id: "!room:example.com", name: "Test Room" }],
+                rooms: [{ room_id: "!room:example.com", name: "Test Room" }],
+                chunk: [{ room_id: "!room:example.com", name: "Test Room" }],
             });
         });
 
@@ -405,6 +681,64 @@ describe("RoomSummaryManager", () => {
         });
     });
 
+    describe("query parameters", () => {
+        it("should preserve zero-valued room notification limits", async () => {
+            authedRequest.mockResolvedValueOnce({ notifications: [], next_batch: "batch" });
+
+            await summaryManager.getRoomNotifications("!room:example.com", { limit: 0 });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/notifications`,
+                { limit: "0" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should preserve zero-valued room sync timeout", async () => {
+            authedRequest.mockResolvedValueOnce({ timeline: [], state: [] });
+
+            await summaryManager.getRoomSync("!room:example.com", { timeout_ms: 0 });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/sync`,
+                { timeout_ms: "0" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should preserve zero-valued room timeline limits", async () => {
+            authedRequest.mockResolvedValueOnce({ events: [], start: "s", end: "e" });
+
+            await summaryManager.getRoomTimeline("!room:example.com", { limit: 0, dir: "b" });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/timeline`,
+                { dir: "b", limit: "0" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should preserve zero-valued encrypted event limits", async () => {
+            authedRequest.mockResolvedValueOnce({ events: [], next_batch: "n1" });
+
+            await summaryManager.getEncryptedEvents("!room:example.com", { limit: 0 });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/encrypted_events`,
+                { limit: "0" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+    });
+
     describe("getPublicRooms (error handling)", () => {
         it("should get public rooms", async () => {
             const rooms = await summaryManager.getPublicRooms("example.com");
@@ -414,15 +748,21 @@ describe("RoomSummaryManager", () => {
 
     describe("searchPublicRooms", () => {
         it("should search public rooms", async () => {
+            mockClient.publicRooms.mockResolvedValueOnce({
+                chunk: [{ room_id: "!search:example.com", name: "Search Room" }],
+            });
             const rooms = await summaryManager.searchPublicRooms("test", "example.com", 10);
-            expect(Array.isArray(rooms)).toBe(true);
+            expect(rooms).toEqual([{ room_id: "!search:example.com", name: "Search Room" }]);
         });
     });
 
     describe("getRecommendedRooms", () => {
         it("should get recommended rooms", async () => {
+            mockClient.publicRooms.mockResolvedValueOnce({
+                chunk: [{ room_id: "!recommended:example.com", name: "Recommended Room" }],
+            });
             const rooms = await summaryManager.getRecommendedRooms("example.com");
-            expect(Array.isArray(rooms)).toBe(true);
+            expect(rooms).toEqual([{ room_id: "!recommended:example.com", name: "Recommended Room" }]);
         });
     });
 
@@ -548,9 +888,13 @@ describe("RoomSummaryManager", () => {
         it("should get public rooms successfully", async () => {
             mockClient.publicRooms.mockResolvedValueOnce({
                 chunk: [{ room_id: "!room1:example.com", name: "Public Room" }],
+                next_batch: "next-token",
             });
             const result = await summaryManager.getPublicRooms();
-            expect(result).toBeDefined();
+            expect(result).toEqual({
+                chunk: [{ room_id: "!room1:example.com", name: "Public Room" }],
+                next_batch: "next-token",
+            });
         });
 
         it("should return null on error when throwOnError is false", async () => {
@@ -559,9 +903,9 @@ describe("RoomSummaryManager", () => {
             expect(result).toBeNull();
         });
 
-        it("should throw error when throwOnError is true", async () => {
+        it("should throw error by default", async () => {
             mockClient.publicRooms.mockRejectedValueOnce(new Error("Failed to get public rooms"));
-            await expect(summaryManager.getPublicRooms("", undefined, true)).rejects.toThrow();
+            await expect(summaryManager.getPublicRooms()).rejects.toThrow();
         });
     });
 

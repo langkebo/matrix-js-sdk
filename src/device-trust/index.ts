@@ -35,6 +35,7 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
+import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 
@@ -99,6 +100,9 @@ interface DeviceTrustManagerEventMap {
 export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, DeviceTrustManagerEventMap> {
     private client: MatrixClient;
     private deviceTrustCache: LRUCache<IDeviceTrustInfo>;
+    private deviceTrustListCache: IDeviceTrustInfo[] | null = null;
+    private deviceTrustListCacheAt = 0;
+    private readonly cacheTTL = 5 * 60 * 1000;
     private securitySummaryCache: LRUCache<ISecuritySummary>;
     private readonly maxRetries = 3;
     private readonly retryDelay = 1000;
@@ -185,11 +189,12 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
     }
 
     async getDeviceTrustList(forceRefresh = false): Promise<IDeviceTrustInfo[]> {
-        if (!forceRefresh) {
-            const cached = this.deviceTrustCache.get("__list__");
-            if (cached) {
-                return [cached];
-            }
+        if (
+            !forceRefresh &&
+            this.deviceTrustListCache &&
+            Date.now() - this.deviceTrustListCacheAt < this.cacheTTL
+        ) {
+            return this.deviceTrustListCache;
         }
 
         try {
@@ -207,6 +212,8 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
             devices.forEach((device) => {
                 this.deviceTrustCache.set(device.device_id, device);
             });
+            this.deviceTrustListCache = devices;
+            this.deviceTrustListCacheAt = Date.now();
 
             return devices;
         } catch (error) {
@@ -216,7 +223,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
 
     async getDeviceTrust(deviceId: string, forceRefresh = false): Promise<IDeviceTrustInfo | null> {
         if (!deviceId) {
-            throw new Error("Device ID is required");
+            throw new InvalidParamError("Device ID is required");
         }
 
         if (!forceRefresh) {
@@ -296,6 +303,8 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
 
     clearCache(): void {
         this.deviceTrustCache.clear();
+        this.deviceTrustListCache = null;
+        this.deviceTrustListCacheAt = 0;
         this.securitySummaryCache.clear();
     }
 
@@ -449,8 +458,8 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
     private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
         try {
             logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
-        } catch {
-            // 忽略监控发送错误，不影响主流程
+        } catch (_metricError) {
+            // Metric logging is best-effort — never let an instrumentation failure break flow.
         }
     }
 

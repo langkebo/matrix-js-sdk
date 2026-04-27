@@ -1,6 +1,7 @@
 import type { IRoomEvent, IStateEvent } from "./sync-accumulator.ts";
 import type { IHierarchyRoom } from "./@types/spaces.ts";
 import type { ISignatures } from "./@types/signed.ts";
+import type { Membership } from "./@types/membership.ts";
 
 export interface IKeyBackupPath {
     path: string;
@@ -34,9 +35,10 @@ export interface IMyRoomInfo {
     room_id: string;
     name?: string;
     avatar_url?: string;
+    membership?: Membership;
     topic?: string;
     canonical_alias?: string;
-    join_state?: string;
+    join_state?: Membership;
     member_count?: number;
     [key: string]: unknown;
 }

@@ -1,6 +1,8 @@
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -28,9 +30,30 @@ export class TypingManager extends BaseManager {
     }
 
     /**
-     * 开始打字
+     * 开始打字提示
+     *
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     * @param options - 选项
+     * @param options.timeout - 超时时间（毫秒，默认 10000）
+     *
+     * @example
+     * ```typescript
+     * // 开始打字（默认 10 秒超时）
+     * await typingManager.startTyping("!abc:example.com");
+     *
+     * // 自定义超时时间
+     * await typingManager.startTyping("!abc:example.com", { timeout: 5000 });
+     *
+     * // 自动停止打字（超时后）
+     * await typingManager.startTyping("!abc:example.com", { timeout: 3000 });
+     * // 3 秒后自动停止
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     * @throws {AuthError} 如果用户未登录
      */
     async startTyping(roomId: string, options?: TypingOptions): Promise<void> {
+        AdminValidators.validateRoomId(roomId);
         const timeout = options?.timeout || 10000;
 
         // 清除之前的定时器
@@ -57,7 +80,21 @@ export class TypingManager extends BaseManager {
         }
     }
 
+    /**
+     * 停止打字提示
+     *
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 停止打字
+     * await typingManager.stopTyping("!abc:example.com");
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     */
     async stopTyping(roomId: string): Promise<void> {
+        AdminValidators.validateRoomId(roomId);
         const timerKey = `${roomId}`;
         if (this.typingTimers.has(timerKey)) {
             clearTimeout(this.typingTimers.get(timerKey)!);
@@ -71,7 +108,25 @@ export class TypingManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取房间内正在打字的用户列表
+     *
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     * @returns 正在打字的用户列表
+     *
+     * @example
+     * ```typescript
+     * // 获取正在打字的用户
+     * const typingUsers = await typingManager.getTypingUsers("!abc:example.com");
+     * typingUsers.forEach(user => {
+     *     console.log(`${user.userId} is typing (timeout: ${user.timeout}ms)`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     */
     async getTypingUsers(roomId: string): Promise<TypingUser[]> {
+        AdminValidators.validateRoomId(roomId);
         const room = this.client.getRoom(roomId);
         if (!room) return [];
 

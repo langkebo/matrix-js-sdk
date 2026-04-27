@@ -21,7 +21,7 @@ import { LocalIndexedDBStoreBackend } from "./indexeddb-local-backend.ts";
 import { RemoteIndexedDBStoreBackend } from "./indexeddb-remote-backend.ts";
 import { type IEvent, MatrixEvent } from "../models/event.ts";
 import { logger } from "../logger.ts";
-import { type ISavedSync } from "./index.ts";
+import { type ISavedSync, type StoreEvent, type StoreEventHandlerMap } from "./index.ts";
 import { type IIndexedDBBackend } from "./indexeddb-backend.ts";
 import { type ISyncResponse } from "../sync-accumulator.ts";
 import { type EventEmitterEvents, TypedEventEmitter } from "../models/typed-event-emitter.ts";
@@ -119,8 +119,8 @@ export class IndexedDBStore extends MemoryStore {
     }
 
     /** Re-exports `TypedEventEmitter.on` */
-    public on(event: EventEmitterEvents | "degraded" | "closed", handler: (...args: any[]) => void): void {
-        this.emitter.on(event, handler);
+    public on<T extends StoreEvent>(event: T, handler: StoreEventHandlerMap[T]): void {
+        this.emitter.on(event as any, handler as any);
     }
 
     /**

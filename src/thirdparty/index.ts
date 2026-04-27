@@ -44,7 +44,7 @@ export class ThirdPartyManager extends BaseManager {
     /**
      * 获取支持的第三方协议
      */
-    async getProtocols(throwOnError = false): Promise<ThirdPartyProtocol[]> {
+    async getProtocols(throwOnError = true): Promise<ThirdPartyProtocol[]> {
         try {
             const protocols = await this.client.getThirdpartyProtocols();
             return Object.entries(protocols).map(([name, data]) => ({
@@ -61,7 +61,7 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
-    async getProtocol(protocol: string, throwOnError = false): Promise<ThirdPartyProtocol | null> {
+    async getProtocol(protocol: string, throwOnError = true): Promise<ThirdPartyProtocol | null> {
         try {
             const protocols = await this.getProtocols(throwOnError);
             return protocols.find((p) => p.protocol === protocol) || null;
@@ -78,7 +78,7 @@ export class ThirdPartyManager extends BaseManager {
     async searchLocations(
         protocol: string,
         params: ThirdPartySearchParams,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<ThirdPartyLocation[]> {
         try {
             return await this.client.getThirdpartyLocation(protocol, params);
@@ -95,7 +95,7 @@ export class ThirdPartyManager extends BaseManager {
     async searchUsers(
         protocol: string,
         params: ThirdPartySearchParams,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<ThirdPartyUser[]> {
         try {
             return await this.client.getThirdpartyUser(protocol, params);

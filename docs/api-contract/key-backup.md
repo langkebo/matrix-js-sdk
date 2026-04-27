@@ -9,13 +9,13 @@
 
 ## 1. 审计范围
 
-| 类别          | 端点数量 | 后端实现                 | SDK 封装  |
-| ------------- | -------- | ------------------------ | --------- |
-| 备份版本管理  | 5        | ✅ 完整                  | ✅ 已封装 |
-| 备份密钥读写  | 11       | ✅ 完整                  | ✅ 已封装 |
-| 恢复与校验    | 6        | ✅ 完整                  | ✅ 已封装 |
-| 导出与导入    | 4        | ✅ 完整                  | ✅ 已封装 |
-| Secure Backup | 6        | ✅ 完整 (e2ee_routes.rs) | ✅ 已封装 |
+| 类别          | 端点数量 | 后端实现                 | SDK 封装                                |
+| ------------- | -------- | ------------------------ | --------------------------------------- |
+| 备份版本管理  | 5        | ✅ 完整                  | ✅ 已封装                               |
+| 备份密钥读写  | 11       | ✅ 完整                  | ⚠️ 7 个精确对齐，4 个兼容别名未单独封装 |
+| 恢复与校验    | 6        | ✅ 完整                  | ✅ 已封装                               |
+| 导出与导入    | 4        | ✅ 完整                  | ✅ 已封装                               |
+| Secure Backup | 6        | ✅ 完整 (e2ee_routes.rs) | ✅ 已封装                               |
 
 ---
 
@@ -31,12 +31,17 @@
 | `PUT /room_keys/version/{version}`    | ✅       | ✅ key_backup.rs:89  | ✅ `KeyBackupManager.updateBackupVersion()` | ✅ 已添加 |
 | `DELETE /room_keys/version/{version}` | ✅       | ✅ key_backup.rs:107 | ✅ `KeyBackupManager.deleteBackupVersion()` | ✅ OK     |
 
-| `GET /room_keys/keys` | ✅ | ✅ key_backup.rs:125 | ✅ `KeyBackupManager.getAllBackupKeys()` | ✅ OK |
-| `GET /room_keys/keys/{version}` | ✅ | ✅ key_backup.rs:161 | ✅ `KeyBackupManager.getBackupKeys()` | ✅ OK |
-| `GET /room_keys/keys/{version}/{room_id}` | ✅ | ✅ key_backup.rs:197 | ✅ `KeyBackupManager.getRoomBackupKeys()` | ✅ 已添加 |
-| `GET /room_keys/keys/{version}/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:215 | ✅ `KeyBackupManager.getSessionBackupKey()` | ✅ 已添加 |
-| `PUT /room_keys/keys/{version}/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:233 | ✅ `KeyBackupManager.uploadSessionKey()` | ✅ OK |
-| `POST /room_keys/{version}/keys` | ✅ | ✅ key_backup.rs:251 | ✅ `KeyBackupManager.uploadBatchKeys()` | ✅ 已添加 |
+| `GET /room_keys/keys` | ✅ | ✅ key_backup.rs:24 | ✅ `KeyBackupManager.getAllBackupKeys()` | ✅ OK |
+| `PUT /room_keys/keys` | ✅ | ✅ key_backup.rs:24 | ✅ `KeyBackupManager.uploadKeysToLatest()` | ✅ OK |
+| `GET /room_keys/keys/{version}` | ✅ | ✅ key_backup.rs:28 | ✅ `KeyBackupManager.getBackupKeys()` | ✅ OK |
+| `PUT /room_keys/keys/{version}` | ✅ | ✅ key_backup.rs:28 | ✅ `KeyBackupManager.uploadKeysToVersion()` | ✅ OK |
+| `GET /room_keys/keys/{version}/{room_id}` | ✅ | ✅ key_backup.rs:32 | ✅ `KeyBackupManager.getRoomBackupKeys()` | ✅ OK |
+| `GET /room_keys/keys/{version}/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:36 | ✅ `KeyBackupManager.getSessionBackupKey()` | ✅ OK |
+| `GET /room_keys/{version}` | ✅ | ✅ key_backup.rs:40 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
+| `PUT /room_keys/{version}` | ✅ | ✅ key_backup.rs:40 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
+| `POST /room_keys/{version}/keys` | ✅ | ✅ key_backup.rs:43 | ✅ `KeyBackupManager.uploadBatchKeys()` | ✅ OK |
+| `GET /room_keys/{version}/keys/{room_id}` | ✅ | ✅ key_backup.rs:45 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
+| `GET /room_keys/{version}/keys/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:49 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
 | `POST /room_keys/recover` | ✅ | ✅ key_backup.rs:269 | ✅ `KeyBackupManager.recoverKeys()` | ✅ OK |
 | `GET /room_keys/recovery/{version}/progress` | ✅ | ✅ key_backup.rs:287 | ✅ `KeyBackupManager.getRecoveryProgress()` | ✅ 已添加 |
 | `GET /room_keys/verify/{version}` | ✅ | ✅ key_backup.rs:305 | ✅ `KeyBackupManager.verifyBackup()` | ✅ 已添加 |
@@ -55,16 +60,22 @@
 | `POST /keys/backup/secure/{backup_id}/restore` | ✅ | ✅ secure-backup/index.ts:107 | ✅ `SecureBackupManager.restoreFromSecureBackup()` | ✅ OK |
 | `POST /keys/backup/secure/{backup_id}/verify` | ✅ | ✅ secure-backup/index.ts:121 | ✅ `SecureBackupManager.verifySecureBackup()` | ✅ OK |
 
+补充核对结果：
+
+- `KeyBackupManager.uploadSessionKey()` 调用的 `PUT /room_keys/keys/{version}/{room_id}/{session_id}` 已在后端挂载，路径本身无误。
+- 后端额外提供 `/_matrix/client/{v1,r0,v3}/room_keys/{version}` 及其子路径作为兼容别名，SDK 目前未单独暴露这些别名方法。
+
 ---
 
 ## 3. 已修复问题
 
-| 问题                    | 修复内容                   | 文件                     |
-| ----------------------- | -------------------------- | ------------------------ |
-| SDK 使用间接封装        | 重构为直接 HTTP 调用       | `key-backup/index.ts`    |
-| 缺少恢复与校验功能      | 添加 6 个方法              | `key-backup/index.ts`    |
-| 缺少导入导出功能        | 添加 4 个方法              | `key-backup/index.ts`    |
-| 缺少 Secure Backup 封装 | 添加 `SecureBackupManager` | `secure-backup/index.ts` |
+| 问题                         | 当前状态                        | 文件                     |
+| ---------------------------- | ------------------------------- | ------------------------ |
+| SDK 使用间接封装             | ✅ 已重构为直接 HTTP 调用       | `key-backup/index.ts`    |
+| 缺少恢复与校验功能           | ✅ 已补齐 6 个方法              | `key-backup/index.ts`    |
+| 缺少导入导出功能             | ✅ 已补齐 4 个方法              | `key-backup/index.ts`    |
+| 缺少 Secure Backup 封装      | ✅ 已添加 `SecureBackupManager` | `secure-backup/index.ts` |
+| 单会话上传路径被误判为未挂载 | ✅ 已核对后端实际挂载情况       | `key-backup.md`          |
 
 ---
 
@@ -151,9 +162,9 @@ export interface SecureBackupInfo {
 ## 5. 封装覆盖率
 
 - **后端路由总数**: 32 个端点
-- **SDK 已封装**: 32 个方法
-- **直接 HTTP 封装**: 32/32 (100%)
-- **未封装**: 0/32 (0%)
+- **精确对齐的 SDK 封装**: 28 个方法
+- **后端兼容别名未单独封装**: 4 个端点
+- **路径待修正的 SDK 方法**: 0 个（`uploadSessionKey()` 已核对为与后端挂载一致）
 
 ---
 
@@ -213,8 +224,10 @@ describe("KeyBackupManager", () => {
 
 ### 8.1 当前状态
 
-- ✅ 后端实现完整，- ✅ SDK 已重构为直接 HTTP 封装
-- ✅ 所有端点已正确封装
+- ✅ 后端实现完整，客户端前缀覆盖 `v1/r0/v3`
+- ✅ 大多数 Key Backup / Secure Backup 能力已由 SDK 直接 HTTP 封装
+- ⚠️ 仍有 4 个后端兼容别名未单独暴露
+- ✅ `uploadSessionKey()` 使用的单会话 PUT 路径已确认由后端挂载
 
 ### 8.2 娡块功能
 

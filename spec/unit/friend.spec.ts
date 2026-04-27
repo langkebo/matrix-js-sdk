@@ -88,6 +88,12 @@ describe("FriendManager", () => {
                 { prefix: ClientPrefix.V1 },
             );
         });
+
+        it("should expose request_id/status from backend response", async () => {
+            mockAuthedRequest.mockResolvedValue({ request_id: "req-123", status: "pending" });
+            const result = await friendManager.sendFriendRequest("@bob:example.com");
+            expect(result).toEqual({ request_id: "req-123", status: "pending" });
+        });
     });
 
     describe("acceptFriendRequest", () => {
@@ -115,6 +121,12 @@ describe("FriendManager", () => {
 
         it("should throw InvalidParamError for empty user ID", async () => {
             await expect(friendManager.acceptFriendRequest("")).rejects.toThrow(InvalidParamError);
+        });
+
+        it("should expose room_id from backend response", async () => {
+            mockAuthedRequest.mockResolvedValue({ room_id: "!room-dm:example.com" });
+            const result = await friendManager.acceptFriendRequest("@bob:example.com");
+            expect(result).toEqual({ room_id: "!room-dm:example.com" });
         });
     });
 
@@ -203,16 +215,17 @@ describe("FriendManager", () => {
                 { user_id: "@charlie:example.com", status: "favorite", since: 123457 },
             ];
 
-            mockAuthedRequest.mockResolvedValue({ friends: mockFriends });
+            mockAuthedRequest.mockResolvedValue({ friends: mockFriends, room_id: "!friends:example.com" });
 
             const friends = await friendManager.getFriends();
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
-                prefix: ClientPrefix.V1,
+                prefix: ClientPrefix.V3,
             });
 
             expect(friends).toEqual(mockFriends);
             expect(friendManager.getCachedFriends()).toHaveLength(2);
+            expect(friendManager.getFriendListRoomId()).toBe("!friends:example.com");
         });
 
         it("should normalize friend status", async () => {
@@ -232,6 +245,33 @@ describe("FriendManager", () => {
 
             expect(friends).toEqual([]);
         });
+
+        it("should reuse the backend-provided friend list room id", async () => {
+            mockAuthedRequest.mockResolvedValueOnce({
+                friends: [{ user_id: "@bob:example.com", status: "normal" }],
+                room_id: "!friends:example.com",
+            });
+
+            const roomId = await (friendManager as any).ensureFriendListRoom();
+
+            expect(roomId).toBe("!friends:example.com");
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
+        });
+
+        it("should not fall back to posting /friends when room_id is absent", async () => {
+            mockAuthedRequest.mockResolvedValueOnce({ friends: [] });
+
+            const roomId = await (friendManager as any).ensureFriendListRoom();
+
+            expect(roomId).toBe("");
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
+        });
     });
 
     describe("getIncomingRequests", () => {
@@ -246,12 +286,42 @@ describe("FriendManager", () => {
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
-                "/friends/requests/incoming",
+                "/friends/request/received",
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
 
+            expect(requests).toEqual(mockRequests);
+        });
+
+        it("should fall back to the legacy incoming alias when canonical path is unavailable", async () => {
+            const mockRequests: FriendRequest[] = [
+                { user_id: "@bob:example.com", status: "pending", timestamp: 123456 },
+            ];
+
+            mockAuthedRequest
+                .mockRejectedValueOnce(new NotFoundError("missing"))
+                .mockResolvedValueOnce({ requests: mockRequests });
+
+            const requests = await friendManager.getIncomingRequests();
+
+            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
+                1,
+                Method.Get,
+                "/friends/request/received",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
+                2,
+                Method.Get,
+                "/friends/requests/incoming",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
             expect(requests).toEqual(mockRequests);
         });
     });
@@ -356,7 +426,7 @@ describe("FriendManager", () => {
 
     describe("Friend Groups", () => {
         it("should create a friend group", async () => {
-            mockAuthedRequest.mockResolvedValue({ group_id: "group123" });
+            mockAuthedRequest.mockResolvedValue({ id: "group123", name: "Best Friends", members: [], created_at: 1 });
 
             const groupId = await friendManager.createFriendGroup("Best Friends");
 
@@ -564,20 +634,20 @@ describe("FriendManager", () => {
             expect(friend).toEqual(mockFriend);
         });
 
-        it("should return null for non-existent friend info", async () => {
+        it("should return null for non-existent friend info when throwOnError is false", async () => {
             const notFoundError = new NotFoundError("Not found");
             mockAuthedRequest.mockRejectedValue(notFoundError);
 
-            const friend = await friendManager.getFriendInfo("@bob:example.com");
+            const friend = await friendManager.getFriendInfo("@bob:example.com", false);
 
             expect(friend).toBeNull();
         });
 
-        it("should throw on 404 error when throwOnError is true", async () => {
+        it("should throw on 404 error by default", async () => {
             const notFoundError = new NotFoundError("Not found");
             mockAuthedRequest.mockRejectedValue(notFoundError);
 
-            await expect(friendManager.getFriendInfo("@bob:example.com", true)).rejects.toThrow();
+            await expect(friendManager.getFriendInfo("@bob:example.com")).rejects.toThrow();
         });
     });
 
@@ -642,7 +712,7 @@ describe("FriendManager", () => {
             await friendManager.getFriendsList();
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
-                prefix: ClientPrefix.V1,
+                prefix: ClientPrefix.V3,
             });
         });
 

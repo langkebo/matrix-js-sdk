@@ -31,8 +31,10 @@ import { Method } from "../http-api/method";
 import { logger } from "../logger";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
-import { NotFoundError } from "../errors";
+import { NotFoundError, ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
+import { AdminValidators } from "./validators";
+import { buildPaginationParams, buildSearchParams, buildQueryParams } from "./utils";
 
 export enum AdminEvent {
     UserCreated = "UserCreated",
@@ -131,12 +133,57 @@ export interface RoomInfo {
 export interface ServerStats {
     total_users?: number;
     total_rooms?: number;
+    user_count?: number;
+    room_count?: number;
     daily_active_users?: number;
     monthly_active_users?: number;
     total_nonlocal_users?: number;
     total_room_events?: number;
+    server_start_time?: number;
     r30_users?: number;
     r30v2_users?: number;
+}
+
+export interface ServerStatus {
+    status: "online" | "offline" | "degraded";
+    uptime?: number;
+    version?: string;
+    timestamp?: number;
+}
+
+export interface ServerHealth {
+    healthy: boolean;
+    checks?: Record<string, { status: string; message?: string }>;
+}
+
+export interface ServerInfo {
+    server_name?: string;
+    version?: string;
+    python_version?: string;
+    uptime?: number;
+    federation_enabled?: boolean;
+    registration_enabled?: boolean;
+}
+
+export interface AccountStatus {
+    user_id: string;
+    exists: boolean;
+    deactivated?: boolean;
+    locked?: boolean;
+    suspended?: boolean;
+}
+
+export interface ServerNotice {
+    event_id: string;
+    user_id: string;
+    content: Record<string, unknown>;
+    sent_ts: number;
+}
+
+export interface FederationBlacklistEntry {
+    server_name: string;
+    added_ts?: number;
+    reason?: string;
 }
 
 export interface ShadowBanStatus {
@@ -165,6 +212,32 @@ export interface FederationDestination {
     retry_interval?: number;
     failure_ts?: number;
     last_successful_stream_ordering?: number;
+    status?: "pending" | "active" | "rejected";
+    updated_ts?: number;
+}
+
+export interface FederationAdmissionResult {
+    server_name: string;
+    status: "active" | "rejected";
+    previous_status: string;
+    updated_ts: number;
+    confirmed_by: string;
+}
+
+export interface PendingFederationServer {
+    server_name: string;
+    failure_count: number;
+    last_failed_connect_at?: number;
+    last_successful_connect_at?: number;
+    status: "pending";
+    updated_ts?: number;
+}
+
+export interface PendingFederationList {
+    servers: PendingFederationServer[];
+    total: number;
+    limit: number;
+    offset: number;
 }
 
 export interface RoomStats {
@@ -187,6 +260,231 @@ export interface AdminRegisterResponse {
     device_id: string;
     user_id: string;
     home_server: string;
+}
+
+export interface WhoisResponse {
+    user_id: string;
+    devices: Record<string, {
+        sessions: Array<{
+            connections: Array<{
+                ip: string;
+                last_seen: number;
+                user_agent: string;
+            }>;
+        }>;
+    }>;
+}
+
+// ===== Retention / Audit / Feature flags =====
+
+export interface RetentionPolicy {
+    max_lifetime: number | null;
+    min_lifetime: number | null;
+    expire_on_clients: boolean;
+}
+
+export interface RoomRetentionPolicy extends RetentionPolicy {
+    room_id: string;
+}
+
+export interface RetentionRunResult {
+    started: boolean;
+    room_id?: string;
+    scope?: string;
+    events_deleted?: number;
+    status?: string;
+    completed_ts?: number;
+}
+
+export interface RetentionStatus {
+    server_policy_enabled: boolean;
+    rooms_with_custom_policy: number;
+    lifecycle_cleanup_enabled: boolean;
+    cleanup_batch_size: number;
+    audit_retention_days: number;
+    queue_retention_days: number;
+    last_run: {
+        started_ts: number;
+        completed_ts: number;
+        duration_ms: number;
+        expired_events_deleted: number;
+        expired_beacons_deleted: number;
+        expired_uploads_deleted: number;
+        expired_audit_events_deleted: number;
+        cleanup_queue_items_processed: number;
+        cleanup_queue_rows_pruned: number;
+        failed_tasks: number;
+    } | null;
+}
+
+export interface AuditEvent {
+    event_id: string;
+    actor_id: string;
+    action: string;
+    resource_type: string;
+    resource_id: string;
+    result: string;
+    request_id: string;
+    ts: number;
+    details?: Record<string, unknown>;
+}
+
+export interface AuditEventPage {
+    events: AuditEvent[];
+    total: number;
+    next_token: number | null;
+}
+
+export interface FeatureFlagTarget {
+    subject_type: string;
+    subject_id: string;
+}
+
+export interface FeatureFlag {
+    flag_key: string;
+    target_scope: string;
+    rollout_percent: number;
+    expires_at: number | null;
+    reason: string;
+    status: string;
+    created_by: string;
+    created_ts: number;
+    updated_ts: number;
+    targets: FeatureFlagTarget[];
+}
+
+export interface FeatureFlagPage {
+    flags: FeatureFlag[];
+    total: number;
+}
+
+// ===== SAML / Appservices / System notifications / User pushers =====
+
+export interface SamlMapping {
+    name_id: string;
+    user_id?: string;
+    [key: string]: unknown;
+}
+
+export interface SamlMappingPage {
+    mappings: SamlMapping[];
+    next_token?: string;
+}
+
+export interface SamlMetadata {
+    entity_id: string;
+    sso_url: string;
+    slo_url?: string | null;
+    certificate?: string | null;
+    [key: string]: unknown;
+}
+
+export interface ApplicationServiceInfo {
+    id: string;
+    as_token?: string;
+    hs_token?: string;
+    url?: string;
+    sender_localpart?: string;
+    [key: string]: unknown;
+}
+
+export interface ApplicationServicePage {
+    services: ApplicationServiceInfo[];
+    next_token?: string;
+}
+
+export interface ApplicationServicePingResult {
+    ok: boolean;
+    duration_ms?: number;
+}
+
+export interface SystemNotificationInfo {
+    notification_id: string;
+    content?: string;
+    type?: string;
+    target_users?: string[];
+    created_ts?: number;
+    [key: string]: unknown;
+}
+
+export interface SystemNotificationPage {
+    notifications: SystemNotificationInfo[];
+    next_token?: string;
+}
+
+export interface UserPusher {
+    pushkey: string;
+    app_id: string;
+    kind?: string;
+    app_display_name?: string;
+    device_display_name?: string;
+    profile_tag?: string;
+    lang?: string;
+    data?: Record<string, unknown>;
+}
+
+// ===== Spaces / Security / Server ops =====
+
+export interface SpaceInfo {
+    space_id: string;
+    name?: string;
+    [key: string]: unknown;
+}
+
+export interface SpacePage {
+    spaces: SpaceInfo[];
+    next_batch?: string;
+}
+
+export interface SpaceUser {
+    user_id: string;
+    [key: string]: unknown;
+}
+
+export interface SpaceRoom {
+    room_id: string;
+    [key: string]: unknown;
+}
+
+export interface SecurityEvent {
+    event_id?: string;
+    event_type?: string;
+    user_id?: string;
+    ts?: number;
+    [key: string]: unknown;
+}
+
+export interface SecurityEventPage {
+    events: SecurityEvent[];
+    next_token?: string;
+}
+
+export interface IpBlock {
+    ip: string;
+    cidr?: number;
+    reason?: string;
+    expire_at?: number;
+    [key: string]: unknown;
+}
+
+export interface ServerLogEntry {
+    level: string;
+    ts: number;
+    message: string;
+    [key: string]: unknown;
+}
+
+/**
+ * Paginated response wrapper
+ * Provides a consistent structure for paginated API responses
+ */
+export interface PaginatedResponse<T> {
+    /** Array of items in the current page */
+    items: T[];
+    /** Token for fetching the next page (if available) */
+    nextToken?: string;
+    /** Total number of items (if available) */
+    total?: number;
 }
 
 /**
@@ -257,39 +555,152 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         }
     }
 
+    /**
+     * 发起不追加 Admin 前缀的认证请求。
+     *
+     * 用于访问完整路径形式的 Matrix Client API / Federation API 等端点。
+     */
+    private async rawRequest<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string | string[]>,
+        body?: Body,
+        methodName?: string,
+        rawResponseBody = false,
+    ): Promise<T> {
+        try {
+            return (await this.client.http.authedRequest(method, path, queryParams ?? {}, body, {
+                prefix: "",
+                rawResponseBody,
+            })) as Promise<T>;
+        } catch (err) {
+            throw this.normalizeError(err, methodName ?? "unknown");
+        }
+    }
+
     // ===== 用户管理 =====
 
     /**
      * 获取用户列表（支持分页）
+     *
+     * @param from - 分页起点 token
+     * @param limit - 返回用户数量限制（1-10000）
+     * @returns 用户列表和下一页 token
+     *
+     * @example
+     * ```typescript
+     * // 获取前 50 个用户
+     * const result = await adminManager.getUsers(undefined, 50);
+     * console.log(`获取 ${result.users.length} 个用户`);
+     *
+     * // 分页获取所有用户
+     * let from: string | undefined;
+     * do {
+     *   const result = await adminManager.getUsers(from, 50);
+     *   result.users.forEach(user => console.log(user.user_id));
+     *   from = result.next_token;
+     * } while (from);
+     * ```
+     *
+     * @throws {ValidationError} 如果 limit 参数无效（< 1 或 > 10000）
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果 API 调用失败
+     *
+     * @deprecated Use {@link getUsersPaginated} for consistent pagination format
      */
-    async getUsers(from?: string, limit?: number): Promise<{ users: UserInfo[]; next_token?: string }> {
-        const queryParams: Record<string, string> = {};
-        if (from) queryParams["from"] = from;
-        if (limit) queryParams["limit"] = String(limit);
+    async getUsers(
+        from?: string,
+        limit?: number,
+    ): Promise<{ users: UserInfo[]; next_token?: string; total?: number }> {
+        const paginated = await this.getUsersPaginated({ from, limit });
+        return {
+            users: paginated.items,
+            next_token: paginated.nextToken,
+            total: paginated.total,
+        };
+    }
 
-        const response = await this.adminRequest<{ users: UserInfo[]; next_token?: string }>(
-            Method.Get,
-            "/v2/users",
-            Object.keys(queryParams).length > 0 ? queryParams : undefined,
-        );
+    /**
+     * 获取用户列表（统一分页格式）
+     *
+     * @param options - 查询选项
+     * @param options.from - 分页起点 token
+     * @param options.limit - 返回用户数量限制（1-10000）
+     * @returns 统一格式的分页响应
+     *
+     * @example
+     * ```typescript
+     * // 获取前 50 个用户
+     * const result = await adminManager.getUsersPaginated({ limit: 50 });
+     * console.log(`获取 ${result.items.length} 个用户`);
+     *
+     * // 分页获取所有用户
+     * let nextToken: string | undefined;
+     * do {
+     *   const result = await adminManager.getUsersPaginated({
+     *     from: nextToken,
+     *     limit: 50
+     *   });
+     *   result.items.forEach(user => console.log(user.user_id));
+     *   nextToken = result.nextToken;
+     * } while (nextToken);
+     * ```
+     *
+     * @throws {ValidationError} 如果 limit 参数无效
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async getUsersPaginated(options?: {
+        from?: string;
+        limit?: number;
+    }): Promise<PaginatedResponse<UserInfo>> {
+        if (options?.limit !== undefined) {
+            AdminValidators.validateLimit(options.limit);
+        }
+
+        const queryParams = buildPaginationParams(options?.from, options?.limit);
+
+        const response = await this.adminRequest<{
+            users: UserInfo[];
+            next_token?: string;
+            total?: number;
+        }>(Method.Get, "/v2/users", buildQueryParams(queryParams));
 
         return {
-            users: response.users || [],
-            next_token: response.next_token,
+            items: response.users || [],
+            nextToken: response.next_token,
+            total: response.total,
         };
     }
 
     /**
      * Get user details
      *
-     * @param userId - User ID
-     * @param throwOnError - Whether to throw on error (default false)
-     * @returns User details
+     * @param userId - User ID (e.g., "@alice:example.com")
+     * @param throwOnError - Whether to throw on error (default true)
+     * @returns User details or null if not found (when throwOnError=false)
+     *
+     * @example
+     * ```typescript
+     * // Get user info
+     * const user = await adminManager.getUser("@alice:example.com");
+     * console.log(user.displayname);
+     * console.log(user.admin); // true/false
+     *
+     * // Handle missing users gracefully
+     * const user = await adminManager.getUser("@unknown:example.com", false);
+     * if (!user) {
+     *     console.log("User not found");
+     * }
+     * ```
+     *
+     * @throws {ValidationError} If user ID format is invalid
+     * @throws {AuthError} If authentication fails
+     * @throws {NotFoundError} If user not found (when throwOnError=true)
+     * @throws {ApiError} If the request fails
      */
-    async getUser(userId: string, throwOnError = false): Promise<UserInfo | null> {
-        if (!userId) {
-            throw new Error("User ID is required");
-        }
+    async getUser(userId: string, throwOnError = true): Promise<UserInfo | null> {
+        AdminValidators.validateUserId(userId);
 
         try {
             return await this.adminRequest<UserInfo>(
@@ -314,6 +725,34 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     /**
      * 创建新用户
+     *
+     * @param userId - 用户 ID (e.g., "@bob:example.com")
+     * @param options - 用户选项
+     * @param options.password - 用户密码
+     * @param options.displayname - 显示名称
+     * @param options.admin - 是否为管理员
+     * @param options.deactivated - 是否停用
+     * @returns 创建的用户信息
+     *
+     * @example
+     * ```typescript
+     * // 创建普通用户
+     * const user = await adminManager.createUser("@bob:example.com", {
+     *     password: "secure123",
+     *     displayname: "Bob Smith"
+     * });
+     *
+     * // 创建管理员用户
+     * const admin = await adminManager.createUser("@admin:example.com", {
+     *     password: "admin123",
+     *     displayname: "Admin User",
+     *     admin: true
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果用户已存在或创建失败
      */
     async createUser(
         userId: string,
@@ -324,6 +763,8 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             deactivated?: boolean;
         },
     ): Promise<UserInfo> {
+        AdminValidators.validateUserId(userId);
+
         const user = await this.adminRequest<UserInfo>(
             Method.Put,
             `/v2/users/${encodeURIComponent(userId)}`,
@@ -337,35 +778,65 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     /**
      * 停用用户
+     * 对接: POST /_synapse/admin/v1/users/{user_id}/deactivate （后端当前忽略 body；erase 参数保留以便未来扩展）
+     * @deprecated `erase` 参数当前被后端忽略，仅保留签名稳定性
      */
-    async deactivateUser(userId: string, erase?: boolean): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/deactivate`, undefined, {
-            erase: erase ?? false,
-        });
+    async deactivateUser(userId: string, _erase?: boolean): Promise<void> {
+        AdminValidators.validateUserId(userId);
+
+        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/deactivate`);
         this.emit(AdminEvent.UserDeactivated, userId);
     }
 
     /**
      * 重置用户密码
+     * 对接: POST /_synapse/admin/v1/users/{user_id}/password body={new_password}
+     * 注意：当前后端不支持 `logout_devices`，仅重置密码。
      */
-    async resetPassword(userId: string, newPassword: string, logout?: boolean): Promise<void> {
+    async resetPassword(userId: string, newPassword: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
+
         await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/password`, undefined, {
             new_password: newPassword,
-            logout_devices: logout ?? true,
         });
     }
 
     /**
      * 设置用户管理员权限
+     * 对接: PUT /_synapse/admin/v1/users/{user_id}/admin  body={admin}
      */
     async setAdmin(userId: string, admin: boolean): Promise<void> {
-        await this.adminRequest(Method.Put, `/v2/users/${encodeURIComponent(userId)}`, undefined, { admin });
+        AdminValidators.validateUserId(userId);
+        await this.adminRequest(
+            Method.Put,
+            `/v1/users/${encodeURIComponent(userId)}/admin`,
+            undefined,
+            { admin },
+        );
     }
 
     /**
      * 获取用户的设备列表
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @returns 设备列表
+     *
+     * @example
+     * ```typescript
+     * // 获取用户设备列表
+     * const devices = await adminManager.getUserDevices("@alice:example.com");
+     * devices.forEach(device => {
+     *     console.log(`Device: ${device.device_id}`);
+     *     console.log(`Display name: ${device.display_name}`);
+     *     console.log(`Last seen: ${device.last_seen_ts}`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     async getUserDevices(userId: string): Promise<DeviceInfo[]> {
+        AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ devices: DeviceInfo[] }>(
             Method.Get,
             `/v2/users/${encodeURIComponent(userId)}/devices`,
@@ -375,27 +846,192 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     /**
      * 删除用户的设备
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @param deviceIds - 设备 ID 列表
+     *
+     * @example
+     * ```typescript
+     * // 删除用户的多个设备
+     * await adminManager.deleteUserDevices(
+     *     "@alice:example.com",
+     *     ["DEVICE1", "DEVICE2"]
+     * );
+     *
+     * // 删除单个设备
+     * await adminManager.deleteUserDevice("@alice:example.com", "DEVICE1");
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效或设备列表为空
+     * @throws {ApiError} 如果 API 调用失败
      */
     async deleteUserDevices(userId: string, deviceIds: string[]): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        if (!deviceIds || deviceIds.length === 0) {
+            throw new ValidationError("Device IDs list cannot be empty");
+        }
         await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/devices/delete`, undefined, {
             devices: deviceIds,
         });
+    }
+
+    /**
+     * 删除用户的单个设备
+     *
+     * @param userId - 用户 ID
+     * @param deviceId - 设备 ID
+     */
+    async deleteUserDevice(userId: string, deviceId: string): Promise<void> {
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`,
+        );
+    }
+
+    /**
+     * 获取账户状态
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 账户状态
+     */
+    async getAccountStatus(userId: string, throwOnError = true): Promise<AccountStatus | null> {
+        try {
+            return await this.adminRequest<AccountStatus>(
+                Method.Get,
+                `/v1/account/${encodeURIComponent(userId)}`,
+            );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 检查用户是否为管理员
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 是否为管理员
+     */
+    async isAdmin(userId: string, throwOnError = true): Promise<boolean> {
+        try {
+            const response = await this.adminRequest<{ admin: boolean }>(
+                Method.Get,
+                `/v1/users/${encodeURIComponent(userId)}/admin`,
+            );
+            return response.admin;
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn(`AdminManager.isAdmin failed for ${userId}:`, e);
+            return false;
+        }
+    }
+
+    /**
+     * 覆盖用户速率限制（完全禁用限制）
+     *
+     * @param userId - 用户 ID
+     */
+    async overrideRateLimit(userId: string): Promise<void> {
+        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`);
+    }
+
+    /**
+     * 获取用户速率限制覆盖状态
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 是否已覆盖
+     */
+    async getRateLimitOverride(userId: string, throwOnError = true): Promise<{ overridden: boolean } | null> {
+        try {
+            return await this.adminRequest<{ overridden: boolean }>(
+                Method.Get,
+                `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`,
+            );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            if (e instanceof NotFoundError) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 删除用户速率限制覆盖
+     *
+     * @param userId - 用户 ID
+     */
+    async deleteRateLimitOverride(userId: string): Promise<void> {
+        await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`);
     }
 
     // ===== Shadow Ban =====
 
     /**
      * 对用户实施影子封禁
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 影子封禁用户
+     * await adminManager.shadowBanUser("@spammer:example.com");
+     *
+     * // 监听影子封禁事件
+     * adminManager.on(AdminEvent.UserShadowBanned, (userId) => {
+     *     console.log(`User ${userId} shadow banned`);
+     * });
+     *
+     * // 检查封禁状态
+     * const status = await adminManager.getShadowBanStatus("@spammer:example.com");
+     * console.log("Is shadow banned:", status.shadow_banned);
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     async shadowBanUser(userId: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
         await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`);
         this.emit(AdminEvent.UserShadowBanned, userId);
     }
 
     /**
      * 取消用户的影子封禁
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 取消影子封禁
+     * await adminManager.unshadowBanUser("@user:example.com");
+     *
+     * // 监听取消封禁事件
+     * adminManager.on(AdminEvent.UserUnshadowBanned, (userId) => {
+     *     console.log(`User ${userId} unshadow banned`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
      */
     async unshadowBanUser(userId: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
         await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`);
         this.emit(AdminEvent.UserUnshadowBanned, userId);
     }
@@ -404,10 +1040,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取用户影子封禁状态
      *
      * @param userId - 用户 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 封禁状态
      */
-    async getShadowBanStatus(userId: string, throwOnError = false): Promise<ShadowBanStatus | null> {
+    async getShadowBanStatus(userId: string, throwOnError = true): Promise<ShadowBanStatus | null> {
         try {
             return await this.adminRequest<ShadowBanStatus>(
                 Method.Get,
@@ -431,10 +1067,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取用户的速率限制配置
      *
      * @param userId - 用户 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 速率限制配置
      */
-    async getRateLimit(userId: string, throwOnError = false): Promise<RateLimitConfig | null> {
+    async getRateLimit(userId: string, throwOnError = true): Promise<RateLimitConfig | null> {
         try {
             return await this.adminRequest<RateLimitConfig>(
                 Method.Get,
@@ -470,26 +1106,78 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     /**
      * 获取房间列表（支持分页和搜索）
+     *
+     * @param from - 分页起点 token
+     * @param limit - 返回房间数量限制
+     * @param searchTerm - 搜索关键词（房间名称或 ID）
+     * @returns 房间列表和下一页 token
+     *
+     * @example
+     * ```typescript
+     * // 获取所有房间
+     * const result = await adminManager.getRooms();
+     * console.log(`总共 ${result.rooms.length} 个房间`);
+     *
+     * // 搜索房间
+     * const result = await adminManager.getRooms(undefined, 50, "general");
+     * result.rooms.forEach(room => console.log(room.name));
+     *
+     * // 分页获取
+     * let from: string | undefined;
+     * do {
+     *   const result = await adminManager.getRooms(from, 100);
+     *   // 处理房间...
+     *   from = result.next_token;
+     * } while (from);
+     * ```
+     *
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果 API 调用失败
+     *
+     * @deprecated Use {@link getRoomsPaginated} for consistent pagination format
      */
     async getRooms(
         from?: string,
         limit?: number,
         searchTerm?: string,
-    ): Promise<{ rooms: RoomInfo[]; next_token?: string }> {
-        const queryParams: Record<string, string> = {};
-        if (from) queryParams["from"] = from;
-        if (limit) queryParams["limit"] = String(limit);
-        if (searchTerm) queryParams["search_term"] = searchTerm;
+    ): Promise<{ rooms: RoomInfo[]; next_token?: string; total?: number }> {
+        const paginated = await this.getRoomsPaginated({ from, limit, searchTerm });
+        return {
+            rooms: paginated.items,
+            next_token: paginated.nextToken,
+            total: paginated.total,
+        };
+    }
 
-        const response = await this.adminRequest<{ rooms: RoomInfo[]; next_token?: string }>(
-            Method.Get,
-            "/v1/rooms",
-            Object.keys(queryParams).length > 0 ? queryParams : undefined,
-        );
+    /**
+     * 获取房间列表（统一分页格式）
+     *
+     * @param options - 查询选项
+     * @param options.from - 分页起点 token
+     * @param options.limit - 返回房间数量限制
+     * @param options.searchTerm - 搜索关键词
+     * @returns 统一格式的分页响应
+     *
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async getRoomsPaginated(options?: {
+        from?: string;
+        limit?: number;
+        searchTerm?: string;
+    }): Promise<PaginatedResponse<RoomInfo>> {
+        const queryParams = buildSearchParams(options?.searchTerm, options?.from, options?.limit);
+
+        const response = await this.adminRequest<{
+            rooms: RoomInfo[];
+            next_token?: string;
+            total?: number;
+        }>(Method.Get, "/v1/rooms", buildQueryParams(queryParams));
 
         return {
-            rooms: response.rooms || [],
-            next_token: response.next_token,
+            items: response.rooms || [],
+            nextToken: response.next_token,
+            total: response.total,
         };
     }
 
@@ -497,10 +1185,12 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取房间详情
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 房间详情
      */
-    async getRoom(roomId: string, throwOnError = false): Promise<RoomInfo | null> {
+    async getRoom(roomId: string, throwOnError = true): Promise<RoomInfo | null> {
+        AdminValidators.validateRoomId(roomId);
+
         try {
             return await this.adminRequest<RoomInfo>(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}`);
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
@@ -525,6 +1215,8 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             force_purge?: boolean;
         },
     ): Promise<void> {
+        AdminValidators.validateRoomId(roomId);
+
         await this.adminRequest(Method.Delete, `/v1/rooms/${encodeURIComponent(roomId)}`, undefined, options || {});
         this.emit(AdminEvent.RoomDeleted, roomId);
     }
@@ -560,10 +1252,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /**
      * 获取服务器版本信息
      *
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 服务器版本信息
      */
-    async getServerVersion(throwOnError = false): Promise<{ server_version: string; python_version: string }> {
+    async getServerVersion(throwOnError = true): Promise<{ server_version: string; python_version: string }> {
         try {
             return await this.adminRequest<{ server_version: string; python_version: string }>(
                 Method.Get,
@@ -592,10 +1284,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /**
      * 获取服务器配置
      *
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 配置信息
      */
-    async getServerConfig(throwOnError = false): Promise<Record<string, unknown>> {
+    async getServerConfig(throwOnError = true): Promise<Record<string, unknown>> {
         try {
             return await this.adminRequest<Record<string, unknown>>(Method.Get, "/v1/config");
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
@@ -605,6 +1297,84 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             }
             logger.warn("AdminManager.getServerConfig failed:", e);
             return {};
+        }
+    }
+
+    /**
+     * 获取服务器状态
+     *
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 服务器状态信息
+     *
+     * @example
+     * ```typescript
+     * // 检查服务器状态
+     * const status = await adminManager.getServerStatus();
+     * if (status?.status === "online") {
+     *     console.log(`服务器在线，运行时间: ${status.uptime}秒`);
+     * }
+     *
+     * // 优雅处理错误
+     * const status = await adminManager.getServerStatus(false);
+     * if (!status) {
+     *     console.log("无法获取服务器状态");
+     * }
+     * ```
+     *
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果 API 调用失败（当 throwOnError=true）
+     */
+    async getServerStatus(throwOnError = true): Promise<ServerStatus | null> {
+        try {
+            return await this.adminRequest<ServerStatus>(Method.Get, "/v1/status");
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getServerStatus failed:", e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取服务器健康状态
+     *
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 健康状态
+     */
+    async getServerHealth(throwOnError = true): Promise<ServerHealth | null> {
+        try {
+            return await this.adminRequest<ServerHealth>(Method.Get, "/v1/health");
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getServerHealth failed:", e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取服务器信息（合并 status+config+server_version）
+     * 对接: GET /_synapse/admin/v1/status, /v1/config, /v1/server_version
+     */
+    async getServerInfo(throwOnError = true): Promise<ServerInfo | null> {
+        try {
+            const [status, config, version] = await Promise.all([
+                this.adminRequest<Record<string, unknown>>(Method.Get, "/v1/status"),
+                this.adminRequest<Record<string, unknown>>(Method.Get, "/v1/config"),
+                this.adminRequest<Record<string, unknown>>(Method.Get, "/v1/server_version"),
+            ]);
+            return { ...status, ...config, ...version } as ServerInfo;
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getServerInfo failed:", e);
+            return null;
         }
     }
 
@@ -679,10 +1449,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取联邦目的地详情
      *
      * @param destination - 目的地
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 详情
      */
-    async getFederationDestination(destination: string, throwOnError = false): Promise<FederationDestination | null> {
+    async getFederationDestination(destination: string, throwOnError = true): Promise<FederationDestination | null> {
         try {
             return await this.adminRequest<FederationDestination>(
                 Method.Get,
@@ -707,6 +1477,153 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         await this.adminRequest(
             Method.Post,
             `/v1/federation/destinations/${encodeURIComponent(destination)}/reset_connection`,
+        );
+    }
+
+    /**
+     * 删除联邦目的地记录
+     * 对接: DELETE /_synapse/admin/v1/federation/destinations/{destination}
+     */
+    async deleteFederationDestination(destination: string): Promise<void> {
+        if (!destination) throw new ValidationError("destination is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/federation/destinations/${encodeURIComponent(destination)}`,
+        );
+    }
+
+    /**
+     * 列出与某联邦目的地共享的房间
+     * 对接: GET /_synapse/admin/v1/federation/destinations/{destination}/rooms
+     */
+    async getFederationDestinationRooms(
+        destination: string,
+        params?: { from?: string | number; limit?: number },
+    ): Promise<{ rooms: Array<{ room_id: string; stream_ordering?: number }>; total?: number; next_token?: string | number }> {
+        if (!destination) throw new ValidationError("destination is required");
+        const q: Record<string, string> = {};
+        if (params?.from !== undefined) q.from = String(params.from);
+        if (params?.limit !== undefined) q.limit = String(params.limit);
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/federation/destinations/${encodeURIComponent(destination)}/rooms`,
+            q,
+        );
+    }
+
+    /**
+     * 获取联邦黑名单
+     *
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 黑名单列表
+     *
+     * @example
+     * ```typescript
+     * // 获取黑名单
+     * const blacklist = await adminManager.getFederationBlacklist();
+     * console.log(`黑名单中有 ${blacklist.length} 个服务器`);
+     * blacklist.forEach(entry => {
+     *     console.log(`${entry.server_name}: ${entry.reason}`);
+     * });
+     *
+     * // 检查特定服务器是否在黑名单中
+     * const blacklist = await adminManager.getFederationBlacklist();
+     * const isBlocked = blacklist.some(e => e.server_name === "evil.com");
+     * ```
+     *
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果 API 调用失败（当 throwOnError=true）
+     */
+    async getFederationBlacklist(throwOnError = true): Promise<FederationBlacklistEntry[]> {
+        try {
+            const response = await this.adminRequest<{ blacklist: FederationBlacklistEntry[] }>(
+                Method.Get,
+                "/v1/federation/blacklist",
+            );
+            return response.blacklist || [];
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getFederationBlacklist failed:", e);
+            return [];
+        }
+    }
+
+    /**
+     * 添加服务器到联邦黑名单
+     *
+     * @param serverName - 服务器名称（域名）
+     * @param reason - 封禁原因（可选）
+     *
+     * @example
+     * ```typescript
+     * // 添加到黑名单
+     * await adminManager.addToFederationBlacklist(
+     *     "spam-server.com",
+     *     "发送垃圾消息"
+     * );
+     *
+     * // 批量添加
+     * const spamServers = ["spam1.com", "spam2.com", "spam3.com"];
+     * for (const server of spamServers) {
+     *     await adminManager.addToFederationBlacklist(server, "垃圾服务器");
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果服务器名称格式无效
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果添加失败
+     */
+    async addToFederationBlacklist(serverName: string, reason?: string): Promise<void> {
+        await this.adminRequest(
+            Method.Post,
+            `/v1/federation/blacklist/${encodeURIComponent(serverName)}`,
+            undefined,
+            { reason },
+        );
+    }
+
+    /**
+     * 从联邦黑名单移除服务器
+     *
+     * @param serverName - 服务器名称
+     */
+    async removeFromFederationBlacklist(serverName: string): Promise<void> {
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/federation/blacklist/${encodeURIComponent(serverName)}`,
+        );
+    }
+
+    /**
+     * @deprecated 使用 {@link resetFederationConnection}（原路径 `/v1/federation/disconnect` 后端并不存在）
+     */
+    async disconnectFederation(serverName: string): Promise<void> {
+        return this.resetFederationConnection(serverName);
+    }
+
+    async confirmFederationAdmission(serverName: string, accept: boolean): Promise<FederationAdmissionResult> {
+        return await this.adminRequest<FederationAdmissionResult>(
+            Method.Post,
+            "/v1/federation/confirm",
+            undefined,
+            { server_name: serverName, accept },
+        );
+    }
+
+    async listPendingFederation(options?: {
+        limit?: number;
+        offset?: number;
+    }): Promise<PendingFederationList> {
+        const queryParams: Record<string, string> = {};
+        if (options?.limit !== undefined) queryParams["limit"] = String(options.limit);
+        if (options?.offset !== undefined) queryParams["offset"] = String(options.offset);
+        return await this.adminRequest<PendingFederationList>(
+            Method.Get,
+            "/v1/federation/pending",
+            queryParams,
         );
     }
 
@@ -748,15 +1665,198 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     /**
      * 清理媒体缓存
+     *
+     * 删除指定时间戳之前的所有媒体文件和缩略图缓存。
+     * 如果不传 `beforeTs`，后端默认清理 30 天前的缓存。
+     *
+     * 对接: `POST /_synapse/admin/v1/purge_media_cache`
+     * 实现: `synapse-rust/src/services/media_service.rs::purge_media_cache`
+     * 作用域: 遍历 `media_path` + `thumbnail_path`，按文件 mtime 过滤。
+     *
+     * @param beforeTs - 时间戳（毫秒），删除此时间之前的缓存。必须 > 0 的整数。
+     * @returns `{ deleted: number }` — 已删除的文件总数（媒体 + 缩略图）
+     *
+     * @throws {ValidationError} 当 beforeTs 非正数或非整数时
+     * @throws {AuthError} 没有管理员权限
+     *
+     * @example
+     * ```typescript
+     * // 清理 7 天前的媒体缓存
+     * const result = await adminManager.purgeMediaCache(Date.now() - 7 * 24 * 60 * 60 * 1000);
+     * console.log(`Deleted ${result.deleted} files`);
+     *
+     * // 使用后端默认 (30 天)
+     * const result = await adminManager.purgeMediaCache();
+     * ```
      */
     async purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }> {
+        if (beforeTs !== undefined) {
+            if (!Number.isInteger(beforeTs) || beforeTs <= 0) {
+                throw new ValidationError("beforeTs must be a positive integer (milliseconds since epoch)");
+            }
+        }
         const response = await this.adminRequest<{ deleted: number }>(
             Method.Post,
             "/v1/purge_media_cache",
             undefined,
-            beforeTs ? { before_ts: beforeTs } : {},
+            beforeTs !== undefined ? { before_ts: beforeTs } : {},
         );
         return { deleted: response.deleted || 0 };
+    }
+
+    // ===== Backups =====
+
+    /**
+     * 列出端到端加密密钥备份的服务器视图
+     *
+     * 对接: `GET /_synapse/admin/v1/backups`
+     * 后端实现: `synapse-rust/src/web/routes/admin/server.rs::get_backups`
+     *
+     * @param params.limit - 分页大小（1-500，默认 50）
+     * @param params.offset - 起始位置（默认 0）
+     * @returns 备份汇总 + 分页项
+     */
+    async listBackups(params: { limit?: number; offset?: number } = {}): Promise<{
+        backups: Array<{
+            user_id: string;
+            backup_id: string;
+            version: string;
+            algorithm: string;
+            key_count: number;
+            created_ts: number;
+            updated_ts: number | null;
+        }>;
+        total: number;
+        total_keys: number;
+        limit: number;
+        offset: number;
+    }> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) {
+            if (!Number.isInteger(params.limit) || params.limit < 1 || params.limit > 500) {
+                throw new ValidationError("limit must be an integer in [1, 500]");
+            }
+            q.limit = String(params.limit);
+        }
+        if (params.offset !== undefined) {
+            if (!Number.isInteger(params.offset) || params.offset < 0) {
+                throw new ValidationError("offset must be a non-negative integer");
+            }
+            q.offset = String(params.offset);
+        }
+        return await this.adminRequest(Method.Get, "/v1/backups", q);
+    }
+
+    // ===== Experimental features =====
+
+    /**
+     * 列出启用/禁用的实验性特性（基于 FeatureFlag 存储）
+     *
+     * 对接: `GET /_synapse/admin/v1/experimental_features`
+     * 后端实现: `synapse-rust/src/web/routes/admin/server.rs::get_experimental_features`
+     *
+     * 后端筛选规则：`flag_key` 以 `experimental.` / `msc` 开头，
+     * 或 `target_scope == "experimental"` 的 feature flag 被视为实验特性。
+     * `expires_at` 已过期会自动归入 disabled。
+     */
+    async getExperimentalFeatures(): Promise<{
+        enabled: Array<Record<string, unknown>>;
+        disabled: Array<Record<string, unknown>>;
+        total: number;
+        total_flags: number;
+    }> {
+        return await this.adminRequest(Method.Get, "/v1/experimental_features");
+    }
+
+    // ===== 通知管理 =====
+
+    /**
+     * 发送服务器通知
+     *
+     * @param userId - 目标用户 ID
+     * @param content - 通知内容
+     * @param content.msgtype - 消息类型（默认 "m.text"）
+     * @param content.body - 消息正文
+     * @returns 事件 ID
+     *
+     * @example
+     * ```typescript
+     * // 发送文本通知
+     * const result = await adminManager.sendServerNotice(
+     *     "@user:example.com",
+     *     {
+     *         msgtype: "m.text",
+     *         body: "重要通知：服务器将于今晚 22:00 维护"
+     *     }
+     * );
+     * console.log(`通知已发送，事件 ID: ${result.event_id}`);
+     *
+     * // 发送 HTML 格式通知
+     * await adminManager.sendServerNotice(
+     *     "@user:example.com",
+     *     {
+     *         msgtype: "m.text",
+     *         body: "系统更新",
+     *         format: "org.matrix.custom.html",
+     *         formatted_body: "<strong>系统更新</strong><br>新功能已上线"
+     *     }
+     * );
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {ApiError} 如果发送失败
+     */
+    async sendServerNotice(
+        userId: string,
+        content: {
+            msgtype?: string;
+            body: string;
+            [key: string]: unknown;
+        },
+    ): Promise<{ event_id: string }> {
+        return await this.adminRequest<{ event_id: string }>(Method.Post, "/v1/send_server_notice", undefined, {
+            user_id: userId,
+            content,
+        });
+    }
+
+    /**
+     * 获取服务器通知列表
+     *
+     * @param limit - 限制数量
+     * @param from - 分页起点
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 通知列表
+     */
+    async getServerNotices(
+        limit?: number,
+        from?: string,
+        throwOnError = true,
+    ): Promise<{ notices: ServerNotice[]; next_token?: string } | null> {
+        try {
+            const queryParams: Record<string, string> = {};
+            if (limit) queryParams["limit"] = String(limit);
+            if (from) queryParams["from"] = from;
+
+            const response = await this.adminRequest<{ notices: ServerNotice[]; next_token?: string }>(
+                Method.Get,
+                "/v1/server_notices",
+                Object.keys(queryParams).length > 0 ? queryParams : undefined,
+            );
+
+            return {
+                notices: response.notices || [],
+                next_token: response.next_token,
+            };
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw e;
+            }
+            logger.warn("AdminManager.getServerNotices failed:", e);
+            return null;
+        }
     }
 
     // ===== 房间高级管理 =====
@@ -784,7 +1884,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         },
     ): Promise<{ chunk: RoomMessage[]; start?: string; end?: string }> {
         const queryParams: Record<string, string> = {};
-        if (options?.limit) queryParams["limit"] = String(options.limit);
+        if (options?.limit !== undefined) queryParams["limit"] = String(options.limit);
         if (options?.from) queryParams["from"] = options.from;
         if (options?.dir) queryParams["dir"] = options.dir;
 
@@ -809,12 +1909,12 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取房间版本
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 版本信息
      */
     async getRoomVersion(
         roomId: string,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<{ room_id: string; room_version: string } | null> {
         try {
             return await this.adminRequest<{ room_id: string; room_version: string }>(
@@ -1072,10 +2172,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取空间详情
      *
      * @param spaceId - 空间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 空间详情
      */
-    async getSpace(spaceId: string, throwOnError = false): Promise<SpaceInfo | null> {
+    async getSpace(spaceId: string, throwOnError = true): Promise<SpaceInfo | null> {
         try {
             return await this.adminRequest<SpaceInfo>(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}`);
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
@@ -1204,12 +2304,12 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取账户详情
      *
      * @param userId - 用户 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 账户详情
      */
     async getAccountDetails(
         userId: string,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<{
         name: string;
         user_id: string;
@@ -1348,12 +2448,36 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 查询用户信息
      *
      * @param userId - 用户 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
-     * @returns 用户信息
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 用户信息，包括设备和连接详情
+     *
+     * @example
+     * ```typescript
+     * // 查询用户的连接信息
+     * const info = await adminManager.whois("@alice:example.com");
+     * console.log(`用户 ID: ${info.user_id}`);
+     *
+     * // 遍历设备和连接
+     * for (const [deviceId, device] of Object.entries(info.devices)) {
+     *     console.log(`设备: ${deviceId}`);
+     *     device.sessions.forEach(session => {
+     *         session.connections.forEach(conn => {
+     *             console.log(`  IP: ${conn.ip}, 最后活跃: ${new Date(conn.last_seen)}`);
+     *         });
+     *     });
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果用户 ID 格式无效
+     * @throws {AuthError} 如果没有管理员权限
+     * @throws {NotFoundError} 如果用户不存在（当 throwOnError=true）
+     * @throws {ApiError} 如果 API 调用失败
      */
-    async whois(userId: string, throwOnError = false): Promise<any | null> {
+    async whois(userId: string, throwOnError = true): Promise<WhoisResponse | null> {
+        AdminValidators.validateUserId(userId);
+
         try {
-            return await this.adminRequest<any>(Method.Get, `/v1/whois/${encodeURIComponent(userId)}`);
+            return await this.adminRequest<WhoisResponse>(Method.Get, `/v1/whois/${encodeURIComponent(userId)}`);
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -1407,12 +2531,12 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取房间统计信息
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 统计信息
      */
-    async getRoomStats(roomId: string, throwOnError = false): Promise<RoomStats | null> {
+    async getRoomStats(roomId: string, throwOnError = true): Promise<RoomStats | null> {
         try {
-            return await this.adminRequest<RoomStats>(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/statistics`);
+            return await this.adminRequest<RoomStats>(Method.Get, `/v1/room_stats/${encodeURIComponent(roomId)}`);
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -1467,6 +2591,858 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         }
 
         return await this.adminRequest<AdminRegisterResponse>(Method.Post, "/v1/register", undefined, body);
+    }
+
+    // ===== 联邦解析与重写 =====
+
+    /**
+     * 解析联邦服务器可达性与黑名单状态
+     * 对接: POST /_synapse/admin/v1/federation/resolve
+     */
+    async resolveFederation(serverName: string): Promise<{
+        server_name: string;
+        resolved: boolean;
+        blacklisted: boolean;
+        in_destinations: boolean;
+        resolved_by?: string;
+    }> {
+        if (!serverName) {
+            throw new ValidationError("serverName is required");
+        }
+        return await this.adminRequest(Method.Post, "/v1/federation/resolve", undefined, {
+            server_name: serverName,
+        });
+    }
+
+    /**
+     * 重写联邦服务器名称
+     * 对接: POST /_synapse/admin/v1/federation/rewrite
+     */
+    async rewriteFederation(
+        from: string,
+        to: string,
+    ): Promise<{
+        from: string;
+        to: string;
+        rewritten: boolean;
+        rooms_affected: number;
+        rewritten_by?: string;
+    }> {
+        if (!from || !to) {
+            throw new ValidationError("from and to are required");
+        }
+        return await this.adminRequest(Method.Post, "/v1/federation/rewrite", undefined, { from, to });
+    }
+
+    // ===== 留存策略 =====
+
+    /**
+     * 获取服务器全局留存策略
+     * 对接: GET /_synapse/admin/v1/retention/policy
+     */
+    async getRetentionPolicy(): Promise<RetentionPolicy> {
+        return await this.adminRequest(Method.Get, "/v1/retention/policy");
+    }
+
+    /**
+     * 设置服务器全局留存策略
+     * 对接: POST /_synapse/admin/v1/retention/policy
+     */
+    async setRetentionPolicy(policy: {
+        max_lifetime?: number | null;
+        min_lifetime?: number | null;
+        expire_on_clients?: boolean;
+    }): Promise<RetentionPolicy> {
+        return await this.adminRequest(Method.Post, "/v1/retention/policy", undefined, policy);
+    }
+
+    /**
+     * 获取房间留存策略
+     * 对接: GET /_synapse/admin/v1/retention/policy/{room_id}
+     */
+    async getRoomRetentionPolicy(roomId: string): Promise<RoomRetentionPolicy> {
+        AdminValidators.validateRoomId(roomId);
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/retention/policy/${encodeURIComponent(roomId)}`,
+        );
+    }
+
+    /**
+     * 设置房间留存策略
+     * 对接: POST /_synapse/admin/v1/retention/policy/{room_id}
+     */
+    async setRoomRetentionPolicy(
+        roomId: string,
+        policy: {
+            max_lifetime?: number | null;
+            min_lifetime?: number | null;
+            expire_on_clients?: boolean;
+        },
+    ): Promise<RoomRetentionPolicy> {
+        AdminValidators.validateRoomId(roomId);
+        return await this.adminRequest(
+            Method.Post,
+            `/v1/retention/policy/${encodeURIComponent(roomId)}`,
+            undefined,
+            policy,
+        );
+    }
+
+    /**
+     * 触发留存清理
+     * 对接: POST /_synapse/admin/v1/retention/run
+     */
+    async runRetention(roomId?: string): Promise<RetentionRunResult> {
+        return await this.adminRequest(Method.Post, "/v1/retention/run", undefined, {
+            room_id: roomId,
+        });
+    }
+
+    async getRetentionStatus(): Promise<RetentionStatus> {
+        return await this.adminRequest(Method.Get, "/v1/retention/status");
+    }
+
+    // ===== 审计事件 =====
+
+    /**
+     * 列出审计事件
+     * 对接: GET /_synapse/admin/v1/audit/events
+     */
+    async listAuditEvents(params: {
+        actor_id?: string;
+        action?: string;
+        resource_type?: string;
+        resource_id?: string;
+        result?: string;
+        limit?: number;
+        from?: number;
+    } = {}): Promise<AuditEventPage> {
+        const query: Record<string, string> = {};
+        for (const [k, v] of Object.entries(params)) {
+            if (v !== undefined && v !== null) query[k] = String(v);
+        }
+        return await this.adminRequest(Method.Get, "/v1/audit/events", query);
+    }
+
+    async getAuditEvent(eventId: string): Promise<AuditEvent> {
+        if (!eventId) throw new ValidationError("eventId is required");
+        return await this.adminRequest(Method.Get, `/v1/audit/events/${encodeURIComponent(eventId)}`);
+    }
+
+    async createAuditEvent(event: {
+        actor_id: string;
+        action: string;
+        resource_type: string;
+        resource_id: string;
+        result: string;
+        request_id: string;
+        details?: Record<string, unknown>;
+    }): Promise<AuditEvent> {
+        return await this.adminRequest(Method.Post, "/v1/audit/events", undefined, event);
+    }
+
+    // ===== 媒体配额 =====
+
+    /**
+     * 获取媒体配额统计
+     * 对接: GET /_synapse/admin/v1/media/quota
+     */
+    async getMediaQuota(): Promise<{
+        total_size: number;
+        total_count: number;
+        default_size_limit: number;
+        default_count_limit: number;
+    }> {
+        return await this.adminRequest(Method.Get, "/v1/media/quota");
+    }
+
+    // ===== 特性开关 =====
+
+    /**
+     * 列出特性开关
+     * 对接: GET /_synapse/admin/v1/feature-flags
+     */
+    async listFeatureFlags(params: {
+        target_scope?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+    } = {}): Promise<FeatureFlagPage> {
+        const query: Record<string, string> = {};
+        for (const [k, v] of Object.entries(params)) {
+            if (v !== undefined && v !== null) query[k] = String(v);
+        }
+        return await this.adminRequest(Method.Get, "/v1/feature-flags", query);
+    }
+
+    async getFeatureFlag(flagKey: string): Promise<FeatureFlag> {
+        if (!flagKey) throw new ValidationError("flagKey is required");
+        return await this.adminRequest(Method.Get, `/v1/feature-flags/${encodeURIComponent(flagKey)}`);
+    }
+
+    async createFeatureFlag(flag: {
+        flag_key: string;
+        target_scope: string;
+        rollout_percent: number;
+        expires_at?: number | null;
+        reason: string;
+        status?: string;
+        targets?: FeatureFlagTarget[];
+    }): Promise<FeatureFlag> {
+        return await this.adminRequest(Method.Post, "/v1/feature-flags", undefined, flag);
+    }
+
+    async updateFeatureFlag(
+        flagKey: string,
+        patch: {
+            rollout_percent?: number;
+            expires_at?: number | null;
+            reason?: string;
+            status?: string;
+            targets?: FeatureFlagTarget[];
+        },
+    ): Promise<FeatureFlag> {
+        if (!flagKey) throw new ValidationError("flagKey is required");
+        return await this.adminRequest(
+            Method.Patch,
+            `/v1/feature-flags/${encodeURIComponent(flagKey)}`,
+            undefined,
+            patch,
+        );
+    }
+
+    // ===== 事件举报限流 =====
+
+    /**
+     * 检查用户的事件举报限流状态
+     * 对接: GET /_synapse/admin/v1/event_reports/rate_limit/{user_id}
+     */
+    async checkEventReportRateLimit(userId: string): Promise<{
+        is_allowed: boolean;
+        remaining_reports: number;
+        block_reason: string | null;
+    }> {
+        AdminValidators.validateUserId(userId);
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}`,
+        );
+    }
+
+    /**
+     * 阻止用户提交事件举报
+     * 对接: POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block
+     */
+    async blockEventReportUser(
+        userId: string,
+        body: { blocked_until: number; reason: string },
+    ): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        await this.adminRequest(
+            Method.Post,
+            `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}/block`,
+            undefined,
+            body,
+        );
+    }
+
+    /**
+     * 解除用户事件举报阻止
+     * 对接: POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock
+     */
+    async unblockEventReportUser(userId: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        await this.adminRequest(
+            Method.Post,
+            `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`,
+        );
+    }
+
+    // ===== 遥测告警 =====
+
+    /**
+     * 列出遥测告警
+     * 对接: GET /_synapse/admin/v1/telemetry/alerts
+     */
+    async listTelemetryAlerts(params: {
+        status?: string;
+        severity?: string;
+        refresh?: boolean;
+    } = {}): Promise<{ alerts: Array<Record<string, unknown>> }> {
+        const q: Record<string, string> = {};
+        for (const [k, v] of Object.entries(params)) {
+            if (v !== undefined && v !== null) q[k] = String(v);
+        }
+        return await this.adminRequest(Method.Get, "/v1/telemetry/alerts", q);
+    }
+
+    /**
+     * 确认遥测告警
+     * 对接: POST /_synapse/admin/v1/telemetry/alerts/{alert_id}/ack
+     */
+    async acknowledgeTelemetryAlert(alertId: string): Promise<Record<string, unknown>> {
+        if (!alertId) throw new ValidationError("alertId is required");
+        return await this.adminRequest(
+            Method.Post,
+            `/v1/telemetry/alerts/${encodeURIComponent(alertId)}/ack`,
+        );
+    }
+
+    // ===== 模块管理 =====
+
+    /** GET /_synapse/admin/v1/modules */
+    async listModules(): Promise<{ modules: Array<Record<string, unknown>> }> {
+        return await this.adminRequest(Method.Get, "/v1/modules");
+    }
+
+    /** GET /_synapse/admin/v1/modules/type/{module_type} */
+    async listModulesByType(
+        moduleType: string,
+    ): Promise<{ modules: Array<Record<string, unknown>> }> {
+        if (!moduleType) throw new ValidationError("moduleType is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/modules/type/${encodeURIComponent(moduleType)}`,
+        );
+    }
+
+    /** GET /_synapse/admin/v1/modules/{module_name} */
+    async getModule(moduleName: string): Promise<Record<string, unknown>> {
+        if (!moduleName) throw new ValidationError("moduleName is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/modules/${encodeURIComponent(moduleName)}`,
+        );
+    }
+
+    /** POST /_synapse/admin/v1/modules */
+    async createModule(module: Record<string, unknown>): Promise<Record<string, unknown>> {
+        return await this.adminRequest(Method.Post, "/v1/modules", undefined, module);
+    }
+
+    /** POST /_synapse/admin/v1/modules/{module_name}/config */
+    async updateModuleConfig(
+        moduleName: string,
+        config: Record<string, unknown>,
+    ): Promise<Record<string, unknown>> {
+        if (!moduleName) throw new ValidationError("moduleName is required");
+        return await this.adminRequest(
+            Method.Post,
+            `/v1/modules/${encodeURIComponent(moduleName)}/config`,
+            undefined,
+            config,
+        );
+    }
+
+    /** POST /_synapse/admin/v1/modules/{module_name}/enable */
+    async setModuleEnabled(
+        moduleName: string,
+        enabled: boolean,
+    ): Promise<Record<string, unknown>> {
+        if (!moduleName) throw new ValidationError("moduleName is required");
+        return await this.adminRequest(
+            Method.Post,
+            `/v1/modules/${encodeURIComponent(moduleName)}/enable`,
+            undefined,
+            { enabled },
+        );
+    }
+
+    /** DELETE /_synapse/admin/v1/modules/{module_name} */
+    async deleteModule(moduleName: string): Promise<void> {
+        if (!moduleName) throw new ValidationError("moduleName is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/modules/${encodeURIComponent(moduleName)}`,
+        );
+    }
+
+    /** POST /_synapse/admin/v1/modules/check_spam */
+    async checkModuleSpam(
+        body: Record<string, unknown>,
+    ): Promise<Record<string, unknown>> {
+        return await this.adminRequest(Method.Post, "/v1/modules/check_spam", undefined, body);
+    }
+
+    /** GET /_synapse/admin/v1/modules/logs/{module_name} */
+    async getModuleLogs(
+        moduleName: string,
+        params?: { limit?: number; from?: number | string },
+    ): Promise<Record<string, unknown>> {
+        if (!moduleName) throw new ValidationError("moduleName is required");
+        const q: Record<string, string> = {};
+        if (params?.limit !== undefined) q.limit = String(params.limit);
+        if (params?.from !== undefined) q.from = String(params.from);
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/modules/logs/${encodeURIComponent(moduleName)}`,
+            q,
+        );
+    }
+
+    // ===== SAML 映射 =====
+
+    /** GET /_synapse/admin/v1/saml/mappings */
+    async listSamlMappings(params: { limit?: number; from?: string } = {}): Promise<SamlMappingPage> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/saml/mappings", q);
+    }
+
+    /** GET /_synapse/admin/v1/saml/mapping/{name_id} */
+    async getSamlMapping(nameId: string): Promise<SamlMapping> {
+        if (!nameId) throw new ValidationError("nameId is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+        );
+    }
+
+    /** PUT /_synapse/admin/v1/saml/mapping/{name_id} */
+    async updateSamlMapping(nameId: string, updates: Record<string, unknown>): Promise<void> {
+        if (!nameId) throw new ValidationError("nameId is required");
+        await this.adminRequest(
+            Method.Put,
+            `/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+            undefined,
+            updates,
+        );
+    }
+
+    /** DELETE /_synapse/admin/v1/saml/mapping/{name_id} */
+    async deleteSamlMapping(nameId: string): Promise<void> {
+        if (!nameId) throw new ValidationError("nameId is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/saml/mapping/${encodeURIComponent(nameId)}`,
+        );
+    }
+
+    /** POST /_synapse/admin/v1/saml/logout */
+    async samlLogout(userId: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        await this.adminRequest(Method.Post, "/v1/saml/logout", undefined, { user_id: userId });
+    }
+
+    // ===== Application Services =====
+
+    /** GET /_synapse/admin/v1/appservices */
+    async listApplicationServices(
+        params: { limit?: number; from?: string } = {},
+    ): Promise<ApplicationServicePage> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/appservices", q);
+    }
+
+    /** POST /_synapse/admin/v1/appservices */
+    async registerApplicationService(
+        asToken: string,
+        config: Record<string, unknown>,
+    ): Promise<ApplicationServiceInfo> {
+        if (!asToken) throw new ValidationError("asToken is required");
+        return await this.adminRequest(
+            Method.Post,
+            "/v1/appservices",
+            undefined,
+            { as_token: asToken, ...config },
+        );
+    }
+
+    /** GET /_synapse/admin/v1/appservices/{service_id} */
+    async getApplicationService(serviceId: string): Promise<ApplicationServiceInfo> {
+        if (!serviceId) throw new ValidationError("serviceId is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/appservices/${encodeURIComponent(serviceId)}`,
+        );
+    }
+
+    /** PUT /_synapse/admin/v1/appservices/{service_id} */
+    async updateApplicationService(
+        serviceId: string,
+        config: Record<string, unknown>,
+    ): Promise<void> {
+        if (!serviceId) throw new ValidationError("serviceId is required");
+        await this.adminRequest(
+            Method.Put,
+            `/v1/appservices/${encodeURIComponent(serviceId)}`,
+            undefined,
+            config,
+        );
+    }
+
+    /** DELETE /_synapse/admin/v1/appservices/{service_id} */
+    async deleteApplicationService(serviceId: string): Promise<void> {
+        if (!serviceId) throw new ValidationError("serviceId is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/appservices/${encodeURIComponent(serviceId)}`,
+        );
+    }
+
+    /** POST /_synapse/admin/v1/appservices/{service_id}/ping */
+    async pingApplicationService(serviceId: string): Promise<ApplicationServicePingResult> {
+        if (!serviceId) throw new ValidationError("serviceId is required");
+        return await this.adminRequest(
+            Method.Post,
+            `/v1/appservices/${encodeURIComponent(serviceId)}/ping`,
+        );
+    }
+
+    // ===== 系统通知 CRUD =====
+
+    /** POST /_synapse/admin/v1/notifications */
+    async createSystemNotification(body: {
+        content: string;
+        type?: string;
+        target_users?: string[];
+    }): Promise<{ notification_id: string }> {
+        if (!body.content) throw new ValidationError("content is required");
+        return await this.adminRequest(Method.Post, "/v1/notifications", undefined, body);
+    }
+
+    /** GET /_synapse/admin/v1/notifications */
+    async listSystemNotifications(
+        params: { limit?: number; from?: string } = {},
+    ): Promise<SystemNotificationPage> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/notifications", q);
+    }
+
+    /** GET /_synapse/admin/v1/notifications/{notification_id} */
+    async getSystemNotification(notificationId: string): Promise<SystemNotificationInfo> {
+        if (!notificationId) throw new ValidationError("notificationId is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/notifications/${encodeURIComponent(notificationId)}`,
+        );
+    }
+
+    /** PUT /_synapse/admin/v1/notifications/{notification_id} */
+    async updateSystemNotification(
+        notificationId: string,
+        updates: Record<string, unknown>,
+    ): Promise<void> {
+        if (!notificationId) throw new ValidationError("notificationId is required");
+        await this.adminRequest(
+            Method.Put,
+            `/v1/notifications/${encodeURIComponent(notificationId)}`,
+            undefined,
+            updates,
+        );
+    }
+
+    /** DELETE /_synapse/admin/v1/notifications/{notification_id} */
+    async deleteSystemNotification(notificationId: string): Promise<void> {
+        if (!notificationId) throw new ValidationError("notificationId is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/notifications/${encodeURIComponent(notificationId)}`,
+        );
+    }
+
+    // ===== 用户通知设置 / Pushers =====
+
+    /** GET /_synapse/admin/v1/users/{user_id}/notification */
+    async getUserNotificationSettings(userId: string): Promise<Record<string, unknown>> {
+        AdminValidators.validateUserId(userId);
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/users/${encodeURIComponent(userId)}/notification`,
+        );
+    }
+
+    /** PUT /_synapse/admin/v1/users/{user_id}/notification */
+    async setUserNotificationSettings(
+        userId: string,
+        settings: Record<string, unknown>,
+    ): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        await this.adminRequest(
+            Method.Put,
+            `/v1/users/${encodeURIComponent(userId)}/notification`,
+            undefined,
+            settings,
+        );
+    }
+
+    /** GET /_synapse/admin/v1/users/{user_id}/pushers */
+    async listUserPushers(userId: string): Promise<{ pushers: UserPusher[] }> {
+        AdminValidators.validateUserId(userId);
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/users/${encodeURIComponent(userId)}/pushers`,
+        );
+    }
+
+    /** DELETE /_synapse/admin/v1/users/{user_id}/pushers/{pushkey} */
+    async deleteUserPusher(userId: string, pushkey: string, appId: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        if (!pushkey) throw new ValidationError("pushkey is required");
+        if (!appId) throw new ValidationError("appId is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/v1/users/${encodeURIComponent(userId)}/pushers/${encodeURIComponent(pushkey)}`,
+            undefined,
+            { app_id: appId },
+        );
+    }
+
+    // ===== Spaces 管理 =====
+
+    /** GET /_synapse/admin/v1/spaces */
+    async listSpaces(params: { limit?: number; from?: string } = {}): Promise<SpacePage> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/spaces", q);
+    }
+
+    /** GET /_synapse/admin/v1/spaces/{space_id}/users — 对象形态（与已存在的 `getSpaceUsers` 字符串数组形态并存） */
+    async listSpaceUsers(spaceId: string): Promise<{ users: SpaceUser[] }> {
+        if (!spaceId) throw new ValidationError("spaceId is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/spaces/${encodeURIComponent(spaceId)}/users`,
+        );
+    }
+
+    /** GET /_synapse/admin/v1/spaces/{space_id}/rooms — 对象形态（与已存在的 `getSpaceRooms` 字符串数组形态并存） */
+    async listSpaceRooms(spaceId: string): Promise<{ rooms: SpaceRoom[] }> {
+        if (!spaceId) throw new ValidationError("spaceId is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`,
+        );
+    }
+
+    // ===== Security =====
+
+    /** GET /_synapse/admin/v1/security/events */
+    async listSecurityEvents(
+        params: { limit?: number; from?: string } & Record<string, unknown> = {},
+    ): Promise<SecurityEventPage> {
+        const q: Record<string, string> = {};
+        for (const [k, v] of Object.entries(params)) {
+            if (v !== undefined && v !== null) q[k] = String(v);
+        }
+        return await this.adminRequest(Method.Get, "/v1/security/events", q);
+    }
+
+    /** GET /_synapse/admin/v1/security/ip/blocks */
+    async listIpBlocks(): Promise<IpBlock[]> {
+        return await this.adminRequest(Method.Get, "/v1/security/ip/blocks");
+    }
+
+    /** POST /_synapse/admin/v1/security/ip/block */
+    async blockIp(
+        ip: string,
+        options?: { cidr?: number; expire_at?: number; reason?: string },
+    ): Promise<IpBlock> {
+        if (!ip) throw new ValidationError("ip is required");
+        return await this.adminRequest(
+            Method.Post,
+            "/v1/security/ip/block",
+            undefined,
+            { ip, ...(options ?? {}) },
+        );
+    }
+
+    /** POST /_synapse/admin/v1/security/ip/unblock */
+    async unblockIp(ip: string): Promise<void> {
+        if (!ip) throw new ValidationError("ip is required");
+        await this.adminRequest(Method.Post, "/v1/security/ip/unblock", undefined, { ip });
+    }
+
+    /** GET /_synapse/admin/v1/security/ip/reputation/{ip} */
+    async getIpReputation(ip: string): Promise<Record<string, unknown>> {
+        if (!ip) throw new ValidationError("ip is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/security/ip/reputation/${encodeURIComponent(ip)}`,
+        );
+    }
+
+    // ===== Server 运维 =====
+
+    /** POST /_synapse/admin/v1/restart */
+    async restartServer(): Promise<void> {
+        await this.adminRequest(Method.Post, "/v1/restart");
+    }
+
+    /** GET /_synapse/admin/v1/logs */
+    async getServerLogs(params: { level?: string; limit?: number } = {}): Promise<ServerLogEntry[]> {
+        const q: Record<string, string> = {};
+        if (params.level !== undefined) q.level = params.level;
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        return await this.adminRequest(Method.Get, "/v1/logs", q);
+    }
+
+    /** GET /_synapse/admin/v1/media_stats */
+    async getMediaStats(): Promise<Record<string, unknown>> {
+        return await this.adminRequest(Method.Get, "/v1/media_stats");
+    }
+
+    // ===== Room 扩展（Batch 8） =====
+
+    /** PUT/DELETE /_synapse/admin/v1/rooms/{room_id}/listings/public */
+    async setRoomPublicListing(roomId: string, isPublic: boolean): Promise<void> {
+        if (!roomId) throw new ValidationError("roomId is required");
+        const method = isPublic ? Method.Put : Method.Delete;
+        await this.adminRequest(
+            method,
+            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`,
+        );
+    }
+
+    /** GET /_synapse/admin/v1/rooms/{room_id}/event_context/{event_id} */
+    async getRoomEventContext(
+        roomId: string,
+        eventId: string,
+    ): Promise<Record<string, unknown>> {
+        if (!roomId) throw new ValidationError("roomId is required");
+        if (!eventId) throw new ValidationError("eventId is required");
+        return await this.adminRequest(
+            Method.Get,
+            `/v1/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`,
+        );
+    }
+
+    /** POST /_synapse/admin/v1/rooms/{room_id}/search */
+    async searchInRoom(
+        roomId: string,
+        searchTerm: string,
+        limit = 50,
+    ): Promise<{ results: Array<Record<string, unknown>>; next_batch?: string }> {
+        if (!roomId) throw new ValidationError("roomId is required");
+        if (!searchTerm) throw new ValidationError("searchTerm is required");
+        return await this.adminRequest(
+            Method.Post,
+            `/v1/rooms/${encodeURIComponent(roomId)}/search`,
+            undefined,
+            { search_term: searchTerm, limit },
+        );
+    }
+
+    /** POST /_synapse/admin/v1/rooms/search */
+    async searchRooms(
+        searchTerm: string,
+        limit = 50,
+    ): Promise<{ rooms: Array<Record<string, unknown>>; next_batch?: string }> {
+        if (!searchTerm) throw new ValidationError("searchTerm is required");
+        return await this.adminRequest(
+            Method.Post,
+            "/v1/rooms/search",
+            undefined,
+            { search_term: searchTerm, limit },
+        );
+    }
+
+    /** DELETE /_synapse/admin/v1/rooms/{room_id} with body */
+    async deleteRoomV2(
+        roomId: string,
+        options?: {
+            purge?: boolean;
+            force?: boolean;
+            new_room_user_id?: string;
+            room_name?: string;
+            message?: string;
+            block?: boolean;
+        },
+    ): Promise<{
+        kicked_users: string[];
+        failed_to_kick_users: string[];
+        local_aliases: string[];
+        new_room_id?: string;
+    }> {
+        if (!roomId) throw new ValidationError("roomId is required");
+        return await this.adminRequest(
+            Method.Delete,
+            `/v1/rooms/${encodeURIComponent(roomId)}`,
+            undefined,
+            options ?? {},
+        );
+    }
+
+    /** GET /_synapse/admin/v1/room_stats (paginated list) — 区别于已存在的 `getRoomStats(roomId)` 和 `getAllRoomStats()` 聚合 */
+    async listRoomStats(
+        params: { limit?: number; from?: string } = {},
+    ): Promise<{ room_stats: Array<Record<string, unknown>>; next_token?: string }> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/room_stats", q);
+    }
+
+    /** POST /_synapse/admin/v1/purge_history — 全局端点，body 里携带 room_id；区别于 room-level `purgeRoomHistory` */
+    async purgeHistoryGlobal(
+        roomId: string,
+        options?: {
+            purge_up_to_event_id?: string;
+            purge_up_to_ts?: number;
+            delete_local_events?: boolean;
+        },
+    ): Promise<{ purge_id: string }> {
+        if (!roomId) throw new ValidationError("roomId is required");
+        return await this.adminRequest(
+            Method.Post,
+            "/v1/purge_history",
+            undefined,
+            { room_id: roomId, ...(options ?? {}) },
+        );
+    }
+
+    // ===== Batch 9: 用户批量 / 登录失败 / SAML 配置 / 备份 / 实验特性 =====
+
+    /** GET /_synapse/admin/v1/user_stats — 用户统计分页列表 */
+    async listUserStats(
+        params: { limit?: number; from?: string } = {},
+    ): Promise<{ user_stats: Array<Record<string, unknown>>; next_token?: string }> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/user_stats", q);
+    }
+
+    /** GET /_synapse/admin/v1/login/failures */
+    async listLoginFailures(
+        params: { limit?: number; from?: string } = {},
+    ): Promise<{ failures: Array<Record<string, unknown>>; next_token?: string }> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return await this.adminRequest(Method.Get, "/v1/login/failures", q);
+    }
+
+    /** GET /_matrix/client/r0/saml/metadata */
+    async getSamlMetadata(): Promise<SamlMetadata> {
+        return await this.rawRequest(Method.Get, "/_matrix/client/r0/saml/metadata", undefined, undefined, "getSamlMetadata");
+    }
+
+    /** GET /_matrix/client/r0/saml/sp_metadata */
+    async getSpMetadata(): Promise<Blob> {
+        return await this.rawRequest(Method.Get, "/_matrix/client/r0/saml/sp_metadata", undefined, undefined, "getSpMetadata", true);
+    }
+
+    /** POST /_synapse/admin/v1/saml/metadata/refresh */
+    async refreshIdpMetadata(): Promise<SamlMetadata> {
+        return await this.adminRequest(Method.Post, "/v1/saml/metadata/refresh", undefined, undefined, "refreshIdpMetadata");
+    }
+
+    /** GET /_synapse/admin/v1/saml/config */
+    async getSamlConfig(): Promise<Record<string, unknown>> {
+        return await this.adminRequest(Method.Get, "/v1/saml/config");
+    }
+
+    /** PUT /_synapse/admin/v1/saml/config */
+    async updateSamlConfig(config: Record<string, unknown>): Promise<void> {
+        await this.adminRequest(Method.Put, "/v1/saml/config", undefined, config);
     }
 
     start(): void {}

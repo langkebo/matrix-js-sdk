@@ -24,8 +24,10 @@ limitations under the License.
 
 import { BaseManager } from "../managers/base-manager.ts";
 import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { InvalidParamError } from "../common/errors";
 
 export enum WidgetEvent {
     WidgetAdded = "WidgetAdded",
@@ -67,14 +69,21 @@ export interface WidgetOpenURLOptions {
 }
 
 export interface WidgetMessage {
-    api: string;
-    action: string;
+    type?: string;
+    content?: Record<string, unknown>;
+    api?: string;
+    action?: string;
     data?: Record<string, unknown>;
     requestId?: string;
 }
 
 export interface WidgetMessageResponse {
     requestId: string;
+    eventId?: string;
+    widgetId?: string;
+    roomId?: string;
+    type?: string;
+    content?: Record<string, unknown>;
     response?: Record<string, unknown>;
     error?: {
         message: string;
@@ -234,7 +243,7 @@ interface WidgetManagerEventMap {
     [WidgetEvent.WidgetAdded]: (roomId: string, widget: IWidget) => void;
     [WidgetEvent.WidgetRemoved]: (roomId: string, widgetId: string) => void;
     [WidgetEvent.WidgetUpdated]: (roomId: string, widget: IWidget) => void;
-    [WidgetEvent.WidgetError]: (roomId: string, widgetId: string, error: Error) => void;
+    [WidgetEvent.WidgetError]: (roomId: string | undefined, widgetId: string | undefined, error: Error) => void;
     [WidgetEvent.PermissionRequested]: (widgetId: string, permissions: string[]) => void;
     [WidgetEvent.PermissionGranted]: (widgetId: string, permissions: string[]) => void;
     [WidgetEvent.PermissionDenied]: (widgetId: string, permissions: string[]) => void;
@@ -264,6 +273,36 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         };
     }
 
+    private emitWidgetRequestError(roomId: string | undefined, widgetId: string | undefined, error: Error): void {
+        this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
+    }
+
+    private normalizeWidgetMessage(message: WidgetMessage): { type: string; content: Record<string, unknown> } {
+        const type = message.type ?? message.action ?? message.api;
+        if (!type) {
+            throw new InvalidParamError("Widget message type is required");
+        }
+
+        if (message.content) {
+            return {
+                type,
+                content: message.content,
+            };
+        }
+
+        if (message.data) {
+            return {
+                type,
+                content: message.api ? { api: message.api, ...message.data } : message.data,
+            };
+        }
+
+        return {
+            type,
+            content: message.api ? { api: message.api } : {},
+        };
+    }
+
     /**
      * 获取房间的小组件列表
      * GET /_matrix/client/v1/rooms/{room_id}/widgets
@@ -271,12 +310,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * 对接后端 REST API，不再从 room state events 读取
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为空列表）
      * @returns 房间小组件列表
      */
-    async getRoomWidgets(roomId: string, throwOnError = false): Promise<IWidget[]> {
+    async getRoomWidgets(roomId: string, throwOnError = true): Promise<IWidget[]> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         // 优先从缓存返回
@@ -302,6 +341,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getRoomWidgets");
+            this.emitWidgetRequestError(roomId, undefined, error);
             if (throwOnError) {
                 throw error;
             }
@@ -315,12 +355,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/widgets/{widget_id}
      *
      * @param widgetId - 小组件 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns 小组件详情
      */
-    async getWidget(widgetId: string, throwOnError = false): Promise<IWidget | null> {
+    async getWidget(widgetId: string, throwOnError = true): Promise<IWidget | null> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         try {
@@ -336,6 +376,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWidget");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -354,7 +395,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      */
     async addWidget(roomId: string, widget: Omit<IWidget, "roomId">): Promise<IWidget> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         const widgetId = widget.id || `widget_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -394,7 +435,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     async removeWidget(roomId: string, widgetId: string): Promise<void> {
         if (!roomId || !widgetId) {
-            throw new Error("Room ID and Widget ID are required");
+            throw new InvalidParamError("Room ID and Widget ID are required");
         }
 
         try {
@@ -421,7 +462,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     async updateWidget(roomId: string, widgetId: string, updates: Partial<IWidget>): Promise<IWidget> {
         if (!roomId || !widgetId) {
-            throw new Error("Room ID and Widget ID are required");
+            throw new InvalidParamError("Room ID and Widget ID are required");
         }
 
         const existingWidgets = this.widgets.get(roomId);
@@ -528,59 +569,85 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         try {
             const response = await this.client.http.authedRequest<{ capabilities?: string[] }>(
                 Method.Get,
-                `/rooms/${roomId}/widgets/${widgetId}/capabilities`,
+                `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: ClientPrefix.V3 },
             );
 
             return {
                 capabilities: response.capabilities || [],
             };
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWidgetCapabilities");
-            logger.warn("WidgetManager.getWidgetCapabilities failed:", error);
-            return { capabilities: [] };
+            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
+            throw error;
+        }
+    }
+
+    async setWidgetCapabilities(
+        roomId: string,
+        widgetId: string,
+        capabilities: string[],
+    ): Promise<IWidgetCapabilities> {
+        try {
+            const response = await this.client.http.authedRequest<{ capabilities?: string[] }>(
+                Method.Put,
+                `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
+                undefined,
+                { capabilities },
+                { prefix: ClientPrefix.V3 },
+            );
+
+            return {
+                capabilities: response.capabilities || [],
+            };
+        } catch (e) {
+            const error = this.normalizeError(e, "setWidgetCapabilities");
+            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
+            throw error;
         }
     }
 
     async sendWidgetMessage(roomId: string, widgetId: string, message: WidgetMessage): Promise<WidgetMessageResponse> {
         const requestId = message.requestId || `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        const normalizedMessage = this.normalizeWidgetMessage(message);
 
         try {
-            const response = await this.client.http.authedRequest<Record<string, unknown>>(
+            const response = await this.client.http.authedRequest<{
+                event_id?: string;
+                widget_id?: string;
+                room_id?: string;
+                type?: string;
+                content?: Record<string, unknown>;
+            }>(
                 Method.Post,
-                `/rooms/${roomId}/widgets/${widgetId}/send`,
+                `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
                 undefined,
-                {
-                    ...message,
-                    request_id: requestId,
-                },
-                { prefix: "/_matrix/client/v1" },
+                normalizedMessage,
+                { prefix: ClientPrefix.V3 },
             );
 
             return {
                 requestId,
-                response: response,
+                eventId: response.event_id,
+                widgetId: response.widget_id,
+                roomId: response.room_id,
+                type: response.type,
+                content: response.content,
+                response,
             };
         } catch (e: unknown) {
             const error = this.normalizeError(e, "sendWidgetMessage");
-            return {
-                requestId,
-                error: {
-                    message: error.message || "Unknown error",
-                    code: (error as { errcode?: string }).errcode,
-                },
-            };
+            this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
+            throw error;
         }
     }
 
     async navigateWidget(roomId: string, widgetId: string, url: string): Promise<void> {
         await this.sendWidgetMessage(roomId, widgetId, {
-            api: "widget",
-            action: "navigate",
-            data: { url },
+            type: "navigate",
+            content: { url },
         });
     }
 
@@ -607,12 +674,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/widgets/{widget_id}/config
      *
      * @param widgetId - 小组件 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns 小组件配置信息
      */
-    async getWidgetConfig(widgetId: string, throwOnError = false): Promise<WidgetConfigResponse | null> {
+    async getWidgetConfig(widgetId: string, throwOnError = true): Promise<WidgetConfigResponse | null> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         try {
@@ -628,6 +695,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWidgetConfig");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -641,12 +709,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns Jitsi 会议配置
      */
-    async getJitsiConfig(roomId: string, throwOnError = false): Promise<JitsiConfigResponse | null> {
+    async getJitsiConfig(roomId: string, throwOnError = true): Promise<JitsiConfigResponse | null> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new InvalidParamError("Room ID is required");
         }
 
         try {
@@ -662,6 +730,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getJitsiConfig");
+            this.emitWidgetRequestError(roomId, "jitsi", error);
             if (throwOnError) {
                 throw error;
             }
@@ -675,12 +744,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/widgets/{widget_id}/permissions
      *
      * @param widgetId - 小组件 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns 权限列表
      */
-    async getWidgetPermissions(widgetId: string, throwOnError = false): Promise<WidgetPermissionsResponse | null> {
+    async getWidgetPermissions(widgetId: string, throwOnError = true): Promise<WidgetPermissionsResponse | null> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         try {
@@ -696,6 +765,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWidgetPermissions");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -711,21 +781,21 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * @param widgetId - 小组件 ID
      * @param userId - 用户 ID
      * @param permissions - 权限列表
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns 设置结果
      */
     async setWidgetPermission(
         widgetId: string,
         userId: string,
         permissions: string[],
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<SetPermissionResponse | null> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         if (!userId) {
-            throw new Error("User ID is required");
+            throw new InvalidParamError("User ID is required");
         }
 
         try {
@@ -744,6 +814,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "setWidgetPermission");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -758,16 +829,16 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      *
      * @param widgetId - 小组件 ID
      * @param userId - 用户 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 false）
      * @returns 删除结果
      */
-    async deleteWidgetPermission(widgetId: string, userId: string, throwOnError = false): Promise<boolean> {
+    async deleteWidgetPermission(widgetId: string, userId: string, throwOnError = true): Promise<boolean> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         if (!userId) {
-            throw new Error("User ID is required");
+            throw new InvalidParamError("User ID is required");
         }
 
         try {
@@ -783,6 +854,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "deleteWidgetPermission");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -799,28 +871,36 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * @param options - 会话选项（可选）
      * @param options.deviceId - 设备 ID（可选）
      * @param options.expiresInMs - 过期时间（毫秒，可选）
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns 创建的会话信息
      */
     async createWidgetSession(
         widgetId: string,
         options?: { deviceId?: string; expiresInMs?: number },
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<SessionApiData | null> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         try {
+            const body: CreateSessionRequest = {
+                widget_id: widgetId,
+            };
+
+            if (options?.deviceId !== undefined) {
+                body.device_id = options.deviceId;
+            }
+
+            if (options?.expiresInMs !== undefined) {
+                body.expires_in_ms = options.expiresInMs;
+            }
+
             const response = await this.client.http.authedRequest<SessionResponse>(
                 Method.Post,
                 `/widgets/${encodeURIComponent(widgetId)}/sessions`,
                 undefined,
-                {
-                    widget_id: widgetId,
-                    device_id: options?.deviceId ?? null,
-                    expires_in_ms: options?.expiresInMs ?? null,
-                },
+                body,
                 { prefix: "/_matrix/client/v1" },
             );
 
@@ -828,6 +908,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "createWidgetSession");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -841,12 +922,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/widgets/{widget_id}/sessions
      *
      * @param widgetId - 小组件 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为空列表）
      * @returns 会话列表
      */
-    async getWidgetSessions(widgetId: string, throwOnError = false): Promise<SessionApiData[]> {
+    async getWidgetSessions(widgetId: string, throwOnError = true): Promise<SessionApiData[]> {
         if (!widgetId) {
-            throw new Error("Widget ID is required");
+            throw new InvalidParamError("Widget ID is required");
         }
 
         try {
@@ -862,6 +943,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWidgetSessions");
+            this.emitWidgetRequestError(undefined, widgetId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -875,12 +957,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/widgets/sessions/{session_id}
      *
      * @param sessionId - 会话 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 null）
      * @returns 会话详情
      */
-    async getWidgetSession(sessionId: string, throwOnError = false): Promise<SessionApiData | null> {
+    async getWidgetSession(sessionId: string, throwOnError = true): Promise<SessionApiData | null> {
         if (!sessionId) {
-            throw new Error("Session ID is required");
+            throw new InvalidParamError("Session ID is required");
         }
 
         try {
@@ -896,6 +978,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "getWidgetSession");
+            this.emitWidgetRequestError(undefined, sessionId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -909,12 +992,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * DELETE /_matrix/client/v1/widgets/sessions/{session_id}
      *
      * @param sessionId - 会话 ID
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时回退为 false）
      * @returns 是否成功终止
      */
-    async terminateWidgetSession(sessionId: string, throwOnError = false): Promise<boolean> {
+    async terminateWidgetSession(sessionId: string, throwOnError = true): Promise<boolean> {
         if (!sessionId) {
-            throw new Error("Session ID is required");
+            throw new InvalidParamError("Session ID is required");
         }
 
         try {
@@ -930,6 +1013,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
         } catch (e) {
             const error = this.normalizeError(e, "terminateWidgetSession");
+            this.emitWidgetRequestError(undefined, sessionId, error);
             if (throwOnError) {
                 throw error;
             }
@@ -949,7 +1033,8 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
             return true;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
-        } catch {
+        } catch (e) {
+            logger.debug("WidgetManager boolean probe failed", e);
             return false;
         }
     }

@@ -268,23 +268,21 @@ describe("PushManager", () => {
             expect(rule).toBeDefined();
         });
 
-        it("should return null on 404", async () => {
+        it("should throw on 404 by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            const rule = await pushManager.getPushRule("global", PushRuleKind.Override, "nonexistent");
-            expect(rule).toBeNull();
+            await expect(pushManager.getPushRule("global", PushRuleKind.Override, "nonexistent")).rejects.toThrow();
         });
 
-        it("should throw on 404 when throwOnError is true", async () => {
+        it("should return null on 404 when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            await expect(
-                pushManager.getPushRule("global", PushRuleKind.Override, "nonexistent", true),
-            ).rejects.toThrow();
+            const rule = await pushManager.getPushRule("global", PushRuleKind.Override, "nonexistent", false);
+            expect(rule).toBeNull();
         });
 
         it("should throw InvalidParamError when parameters are missing", async () => {
@@ -354,23 +352,23 @@ describe("PushManager", () => {
             expect(enabled).toBe(true);
         });
 
-        it("should return false on 404", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce({
-                httpStatus: 404,
-                errcode: "M_NOT_FOUND",
-            });
-            const enabled = await pushManager.getPushRuleEnabled("global", PushRuleKind.Override, "nonexistent");
-            expect(enabled).toBe(false);
-        });
-
-        it("should throw on 404 when throwOnError is true", async () => {
+        it("should throw on 404 by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
             await expect(
-                pushManager.getPushRuleEnabled("global", PushRuleKind.Override, "nonexistent", true),
+                pushManager.getPushRuleEnabled("global", PushRuleKind.Override, "nonexistent"),
             ).rejects.toThrow();
+        });
+
+        it("should return false on 404 when throwOnError is false", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            const enabled = await pushManager.getPushRuleEnabled("global", PushRuleKind.Override, "nonexistent", false);
+            expect(enabled).toBe(false);
         });
     });
 
@@ -418,6 +416,17 @@ describe("PushManager", () => {
             expect(result.next_token).toBe("token123");
         });
 
+        it("should preserve zero-valued notification limits", async () => {
+            await pushManager.getNotifications({ limit: 0 });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/notifications",
+                { limit: "0" },
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
         it("should get notifications with params", async () => {
             await pushManager.getNotifications({ limit: 10, from: "token", only: "highlight" });
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -461,20 +470,20 @@ describe("PushManager", () => {
             await expect(pushManager.ackNotification("")).rejects.toThrow(InvalidParamError);
         });
 
-        it("should return silently on 404", async () => {
+        it("should throw on 404 by default", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            await expect(pushManager.ackNotification("nonexistent")).resolves.toBeUndefined();
+            await expect(pushManager.ackNotification("nonexistent")).rejects.toThrow();
         });
 
-        it("should throw on 404 when throwOnError is true", async () => {
+        it("should return silently on 404 when throwOnError is false", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });
-            await expect(pushManager.ackNotification("nonexistent", true)).rejects.toThrow();
+            await expect(pushManager.ackNotification("nonexistent", false)).resolves.toBeUndefined();
         });
     });
 

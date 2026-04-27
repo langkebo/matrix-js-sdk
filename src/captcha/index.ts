@@ -17,98 +17,119 @@ limitations under the License.
 /**
  * Captcha Manager - 验证码管理
  *
- * 提供验证码相关功能
+ * 提供验证码发送、验证、状态查询功能
+ * 对应后端: /_matrix/client/r0/register/captcha/*
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api";
+import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
 
-export interface CaptchaInfo {
-    public_url: string;
-    session: string;
+export interface CaptchaSendResponse {
+    captcha_id: string;
+    expires_in: number;
+    captcha_type: string;
 }
 
-export interface ILoginFlow {
-    type: string;
-    [key: string]: unknown;
+export interface CaptchaVerifyResponse {
+    verified: boolean;
 }
 
-export interface ILoginFlowsResponse {
-    flows: ILoginFlow[];
-}
-
-export interface ICaptchaVerifyResponse {
-    success: boolean;
-    session: string;
+export interface CaptchaStatusResponse {
+    captcha_id: string;
+    captcha_type: string;
+    target: string;
+    status: string;
+    attempt_count: number;
+    max_attempts: number;
+    expires_at: number;
+    created_at: number;
 }
 
 export interface CaptchaManagerEvents {
-    captcha_required: { session: string };
-    captcha_verified: { session: string };
+    captcha_sent: { captchaId: string; captchaType: string; expires_in: number };
+    captcha_verified: { captchaId: string };
+    captcha_expired: { captchaId: string };
 }
 
-export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, CaptchaManagerEvents> {
+interface CaptchaManagerEventMap {
+    captcha_sent: (data: CaptchaManagerEvents["captcha_sent"]) => void;
+    captcha_verified: (data: CaptchaManagerEvents["captcha_verified"]) => void;
+    captcha_expired: (data: CaptchaManagerEvents["captcha_expired"]) => void;
+}
+
+export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, CaptchaManagerEventMap> {
     constructor(client: MatrixClient) {
         super(client);
     }
 
-    public async getCaptchaInfo(): Promise<CaptchaInfo | null> {
-        return this.withRetry(async () => {
-            const flows = await (
-                this.client as unknown as {
-                    getLoginFlows: () => Promise<ILoginFlowsResponse>;
-                }
-            ).getLoginFlows();
-
-            const captchaFlow = flows.flows?.find((flow) => flow.type === "m.login.captcha");
-
-            if (!captchaFlow) {
-                return null;
+    public async sendCaptcha(
+        captchaType: string,
+        target: string,
+        templateName?: string,
+    ): Promise<CaptchaSendResponse> {
+        try {
+            const body: Record<string, unknown> = {
+                captcha_type: captchaType,
+                target,
+            };
+            if (templateName) {
+                body.template_name = templateName;
             }
 
-            const response = await this.client.http.authedRequest<{
-                public_url: string;
-                session: string;
-            }>(Method.Get, "/captcha/_/login");
+            const response = await this.client.http.authedRequest<CaptchaSendResponse>(
+                Method.Post,
+                "/register/captcha/send",
+                undefined,
+                body,
+                { prefix: ClientPrefix.R0 },
+            );
 
-            return {
-                public_url: response.public_url,
-                session: response.session,
-            };
-        }, "getCaptchaInfo");
-    }
+            this.emit("captcha_sent", {
+                captchaId: response.captcha_id,
+                captchaType: response.captcha_type,
+                expires_in: response.expires_in,
+            });
 
-    public async isCaptchaRequired(): Promise<boolean> {
-        try {
-            const flows = await (
-                this.client as unknown as {
-                    getLoginFlows: () => Promise<ILoginFlowsResponse>;
-                }
-            ).getLoginFlows();
-            return flows.flows?.some((flow) => flow.type === "m.login.captcha") ?? false;
-        } catch {
-            return false;
+            return response;
+        } catch (error) {
+            throw this.normalizeError(error, "sendCaptcha");
         }
     }
 
-    public async verifyCaptcha(session: string, captchaResponse: string): Promise<ICaptchaVerifyResponse> {
-        return this.withRetry(
-            () =>
-                this.client.http.authedRequest<ICaptchaVerifyResponse>(Method.Post, "/captcha/_/login", undefined, {
-                    session,
-                    captcha_response: captchaResponse,
-                }),
-            "verifyCaptcha",
-        );
+    public async verifyCaptcha(captchaId: string, code: string): Promise<CaptchaVerifyResponse> {
+        try {
+            const response = await this.client.http.authedRequest<CaptchaVerifyResponse>(
+                Method.Post,
+                "/register/captcha/verify",
+                undefined,
+                { captcha_id: captchaId, code },
+                { prefix: ClientPrefix.R0 },
+            );
+
+            if (response.verified) {
+                this.emit("captcha_verified", { captchaId });
+            }
+
+            return response;
+        } catch (error) {
+            throw this.normalizeError(error, "verifyCaptcha");
+        }
     }
 
-    public getCaptchaImageUrl(captchaInfo: CaptchaInfo): string {
-        return captchaInfo.public_url;
-    }
-
-    public getCaptchaSessionId(captchaInfo: CaptchaInfo): string {
-        return captchaInfo.session;
+    public async getCaptchaStatus(captchaId: string): Promise<CaptchaStatusResponse> {
+        try {
+            return await this.client.http.authedRequest<CaptchaStatusResponse>(
+                Method.Get,
+                "/register/captcha/status",
+                { captcha_id: captchaId },
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "getCaptchaStatus");
+        }
     }
 }
 

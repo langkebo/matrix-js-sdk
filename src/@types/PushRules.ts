@@ -17,6 +17,8 @@ limitations under the License.
 // allow camelcase as these are things that go onto the wire
 /* eslint-disable camelcase */
 
+import { type IContent } from "../models/event.ts";
+
 export enum PushRuleActionName {
     DontNotify = "dont_notify",
     Notify = "notify",
@@ -181,7 +183,7 @@ export interface IAnnotatedPushRule extends IPushRule {
     kind: PushRuleKind;
 }
 
-export interface IPushRules {
+export interface IPushRules extends IContent {
     global: PushRuleSet;
     device?: PushRuleSet;
 }

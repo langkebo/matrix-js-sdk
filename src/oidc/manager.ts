@@ -14,15 +14,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/** OIDC Manager */
+/**
+ * OIDC Manager - OpenID Connect 认证管理
+ *
+ * 对接后端: synapse-rust/src/web/routes/oidc.rs
+ * 后端提供完整的 OIDC Provider 和 Consumer 功能:
+ *   - GET  /.well-known/openid-configuration  (OIDC Discovery)
+ *   - GET  /.well-known/jwks.json             (JWKS 密钥集)
+ *   - GET  /v3/oidc/authorize                 (授权端点)
+ *   - POST /v3/oidc/register                  (动态客户端注册)
+ *   - POST /v3/oidc/token                     (令牌端点)
+ *   - GET  /v3/oidc/userinfo                  (用户信息)
+ *   - POST /v3/oidc/logout                    (登出)
+ *   - GET  /v3/oidc/callback                  (回调)
+ *   - POST /v3/oidc/login                     (内置OIDC登录)
+ *   - GET  /v3/login/sso/redirect             (SSO重定向)
+ *   - GET  /v3/login/sso/userinfo             (SSO用户信息)
+ */
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
 
 export interface IOidcDiscovery {
     issuer: string;
     authorization_endpoint: string;
     token_endpoint: string;
+    userinfo_endpoint?: string;
+    jwks_uri?: string;
+    registration_endpoint?: string;
+    scopes_supported?: string[];
+    response_types_supported?: string[];
+    code_challenge_methods_supported?: string[];
 }
 
 export interface IOidcUserInfo {
@@ -40,85 +66,322 @@ export interface IOidcTokenResponse {
     expires_in: number;
 }
 
-export interface IOidcAuthorizationRequest {
+export interface IOidcTokenRequest {
+    grant_type: string;
+    code?: string;
+    redirect_uri?: string;
+    code_verifier?: string;
+    refresh_token?: string;
+    client_id?: string;
+    client_secret?: string;
+}
+
+export interface IOidcAuthorizationParams {
     client_id: string;
     redirect_uri: string;
     response_type: string;
     scope: string;
+    state?: string;
+    nonce?: string;
+    code_challenge?: string;
+    code_challenge_method?: string;
 }
 
 export interface IOidcClientRegistration {
     client_id: string;
     client_secret?: string;
+    client_name?: string;
+    redirect_uris: string[];
+}
+
+export interface IOidcLoginRequest {
+    client_id: string;
+    redirect_uri: string;
+    scope?: string;
+    state?: string;
+    nonce?: string;
+    code_verifier?: string;
+    username: string;
+    password: string;
+}
+
+export interface IOidcLoginResponse {
+    code: string;
+}
+
+export interface IOidcLogoutRequest {
+    client_id?: string;
+    post_logout_redirect_uri?: string;
+    id_token_hint?: string;
+}
+
+export interface IOidcJwks {
+    keys: Array<{
+        kty: string;
+        kid: string;
+        use?: string;
+        alg?: string;
+        n?: string;
+        e?: string;
+    }>;
+}
+
+export interface IOidcRegisterRequest {
+    client_name?: string;
+    redirect_uris: string[];
+    grant_types?: string[];
+    response_types?: string[];
+    token_endpoint_auth_method?: string;
 }
 
 export interface OidcManagerEvents {
-    oidc_discovered: { issuer: string };
-    oidc_token_refreshed: { expires_in: number };
-    oidc_error: { error: Error };
+    oidc_discovered: (payload: { issuer: string }) => void;
+    oidc_token_refreshed: (payload: { expires_in: number }) => void;
+    oidc_authorized: (payload: { state: string; code: string }) => void;
+    oidc_logged_out: (payload: Record<string, never>) => void;
+    oidc_error: (payload: { error: Error }) => void;
 }
 
 export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManagerEvents> {
     private currentProvider: string | null = null;
+    private discoveryCache: IOidcDiscovery | null = null;
 
     constructor(client: MatrixClient) {
         super(client);
     }
 
-    async discover(provider: string): Promise<IOidcDiscovery | null> {
+    async discover(): Promise<IOidcDiscovery> {
+        return this.withRetry(async () => {
+            const response = await this.client.http.authedRequest<IOidcDiscovery>(
+                Method.Get,
+                "/.well-known/openid-configuration",
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+            this.discoveryCache = response;
+            this.currentProvider = response.issuer;
+            this.emit("oidc_discovered", { issuer: response.issuer });
+            return response;
+        }, "discover");
+    }
+
+    async getJwks(): Promise<IOidcJwks> {
         return this.withRetry(
             () =>
-                (
-                    this.client as unknown as {
-                        discoverOidc: (provider: string) => Promise<IOidcDiscovery | null>;
-                    }
-                ).discoverOidc(provider),
-            "discover",
+                this.client.http.authedRequest<IOidcJwks>(
+                    Method.Get,
+                    "/.well-known/jwks.json",
+                    undefined,
+                    undefined,
+                    { prefix: "" },
+                ),
+            "getJwks",
         );
     }
 
-    async registerClient(issuer: string, redirectUris: string[]): Promise<IOidcClientRegistration | null> {
+    async authorize(params: IOidcAuthorizationParams): Promise<string> {
+        if (!params.client_id) {
+            throw new InvalidParamError("client_id is required");
+        }
+        if (!params.redirect_uri) {
+            throw new InvalidParamError("redirect_uri is required");
+        }
+        if (!params.response_type) {
+            throw new InvalidParamError("response_type is required");
+        }
+        if (!params.scope) {
+            throw new InvalidParamError("scope is required");
+        }
+
+        return this.withRetry(async () => {
+            const queryParams: Record<string, string> = {
+                client_id: params.client_id,
+                redirect_uri: params.redirect_uri,
+                response_type: params.response_type,
+                scope: params.scope,
+            };
+            if (params.state) queryParams.state = params.state;
+            if (params.nonce) queryParams.nonce = params.nonce;
+            if (params.code_challenge) queryParams.code_challenge = params.code_challenge;
+            if (params.code_challenge_method) queryParams.code_challenge_method = params.code_challenge_method;
+
+            const response = await this.client.http.authedRequest<{ url?: string; code?: string }>(
+                Method.Get,
+                "/oidc/authorize",
+                queryParams,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            return response.url || response.code || "";
+        }, "authorize");
+    }
+
+    async registerClient(request: IOidcRegisterRequest): Promise<IOidcClientRegistration> {
+        if (!request.redirect_uris || request.redirect_uris.length === 0) {
+            throw new InvalidParamError("redirect_uris is required and must be non-empty");
+        }
+
         return this.withRetry(
             () =>
-                (
-                    this.client as unknown as {
-                        registerOidcClient: (
-                            issuer: string,
-                            redirectUris: string[],
-                        ) => Promise<IOidcClientRegistration | null>;
-                    }
-                ).registerOidcClient(issuer, redirectUris),
+                this.client.http.authedRequest<IOidcClientRegistration>(
+                    Method.Post,
+                    "/oidc/register",
+                    undefined,
+                    {
+                        client_name: request.client_name,
+                        redirect_uris: request.redirect_uris,
+                        grant_types: request.grant_types,
+                        response_types: request.response_types,
+                        token_endpoint_auth_method: request.token_endpoint_auth_method,
+                    },
+                    { prefix: ClientPrefix.V3 },
+                ),
             "registerClient",
         );
     }
 
-    async getUserInfo(accessToken: string): Promise<IOidcUserInfo | null> {
+    async token(request: IOidcTokenRequest): Promise<IOidcTokenResponse> {
+        if (!request.grant_type) {
+            throw new InvalidParamError("grant_type is required");
+        }
+
         return this.withRetry(
             () =>
-                (
-                    this.client as unknown as {
-                        getOidcUserInfo: (accessToken: string) => Promise<IOidcUserInfo | null>;
-                    }
-                ).getOidcUserInfo(accessToken),
+                this.client.http.authedRequest<IOidcTokenResponse>(
+                    Method.Post,
+                    "/oidc/token",
+                    undefined,
+                    {
+                        grant_type: request.grant_type,
+                        code: request.code,
+                        redirect_uri: request.redirect_uri,
+                        code_verifier: request.code_verifier,
+                        refresh_token: request.refresh_token,
+                        client_id: request.client_id,
+                        client_secret: request.client_secret,
+                    },
+                    { prefix: ClientPrefix.V3 },
+                ),
+            "token",
+        );
+    }
+
+    async getUserInfo(): Promise<IOidcUserInfo> {
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<IOidcUserInfo>(
+                    Method.Get,
+                    "/oidc/userinfo",
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                ),
             "getUserInfo",
         );
     }
 
-    async refreshToken(refreshToken: string): Promise<IOidcTokenResponse | null> {
+    async refreshToken(refreshToken: string): Promise<IOidcTokenResponse> {
+        if (!refreshToken) {
+            throw new InvalidParamError("refreshToken is required");
+        }
+
+        const response = await this.token({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+        });
+        this.emit("oidc_token_refreshed", { expires_in: response.expires_in });
+        return response;
+    }
+
+    async logout(request?: IOidcLogoutRequest): Promise<void> {
         return this.withRetry(
             () =>
-                (
-                    this.client as unknown as {
-                        refreshOidcToken: (refreshToken: string) => Promise<IOidcTokenResponse | null>;
-                    }
-                ).refreshOidcToken(refreshToken),
-            "refreshToken",
+                this.client.http.authedRequest<void>(
+                    Method.Post,
+                    "/oidc/logout",
+                    undefined,
+                    request ?? {},
+                    { prefix: ClientPrefix.V3 },
+                ),
+            "logout",
+        ).then(() => {
+            this.emit("oidc_logged_out", {});
+        });
+    }
+
+    async builtinLogin(request: IOidcLoginRequest): Promise<IOidcLoginResponse> {
+        if (!request.client_id) {
+            throw new InvalidParamError("client_id is required");
+        }
+        if (!request.redirect_uri) {
+            throw new InvalidParamError("redirect_uri is required");
+        }
+        if (!request.username) {
+            throw new InvalidParamError("username is required");
+        }
+        if (!request.password) {
+            throw new InvalidParamError("password is required");
+        }
+
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<IOidcLoginResponse>(Method.Post, "/oidc/login", undefined, {
+                    client_id: request.client_id,
+                    redirect_uri: request.redirect_uri,
+                    scope: request.scope ?? "openid",
+                    state: request.state,
+                    nonce: request.nonce,
+                    code_verifier: request.code_verifier,
+                    username: request.username,
+                    password: request.password,
+                }, { prefix: ClientPrefix.V3 }),
+            "builtinLogin",
         );
+    }
+
+    async ssoRedirect(redirectUrl?: string): Promise<string> {
+        return this.withRetry(async () => {
+            const queryParams = redirectUrl ? { redirectUrl } : undefined;
+            const response = await this.client.http.authedRequest<{ url: string }>(
+                Method.Get,
+                "/login/sso/redirect",
+                queryParams,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            return response.url;
+        }, "ssoRedirect");
+    }
+
+    async ssoUserInfo(): Promise<IOidcUserInfo> {
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<IOidcUserInfo>(
+                    Method.Get,
+                    "/login/sso/userinfo",
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                ),
+            "ssoUserInfo",
+        );
+    }
+
+    getProvider(): string | null {
+        return this.currentProvider;
+    }
+
+    getCachedDiscovery(): IOidcDiscovery | null {
+        return this.discoveryCache;
     }
 
     start(): void {}
 
-    stop(): void {}
+    stop(): void {
+        this.discoveryCache = null;
+        this.currentProvider = null;
+    }
 }
 
 declare module "../client.ts" {

@@ -24,7 +24,7 @@ export enum EventEmitterEvents {
     Error = "error",
 }
 
-type AnyListener = (...args: any) => any;
+type AnyListener = (...args: any[]) => any;
 
 /** Base class for types mapping from event name to the type of listeners to that event */
 export type ListenerMap<E extends string> = { [eventName in E]: AnyListener };
@@ -62,7 +62,7 @@ export type Listener<E extends string, A extends ListenerMap<E>, T extends E | E
 export class TypedEventEmitter<
     Events extends string,
     Arguments extends ListenerMap<Events>,
-    SuperclassArguments extends ListenerMap<any> = Arguments,
+    SuperclassArguments extends ListenerMap<string> = Arguments,
 > extends EventEmitter {
     /**
      * Alias for {@link on}.

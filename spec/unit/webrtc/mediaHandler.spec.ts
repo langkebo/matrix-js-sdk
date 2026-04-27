@@ -245,14 +245,14 @@ describe("Media Handler", function () {
             expect(await mediaHandler.hasAudioDevice()).toEqual(false);
         });
 
-        it("returns false if the system not permitting access audio inputs", async () => {
+        it("throws by default if enumerateDevices fails for audio inputs", async () => {
             mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("No Permission"));
-            expect(await mediaHandler.hasAudioDevice()).toEqual(false);
+            await expect(mediaHandler.hasAudioDevice()).rejects.toThrow("No Permission");
         });
 
-        it("throws if throwOnError is true and enumerateDevices fails", async () => {
+        it("returns false when throwOnError is false and enumerateDevices fails for audio inputs", async () => {
             mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("Boom"));
-            await expect(mediaHandler.hasAudioDevice(true)).rejects.toThrow("Boom");
+            await expect(mediaHandler.hasAudioDevice(false)).resolves.toEqual(false);
         });
     });
 
@@ -268,14 +268,14 @@ describe("Media Handler", function () {
             expect(await mediaHandler.hasVideoDevice()).toEqual(false);
         });
 
-        it("returns false if the system not permitting access video inputs", async () => {
+        it("throws by default if enumerateDevices fails for video inputs", async () => {
             mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("No Permission"));
-            expect(await mediaHandler.hasVideoDevice()).toEqual(false);
+            await expect(mediaHandler.hasVideoDevice()).rejects.toThrow("No Permission");
         });
 
-        it("throws if throwOnError is true and enumerateDevices fails", async () => {
+        it("returns false when throwOnError is false and enumerateDevices fails for video inputs", async () => {
             mockMediaDevices.enumerateDevices.mockRejectedValueOnce(new Error("Boom"));
-            await expect(mediaHandler.hasVideoDevice(true)).rejects.toThrow("Boom");
+            await expect(mediaHandler.hasVideoDevice(false)).resolves.toEqual(false);
         });
     });
 

@@ -143,7 +143,8 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 total: response.total,
             };
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
-        } catch {
+        } catch (e) {
+            logger.debug("RelationsManager.fetchRelations failed", e);
             return { events: [] };
         }
     }
@@ -183,7 +184,8 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             const result = await this.fetchRelations(roomId, eventId, relationType);
             return result.total || 0;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
-        } catch {
+        } catch (e) {
+            logger.debug("RelationsManager.getRelationCount failed", e);
             return 0;
         }
     }
@@ -196,7 +198,8 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             }
             return null;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
-        } catch {
+        } catch (e) {
+            logger.debug("RelationsManager.getLatestRelation failed", e);
             return null;
         }
     }

@@ -169,7 +169,7 @@ export class ToDeviceKeyTransport
     };
 
     private getValidEventContent(event: MatrixEvent): EncryptionKeysToDeviceEventContent | undefined {
-        const content = event.getContent();
+        const content = event.getContent<Partial<EncryptionKeysToDeviceEventContent>>();
         const roomId = content.room_id;
         if (!roomId) {
             // Invalid event
@@ -181,12 +181,14 @@ export class ToDeviceKeyTransport
             return;
         }
 
-        if (!content.keys || !content.keys.key || typeof content.keys.index !== "number") {
+        const keys = content.keys;
+        if (!keys || typeof keys !== "object" || typeof keys.key !== "string" || typeof keys.index !== "number") {
             this.logger.warn("Malformed Event: Missing keys field");
             return;
         }
 
-        if (!content.member || !content.member.claimed_device_id) {
+        const member = content.member;
+        if (!member || typeof member !== "object" || typeof member.claimed_device_id !== "string") {
             this.logger.warn("Malformed Event: Missing claimed_device_id");
             return;
         }

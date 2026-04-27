@@ -462,10 +462,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      *
      * @param roomId - room ID
      * @param userId - user ID
-     * @param throwOnError - Whether to throw on error (default false)
+     * @param throwOnError - Whether to throw on error (default true, pass false to keep compatibility fallback)
      * @returns membership event
      */
-    public async getMembership(roomId: string, userId: string, throwOnError = false): Promise<IStateEvent | null> {
+    public async getMembership(roomId: string, userId: string, throwOnError = true): Promise<IStateEvent | null> {
         this.validateRoomId(roomId);
         this.validateUserId(userId);
 
@@ -673,7 +673,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const queryParams: Record<string, string> = {};
-        if (params?.limit) queryParams.limit = params.limit.toString();
+        if (params?.limit !== undefined) queryParams.limit = params.limit.toString();
         if (params?.filter) queryParams.filter = JSON.stringify(params.filter);
 
         const response = await this.withRetry(async () => {

@@ -44,6 +44,8 @@ import { PUSHER_ENABLED } from "../@types/event.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { LRUCache, CacheRegistry, type CacheStats } from "../utils/lru-cache.ts";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 
 export type { IPushRules } from "../@types/PushRules";
 export { PUSHER_ENABLED } from "../@types/event.ts";
@@ -317,6 +319,41 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         }
     }
 
+    /**
+     * 设置推送器
+     *
+     * @param pusher - 推送器配置
+     * @param pusher.pushkey - 推送密钥
+     * @param pusher.app_id - 应用 ID
+     * @param pusher.app_display_name - 应用显示名称
+     * @param pusher.device_display_name - 设备显示名称
+     * @param pusher.lang - 语言代码
+     * @param pusher.data - 推送数据（可选）
+     *
+     * @example
+     * ```typescript
+     * // 设置 HTTP 推送器
+     * await pushManager.setPusher({
+     *     pushkey: "https://push.example.com/notify",
+     *     kind: "http",
+     *     app_id: "com.example.app",
+     *     app_display_name: "My App",
+     *     device_display_name: "My Device",
+     *     lang: "en",
+     *     data: {
+     *         url: "https://push.example.com/notify"
+     *     }
+     * });
+     *
+     * // 监听推送器更新
+     * pushManager.on(PushEvent.PushersUpdated, (pushers) => {
+     *     console.log(`Total pushers: ${pushers.length}`);
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果必需参数缺失
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async setPusher(pusher: IPusherRequest): Promise<void> {
         if (!pusher.pushkey) {
             throw new InvalidParamError("pushkey is required");
@@ -340,6 +377,24 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         }
     }
 
+    /**
+     * 移除推送器
+     *
+     * @param pushkey - 推送密钥
+     * @param appId - 应用 ID
+     *
+     * @example
+     * ```typescript
+     * // 移除推送器
+     * await pushManager.removePusher(
+     *     "https://push.example.com/notify",
+     *     "com.example.app"
+     * );
+     * ```
+     *
+     * @throws {ValidationError} 如果参数缺失
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async removePusher(pushkey: string, appId: string): Promise<void> {
         if (!pushkey) {
             throw new InvalidParamError("pushkey is required");
@@ -378,18 +433,18 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     // ==================== Push Rules ====================
 
     async getPushRules(forceRefresh = false): Promise<IPushRules> {
-        logger.info("[PushManager] getPushRules() called");
+        logger.debug("[PushManager] getPushRules() called");
 
         if (!forceRefresh) {
             const cached = this.pushRulesCache.get("pushRules");
             if (cached) {
-                logger.info("[PushManager] Returning cached push rules");
+                logger.debug("[PushManager] Returning cached push rules");
                 return cached;
             }
         }
 
         try {
-            logger.info("[PushManager] Making HTTP request for push rules");
+            logger.debug("[PushManager] Making HTTP request for push rules");
             const response = await this.withRetryRequest(async () => {
                 return await this.client.http.authedRequest<IPushRules>(
                     Method.Get,
@@ -402,7 +457,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.set("pushRules", response);
             this.emit(PushEvent.PushRulesUpdated, response);
-            logger.info("[PushManager] getPushRules() succeeded");
+            logger.debug("[PushManager] getPushRules() succeeded");
             return response;
         } catch (error: unknown) {
             logger.error("[PushManager] getPushRules() failed:", error);
@@ -466,14 +521,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      * @param scope - 作用域
      * @param kind - 规则类型
      * @param ruleId - 规则 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 推送规则
      */
     async getPushRule(
         scope: string,
         kind: PushRuleKind,
         ruleId: string,
-        throwOnError = false,
+        throwOnError = true,
     ): Promise<IPushRule | null> {
         if (!scope || !kind || !ruleId) {
             throw new InvalidParamError("scope, kind, and ruleId are required");
@@ -601,15 +656,10 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      * @param scope - 作用域
      * @param kind - 规则类型
      * @param ruleId - 规则 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 是否启用
      */
-    async getPushRuleEnabled(
-        scope: string,
-        kind: PushRuleKind,
-        ruleId: string,
-        throwOnError = false,
-    ): Promise<boolean> {
+    async getPushRuleEnabled(scope: string, kind: PushRuleKind, ruleId: string, throwOnError = true): Promise<boolean> {
         if (!scope || !kind || !ruleId) {
             throw new InvalidParamError("scope, kind, and ruleId are required");
         }
@@ -710,7 +760,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     async getNotifications(params?: { limit?: number; from?: string; only?: string }): Promise<INotificationsResponse> {
         try {
             const queryParams: Record<string, string> = {};
-            if (params?.limit) {
+            if (params?.limit !== undefined) {
                 queryParams.limit = params.limit.toString();
             }
             if (params?.from) {
@@ -741,9 +791,9 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      * 确认通知
      *
      * @param notificationId - 通知 ID
-     * @param throwOnError - 是否抛出错误（默认 false）
+     * @param throwOnError - 是否抛出错误（默认 true）
      */
-    async ackNotification(notificationId: string, throwOnError = false): Promise<void> {
+    async ackNotification(notificationId: string, throwOnError = true): Promise<void> {
         if (!notificationId) {
             throw new InvalidParamError("notificationId is required");
         }
@@ -779,26 +829,69 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     // ==================== Convenience Methods ====================
 
+    /**
+     * 静音房间
+     *
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 静音房间
+     * await pushManager.muteRoom("!abc:example.com");
+     *
+     * // 检查是否静音
+     * const isMuted = await pushManager.isRoomMuted("!abc:example.com");
+     * console.log("Room muted:", isMuted);
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async muteRoom(roomId: string): Promise<void> {
-        if (!roomId) {
-            throw new InvalidParamError("roomId is required");
-        }
+        AdminValidators.validateRoomId(roomId);
         await this.createPushRule("global", PushRuleKind.RoomSpecific, roomId, {
             actions: [PushRuleActionName.DontNotify],
         });
     }
 
+    /**
+     * 取消静音房间
+     *
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     *
+     * @example
+     * ```typescript
+     * // 取消静音
+     * await pushManager.unmuteRoom("!abc:example.com");
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     * @throws {ApiError} 如果 API 调用失败
+     */
     async unmuteRoom(roomId: string): Promise<void> {
-        if (!roomId) {
-            throw new InvalidParamError("roomId is required");
-        }
+        AdminValidators.validateRoomId(roomId);
         await this.deletePushRule("global", PushRuleKind.RoomSpecific, roomId);
     }
 
+    /**
+     * 检查房间是否静音
+     *
+     * @param roomId - 房间 ID（格式：!localpart:homeserver）
+     * @returns 是否静音
+     *
+     * @example
+     * ```typescript
+     * // 检查房间是否静音
+     * const isMuted = await pushManager.isRoomMuted("!abc:example.com");
+     * if (isMuted) {
+     *     console.log("Room is muted");
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果房间 ID 格式无效
+     */
     async isRoomMuted(roomId: string): Promise<boolean> {
-        if (!roomId) {
-            throw new InvalidParamError("roomId is required");
-        }
+        AdminValidators.validateRoomId(roomId);
         const rules = await this.getPushRulesByKind("global", PushRuleKind.RoomSpecific);
         const rule = rules.find((r) => r.rule_id === roomId);
         return !!rule && rule.enabled && rule.actions.includes("dont_notify" as PushRuleAction);

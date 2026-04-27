@@ -87,7 +87,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
         }
 
         const roomNameEvent = inviteState.getStateEvents?.("m.room.name", "");
-        const roomName = roomNameEvent?.getContent?.()?.name || room.name || roomId;
+        const roomName = roomNameEvent?.getContent?.<{ name?: string }>()?.name || room.name || roomId;
 
         const mDirectEvent = this.client.getAccountData?.("m.direct");
         const directRooms = mDirectEvent?.getContent?.() as Record<string, string[]> | undefined;

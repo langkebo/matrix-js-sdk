@@ -64,7 +64,7 @@ describe("SDK alignment managers", () => {
                 "/friends",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/v1" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
             expect(friends[0]?.status).toBe(FriendRelationshipStatus.Normal);
         });

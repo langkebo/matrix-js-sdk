@@ -169,6 +169,35 @@ export class KeyVerificationManager {
         void userIdOrVersion;
         return this.client.getVerificationRequests(version);
     }
+
+    public async showQrCode(
+        transactionId: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<{ qr_code_data: string; transaction_id: string }> {
+        const prefix = version === "r0" ? "/_matrix/client/r0" : "/_matrix/client/v1";
+        return this.client.http.authedRequest(
+            "GET" as any,
+            `/keys/qr_code/show`,
+            { transaction_id: transactionId },
+            undefined,
+            { prefix },
+        );
+    }
+
+    public async scanQrCode(
+        qrCodeData: string,
+        transactionId?: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<{ transaction_id: string; verified: boolean }> {
+        const prefix = version === "r0" ? "/_matrix/client/r0" : "/_matrix/client/v1";
+        return this.client.http.authedRequest(
+            "POST" as any,
+            `/keys/qr_code/scan`,
+            undefined,
+            { qr_code_data: qrCodeData, transaction_id: transactionId },
+            { prefix },
+        );
+    }
 }
 
 // Declare prototype extension

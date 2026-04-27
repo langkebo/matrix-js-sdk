@@ -63,8 +63,12 @@ export interface ManagerExtensionsOptions {
     includeFederation?: boolean;
     includeDevice?: boolean;
     includeProfile?: boolean;
+    includeSecureBackup?: boolean;
     includeSamlAuth?: boolean;
     includeThirdParty?: boolean;
+    includeOidc?: boolean;
+    includeTelemetry?: boolean;
+    includeRendezvous?: boolean;
     includeTyping?: boolean;
     includeUser?: boolean;
     includeUserReport?: boolean;
@@ -78,6 +82,8 @@ export interface ManagerExtensionsOptions {
     includeStateSend?: boolean;
     includeRelations?: boolean;
     includeTimeline?: boolean;
+    includeKeyRotation?: boolean;
+    includeBurnAfterRead?: boolean;
     includeAll?: boolean;
 }
 
@@ -126,8 +132,12 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeFederation: true,
     includeDevice: true,
     includeProfile: true,
+    includeSecureBackup: true,
     includeSamlAuth: true,
     includeThirdParty: true,
+    includeOidc: true,
+    includeTelemetry: true,
+    includeRendezvous: true,
     includeTyping: true,
     includeUser: true,
     includeUserReport: true,
@@ -141,6 +151,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeStateSend: true,
     includeRelations: true,
     includeTimeline: true,
+    includeKeyRotation: true,
+    includeBurnAfterRead: true,
 };
 
 let isInitialized = false;
@@ -184,8 +196,12 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeFederation", module: "federation" },
     { option: "includeDevice", module: "device" },
     { option: "includeProfile", module: "profile" },
+    { option: "includeSecureBackup", module: "secure-backup" },
     { option: "includeSamlAuth", module: "saml" },
     { option: "includeThirdParty", module: "thirdparty" },
+    { option: "includeOidc", module: "oidc" },
+    { option: "includeTelemetry", module: "telemetry" },
+    { option: "includeRendezvous", module: "rendezvous" },
     { option: "includeTyping", module: "typing" },
     { option: "includeUser", module: "user" },
     { option: "includeUserReport", module: "user-report" },
@@ -199,6 +215,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeStateSend", module: "state-send" },
     { option: "includeRelations", module: "relations" },
     { option: "includeTimeline", module: "timeline" },
+    { option: "includeKeyRotation", module: "key-rotation" },
+    { option: "includeBurnAfterRead", module: "burn-after-read" },
 ];
 
 function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {
@@ -244,8 +262,10 @@ export async function extendMatrixClientWithManagers(
 
         const promises: Promise<void>[] = [];
 
-        if (currentOptions.includeAdmin || all) {
+        try {
+            if (currentOptions.includeAdmin || all) {
             promises.push(import("../admin/index.js").then((m) => m.extendMatrixClient()));
+            promises.push(import("../worker-admin/index.js").then((m) => m.extendMatrixClient()));
         }
 
         if (currentOptions.includeAccount || all) {
@@ -372,12 +392,28 @@ export async function extendMatrixClientWithManagers(
             promises.push(import("../profile/index.js").then((m) => m.extendMatrixClient()));
         }
 
+        if (currentOptions.includeSecureBackup || all) {
+            promises.push(import("../secure-backup/index.js").then((m) => m.extendMatrixClient()));
+        }
+
         if (currentOptions.includeSamlAuth || all) {
             promises.push(import("../saml/index.js").then((m) => m.extendMatrixClient()));
         }
 
         if (currentOptions.includeThirdParty || all) {
             promises.push(import("../thirdparty/index.js").then((m) => m.extendMatrixClient()));
+        }
+
+        if (currentOptions.includeOidc || all) {
+            promises.push(import("../oidc/manager.js").then((m) => m.extendMatrixClient()));
+        }
+
+        if (currentOptions.includeTelemetry || all) {
+            promises.push(import("../telemetry/index.js").then((m) => m.extendMatrixClient()));
+        }
+
+        if (currentOptions.includeRendezvous || all) {
+            promises.push(import("../rendezvous/RendezvousManager.js").then((m) => m.extendMatrixClient()));
         }
 
         if (currentOptions.includeTyping || all) {
@@ -432,7 +468,14 @@ export async function extendMatrixClientWithManagers(
             promises.push(import("../timeline/index.js").then((m) => m.extendMatrixClient()));
         }
 
-        try {
+        if (currentOptions.includeKeyRotation || all) {
+            promises.push(import("../key-rotation/index.js").then((m) => m.extendMatrixClient()));
+        }
+
+        if (currentOptions.includeBurnAfterRead || all) {
+            promises.push(import("../burn-after-read/index.js").then((m) => m.extendMatrixClient()));
+        }
+
             await Promise.all(promises);
             emitLifecycleEvent({ phase: "init", status: "success", modules: enabledModules });
             isInitialized = true;

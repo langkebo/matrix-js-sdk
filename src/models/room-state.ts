@@ -18,7 +18,7 @@ import { RoomMember } from "./room-member.ts";
 import { logger } from "../logger.ts";
 import { isNumber, removeHiddenChars } from "../utils.ts";
 import { EventType, UNSTABLE_MSC2716_MARKER } from "../@types/event.ts";
-import { type MatrixEvent } from "./event.ts";
+import { type IContent, type MatrixEvent } from "./event.ts";
 import { type MatrixClient } from "../client.ts";
 import { GuestAccess, HistoryVisibility, JoinRule } from "../@types/partials.ts";
 import { TypedEventEmitter } from "./typed-event-emitter.ts";
@@ -52,7 +52,7 @@ enum OobStatus {
     Finished,
 }
 
-export interface IPowerLevelsContent {
+export interface IPowerLevelsContent extends IContent {
     users?: Record<string, number>;
     events?: Record<string, number>;
     notifications?: Partial<Record<"room", number>>;
@@ -67,6 +67,8 @@ export interface IPowerLevelsContent {
     kick?: number;
     redact?: number;
 }
+
+type PowerLevelAction = "users_default" | "events_default" | "state_default" | "ban" | "invite" | "kick" | "redact";
 
 export enum RoomStateEvent {
     Events = "RoomState.events",
@@ -224,7 +226,8 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
             }
             return "1";
         }
-        return createEvent.getContent()["room_version"] ?? "1";
+        const createContent = createEvent.getContent<{ room_version?: string } & IContent>();
+        return typeof createContent.room_version === "string" ? createContent.room_version : "1";
     }
 
     /**
@@ -782,14 +785,14 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
      * @returns true if the given power level is sufficient
      */
     public hasSufficientPowerLevelFor(
-        action: KeysMatching<Required<IPowerLevelsContent>, number>,
+        action: PowerLevelAction,
         powerLevel: number,
     ): boolean {
         const powerLevelsEvent = this.getStateEvents(EventType.RoomPowerLevels, "");
 
         let powerLevels: IPowerLevelsContent = {};
         if (powerLevelsEvent) {
-            powerLevels = powerLevelsEvent.getContent();
+            powerLevels = powerLevelsEvent.getContent<IPowerLevelsContent>();
         }
 
         let requiredLevel = 50;
@@ -873,7 +876,7 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
         let stateDefault = 0;
         let eventsDefault = 0;
         if (powerLevelsEvent) {
-            powerLevels = powerLevelsEvent.getContent();
+            powerLevels = powerLevelsEvent.getContent<IPowerLevelsContent>();
             eventsLevels = powerLevels.events || {};
 
             if (Number.isSafeInteger(powerLevels.state_default)) {
@@ -915,13 +918,10 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
         const powerLevelsEvent = this.getStateEvents(EventType.RoomPowerLevels, "");
 
         let notifLevel = 50;
-        if (
-            powerLevelsEvent &&
-            powerLevelsEvent.getContent() &&
-            powerLevelsEvent.getContent().notifications &&
-            isNumber(powerLevelsEvent.getContent().notifications[notifLevelKey])
-        ) {
-            notifLevel = powerLevelsEvent.getContent().notifications[notifLevelKey];
+        const powerLevelsContent = powerLevelsEvent?.getContent<IPowerLevelsContent>();
+        const notificationLevels = powerLevelsContent?.notifications;
+        if (notificationLevels && isNumber(notificationLevels[notifLevelKey as "room"])) {
+            notifLevel = notificationLevels[notifLevelKey as "room"]!;
         }
 
         return member.powerLevel >= notifLevel;
@@ -943,8 +943,9 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
      */
     public getHistoryVisibility(): HistoryVisibility {
         const historyVisibilityEvent = this.getStateEvents(EventType.RoomHistoryVisibility, "");
-        const historyVisibilityContent = historyVisibilityEvent?.getContent() ?? {};
-        return historyVisibilityContent["history_visibility"] || HistoryVisibility.Shared;
+        const historyVisibilityContent =
+            historyVisibilityEvent?.getContent<{ history_visibility?: HistoryVisibility } & IContent>() ?? {};
+        return historyVisibilityContent.history_visibility || HistoryVisibility.Shared;
     }
 
     /**
@@ -953,8 +954,8 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
      */
     public getGuestAccess(): GuestAccess {
         const guestAccessEvent = this.getStateEvents(EventType.RoomGuestAccess, "");
-        const guestAccessContent = guestAccessEvent?.getContent() ?? {};
-        return guestAccessContent["guest_access"] || GuestAccess.Forbidden;
+        const guestAccessContent = guestAccessEvent?.getContent<{ guest_access?: GuestAccess } & IContent>() ?? {};
+        return guestAccessContent.guest_access || GuestAccess.Forbidden;
     }
 
     /**
@@ -1027,11 +1028,12 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
     }
 
     private updateThirdPartyTokenCache(memberEvent: MatrixEvent): void {
-        if (!memberEvent.getContent().third_party_invite) {
+        const content = memberEvent.getContent<{ third_party_invite?: { signed?: { token?: string } } } & IContent>();
+        if (!content.third_party_invite) {
             return;
         }
-        const token = (memberEvent.getContent().third_party_invite.signed || {}).token;
-        if (!token) {
+        const token = content.third_party_invite.signed?.token;
+        if (typeof token !== "string" || token.length === 0) {
             return;
         }
         const threePidInvite = this.getStateEvents(EventType.RoomThirdPartyInvite, token);
@@ -1160,13 +1162,13 @@ function powerLevelForUserId(userId: string, powerLevelEvent: MatrixEvent, creat
         // As of "Hydra", If the user is a creator, they always have the highest power level
         return Infinity;
     } else {
-        const evContent = powerLevelEvent.getDirectionalContent();
+        const evContent = powerLevelEvent.getDirectionalContent() as IPowerLevelsContent;
 
         const users: { [userId: string]: number } = evContent.users || {};
 
         if (users[userId] !== undefined && Number.isInteger(users[userId])) {
             return users[userId];
-        } else if (evContent.users_default !== undefined) {
+        } else if (typeof evContent.users_default === "number") {
             return evContent.users_default;
         } else {
             return 0;

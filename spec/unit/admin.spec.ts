@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { AdminManager, AdminEvent } from "../../src/admin/index";
 import { MatrixError } from "../../src/http-api/errors";
-import { AuthError, NotFoundError, ApiError, RetryableError } from "../../src/errors";
+import { AuthError, NotFoundError, ApiError, RetryableError, ValidationError } from "../../src/errors";
 import { FetchHttpApi } from "../../src/http-api/fetch";
 import { TypedEventEmitter } from "../../src/models/typed-event-emitter";
 
@@ -71,6 +71,266 @@ describe("AdminManager", () => {
         });
     });
 
+    // ============ 新增功能测试 ============
+
+    describe("服务器状态监控", () => {
+        it("应该获取服务器状态", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                status: "online",
+                uptime: 12345,
+            });
+
+            const status = await adminManager.getServerStatus();
+            expect(status).toEqual({ status: "online", uptime: 12345 });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/v1/status",
+                {},
+                undefined,
+                { prefix: "/_synapse/admin" },
+            );
+        });
+
+        it("应该获取服务器健康状态", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                healthy: true,
+                checks: { database: { status: "ok" } },
+            });
+
+            const health = await adminManager.getServerHealth();
+            expect(health?.healthy).toBe(true);
+        });
+
+        it("应该获取服务器信息", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                server_name: "example.com",
+                version: "1.0.0",
+            });
+
+            const info = await adminManager.getServerInfo();
+            expect(info?.server_name).toBe("example.com");
+        });
+    });
+
+    describe("通知管理", () => {
+        it("应该发送服务器通知", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                event_id: "$event123",
+            });
+
+            const result = await adminManager.sendServerNotice("@user:example.com", {
+                msgtype: "m.text",
+                body: "Test notice",
+            });
+
+            expect(result.event_id).toBe("$event123");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/v1/send_server_notice",
+                {},
+                {
+                    user_id: "@user:example.com",
+                    content: { msgtype: "m.text", body: "Test notice" },
+                },
+                { prefix: "/_synapse/admin" },
+            );
+        });
+
+        it("应该获取服务器通知列表", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                notices: [{ event_id: "$event1", user_id: "@user:example.com", content: {}, sent_ts: 123456 }],
+                next_token: "token123",
+            });
+
+            const result = await adminManager.getServerNotices(10);
+            expect(result?.notices).toHaveLength(1);
+            expect(result?.next_token).toBe("token123");
+        });
+    });
+
+    describe("联邦黑名单管理", () => {
+        it("应该获取联邦黑名单", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                blacklist: [{ server_name: "evil.com", reason: "spam" }],
+            });
+
+            const blacklist = await adminManager.getFederationBlacklist();
+            expect(blacklist).toHaveLength(1);
+            expect(blacklist[0].server_name).toBe("evil.com");
+        });
+
+        it("应该添加服务器到黑名单", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await adminManager.addToFederationBlacklist("evil.com", "spam");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/v1/federation/blacklist/evil.com",
+                {},
+                { reason: "spam" },
+                { prefix: "/_synapse/admin" },
+            );
+        });
+
+        it("应该从黑名单移除服务器", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await adminManager.removeFromFederationBlacklist("evil.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "DELETE",
+                "/v1/federation/blacklist/evil.com",
+                {},
+                undefined,
+                { prefix: "/_synapse/admin" },
+            );
+        });
+
+        it("应该断开联邦连接", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await adminManager.disconnectFederation("server.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/v1/federation/destinations/server.com/reset_connection",
+                {},
+                undefined,
+                { prefix: "/_synapse/admin" },
+            );
+        });
+    });
+
+    describe("用户管理扩展", () => {
+        it("应该删除单个设备", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await adminManager.deleteUserDevice("@user:example.com", "DEVICE123");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "DELETE",
+                "/v1/users/%40user%3Aexample.com/devices/DEVICE123",
+                {},
+                undefined,
+                { prefix: "/_synapse/admin" },
+            );
+        });
+
+        it("应该获取账户状态", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                user_id: "@user:example.com",
+                exists: true,
+                deactivated: false,
+            });
+
+            const status = await adminManager.getAccountStatus("@user:example.com");
+            expect(status?.exists).toBe(true);
+            expect(status?.deactivated).toBe(false);
+        });
+
+        it("应该检查管理员状态", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ admin: true });
+
+            const isAdmin = await adminManager.isAdmin("@admin:example.com");
+            expect(isAdmin).toBe(true);
+        });
+
+        it("应该覆盖速率限制", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await adminManager.overrideRateLimit("@user:example.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/v1/users/%40user%3Aexample.com/override_ratelimit",
+                {},
+                undefined,
+                { prefix: "/_synapse/admin" },
+            );
+        });
+
+        it("应该获取速率限制覆盖状态", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ overridden: true });
+
+            const result = await adminManager.getRateLimitOverride("@user:example.com");
+            expect(result?.overridden).toBe(true);
+        });
+
+        it("应该删除速率限制覆盖", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await adminManager.deleteRateLimitOverride("@user:example.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "DELETE",
+                "/v1/users/%40user%3Aexample.com/override_ratelimit",
+                {},
+                undefined,
+                { prefix: "/_synapse/admin" },
+            );
+        });
+    });
+
+    // ============ 输入验证测试 ============
+
+    describe("输入验证", () => {
+        it("应该拒绝空用户 ID", async () => {
+            await expect(adminManager.getUser("")).rejects.toThrow(ValidationError);
+        });
+
+        it("应该拒绝无效的用户 ID 格式", async () => {
+            await expect(adminManager.getUser("invalid-user-id")).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUser("@user")).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUser("user:example.com")).rejects.toThrow(ValidationError);
+        });
+
+        it("应该接受有效的用户 ID", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                user_id: "@alice:example.com",
+            });
+
+            await adminManager.getUser("@alice:example.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+        });
+
+        it("应该拒绝空房间 ID", async () => {
+            await expect(adminManager.getRoom("")).rejects.toThrow(ValidationError);
+        });
+
+        it("应该拒绝无效的房间 ID 格式", async () => {
+            await expect(adminManager.getRoom("invalid-room-id")).rejects.toThrow(ValidationError);
+            await expect(adminManager.getRoom("!room")).rejects.toThrow(ValidationError);
+            await expect(adminManager.getRoom("room:example.com")).rejects.toThrow(ValidationError);
+        });
+
+        it("应该接受有效的房间 ID", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                room_id: "!abc123:example.com",
+            });
+
+            await adminManager.getRoom("!abc123:example.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+        });
+
+        it("应该拒绝无效的 limit 值", async () => {
+            await expect(adminManager.getUsers(undefined, 0)).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsers(undefined, -1)).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsers(undefined, 10001)).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsers(undefined, 1.5 as any)).rejects.toThrow(ValidationError);
+        });
+
+        it("应该接受有效的 limit 值", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ users: [] });
+
+            await adminManager.getUsers(undefined, 100);
+            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+        });
+
+        it("应该处理特殊字符的用户 ID", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                user_id: "@user_test-123:example.com",
+            });
+
+            await adminManager.getUser("@user_test-123:example.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+        });
+    });
+
     // ============ 错误分类测试 ============
 
     describe("错误分类测试", () => {
@@ -131,11 +391,11 @@ describe("AdminManager", () => {
             await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(/Access denied/);
         });
 
-        it("getUser 遇到 404 应该返回 null", async () => {
+        it("getUser 在显式兼容模式下遇到 404 应该返回 null", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            const result = await adminManager.getUser("@nonexistent:example.com");
+            const result = await adminManager.getUser("@nonexistent:example.com", false);
             expect(result).toBeNull();
         });
     });
@@ -150,89 +410,106 @@ describe("AdminManager", () => {
             await expect(adminManager.getUser("@user:example.com")).rejects.toThrow(ApiError);
         });
 
-        it("getUser should return null for 404", async () => {
+        it("getUser should throw for 404 by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            const result = await adminManager.getUser("@nonexistent:example.com");
+            await expect(adminManager.getUser("@nonexistent:example.com")).rejects.toThrow(NotFoundError);
+        });
+
+        it("getUser should return null for 404 when throwOnError is false", async () => {
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            const result = await adminManager.getUser("@nonexistent:example.com", false);
             expect(result).toBeNull();
         });
 
-        it("getUser should throw for 404 when throwOnError is true", async () => {
-            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
-            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
-
-            await expect(adminManager.getUser("@nonexistent:example.com", true)).rejects.toThrow(NotFoundError);
-        });
-
-        it("getShadowBanStatus should throw when throwOnError is true", async () => {
+        it("getShadowBanStatus should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getShadowBanStatus("@user:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getShadowBanStatus("@user:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getRateLimit should throw when throwOnError is true", async () => {
+        it("getRateLimit should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getRateLimit("@user:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getRateLimit("@user:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getRoom should throw when throwOnError is true", async () => {
+        it("getRoom should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getRoom("!room:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getRoom("!room:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getServerVersion should throw when throwOnError is true", async () => {
+        it("getServerVersion should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getServerVersion(true)).rejects.toThrow(ApiError);
+            await expect(adminManager.getServerVersion()).rejects.toThrow(ApiError);
         });
 
-        it("getFederationDestination should throw when throwOnError is true", async () => {
+        it("getServerVersion should return fallback when throwOnError is false", async () => {
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getServerVersion(false)).resolves.toEqual({
+                server_version: "unknown",
+                python_version: "unknown",
+            });
+        });
+
+        it("getFederationDestination should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getFederationDestination("example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getFederationDestination("example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getRoomVersion should throw when throwOnError is true", async () => {
+        it("getRoomVersion should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getRoomVersion("!room:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getRoomVersion("!room:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getAccountDetails should throw when throwOnError is true", async () => {
+        it("getAccountDetails should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getAccountDetails("@user:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getAccountDetails("@user:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getSpace should throw when throwOnError is true", async () => {
+        it("getSpace should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getSpace("!space:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getSpace("!space:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("whois should throw when throwOnError is true", async () => {
+        it("whois should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.whois("@user:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.whois("@user:example.com")).rejects.toThrow(NotFoundError);
         });
 
-        it("getRoomStats should throw when throwOnError is true", async () => {
+        it("getRoomStats should throw by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Not found" }, 404, undefined);
             mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
 
-            await expect(adminManager.getRoomStats("!room:example.com", true)).rejects.toThrow(NotFoundError);
+            await expect(adminManager.getRoomStats("!room:example.com")).rejects.toThrow(NotFoundError);
+        });
+
+        it("getServerConfig should return fallback when throwOnError is false", async () => {
+            const matrixError = new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+
+            await expect(adminManager.getServerConfig(false)).resolves.toEqual({});
         });
     });
 
@@ -400,12 +677,12 @@ describe("AdminManager", () => {
             expect(opts.prefix).toBe("/_synapse/admin");
 
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
-                baseUrl: "http://localhost:8008",
+                baseUrl: "http://localhost:28008",
                 prefix: "/_matrix/client/v3",
                 onlyData: true,
                 allowInsecureHttp: true,
             });
-            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:8008");
+            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:28008");
             expect(url.pathname).toBe("/_synapse/admin/v2/users/%40user%3Aexample.com");
             expect(url.pathname).not.toContain("/_synapse/admin/v1/v2");
         });
@@ -453,12 +730,12 @@ describe("AdminManager", () => {
             expect(opts.prefix).toBe("/_synapse/admin");
 
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
-                baseUrl: "http://localhost:8008",
+                baseUrl: "http://localhost:28008",
                 prefix: "/_matrix/client/v3",
                 onlyData: true,
                 allowInsecureHttp: true,
             });
-            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:8008");
+            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:28008");
             expect(url.pathname).toBe("/_synapse/admin/v1/users/%40user%3Aexample.com/deactivate");
             expect(url.pathname).not.toContain("/_synapse/admin/v1/v1");
         });

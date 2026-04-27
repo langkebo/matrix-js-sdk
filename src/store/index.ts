@@ -34,6 +34,15 @@ export interface ISavedSync {
 
 export type UserCreator = (userId: string) => User;
 
+export type StoreEvent = EventEmitterEvents | "degraded" | "closed";
+export type StoreEventHandlerMap = {
+    [EventEmitterEvents.NewListener]: (event: string, listener: (...args: unknown[]) => void) => void;
+    [EventEmitterEvents.RemoveListener]: (event: string, listener: (...args: unknown[]) => void) => void;
+    [EventEmitterEvents.Error]: (error: Error) => void;
+    "degraded": (error: Error) => void;
+    "closed": () => void;
+};
+
 /**
  * A store for most of the data js-sdk needs to store, apart from crypto data
  */
@@ -45,7 +54,7 @@ export interface IStore {
      * - "degraded" event for when it falls back to being a memory store due to errors.
      * - "closed" event for when the database closes unexpectedly
      */
-    on?: (event: EventEmitterEvents | "degraded" | "closed", handler: (...args: any[]) => void) => void;
+    on?: <T extends StoreEvent>(event: T, handler: StoreEventHandlerMap[T]) => void;
 
     /** @returns whether or not the database was newly created in this session. */
     isNewlyCreated(): Promise<boolean>;

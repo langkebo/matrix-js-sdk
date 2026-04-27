@@ -1,14 +1,23 @@
 # Rendezvous API 契约 (二维码登录)
 
 > 版本: v1.0.0
-> 更新日期: 2026-04-05
+> 更新日期: 2026-04-14
 > 对应 SDK 模块: `src/rendezvous/RendezvousManager.ts`
+> 审查来源: `synapse-rust/src/web/routes/rendezvous.rs`
 
 ---
 
 ## 概述
 
 Rendezvous API 提供 MSC4108 二维码登录功能，允许用户通过扫描二维码在新设备上登录，无需输入密码。
+
+## 鉴权规则
+
+- `POST /_matrix/client/v1/rendezvous` 允许匿名创建会话。
+- 其余 `/{session_id}` 与 `/{session_id}/messages` 路由必须满足以下任一条件：
+  - 请求头携带 `X-Matrix-Rendezvous-Key: <key>`，且值与创建会话返回的 `key` 一致。
+  - 会话已在 `status = connected` 阶段绑定用户，且调用方就是该绑定用户或服务器管理员。
+- 将会话更新为 `connected` 时，除了有效的会话 key，还必须带有效的 Matrix 访问令牌以完成用户绑定。
 
 ---
 
@@ -53,6 +62,14 @@ POST /_matrix/client/v1/rendezvous
 GET /_matrix/client/v1/rendezvous/{session_id}
 ```
 
+**请求头:**
+
+```http
+X-Matrix-Rendezvous-Key: <session key>
+```
+
+或在会话已绑定用户后改为携带该用户自己的 `Authorization: Bearer <access_token>`。
+
 **响应:**
 
 ```json
@@ -63,10 +80,7 @@ GET /_matrix/client/v1/rendezvous/{session_id}
     "transport_data": {},
     "status": "created",
     "created_ts": 1712345678000,
-    "expires_at": 1712345978000,
-    "user_id": "@user:example.com",
-    "device_id": "DEVICEID",
-    "key": "base64_encoded_key"
+    "expires_at": 1712345978000
 }
 ```
 
@@ -80,6 +94,16 @@ GET /_matrix/client/v1/rendezvous/{session_id}
 PUT /_matrix/client/v1/rendezvous/{session_id}
 ```
 
+**请求头:**
+
+```http
+X-Matrix-Rendezvous-Key: <session key>
+Authorization: Bearer <access_token>
+```
+
+- 更新为 `connected` 时同时需要会话 key 和有效访问令牌。
+- 更新为 `completed` 时，已绑定用户可仅凭自己的访问令牌访问；持有会话 key 的另一端也可继续完成流程。
+
 **请求体:**
 
 ```json
@@ -89,6 +113,15 @@ PUT /_matrix/client/v1/rendezvous/{session_id}
 ```
 
 **响应:**
+
+```json
+{
+    "session_id": "session_id",
+    "status": "connected"
+}
+```
+
+当请求将状态更新为 `completed` 且会话已绑定用户时，响应会额外包含：
 
 ```json
 {
@@ -112,7 +145,19 @@ PUT /_matrix/client/v1/rendezvous/{session_id}
 DELETE /_matrix/client/v1/rendezvous/{session_id}
 ```
 
-**响应:** HTTP 200 OK
+**请求头:**
+
+```http
+X-Matrix-Rendezvous-Key: <session key>
+```
+
+或在会话已绑定用户后改为携带绑定用户自己的 `Authorization: Bearer <access_token>`。
+
+**响应:**
+
+```json
+{}
+```
 
 **SDK 方法:** `RendezvousManager.deleteSession()`
 
@@ -123,6 +168,14 @@ DELETE /_matrix/client/v1/rendezvous/{session_id}
 ```
 POST /_matrix/client/v1/rendezvous/{session_id}/messages
 ```
+
+**请求头:**
+
+```http
+X-Matrix-Rendezvous-Key: <session key>
+```
+
+或在会话已绑定用户后改为携带绑定用户自己的 `Authorization: Bearer <access_token>`。
 
 **请求体:**
 
@@ -155,6 +208,14 @@ POST /_matrix/client/v1/rendezvous/{session_id}/messages
 ```
 GET /_matrix/client/v1/rendezvous/{session_id}/messages
 ```
+
+**请求头:**
+
+```http
+X-Matrix-Rendezvous-Key: <session key>
+```
+
+或在会话已绑定用户后改为携带绑定用户自己的 `Authorization: Bearer <access_token>`。
 
 **响应:**
 
@@ -216,8 +277,10 @@ created → connected → completed
 
 | 错误码                 | HTTP 状态码 | 说明               |
 | ---------------------- | ----------- | ------------------ |
-| M_MISSING_TOKEN        | 401         | 缺少访问令牌       |
+| M_MISSING_TOKEN        | 401         | 更新为 `connected` 时缺少访问令牌 |
 | M_UNKNOWN_TOKEN        | 401         | 无效的访问令牌     |
+| M_UNAUTHORIZED         | 401         | 缺少或提供了错误的 rendezvous key |
+| M_FORBIDDEN            | 403         | 已绑定会话被其他用户越权访问 |
 | M_NOT_FOUND            | 404         | 会话不存在或已过期 |
 | M_RENDEZVOUS_EXPIRED   | 410         | 会话已过期         |
 | M_RENDEZVOUS_CANCELLED | 410         | 会话已取消         |
@@ -302,13 +365,14 @@ console.log("Scan this QR code:", session.url);
 const messages = await rendezvousManager.pollForMessages(session.session_id, {
     interval: 1000,
     maxAttempts: 60,
+    sessionKey: session.key,
     onMessage: (messages) => {
         console.log("Received messages:", messages);
     },
 });
 
 // 完成登录
-const loginResult = await rendezvousManager.completeSession(session.session_id);
+const loginResult = await rendezvousManager.completeSession(session.session_id, session.key);
 if (loginResult) {
     console.log("Login successful!", loginResult.access_token);
 }
@@ -317,11 +381,12 @@ if (loginResult) {
 ### 已登录设备确认登录
 
 ```typescript
-// 从二维码获取 session_id
+// 从二维码获取 session_id 和 session_key
 const sessionId = "session_id_from_qr_code";
+const sessionKey = "session_key_from_qr_code";
 
 // 连接到会话
-await rendezvousManager.connectToSession(sessionId);
+await rendezvousManager.connectToSession(sessionId, sessionKey);
 
 // 发送确认消息
 await rendezvousManager.sendMessage(sessionId, {
@@ -330,10 +395,10 @@ await rendezvousManager.sendMessage(sessionId, {
         user_id: "@user:example.com",
         device_id: "EXISTING_DEVICE",
     },
-});
+}, sessionKey);
 
 // 完成会话
-await rendezvousManager.updateSession(sessionId, "completed");
+await rendezvousManager.updateSession(sessionId, "completed", sessionKey);
 ```
 
 ---
@@ -344,3 +409,10 @@ await rendezvousManager.updateSession(sessionId, "completed");
 2. **过期时间**: 建议设置较短的过期时间 (5分钟以内)
 3. **一次性使用**: 每个会话只能使用一次，完成后应删除
 4. **传输安全**: 建议使用 HTTPS 确保传输层安全
+
+---
+
+## 代码定位
+
+- 后端路由: `synapse-rust/src/web/routes/rendezvous.rs`
+- SDK 封装: `src/rendezvous/RendezvousManager.ts`

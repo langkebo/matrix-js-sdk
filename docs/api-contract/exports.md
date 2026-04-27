@@ -26,6 +26,7 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./models/room`            | Room 模型白名单：房间实体与状态/计数相关类型                    | `RoomEvent`, `NotificationCountType`, `KNOWN_SAFE_ROOM_VERSION`                            |
 | `./notification`           | Notification 白名单：通知入口（当前仅校验子路径存在）           | `-`                                                                                        |
 | `./push`                   | Push 白名单：推送 manager 与规则/通知类型                       | `PushManager`, `PushEvent`, `IPushRules`                                                   |
+| `./runtime-schemas`        | Runtime Schemas 白名单：运行时 zod schema 与快照解析能力        | `matrixEventWireSchema`, `parseMatrixEventWire`, `createMatrixClientSnapshot`              |
 | `./space`                  | Space 白名单：空间 manager 与空间层级类型                       | `SpaceManager`, `SpaceEvent`, `SpaceHierarchy`                                             |
 | `./store`                  | Store 白名单：存储接口能力                                      | `IStore`, `ISavedSync`, `UserCreator`                                                      |
 | `./timeline-window`        | Timeline 白名单：timeline 窗口能力                              | `TimelineWindow`, `TimelineIndex`                                                          |

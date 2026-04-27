@@ -136,3 +136,12 @@ export class ApiError extends SdkError {
         super(message, code, statusCode, cause);
     }
 }
+
+/**
+ * Validation error - thrown when input validation fails
+ */
+export class ValidationError extends SdkError {
+    public constructor(message: string, cause?: unknown) {
+        super(message, "VALIDATION_ERROR", 400, cause);
+    }
+}

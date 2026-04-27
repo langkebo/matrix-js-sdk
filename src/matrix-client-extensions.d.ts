@@ -24,7 +24,7 @@ import type { SyncApiOptions } from "./sync";
 
 // ============ 类型定义 ============
 
-interface MatrixClientExtensionMethods {
+export interface MatrixClientExtensionMethods {
     // ============ Account & Profile ============
     getAccountManager(): import("./account/index").AccountManager;
     getAccountDataManager(): import("./account-data/index").AccountDataManager;
@@ -120,6 +120,8 @@ interface MatrixClientExtensionMethods {
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getEncryptionRotationManager(): import("./encryption-rotation/index").EncryptionRotationManager;
     getSecurityManager(): import("./security/index").SecurityManager;
+    getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
+    getDeviceTrustManager(): import("./device-trust/index").DeviceTrustManager;
 
     // ============ Sessions & Tokens ============
     getSessionsManager(): import("./sessions/index").SessionsManager;
@@ -150,6 +152,7 @@ interface MatrixClientExtensionMethods {
     // ============ Admin & Moderation ============
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
+    getWorkerAdminManager(): import("./worker-admin/index").WorkerAdminManager;
     getReportingManager(): import("./reporting/index").ReportingManager;
     getInviteBlocklistManager(): import("./invite-blocklist/index").InviteBlocklistManager;
 
@@ -163,6 +166,7 @@ interface MatrixClientExtensionMethods {
 
     // ============ Widgets & Integrations ============
     getWidgetsManager(): import("./widgets/index").WidgetsManager;
+    getWidgetManager(): import("./widget/index").WidgetManager;
     getGroupCallManager(): import("./group-management/index").GroupCallManager;
 
     // ============ Scheduled Events ============
@@ -181,16 +185,25 @@ interface MatrixClientExtensionMethods {
     getLifecycleManager(): import("./lifecycle/index").LifecycleManager;
     getPowerLevelsManager(): import("./power-levels/index").PowerLevelsManager;
     getMembershipManager(): import("./membership/index").MembershipManager;
-    getNotificationsLegacyManager(): import("./notifications-legacy/index").NotificationsLegacyManager;
     getSettledManager(): import("./settled/index").SettledManager;
     getEditionsManager(): import("./editions/index").EditionsManager;
     getPendingActionsManager(): import("./pending-actions/index").PendingActionsManager;
     getReadReceiptsManager(): import("./read-receipts/index").ReadReceiptsManager;
     getKeyBackupManager(): import("./key-backup/index").KeyBackupManager;
+    getKeyRotationManager(): import("./key-rotation/index").KeyRotationManager;
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
     getRenderingManager(): import("./rendering/index").RenderingManager;
     getStickyEventManager(): import("./sticky-event/index").StickyEventManager;
     getVoiceManager(): import("./voice/index").VoiceMessageManager;
+    getQrLoginManager(): import("./qr-login/index").QrLoginManager;
+    getOidcManager(): import("./oidc/manager").OidcManager;
+    getTelemetryManager(
+        config?: Partial<import("./telemetry/index").TelemetryConfig>,
+    ): import("./telemetry/index").TelemetryManager;
+    getRendezvousManager(): import("./rendezvous/RendezvousManager").RendezvousManager;
+    getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
+    getStateSendManager(): import("./state-send/index").StateSendManager;
+    getUserReportManager(): import("./user-report/index").UserReportManager;
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
 }
@@ -202,7 +215,7 @@ interface MatrixClientExtensionMethods {
  * 管理器通过 (this.client as any) 访问这些成员，
  * 通过在扩展接口中声明它们，可以消除大部分 as any 用法。
  */
-interface MatrixClientInternalMethods {
+export interface MatrixClientInternalMethods {
     // ============ Credentials & Identity ============
     readonly credentials: { userId: string | null };
     readonly deviceId: string | null;
@@ -300,10 +313,10 @@ interface MatrixClientInternalMethods {
     ): Promise<ISendEventResponse>;
 
     // ============ Room Settings (phantom methods used by RoomSettingsManager) ============
-    setRoomAvatar(roomId: string, avatarUrl: string): Promise<any>;
-    setRoomHistoryVisibility(roomId: string, visibility: string): Promise<any>;
-    setRoomGuestAccess(roomId: string, allow: boolean): Promise<any>;
-    setRoomJoinRule(roomId: string, joinRule: string): Promise<any>;
+    setRoomAvatar(roomId: string, avatarUrl: string): Promise<void>;
+    setRoomHistoryVisibility(roomId: string, visibility: string): Promise<void>;
+    setRoomGuestAccess(roomId: string, allow: boolean): Promise<void>;
+    setRoomJoinRule(roomId: string, joinRule: string): Promise<void>;
     getRoomHistoryVisibility(roomId: string): string;
     getRoomGuestAccess(roomId: string): string;
     getRoomJoinRule(roomId: string): string;
@@ -385,6 +398,13 @@ interface MatrixClientInternalMethods {
     deleteCryptoStore(): Promise<void>;
     isCryptoStoreReady(): boolean;
     isSecretStorageReady(): boolean;
+
+    // ============ User Directory & Profile ============
+    searchUserDirectory(opts: { term: string; limit?: number }): Promise<{
+        results: Array<{ user_id: string; display_name?: string; avatar_url?: string }>;
+        limited: boolean;
+    }>;
+    getProfile(userId: string): Promise<{ displayname?: string; avatar_url?: string }>;
     getSecretStorageKey(keyId: string): Promise<[string, string] | null>;
     storeSecret(name: string, secret: string, keys: string[]): Promise<void>;
     getSecret(name: string): Promise<string | null>;

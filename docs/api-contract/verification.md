@@ -29,6 +29,8 @@
 | POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_key_agreement` | v1/r0 | `transaction_id` `pubkey`                                        | `transaction_id` `confirmed` `short_authentication_string`                                           |
 | POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_mac`           | v1/r0 | `transaction_id` `mac`                                           | `transaction_id` `verified`                                                                          |
 | POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_done`          | v1/r0 | `transaction_id`                                                 | `transaction_id`                                                                                     |
+| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_cancel`        | v1/r0 | `transaction_id` `reason?`                                       | `transaction_id` `cancelled`                                                                         |
+| GET  | `/_matrix/client/{v1,r0}/keys/device_signing/requests`             | v1/r0 | 无                                                               | `requests`                                                                                           |
 
 ## 二维码校验
 
@@ -43,6 +45,8 @@
 - `PUT /keys/device_signing/verify_accept`: 接受 SAS 验证后，返回同一事务的协商结果和可选 `commitment`。
 - `POST /keys/device_signing/verify_key_agreement`: 用对端公钥生成 SAS 展示内容；若底层生成的是 emoji，响应里还会附带三段 decimal points。
 - `POST /keys/device_signing/verify_mac`: 用 MAC 确认 SAS；成功返回 `{ "transaction_id": "...", "verified": true|false }`。
+- `POST /keys/device_signing/verify_cancel`: 取消已存在的验证事务；成功返回 `{ "transaction_id": "...", "cancelled": true }`。
+- `GET /keys/device_signing/requests`: 列出当前用户可见的验证请求摘要。
 - `GET /keys/qr_code/show`: 返回用于展示二维码的设备公钥材料，不直接返回图片。
 - `POST /keys/qr_code/scan`: 当前成功响应固定返回 `{ "transaction_id": "...", "state": "pending" }`。
 

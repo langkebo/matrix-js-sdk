@@ -17,11 +17,20 @@ limitations under the License.
 /**
  * User Presence Manager - 用户在线状态管理
  *
- * 提供用户在线状态相关功能
+ * 对接后端: synapse-rust/src/web/routes/presence.rs
+ * 后端提供:
+ *   - PUT  /presence/{userId}/status     (设置用户在线状态)
+ *   - GET  /presence/{userId}/status     (获取用户在线状态)
+ *   - POST /presence/list                (订阅在线状态列表)
  */
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
+import { encodeUri } from "../utils";
 
 export interface IPresenceResponse {
     presence: string;
@@ -37,66 +46,114 @@ export interface ICachedPresence {
     currentlyActive?: boolean;
 }
 
+export type PresenceState = "online" | "offline" | "unavailable" | "busy";
+
 export interface UserPresenceManagerEvents {
-    presence_updated: { userId: string; presence: IPresenceResponse };
-    presence_subscribed: { userIds: string[] };
+    presence_updated: (payload: { userId: string; presence: IPresenceResponse }) => void;
+    presence_subscribed: (payload: { userIds: string[] }) => void;
 }
 
+const VALID_PRESENCE_STATES: PresenceState[] = ["online", "offline", "unavailable", "busy"];
+
 export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEvents, UserPresenceManagerEvents> {
+    private presenceCache: Map<string, ICachedPresence> = new Map();
+
     constructor(client: MatrixClient) {
         super(client);
     }
 
     public async getUserPresence(userId: string): Promise<IPresenceResponse> {
-        return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getUserPresence: (userId: string) => Promise<IPresenceResponse>;
-                    }
-                ).getUserPresence(userId),
-            "getUserPresence",
-        );
+        if (!userId) {
+            throw new InvalidParamError("userId is required");
+        }
+
+        return this.withRetry(async () => {
+            const path = encodeUri("/presence/$userId/status", { $userId: userId });
+            const response = await this.client.http.authedRequest<IPresenceResponse>(
+                Method.Get,
+                path,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+
+            this.presenceCache.set(userId, {
+                presence: response.presence,
+                lastActiveAgo: response.last_active_ago,
+                statusMsg: response.status_msg,
+                currentlyActive: response.currently_active,
+            });
+
+            this.emit("presence_updated", { userId, presence: response });
+            return response;
+        }, "getUserPresence");
     }
 
-    public async setPresence(presence: string, statusMsg?: string): Promise<{}> {
-        return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        setPresence: (presence: string, statusMsg?: string) => Promise<{}>;
-                    }
-                ).setPresence(presence, statusMsg),
-            "setPresence",
-        );
+    public async setPresence(presence: PresenceState, statusMsg?: string): Promise<{}> {
+        if (!presence) {
+            throw new InvalidParamError("presence is required");
+        }
+        if (!VALID_PRESENCE_STATES.includes(presence)) {
+            throw new InvalidParamError(`Invalid presence state. Valid values: ${VALID_PRESENCE_STATES.join(", ")}`);
+        }
+
+        return this.withRetry(async () => {
+            const userId = this.client.getUserId();
+            if (!userId) {
+                throw new InvalidParamError("User is not logged in");
+            }
+
+            const path = encodeUri("/presence/$userId/status", { $userId: userId });
+            const body: Record<string, unknown> = { presence };
+            if (statusMsg !== undefined) {
+                body.status_msg = statusMsg;
+            }
+
+            const response = await this.client.http.authedRequest<{}>(
+                Method.Put,
+                path,
+                undefined,
+                body,
+                { prefix: ClientPrefix.V3 },
+            );
+
+            this.presenceCache.set(userId, {
+                presence,
+                statusMsg,
+            });
+
+            return response;
+        }, "setPresence");
     }
 
     public getCachedPresence(userId: string): ICachedPresence | null {
-        return (
-            this.client as unknown as {
-                getCachedPresence: (userId: string) => ICachedPresence | null;
-            }
-        ).getCachedPresence(userId);
+        return this.presenceCache.get(userId) ?? null;
     }
 
     public isPresenceAvailable(): boolean {
-        return (
-            this.client as unknown as {
-                isPresenceAvailable: () => boolean;
-            }
-        ).isPresenceAvailable();
+        return this.client.isGuest() === false;
     }
 
     public async subscribeToPresence(userIds: string[]): Promise<void> {
-        return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        subscribeToPresence: (userIds: string[]) => Promise<void>;
-                    }
-                ).subscribeToPresence(userIds),
-            "subscribeToPresence",
-        );
+        if (!userIds || userIds.length === 0) {
+            throw new InvalidParamError("userIds is required and must be non-empty");
+        }
+
+        return this.withRetry(async () => {
+            await this.client.http.authedRequest<void>(
+                Method.Post,
+                "/presence/list",
+                undefined,
+                { user_ids: userIds },
+                { prefix: ClientPrefix.V3 },
+            );
+
+            this.emit("presence_subscribed", { userIds });
+        }, "subscribeToPresence");
+    }
+
+    public clearPresenceCache(): void {
+        this.presenceCache.clear();
     }
 }
 

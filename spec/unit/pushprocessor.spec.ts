@@ -295,7 +295,7 @@ describe("NotificationService", function () {
     it("should gracefully handle bad input.", function () {
         // The following body is an object (not a string) and thus is invalid
         // for matching against.
-        testEvent.event.content!.body = { foo: "bar" };
+        (testEvent.event.content as { body?: unknown }).body = { foo: "bar" };
         const actions = pushProcessor.actionsForEvent(testEvent);
         expect(actions.tweaks.highlight).toEqual(false);
     });

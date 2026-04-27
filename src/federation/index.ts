@@ -72,10 +72,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     /**
      * 获取联邦黑名单
      *
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 黑名单列表
      */
-    async getBlacklist(throwOnError = false): Promise<IBlacklistEntry[]> {
+    async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
         return this.client.http
             .authedRequest<{
                 blacklist?: IBlacklistEntry[];
@@ -157,7 +157,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             return true;
         }
 
-        await this.getBlacklist();
+        await this.getBlacklist(false);
         return this.blacklist.has(serverName);
     }
 
@@ -165,10 +165,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * 获取服务器状态
      *
      * @param serverName - 服务器名称
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 服务器状态
      */
-    async getServerStatus(serverName: string, throwOnError = false): Promise<IFederationStatus | null> {
+    async getServerStatus(serverName: string, throwOnError = true): Promise<IFederationStatus | null> {
         if (!serverName) {
             throw new Error("Server name is required");
         }
@@ -203,10 +203,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     /**
      * 获取联邦目的地列表
      *
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 目的地列表
      */
-    async getFederationDestinations(throwOnError = false): Promise<IFederationServer[]> {
+    async getFederationDestinations(throwOnError = true): Promise<IFederationServer[]> {
         return this.client.http
             .authedRequest<{
                 destinations?: IFederationServer[];
@@ -272,10 +272,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * 获取服务器版本
      *
      * @param serverName - 服务器名称
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 服务器版本
      */
-    async getServerVersion(serverName: string, throwOnError = false): Promise<{ version: string } | null> {
+    async getServerVersion(serverName: string, throwOnError = true): Promise<{ version: string } | null> {
         if (!serverName) {
             throw new Error("Server name is required");
         }
@@ -356,7 +356,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (this.initialized) return;
 
         try {
-            await this.getBlacklist();
+            await this.getBlacklist(false);
             this.initialized = true;
         } catch (e) {
             const error = this.normalizeError(e, "start");
@@ -381,10 +381,10 @@ export class FederationBlacklistManager extends BaseManager<FederationEvent, Fed
     /**
      * 获取联邦黑名单
      *
-     * @param throwOnError - 是否抛出错误（默认 false，向后兼容）
+     * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 黑名单列表
      */
-    async getBlacklist(throwOnError = false): Promise<IBlacklistEntry[]> {
+    async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
         return this.client.http
             .authedRequest<{
                 blacklist?: IBlacklistEntry[];
