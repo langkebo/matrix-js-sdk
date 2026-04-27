@@ -2,216 +2,161 @@
 
 > 更新日期: 2026-04-27  
 > Phase 1 状态: ✅ 已完成  
-> 当前阶段: 准备启动 Phase 2
+> 当前阶段: Phase 2 / Phase 3 并行推进
 
 ---
 
 ## 🎯 立即行动（本周）
 
-### 1. Key Backup SDK 封装（P0 - 最高优先级）
+### 1. 修正文档与实现脱节的高优先级模块
 
-**目标**: 从 0% 提升至 50%
+**当前已确认的偏差**:
+- `typing.md` 仍写 33%，但 `MatrixClient` 已有 `sendTyping()`、`getRoomTyping()`、`getBatchTyping()`
+- `relations.md` 已修正一处发送关系事件路径错误，但覆盖率描述仍需结合当前 SDK 能力继续复核
+- `moderation.md` 仍写 25%，但 `MatrixClient` 已有 `scoreReport()`、`getScannerInfo()`、`reportRoom()`
+- `external-service.md`、`burn-after-read.md`、`ai-connection.md` 仍写 0%，但仓库中已存在对应 Manager 与 HTTP 封装
 
-**Week 5 任务**:
-```typescript
-// src/key-backup/KeyBackupManager.ts
-export class KeyBackupManager extends BaseManager {
-  // 版本管理（4个方法）
-  async createBackupVersion(params: CreateBackupParams): Promise<BackupVersion>;
-  async getBackupVersion(version?: string): Promise<BackupVersion | null>;
-  async updateBackupVersion(version: string, params: UpdateBackupParams): Promise<void>;
-  async deleteBackupVersion(version: string): Promise<void>;
-}
-```
+**本周目标**:
+- 逐个复核上述模块的 `SDK 对齐状态`
+- 更新覆盖率、已知差异和示例路径
+- 对已存在实现补充必要的测试说明，避免继续把“文档缺口”误判成“代码缺口”
 
-**验收标准**:
-- ✅ 4个方法实现完成
-- ✅ 完整的 TypeScript 类型定义
-- ✅ 单元测试覆盖率 > 80%
-- ✅ JSDoc 文档完整
+### 2. 扩大契约自动校验覆盖范围
 
-### 2. 更新契约文档
+**当前已完成**:
+- `pnpm quality:sdk-contracts` 已接入质量门禁
+- 已支持 `SDK 对齐表 -> SDK 实际请求路径 -> synapse-rust 路由文件` 三方交叉校验
+- 已覆盖 18 份带 `SDK 对齐状态` 且带 `> 后端代码:` 的契约文档
 
-**需要更新的文档**:
-- `key-backup.md` - 更新 SDK 对齐状态
-- `contract-version.yml` - 更新版本号
-- `PROGRESS_REPORT.md` - 更新进度
+**下一步目标**:
+- 让更多契约文档进入自动校验链，而不只依赖 `SDK 对齐状态` 表
+- 继续增强对 `nest()` / 局部 router 复用模式的解析鲁棒性
+- 把“文档端点存在但 SDK 未封装”与“文档写错但代码已存在”明确区分
 
-### 3. 启动自动化验证工具原型
+### 3. 补强真实缺口对应的测试
 
-**Week 5 目标**:
-```typescript
-// scripts/contract-validator.ts
-interface ValidationResult {
-  module: string;
-  coverage: number;
-  missing: string[];
-  mismatched: string[];
-}
+**已确认的测试薄弱点**:
+- `getRoomTyping()` / `getBatchTyping()` 暂未检索到直接单测
+- `getAggregations()` 暂未检索到直接单测
+- `scoreReport()` / `getScannerInfo()` 暂未检索到直接单测
+- `KeyRotationManager` 仍建议补充真实后端集成验证，确认返回体字段与 synapse-rust 保持一致
 
-async function validateContracts(): Promise<ValidationResult[]> {
-  // 解析契约文档
-  // 扫描 SDK 方法
-  // 生成对比报告
-}
-```
+**本周目标**:
+- 为上述高频 HTTP 封装补充针对性的单测
+- 优先选择能降低回归风险的用例，而不是重复实现细节的低价值测试
 
 ---
 
-## 📅 两周计划（Week 5-6）
+## 📅 两周计划
 
-### Week 5: Key Backup 核心功能
+### Week 1: 文档纠偏优先
 
-**Day 1-2**: 设计与接口定义
-- 定义 KeyBackupManager 接口
-- 设计类型定义
-- 编写 JSDoc 文档
+**Day 1-2**
+- 复核 `typing.md`
+- 复核 `relations.md`
+- 复核 `moderation.md`
 
-**Day 3-4**: 实现版本管理
-- createBackupVersion()
-- getBackupVersion()
-- updateBackupVersion()
-- deleteBackupVersion()
+**Day 3-4**
+- 复核 `external-service.md`
+- 复核 `burn-after-read.md`
+- 复核 `ai-connection.md`
 
-**Day 5**: 测试与文档
-- 编写单元测试
-- 更新契约文档
-- 代码审查
+**Day 5**
+- 更新 `PROJECT_STATUS_FINAL.md` / `PROJECT_HANDOVER.md` / `PROGRESS_REPORT.md` 中的相关口径
+- 运行 `pnpm quality:contracts`
 
-### Week 6: Key Backup 密钥操作
+### Week 2: 自动化与测试扩面
 
-**Day 1-3**: 实现密钥上传/下载
-- uploadKeys()
-- getKeys()
-- deleteKeys()
+**Day 1-2**
+- 扩大 `check-sdk-contract-alignment.mjs` 的文档纳入范围
+- 评估是否增加“未带 SDK 对齐表的文档”校验入口
 
-**Day 4-5**: 测试与集成
-- 单元测试
-- 集成测试
-- 文档更新
+**Day 3-4**
+- 为 `typing` / `relations` / `moderation` 新增直接单测
+- 复核真实后端测试是否需要补 Key Rotation 响应体验证
 
-**目标**: Key Backup 覆盖率达到 50%
+**Day 5**
+- 汇总剩余真实代码缺口
+- 重新排序 Phase 2 实施优先级
 
 ---
 
-## 🔄 并行任务
+## 🔄 当前真实优先级
 
-### Phase 4: 工程化改进（持续）
+### P0
+- 修正契约文档中把“已实现能力”写成“未实现”的偏差
+- 保持自动化校验持续可运行，避免后续再引入路径级错误
+- 补齐高频客户端 HTTP 包装方法的直接测试
 
-**本周任务**:
-1. ✅ 完成契约文档索引
-2. ✅ 完成审计报告索引
-3. ✅ 建立版本管理机制
-4. ⏳ CHANGELOG 结构化
-5. ⏳ 自动化验证工具原型
+### P1
+- 收敛 `Event Report`、`Telemetry`、`Module` 等仍需进一步核实的真实 SDK 缺口
+- 把更多契约文档纳入自动化校验
+- 统一各文档对“直接实现 / 间接实现 / 本地能力”的状态标注
 
-**下周任务**:
-1. 实现契约解析器
-2. 实现 SDK 方法扫描器
-3. 生成对比报告
+### P2
+- 继续推进契约版本管理与结构化变更追踪
+- 评估从后端路由自动生成契约 inventory 的可行性
 
 ---
 
-## 📊 进度追踪
+## 📊 现状快照
 
-### Phase 完成度目标
+### 已完成
+- 契约文档体系已建立
+- `KeyRotationManager` 已实现并补充单测
+- `quality:sdk-contracts` 已落地并接入总质量门禁
+- `relations.md` 已依据自动校验结果修正一处端点路径错误
 
-| Phase | 当前 | Week 6 目标 | Week 10 目标 |
-|-------|------|------------|-------------|
-| Phase 1 | 100% | 100% | 100% |
-| Phase 2 | 0% | 15% | 100% |
-| Phase 3 | 0% | 5% | 100% |
-| Phase 4 | 60% | 80% | 100% |
+### 已确认仍需处理
+- 多份契约文档覆盖率口径落后于当前仓库实现
+- 部分新增客户端方法缺少直连单测
+- 自动校验范围仍主要聚焦于带 `SDK 对齐状态` 的文档
 
-### SDK 封装覆盖率目标
-
-| 模块 | 当前 | Week 6 | Week 10 |
-|------|------|--------|---------|
-| Key Rotation | 100% | 100% | 100% |
-| Key Backup | 0% | 50% | 90% |
-| Typing | 33% | 33% | 100% |
-| Relations | 60% | 60% | 100% |
-| Moderation | 25% | 25% | 75% |
-| Event Report | 0% | 0% | 100% |
+### 暂不再作为最高优先级
+- `Key Backup` 从零实现
+- 自动化验证工具原型搭建
 
 ---
 
 ## 🚨 风险与依赖
 
-### 风险识别
+### 主要风险
 
-1. **Key Backup 实现复杂度**
-   - 风险: 实现时间可能超出预期
-   - 缓解: 分阶段交付，先核心后扩展
+1. **文档口径继续滞后**
+   - 风险: 团队依据错误覆盖率做排期，造成重复实现
+   - 缓解: 先做高优先级文档纠偏，再推进新增封装
 
-2. **后端 API 变更**
-   - 风险: 后端可能调整 API
-   - 缓解: 建立变更通知机制
+2. **测试表象通过但真实契约偏移**
+   - 风险: SDK 方法存在，但路径或响应结构已偏离后端
+   - 缓解: 持续依赖 `pnpm quality:contracts` 和真实后端集成测试
 
-3. **测试覆盖不足**
-   - 风险: 新代码测试不充分
-   - 缓解: 强制 80% 覆盖率要求
+3. **计划文档与当前仓库状态脱节**
+   - 风险: 后续交接继续沿用旧优先级
+   - 缓解: 优先维护 `NEXT_STEPS.md`、`PROJECT_HANDOVER.md`、`PROJECT_STATUS_FINAL.md`
 
 ### 依赖项
 
-- ✅ 契约文档已完成
-- ✅ 优先级已明确
-- ⏳ 后端 API 稳定性确认
-- ⏳ 测试环境准备
-
----
-
-## 📞 协作与沟通
-
-### 需要协调的事项
-
-1. **与后端团队**
-   - 确认 Key Backup API 稳定性
-   - 获取测试环境访问权限
-   - 建立变更通知机制
-
-2. **与测试团队**
-   - 准备集成测试环境
-   - 制定测试计划
-   - 确定验收标准
-
-3. **与产品团队**
-   - 确认功能优先级
-   - 评审 API 设计
-   - 规划发布时间
-
-### 每日站会议题
-
-- 昨天完成了什么？
-- 今天计划做什么？
-- 遇到什么阻碍？
-- 需要什么支持？
+- ✅ 契约文档目录已建立
+- ✅ 自动化校验首版已可运行
+- ✅ 后端路由文件可访问并可用于交叉验证
+- ⏳ 需要继续补充真实后端集成验证覆盖
 
 ---
 
 ## ✅ 检查清单
 
-### 开始 Week 5 前
+### 每次修改契约文档后
 
-- [ ] 审查 Key Backup 契约文档
-- [ ] 准备开发环境
-- [ ] 创建功能分支
-- [ ] 设置任务追踪
+- [ ] 重新运行 `pnpm quality:sdk-contracts`
+- [ ] 必要时运行 `pnpm quality:contracts`
+- [ ] 复核 `> 后端代码:` 是否仍指向正确 route 文件
+- [ ] 复核 `SDK 对齐状态` 是否与源码和测试现状一致
 
-### 每日检查
+### 每次新增 SDK HTTP 方法后
 
-- [ ] 代码提交并推送
-- [ ] 单元测试通过
-- [ ] 代码审查完成
-- [ ] 文档同步更新
-
-### Week 5 结束前
-
-- [ ] 4个方法实现完成
-- [ ] 测试覆盖率 > 80%
-- [ ] 代码审查通过
-- [ ] 契约文档更新
-- [ ] 进度报告更新
+- [ ] 补充最小但有效的单测
+- [ ] 更新对应契约文档
+- [ ] 重新跑契约自动校验
 
 ---
 
@@ -219,19 +164,19 @@ async function validateContracts(): Promise<ValidationResult[]> {
 
 ### 相关文档
 
-1. `docs/SDK_CONTRACT_OPTIMIZATION_PLAN_2026-04-27.md` - 完整方案
-2. `docs/api-contract/key-backup.md` - Key Backup 契约
-3. `docs/api-contract/CONTRACT_INDEX.md` - 模块索引
-4. `docs/api-contract/AUDIT_INDEX.md` - 审计状态
+1. `docs/SDK_CONTRACT_OPTIMIZATION_PLAN_2026-04-27.md` - 原始优化方案
+2. `docs/PROJECT_HANDOVER.md` - 当前交接状态
+3. `docs/PROJECT_STATUS_FINAL.md` - 当前最终状态口径
+4. `docs/api-contract/CONTRACT_INDEX.md` - 模块索引
+5. `docs/api-contract/PROGRESS_REPORT.md` - 进度追踪
 
-### 技术参考
+### 质量入口
 
-- Matrix Specification: https://spec.matrix.org/
-- Rust Crypto API: `@matrix-org/matrix-sdk-crypto-wasm`
-- TypeScript 最佳实践: 项目 CLAUDE.md
+- `pnpm quality:sdk-contracts`
+- `pnpm quality:contracts`
 
 ---
 
 **负责人**: SDK Core Team  
-**更新频率**: 每日  
-**下次审查**: 2026-05-04
+**更新频率**: 按阶段更新  
+**下次审查**: 完成本轮文档纠偏后

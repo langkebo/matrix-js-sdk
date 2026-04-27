@@ -36,6 +36,7 @@
         "quality:exports": "node scripts/quality/check-exports-docs.mjs",
         "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
         "quality:sdk-contracts": "node scripts/quality/check-sdk-contract-alignment.mjs",
+        "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
         "quality:swallow-fallbacks": "node scripts/quality/check-swallow-fallbacks.mjs",
         "quality:debt-markers": "node scripts/quality/scan-technical-debt.mjs",
         "quality:log-sensitive": "node scripts/quality/check-log-sensitive.mjs",
