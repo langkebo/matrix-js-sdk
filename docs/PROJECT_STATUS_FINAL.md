@@ -139,6 +139,11 @@
 - 无复杂的加密或状态管理逻辑
 - 预计 6 周可完成 Phase 2
 
+### 4. 自动化验证已起步
+- `scripts/quality/check-sdk-contract-alignment.mjs` 已接入 `pnpm quality:sdk-contracts`
+- 当前已支持 SDK 符号解析、请求路径归因、后端路由文件与契约端点的路径级对齐校验
+- 已基于真实校验结果修正 `relations.md` 中一处将通用 `sendEvent()` 路径误写为 relations 专用路由的问题
+
 ---
 
 ## 📁 文档体系完整性
@@ -220,7 +225,7 @@ async scoreReport(roomId: string, eventId: string, score: number): Promise<void>
 |-------|------|--------|------|
 | Phase 1 | ✅ 完成 | 100% | 契约文档全部完成 |
 | Phase 2 | 🔄 准备中 | 0% | 优先级已调整 |
-| Phase 3 | ⏳ 待启动 | 0% | 自动化验证 |
+| Phase 3 | 🔄 进行中 | 35% | 首版 SDK 契约自动化验证已落地，正扩展后端路由覆盖 |
 | Phase 4 | 🔄 并行中 | 60% | 工程化改进 |
 
 ### 团队准备度
@@ -246,8 +251,8 @@ async scoreReport(roomId: string, eventId: string, score: number): Promise<void>
 ### 改进建议
 
 1. **提前调研**: 下次应先调研现有实现再制定计划
-2. **持续同步**: 建立契约文档与代码的同步机制
-3. **自动化验证**: 尽快实现自动化验证工具
+2. **持续同步**: 继续把更多契约文档纳入自动校验，减少人工回归
+3. **自动化验证**: 从当前“带 SDK 对齐表的文档”扩展到更多后端模块
 4. **团队协作**: 加强与后端团队的沟通
 
 ---

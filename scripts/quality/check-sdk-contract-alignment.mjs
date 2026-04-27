@@ -7,6 +7,7 @@ import ts from "typescript";
 const projectRoot = process.cwd();
 const docsRoot = path.join(projectRoot, "docs", "api-contract");
 const srcRoot = path.join(projectRoot, "src");
+const synapseRoot = path.resolve(projectRoot, "..", "synapse-rust");
 const stepSummaryPath = process.env.GITHUB_STEP_SUMMARY;
 const PREFIX_MAP = {
     "ClientPrefix.V1": "/_matrix/client/v1",
@@ -596,6 +597,7 @@ function collectTraceIndex(files) {
         const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
         const imports = new Map();
         const functions = new Map();
+        const reExports = new Map();
 
         function addClassMethod(owner, methodName, node) {
             const owners = classIndex.get(owner) ?? new Map();
@@ -623,6 +625,23 @@ function collectTraceIndex(files) {
                 }
             }
 
+            if (
+                ts.isExportDeclaration(statement) &&
+                statement.exportClause &&
+                ts.isNamedExports(statement.exportClause) &&
+                statement.moduleSpecifier &&
+                ts.isStringLiteral(statement.moduleSpecifier)
+            ) {
+                const resolved = resolveImportTarget(filePath, statement.moduleSpecifier.text);
+                if (!resolved) continue;
+                for (const element of statement.exportClause.elements) {
+                    reExports.set(element.name.text, {
+                        filePath: resolved,
+                        exportedName: element.propertyName?.text ?? element.name.text,
+                    });
+                }
+            }
+
             if (ts.isFunctionDeclaration(statement) && statement.name?.text) {
                 functions.set(statement.name.text, statement);
             }
@@ -642,6 +661,7 @@ function collectTraceIndex(files) {
             sourceFile,
             imports,
             functions,
+            reExports,
         });
     }
 
@@ -649,6 +669,29 @@ function collectTraceIndex(files) {
         fileContexts,
         classIndex,
     };
+}
+
+function resolveExportedFunctionReference(filePath, exportedName, traceIndex, visited = new Set()) {
+    const key = `${filePath}:${exportedName}`;
+    if (visited.has(key)) return null;
+    visited.add(key);
+
+    const fileContext = traceIndex.fileContexts.get(filePath);
+    if (!fileContext) return null;
+
+    const localFunction = fileContext.functions.get(exportedName);
+    if (localFunction) {
+        return {
+            fileContext,
+            node: localFunction,
+            ownerKey: `fn:${filePath}:${exportedName}`,
+        };
+    }
+
+    const reExport = fileContext.reExports.get(exportedName);
+    if (!reExport) return null;
+
+    return resolveExportedFunctionReference(reExport.filePath, reExport.exportedName, traceIndex, visited);
 }
 
 function collectMethodIndex() {
@@ -696,17 +739,14 @@ function traceRequestsFromCallable(node, fileContext, traceIndex, ownerKey, visi
         const importRef = currentFileContext.imports.get(localName);
         if (!importRef) return [];
 
-        const importedContext = traceIndex.fileContexts.get(importRef.filePath);
-        if (!importedContext) return [];
-
-        const importedFn = importedContext.functions.get(importRef.exportedName);
-        if (!importedFn) return [];
+        const resolved = resolveExportedFunctionReference(importRef.filePath, importRef.exportedName, traceIndex);
+        if (!resolved) return [];
 
         return traceRequestsFromCallable(
-            importedFn,
-            importedContext,
+            resolved.node,
+            resolved.fileContext,
             traceIndex,
-            `fn:${importedContext.filePath}:${importRef.exportedName}`,
+            resolved.ownerKey,
             visited,
         );
     }
@@ -969,6 +1009,264 @@ function parseDocumentedEndpoints(filePath) {
     return endpoints;
 }
 
+function parseBackendCodePath(filePath) {
+    const content = fs.readFileSync(filePath, "utf8");
+    const match = content.match(/^>\s*后端代码:\s*`([^`]+)`/m);
+    if (!match) return undefined;
+
+    const rawPath = match[1].trim();
+    if (path.isAbsolute(rawPath)) return rawPath;
+    if (rawPath.startsWith("synapse-rust/")) {
+        return path.resolve(projectRoot, "..", rawPath);
+    }
+    return path.resolve(path.dirname(filePath), rawPath);
+}
+
+function findMatchingDelimiter(input, openIndex, openChar = "(", closeChar = ")") {
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+
+    for (let index = openIndex; index < input.length; index += 1) {
+        const char = input[index];
+
+        if (quote) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (char === "\\") {
+                escaped = true;
+                continue;
+            }
+            if (char === quote) {
+                quote = null;
+            }
+            continue;
+        }
+
+        if (char === '"' || char === "'") {
+            quote = char;
+            continue;
+        }
+
+        if (char === openChar) {
+            depth += 1;
+            continue;
+        }
+
+        if (char === closeChar) {
+            depth -= 1;
+            if (depth === 0) {
+                return index;
+            }
+        }
+    }
+
+    return -1;
+}
+
+function splitTopLevelArgs(input) {
+    let depthParen = 0;
+    let depthBrace = 0;
+    let depthBracket = 0;
+    let quote = null;
+    let escaped = false;
+
+    for (let index = 0; index < input.length; index += 1) {
+        const char = input[index];
+
+        if (quote) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (char === "\\") {
+                escaped = true;
+                continue;
+            }
+            if (char === quote) {
+                quote = null;
+            }
+            continue;
+        }
+
+        if (char === '"' || char === "'") {
+            quote = char;
+            continue;
+        }
+
+        if (char === "(") depthParen += 1;
+        else if (char === ")") depthParen -= 1;
+        else if (char === "{") depthBrace += 1;
+        else if (char === "}") depthBrace -= 1;
+        else if (char === "[") depthBracket += 1;
+        else if (char === "]") depthBracket -= 1;
+        else if (char === "," && depthParen === 0 && depthBrace === 0 && depthBracket === 0) {
+            return [input.slice(0, index).trim(), input.slice(index + 1).trim()];
+        }
+    }
+
+    return [input.trim(), ""];
+}
+
+function parseRustStringLiteral(input) {
+    const trimmed = input.trim();
+    const match = trimmed.match(/^"([^"]*)"$/s);
+    return match ? match[1] : undefined;
+}
+
+function parseRustRouterFunctions(filePath) {
+    const source = fs.readFileSync(filePath, "utf8");
+    const functions = new Map();
+    const fnPattern = /(?:pub\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([\s\S]*?\)\s*->\s*Router(?:<[^>]+>)?\s*\{/g;
+    let match;
+
+    while ((match = fnPattern.exec(source)) !== null) {
+        const name = match[1];
+        const braceIndex = source.indexOf("{", match.index);
+        if (braceIndex === -1) continue;
+        const endIndex = findMatchingDelimiter(source, braceIndex, "{", "}");
+        if (endIndex === -1) continue;
+
+        functions.set(name, {
+            body: source.slice(braceIndex + 1, endIndex),
+            isPublic: match[0].includes("pub fn"),
+        });
+        fnPattern.lastIndex = endIndex;
+    }
+
+    return functions;
+}
+
+function extractRustLocalBindings(body) {
+    const bindings = new Map();
+    const pattern = /let(?:\s+mut)?\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);/g;
+    let match;
+
+    while ((match = pattern.exec(body)) !== null) {
+        bindings.set(match[1], match[2].trim());
+    }
+
+    return bindings;
+}
+
+function findRustMethodCalls(body, methodName) {
+    const calls = [];
+    const token = `.${methodName}(`;
+    let index = 0;
+
+    while ((index = body.indexOf(token, index)) !== -1) {
+        const openIndex = index + token.length - 1;
+        const closeIndex = findMatchingDelimiter(body, openIndex, "(", ")");
+        if (closeIndex === -1) break;
+        calls.push(body.slice(openIndex + 1, closeIndex));
+        index = closeIndex + 1;
+    }
+
+    return calls;
+}
+
+function parseRustRouterReference(expression, bindings) {
+    let current = expression.trim();
+    let safetyCounter = 0;
+
+    while (bindings.has(current) && safetyCounter < 10) {
+        current = bindings.get(current);
+        safetyCounter += 1;
+    }
+
+    const cloneMatch = current.match(/^([A-Za-z_][A-Za-z0-9_]*)\.clone\(\)$/);
+    if (cloneMatch) {
+        return parseRustRouterReference(cloneMatch[1], bindings);
+    }
+
+    const callMatch = current.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
+    if (callMatch) return callMatch[1];
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(current) && bindings.has(current)) {
+        return parseRustRouterReference(bindings.get(current), bindings);
+    }
+
+    return /^[A-Za-z_][A-Za-z0-9_]*$/.test(current) ? current : undefined;
+}
+
+function joinRustRoutePrefix(prefix, routePath) {
+    if (!prefix) return routePath;
+    if (!routePath) return prefix;
+    return `${prefix.replace(/\/$/, "")}/${routePath.replace(/^\//, "")}`;
+}
+
+function extractRustRoutesFromFunction(functionName, functions, visited = new Set()) {
+    if (!functionName || visited.has(functionName)) return [];
+    visited.add(functionName);
+
+    const entry = functions.get(functionName);
+    if (!entry) return [];
+
+    const bindings = extractRustLocalBindings(entry.body);
+    const routes = [];
+
+    for (const call of findRustMethodCalls(entry.body, "route")) {
+        const [pathArg, handlerArg] = splitTopLevelArgs(call);
+        const routePath = parseRustStringLiteral(pathArg);
+        if (!routePath) continue;
+
+        const methods = [...handlerArg.matchAll(/\b(get|post|put|delete|patch)\s*\(/g)].map((item) =>
+            item[1].toUpperCase(),
+        );
+        for (const method of methods) {
+            routes.push({ method, path: routePath });
+        }
+    }
+
+    for (const call of findRustMethodCalls(entry.body, "nest")) {
+        const [prefixArg, routerArg] = splitTopLevelArgs(call);
+        const prefix = parseRustStringLiteral(prefixArg);
+        const routerFn = parseRustRouterReference(routerArg, bindings);
+        if (!prefix || !routerFn) continue;
+
+        const nestedRoutes = extractRustRoutesFromFunction(routerFn, functions, new Set(visited));
+        for (const route of nestedRoutes) {
+            routes.push({
+                method: route.method,
+                path: joinRustRoutePrefix(prefix, route.path),
+            });
+        }
+    }
+
+    return routes;
+}
+
+function extractBackendRoutesFromFile(filePath) {
+    if (!filePath.startsWith(synapseRoot)) {
+        return { ok: false, reason: "backend file is outside synapse-rust workspace", routes: [] };
+    }
+
+    const functions = parseRustRouterFunctions(filePath);
+    const rootName =
+        [...functions.entries()].find(([name, value]) => value.isPublic && /^create_.*router$/.test(name))?.[0] ??
+        [...functions.entries()].find(([_, value]) => value.isPublic)?.[0];
+
+    if (!rootName) {
+        return { ok: false, reason: "no public router factory found", routes: [] };
+    }
+
+    const routes = extractRustRoutesFromFunction(rootName, functions);
+    const unique = new Map();
+
+    for (const route of routes) {
+        if (!route.method || !route.path) continue;
+        unique.set(`${route.method} ${route.path}`, route);
+    }
+
+    return {
+        ok: true,
+        rootName,
+        routes: [...unique.values()],
+    };
+}
+
 function resolveDocumentedCandidates(row, documentedEndpoints) {
     if (!row.endpoint) return [];
 
@@ -987,6 +1285,8 @@ function writeSummary({
     missingPaths,
     unresolvedAttributions = [],
     attributedMismatches = [],
+    backendParseFailures = [],
+    missingBackendRoutes = [],
 }) {
     if (!stepSummaryPath) return;
 
@@ -1002,6 +1302,8 @@ function writeSummary({
     lines.push(`- Missing endpoint coverage: ${missingPaths.length}`);
     lines.push(`- Unresolved method attributions: ${unresolvedAttributions.length}`);
     lines.push(`- Method-path mismatches: ${attributedMismatches.length}`);
+    lines.push(`- Backend route parse failures: ${backendParseFailures.length}`);
+    lines.push(`- Missing backend route coverage: ${missingBackendRoutes.length}`);
     lines.push("");
 
     if (!ok) {
@@ -1014,6 +1316,8 @@ function writeSummary({
         lines.push(`- [ ] Fix missing endpoint coverage: ${missingPaths.length}`);
         lines.push(`- [ ] Fix unresolved method attributions: ${unresolvedAttributions.length}`);
         lines.push(`- [ ] Fix method-path mismatches: ${attributedMismatches.length}`);
+        lines.push(`- [ ] Fix backend route parse failures: ${backendParseFailures.length}`);
+        lines.push(`- [ ] Fix missing backend route coverage: ${missingBackendRoutes.length}`);
         lines.push("");
     }
 
@@ -1053,6 +1357,8 @@ const unresolvedRows = [];
 const missingPaths = [];
 const unresolvedAttributions = [];
 const attributedMismatches = [];
+const backendParseFailures = [];
+const missingBackendRoutes = [];
 
 for (const row of alignedRows) {
     if (!row.reference) {
@@ -1138,13 +1444,54 @@ for (const row of alignedRows) {
     }
 }
 
+const docsWithAlignedRows = [...new Set(alignedRows.map((row) => row.file))];
+for (const relativeDocPath of docsWithAlignedRows) {
+    const absoluteDocPath = path.join(projectRoot, relativeDocPath);
+    const backendFilePath = parseBackendCodePath(absoluteDocPath);
+    if (!backendFilePath || !fs.existsSync(backendFilePath)) {
+        backendParseFailures.push({
+            file: relativeDocPath,
+            reason: "backend code path missing or file not found",
+        });
+        continue;
+    }
+
+    const extracted = extractBackendRoutesFromFile(backendFilePath);
+    if (!extracted.ok) {
+        backendParseFailures.push({
+            file: relativeDocPath,
+            reason: extracted.reason,
+            backendFile: path.relative(projectRoot, backendFilePath),
+        });
+        continue;
+    }
+
+    const documentedEndpoints = documentedEndpointsByFile.get(relativeDocPath) ?? [];
+    for (const endpoint of documentedEndpoints) {
+        const matched = extracted.routes.find(
+            (route) => route.method === endpoint.method && pathsMatchWithWildcards(route.path, endpoint.path),
+        );
+
+        if (!matched) {
+            missingBackendRoutes.push({
+                file: relativeDocPath,
+                line: endpoint.line,
+                endpoint: `${endpoint.method} ${endpoint.path}`,
+                backendFile: path.relative(projectRoot, backendFilePath),
+            });
+        }
+    }
+}
+
 if (
     parseFailures.length ||
     missingMethods.length ||
     pathParseFailures.length ||
     unresolvedRows.length ||
     missingPaths.length ||
-    attributedMismatches.length
+    attributedMismatches.length ||
+    backendParseFailures.length ||
+    missingBackendRoutes.length
 ) {
     console.error("[sdk-contract-alignment] contract alignment check failed");
     if (parseFailures.length) {
@@ -1186,11 +1533,24 @@ if (
             }
         }
     }
+    if (backendParseFailures.length) {
+        console.error("[sdk-contract-alignment] unable to parse backend route files referenced by docs:");
+        for (const item of backendParseFailures) {
+            console.error(`- ${item.file} -> ${item.reason}`);
+        }
+    }
+    if (missingBackendRoutes.length) {
+        console.error("[sdk-contract-alignment] documented endpoints not found in referenced backend route files:");
+        for (const item of missingBackendRoutes) {
+            console.error(`- ${item.file}:${item.line} -> ${item.endpoint} (${item.backendFile})`);
+        }
+    }
     console.error("[sdk-contract-alignment] remediation hints:");
     console.error("- keep `SDK 对齐状态` tables using either `Owner.method()` or split `SDK Manager` / `SDK 方法` columns");
     console.error("- keep `后端端点` rows in `METHOD /path` format and ensure they map to a detailed `**路径**` entry");
     console.error("- update docs when the source symbol name changes");
     console.error("- update docs when a method is implemented via a different backend route than documented");
+    console.error("- keep doc `> 后端代码:` pointers pointing at concrete synapse-rust route files");
     console.error("- re-run: pnpm quality:sdk-contracts");
     writeSummary({
         ok: false,
@@ -1202,6 +1562,8 @@ if (
         missingPaths,
         unresolvedAttributions,
         attributedMismatches,
+        backendParseFailures,
+        missingBackendRoutes,
     });
     process.exit(1);
 }
@@ -1209,6 +1571,12 @@ if (
 console.log(
     `[sdk-contract-alignment] ok (${alignedRows.length} aligned rows checked, ${unresolvedAttributions.length} unresolved attributions)`,
 );
+if (unresolvedAttributions.length) {
+    console.warn("[sdk-contract-alignment] unresolved method attributions:");
+    for (const item of unresolvedAttributions) {
+        console.warn(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
+    }
+}
 writeSummary({
     ok: true,
     checkedRows: alignedRows.length,
@@ -1219,4 +1587,6 @@ writeSummary({
     missingPaths: [],
     unresolvedAttributions,
     attributedMismatches: [],
+    backendParseFailures: [],
+    missingBackendRoutes: [],
 });

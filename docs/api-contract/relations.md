@@ -74,26 +74,48 @@ interface RelationsResponse {
 
 ### 2.3 创建关系事件
 
-**路径**: `PUT /_matrix/client/{r0,v1,v3}/rooms/{room_id}/send/{event_type}/{txn_id}`  
+**路径**: `PUT /_matrix/client/{r0,v1,v3}/rooms/{room_id}/relations/{event_id}/{rel_type}/{target_event_id}`  
 **认证**: `AuthenticatedUser` + 房间成员  
 **挂载版本**: `r0`, `v1`, `v3`
+
+**路径参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `room_id` | string | 房间 ID |
+| `event_id` | string | 关系事件所属上下文事件 ID |
+| `rel_type` | string | 允许 `m.reference`、`m.replace`、`m.annotation` |
+| `target_event_id` | string | 被关联的目标事件 ID |
 
 **请求体**:
 ```json
 {
-  "m.relates_to": {
-    "rel_type": "m.replace",
-    "event_id": "$original_event_id"
+  "content": {
+    "body": "edited content",
+    "msgtype": "m.text"
   },
-  "body": "edited content",
-  "msgtype": "m.text"
+  "m.new_content": {
+    "body": "edited content",
+    "msgtype": "m.text"
+  },
+  "key": "👍"
 }
 ```
+
+**业务规则**:
+- `m.annotation` 从 `key` 读取 reaction key，未提供时后端默认 `"👍"`
+- `m.reference` 从 `content` 读取引用事件内容
+- `m.replace` 优先读取 `content`，其次回退到 `m.new_content`
+- 房间不存在时返回 `404`
 
 **响应**: `200 OK`
 ```json
 {
-  "event_id": "$new_event_id"
+  "event_id": "$new_event_id",
+  "room_id": "!room:example.com",
+  "relates_to": {
+    "event_id": "$target_event_id",
+    "rel_type": "m.replace"
+  }
 }
 ```
 
@@ -131,19 +153,19 @@ interface AggregationsResponse {
 | `GET /relations/{event_id}` | `MatrixClient.relations()` | ✅ 已封装 |
 | `GET /relations/{event_id}/{rel_type}` | `MatrixClient.relations()` | ✅ 已封装 |
 | `GET /aggregations/{event_id}/{rel_type}` | - | ❌ 未封装 |
-| `PUT /send/{event_type}/{txn_id}` | `MatrixClient.sendEvent()` | ✅ 已封装 |
+| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `MatrixClient.sendEvent()` | ⚠️ 间接实现（SDK 走通用事件发送接口，未调用 relations.rs 专用路由） |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 5
-- **已封装**: 3
-- **覆盖率**: 60%
+- **已封装**: 2
+- **覆盖率**: 40%
 
 ### 3.3 已知差异
 
 - SDK 的 `relations()` 方法合并了多个后端端点
 - 缺少聚合查询的直接封装
-- 关系事件创建通过通用 `sendEvent()` 实现
+- 关系事件创建在后端有专用路由，但 SDK 当前仍通过通用 `sendEvent()` 承载 `m.relates_to`
 
 ## 四、常见错误码
 

@@ -40,6 +40,14 @@
 - [FILES_CREATED.md](FILES_CREATED.md) - 完整文件清单
 - [WORK_SUMMARY.txt](WORK_SUMMARY.txt) - 简要总结
 - [COMPLETION_SUMMARY.txt](COMPLETION_SUMMARY.txt) - 完成总结
+- `pnpm quality:sdk-contracts` - SDK 契约自动对齐校验
+- `pnpm quality:contracts` - 契约质量检查总入口（含导出、入口点、SDK 契约对齐）
+
+### 🤖 自动校验
+
+- `scripts/quality/check-sdk-contract-alignment.mjs` 会同时校验 SDK 方法映射、请求路径归因，以及契约文档中 `> 后端代码:` 指向的 synapse-rust 路由文件
+- 当前“端点路径级别”校验范围聚焦于带 `SDK 对齐状态` 表格的契约文档，用于建立 `后端路由 -> 契约端点 -> SDK 方法` 的闭环
+- 维护契约文档时，必须保留 `METHOD /path` 格式的 `**路径**` 条目，并确保 `> 后端代码:` 指向具体的 `synapse-rust/src/web/routes/*.rs`
 
 ---
 

@@ -203,6 +203,30 @@ describe("MatrixClient typing", () => {
 
 ---
 
+## 🤖 契约自动校验现状
+
+### 已落地能力
+
+- 运行 `pnpm quality:sdk-contracts` 会执行 `scripts/quality/check-sdk-contract-alignment.mjs`
+- 脚本当前已支持三层校验：
+- 1. `SDK 对齐状态` 表中的 `Owner.method()` / `SDK Manager` + `SDK 方法` 是否能在 `src/` 中解析到真实符号
+- 2. 契约文档声明的 `后端端点` 是否能与 SDK 实际请求路径归因结果匹配
+- 3. 契约文档顶部 `> 后端代码:` 指向的 `synapse-rust/src/web/routes/*.rs` 是否真的声明了文档中的 `**路径**`
+
+### 当前边界
+
+- 后端解析器已覆盖 `route(...)` 直接声明、局部子路由函数复用、`nest("/prefix", router)` 版本兼容挂载
+- 当前校验范围聚焦于带 `SDK 对齐状态` 表格的契约文档，优先保障前端最常参考的“SDK 已封装能力”闭环正确
+- 解析器目前按单个文档显式声明的 `> 后端代码:` 文件做校验，不直接从 `assembly.rs` 全量反推所有模块
+
+### 维护要求
+
+- 新增或重构契约文档时，保留 `> 后端代码:` 元信息
+- 所有 `**路径**` 条目保持 `METHOD /path` 格式，避免使用无法自动识别的自然语言描述
+- 修改 SDK 方法名、导出链或委托函数后，必须重新运行 `pnpm quality:sdk-contracts`
+
+---
+
 ## 📈 预期成果
 
 ### Phase 2 完成后（Week 10）
