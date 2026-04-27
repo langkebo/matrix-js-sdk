@@ -100,20 +100,18 @@ interface BatchTypingResponse {
 | 后端端点 | SDK 方法 | 状态 |
 |---------|---------|------|
 | `PUT /typing/{user_id}` | `MatrixClient.sendTyping()` | ✅ 已封装 |
-| `GET /typing` | - | ❌ 未封装 |
-| `POST /rooms/typing` | - | ❌ 未封装 |
+| `GET /typing` | `MatrixClient.getRoomTyping()` | ✅ 已封装 |
+| `POST /rooms/typing` | `MatrixClient.getBatchTyping()` | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 3
-- **已封装**: 1
-- **覆盖率**: 33%
+- **已封装**: 3
+- **覆盖率**: 100%
 
 ### 3.3 已知差异
 
-- SDK 仅封装了设置输入状态的功能
-- 缺少查询输入状态的方法
-- 输入状态通常通过 `/sync` 的 ephemeral 事件获取
+- 无
 
 ## 四、常见错误码
 

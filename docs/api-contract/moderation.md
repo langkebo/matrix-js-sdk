@@ -120,20 +120,19 @@ interface ScannerInfo {
 | 后端端点 | SDK 方法 | 状态 |
 |---------|---------|------|
 | `POST /report/{event_id}` | `MatrixClient.reportEvent()` | ✅ 已封装 |
-| `PUT /report/{event_id}/score` | - | ❌ 未封装 |
-| `GET /report/{event_id}/scanner_info` | - | ❌ 未封装 |
+| `PUT /report/{event_id}/score` | `MatrixClient.scoreReport()` | ✅ 已封装 |
+| `GET /report/{event_id}/scanner_info` | `MatrixClient.getScannerInfo()` | ✅ 已封装 |
 | `POST /rooms/{room_id}/report` | - | ❌ 未封装 |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 4
-- **已封装**: 1
-- **覆盖率**: 25%
+- **已封装**: 3
+- **覆盖率**: 75%
 
 ### 3.3 已知差异
 
-- SDK 仅封装了基本的事件举报功能
-- 缺少评分、扫描器信息查询和房间级举报
+- 缺少房间级举报功能
 
 ## 四、常见错误码
 

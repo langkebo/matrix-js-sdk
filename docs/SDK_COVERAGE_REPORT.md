@@ -5,20 +5,20 @@
 ## Overall Statistics
 
 - **Total Endpoints**: 27
-- **Implemented**: 14
-- **Coverage**: 51.9%
+- **Implemented**: 19
+- **Coverage**: 70.4%
 
 ## Module Breakdown
 
 | Module | Total | Implemented | Coverage |
 |--------|-------|-------------|----------|
 | event-report | 3 | 0 | 🔴 0.0% |
-| moderation | 4 | 1 | 🔴 25.0% |
-| typing | 3 | 1 | 🔴 33.3% |
-| relations | 4 | 2 | 🟠 50.0% |
 | thirdparty | 6 | 3 | 🟠 50.0% |
+| moderation | 4 | 3 | 🟠 75.0% |
+| relations | 4 | 3 | 🟠 75.0% |
 | key-rotation | 6 | 6 | ✅ 100.0% |
 | reactions | 1 | 1 | ✅ 100.0% |
+| typing | 3 | 3 | ✅ 100.0% |
 
 ## Legend
 

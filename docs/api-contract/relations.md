@@ -152,14 +152,14 @@ interface AggregationsResponse {
 |---------|---------|------|
 | `GET /relations/{event_id}` | `MatrixClient.relations()` | ✅ 已封装 |
 | `GET /relations/{event_id}/{rel_type}` | `MatrixClient.relations()` | ✅ 已封装 |
-| `GET /aggregations/{event_id}/{rel_type}` | - | ❌ 未封装 |
+| `GET /aggregations/{event_id}/{rel_type}` | `MatrixClient.getAggregations()` | ✅ 已封装 |
 | `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `MatrixClient.sendEvent()` | ⚠️ 间接实现（SDK 走通用事件发送接口，未调用 relations.rs 专用路由） |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 5
-- **已封装**: 2
-- **覆盖率**: 40%
+- **已封装**: 3
+- **覆盖率**: 60%
 
 ### 3.3 已知差异
 
