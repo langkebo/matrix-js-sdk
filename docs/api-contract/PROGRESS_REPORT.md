@@ -6,45 +6,45 @@
 
 ### Week 1: 核心功能模块 ✅ 已完成
 
-| 文档 | 状态 | 端点数 | SDK 覆盖率 |
-|------|------|--------|-----------|
-| `typing.md` | ✅ | 3 | 33% |
-| `reactions.md` | ✅ | 1 | 100% |
-| `relations.md` | ✅ | 5 | 60% |
-| `key-rotation.md` | ✅ | 6 | 0% |
-| `moderation.md` | ✅ | 4 | 25% |
-| `thirdparty.md` | ✅ | 6 | 67% |
+| 文档              | 状态 | 端点数 | SDK 覆盖率 |
+| ----------------- | ---- | ------ | ---------- |
+| `typing.md`       | ✅   | 3      | 33%        |
+| `reactions.md`    | ✅   | 1      | 100%       |
+| `relations.md`    | ✅   | 5      | 60%        |
+| `key-rotation.md` | ✅   | 6      | 0%         |
+| `moderation.md`   | ✅   | 4      | 25%        |
+| `thirdparty.md`   | ✅   | 6      | 67%        |
 
 **小计**: 6 个文档，25 个端点
 
 ### Week 2: 管理功能模块 ✅ 已完成
 
-| 文档 | 状态 | 端点数 | SDK 覆盖率 |
-|------|------|--------|-----------|
-| `event-report.md` | ✅ | 3 | 0% |
-| `telemetry.md` | ✅ | 6 | 0% |
-| `feature-flags.md` | ✅ | 4 | 0% |
-| `app-service.md` | ✅ | 5 | 0% |
-| `background-update.md` | ✅ | 10 | 0% |
+| 文档                   | 状态 | 端点数 | SDK 覆盖率 |
+| ---------------------- | ---- | ------ | ---------- |
+| `event-report.md`      | ✅   | 3      | 0%         |
+| `telemetry.md`         | ✅   | 6      | 0%         |
+| `feature-flags.md`     | ✅   | 4      | 0%         |
+| `app-service.md`       | ✅   | 5      | 0%         |
+| `background-update.md` | ✅   | 10     | 0%         |
 
 **小计**: 5 个文档，28 个端点
 
 ### Week 3: 扩展功能模块 ⏳ 待开始
 
-| 文档 | 状态 | 预计端点数 |
-|------|------|-----------|
-| `module.md` | ⏳ 待创建 | ~20 |
-| `captcha.md` | ⏳ 待创建 | ~4 |
-| `ephemeral.md` | ⏳ 待创建 | ~1 |
-| `external-service.md` | ⏳ 待创建 | ~5 |
-| `burn-after-read.md` | ⏳ 待创建 | ~5 |
+| 文档                  | 状态      | 预计端点数 |
+| --------------------- | --------- | ---------- |
+| `module.md`           | ⏳ 待创建 | ~20        |
+| `captcha.md`          | ⏳ 待创建 | ~4         |
+| `ephemeral.md`        | ⏳ 待创建 | ~1         |
+| `external-service.md` | ⏳ 待创建 | ~5         |
+| `burn-after-read.md`  | ⏳ 待创建 | ~5         |
 
 ### Week 4: 新特性模块 ⏳ 待开始
 
-| 文档 | 状态 | 预计端点数 |
-|------|------|-----------|
-| `ai-connection.md` | ⏳ 待创建 | ~4 |
-| `cas.md` | ⏳ 待创建 | ~8 |
+| 文档               | 状态      | 预计端点数 |
+| ------------------ | --------- | ---------- |
+| `ai-connection.md` | ⏳ 待创建 | ~4         |
+| `cas.md`           | ⏳ 待创建 | ~8         |
 
 ## Phase 4: 工程化改进 🔄 并行进行中
 

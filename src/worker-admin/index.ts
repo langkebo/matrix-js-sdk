@@ -85,19 +85,10 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
         super(client);
     }
 
-    private request<T>(
-        method: Method,
-        path: string,
-        queryParams?: Record<string, string>,
-        body?: unknown,
-    ): Promise<T> {
-        return this.client.http.authedRequest(
-            method,
-            path,
-            queryParams ?? {},
-            body as Body | undefined,
-            { prefix: WORKER_PREFIX },
-        ) as Promise<T>;
+    private request<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {
+        return this.client.http.authedRequest(method, path, queryParams ?? {}, body as Body | undefined, {
+            prefix: WORKER_PREFIX,
+        }) as Promise<T>;
     }
 
     // ===== Workers =====
@@ -115,17 +106,10 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     }
 
     /** GET /_synapse/worker/v1/workers/type/{worker_type} */
-    async listWorkersByType(
-        workerType: string,
-        limit?: number,
-    ): Promise<{ workers: WorkerInfo[] }> {
+    async listWorkersByType(workerType: string, limit?: number): Promise<{ workers: WorkerInfo[] }> {
         if (!workerType) throw new ValidationError("workerType is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.request(
-            Method.Get,
-            `/v1/workers/type/${encodeURIComponent(workerType)}`,
-            q,
-        );
+        return this.request(Method.Get, `/v1/workers/type/${encodeURIComponent(workerType)}`, q);
     }
 
     /** GET /_synapse/worker/v1/workers/{worker_id} */
@@ -143,32 +127,19 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/workers/{worker_id}/heartbeat */
     async heartbeat(workerId: string, req: HeartbeatRequest): Promise<Record<string, unknown>> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(
-            Method.Post,
-            `/v1/workers/${encodeURIComponent(workerId)}/heartbeat`,
-            undefined,
-            req,
-        );
+        return this.request(Method.Post, `/v1/workers/${encodeURIComponent(workerId)}/heartbeat`, undefined, req);
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/connect */
     async connectWorker(workerId: string, address: string): Promise<Record<string, unknown>> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(
-            Method.Post,
-            `/v1/workers/${encodeURIComponent(workerId)}/connect`,
-            undefined,
-            { address },
-        );
+        return this.request(Method.Post, `/v1/workers/${encodeURIComponent(workerId)}/connect`, undefined, { address });
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/disconnect */
     async disconnectWorker(workerId: string): Promise<void> {
         if (!workerId) throw new ValidationError("workerId is required");
-        await this.request(
-            Method.Post,
-            `/v1/workers/${encodeURIComponent(workerId)}/disconnect`,
-        );
+        await this.request(Method.Post, `/v1/workers/${encodeURIComponent(workerId)}/disconnect`);
     }
 
     // ===== Commands =====
@@ -176,43 +147,26 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/workers/{worker_id}/commands */
     async sendCommand(workerId: string, req: SendCommandRequest): Promise<WorkerCommand> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(
-            Method.Post,
-            `/v1/workers/${encodeURIComponent(workerId)}/commands`,
-            undefined,
-            req,
-        );
+        return this.request(Method.Post, `/v1/workers/${encodeURIComponent(workerId)}/commands`, undefined, req);
     }
 
     /** GET /_synapse/worker/v1/workers/{worker_id}/commands */
     async listCommands(workerId: string, limit?: number): Promise<{ commands: WorkerCommand[] }> {
         if (!workerId) throw new ValidationError("workerId is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.request(
-            Method.Get,
-            `/v1/workers/${encodeURIComponent(workerId)}/commands`,
-            q,
-        );
+        return this.request(Method.Get, `/v1/workers/${encodeURIComponent(workerId)}/commands`, q);
     }
 
     /** POST /_synapse/worker/v1/commands/{command_id}/complete */
     async completeCommand(commandId: string): Promise<void> {
         if (!commandId) throw new ValidationError("commandId is required");
-        await this.request(
-            Method.Post,
-            `/v1/commands/${encodeURIComponent(commandId)}/complete`,
-        );
+        await this.request(Method.Post, `/v1/commands/${encodeURIComponent(commandId)}/complete`);
     }
 
     /** POST /_synapse/worker/v1/commands/{command_id}/fail */
     async failCommand(commandId: string, error: string): Promise<void> {
         if (!commandId) throw new ValidationError("commandId is required");
-        await this.request(
-            Method.Post,
-            `/v1/commands/${encodeURIComponent(commandId)}/fail`,
-            undefined,
-            { error },
-        );
+        await this.request(Method.Post, `/v1/commands/${encodeURIComponent(commandId)}/fail`, undefined, { error });
     }
 
     // ===== Tasks =====
@@ -246,23 +200,13 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/tasks/{task_id}/complete */
     async completeTask(taskId: string, result?: unknown): Promise<void> {
         if (!taskId) throw new ValidationError("taskId is required");
-        await this.request(
-            Method.Post,
-            `/v1/tasks/${encodeURIComponent(taskId)}/complete`,
-            undefined,
-            { result },
-        );
+        await this.request(Method.Post, `/v1/tasks/${encodeURIComponent(taskId)}/complete`, undefined, { result });
     }
 
     /** POST /_synapse/worker/v1/tasks/{task_id}/fail */
     async failTask(taskId: string, error: string): Promise<void> {
         if (!taskId) throw new ValidationError("taskId is required");
-        await this.request(
-            Method.Post,
-            `/v1/tasks/${encodeURIComponent(taskId)}/fail`,
-            undefined,
-            { error },
-        );
+        await this.request(Method.Post, `/v1/tasks/${encodeURIComponent(taskId)}/fail`, undefined, { error });
     }
 
     // ===== Statistics / Routing =====
@@ -288,11 +232,9 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** GET /_synapse/worker/v1/replication/{worker_id}/position?stream_name=... */
     async getReplicationPosition(workerId: string, streamName: string): Promise<Record<string, unknown>> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(
-            Method.Get,
-            `/v1/replication/${encodeURIComponent(workerId)}/position`,
-            { stream_name: streamName },
-        );
+        return this.request(Method.Get, `/v1/replication/${encodeURIComponent(workerId)}/position`, {
+            stream_name: streamName,
+        });
     }
 
     /** GET /_synapse/worker/v1/replication/{worker_id}/{stream_name}?stream_id=... */

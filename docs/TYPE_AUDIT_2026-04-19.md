@@ -25,7 +25,7 @@
 `/Users/ljf/Desktop/hu/matrix-js-sdk/.eslintrc.cjs`
 
 - 当前存在:
-  - `@typescript-eslint/no-explicit-any: "off"`
+    - `@typescript-eslint/no-explicit-any: "off"`
 - 这意味着仓库允许继续引入显式 `any`，是后续零新增约束尚未建立的主要原因之一。
 
 ### 2.3 Trace 输出
@@ -50,46 +50,46 @@ pnpm exec tsc -p tsconfig.json --noEmit --generateTrace .trace-strict
 ### 3.1 `matrix-js-sdk`
 
 - `src/` 中 `as any | : any | Promise<any> | Observable<any>`:
-  - `22` 处
-  - `10` 个文件
+    - `22` 处
+    - `10` 个文件
 - `spec/` 中相同模式:
-  - `724` 处
-  - `141` 个文件
+    - `724` 处
+    - `141` 个文件
 
 ### 3.2 `hula`
 
 - `src/` 中 `as any`:
-  - `1181` 处
-  - `155` 个文件
+    - `1181` 处
+    - `155` 个文件
 - `src/` 中其余显式 `any`（`: any | Promise<any> | Observable<any> | <any>`）:
-  - `513` 处
-  - `163` 个文件
+    - `513` 处
+    - `163` 个文件
 - `src/services/matrix` 范围内总匹配:
-  - `524` 处
-  - `83` 个文件
+    - `524` 处
+    - `83` 个文件
 - `src/types` 范围内总匹配:
-  - `19` 处
-  - `3` 个文件
+    - `19` 处
+    - `3` 个文件
 - 直接依赖 `matrix-js-sdk` 或本地 matrix 类型包装的文件:
-  - `93` 处
-  - `80` 个文件
+    - `93` 处
+    - `80` 个文件
 
 ## 4. SDK 公共 API 映射表
 
 以下为 `matrix-js-sdk/src` 中最值得优先处理、且最可能影响下游断言的条目。
 
-| 文件 | 符号/位置 | 当前状态 | 备注 |
-| --- | --- | --- | --- |
-| `src/client.ts` | `getProfileManager()` | ✅ 已修复 | 返回 `ProfileManager \| null` |
-| `src/matrix-client-extensions.d.ts` | `setRoomAvatar()` 等 4 个房间设置方法 | ✅ 已修复 | 改为 `Promise<void>` |
-| `src/models/typed-event-emitter.ts` | `AnyListener` / `ListenerMap` | ✅ 已优化 | 使用 `any[]` 作为基类约束以保证兼容性 |
-| `src/models/read-receipt.ts` | `ListenerMap` | ✅ 已对齐 | 继承自 `TypedEventEmitter` |
-| `src/models/event.ts` | `IContent` / `IUnsigned` 索引签名 | ✅ 已收紧 | 改为 `[key: string]: unknown` 并补齐常用字段 |
-| `src/store/indexeddb.ts` | `on(...args: any[])` | ✅ 已修复 | 建立了 `StoreEventHandlerMap` |
-| `src/store/index.ts` | `on?: (...args: any[])` | ✅ 已修复 | 对齐 `StoreEventHandlerMap` |
-| `src/logger.ts` | `trace/debug/info/warn/error(...msg: any[])` | ✅ 已收紧 | 改为 `unknown[]` |
-| `src/matrix-client-extensions.d.ts` | `MatrixClient` 接口合并 | ✅ 已实现 | 通过接口合并消除 Manager 中的 `as any` |
-| `src/client.ts` 注释 | `IContent` 依赖 `[key: string]: any` | ✅ 已处理 | 配合 `IContent` 收紧完成修复 |
+| 文件                                | 符号/位置                                    | 当前状态  | 备注                                         |
+| ----------------------------------- | -------------------------------------------- | --------- | -------------------------------------------- |
+| `src/client.ts`                     | `getProfileManager()`                        | ✅ 已修复 | 返回 `ProfileManager \| null`                |
+| `src/matrix-client-extensions.d.ts` | `setRoomAvatar()` 等 4 个房间设置方法        | ✅ 已修复 | 改为 `Promise<void>`                         |
+| `src/models/typed-event-emitter.ts` | `AnyListener` / `ListenerMap`                | ✅ 已优化 | 使用 `any[]` 作为基类约束以保证兼容性        |
+| `src/models/read-receipt.ts`        | `ListenerMap`                                | ✅ 已对齐 | 继承自 `TypedEventEmitter`                   |
+| `src/models/event.ts`               | `IContent` / `IUnsigned` 索引签名            | ✅ 已收紧 | 改为 `[key: string]: unknown` 并补齐常用字段 |
+| `src/store/indexeddb.ts`            | `on(...args: any[])`                         | ✅ 已修复 | 建立了 `StoreEventHandlerMap`                |
+| `src/store/index.ts`                | `on?: (...args: any[])`                      | ✅ 已修复 | 对齐 `StoreEventHandlerMap`                  |
+| `src/logger.ts`                     | `trace/debug/info/warn/error(...msg: any[])` | ✅ 已收紧 | 改为 `unknown[]`                             |
+| `src/matrix-client-extensions.d.ts` | `MatrixClient` 接口合并                      | ✅ 已实现 | 通过接口合并消除 Manager 中的 `as any`       |
+| `src/client.ts` 注释                | `IContent` 依赖 `[key: string]: any`         | ✅ 已处理 | 配合 `IContent` 收紧完成修复                 |
 
 ## 5. 对下游 `hula` 的判断
 
@@ -115,47 +115,47 @@ pnpm exec tsc -p tsconfig.json --noEmit --generateTrace .trace-strict
 
 - “SDK 改完后下游 66 -> 0” 当前**不具备直接成立条件**。
 - 更现实的路径应为:
-  1. 先清理 `matrix-js-sdk/src` 的公共 API 显式 `any`
-  2. 再清理 `hula/src/services/matrix` 与 `src/types` 中直接受影响的调用链
-  3. 最后处理 UI/test mock 中的本地类型债务
+    1. 先清理 `matrix-js-sdk/src` 的公共 API 显式 `any`
+    2. 再清理 `hula/src/services/matrix` 与 `src/types` 中直接受影响的调用链
+    3. 最后处理 UI/test mock 中的本地类型债务
 
 ### Phase B: 下游 Hula 直连调用链修复
 
 已清理 `hula/src/services/matrix` 中受 SDK 类型收紧影响的 `as any` 断言：
 
-| 文件 | 修复内容 | 状态 | 备注 |
-| --- | --- | --- | --- |
-| `MatrixMessageService.ts` | `hasUserReadEvent` | ✅ 已修复 | 移除 `as any` |
-| `MatrixSyncService.ts` | `getUnreadNotificationCount` | ✅ 已修复 | 移除 `as any`，改用 `NotificationCountType` |
-| `MatrixSpaceService.ts` | `room.topic` | ✅ 已修复 | 移除 `as any`，补齐 `Room` 阴影类型 |
-| `MatrixUserDirectoryService.ts` | `searchUserDirectory` / `getProfile` | ✅ 已修复 | 移除 `as any`，补齐 SDK 扩展接口 |
-| `MatrixSearchService.ts` | `setRoomDirectoryVisibility` | ✅ 已修复 | 移除 `as any` |
-| `MatrixRoomNotificationService.ts` | `setRoomAccountData` | ✅ 已修复 | 移除 `as any` |
-| `MatrixRoomService.ts` | `getRoomTopic` | ✅ 已修复 | 移除 `as any` |
-| `MatrixMessageAdapter.ts` | `event.sender` | ✅ 已修复 | 移除 `as any`，修正 `MatrixEvent.sender` 阴影类型 |
-| `MatrixMessageAdapter.ts` | `convertMatrixContent` | ✅ 已修复 | 修正返回类型为 `MessageBody`，移除属性访问 `as any` |
-| `MatrixSpaceService.ts` | `createRoom` / `joinRoom` | ✅ 已修复 | 移除 `as any`，补齐 `ICreateRoomOpts` 与 `MatrixClient` 阴影类型 |
-| `MatrixReactionService.ts` | `sendEvent` / `redactEvent` | ✅ 已修复 | 移除 `as any`，修正 `MatrixEvent.getContent` 访问 |
-| `MatrixTypingService.ts` | `getTypingUsers` | ✅ 已修复 | 移除 `as any`，改用 `Room.getTypingUsers` 阴影方法 |
-| `MatrixSlidingSyncService.ts` | `slidingSync` 实例 | ✅ 已修复 | 移除 `any`，建立 `SlidingSync` 阴影接口 |
+| 文件                               | 修复内容                             | 状态      | 备注                                                             |
+| ---------------------------------- | ------------------------------------ | --------- | ---------------------------------------------------------------- |
+| `MatrixMessageService.ts`          | `hasUserReadEvent`                   | ✅ 已修复 | 移除 `as any`                                                    |
+| `MatrixSyncService.ts`             | `getUnreadNotificationCount`         | ✅ 已修复 | 移除 `as any`，改用 `NotificationCountType`                      |
+| `MatrixSpaceService.ts`            | `room.topic`                         | ✅ 已修复 | 移除 `as any`，补齐 `Room` 阴影类型                              |
+| `MatrixUserDirectoryService.ts`    | `searchUserDirectory` / `getProfile` | ✅ 已修复 | 移除 `as any`，补齐 SDK 扩展接口                                 |
+| `MatrixSearchService.ts`           | `setRoomDirectoryVisibility`         | ✅ 已修复 | 移除 `as any`                                                    |
+| `MatrixRoomNotificationService.ts` | `setRoomAccountData`                 | ✅ 已修复 | 移除 `as any`                                                    |
+| `MatrixRoomService.ts`             | `getRoomTopic`                       | ✅ 已修复 | 移除 `as any`                                                    |
+| `MatrixMessageAdapter.ts`          | `event.sender`                       | ✅ 已修复 | 移除 `as any`，修正 `MatrixEvent.sender` 阴影类型                |
+| `MatrixMessageAdapter.ts`          | `convertMatrixContent`               | ✅ 已修复 | 修正返回类型为 `MessageBody`，移除属性访问 `as any`              |
+| `MatrixSpaceService.ts`            | `createRoom` / `joinRoom`            | ✅ 已修复 | 移除 `as any`，补齐 `ICreateRoomOpts` 与 `MatrixClient` 阴影类型 |
+| `MatrixReactionService.ts`         | `sendEvent` / `redactEvent`          | ✅ 已修复 | 移除 `as any`，修正 `MatrixEvent.getContent` 访问                |
+| `MatrixTypingService.ts`           | `getTypingUsers`                     | ✅ 已修复 | 移除 `as any`，改用 `Room.getTypingUsers` 阴影方法               |
+| `MatrixSlidingSyncService.ts`      | `slidingSync` 实例                   | ✅ 已修复 | 移除 `any`，建立 `SlidingSync` 阴影接口                          |
 
 ### Phase C: Hula 内部类型债务清理 (Service 层非测试代码)
 
 目标: 清理 `hula/src/services/matrix` 中不直接依赖 SDK 导出但仍在使用 `any` 的逻辑。
 
-| 文件 | 修复内容 | 状态 | 备注 |
-| --- | --- | --- | --- |
-| `MatrixMessageAdapter.ts` | `MsgType` 构造 | ✅ 已修复 | 完整补齐 `MsgType` 所需的 `id`, `roomId`, `type`, `body` 等字段 |
-| `AdminFacadeService.ts` | `adminRequest<T>` | ✅ 已修复 | 引入泛型请求，消除 `Promise<any>` |
-| `MatrixEmojiService.ts` | `http` 响应断言 | ✅ 已修复 | 为表情包上传/查询引入本地响应接口 |
+| 文件                      | 修复内容          | 状态      | 备注                                                            |
+| ------------------------- | ----------------- | --------- | --------------------------------------------------------------- |
+| `MatrixMessageAdapter.ts` | `MsgType` 构造    | ✅ 已修复 | 完整补齐 `MsgType` 所需的 `id`, `roomId`, `type`, `body` 等字段 |
+| `AdminFacadeService.ts`   | `adminRequest<T>` | ✅ 已修复 | 引入泛型请求，消除 `Promise<any>`                               |
+| `MatrixEmojiService.ts`   | `http` 响应断言   | ✅ 已修复 | 为表情包上传/查询引入本地响应接口                               |
 
 ## 6. 风险评估
 
 - 若直接在 `matrix-js-sdk` 全仓库启用 `@typescript-eslint/no-explicit-any: "error"`:
-  - 将立即命中 `src` + `spec` 中大量历史存量
-  - 首轮阻塞点将集中在测试与辅助工具，而不是公共 API
+    - 将立即命中 `src` + `spec` 中大量历史存量
+    - 首轮阻塞点将集中在测试与辅助工具，而不是公共 API
 - 若直接要求 `spec/` 零 `any`:
-  - 这是大规模测试基建重写，不适合与下游业务修复并行推进
+    - 这是大规模测试基建重写，不适合与下游业务修复并行推进
 
 ## 7. 建议的分阶段方案
 

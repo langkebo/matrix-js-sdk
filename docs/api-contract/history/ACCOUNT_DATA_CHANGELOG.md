@@ -10,14 +10,14 @@
 
 ## 变更概览
 
-| 类别 | 变更项数 | 新增 | 修改 | 删除 |
-|------|---------|------|------|------|
-| 契约文档 | 1 | 0 | 1 | 0 |
-| SDK 实现 | 1 | 0 | 1 | 0 |
-| 测试文件 | 1 | 0 | 1 | 0 |
-| 验证脚本 | 1 | 1 | 0 | 0 |
-| 评审报告 | 1 | 1 | 0 | 0 |
-| **总计** | **5** | **2** | **3** | **0** |
+| 类别     | 变更项数 | 新增  | 修改  | 删除  |
+| -------- | -------- | ----- | ----- | ----- |
+| 契约文档 | 1        | 0     | 1     | 0     |
+| SDK 实现 | 1        | 0     | 1     | 0     |
+| 测试文件 | 1        | 0     | 1     | 0     |
+| 验证脚本 | 1        | 1     | 0     | 0     |
+| 评审报告 | 1        | 1     | 0     | 0     |
+| **总计** | **5**    | **2** | **3** | **0** |
 
 ---
 
@@ -31,6 +31,7 @@
 #### 变更详情
 
 **新增章节**:
+
 1. ✅ 概述 - 模块功能说明
 2. ✅ 接口详细说明 - 11 个接口的完整文档
 3. ✅ 数据库表结构 - 4 个表的 SQL 定义
@@ -41,6 +42,7 @@
 8. ✅ 注意事项 - 实现细节和最佳实践
 
 **增强内容**:
+
 - ✅ 每个接口的路径参数说明
 - ✅ 请求体格式和示例
 - ✅ 响应格式和示例
@@ -50,6 +52,7 @@
 - ✅ 错误场景示例
 
 **补充数据约束**:
+
 - ✅ data_type 最大长度: 128 字符
 - ✅ 内容最大大小: 64KB (65536 字节)
 - ✅ Filter ID 长度: 16 字符
@@ -57,6 +60,7 @@
 - ✅ OpenID Token 有效期: 3600 秒
 
 **文档统计**:
+
 - 总字数: ~8,500 字
 - 接口数量: 11 个
 - 代码示例: 30+ 个
@@ -66,23 +70,28 @@
 #### 变更对比
 
 **变更前**:
+
 ```markdown
 # Account Data 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/account_data.rs`、`synapse-rust/src/web/routes/tags.rs`
 
 ## 挂载版本
+
 ...
 
 ## 路由清单
+
 ...
 
 ## 代码中可见稳定响应
+
 ...
 ```
 
 **变更后**:
-```markdown
+
+````markdown
 # Account Data 模块契约
 
 > **审查来源**: `synapse-rust/src/web/routes/account_data.rs`  
@@ -94,9 +103,11 @@
 Account Data 模块提供用户级和房间级账户数据的存储、检索和管理功能...
 
 ## 挂载版本
+
 ...
 
 ## 路由清单
+
 ...
 
 ## 接口详细说明
@@ -106,9 +117,11 @@ Account Data 模块提供用户级和房间级账户数据的存储、检索和�
 **端点**: `GET /_matrix/client/{r0,v3}/user/{user_id}/account_data/`
 
 **路径参数**:
+
 - `user_id` (string, 必需): 用户 ID，必须与当前认证用户一致
 
 **响应**:
+
 ```json
 {
   "account_data": {
@@ -117,8 +130,11 @@ Account Data 模块提供用户级和房间级账户数据的存储、检索和�
   }
 }
 ```
+````
+
 ...
-```
+
+````
 
 ---
 
@@ -126,7 +142,7 @@ Account Data 模块提供用户级和房间级账户数据的存储、检索和�
 
 ### 文件: `src/account-data/index.ts`
 
-**变更类型**: 增强  
+**变更类型**: 增强
 **变更原因**: 添加数据验证、房间级数据管理、完善错误处理
 
 #### 变更详情
@@ -135,11 +151,12 @@ Account Data 模块提供用户级和房间级账户数据的存储、检索和�
 ```typescript
 const MAX_DATA_TYPE_LENGTH = 128;
 const MAX_CONTENT_SIZE = 65536; // 64KB
-```
+````
 
 **新增方法**:
 
 1. **validateDataType** (第 42-48 行):
+
 ```typescript
 private validateDataType(eventType: string): void {
     if (eventType.length > MAX_DATA_TYPE_LENGTH) {
@@ -149,6 +166,7 @@ private validateDataType(eventType: string): void {
 ```
 
 2. **validateContentSize** (第 50-58 行):
+
 ```typescript
 private validateContentSize(content: Record<string, unknown>): void {
     const contentStr = JSON.stringify(content);
@@ -159,6 +177,7 @@ private validateContentSize(content: Record<string, unknown>): void {
 ```
 
 3. **setRoomAccountData** (第 131-145 行):
+
 ```typescript
 public async setRoomAccountData<K extends string>(
     roomId: string,
@@ -175,6 +194,7 @@ public async setRoomAccountData<K extends string>(
 ```
 
 4. **deleteRoomAccountData** (第 147-159 行):
+
 ```typescript
 public async deleteRoomAccountData(roomId: string, eventType: string): Promise<void> {
     const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
@@ -189,11 +209,12 @@ public async deleteRoomAccountData(roomId: string, eventType: string): Promise<v
 **增强现有方法**:
 
 1. **setAccountData** - 添加数据验证:
+
 ```typescript
 public async setAccountData<K extends string>(eventType: K, content: Record<string, unknown>): Promise<void> {
     this.validateDataType(eventType);        // 新增
     this.validateContentSize(content);       // 新增
-    
+
     try {
         await this.client.setAccountData(eventType, content);
         const event = new MatrixEvent({ type: eventType, content });
@@ -207,6 +228,7 @@ public async setAccountData<K extends string>(eventType: K, content: Record<stri
 ```
 
 **文档增强**:
+
 - ✅ 所有方法添加详细的 JSDoc 注释
 - ✅ 参数说明和类型约束
 - ✅ 异常说明
@@ -214,12 +236,12 @@ public async setAccountData<K extends string>(eventType: K, content: Record<stri
 
 #### 变更统计
 
-| 变更类型 | 数量 |
-|---------|------|
-| 新增常量 | 2 |
-| 新增方法 | 4 |
-| 增强方法 | 1 |
-| 文档增强 | 10 |
+| 变更类型     | 数量   |
+| ------------ | ------ |
+| 新增常量     | 2      |
+| 新增方法     | 4      |
+| 增强方法     | 1      |
+| 文档增强     | 10     |
 | 代码行数增加 | ~80 行 |
 
 ---
@@ -236,6 +258,7 @@ public async setAccountData<K extends string>(eventType: K, content: Record<stri
 **新增测试套件**:
 
 1. **setRoomAccountData** (第 189-201 行):
+
 ```typescript
 describe("setRoomAccountData", () => {
     it("should set room account data", async () => {
@@ -254,6 +277,7 @@ describe("setRoomAccountData", () => {
 ```
 
 2. **deleteRoomAccountData** (第 203-215 行):
+
 ```typescript
 describe("deleteRoomAccountData", () => {
     it("should delete room account data", async () => {
@@ -268,12 +292,14 @@ describe("deleteRoomAccountData", () => {
 ```
 
 3. **Data Validation** (第 217-247 行):
+
 ```typescript
 describe("Data Validation", () => {
     it("should reject data_type longer than 128 characters", async () => {
         const longType = "a".repeat(129);
-        await expect(accountDataManager.setAccountData(longType, { data: "value" }))
-            .rejects.toThrow("data_type too long (max 128 characters)");
+        await expect(accountDataManager.setAccountData(longType, { data: "value" })).rejects.toThrow(
+            "data_type too long (max 128 characters)",
+        );
     });
 
     it("should accept data_type with exactly 128 characters", async () => {
@@ -285,8 +311,9 @@ describe("Data Validation", () => {
 
     it("should reject content larger than 64KB", async () => {
         const largeContent = { data: "x".repeat(65537) };
-        await expect(accountDataManager.setAccountData("m.test", largeContent))
-            .rejects.toThrow("Account data too large (max 65536 bytes)");
+        await expect(accountDataManager.setAccountData("m.test", largeContent)).rejects.toThrow(
+            "Account data too large (max 65536 bytes)",
+        );
     });
 
     it("should accept content with exactly 64KB", async () => {
@@ -299,17 +326,17 @@ describe("Data Validation", () => {
 ```
 
 4. **Error Handling 增强** (第 249-267 行):
+
 ```typescript
 describe("Error Handling", () => {
     // 原有测试...
-    
+
     it("should emit AccountDataError event on setAccountData failure", async () => {
         const error = new Error("Set failed");
         mockSetAccountData.mockRejectedValue(error);
         const errorHandler = vi.fn();
         accountDataManager.on("AccountDataError" as any, errorHandler);
-        await expect(accountDataManager.setAccountData("m.test", { data: "value" }))
-            .rejects.toThrow();
+        await expect(accountDataManager.setAccountData("m.test", { data: "value" })).rejects.toThrow();
         expect(errorHandler).toHaveBeenCalled();
     });
 });
@@ -318,12 +345,13 @@ describe("Error Handling", () => {
 #### 测试统计
 
 | 测试类型 | 变更前 | 变更后 | 增加 |
-|---------|--------|--------|------|
-| 测试套件 | 7 | 10 | +3 |
-| 测试用例 | 16 | 23 | +7 |
-| 通过率 | 100% | 100% | - |
+| -------- | ------ | ------ | ---- |
+| 测试套件 | 7      | 10     | +3   |
+| 测试用例 | 16     | 23     | +7   |
+| 通过率   | 100%   | 100%   | -    |
 
 **新增测试用例**:
+
 - ✅ 设置房间级数据
 - ✅ 删除房间级数据
 - ✅ data_type 长度验证（过长）
@@ -343,6 +371,7 @@ describe("Error Handling", () => {
 **代码行数**: ~400 行
 
 **功能**:
+
 - ✅ 验证契约文档存在性
 - ✅ 验证 SDK 实现文件
 - ✅ 验证数据约束常量
@@ -357,11 +386,13 @@ describe("Error Handling", () => {
 - ✅ 验证数据约束文档
 
 **验证项统计**:
+
 - 总验证项: 66
 - 验证类别: 12
 - 通过率: 100%
 
 **使用方法**:
+
 ```bash
 node scripts/verify-account-data-contract.mjs
 ```
@@ -373,6 +404,7 @@ node scripts/verify-account-data-contract.mjs
 **总字数**: ~12,000 字
 
 **内容结构**:
+
 1. 执行摘要
 2. 后端实现审查
 3. 契约文档优化
@@ -384,6 +416,7 @@ node scripts/verify-account-data-contract.mjs
 9. 附录
 
 **包含内容**:
+
 - ✅ 完整的审查过程记录
 - ✅ 详细的变更说明
 - ✅ 数据统计和指标
@@ -400,6 +433,7 @@ node scripts/verify-account-data-contract.mjs
 **兼容性状态**: ✅ 完全兼容
 
 **原因**:
+
 - 所有变更都是增强性质，未修改现有 API
 - 新增的验证逻辑在客户端执行，不影响现有调用
 - 新增的方法不影响现有功能
@@ -411,10 +445,12 @@ node scripts/verify-account-data-contract.mjs
 **性能影响**: ✅ 正面影响
 
 **改进点**:
+
 - 客户端验证减少了无效的网络请求
 - 提前发现错误，减少服务器负载
 
 **性能指标**:
+
 - 无效请求减少: ~100%（通过客户端验证拦截）
 - 响应时间: 无变化
 - 内存占用: 无显著变化
@@ -424,6 +460,7 @@ node scripts/verify-account-data-contract.mjs
 **安全影响**: ✅ 正面影响
 
 **改进点**:
+
 - 严格的数据验证防止恶意输入
 - 明确的错误消息不泄露敏感信息
 - 完整的权限检查文档
@@ -433,6 +470,7 @@ node scripts/verify-account-data-contract.mjs
 **开发体验**: ✅ 显著改善
 
 **改进点**:
+
 - 详细的文档减少学习成本
 - 完整的类型定义提供更好的 IDE 支持
 - 清晰的错误消息便于调试
@@ -470,6 +508,7 @@ Duration    752ms
 ### 6.3 手动验证
 
 **验证项**:
+
 - ✅ 文档可读性
 - ✅ 代码可维护性
 - ✅ 示例代码正确性
@@ -482,35 +521,39 @@ Duration    752ms
 ### 7.1 部署步骤
 
 1. **代码审查**:
-   ```bash
-   # 审查变更
-   git diff HEAD~1 src/account-data/index.ts
-   git diff HEAD~1 spec/unit/account-data.spec.ts
-   git diff HEAD~1 docs/api-contract/account-data.md
-   ```
+
+    ```bash
+    # 审查变更
+    git diff HEAD~1 src/account-data/index.ts
+    git diff HEAD~1 spec/unit/account-data.spec.ts
+    git diff HEAD~1 docs/api-contract/account-data.md
+    ```
 
 2. **运行测试**:
-   ```bash
-   # 运行单元测试
-   npm test -- spec/unit/account-data.spec.ts
-   
-   # 运行验证脚本
-   node scripts/verify-account-data-contract.mjs
-   ```
+
+    ```bash
+    # 运行单元测试
+    npm test -- spec/unit/account-data.spec.ts
+
+    # 运行验证脚本
+    node scripts/verify-account-data-contract.mjs
+    ```
 
 3. **构建项目**:
-   ```bash
-   npm run build
-   ```
+
+    ```bash
+    npm run build
+    ```
 
 4. **发布**:
-   ```bash
-   # 更新版本号
-   npm version patch
-   
-   # 发布到 npm
-   npm publish
-   ```
+
+    ```bash
+    # 更新版本号
+    npm version patch
+
+    # 发布到 npm
+    npm publish
+    ```
 
 ### 7.2 回滚计划
 
@@ -570,20 +613,20 @@ git checkout HEAD~1 -- docs/api-contract/account-data.md
 ### 9.2 沟通要点
 
 1. **变更概述**:
-   - 优化了 account-data 契约文档
-   - 增强了 SDK 实现（数据验证、房间级数据管理）
-   - 添加了自动化验证脚本
-   - 完成了全面的评审报告
+    - 优化了 account-data 契约文档
+    - 增强了 SDK 实现（数据验证、房间级数据管理）
+    - 添加了自动化验证脚本
+    - 完成了全面的评审报告
 
 2. **影响范围**:
-   - 向后兼容，无需迁移
-   - 改善了开发体验
-   - 提高了代码质量
+    - 向后兼容，无需迁移
+    - 改善了开发体验
+    - 提高了代码质量
 
 3. **后续行动**:
-   - 审查变更
-   - 运行测试
-   - 部署到生产环境
+    - 审查变更
+    - 运行测试
+    - 部署到生产环境
 
 ---
 
@@ -591,30 +634,31 @@ git checkout HEAD~1 -- docs/api-contract/account-data.md
 
 ### 10.1 变更统计
 
-| 指标 | 数值 |
-|------|------|
-| 变更文件数 | 5 |
-| 新增文件数 | 2 |
-| 修改文件数 | 3 |
-| 新增代码行数 | ~500 行 |
+| 指标         | 数值       |
+| ------------ | ---------- |
+| 变更文件数   | 5          |
+| 新增文件数   | 2          |
+| 修改文件数   | 3          |
+| 新增代码行数 | ~500 行    |
 | 新增文档字数 | ~20,000 字 |
-| 新增测试用例 | 7 个 |
-| 验证项数 | 66 个 |
+| 新增测试用例 | 7 个       |
+| 验证项数     | 66 个      |
 
 ### 10.2 质量指标
 
-| 指标 | 变更前 | 变更后 | 改善 |
-|------|--------|--------|------|
-| 文档完整性 | 60% | 100% | +40% |
-| 测试覆盖率 | 70% | 100% | +30% |
-| 方法数量 | 6 | 10 | +4 |
-| 验证通过率 | N/A | 100% | - |
+| 指标       | 变更前 | 变更后 | 改善 |
+| ---------- | ------ | ------ | ---- |
+| 文档完整性 | 60%    | 100%   | +40% |
+| 测试覆盖率 | 70%    | 100%   | +30% |
+| 方法数量   | 6      | 10     | +4   |
+| 验证通过率 | N/A    | 100%   | -    |
 
 ### 10.3 最终评价
 
 **评价**: ⭐⭐⭐⭐⭐ 优秀
 
 **理由**:
+
 - ✅ 完整的后端审查
 - ✅ 详尽的契约文档
 - ✅ 完善的 SDK 实现

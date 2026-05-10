@@ -1869,6 +1869,7 @@ describe("MatrixClient", function () {
     });
 
     describe("sync contract alignment", () => {
+        // eslint-disable-next-line @vitest/expect-expect
         it("passes the created filter id to /sync", async () => {
             httpLookups = [
                 PUSH_RULES_RESPONSE,
@@ -1890,6 +1891,7 @@ describe("MatrixClient", function () {
             await client.startClient({ filter });
         });
 
+        // eslint-disable-next-line @vitest/expect-expect
         it("forwards set_presence to /sync", async () => {
             httpLookups = [
                 PUSH_RULES_RESPONSE,
@@ -2990,7 +2992,7 @@ describe("MatrixClient", function () {
         });
     });
 
-    describe("sync contract alignment", () => {
+    describe("sliding sync contract alignment", () => {
         beforeEach(() => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 pos: "p1",

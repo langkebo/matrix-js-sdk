@@ -84,10 +84,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
 
     /** POST /_matrix/client/v1/widgets */
     public async createWidget(body: CreateWidgetBody): Promise<WidgetResponse> {
-        return this.withRetry(
-            () => this.request<WidgetResponse>(Method.Post, "/widgets", body),
-            "createWidget",
-        );
+        return this.withRetry(() => this.request<WidgetResponse>(Method.Post, "/widgets", body), "createWidget");
     }
 
     /** GET /_matrix/client/v1/widgets/{widget_id} */
@@ -101,12 +98,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** PUT /_matrix/client/v1/widgets/{widget_id} */
     public async updateWidget(widgetId: string, body: UpdateWidgetBody): Promise<WidgetResponse> {
         return this.withRetry(
-            () =>
-                this.request<WidgetResponse>(
-                    Method.Put,
-                    `/widgets/${encodeURIComponent(widgetId)}`,
-                    body,
-                ),
+            () => this.request<WidgetResponse>(Method.Put, `/widgets/${encodeURIComponent(widgetId)}`, body),
             "updateWidget",
         );
     }
@@ -122,11 +114,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** GET /_matrix/client/v1/widgets/{widget_id}/config */
     public async getWidgetConfig(widgetId: string): Promise<Record<string, unknown>> {
         return this.withRetry(
-            () =>
-                this.request<Record<string, unknown>>(
-                    Method.Get,
-                    `/widgets/${encodeURIComponent(widgetId)}/config`,
-                ),
+            () => this.request<Record<string, unknown>>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/config`),
             "getWidgetConfig",
         );
     }
@@ -134,11 +122,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** GET /_matrix/client/v1/rooms/{room_id}/widgets */
     public async listRoomWidgets(roomId: string): Promise<{ widgets: Widget[] }> {
         return this.withRetry(
-            () =>
-                this.request<{ widgets: Widget[] }>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/widgets`,
-                ),
+            () => this.request<{ widgets: Widget[] }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/widgets`),
             "listRoomWidgets",
         );
     }
@@ -215,10 +199,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async listWidgetSessions(widgetId: string): Promise<Record<string, unknown>> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(
-                    Method.Get,
-                    `/widgets/${encodeURIComponent(widgetId)}/sessions`,
-                ),
+                this.request<Record<string, unknown>>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/sessions`),
             "listWidgetSessions",
         );
     }
@@ -227,10 +208,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async getWidgetSession(sessionId: string): Promise<Record<string, unknown>> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(
-                    Method.Get,
-                    `/widgets/sessions/${encodeURIComponent(sessionId)}`,
-                ),
+                this.request<Record<string, unknown>>(Method.Get, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "getWidgetSession",
         );
     }
@@ -238,11 +216,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** DELETE /_matrix/client/v1/widgets/sessions/{session_id} */
     public async terminateWidgetSession(sessionId: string): Promise<void> {
         await this.withRetry(
-            () =>
-                this.request<void>(
-                    Method.Delete,
-                    `/widgets/sessions/${encodeURIComponent(sessionId)}`,
-                ),
+            () => this.request<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "terminateWidgetSession",
         );
     }

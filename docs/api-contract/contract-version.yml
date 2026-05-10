@@ -7,112 +7,112 @@
 version: 1.0.0
 released: 2026-04-27
 modules:
-  auth:
-    version: 1.2.0
-    lastChange: 2026-04-15
-    endpoints: 15
-    coverage: 95%
-  
-  admin:
-    version: 1.5.0
-    lastChange: 2026-04-20
-    endpoints: 140
-    coverage: 59%
-  
-  friend:
-    version: 1.0.0
-    lastChange: 2026-04-04
-    endpoints: 25
-    coverage: 100%
-  
-  dm:
-    version: 1.1.0
-    lastChange: 2026-04-11
-    endpoints: 8
-    coverage: 90%
-  
-  space:
-    version: 1.3.0
-    lastChange: 2026-04-27
-    endpoints: 15
-    coverage: 85%
-  
-  typing:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 3
-    coverage: 33%
-    status: new
-  
-  reactions:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 1
-    coverage: 100%
-    status: new
-  
-  relations:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 5
-    coverage: 60%
-    status: new
-  
-  key-rotation:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 6
-    coverage: 0%
-    status: new
-  
-  moderation:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 4
-    coverage: 25%
-    status: new
-  
-  thirdparty:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 6
-    coverage: 67%
-    status: new
-  
-  event-report:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 3
-    coverage: 0%
-    status: new
-  
-  telemetry:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 6
-    coverage: 0%
-    status: new
-  
-  feature-flags:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 4
-    coverage: 0%
-    status: new
-  
-  app-service:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 5
-    coverage: 0%
-    status: new
-  
-  background-update:
-    version: 1.0.0
-    lastChange: 2026-04-27
-    endpoints: 10
-    coverage: 0%
-    status: new
+    auth:
+        version: 1.2.0
+        lastChange: 2026-04-15
+        endpoints: 15
+        coverage: 95%
+
+    admin:
+        version: 1.5.0
+        lastChange: 2026-04-20
+        endpoints: 140
+        coverage: 59%
+
+    friend:
+        version: 1.0.0
+        lastChange: 2026-04-04
+        endpoints: 25
+        coverage: 100%
+
+    dm:
+        version: 1.1.0
+        lastChange: 2026-04-11
+        endpoints: 8
+        coverage: 90%
+
+    space:
+        version: 1.3.0
+        lastChange: 2026-04-27
+        endpoints: 15
+        coverage: 85%
+
+    typing:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 3
+        coverage: 33%
+        status: new
+
+    reactions:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 1
+        coverage: 100%
+        status: new
+
+    relations:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 5
+        coverage: 60%
+        status: new
+
+    key-rotation:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 6
+        coverage: 0%
+        status: new
+
+    moderation:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 4
+        coverage: 25%
+        status: new
+
+    thirdparty:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 6
+        coverage: 67%
+        status: new
+
+    event-report:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 3
+        coverage: 0%
+        status: new
+
+    telemetry:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 6
+        coverage: 0%
+        status: new
+
+    feature-flags:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 4
+        coverage: 0%
+        status: new
+
+    app-service:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 5
+        coverage: 0%
+        status: new
+
+    background-update:
+        version: 1.0.0
+        lastChange: 2026-04-27
+        endpoints: 10
+        coverage: 0%
+        status: new
 
 # 破坏性变更追踪
 breakingChanges: []

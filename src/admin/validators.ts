@@ -56,9 +56,7 @@ export class AdminValidators {
         }
 
         if (!this.USER_ID_REGEX.test(userId)) {
-            throw new ValidationError(
-                `Invalid user ID format: ${userId}. Expected format: @localpart:homeserver`,
-            );
+            throw new ValidationError(`Invalid user ID format: ${userId}. Expected format: @localpart:homeserver`);
         }
     }
 
@@ -80,9 +78,7 @@ export class AdminValidators {
         }
 
         if (!this.ROOM_ID_REGEX.test(roomId)) {
-            throw new ValidationError(
-                `Invalid room ID format: ${roomId}. Expected format: !localpart:homeserver`,
-            );
+            throw new ValidationError(`Invalid room ID format: ${roomId}. Expected format: !localpart:homeserver`);
         }
     }
 
@@ -98,9 +94,7 @@ export class AdminValidators {
         }
 
         if (!this.ROOM_ID_REGEX.test(spaceId)) {
-            throw new ValidationError(
-                `Invalid space ID format: ${spaceId}. Expected format: !localpart:homeserver`,
-            );
+            throw new ValidationError(`Invalid space ID format: ${spaceId}. Expected format: !localpart:homeserver`);
         }
     }
 

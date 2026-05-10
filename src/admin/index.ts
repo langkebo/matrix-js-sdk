@@ -264,15 +264,18 @@ export interface AdminRegisterResponse {
 
 export interface WhoisResponse {
     user_id: string;
-    devices: Record<string, {
-        sessions: Array<{
-            connections: Array<{
-                ip: string;
-                last_seen: number;
-                user_agent: string;
+    devices: Record<
+        string,
+        {
+            sessions: Array<{
+                connections: Array<{
+                    ip: string;
+                    last_seen: number;
+                    user_agent: string;
+                }>;
             }>;
-        }>;
-    }>;
+        }
+    >;
 }
 
 // ===== Retention / Audit / Feature flags =====
@@ -551,7 +554,9 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 prefix: ADMIN_PREFIX,
             })) as Promise<T>;
         } catch (err) {
-            throw this.normalizeError(err, methodName ?? "unknown");
+            const error = this.normalizeError(err, methodName ?? "unknown");
+            this.emit(AdminEvent.AdminError, error);
+            throw error;
         }
     }
 
@@ -574,7 +579,9 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 rawResponseBody,
             })) as Promise<T>;
         } catch (err) {
-            throw this.normalizeError(err, methodName ?? "unknown");
+            const error = this.normalizeError(err, methodName ?? "unknown");
+            this.emit(AdminEvent.AdminError, error);
+            throw error;
         }
     }
 
@@ -608,10 +615,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      *
      * @deprecated Use {@link getUsersPaginated} for consistent pagination format
      */
-    async getUsers(
-        from?: string,
-        limit?: number,
-    ): Promise<{ users: UserInfo[]; next_token?: string; total?: number }> {
+    async getUsers(from?: string, limit?: number): Promise<{ users: UserInfo[]; next_token?: string; total?: number }> {
         const paginated = await this.getUsersPaginated({ from, limit });
         return {
             users: paginated.items,
@@ -650,10 +654,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @throws {AuthError} 如果没有管理员权限
      * @throws {ApiError} 如果 API 调用失败
      */
-    async getUsersPaginated(options?: {
-        from?: string;
-        limit?: number;
-    }): Promise<PaginatedResponse<UserInfo>> {
+    async getUsersPaginated(options?: { from?: string; limit?: number }): Promise<PaginatedResponse<UserInfo>> {
         if (options?.limit !== undefined) {
             AdminValidators.validateLimit(options.limit);
         }
@@ -807,12 +808,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async setAdmin(userId: string, admin: boolean): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(
-            Method.Put,
-            `/v1/users/${encodeURIComponent(userId)}/admin`,
-            undefined,
-            { admin },
-        );
+        await this.adminRequest(Method.Put, `/v1/users/${encodeURIComponent(userId)}/admin`, undefined, { admin });
     }
 
     /**
@@ -897,10 +893,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async getAccountStatus(userId: string, throwOnError = true): Promise<AccountStatus | null> {
         try {
-            return await this.adminRequest<AccountStatus>(
-                Method.Get,
-                `/v1/account/${encodeURIComponent(userId)}`,
-            );
+            return await this.adminRequest<AccountStatus>(Method.Get, `/v1/account/${encodeURIComponent(userId)}`);
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -1486,10 +1479,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async deleteFederationDestination(destination: string): Promise<void> {
         if (!destination) throw new ValidationError("destination is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/federation/destinations/${encodeURIComponent(destination)}`,
-        );
+        await this.adminRequest(Method.Delete, `/v1/federation/destinations/${encodeURIComponent(destination)}`);
     }
 
     /**
@@ -1499,7 +1489,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getFederationDestinationRooms(
         destination: string,
         params?: { from?: string | number; limit?: number },
-    ): Promise<{ rooms: Array<{ room_id: string; stream_ordering?: number }>; total?: number; next_token?: string | number }> {
+    ): Promise<{
+        rooms: Array<{ room_id: string; stream_ordering?: number }>;
+        total?: number;
+        next_token?: string | number;
+    }> {
         if (!destination) throw new ValidationError("destination is required");
         const q: Record<string, string> = {};
         if (params?.from !== undefined) q.from = String(params.from);
@@ -1577,12 +1571,9 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @throws {ApiError} 如果添加失败
      */
     async addToFederationBlacklist(serverName: string, reason?: string): Promise<void> {
-        await this.adminRequest(
-            Method.Post,
-            `/v1/federation/blacklist/${encodeURIComponent(serverName)}`,
-            undefined,
-            { reason },
-        );
+        await this.adminRequest(Method.Post, `/v1/federation/blacklist/${encodeURIComponent(serverName)}`, undefined, {
+            reason,
+        });
     }
 
     /**
@@ -1591,10 +1582,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @param serverName - 服务器名称
      */
     async removeFromFederationBlacklist(serverName: string): Promise<void> {
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/federation/blacklist/${encodeURIComponent(serverName)}`,
-        );
+        await this.adminRequest(Method.Delete, `/v1/federation/blacklist/${encodeURIComponent(serverName)}`);
     }
 
     /**
@@ -1605,26 +1593,17 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     async confirmFederationAdmission(serverName: string, accept: boolean): Promise<FederationAdmissionResult> {
-        return await this.adminRequest<FederationAdmissionResult>(
-            Method.Post,
-            "/v1/federation/confirm",
-            undefined,
-            { server_name: serverName, accept },
-        );
+        return await this.adminRequest<FederationAdmissionResult>(Method.Post, "/v1/federation/confirm", undefined, {
+            server_name: serverName,
+            accept,
+        });
     }
 
-    async listPendingFederation(options?: {
-        limit?: number;
-        offset?: number;
-    }): Promise<PendingFederationList> {
+    async listPendingFederation(options?: { limit?: number; offset?: number }): Promise<PendingFederationList> {
         const queryParams: Record<string, string> = {};
         if (options?.limit !== undefined) queryParams["limit"] = String(options.limit);
         if (options?.offset !== undefined) queryParams["offset"] = String(options.offset);
-        return await this.adminRequest<PendingFederationList>(
-            Method.Get,
-            "/v1/federation/pending",
-            queryParams,
-        );
+        return await this.adminRequest<PendingFederationList>(Method.Get, "/v1/federation/pending", queryParams);
     }
 
     // ===== 媒体管理 =====
@@ -2165,7 +2144,15 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取所有空间
      */
     async getSpaces(): Promise<{ spaces: SpaceInfo[]; total: number }> {
-        return await this.adminRequest<{ spaces: SpaceInfo[]; total: number }>(Method.Get, "/v1/spaces");
+        const raw = await this.adminRequest<{ spaces?: SpaceInfo[]; total?: number } | SpaceInfo[]>(
+            Method.Get,
+            "/v1/spaces",
+        );
+        if (Array.isArray(raw)) {
+            return { spaces: raw, total: raw.length };
+        }
+        const spaces = raw?.spaces ?? [];
+        return { spaces, total: raw?.total ?? spaces.length };
     }
 
     /**
@@ -2662,10 +2649,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async getRoomRetentionPolicy(roomId: string): Promise<RoomRetentionPolicy> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/retention/policy/${encodeURIComponent(roomId)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/retention/policy/${encodeURIComponent(roomId)}`);
     }
 
     /**
@@ -2709,15 +2693,17 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 列出审计事件
      * 对接: GET /_synapse/admin/v1/audit/events
      */
-    async listAuditEvents(params: {
-        actor_id?: string;
-        action?: string;
-        resource_type?: string;
-        resource_id?: string;
-        result?: string;
-        limit?: number;
-        from?: number;
-    } = {}): Promise<AuditEventPage> {
+    async listAuditEvents(
+        params: {
+            actor_id?: string;
+            action?: string;
+            resource_type?: string;
+            resource_id?: string;
+            result?: string;
+            limit?: number;
+            from?: number;
+        } = {},
+    ): Promise<AuditEventPage> {
         const query: Record<string, string> = {};
         for (const [k, v] of Object.entries(params)) {
             if (v !== undefined && v !== null) query[k] = String(v);
@@ -2763,12 +2749,14 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 列出特性开关
      * 对接: GET /_synapse/admin/v1/feature-flags
      */
-    async listFeatureFlags(params: {
-        target_scope?: string;
-        status?: string;
-        limit?: number;
-        offset?: number;
-    } = {}): Promise<FeatureFlagPage> {
+    async listFeatureFlags(
+        params: {
+            target_scope?: string;
+            status?: string;
+            limit?: number;
+            offset?: number;
+        } = {},
+    ): Promise<FeatureFlagPage> {
         const query: Record<string, string> = {};
         for (const [k, v] of Object.entries(params)) {
             if (v !== undefined && v !== null) query[k] = String(v);
@@ -2824,20 +2812,14 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         block_reason: string | null;
     }> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}`);
     }
 
     /**
      * 阻止用户提交事件举报
      * 对接: POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block
      */
-    async blockEventReportUser(
-        userId: string,
-        body: { blocked_until: number; reason: string },
-    ): Promise<void> {
+    async blockEventReportUser(userId: string, body: { blocked_until: number; reason: string }): Promise<void> {
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
@@ -2853,10 +2835,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async unblockEventReportUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(
-            Method.Post,
-            `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`,
-        );
+        await this.adminRequest(Method.Post, `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`);
     }
 
     // ===== 遥测告警 =====
@@ -2865,11 +2844,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 列出遥测告警
      * 对接: GET /_synapse/admin/v1/telemetry/alerts
      */
-    async listTelemetryAlerts(params: {
-        status?: string;
-        severity?: string;
-        refresh?: boolean;
-    } = {}): Promise<{ alerts: Array<Record<string, unknown>> }> {
+    async listTelemetryAlerts(
+        params: {
+            status?: string;
+            severity?: string;
+            refresh?: boolean;
+        } = {},
+    ): Promise<{ alerts: Array<Record<string, unknown>> }> {
         const q: Record<string, string> = {};
         for (const [k, v] of Object.entries(params)) {
             if (v !== undefined && v !== null) q[k] = String(v);
@@ -2883,10 +2864,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async acknowledgeTelemetryAlert(alertId: string): Promise<Record<string, unknown>> {
         if (!alertId) throw new ValidationError("alertId is required");
-        return await this.adminRequest(
-            Method.Post,
-            `/v1/telemetry/alerts/${encodeURIComponent(alertId)}/ack`,
-        );
+        return await this.adminRequest(Method.Post, `/v1/telemetry/alerts/${encodeURIComponent(alertId)}/ack`);
     }
 
     // ===== 模块管理 =====
@@ -2897,23 +2875,15 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     /** GET /_synapse/admin/v1/modules/type/{module_type} */
-    async listModulesByType(
-        moduleType: string,
-    ): Promise<{ modules: Array<Record<string, unknown>> }> {
+    async listModulesByType(moduleType: string): Promise<{ modules: Array<Record<string, unknown>> }> {
         if (!moduleType) throw new ValidationError("moduleType is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/modules/type/${encodeURIComponent(moduleType)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/modules/type/${encodeURIComponent(moduleType)}`);
     }
 
     /** GET /_synapse/admin/v1/modules/{module_name} */
     async getModule(moduleName: string): Promise<Record<string, unknown>> {
         if (!moduleName) throw new ValidationError("moduleName is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/modules/${encodeURIComponent(moduleName)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/modules/${encodeURIComponent(moduleName)}`);
     }
 
     /** POST /_synapse/admin/v1/modules */
@@ -2922,10 +2892,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     /** POST /_synapse/admin/v1/modules/{module_name}/config */
-    async updateModuleConfig(
-        moduleName: string,
-        config: Record<string, unknown>,
-    ): Promise<Record<string, unknown>> {
+    async updateModuleConfig(moduleName: string, config: Record<string, unknown>): Promise<Record<string, unknown>> {
         if (!moduleName) throw new ValidationError("moduleName is required");
         return await this.adminRequest(
             Method.Post,
@@ -2936,32 +2903,21 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     /** POST /_synapse/admin/v1/modules/{module_name}/enable */
-    async setModuleEnabled(
-        moduleName: string,
-        enabled: boolean,
-    ): Promise<Record<string, unknown>> {
+    async setModuleEnabled(moduleName: string, enabled: boolean): Promise<Record<string, unknown>> {
         if (!moduleName) throw new ValidationError("moduleName is required");
-        return await this.adminRequest(
-            Method.Post,
-            `/v1/modules/${encodeURIComponent(moduleName)}/enable`,
-            undefined,
-            { enabled },
-        );
+        return await this.adminRequest(Method.Post, `/v1/modules/${encodeURIComponent(moduleName)}/enable`, undefined, {
+            enabled,
+        });
     }
 
     /** DELETE /_synapse/admin/v1/modules/{module_name} */
     async deleteModule(moduleName: string): Promise<void> {
         if (!moduleName) throw new ValidationError("moduleName is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/modules/${encodeURIComponent(moduleName)}`,
-        );
+        await this.adminRequest(Method.Delete, `/v1/modules/${encodeURIComponent(moduleName)}`);
     }
 
     /** POST /_synapse/admin/v1/modules/check_spam */
-    async checkModuleSpam(
-        body: Record<string, unknown>,
-    ): Promise<Record<string, unknown>> {
+    async checkModuleSpam(body: Record<string, unknown>): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/v1/modules/check_spam", undefined, body);
     }
 
@@ -2974,16 +2930,17 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         const q: Record<string, string> = {};
         if (params?.limit !== undefined) q.limit = String(params.limit);
         if (params?.from !== undefined) q.from = String(params.from);
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/modules/logs/${encodeURIComponent(moduleName)}`,
-            q,
-        );
+        return await this.adminRequest(Method.Get, `/v1/modules/logs/${encodeURIComponent(moduleName)}`, q);
     }
 
     // ===== SAML 映射 =====
 
-    /** GET /_synapse/admin/v1/saml/mappings */
+    /**
+     * GET /_synapse/admin/v1/saml/mappings
+     *
+     * 列出 SAML name_id → user_id 映射，支持 keyset 分页（游标为 `name_id`）。
+     * 后端对应 `synapse-rust/src/web/routes/saml.rs:list_saml_mappings_admin`。
+     */
     async listSamlMappings(params: { limit?: number; from?: string } = {}): Promise<SamlMappingPage> {
         const q: Record<string, string> = {};
         if (params.limit !== undefined) q.limit = String(params.limit);
@@ -2991,36 +2948,45 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Get, "/v1/saml/mappings", q);
     }
 
-    /** GET /_synapse/admin/v1/saml/mapping/{name_id} */
+    /**
+     * GET /_synapse/admin/v1/saml/mapping/{name_id}
+     *
+     * 若同一 `name_id` 在多个 issuer 下存在，返回 `first_seen_ts ASC` 最早的一条。
+     * 需要精确按 issuer 查找时，使用高层 SDK 的扩展接口或直接访问存储层。
+     */
     async getSamlMapping(nameId: string): Promise<SamlMapping> {
         if (!nameId) throw new ValidationError("nameId is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/saml/mapping/${encodeURIComponent(nameId)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/saml/mapping/${encodeURIComponent(nameId)}`);
     }
 
-    /** PUT /_synapse/admin/v1/saml/mapping/{name_id} */
+    /**
+     * PUT /_synapse/admin/v1/saml/mapping/{name_id}
+     *
+     * `updates` 识别 `user_id`（重新映射到不同的 homeserver 用户）与
+     * `attributes`（覆盖存储的 attribute JSON）。必须至少提供其一，否则后端 400。
+     */
     async updateSamlMapping(nameId: string, updates: Record<string, unknown>): Promise<void> {
         if (!nameId) throw new ValidationError("nameId is required");
-        await this.adminRequest(
-            Method.Put,
-            `/v1/saml/mapping/${encodeURIComponent(nameId)}`,
-            undefined,
-            updates,
-        );
+        await this.adminRequest(Method.Put, `/v1/saml/mapping/${encodeURIComponent(nameId)}`, undefined, updates);
     }
 
-    /** DELETE /_synapse/admin/v1/saml/mapping/{name_id} */
+    /**
+     * DELETE /_synapse/admin/v1/saml/mapping/{name_id}
+     *
+     * 删除所有 issuer 下匹配该 `name_id` 的映射；后端 404 表示无匹配。
+     */
     async deleteSamlMapping(nameId: string): Promise<void> {
         if (!nameId) throw new ValidationError("nameId is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/saml/mapping/${encodeURIComponent(nameId)}`,
-        );
+        await this.adminRequest(Method.Delete, `/v1/saml/mapping/${encodeURIComponent(nameId)}`);
     }
 
-    /** POST /_synapse/admin/v1/saml/logout */
+    /**
+     * POST /_synapse/admin/v1/saml/logout
+     *
+     * 以管理员身份终结指定用户当前的 SAML 会话；若存在活跃会话，后端会发起
+     * SLO 并返回 `redirect_url` 供 UI 跳转至 IdP。无活跃会话时返回
+     * `{ sessions_invalidated: 0, redirect_url: null }`。
+     */
     async samlLogout(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
         await this.adminRequest(Method.Post, "/v1/saml/logout", undefined, { user_id: userId });
@@ -3029,9 +2995,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     // ===== Application Services =====
 
     /** GET /_synapse/admin/v1/appservices */
-    async listApplicationServices(
-        params: { limit?: number; from?: string } = {},
-    ): Promise<ApplicationServicePage> {
+    async listApplicationServices(params: { limit?: number; from?: string } = {}): Promise<ApplicationServicePage> {
         const q: Record<string, string> = {};
         if (params.limit !== undefined) q.limit = String(params.limit);
         if (params.from !== undefined) q.from = params.from;
@@ -3044,53 +3008,31 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         config: Record<string, unknown>,
     ): Promise<ApplicationServiceInfo> {
         if (!asToken) throw new ValidationError("asToken is required");
-        return await this.adminRequest(
-            Method.Post,
-            "/v1/appservices",
-            undefined,
-            { as_token: asToken, ...config },
-        );
+        return await this.adminRequest(Method.Post, "/v1/appservices", undefined, { as_token: asToken, ...config });
     }
 
     /** GET /_synapse/admin/v1/appservices/{service_id} */
     async getApplicationService(serviceId: string): Promise<ApplicationServiceInfo> {
         if (!serviceId) throw new ValidationError("serviceId is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/appservices/${encodeURIComponent(serviceId)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/appservices/${encodeURIComponent(serviceId)}`);
     }
 
     /** PUT /_synapse/admin/v1/appservices/{service_id} */
-    async updateApplicationService(
-        serviceId: string,
-        config: Record<string, unknown>,
-    ): Promise<void> {
+    async updateApplicationService(serviceId: string, config: Record<string, unknown>): Promise<void> {
         if (!serviceId) throw new ValidationError("serviceId is required");
-        await this.adminRequest(
-            Method.Put,
-            `/v1/appservices/${encodeURIComponent(serviceId)}`,
-            undefined,
-            config,
-        );
+        await this.adminRequest(Method.Put, `/v1/appservices/${encodeURIComponent(serviceId)}`, undefined, config);
     }
 
     /** DELETE /_synapse/admin/v1/appservices/{service_id} */
     async deleteApplicationService(serviceId: string): Promise<void> {
         if (!serviceId) throw new ValidationError("serviceId is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/appservices/${encodeURIComponent(serviceId)}`,
-        );
+        await this.adminRequest(Method.Delete, `/v1/appservices/${encodeURIComponent(serviceId)}`);
     }
 
     /** POST /_synapse/admin/v1/appservices/{service_id}/ping */
     async pingApplicationService(serviceId: string): Promise<ApplicationServicePingResult> {
         if (!serviceId) throw new ValidationError("serviceId is required");
-        return await this.adminRequest(
-            Method.Post,
-            `/v1/appservices/${encodeURIComponent(serviceId)}/ping`,
-        );
+        return await this.adminRequest(Method.Post, `/v1/appservices/${encodeURIComponent(serviceId)}/ping`);
     }
 
     // ===== 系统通知 CRUD =====
@@ -3106,9 +3048,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     /** GET /_synapse/admin/v1/notifications */
-    async listSystemNotifications(
-        params: { limit?: number; from?: string } = {},
-    ): Promise<SystemNotificationPage> {
+    async listSystemNotifications(params: { limit?: number; from?: string } = {}): Promise<SystemNotificationPage> {
         const q: Record<string, string> = {};
         if (params.limit !== undefined) q.limit = String(params.limit);
         if (params.from !== undefined) q.from = params.from;
@@ -3118,17 +3058,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /** GET /_synapse/admin/v1/notifications/{notification_id} */
     async getSystemNotification(notificationId: string): Promise<SystemNotificationInfo> {
         if (!notificationId) throw new ValidationError("notificationId is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/notifications/${encodeURIComponent(notificationId)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/notifications/${encodeURIComponent(notificationId)}`);
     }
 
     /** PUT /_synapse/admin/v1/notifications/{notification_id} */
-    async updateSystemNotification(
-        notificationId: string,
-        updates: Record<string, unknown>,
-    ): Promise<void> {
+    async updateSystemNotification(notificationId: string, updates: Record<string, unknown>): Promise<void> {
         if (!notificationId) throw new ValidationError("notificationId is required");
         await this.adminRequest(
             Method.Put,
@@ -3141,10 +3075,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /** DELETE /_synapse/admin/v1/notifications/{notification_id} */
     async deleteSystemNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("notificationId is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/v1/notifications/${encodeURIComponent(notificationId)}`,
-        );
+        await this.adminRequest(Method.Delete, `/v1/notifications/${encodeURIComponent(notificationId)}`);
     }
 
     // ===== 用户通知设置 / Pushers =====
@@ -3152,17 +3083,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /** GET /_synapse/admin/v1/users/{user_id}/notification */
     async getUserNotificationSettings(userId: string): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/notification`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/notification`);
     }
 
     /** PUT /_synapse/admin/v1/users/{user_id}/notification */
-    async setUserNotificationSettings(
-        userId: string,
-        settings: Record<string, unknown>,
-    ): Promise<void> {
+    async setUserNotificationSettings(userId: string, settings: Record<string, unknown>): Promise<void> {
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Put,
@@ -3175,10 +3100,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /** GET /_synapse/admin/v1/users/{user_id}/pushers */
     async listUserPushers(userId: string): Promise<{ pushers: UserPusher[] }> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/pushers`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/pushers`);
     }
 
     /** DELETE /_synapse/admin/v1/users/{user_id}/pushers/{pushkey} */
@@ -3207,19 +3129,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /** GET /_synapse/admin/v1/spaces/{space_id}/users — 对象形态（与已存在的 `getSpaceUsers` 字符串数组形态并存） */
     async listSpaceUsers(spaceId: string): Promise<{ users: SpaceUser[] }> {
         if (!spaceId) throw new ValidationError("spaceId is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/spaces/${encodeURIComponent(spaceId)}/users`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}/users`);
     }
 
     /** GET /_synapse/admin/v1/spaces/{space_id}/rooms — 对象形态（与已存在的 `getSpaceRooms` 字符串数组形态并存） */
     async listSpaceRooms(spaceId: string): Promise<{ rooms: SpaceRoom[] }> {
         if (!spaceId) throw new ValidationError("spaceId is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`);
     }
 
     // ===== Security =====
@@ -3230,7 +3146,9 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     ): Promise<SecurityEventPage> {
         const q: Record<string, string> = {};
         for (const [k, v] of Object.entries(params)) {
-            if (v !== undefined && v !== null) q[k] = String(v);
+            if (v !== undefined && v !== null) {
+                q[k] = typeof v === "string" ? v : JSON.stringify(v);
+            }
         }
         return await this.adminRequest(Method.Get, "/v1/security/events", q);
     }
@@ -3241,17 +3159,9 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     /** POST /_synapse/admin/v1/security/ip/block */
-    async blockIp(
-        ip: string,
-        options?: { cidr?: number; expire_at?: number; reason?: string },
-    ): Promise<IpBlock> {
+    async blockIp(ip: string, options?: { cidr?: number; expire_at?: number; reason?: string }): Promise<IpBlock> {
         if (!ip) throw new ValidationError("ip is required");
-        return await this.adminRequest(
-            Method.Post,
-            "/v1/security/ip/block",
-            undefined,
-            { ip, ...(options ?? {}) },
-        );
+        return await this.adminRequest(Method.Post, "/v1/security/ip/block", undefined, { ip, ...(options ?? {}) });
     }
 
     /** POST /_synapse/admin/v1/security/ip/unblock */
@@ -3263,10 +3173,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     /** GET /_synapse/admin/v1/security/ip/reputation/{ip} */
     async getIpReputation(ip: string): Promise<Record<string, unknown>> {
         if (!ip) throw new ValidationError("ip is required");
-        return await this.adminRequest(
-            Method.Get,
-            `/v1/security/ip/reputation/${encodeURIComponent(ip)}`,
-        );
+        return await this.adminRequest(Method.Get, `/v1/security/ip/reputation/${encodeURIComponent(ip)}`);
     }
 
     // ===== Server 运维 =====
@@ -3295,17 +3202,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async setRoomPublicListing(roomId: string, isPublic: boolean): Promise<void> {
         if (!roomId) throw new ValidationError("roomId is required");
         const method = isPublic ? Method.Put : Method.Delete;
-        await this.adminRequest(
-            method,
-            `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`,
-        );
+        await this.adminRequest(method, `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`);
     }
 
     /** GET /_synapse/admin/v1/rooms/{room_id}/event_context/{event_id} */
-    async getRoomEventContext(
-        roomId: string,
-        eventId: string,
-    ): Promise<Record<string, unknown>> {
+    async getRoomEventContext(roomId: string, eventId: string): Promise<Record<string, unknown>> {
         if (!roomId) throw new ValidationError("roomId is required");
         if (!eventId) throw new ValidationError("eventId is required");
         return await this.adminRequest(
@@ -3322,12 +3223,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     ): Promise<{ results: Array<Record<string, unknown>>; next_batch?: string }> {
         if (!roomId) throw new ValidationError("roomId is required");
         if (!searchTerm) throw new ValidationError("searchTerm is required");
-        return await this.adminRequest(
-            Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/search`,
-            undefined,
-            { search_term: searchTerm, limit },
-        );
+        return await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/search`, undefined, {
+            search_term: searchTerm,
+            limit,
+        });
     }
 
     /** POST /_synapse/admin/v1/rooms/search */
@@ -3336,12 +3235,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         limit = 50,
     ): Promise<{ rooms: Array<Record<string, unknown>>; next_batch?: string }> {
         if (!searchTerm) throw new ValidationError("searchTerm is required");
-        return await this.adminRequest(
-            Method.Post,
-            "/v1/rooms/search",
-            undefined,
-            { search_term: searchTerm, limit },
-        );
+        return await this.adminRequest(Method.Post, "/v1/rooms/search", undefined, { search_term: searchTerm, limit });
     }
 
     /** DELETE /_synapse/admin/v1/rooms/{room_id} with body */
@@ -3390,12 +3284,10 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         },
     ): Promise<{ purge_id: string }> {
         if (!roomId) throw new ValidationError("roomId is required");
-        return await this.adminRequest(
-            Method.Post,
-            "/v1/purge_history",
-            undefined,
-            { room_id: roomId, ...(options ?? {}) },
-        );
+        return await this.adminRequest(Method.Post, "/v1/purge_history", undefined, {
+            room_id: roomId,
+            ...(options ?? {}),
+        });
     }
 
     // ===== Batch 9: 用户批量 / 登录失败 / SAML 配置 / 备份 / 实验特性 =====
@@ -3422,25 +3314,56 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     /** GET /_matrix/client/r0/saml/metadata */
     async getSamlMetadata(): Promise<SamlMetadata> {
-        return await this.rawRequest(Method.Get, "/_matrix/client/r0/saml/metadata", undefined, undefined, "getSamlMetadata");
+        return await this.rawRequest(
+            Method.Get,
+            "/_matrix/client/r0/saml/metadata",
+            undefined,
+            undefined,
+            "getSamlMetadata",
+        );
     }
 
     /** GET /_matrix/client/r0/saml/sp_metadata */
     async getSpMetadata(): Promise<Blob> {
-        return await this.rawRequest(Method.Get, "/_matrix/client/r0/saml/sp_metadata", undefined, undefined, "getSpMetadata", true);
+        return await this.rawRequest(
+            Method.Get,
+            "/_matrix/client/r0/saml/sp_metadata",
+            undefined,
+            undefined,
+            "getSpMetadata",
+            true,
+        );
     }
 
     /** POST /_synapse/admin/v1/saml/metadata/refresh */
     async refreshIdpMetadata(): Promise<SamlMetadata> {
-        return await this.adminRequest(Method.Post, "/v1/saml/metadata/refresh", undefined, undefined, "refreshIdpMetadata");
+        return await this.adminRequest(
+            Method.Post,
+            "/v1/saml/metadata/refresh",
+            undefined,
+            undefined,
+            "refreshIdpMetadata",
+        );
     }
 
-    /** GET /_synapse/admin/v1/saml/config */
+    /**
+     * GET /_synapse/admin/v1/saml/config
+     *
+     * 返回 effective SAML 配置（基础 yaml 配置 + 运行时 PUT 覆盖的合并视图）。
+     * 私钥/证书/路径字段已被后端剥离，仅暴露 `has_sp_private_key` / `has_sp_certificate` 布尔标记。
+     */
     async getSamlConfig(): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Get, "/v1/saml/config");
     }
 
-    /** PUT /_synapse/admin/v1/saml/config */
+    /**
+     * PUT /_synapse/admin/v1/saml/config
+     *
+     * 提交可热更新字段的 patch；后端只接受 {@link SamlService::MUTABLE_CONFIG_FIELDS}
+     * 白名单内的字段（`enabled`、`attribute_mapping`、`session_lifetime`、`allow_existing_users`、
+     * `allowed_idp_entity_ids`、`sign_requests`、`want_response_signed` 等），其它字段返回 400。
+     * 覆盖目前仅在内存中维持，**进程重启后丢失**——长期生效仍需修改 `homeserver.yaml`。
+     */
     async updateSamlConfig(config: Record<string, unknown>): Promise<void> {
         await this.adminRequest(Method.Put, "/v1/saml/config", undefined, config);
     }

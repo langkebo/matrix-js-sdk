@@ -646,8 +646,7 @@ export class PushProcessor {
         return (
             ["m.ring", "m.prompt"].includes(content["m.intent"] ?? "") &&
             !("m.terminated" in content) &&
-            (ev.getPrevContent()["m.terminated"] !== content["m.terminated"] ||
-                deepCompare(ev.getPrevContent(), {}))
+            (ev.getPrevContent()["m.terminated"] !== content["m.terminated"] || deepCompare(ev.getPrevContent(), {}))
         );
     }
 

@@ -65,17 +65,13 @@ describe("StickyEventManager", () => {
 
     describe("hasStickyEvent", () => {
         it("true when event cached", async () => {
-            await manager.setStickyEvent(
-                "!r:x",
-                "$e1",
-                {
-                    event_id: "$e1",
-                    event_type: "m.room.message",
-                    content: {},
-                    sender: "@me:x",
-                    ts: 1,
-                } as any,
-            );
+            await manager.setStickyEvent("!r:x", "$e1", {
+                event_id: "$e1",
+                event_type: "m.room.message",
+                content: {},
+                sender: "@me:x",
+                ts: 1,
+            } as any);
             expect(await manager.hasStickyEvent("!r:x")).toBe(true);
         });
 
@@ -87,17 +83,13 @@ describe("StickyEventManager", () => {
 
     describe("clearStickyEvent", () => {
         it("sends empty state event and evicts cache", async () => {
-            await manager.setStickyEvent(
-                "!r:x",
-                "$e1",
-                {
-                    event_id: "$e1",
-                    event_type: "m.room.message",
-                    content: {},
-                    sender: "@me:x",
-                    ts: 1,
-                } as any,
-            );
+            await manager.setStickyEvent("!r:x", "$e1", {
+                event_id: "$e1",
+                event_type: "m.room.message",
+                content: {},
+                sender: "@me:x",
+                ts: 1,
+            } as any);
             sendStateEvent.mockClear();
             await manager.clearStickyEvent("!r:x");
             expect(sendStateEvent).toHaveBeenCalledWith("!r:x", "m.sticky_event", {}, "");

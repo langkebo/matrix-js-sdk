@@ -1,0 +1,73 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "presence",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 8,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/presence/list",
+      "registered_by": "presence",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/presence/list/{user_id}",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    }
+  ]
+}

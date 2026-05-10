@@ -56,11 +56,7 @@ export function buildPaginationParams(from?: string, limit?: number): Record<str
  * // { search_term: "alice", from: "token123", limit: "50" }
  * ```
  */
-export function buildSearchParams(
-    searchTerm?: string,
-    from?: string,
-    limit?: number,
-): Record<string, string> {
+export function buildSearchParams(searchTerm?: string, from?: string, limit?: number): Record<string, string> {
     const params = buildPaginationParams(from, limit);
     if (searchTerm) {
         params["search_term"] = searchTerm;

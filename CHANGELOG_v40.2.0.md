@@ -14,11 +14,13 @@ This release includes a comprehensive optimization of the SDK with significant i
 ### Added
 
 #### Security
+
 - ✅ **Input Validation**: Added `ValidationError` class and `AdminValidators` utility for comprehensive input validation
 - ✅ **Format Validation**: User ID and Room ID format validation to prevent injection attacks
 - ✅ **Boundary Checks**: Parameter boundary validation (e.g., limit: 1-10000) to prevent resource exhaustion
 
 #### Documentation
+
 - ✅ **Usage Examples**: Added detailed `@example` documentation for 25+ methods
 - ✅ **Error Documentation**: Added `@throws` documentation for all core methods
 - ✅ **Admin Guide**: Created comprehensive Admin API usage guide (600+ lines)
@@ -26,19 +28,22 @@ This release includes a comprehensive optimization of the SDK with significant i
 - ✅ **Optimization Reports**: Created detailed optimization reports for all phases
 
 #### API Improvements
+
 - ✅ **Unified Pagination**: Added `PaginatedResponse<T>` type for consistent pagination format
-- ✅ **New Methods**: 
-  - `getUsersPaginated()` - Unified format for user list pagination
-  - `getRoomsPaginated()` - Unified format for room list pagination
+- ✅ **New Methods**:
+    - `getUsersPaginated()` - Unified format for user list pagination
+    - `getRoomsPaginated()` - Unified format for room list pagination
 - ✅ **Deprecation Warnings**: Added deprecation warning utility for smooth API transitions
 
 #### Code Quality
+
 - ✅ **Admin Utils**: Created utility functions for query parameter building
 - ✅ **Type Safety**: Added `WhoisResponse` type, eliminated `any` type usage
 
 ### Changed
 
 #### Security Improvements
+
 - 🔒 **Admin Module**: Added input validation to 7 core methods
 - 🔒 **Auth Module**: Enhanced validation and added security warnings
 - 🔒 **Friend Module**: Replaced basic validation with standard validators
@@ -46,13 +51,15 @@ This release includes a comprehensive optimization of the SDK with significant i
 - 🔒 **Device Module**: Added input validation and improved error messages
 
 #### Error Handling
+
 - ⚠️ **Cleaned Empty Catch Blocks**: Removed 5 instances of `catch {}` with explicit error handling
-  - `/src/models/room.ts` - getRecommendedVersion()
-  - `/src/interactive-auth.ts` - submitPromise handling
-  - `/src/browser-index.ts` - IndexedDB initialization
-  - `/src/store/memory.ts` - localStorage operations (2 instances)
+    - `/src/models/room.ts` - getRecommendedVersion()
+    - `/src/interactive-auth.ts` - submitPromise handling
+    - `/src/browser-index.ts` - IndexedDB initialization
+    - `/src/store/memory.ts` - localStorage operations (2 instances)
 
 #### Code Quality
+
 - 📝 **Reduced Code Duplication**: Extracted common query building logic (~30 lines)
 - 📝 **Improved Error Messages**: More descriptive validation error messages
 - 📝 **Consistent API**: Unified pagination format across modules
@@ -77,15 +84,15 @@ This release includes a comprehensive optimization of the SDK with significant i
 ### Documentation
 
 - 📚 **New Files**:
-  - `/docs/ADMIN_GUIDE.md` - Comprehensive Admin API guide
-  - `/docs/VERSION_POLICY.md` - Version policy and deprecation guidelines
-  - `/docs/OPTIMIZATION_SHOWCASE.md` - Optimization results showcase
-  - `/docs/SDK_OPTIMIZATION_FINAL_REPORT_2026-04-16.md` - Final optimization report
-  - Multiple phase reports documenting the optimization process
+    - `/docs/ADMIN_GUIDE.md` - Comprehensive Admin API guide
+    - `/docs/VERSION_POLICY.md` - Version policy and deprecation guidelines
+    - `/docs/OPTIMIZATION_SHOWCASE.md` - Optimization results showcase
+    - `/docs/SDK_OPTIMIZATION_FINAL_REPORT_2026-04-16.md` - Final optimization report
+    - Multiple phase reports documenting the optimization process
 
 - 📚 **Updated Files**:
-  - `/README.md` - Added "Recent Updates" section
-  - `/CLAUDE.md` - Added Admin architecture, code quality standards, and best practices
+    - `/README.md` - Added "Recent Updates" section
+    - `/CLAUDE.md` - Added Admin architecture, code quality standards, and best practices
 
 ### Performance
 
@@ -97,16 +104,18 @@ This release includes a comprehensive optimization of the SDK with significant i
 #### Migrating to Unified Pagination API
 
 **Before (deprecated)**:
+
 ```typescript
 const result = await adminManager.getUsers(undefined, 50);
-result.users.forEach(user => console.log(user.user_id));
+result.users.forEach((user) => console.log(user.user_id));
 const nextToken = result.next_token;
 ```
 
 **After (recommended)**:
+
 ```typescript
 const result = await adminManager.getUsersPaginated({ limit: 50 });
-result.items.forEach(user => console.log(user.user_id));
+result.items.forEach((user) => console.log(user.user_id));
 const nextToken = result.nextToken;
 ```
 

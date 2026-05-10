@@ -21,7 +21,6 @@ import { ClientPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
-import { ValidationError } from "../errors";
 
 export interface ILocalNotificationSettings {
     is_silenced: boolean;

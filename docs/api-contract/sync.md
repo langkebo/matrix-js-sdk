@@ -1,3 +1,11 @@
+---
+module: sync
+generated_from: docs/api-contract/generated/modules/sync.json
+generated_hash: sha256-e7a69580fa664bda896b550cab41531d8f499c2e79001e0bf10f560c42cae5e0
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Sync 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/sync.rs` 与 `sliding_sync.rs`

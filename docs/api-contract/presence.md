@@ -1,3 +1,11 @@
+---
+module: presence
+generated_from: docs/api-contract/generated/modules/presence.json
+generated_hash: sha256-96e78c5b92a1b3da6216a65b6e68457fbc21701ac40639ecfc9d05595dd5efc7
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Presence 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/presence.rs`
@@ -12,12 +20,12 @@
 
 ## 路由清单
 
-| 方法 | 路径                                                   | 说明                         | 认证 |
-| ---- | ------------------------------------------------------ | ---------------------------- | ---- |
+| 方法 | 路径                                                   | 说明                         | 认证                         |
+| ---- | ------------------------------------------------------ | ---------------------------- | ---------------------------- |
 | GET  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 获取指定用户 presence 状态   | 用户；当前仅允许本人或管理员 |
-| PUT  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 更新指定用户 presence 状态   | 用户 |
-| POST | `/_matrix/client/v3/presence/list`                     | 批量订阅/管理 presence list  | 用户 |
-| GET  | `/_matrix/client/v3/presence/list/{user_id}`           | 获取指定用户的 presence list | 用户 |
+| PUT  | `/_matrix/client/{v1,r0,v3}/presence/{user_id}/status` | 更新指定用户 presence 状态   | 用户                         |
+| POST | `/_matrix/client/v3/presence/list`                     | 批量订阅/管理 presence list  | 用户                         |
+| GET  | `/_matrix/client/v3/presence/list/{user_id}`           | 获取指定用户的 presence list | 用户                         |
 
 ## 响应与请求要点
 

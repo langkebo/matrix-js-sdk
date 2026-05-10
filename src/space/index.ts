@@ -65,6 +65,8 @@ export interface Space {
     visibility?: string;
     is_public?: boolean;
     created_ts?: number;
+    updated_ts?: number;
+    parent_space_id?: string;
     [key: string]: unknown;
 }
 
@@ -128,7 +130,8 @@ export interface SpaceQueryOptions extends QueryDict {
 }
 
 export interface CreateSpaceOptions {
-    room_id?: string;
+    /** 必填：Space 关联的房间 ID（后端 CreateSpaceBody.room_id 是必填字段） */
+    room_id: string;
     name?: string;
     topic?: string;
     avatar_url?: string;
@@ -149,8 +152,8 @@ export interface UpdateSpaceOptions {
 
 export interface AddChildOptions {
     room_id: string;
+    /** 后端 AddChildBody.via_servers 是必填 Vec<String>；缺省时 SDK 自动填 [] */
     via_servers?: string[];
-    order?: string;
     suggested?: boolean;
 }
 
@@ -210,7 +213,9 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
                 lastError = error;
                 if (!this.isRetryableError(error)) {
                     this.recordRequest(false, false);
-                    throw this.normalizeError(error, method);
+                    const normalized = this.normalizeError(error, method);
+                    this.emit(SpaceEvent.SpaceError, normalized);
+                    throw normalized;
                 }
                 if (attempt < retries) {
                     const delay = this.retryDelay * Math.pow(2, attempt);
@@ -220,7 +225,9 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
             }
         }
         this.recordRequest(false, true);
-        throw this.normalizeError(lastError, method);
+        const normalized = this.normalizeError(lastError, method);
+        this.emit(SpaceEvent.SpaceError, normalized);
+        throw normalized;
     }
 
     private recordRequest(success: boolean, retried: boolean): void {
@@ -271,8 +278,24 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
      * @throws {ApiError} 如果 API 调用失败
      */
     async createSpace(options: CreateSpaceOptions): Promise<Space> {
+        if (!options.room_id) {
+            throw new ValidationError("Space room_id is required");
+        }
+        AdminValidators.validateRoomId(options.room_id);
         if (options.name && options.name.length > 255) {
             throw new ValidationError("Space name too long (max 255 characters)");
+        }
+        if (options.topic && options.topic.length > 1000) {
+            throw new ValidationError("Space topic too long (max 1000 characters)");
+        }
+        if (options.avatar_url && options.avatar_url.length > 2048) {
+            throw new ValidationError("Space avatar_url too long (max 2048 characters)");
+        }
+        if (options.join_rule && options.join_rule.length > 50) {
+            throw new ValidationError("Space join_rule too long (max 50 characters)");
+        }
+        if (options.visibility && options.visibility.length > 50) {
+            throw new ValidationError("Space visibility too long (max 50 characters)");
         }
         const response = await this.withRetryRequest(async () => {
             return await this.request<JsonObject>(Method.Post, "/spaces", undefined, options);
@@ -434,8 +457,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         await this.withRetryRequest(async () => {
             await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
                 room_id: options.room_id,
-                via_servers: options.via_servers,
-                order: options.order,
+                via_servers: options.via_servers ?? [],
                 suggested: options.suggested,
             });
         }, "addChild");
@@ -672,6 +694,8 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
             visibility,
             is_public: this.asBoolean(space.is_public) ?? (visibility === "public" || joinRule === "public"),
             created_ts: this.asNumber(space.created_ts),
+            updated_ts: this.asNumber(space.updated_ts),
+            parent_space_id: this.asString(space.parent_space_id),
         };
     }
 

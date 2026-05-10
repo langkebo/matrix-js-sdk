@@ -1,3 +1,11 @@
+---
+module: ephemeral
+generated_from: docs/api-contract/generated/modules/ephemeral.json
+generated_hash: sha256-3d9089ffd1f66bc1aec7e0c84b9f0adfdf19408ce8078281c4ea0d7533a51472
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Ephemeral Events API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/ephemeral.rs`  
@@ -28,12 +36,13 @@ Ephemeral Events API 提供临时事件查询功能，用于获取不持久化�
 **挂载版本**: `v3`
 
 **响应**: `200 OK`
+
 ```typescript
 interface EphemeralEventsResponse {
-  events: Array<{
-    type: string;
-    content: Record<string, unknown>;
-  }>;
+    events: Array<{
+        type: string;
+        content: Record<string, unknown>;
+    }>;
 }
 ```
 
@@ -52,6 +61,6 @@ interface EphemeralEventsResponse {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

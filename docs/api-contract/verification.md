@@ -1,3 +1,11 @@
+---
+module: verification_routes
+generated_from: docs/api-contract/generated/modules/verification_routes.json
+generated_hash: sha256-6425720e52ccaf5d380257c2e2efe83c26f3016d95ac54e7534dec1fa7ca0311
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Verification 契约
 
 > 审查来源: `synapse-rust/src/web/routes/verification_routes.rs`
@@ -64,3 +72,23 @@
 
 - 路由定义: `synapse-rust/src/web/routes/verification_routes.rs`
 - 验证服务: `synapse-rust/src/e2ee/verification/service.rs`
+
+## SDK 对齐状态
+
+`matrix-js-sdk/src/verification/index.ts` 的 `VerificationManager` 封装全部 9 条端点，
+由 `extendMatrixClient()` 注册 `MatrixClient.getVerificationManager()`；同时登记在
+`matrix-client-extensions.d.ts` 与 `manager-extensions/index.ts` 的默认扩展列表。
+
+| 端点                                                 | SDK 方法                     |
+| ---------------------------------------------------- | ---------------------------- |
+| `POST .../keys/device_signing/verify_start`          | `startVerification()`        |
+| `PUT  .../keys/device_signing/verify_accept`         | `acceptVerification()`       |
+| `POST .../keys/device_signing/verify_key_agreement`  | `exchangeKeys()`             |
+| `POST .../keys/device_signing/verify_mac`            | `confirmMac()`               |
+| `POST .../keys/device_signing/verify_done`           | `completeVerification()`     |
+| `POST .../keys/device_signing/verify_cancel`         | `cancelVerification()`       |
+| `GET  .../keys/device_signing/requests`              | `listPendingVerifications()` |
+| `GET  .../keys/qr_code/show`                         | `showQrCode()`               |
+| `POST .../keys/qr_code/scan`                         | `scanQrCode()`               |
+
+> SDK 用 `ClientPrefix.V1` 前缀，与本契约的 v1/r0 挂载一致；v3 命名空间归 `e2ee_routes`。

@@ -260,7 +260,11 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
      * 发送消息到 Rendezvous 会话
      * POST /_matrix/client/v1/rendezvous/{session_id}/messages
      */
-    async sendMessage(sessionId: string, message: RendezvousMessage, sessionKey?: string): Promise<SendMessageResponse> {
+    async sendMessage(
+        sessionId: string,
+        message: RendezvousMessage,
+        sessionKey?: string,
+    ): Promise<SendMessageResponse> {
         const response = await this.rendezvousRequest<SendMessageResponse>(
             Method.Post,
             `/rendezvous/${encodeURIComponent(sessionId)}/messages`,
@@ -303,7 +307,10 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     /**
      * 完成会话并获取登录凭证（辅助方法）
      */
-    async completeSession(sessionId: string, sessionKey?: string): Promise<{
+    async completeSession(
+        sessionId: string,
+        sessionKey?: string,
+    ): Promise<{
         access_token: string;
         device_id: string;
         user_id: string;

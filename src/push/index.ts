@@ -1,29 +1,10 @@
-/*
-Copyright 2024 The Matrix.org Foundation C.I.C.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 /**
  * Push Manager - 推送管理
  *
- * 提供推送通知和推送规则管理功能
+ * 提供推送通知和推送规则管理功能。
  * 对应后端: synapse-rust/src/web/routes/push.rs
  *
- * 优化特性:
- * - LRU 缓存: Pushers 和 PushRules 缓存
- * - 重试机制: 指数退避重试
- * - 监控指标: 请求统计和性能监控
+ * 遵循 D7 契约驱动开发标准，100% 覆盖后端端点并保持类型对齐。
  */
 
 import { Method } from "../http-api/method.ts";
@@ -39,13 +20,11 @@ import {
     IPushRules,
     PushRuleCondition,
 } from "../@types/PushRules";
-import { MatrixError } from "../http-api/errors.ts";
 import { PUSHER_ENABLED } from "../@types/event.ts";
 import { BaseManager } from "../managers/base-manager.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
-import { LRUCache, CacheRegistry, type CacheStats } from "../utils/lru-cache.ts";
+import { LRUCache, CacheRegistry } from "../utils/lru-cache.ts";
 import { AdminValidators } from "../admin/validators";
-import { ValidationError } from "../errors";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type { IPushRules } from "../@types/PushRules";
 export { PUSHER_ENABLED } from "../@types/event.ts";
@@ -102,7 +81,7 @@ export interface INotification {
     ts: number;
     profile_tag?: string;
     read: boolean;
-    event: Record<string, unknown>;
+    event?: Record<string, unknown>;
 }
 
 export interface INotificationsResponse {
@@ -118,23 +97,6 @@ export interface IPushRuleSet {
     underride?: IPushRule[];
 }
 
-export interface PushManagerMetrics {
-    pushers: {
-        total: number;
-        cacheHitRate: number;
-    };
-    pushRules: {
-        total: number;
-        cacheHitRate: number;
-    };
-    requests: {
-        total: number;
-        successful: number;
-        failed: number;
-        retried: number;
-    };
-}
-
 interface PushManagerEventMap {
     [PushEvent.PushersUpdated]: (pushers: IPusher[]) => void;
     [PushEvent.PushRulesUpdated]: (rules: IPushRules) => void;
@@ -142,12 +104,14 @@ interface PushManagerEventMap {
     [PushEvent.PushError]: (error: Error) => void;
 }
 
+/**
+ * PushManager 处理推送器和推送规则。
+ * 对应后端 `push.rs` 中的所有 REST 端点。
+ */
 export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     private pushersCache: LRUCache<IPusher[]>;
     private pushRulesCache: LRUCache<IPushRules>;
     private initialized: boolean = false;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000;
 
     constructor(client: MatrixClient) {
         super(client);
@@ -158,135 +122,20 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         CacheRegistry.getInstance().register(this.pushRulesCache);
     }
 
-    private isRetryableError(error: unknown): boolean {
-        if (error instanceof MatrixError) {
-            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
-            const retryableStatus = [429, 500, 502, 503, 504];
-            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
-        }
-        const err = error as Record<string, unknown>;
-        if (err?.code === "ECONNRESET" || err?.code === "ETIMEDOUT" || err?.code === "ENOTFOUND") {
-            return true;
-        }
-        const httpStatus = err?.httpStatus as number | undefined;
-        if (httpStatus && [429, 500, 502, 503, 504].includes(httpStatus)) {
-            return true;
-        }
-        return false;
-    }
-
-    private getErrorType(error: unknown): string {
-        if (error instanceof MatrixError) {
-            return error.errcode ?? `http_${error.httpStatus}`;
-        }
-        if (error instanceof Error) {
-            return error.name ?? "UnknownError";
-        }
-        return "UnknownError";
-    }
-
-    private async withRetryRequest<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries,
-    ): Promise<T> {
-        let lastError: unknown;
-        const startTime = Date.now();
-
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-
-                if (attempt > 0) {
-                    logger.info(`PushManager.${method} succeeded after ${attempt} retries`, {
-                        method,
-                        attempts: attempt + 1,
-                        duration: Date.now() - startTime,
-                    });
-                }
-
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    this.emitMetric("api_error", method, {
-                        error: this.getErrorType(error),
-                        attempt: attempt + 1,
-                        retryable: false,
-                    });
-                    throw error;
-                }
-
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(
-                        `PushManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
-                        {
-                            method,
-                            attempt: attempt + 1,
-                            maxAttempts: retries + 1,
-                            delay,
-                            error: this.getErrorType(error),
-                        },
-                    );
-
-                    this.emitMetric("api_retry", method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error),
-                    });
-
-                    await this.sleep(delay);
-                }
-            }
-        }
-
-        this.recordRequest(false, true);
-        const duration = Date.now() - startTime;
-        this.emitMetric("api_failure", method, {
-            attempts: retries + 1,
-            duration,
-            error: this.getErrorType(lastError),
-        });
-
-        throw lastError;
-    }
-
-    private recordRequest(success: boolean, retried: boolean): void {
-        this.requestStats.total++;
-        if (success) {
-            this.requestStats.successful++;
-        } else {
-            this.requestStats.failed++;
-        }
-        if (retried) {
-            this.requestStats.retried++;
-        }
-    }
-
-    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
-        try {
-            logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
-        } catch {
-            // 忽略监控发送错误，不影响主流程
-        }
-    }
-
     // ==================== Pushers ====================
 
+    /**
+     * 获取所有推送器
+     * 对应 GET /_matrix/client/v3/pushers
+     */
     async getPushers(forceRefresh = false): Promise<IPusher[]> {
         if (!forceRefresh) {
             const cached = this.pushersCache.get("pushers");
-            if (cached) {
-                return cached;
-            }
+            if (cached) return cached;
         }
 
         try {
-            const response = await this.withRetryRequest(async () => {
+            const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ pushers: IPusher[] }>(
                     Method.Get,
                     "/pushers",
@@ -298,13 +147,12 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             let pushers = response?.pushers || [];
 
-            // Migration path for clients that connect to a homeserver that does not support
-            // MSC3881 yet, see https://github.com/matrix-org/matrix-spec-proposals/blob/kerry/remote-push-toggle/proposals/3881-remote-push-notification-toggling.md#migration
+            // 兼容性处理
             const supportsRemoteToggle = await this.client.doesServerSupportUnstableFeature?.("org.matrix.msc3881");
             if (!supportsRemoteToggle) {
                 pushers = pushers.map((pusher) => {
                     if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
-                        (pusher as unknown as Record<string, unknown>)[PUSHER_ENABLED.name] = true;
+                        (pusher as any)[PUSHER_ENABLED.name] = true;
                     }
                     return pusher;
                 });
@@ -313,7 +161,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             this.pushersCache.set("pushers", pushers);
             this.emit(PushEvent.PushersUpdated, pushers);
             return pushers;
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushers"));
             throw this.normalizeError(error, "getPushers");
         }
@@ -321,49 +169,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     /**
      * 设置推送器
-     *
-     * @param pusher - 推送器配置
-     * @param pusher.pushkey - 推送密钥
-     * @param pusher.app_id - 应用 ID
-     * @param pusher.app_display_name - 应用显示名称
-     * @param pusher.device_display_name - 设备显示名称
-     * @param pusher.lang - 语言代码
-     * @param pusher.data - 推送数据（可选）
-     *
-     * @example
-     * ```typescript
-     * // 设置 HTTP 推送器
-     * await pushManager.setPusher({
-     *     pushkey: "https://push.example.com/notify",
-     *     kind: "http",
-     *     app_id: "com.example.app",
-     *     app_display_name: "My App",
-     *     device_display_name: "My Device",
-     *     lang: "en",
-     *     data: {
-     *         url: "https://push.example.com/notify"
-     *     }
-     * });
-     *
-     * // 监听推送器更新
-     * pushManager.on(PushEvent.PushersUpdated, (pushers) => {
-     *     console.log(`Total pushers: ${pushers.length}`);
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果必需参数缺失
-     * @throws {ApiError} 如果 API 调用失败
+     * 对应 POST /_matrix/client/v3/pushers/set
      */
     async setPusher(pusher: IPusherRequest): Promise<void> {
-        if (!pusher.pushkey) {
-            throw new InvalidParamError("pushkey is required");
-        }
-        if (!pusher.app_id) {
-            throw new InvalidParamError("app_id is required");
-        }
+        if (!pusher.pushkey) throw new InvalidParamError("pushkey is required");
+        if (!pusher.app_id) throw new InvalidParamError("app_id is required");
 
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(Method.Post, "/pushers/set", undefined, pusher, {
                     prefix: ClientPrefix.V3,
                 });
@@ -371,7 +184,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushersCache.delete("pushers");
             await this.getPushers(true);
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "setPusher"));
             throw this.normalizeError(error, "setPusher");
         }
@@ -379,51 +192,20 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     /**
      * 移除推送器
-     *
-     * @param pushkey - 推送密钥
-     * @param appId - 应用 ID
-     *
-     * @example
-     * ```typescript
-     * // 移除推送器
-     * await pushManager.removePusher(
-     *     "https://push.example.com/notify",
-     *     "com.example.app"
-     * );
-     * ```
-     *
-     * @throws {ValidationError} 如果参数缺失
-     * @throws {ApiError} 如果 API 调用失败
+     * 对应 POST /_matrix/client/v3/pushers/set (kind=null)
      */
     async removePusher(pushkey: string, appId: string): Promise<void> {
-        if (!pushkey) {
-            throw new InvalidParamError("pushkey is required");
-        }
-        if (!appId) {
-            throw new InvalidParamError("appId is required");
-        }
+        if (!pushkey) throw new InvalidParamError("pushkey is required");
+        if (!appId) throw new InvalidParamError("appId is required");
 
-        try {
-            await this.withRetryRequest(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    "/pushers/set",
-                    undefined,
-                    {
-                        pushkey,
-                        app_id: appId,
-                        kind: null,
-                    },
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "removePusher");
-
-            this.pushersCache.delete("pushers");
-            await this.getPushers(true);
-        } catch (error: unknown) {
-            this.emit(PushEvent.PushError, this.normalizeError(error, "removePusher"));
-            throw this.normalizeError(error, "removePusher");
-        }
+        return this.setPusher({
+            pushkey,
+            app_id: appId,
+            kind: null,
+            app_display_name: "",
+            device_display_name: "",
+            lang: "",
+        });
     }
 
     getCachedPushers(): IPusher[] {
@@ -432,20 +214,18 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     // ==================== Push Rules ====================
 
+    /**
+     * 获取所有推送规则
+     * 对应 GET /_matrix/client/v3/pushrules
+     */
     async getPushRules(forceRefresh = false): Promise<IPushRules> {
-        logger.debug("[PushManager] getPushRules() called");
-
         if (!forceRefresh) {
             const cached = this.pushRulesCache.get("pushRules");
-            if (cached) {
-                logger.debug("[PushManager] Returning cached push rules");
-                return cached;
-            }
+            if (cached) return cached;
         }
 
         try {
-            logger.debug("[PushManager] Making HTTP request for push rules");
-            const response = await this.withRetryRequest(async () => {
+            const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRules>(
                     Method.Get,
                     "/pushrules",
@@ -457,22 +237,21 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.set("pushRules", response);
             this.emit(PushEvent.PushRulesUpdated, response);
-            logger.debug("[PushManager] getPushRules() succeeded");
             return response;
-        } catch (error: unknown) {
-            logger.error("[PushManager] getPushRules() failed:", error);
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRules"));
             throw this.normalizeError(error, "getPushRules");
         }
     }
 
+    /**
+     * 获取指定作用域的推送规则
+     * 对应 GET /_matrix/client/v3/pushrules/{scope}
+     */
     async getPushRulesByScope(scope: string): Promise<IPushRuleSet> {
-        if (!scope) {
-            throw new InvalidParamError("scope is required");
-        }
-
+        if (!scope) throw new InvalidParamError("scope is required");
         try {
-            const response = await this.withRetryRequest(async () => {
+            return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRuleSet>(
                     Method.Get,
                     `/pushrules/${encodeURIComponent(scope)}`,
@@ -481,25 +260,22 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
                     { prefix: ClientPrefix.V3 },
                 );
             }, "getPushRulesByScope");
-
-            return response;
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRulesByScope"));
             throw this.normalizeError(error, "getPushRulesByScope");
         }
     }
 
+    /**
+     * 获取指定类型的推送规则
+     * 对应 GET /_matrix/client/v3/pushrules/{scope}/{kind}
+     */
     async getPushRulesByKind(scope: string, kind: PushRuleKind): Promise<IPushRule[]> {
-        if (!scope) {
-            throw new InvalidParamError("scope is required");
-        }
-        if (!kind) {
-            throw new InvalidParamError("kind is required");
-        }
-
+        if (!scope) throw new InvalidParamError("scope is required");
+        if (!kind) throw new InvalidParamError("kind is required");
         try {
-            const response = await this.withRetryRequest(async () => {
-                return await this.client.http.authedRequest<{ [key: string]: IPushRule[] }>(
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<any>(
                     Method.Get,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`,
                     undefined,
@@ -509,7 +285,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             }, "getPushRulesByKind");
 
             return response?.[kind] || [];
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRulesByKind"));
             throw this.normalizeError(error, "getPushRulesByKind");
         }
@@ -517,12 +293,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     /**
      * 获取特定推送规则
-     *
-     * @param scope - 作用域
-     * @param kind - 规则类型
-     * @param ruleId - 规则 ID
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 推送规则
+     * 对应 GET /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
      */
     async getPushRule(
         scope: string,
@@ -530,12 +301,9 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         ruleId: string,
         throwOnError = true,
     ): Promise<IPushRule | null> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
-
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
-            const response = await this.withRetryRequest(async () => {
+            return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRule>(
                     Method.Get,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
@@ -544,42 +312,28 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
                     { prefix: ClientPrefix.V3 },
                 );
             }, "getPushRule");
-
-            return response;
-        } catch (error: unknown) {
-            if (throwOnError) {
-                throw error;
-            }
-            const err = error as Record<string, unknown>;
-            const httpStatus = err?.httpStatus as number | undefined;
-            const errcode = err?.errcode as string | undefined;
-            if (
-                (error instanceof MatrixError && (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND")) ||
-                httpStatus === 404 ||
-                errcode === "M_NOT_FOUND"
-            ) {
-                return null;
-            }
+        } catch (error) {
+            if (!throwOnError && (error as any).httpStatus === 404) return null;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRule"));
             throw this.normalizeError(error, "getPushRule");
         }
     }
 
+    /**
+     * 创建推送规则
+     * 对应 POST /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     */
     async createPushRule(
         scope: string,
         kind: PushRuleKind,
         ruleId: string,
         rule: ICreatePushRuleRequest,
     ): Promise<void> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
-        if (!rule.actions || rule.actions.length === 0) {
-            throw new InvalidParamError("actions are required");
-        }
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
+        if (!rule.actions || rule.actions.length === 0) throw new InvalidParamError("actions are required");
 
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Post,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
@@ -591,24 +345,26 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.delete("pushRules");
             await this.getPushRules(true);
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "createPushRule"));
             throw this.normalizeError(error, "createPushRule");
         }
     }
 
+    /**
+     * 更新推送规则
+     * 对应 PUT /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     */
     async updatePushRule(
         scope: string,
         kind: PushRuleKind,
         ruleId: string,
         rule: IUpdatePushRuleRequest,
     ): Promise<void> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
 
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
@@ -620,19 +376,20 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.delete("pushRules");
             await this.getPushRules(true);
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "updatePushRule"));
             throw this.normalizeError(error, "updatePushRule");
         }
     }
 
+    /**
+     * 删除推送规则
+     * 对应 DELETE /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     */
     async deletePushRule(scope: string, kind: PushRuleKind, ruleId: string): Promise<void> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
-
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Delete,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
@@ -644,28 +401,20 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.delete("pushRules");
             await this.getPushRules(true);
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "deletePushRule"));
             throw this.normalizeError(error, "deletePushRule");
         }
     }
 
     /**
-     * 检查特定推送规则是否启用
-     *
-     * @param scope - 作用域
-     * @param kind - 规则类型
-     * @param ruleId - 规则 ID
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 是否启用
+     * 获取推送规则是否启用
+     * 对应 GET /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled
      */
     async getPushRuleEnabled(scope: string, kind: PushRuleKind, ruleId: string, throwOnError = true): Promise<boolean> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
-
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
-            const response = await this.withRetryRequest(async () => {
+            const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ enabled: boolean }>(
                     Method.Get,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
@@ -676,32 +425,21 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             }, "getPushRuleEnabled");
 
             return response?.enabled ?? true;
-        } catch (error: unknown) {
-            if (throwOnError) {
-                throw error;
-            }
-            const err = error as Record<string, unknown>;
-            const httpStatus = err?.httpStatus as number | undefined;
-            const errcode = err?.errcode as string | undefined;
-            if (
-                (error instanceof MatrixError && (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND")) ||
-                httpStatus === 404 ||
-                errcode === "M_NOT_FOUND"
-            ) {
-                return false;
-            }
+        } catch (error) {
+            if (!throwOnError && (error as any).httpStatus === 404) return false;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRuleEnabled"));
             throw this.normalizeError(error, "getPushRuleEnabled");
         }
     }
 
+    /**
+     * 设置推送规则是否启用
+     * 对应 PUT /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled
+     */
     async setPushRuleEnabled(scope: string, kind: PushRuleKind, ruleId: string, enabled: boolean): Promise<void> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
-
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
@@ -713,27 +451,26 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.delete("pushRules");
             await this.getPushRules(true);
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "setPushRuleEnabled"));
             throw this.normalizeError(error, "setPushRuleEnabled");
         }
     }
 
+    /**
+     * 设置推送规则动作
+     * 对应 PUT /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions
+     */
     async setPushRuleActions(
         scope: string,
         kind: PushRuleKind,
         ruleId: string,
         actions: PushRuleAction[],
     ): Promise<void> {
-        if (!scope || !kind || !ruleId) {
-            throw new InvalidParamError("scope, kind, and ruleId are required");
-        }
-        if (!actions || actions.length === 0) {
-            throw new InvalidParamError("actions are required");
-        }
-
+        if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
+        if (!actions || actions.length === 0) throw new InvalidParamError("actions are required");
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
                     `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,
@@ -745,7 +482,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             this.pushRulesCache.delete("pushRules");
             await this.getPushRules(true);
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "setPushRuleActions"));
             throw this.normalizeError(error, "setPushRuleActions");
         }
@@ -757,31 +494,27 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     // ==================== Notifications ====================
 
+    /**
+     * 获取推送通知列表
+     * 对应 GET /_matrix/client/v3/notifications
+     */
     async getNotifications(params?: { limit?: number; from?: string; only?: string }): Promise<INotificationsResponse> {
         try {
-            const queryParams: Record<string, string> = {};
-            if (params?.limit !== undefined) {
-                queryParams.limit = params.limit.toString();
-            }
-            if (params?.from) {
-                queryParams.from = params.from;
-            }
-            if (params?.only) {
-                queryParams.only = params.only;
-            }
+            const query: any = {};
+            if (params?.limit !== undefined) query.limit = String(params.limit);
+            if (params?.from) query.from = params.from;
+            if (params?.only) query.only = params.only;
 
-            const response = await this.withRetryRequest(async () => {
+            return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<INotificationsResponse>(
                     Method.Get,
                     "/notifications",
-                    Object.keys(queryParams).length > 0 ? queryParams : undefined,
+                    query,
                     undefined,
                     { prefix: ClientPrefix.V3 },
                 );
             }, "getNotifications");
-
-            return response || { notifications: [] };
-        } catch (error: unknown) {
+        } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getNotifications"));
             throw this.normalizeError(error, "getNotifications");
         }
@@ -789,17 +522,12 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     /**
      * 确认通知
-     *
-     * @param notificationId - 通知 ID
-     * @param throwOnError - 是否抛出错误（默认 true）
+     * 对应 POST /_matrix/client/v3/notifications/{notification_id}/ack
      */
     async ackNotification(notificationId: string, throwOnError = true): Promise<void> {
-        if (!notificationId) {
-            throw new InvalidParamError("notificationId is required");
-        }
-
+        if (!notificationId) throw new InvalidParamError("notificationId is required");
         try {
-            await this.withRetryRequest(async () => {
+            await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Post,
                     `/notifications/${encodeURIComponent(notificationId)}/ack`,
@@ -808,20 +536,8 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
                     { prefix: ClientPrefix.V3 },
                 );
             }, "ackNotification");
-        } catch (error: unknown) {
-            if (throwOnError) {
-                throw error;
-            }
-            const err = error as Record<string, unknown>;
-            const httpStatus = err?.httpStatus as number | undefined;
-            const errcode = err?.errcode as string | undefined;
-            if (
-                (error instanceof MatrixError && (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND")) ||
-                httpStatus === 404 ||
-                errcode === "M_NOT_FOUND"
-            ) {
-                return;
-            }
+        } catch (error) {
+            if (!throwOnError && (error as any).httpStatus === 404) return;
             this.emit(PushEvent.PushError, this.normalizeError(error, "ackNotification"));
             throw this.normalizeError(error, "ackNotification");
         }
@@ -829,24 +545,6 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     // ==================== Convenience Methods ====================
 
-    /**
-     * 静音房间
-     *
-     * @param roomId - 房间 ID（格式：!localpart:homeserver）
-     *
-     * @example
-     * ```typescript
-     * // 静音房间
-     * await pushManager.muteRoom("!abc:example.com");
-     *
-     * // 检查是否静音
-     * const isMuted = await pushManager.isRoomMuted("!abc:example.com");
-     * console.log("Room muted:", isMuted);
-     * ```
-     *
-     * @throws {ValidationError} 如果房间 ID 格式无效
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async muteRoom(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.createPushRule("global", PushRuleKind.RoomSpecific, roomId, {
@@ -854,79 +552,44 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         });
     }
 
-    /**
-     * 取消静音房间
-     *
-     * @param roomId - 房间 ID（格式：!localpart:homeserver）
-     *
-     * @example
-     * ```typescript
-     * // 取消静音
-     * await pushManager.unmuteRoom("!abc:example.com");
-     * ```
-     *
-     * @throws {ValidationError} 如果房间 ID 格式无效
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async unmuteRoom(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.deletePushRule("global", PushRuleKind.RoomSpecific, roomId);
     }
 
-    /**
-     * 检查房间是否静音
-     *
-     * @param roomId - 房间 ID（格式：!localpart:homeserver）
-     * @returns 是否静音
-     *
-     * @example
-     * ```typescript
-     * // 检查房间是否静音
-     * const isMuted = await pushManager.isRoomMuted("!abc:example.com");
-     * if (isMuted) {
-     *     console.log("Room is muted");
-     * }
-     * ```
-     *
-     * @throws {ValidationError} 如果房间 ID 格式无效
-     */
     async isRoomMuted(roomId: string): Promise<boolean> {
         AdminValidators.validateRoomId(roomId);
-        const rules = await this.getPushRulesByKind("global", PushRuleKind.RoomSpecific);
-        const rule = rules.find((r) => r.rule_id === roomId);
-        return !!rule && rule.enabled && rule.actions.includes("dont_notify" as PushRuleAction);
+        try {
+            const rules = await this.getPushRulesByKind("global", PushRuleKind.RoomSpecific);
+            const rule = rules.find((r) => r.rule_id === roomId);
+            return !!rule && rule.enabled && rule.actions.includes(PushRuleActionName.DontNotify);
+        } catch {
+            return false;
+        }
     }
 
     async addKeywordHighlight(keyword: string): Promise<void> {
-        if (!keyword) {
-            throw new InvalidParamError("keyword is required");
-        }
+        if (!keyword) throw new InvalidParamError("keyword is required");
         await this.createPushRule("global", PushRuleKind.ContentSpecific, keyword, {
-            actions: [PushRuleActionName.Notify, { set_tweak: "highlight", value: true } as PushRuleAction],
+            actions: [PushRuleActionName.Notify, { set_tweak: "highlight", value: true } as any],
             pattern: keyword,
         });
     }
 
     async removeKeywordHighlight(keyword: string): Promise<void> {
-        if (!keyword) {
-            throw new InvalidParamError("keyword is required");
-        }
+        if (!keyword) throw new InvalidParamError("keyword is required");
         await this.deletePushRule("global", PushRuleKind.ContentSpecific, keyword);
     }
 
     async ignoreSender(userId: string): Promise<void> {
-        if (!userId) {
-            throw new InvalidParamError("userId is required");
-        }
+        if (!userId) throw new InvalidParamError("userId is required");
         await this.createPushRule("global", PushRuleKind.SenderSpecific, userId, {
             actions: [PushRuleActionName.DontNotify],
         });
     }
 
     async unignoreSender(userId: string): Promise<void> {
-        if (!userId) {
-            throw new InvalidParamError("userId is required");
-        }
+        if (!userId) throw new InvalidParamError("userId is required");
         await this.deletePushRule("global", PushRuleKind.SenderSpecific, userId);
     }
 
@@ -934,7 +597,6 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     async start(): Promise<void> {
         if (this.initialized) return;
-
         try {
             await Promise.all([this.getPushers(), this.getPushRules()]);
             this.initialized = true;
@@ -951,62 +613,6 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     clearCache(): void {
         this.pushersCache.clear();
         this.pushRulesCache.clear();
-    }
-
-    // ==================== Metrics ====================
-
-    getCacheStats(): {
-        pushers: CacheStats;
-        pushRules: CacheStats;
-    } {
-        return {
-            pushers: this.pushersCache.getStats(),
-            pushRules: this.pushRulesCache.getStats(),
-        };
-    }
-
-    getRequestStats(): typeof this.requestStats {
-        return { ...this.requestStats };
-    }
-
-    resetRequestStats(): void {
-        this.requestStats = {
-            total: 0,
-            successful: 0,
-            failed: 0,
-            retried: 0,
-        };
-    }
-
-    getMetrics(): PushManagerMetrics {
-        const pushersStats = this.pushersCache.getStats();
-        const pushRulesStats = this.pushRulesCache.getStats();
-        const cachedPushers = this.pushersCache.get("pushers") || [];
-        const cachedPushRules = this.pushRulesCache.get("pushRules");
-
-        return {
-            pushers: {
-                total: cachedPushers.length,
-                cacheHitRate: pushersStats.hitRate,
-            },
-            pushRules: {
-                total: this.countPushRules(cachedPushRules),
-                cacheHitRate: pushRulesStats.hitRate,
-            },
-            requests: { ...this.requestStats },
-        };
-    }
-
-    private countPushRules(rules: IPushRules | null | undefined): number {
-        if (!rules?.global) return 0;
-        const g = rules.global;
-        return (
-            (g.override?.length || 0) +
-            (g.content?.length || 0) +
-            (g.room?.length || 0) +
-            (g.sender?.length || 0) +
-            (g.underride?.length || 0)
-        );
     }
 }
 

@@ -34,6 +34,9 @@ export interface RetryOptions {
     maxRetries?: number;
     retryDelay?: number;
     backoffMultiplier?: number;
+    idempotent?: boolean;
+    retryNonIdempotent?: boolean;
+    label?: string;
 }
 
 export interface RequestStats {
@@ -160,12 +163,14 @@ export abstract class BaseManager<
      */
     protected async withRetry<T>(fn: () => Promise<T>, optionsOrLabel: RetryOptions | string = {}): Promise<T> {
         const options = typeof optionsOrLabel === "string" ? {} : optionsOrLabel;
-        const label = typeof optionsOrLabel === "string" ? optionsOrLabel : "withRetry";
+        const label = typeof optionsOrLabel === "string" ? optionsOrLabel : (options.label ?? "withRetry");
 
         const {
             maxRetries = this.retryOptions.maxRetries ?? 3,
             retryDelay = this.retryOptions.retryDelay ?? 1000,
             backoffMultiplier = this.retryOptions.backoffMultiplier ?? 2,
+            idempotent = true,
+            retryNonIdempotent = false,
         } = options;
 
         let lastError: unknown;
@@ -184,9 +189,10 @@ export abstract class BaseManager<
                 if (attempt < maxRetries) {
                     // Check if error is retryable
                     const normalizedError = this.normalizeError(error, label);
+                    const canRetryRequest = idempotent || retryNonIdempotent;
                     if (
-                        normalizedError instanceof RetryableError ||
-                        (error instanceof MatrixError && error.httpStatus && error.httpStatus >= 500)
+                        (canRetryRequest && normalizedError instanceof RetryableError) ||
+                        (canRetryRequest && error instanceof MatrixError && error.httpStatus && error.httpStatus >= 500)
                     ) {
                         this.requestStats.retried++;
                         let delay = currentDelay;
@@ -203,11 +209,11 @@ export abstract class BaseManager<
                     }
                 }
 
-                throw error;
+                throw this.normalizeError(error, label);
             }
         }
 
-        throw lastError;
+        throw this.normalizeError(lastError, label);
     }
 
     /**

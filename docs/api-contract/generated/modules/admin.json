@@ -1,0 +1,1168 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "admin",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 157,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/info",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/account/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/account/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/audit/events",
+      "registered_by": "admin::audit",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/audit/events",
+      "registered_by": "admin::audit",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/audit/events/{event_id}",
+      "registered_by": "admin::audit",
+      "path_params": [
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/backups",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/cleanup/all",
+      "registered_by": "admin::cleanup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/cleanup/rooms",
+      "registered_by": "admin::cleanup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/cleanup/tokens",
+      "registered_by": "admin::cleanup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/config",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/experimental_features",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/federation/blacklist",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/federation/blacklist/{server_name}",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "server_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/blacklist/{server_name}",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "server_name"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/federation/cache",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/cache/clear",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/federation/cache/{key}",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "key"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/confirm",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/federation/destinations",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/federation/destinations/{destination}",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "destination"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/federation/destinations/{destination}",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "destination"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/destinations/{destination}/reset",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "destination"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/destinations/{destination}/reset_connection",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "destination"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/federation/destinations/{destination}/rooms",
+      "registered_by": "admin::federation",
+      "path_params": [
+        "destination"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/federation/pending",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/resolve",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/federation/rewrite",
+      "registered_by": "admin::federation",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/health",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/invite/allowlist",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/invite/blocklist",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/jitsi/config",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/media",
+      "registered_by": "admin::media",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/media/quota",
+      "registered_by": "admin::media",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/media/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "media_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/media/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "media_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/notifications",
+      "registered_by": "admin::notification",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/notifications",
+      "registered_by": "admin::notification",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/notifications/active",
+      "registered_by": "admin::notification",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/notifications/{notification_id}",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "notification_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/notifications/{notification_id}",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "notification_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/notifications/{notification_id}",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "notification_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/notifications/{notification_id}/deactivate",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "notification_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/purge_history",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/purge_media_cache",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/purge_room",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/register",
+      "registered_by": "admin::register",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/register/nonce",
+      "registered_by": "admin::register",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/registration_tokens",
+      "registered_by": "admin::token",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/registration_tokens",
+      "registered_by": "admin::token",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/registration_tokens/{token}",
+      "registered_by": "admin::token",
+      "path_params": [
+        "token"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/registration_tokens/{token}",
+      "registered_by": "admin::token",
+      "path_params": [
+        "token"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/registration_tokens/{token}",
+      "registered_by": "admin::token",
+      "path_params": [
+        "token"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/reports",
+      "registered_by": "admin::report",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/reports/{report_id}",
+      "registered_by": "admin::report",
+      "path_params": [
+        "report_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/reports/{report_id}",
+      "registered_by": "admin::report",
+      "path_params": [
+        "report_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/restart",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/retention/policy",
+      "registered_by": "admin::retention",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/retention/policy",
+      "registered_by": "admin::retention",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/retention/policy/{room_id}",
+      "registered_by": "admin::retention",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/retention/policy/{room_id}",
+      "registered_by": "admin::retention",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/retention/run",
+      "registered_by": "admin::retention",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/retention/status",
+      "registered_by": "admin::retention",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/room_stats",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/room_stats/{room_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/cleanup",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/search",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/search",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/rooms/{room_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/aliases",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/ban",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/ban/{user_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/block",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/block",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/delete",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/event_context/{event_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/forward_extremities",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/kick",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/kick/{user_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/listings",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/listings/public",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/listings/public",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/make_admin",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/make_admin",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/members",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/members/{user_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/members/{user_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/messages",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/purge_history",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/reports",
+      "registered_by": "admin::report",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/reports/{report_id}",
+      "registered_by": "admin::report",
+      "path_params": [
+        "room_id",
+        "report_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/search",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/state",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/token_sync",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/unban/{user_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/unblock",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/version",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/send_server_notice",
+      "registered_by": "admin::notification",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/server_notices",
+      "registered_by": "admin::notification",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/server_notices/{notice_id}",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "notice_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/server_notices/{notice_id}",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "notice_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/server_version",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/shutdown_room",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/spaces",
+      "registered_by": "admin::room",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/spaces/{space_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/spaces/{space_id}",
+      "registered_by": "admin::room",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/spaces/{space_id}/rooms",
+      "registered_by": "admin::room",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/spaces/{space_id}/stats",
+      "registered_by": "admin::room",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/spaces/{space_id}/users",
+      "registered_by": "admin::room",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/statistics",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/status",
+      "registered_by": "admin::server",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/user_sessions/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/user_sessions/{user_id}/invalidate",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/user_stats",
+      "registered_by": "admin::user",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users",
+      "registered_by": "admin::user",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/batch",
+      "registered_by": "admin::user",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/batch_deactivate",
+      "registered_by": "admin::user",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/users/{user_id}/admin",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/deactivate",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/devices",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/devices/delete",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/devices/{device_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id",
+        "device_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/devices/{device_id}/delete",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id",
+        "device_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/evict",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/login",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/logout",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/media",
+      "registered_by": "admin::media",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/media",
+      "registered_by": "admin::media",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/notification",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/users/{user_id}/notification",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/override_ratelimit",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/override_ratelimit",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/override_ratelimit",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/password",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/pushers",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/pushers/{pushkey}",
+      "registered_by": "admin::notification",
+      "path_params": [
+        "user_id",
+        "pushkey"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/rate_limit",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/rate_limit",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/users/{user_id}/rate_limit",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/refresh_tokens",
+      "registered_by": "admin::token",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/refresh_tokens/{token_id}",
+      "registered_by": "admin::token",
+      "path_params": [
+        "user_id",
+        "token_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/rooms",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/shadow_ban",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/users/{user_id}/shadow_ban",
+      "registered_by": "admin::security",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/stats",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/users/{user_id}/tokens",
+      "registered_by": "admin::token",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/users/{user_id}/tokens/{token_id}",
+      "registered_by": "admin::token",
+      "path_params": [
+        "user_id",
+        "token_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/whois/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/whois/{user_id}/{device_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id",
+        "device_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v2/users",
+      "registered_by": "admin::user",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v2/users/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v2/users/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v2/users/{user_id}",
+      "registered_by": "admin::user",
+      "path_params": [
+        "user_id"
+      ]
+    }
+  ]
+}

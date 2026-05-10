@@ -1,0 +1,95 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "device",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 12,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/delete_devices",
+      "registered_by": "device",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/devices",
+      "registered_by": "device",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/devices/{device_id}",
+      "registered_by": "device",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/devices/{device_id}",
+      "registered_by": "device",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/devices/{device_id}",
+      "registered_by": "device",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/keys/device_list_updates",
+      "registered_by": "device",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/delete_devices",
+      "registered_by": "device",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/devices",
+      "registered_by": "device",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/devices/{device_id}",
+      "registered_by": "device",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/devices/{device_id}",
+      "registered_by": "device",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/devices/{device_id}",
+      "registered_by": "device",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/keys/device_list_updates",
+      "registered_by": "device",
+      "path_params": []
+    }
+  ]
+}

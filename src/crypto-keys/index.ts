@@ -35,7 +35,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
+import { AuthError, NotFoundError, ApiError, RetryableError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 
@@ -457,6 +457,18 @@ export class CryptoKeysManager {
             }
             if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
                 return new NotFoundError(
+                    `CryptoKeysManager.${method} failed: ${err?.message ?? "Unknown error"}`,
+                    error,
+                );
+            }
+            if (error.httpStatus === 429 || error.errcode === "M_LIMIT_EXCEEDED" || error.isRateLimitError()) {
+                return new RetryableError(
+                    `CryptoKeysManager.${method} failed: ${err?.message ?? "Rate limited"}`,
+                    error,
+                );
+            }
+            if (error.httpStatus && error.httpStatus >= 500) {
+                return new RetryableError(
                     `CryptoKeysManager.${method} failed: ${err?.message ?? "Unknown error"}`,
                     error,
                 );

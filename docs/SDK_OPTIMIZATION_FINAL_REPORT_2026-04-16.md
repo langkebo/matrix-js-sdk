@@ -27,7 +27,7 @@
 ✅ **安全性显著提升** - 核心模块 100% 输入验证覆盖  
 ✅ **代码质量大幅提升** - 清理所有吞错，统一 API，消除 any  
 ✅ **可维护性大幅提升** - 版本策略完善，代码重复减少  
-✅ **文档完整性提升** - 25+ 个方法有详细示例，1300+ 行文档  
+✅ **文档完整性提升** - 25+ 个方法有详细示例，1300+ 行文档
 
 ---
 
@@ -42,6 +42,7 @@
 #### 1.1 增强输入验证
 
 **成果**:
+
 - ✅ 创建 ValidationError 类
 - ✅ 创建 AdminValidators 工具类（5 个验证方法）
 - ✅ 在 7 个 Admin 方法中添加验证
@@ -49,6 +50,7 @@
 - ✅ 所有测试通过（71/71）
 
 **影响**:
+
 - 防止注入攻击（用户 ID、房间 ID 格式验证）
 - 防止资源耗尽（limit 参数限制 1-10000）
 - 提供清晰的错误信息
@@ -62,6 +64,7 @@
 #### 2.1 添加使用示例文档
 
 **成果**:
+
 - ✅ 为 10+ 个 Admin 方法添加详细的 @example
 - ✅ 为所有方法添加 @throws 文档
 - ✅ 创建完整的 Admin API 使用指南（600+ 行）
@@ -70,6 +73,7 @@
 #### 2.2 完善类型定义
 
 **成果**:
+
 - ✅ 为 whois() 方法添加 WhoisResponse 类型
 - ✅ 消除 any 类型使用
 - ✅ 类型检查通过
@@ -77,11 +81,13 @@
 #### 2.3 清理吞错模式
 
 **成果**:
+
 - ✅ 清理了 5 处 catch {} 空捕获块
 - ✅ 添加了显式错误处理和日志记录
 - ✅ 所有测试通过
 
 **修复位置**:
+
 1. `/src/models/room.ts` - getRecommendedVersion()
 2. `/src/interactive-auth.ts` - submitPromise 等待
 3. `/src/browser-index.ts` - IndexedDB 初始化
@@ -91,6 +97,7 @@
 #### 2.4 统一 API 返回值格式
 
 **成果**:
+
 - ✅ 定义 PaginatedResponse<T> 统一类型
 - ✅ 添加 getUsersPaginated() 新方法
 - ✅ 添加 getRoomsPaginated() 新方法
@@ -105,6 +112,7 @@
 #### 3.1 建立版本策略
 
 **成果**:
+
 - ✅ 创建完整的版本策略文档（400+ 行）
 - ✅ 定义语义化版本规范
 - ✅ 明确 API 弃用周期（3 个阶段）
@@ -113,6 +121,7 @@
 #### 3.2 减少代码重复
 
 **成果**:
+
 - ✅ 创建通用工具函数（buildPaginationParams 等）
 - ✅ 重构 getUsers() 和 getRooms() 方法
 - ✅ 减少代码重复约 30 行
@@ -120,6 +129,7 @@
 #### 3.3 更新 CLAUDE.md
 
 **成果**:
+
 - ✅ 添加 Admin 模块架构说明
 - ✅ 添加代码质量标准
 - ✅ 添加最佳实践指南
@@ -133,6 +143,7 @@
 #### 4.1 审查其他模块
 
 **成果**:
+
 - ✅ 审查 5 个核心模块（friend, dm, space, auth, device）
 - ✅ 创建详细的审查报告
 - ✅ 识别优化优先级
@@ -140,6 +151,7 @@
 #### 4.2 优化 Auth 模块
 
 **成果**:
+
 - ✅ 5 个方法添加详细文档和使用示例
 - ✅ 完善 @throws 文档
 - ✅ 添加安全提示
@@ -148,6 +160,7 @@
 #### 4.3 优化 Friend 模块
 
 **成果**:
+
 - ✅ 6 个方法添加详细文档和使用示例
 - ✅ 添加 AdminValidators 输入验证
 - ✅ 改进错误消息
@@ -155,6 +168,7 @@
 #### 4.4 优化 DM 模块
 
 **成果**:
+
 - ✅ 核心方法添加详细文档和使用示例
 - ✅ 添加 AdminValidators 输入验证
 - ✅ 验证所有用户 ID
@@ -162,6 +176,7 @@
 #### 4.5 优化 Device 模块
 
 **成果**:
+
 - ✅ 3 个核心方法添加详细文档和使用示例
 - ✅ 添加输入验证
 - ✅ 完善 @throws 文档
@@ -172,52 +187,52 @@
 
 ### 代码质量指标
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| 输入验证覆盖 | 0% | 核心模块 100% | +100% |
-| 方法文档示例 | 0 个 | 25+ 个 | +25+ |
-| 使用指南 | 0 个 | 1 个（600+ 行） | +1 |
-| 版本策略文档 | 0 个 | 1 个（400+ 行） | +1 |
-| 边界条件测试 | 0 个 | 9 个 | +9 |
-| `any` 类型使用 | 1 个 | 0 个 | -1 |
-| 吞错模式 | 5 处 | 0 处 | -5 |
-| 代码重复 | 高 | 低 | ⬇️ |
-| API 一致性 | 低 | 高 | ⬆️ |
-| 测试通过率 | - | 100% (113/113) | ✅ |
+| 指标           | 优化前 | 优化后          | 提升  |
+| -------------- | ------ | --------------- | ----- |
+| 输入验证覆盖   | 0%     | 核心模块 100%   | +100% |
+| 方法文档示例   | 0 个   | 25+ 个          | +25+  |
+| 使用指南       | 0 个   | 1 个（600+ 行） | +1    |
+| 版本策略文档   | 0 个   | 1 个（400+ 行） | +1    |
+| 边界条件测试   | 0 个   | 9 个            | +9    |
+| `any` 类型使用 | 1 个   | 0 个            | -1    |
+| 吞错模式       | 5 处   | 0 处            | -5    |
+| 代码重复       | 高     | 低              | ⬇️    |
+| API 一致性     | 低     | 高              | ⬆️    |
+| 测试通过率     | -      | 100% (113/113)  | ✅    |
 
 ### 模块覆盖情况
 
-| 模块 | 方法数 | 已优化 | 覆盖率 | 优先级 |
-|------|--------|--------|--------|--------|
-| Admin | 30+ | 10+ | ~33% | Critical ✅ |
-| Auth | 7 | 5 | ~71% | Critical ✅ |
-| Friend | 30 | 6 | ~20% | High ✅ |
-| DM | 23 | 1 | ~4% | High ✅ |
-| Device | 9 | 3 | ~33% | Medium ✅ |
-| Space | 27 | 0 | 0% | Medium ⏸️ |
-| **总计** | **126+** | **25+** | **~20%** | - |
+| 模块     | 方法数   | 已优化  | 覆盖率   | 优先级      |
+| -------- | -------- | ------- | -------- | ----------- |
+| Admin    | 30+      | 10+     | ~33%     | Critical ✅ |
+| Auth     | 7        | 5       | ~71%     | Critical ✅ |
+| Friend   | 30       | 6       | ~20%     | High ✅     |
+| DM       | 23       | 1       | ~4%      | High ✅     |
+| Device   | 9        | 3       | ~33%     | Medium ✅   |
+| Space    | 27       | 0       | 0%       | Medium ⏸️   |
+| **总计** | **126+** | **25+** | **~20%** | -           |
 
 ### 安全性提升
 
-| 模块 | 优化前风险 | 优化后风险 | 状态 |
-|------|-----------|-----------|------|
-| Admin | 高 | 低 | ✅ |
-| Auth | 中 | 低 | ✅ |
-| Friend | 中 | 低 | ✅ |
-| DM | 中 | 低 | ✅ |
-| Device | 低 | 低 | ✅ |
+| 模块   | 优化前风险 | 优化后风险 | 状态 |
+| ------ | ---------- | ---------- | ---- |
+| Admin  | 高         | 低         | ✅   |
+| Auth   | 中         | 低         | ✅   |
+| Friend | 中         | 低         | ✅   |
+| DM     | 中         | 低         | ✅   |
+| Device | 低         | 低         | ✅   |
 
 ### 文档完整性
 
-| 文档类型 | 数量 | 状态 |
-|---------|------|------|
-| 方法级 @example | 25+ 个 | ✅ |
-| 方法级 @throws | 所有核心方法 | ✅ |
-| Admin 使用指南 | 1 个（600+ 行） | ✅ |
-| 版本策略文档 | 1 个（400+ 行） | ✅ |
-| README 说明 | 已添加 | ✅ |
-| CLAUDE.md | 已更新 | ✅ |
-| 优化报告 | 6 个 | ✅ |
+| 文档类型        | 数量            | 状态 |
+| --------------- | --------------- | ---- |
+| 方法级 @example | 25+ 个          | ✅   |
+| 方法级 @throws  | 所有核心方法    | ✅   |
+| Admin 使用指南  | 1 个（600+ 行） | ✅   |
+| 版本策略文档    | 1 个（400+ 行） | ✅   |
+| README 说明     | 已添加          | ✅   |
+| CLAUDE.md       | 已更新          | ✅   |
+| 优化报告        | 6 个            | ✅   |
 
 ---
 
@@ -226,42 +241,29 @@
 ### 新增文件（11 个）
 
 **核心代码**:
+
 1. `/src/errors.ts` - ValidationError 类
 2. `/src/admin/validators.ts` - 验证工具类（135 行）
 3. `/src/admin/utils.ts` - Admin 工具函数
 4. `/src/utils/deprecation.ts` - 弃用警告工具
 
-**文档**:
-5. `/docs/ADMIN_GUIDE.md` - Admin 使用指南（600+ 行）
-6. `/docs/VERSION_POLICY.md` - 版本策略文档（400+ 行）
-7. `/docs/SDK_OPTIMIZATION_SUMMARY_2026-04-15.md` - Phase 1 总结
-8. `/docs/SDK_OPTIMIZATION_COMPLETE_2026-04-15.md` - Phase 2 总结
-9. `/docs/SDK_OPTIMIZATION_FINAL_2026-04-15.md` - Phase 1&2 最终报告
-10. `/docs/SDK_OPTIMIZATION_PHASE3_2026-04-15.md` - Phase 3 完成报告
-11. `/docs/OTHER_MODULES_AUDIT_2026-04-16.md` - 其他模块审查报告
-12. `/docs/SDK_OPTIMIZATION_PHASE4_2026-04-16.md` - Phase 4 完成报告
+**文档**: 5. `/docs/ADMIN_GUIDE.md` - Admin 使用指南（600+ 行）6. `/docs/VERSION_POLICY.md` - 版本策略文档（400+ 行）7. `/docs/SDK_OPTIMIZATION_SUMMARY_2026-04-15.md` - Phase 1 总结 8. `/docs/SDK_OPTIMIZATION_COMPLETE_2026-04-15.md` - Phase 2 总结 9. `/docs/SDK_OPTIMIZATION_FINAL_2026-04-15.md` - Phase 1&2 最终报告 10. `/docs/SDK_OPTIMIZATION_PHASE3_2026-04-15.md` - Phase 3 完成报告 11. `/docs/OTHER_MODULES_AUDIT_2026-04-16.md` - 其他模块审查报告 12. `/docs/SDK_OPTIMIZATION_PHASE4_2026-04-16.md` - Phase 4 完成报告
 
 ### 修改文件（12 个）
 
 **核心模块**:
+
 1. `/src/admin/index.ts` - 验证、文档、类型、统一 API、工具函数
 2. `/src/auth/index.ts` - 文档和示例
 3. `/src/friend/index.ts` - 验证、文档和示例
 4. `/src/dm/index.ts` - 验证、文档和示例
 5. `/src/device/index.ts` - 验证、文档和示例
 
-**测试**:
-6. `/spec/unit/admin.spec.ts` - 测试用例
+**测试**: 6. `/spec/unit/admin.spec.ts` - 测试用例
 
-**文档**:
-7. `/README.md` - Admin 模块说明
-8. `/CLAUDE.md` - Admin 架构、代码质量、最佳实践
+**文档**: 7. `/README.md` - Admin 模块说明 8. `/CLAUDE.md` - Admin 架构、代码质量、最佳实践
 
-**清理吞错**:
-9. `/src/models/room.ts` - 清理吞错
-10. `/src/interactive-auth.ts` - 清理吞错
-11. `/src/browser-index.ts` - 清理吞错
-12. `/src/store/memory.ts` - 清理吞错
+**清理吞错**: 9. `/src/models/room.ts` - 清理吞错 10. `/src/interactive-auth.ts` - 清理吞错 11. `/src/browser-index.ts` - 清理吞错 12. `/src/store/memory.ts` - 清理吞错
 
 ---
 
@@ -269,31 +271,31 @@
 
 ### 代码行数
 
-| 类型 | 行数 |
-|------|------|
-| 新增代码 | ~1700 行 |
-| 新增文档 | ~1300 行 |
-| 新增测试 | ~200 行 |
+| 类型     | 行数         |
+| -------- | ------------ |
+| 新增代码 | ~1700 行     |
+| 新增文档 | ~1300 行     |
+| 新增测试 | ~200 行      |
 | **总计** | **~3200 行** |
 
 ### 文件统计
 
-| 类型 | 数量 |
-|------|------|
-| 新增文件 | 11 个 |
-| 修改文件 | 12 个 |
+| 类型     | 数量      |
+| -------- | --------- |
+| 新增文件 | 11 个     |
+| 修改文件 | 12 个     |
 | **总计** | **23 个** |
 
 ### 方法统计
 
-| 模块 | 优化方法数 |
-|------|-----------|
-| Admin | 10+ |
-| Auth | 5 |
-| Friend | 6 |
-| DM | 1 |
-| Device | 3 |
-| **总计** | **25+** |
+| 模块     | 优化方法数 |
+| -------- | ---------- |
+| Admin    | 10+        |
+| Auth     | 5          |
+| Friend   | 6          |
+| DM       | 1          |
+| Device   | 3          |
+| **总计** | **25+**    |
 
 ---
 
@@ -302,6 +304,7 @@
 ### 输入验证
 
 **改进前**:
+
 ```typescript
 // 无验证或基础验证
 if (!userId) {
@@ -310,6 +313,7 @@ if (!userId) {
 ```
 
 **改进后**:
+
 ```typescript
 // 标准验证
 AdminValidators.validateUserId(userId);
@@ -320,27 +324,27 @@ AdminValidators.validateUserId(userId);
 ### 防护措施
 
 1. **格式验证**
-   - 用户 ID: `@localpart:homeserver`
-   - 房间 ID: `!localpart:homeserver`
-   - 防止 SQL 注入、XSS 等攻击
+    - 用户 ID: `@localpart:homeserver`
+    - 房间 ID: `!localpart:homeserver`
+    - 防止 SQL 注入、XSS 等攻击
 
 2. **边界检查**
-   - limit 参数: 1-10000
-   - 防止资源耗尽攻击
+    - limit 参数: 1-10000
+    - 防止资源耗尽攻击
 
 3. **错误处理**
-   - 清晰的验证错误信息
-   - 显式的错误日志记录
-   - 不再静默忽略错误
+    - 清晰的验证错误信息
+    - 显式的错误日志记录
+    - 不再静默忽略错误
 
 ### 攻击面减少
 
-| 攻击类型 | 改进前 | 改进后 |
-|---------|--------|--------|
-| 注入攻击 | 高风险 | 低风险 ✅ |
+| 攻击类型 | 改进前 | 改进后      |
+| -------- | ------ | ----------- |
+| 注入攻击 | 高风险 | 低风险 ✅   |
 | 格式错误 | 未检测 | 提前拦截 ✅ |
-| 资源耗尽 | 可能 | 已防护 ✅ |
-| 错误泄露 | 可能 | 已控制 ✅ |
+| 资源耗尽 | 可能   | 已防护 ✅   |
+| 错误泄露 | 可能   | 已控制 ✅   |
 
 ---
 
@@ -367,7 +371,7 @@ AdminValidators.validateUserId(userId);
 
 ### 文档示例
 
-```typescript
+````typescript
 /**
  * 发送好友请求
  *
@@ -389,7 +393,7 @@ AdminValidators.validateUserId(userId);
  * @throws {InvalidParamError} 如果尝试添加自己为好友
  * @throws {ApiError} 如果 API 调用失败
  */
-```
+````
 
 ---
 
@@ -398,60 +402,63 @@ AdminValidators.validateUserId(userId);
 ### 对开发者
 
 1. **使用标准验证**
-   ```typescript
-   import { AdminValidators } from "matrix-js-sdk/admin/validators";
-   AdminValidators.validateUserId(userId);
-   ```
+
+    ```typescript
+    import { AdminValidators } from "matrix-js-sdk/admin/validators";
+    AdminValidators.validateUserId(userId);
+    ```
 
 2. **参考文档示例**
-   ```typescript
-   // 所有核心方法都有 @example
-   // 查看 JSDoc 获取使用示例
-   ```
+
+    ```typescript
+    // 所有核心方法都有 @example
+    // 查看 JSDoc 获取使用示例
+    ```
 
 3. **处理错误**
-   ```typescript
-   try {
-       await friendManager.sendFriendRequest(userId);
-   } catch (error) {
-       if (error instanceof ValidationError) {
-           console.error("Invalid input:", error.message);
-       }
-   }
-   ```
+
+    ```typescript
+    try {
+        await friendManager.sendFriendRequest(userId);
+    } catch (error) {
+        if (error instanceof ValidationError) {
+            console.error("Invalid input:", error.message);
+        }
+    }
+    ```
 
 4. **使用新的统一 API**
-   ```typescript
-   // 推荐：使用新的统一格式
-   const result = await adminManager.getUsersPaginated({ limit: 50 });
-   result.items.forEach(user => console.log(user.user_id));
-   ```
+    ```typescript
+    // 推荐：使用新的统一格式
+    const result = await adminManager.getUsersPaginated({ limit: 50 });
+    result.items.forEach((user) => console.log(user.user_id));
+    ```
 
 ### 对维护者
 
 1. **添加新方法时**
-   - 使用 AdminValidators 验证输入
-   - 添加 @example 和 @throws 文档
-   - 添加边界条件测试（如果是核心功能）
-   - 使用统一的返回值格式
-   - 使用工具函数减少重复
+    - 使用 AdminValidators 验证输入
+    - 添加 @example 和 @throws 文档
+    - 添加边界条件测试（如果是核心功能）
+    - 使用统一的返回值格式
+    - 使用工具函数减少重复
 
 2. **修改现有方法时**
-   - 保持向后兼容
-   - 标记旧方法为 @deprecated
-   - 提供迁移路径
-   - 更新测试用例
-   - 更新文档
+    - 保持向后兼容
+    - 标记旧方法为 @deprecated
+    - 提供迁移路径
+    - 更新测试用例
+    - 更新文档
 
 3. **错误处理**
-   - 不要使用空的 catch 块
-   - 添加日志记录
-   - 提供清晰的错误信息
+    - 不要使用空的 catch 块
+    - 添加日志记录
+    - 提供清晰的错误信息
 
 4. **版本管理**
-   - 遵循语义化版本规范
-   - 遵循 API 弃用周期（3 个阶段）
-   - 提供迁移指南
+    - 遵循语义化版本规范
+    - 遵循 API 弃用周期（3 个阶段）
+    - 提供迁移指南
 
 ---
 
@@ -459,22 +466,22 @@ AdminValidators.validateUserId(userId);
 
 ### 时间分配
 
-| Phase | 时间 | 任务数 | 完成率 |
-|-------|------|--------|--------|
-| Phase 1 | 0.5 天 | 1 | 100% |
-| Phase 2 | 0.5 天 | 4 | 100% |
-| Phase 3 | 0.5 天 | 3 | 100% |
-| Phase 4 | 0.5 天 | 4 | 100% |
+| Phase    | 时间     | 任务数 | 完成率   |
+| -------- | -------- | ------ | -------- |
+| Phase 1  | 0.5 天   | 1      | 100%     |
+| Phase 2  | 0.5 天   | 4      | 100%     |
+| Phase 3  | 0.5 天   | 3      | 100%     |
+| Phase 4  | 0.5 天   | 4      | 100%     |
 | **总计** | **2 天** | **12** | **100%** |
 
 ### 工作分布
 
 | 工作类型 | 占比 |
-|---------|------|
-| 代码优化 | 40% |
-| 文档编写 | 30% |
-| 测试验证 | 15% |
-| 审查分析 | 15% |
+| -------- | ---- |
+| 代码优化 | 40%  |
+| 文档编写 | 30%  |
+| 测试验证 | 15%  |
+| 审查分析 | 15%  |
 
 ---
 
@@ -553,23 +560,27 @@ AdminValidators.validateUserId(userId);
 ### 主要成果
 
 ✅ **安全性显著提升**
+
 - 核心模块 100% 输入验证覆盖
 - 防止注入攻击和格式错误
 - 清晰的错误信息
 
 ✅ **代码质量大幅提升**
+
 - 清理了所有吞错模式
 - 统一了 API 返回值格式
 - 消除了 any 类型
 - 减少了代码重复
 
 ✅ **可维护性大幅提升**
+
 - 完整的版本策略（400+ 行）
 - 弃用警告工具
 - 通用工具函数
 - 完善的文档
 
 ✅ **文档完整性大幅提升**
+
 - 25+ 个方法有详细示例
 - 600+ 行的使用指南
 - 400+ 行的版本策略
@@ -577,6 +588,7 @@ AdminValidators.validateUserId(userId);
 - CLAUDE.md 全面更新
 
 ✅ **测试覆盖增强**
+
 - 新增 9 个边界条件测试
 - 所有测试通过（113/113）
 - 类型检查通过
@@ -591,17 +603,17 @@ AdminValidators.validateUserId(userId);
 
 ### 统计数据
 
-| 维度 | 数值 |
-|------|------|
-| 完成的 Phase | 4 个 |
-| 完成的任务 | 12 个 |
-| 新增文件 | 11 个 |
-| 修改文件 | 12 个 |
-| 新增代码行数 | ~1700 行 |
-| 新增文档行数 | ~1300 行 |
-| 优化的方法 | 25+ 个 |
-| 测试通过率 | 100% (113/113) |
-| 工作时间 | 2 天 |
+| 维度         | 数值           |
+| ------------ | -------------- |
+| 完成的 Phase | 4 个           |
+| 完成的任务   | 12 个          |
+| 新增文件     | 11 个          |
+| 修改文件     | 12 个          |
+| 新增代码行数 | ~1700 行       |
+| 新增文档行数 | ~1300 行       |
+| 优化的方法   | 25+ 个         |
+| 测试通过率   | 100% (113/113) |
+| 工作时间     | 2 天           |
 
 ---
 

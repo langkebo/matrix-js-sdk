@@ -35,7 +35,6 @@ import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
-import { AdminValidators } from "../admin/validators";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -476,7 +475,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
     /**
      * 获取设备列表更新
      *
-     * 后端实现: synapse-rust/src/web/routes/device.rs:174-199
+     * 后端实现: synapse-rust/src/web/routes/device.rs:46-47 (POST /keys/device_list_updates)
      */
     async getDeviceListUpdates(users: string[]): Promise<IDeviceListUpdatesResponse> {
         if (!users || users.length === 0) {
@@ -487,7 +486,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IDeviceListUpdatesResponse>(
                     Method.Post,
-                    "/keys/device_list/update",
+                    "/keys/device_list_updates",
                     undefined,
                     { users },
                     { prefix: ClientPrefix.V3 },

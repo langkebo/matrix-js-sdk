@@ -1,3 +1,11 @@
+---
+module: widget
+generated_from: docs/api-contract/generated/modules/widget.json
+generated_hash: sha256-3a81f51dc367bd02c0c2f46959162351fed582d953a37d4d074ebf0b418d0329
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Widget 模块契约
 
 > 版本: v1.0.0
@@ -96,14 +104,14 @@
 
 ## 常见状态码
 
-| 状态码 | 说明                                           |
-| ------ | ---------------------------------------------- |
-| `200`  | 请求成功                                       |
-| `400`  | widget 与 room 不匹配，或请求体字段不合法      |
+| 状态码 | 说明                                                     |
+| ------ | -------------------------------------------------------- |
+| `200`  | 请求成功                                                 |
+| `400`  | widget 与 room 不匹配，或请求体字段不合法                |
 | `401`  | 需认证的 widget / session / 房间级接口缺少或使用无效令牌 |
-| `403`  | 已登录但无 widget 访问权限，或不是房间成员且非管理员 |
-| `404`  | 房间、widget 或 session 不存在                 |
-| `500`  | 存储层或 service 层内部错误                    |
+| `403`  | 已登录但无 widget 访问权限，或不是房间成员且非管理员     |
+| `404`  | 房间、widget 或 session 不存在                           |
+| `500`  | 存储层或 service 层内部错误                              |
 
 ## SDK Manager 对应关系
 

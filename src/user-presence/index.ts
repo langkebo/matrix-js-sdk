@@ -29,7 +29,6 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
-import { logger } from "../logger";
 import { encodeUri } from "../utils";
 
 export interface IPresenceResponse {
@@ -49,8 +48,8 @@ export interface ICachedPresence {
 export type PresenceState = "online" | "offline" | "unavailable" | "busy";
 
 export interface UserPresenceManagerEvents {
-    presence_updated: (payload: { userId: string; presence: IPresenceResponse }) => void;
-    presence_subscribed: (payload: { userIds: string[] }) => void;
+    presenceUpdated: (payload: { userId: string; presence: IPresenceResponse }) => void;
+    presenceSubscribed: (payload: { userIds: string[] }) => void;
 }
 
 const VALID_PRESENCE_STATES: PresenceState[] = ["online", "offline", "unavailable", "busy"];
@@ -84,7 +83,7 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
                 currentlyActive: response.currently_active,
             });
 
-            this.emit("presence_updated", { userId, presence: response });
+            this.emit("presenceUpdated", { userId, presence: response });
             return response;
         }, "getUserPresence");
     }
@@ -109,13 +108,9 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
                 body.status_msg = statusMsg;
             }
 
-            const response = await this.client.http.authedRequest<{}>(
-                Method.Put,
-                path,
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.client.http.authedRequest<{}>(Method.Put, path, undefined, body, {
+                prefix: ClientPrefix.V3,
+            });
 
             this.presenceCache.set(userId, {
                 presence,
@@ -148,7 +143,7 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
                 { prefix: ClientPrefix.V3 },
             );
 
-            this.emit("presence_subscribed", { userIds });
+            this.emit("presenceSubscribed", { userIds });
         }, "subscribeToPresence");
     }
 

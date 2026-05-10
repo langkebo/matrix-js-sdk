@@ -38,7 +38,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { MatrixError } from "../http-api/errors.ts";
-import { NotFoundError, ValidationError } from "../errors.ts";
+import { NotFoundError } from "../errors.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { AdminValidators } from "../admin/validators";
 
@@ -163,7 +163,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @throws {InvalidParamError} 如果未提供用户 ID
      * @throws {ApiError} 如果 API 调用失败
      *
-     * 后端实现: synapse-rust/src/web/routes/dm.rs:185-200
+     * 后端实现: synapse-rust/src/web/routes/dm.rs:204-266
      */
     async createDm(options: CreateDmOptions | string[]): Promise<string> {
         const opts = Array.isArray(options) ? { userIds: options } : options;
@@ -245,7 +245,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * 优先使用 m.direct 映射获取 DM，如果映射为空或不完整，
      * 会回退到扫描所有房间来识别 DM 房间
      *
-     * 后端实现: synapse-rust/src/web/routes/dm.rs:242-254
+     * 后端实现: synapse-rust/src/web/routes/dm.rs:268-281
      *
      * @returns DM 房间信息列表
      */
@@ -544,6 +544,12 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @param userId - DM 伙伴用户 ID
      */
     async setDmRoom(roomId: string, userId: string): Promise<void> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
         try {
             const dmMap = await this.getDirectRoomsByUser();
 
@@ -560,6 +566,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
             this.userDmMapCache.set(userId, roomId);
             this.emit(DMEvent.ListUpdated);
+            this.emit(DMEvent.DMUpdated, roomId);
         } catch (error) {
             logger.error("DirectMessageManager.setDmRoom failed:", error);
             throw error;
@@ -573,6 +580,12 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @param userId - DM 伙伴用户 ID
      */
     async removeDmRoom(roomId: string, userId: string): Promise<void> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
         try {
             const dmMap = await this.getDirectRoomsByUser();
 
@@ -593,6 +606,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
             this.dmRoomsCache.delete(roomId);
             this.emit(DMEvent.ListUpdated);
+            this.emit(DMEvent.DMUpdated, roomId);
         } catch (error) {
             logger.error("DirectMessageManager.removeDmRoom failed:", error);
             throw error;
@@ -670,6 +684,9 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @returns 发送的事件 ID
      */
     async sendDmMessage(roomId: string, content: string | Record<string, unknown>): Promise<string> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
         try {
             return await this.withRetry(async () => {
                 let messageContent: Record<string, unknown>;
@@ -905,6 +922,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
             });
 
             this.emit(DMEvent.ListUpdated);
+            this.emit(DMEvent.DMUpdated, roomId);
         } catch (error) {
             throw this.normalizeError(error, "updateDirectRoom");
         }
@@ -976,7 +994,9 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
             if (throwOnError) {
                 throw error;
             }
-            if (error instanceof MatrixError && error.httpStatus === 404) {
+            const status =
+                error instanceof MatrixError ? error.httpStatus : (error as { statusCode?: number })?.statusCode;
+            if (status === 404 || error instanceof NotFoundError) {
                 // @swallow-error { owner: "dm", expires: "2026-12-31" }
                 return null;
             }

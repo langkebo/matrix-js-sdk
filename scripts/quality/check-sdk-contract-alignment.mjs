@@ -104,7 +104,9 @@ function parseSdkReferenceFromCell(cell) {
     const value = extractInlineCode(cell);
     if (!value || value === "-") return null;
 
-    const clientGetterMatch = value.match(/(?:^|[\s(])client\.get([A-Z][A-Za-z0-9]+Manager)\(\)\.([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/);
+    const clientGetterMatch = value.match(
+        /(?:^|[\s(])client\.get([A-Z][A-Za-z0-9]+Manager)\(\)\.([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/,
+    );
     if (clientGetterMatch) {
         return {
             owner: clientGetterMatch[1],
@@ -714,7 +716,9 @@ function collectMethodIndex() {
 
             if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.FirstAssignment) {
                 const leftText = node.left.getText(sourceFile);
-                const prototypeMatch = leftText.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\.prototype\.([A-Za-z_$][A-Za-z0-9_$]*)$/);
+                const prototypeMatch = leftText.match(
+                    /^([A-Za-z_$][A-Za-z0-9_$]*)\.prototype\.([A-Za-z_$][A-Za-z0-9_$]*)$/,
+                );
                 if (prototypeMatch) {
                     addMethod(methodIndex, prototypeMatch[1], prototypeMatch[2], filePath);
                 }
@@ -742,20 +746,20 @@ function traceRequestsFromCallable(node, fileContext, traceIndex, ownerKey, visi
         const resolved = resolveExportedFunctionReference(importRef.filePath, importRef.exportedName, traceIndex);
         if (!resolved) return [];
 
-        return traceRequestsFromCallable(
-            resolved.node,
-            resolved.fileContext,
-            traceIndex,
-            resolved.ownerKey,
-            visited,
-        );
+        return traceRequestsFromCallable(resolved.node, resolved.fileContext, traceIndex, resolved.ownerKey, visited);
     }
 
     function traceClassMethod(owner, methodName) {
         const ownerMethods = traceIndex.classIndex.get(owner);
         const target = ownerMethods?.get(methodName);
         if (!target) return [];
-        return traceRequestsFromCallable(target.node, traceIndex.fileContexts.get(target.filePath), traceIndex, `method:${owner}.${methodName}`, visited);
+        return traceRequestsFromCallable(
+            target.node,
+            traceIndex.fileContexts.get(target.filePath),
+            traceIndex,
+            `method:${owner}.${methodName}`,
+            visited,
+        );
     }
 
     function collectDirectRequest(nodeToScan) {
@@ -798,7 +802,12 @@ function traceRequestsFromCallable(node, fileContext, traceIndex, ownerKey, visi
 
             if (ts.isPropertyAccessExpression(current.expression)) {
                 if (ts.isThis(current.expression.expression)) {
-                    requestCalls.push(...traceClassMethod(ownerKey.replace(/^method:/, "").split(".")[0], current.expression.name.text));
+                    requestCalls.push(
+                        ...traceClassMethod(
+                            ownerKey.replace(/^method:/, "").split(".")[0],
+                            current.expression.name.text,
+                        ),
+                    );
                 } else if (
                     ts.isPropertyAccessExpression(current.expression.expression) &&
                     ts.isThis(current.expression.expression.expression) &&
@@ -951,8 +960,8 @@ function parseSdkAlignedRows(filePath) {
             if (!status.includes("✅")) continue;
 
             const endpointCell = rowCells[headerIndices.endpointIndex] ?? "";
-            const managerCell = headerIndices.managerIndex >= 0 ? rowCells[headerIndices.managerIndex] ?? "" : "";
-            const methodCell = headerIndices.methodIndex >= 0 ? rowCells[headerIndices.methodIndex] ?? "" : "";
+            const managerCell = headerIndices.managerIndex >= 0 ? (rowCells[headerIndices.managerIndex] ?? "") : "";
+            const methodCell = headerIndices.methodIndex >= 0 ? (rowCells[headerIndices.methodIndex] ?? "") : "";
 
             let reference = null;
             if (headerIndices.managerIndex >= 0 && headerIndices.methodIndex >= 0) {
@@ -1348,8 +1357,12 @@ const docFiles = walk(
 );
 
 const alignedRows = docFiles.flatMap((filePath) => parseSdkAlignedRows(filePath));
-const documentedEndpointsByFile = new Map(docFiles.map((filePath) => [path.relative(projectRoot, filePath), parseDocumentedEndpoints(filePath)]));
-const requestCalls = sourceFiles.flatMap((filePath) => scanSourceRequestCalls(filePath)).filter((item) => item.fullPath);
+const documentedEndpointsByFile = new Map(
+    docFiles.map((filePath) => [path.relative(projectRoot, filePath), parseDocumentedEndpoints(filePath)]),
+);
+const requestCalls = sourceFiles
+    .flatMap((filePath) => scanSourceRequestCalls(filePath))
+    .filter((item) => item.fullPath);
 const parseFailures = [];
 const missingMethods = [];
 const pathParseFailures = [];
@@ -1525,7 +1538,9 @@ if (
         }
     }
     if (attributedMismatches.length) {
-        console.error("[sdk-contract-alignment] documented method-to-endpoint mappings do not match traced request paths:");
+        console.error(
+            "[sdk-contract-alignment] documented method-to-endpoint mappings do not match traced request paths:",
+        );
         for (const item of attributedMismatches) {
             console.error(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
             for (const tracedRequest of item.tracedRequests.slice(0, 3)) {
@@ -1546,7 +1561,9 @@ if (
         }
     }
     console.error("[sdk-contract-alignment] remediation hints:");
-    console.error("- keep `SDK 对齐状态` tables using either `Owner.method()` or split `SDK Manager` / `SDK 方法` columns");
+    console.error(
+        "- keep `SDK 对齐状态` tables using either `Owner.method()` or split `SDK Manager` / `SDK 方法` columns",
+    );
     console.error("- keep `后端端点` rows in `METHOD /path` format and ensure they map to a detailed `**路径**` entry");
     console.error("- update docs when the source symbol name changes");
     console.error("- update docs when a method is implemented via a different backend route than documented");

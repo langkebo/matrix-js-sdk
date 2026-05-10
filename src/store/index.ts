@@ -39,8 +39,8 @@ export type StoreEventHandlerMap = {
     [EventEmitterEvents.NewListener]: (event: string, listener: (...args: unknown[]) => void) => void;
     [EventEmitterEvents.RemoveListener]: (event: string, listener: (...args: unknown[]) => void) => void;
     [EventEmitterEvents.Error]: (error: Error) => void;
-    "degraded": (error: Error) => void;
-    "closed": () => void;
+    degraded: (error: Error) => void;
+    closed: () => void;
 };
 
 /**

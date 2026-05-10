@@ -156,4 +156,56 @@ describe("SecurityManager", () => {
             expect(result.issues).toContain("No devices found");
         });
     });
+
+    describe("D7 §2.5: 4xx + typed-error branches", () => {
+        it("getAccountStatus swallows 401 typed errors and returns null", async () => {
+            const err = Object.assign(new Error("Unauthorized"), {
+                httpStatus: 401,
+                errcode: "M_UNKNOWN_TOKEN",
+            });
+            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+
+            await expect(manager.getAccountStatus("@u:example.com")).resolves.toBeNull();
+        });
+
+        it("getAccountStatus swallows 403 typed errors and returns null", async () => {
+            const err = Object.assign(new Error("Forbidden"), {
+                httpStatus: 403,
+                errcode: "M_FORBIDDEN",
+            });
+            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+
+            await expect(manager.getAccountStatus("@u:example.com")).resolves.toBeNull();
+        });
+
+        it("listLoginFailures swallows 4xx errors and returns []", async () => {
+            const err = Object.assign(new Error("Forbidden"), {
+                httpStatus: 403,
+                errcode: "M_FORBIDDEN",
+            });
+            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+
+            await expect(manager.listLoginFailures()).resolves.toEqual([]);
+        });
+
+        it("isAccountLocked falls back to false when API errors out", async () => {
+            const err = Object.assign(new Error("Internal"), {
+                httpStatus: 500,
+                errcode: "M_UNKNOWN",
+            });
+            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+
+            await expect(manager.isAccountLocked("@u:example.com")).resolves.toBe(false);
+        });
+
+        it("isAccountSuspended falls back to false when API errors out", async () => {
+            const err = Object.assign(new Error("Not Found"), {
+                httpStatus: 404,
+                errcode: "M_NOT_FOUND",
+            });
+            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+
+            await expect(manager.isAccountSuspended("@u:example.com")).resolves.toBe(false);
+        });
+    });
 });

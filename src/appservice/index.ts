@@ -33,14 +33,38 @@ export enum AppServiceEvent {
     ServiceError = "ServiceError",
 }
 
-export interface ApplicationService {
-    id: string;
+/**
+ * 后端响应类型（`synapse-rust/src/web/routes/app_service.rs:127-154` 对应的 `AppServiceResponse`）。
+ * - `id` 是 DB 行 id（i64）
+ * - `as_id` 是业务 ID（和请求体 `id` 对应），**应该作为 Manager 的主键**
+ * - `sender` 是后端从 `sender_localpart` 重命名后的字段
+ */
+export interface ApplicationServiceResponse {
+    id: number;
+    as_id: string;
     url: string;
-    as_token: string;
-    hs_token: string;
+    sender: string;
+    description?: string;
+    rate_limited: boolean;
+    protocols: string[];
+    is_enabled: boolean;
+    created_ts: number;
+}
+
+export interface ApplicationService {
+    /** 业务 ID（对应后端 as_id），作为 Manager 主键 */
+    as_id: string;
+    /** DB 行 id；仅调试/关联用，不作为主键 */
+    db_id?: number;
+    url: string;
+    as_token?: string;
+    hs_token?: string;
     sender_localpart: string;
     sender?: string;
+    description?: string;
     rate_limited?: boolean;
+    is_enabled?: boolean;
+    created_ts?: number;
     protocols?: string[];
     namespaces?: {
         users?: ApplicationServiceNamespace[];
@@ -77,11 +101,14 @@ export interface PingResult {
 }
 
 export interface RegisterApplicationServiceRequest {
+    /** 业务 ID（对应后端 RegisterAppServiceBody.id） */
     id: string;
     url: string;
     as_token: string;
     hs_token: string;
+    /** 发送者（本地部分），后端将其映射为 sender_localpart 存储 */
     sender_localpart: string;
+    description?: string;
     rate_limited?: boolean;
     protocols?: string[];
     namespaces?: ApplicationService["namespaces"];
@@ -106,34 +133,59 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         this.client = client;
     }
 
+    /**
+     * 将后端 AppServiceResponse 规范化为 SDK ApplicationService。
+     * 后端 sender 字段实际是 sender_localpart 重命名后的结果。
+     */
+    private fromResponse(
+        response: ApplicationServiceResponse,
+        request?: RegisterApplicationServiceRequest,
+    ): ApplicationService {
+        return {
+            as_id: response.as_id,
+            db_id: response.id,
+            url: response.url,
+            sender_localpart: response.sender,
+            sender: `@${response.sender}:${this.client.getDomain()}`,
+            description: response.description,
+            rate_limited: response.rate_limited,
+            is_enabled: response.is_enabled,
+            created_ts: response.created_ts,
+            protocols: response.protocols,
+            // 注册时由调用方提供的字段，后端响应中并不会回传
+            as_token: request?.as_token,
+            hs_token: request?.hs_token,
+            namespaces: request?.namespaces,
+        };
+    }
+
     async registerAppService(request: RegisterApplicationServiceRequest): Promise<ApplicationService> {
         if (!request.id || !request.url || !request.as_token || !request.hs_token || !request.sender_localpart) {
             throw new Error("Missing required fields for application service registration");
         }
 
         try {
-            await this.client.http.authedRequest<ApplicationService>(
+            const response = await this.client.http.authedRequest<ApplicationServiceResponse>(
                 Method.Post,
                 "/application_services",
                 undefined,
-                request,
+                {
+                    id: request.id,
+                    url: request.url,
+                    as_token: request.as_token,
+                    hs_token: request.hs_token,
+                    sender_localpart: request.sender_localpart,
+                    description: request.description,
+                    rate_limited: request.rate_limited,
+                    protocols: request.protocols,
+                    namespaces: request.namespaces,
+                },
                 { prefix: AdminPrefix.V1 },
             );
 
-            const service: ApplicationService = {
-                id: request.id,
-                url: request.url,
-                as_token: request.as_token,
-                hs_token: request.hs_token,
-                sender_localpart: request.sender_localpart,
-                sender: `@${request.sender_localpart}:${this.client.getDomain()}`,
-                rate_limited: request.rate_limited,
-                protocols: request.protocols,
-                namespaces: request.namespaces,
-            };
-
-            this.services.set(service.id, service);
-            this.emit(AppServiceEvent.ServiceRegistered, service.id, service);
+            const service = this.fromResponse(response, request);
+            this.services.set(service.as_id, service);
+            this.emit(AppServiceEvent.ServiceRegistered, service.as_id, service);
 
             return service;
         } catch (error) {
@@ -142,22 +194,22 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         }
     }
 
-    async getApplicationService(serviceId: string): Promise<ApplicationService | null> {
-        if (this.services.has(serviceId)) {
-            return this.services.get(serviceId) || null;
+    async getApplicationService(asId: string): Promise<ApplicationService | null> {
+        if (this.services.has(asId)) {
+            return this.services.get(asId) || null;
         }
 
         try {
-            const response = await this.client.http.authedRequest(
+            const response = await this.client.http.authedRequest<ApplicationServiceResponse>(
                 Method.Get,
-                `/application_services/${encodeURIComponent(serviceId)}`,
+                `/application_services/${encodeURIComponent(asId)}`,
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
             );
 
-            const service = response as ApplicationService;
-            this.services.set(serviceId, service);
+            const service = this.fromResponse(response);
+            this.services.set(service.as_id, service);
 
             return service;
             // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
@@ -168,27 +220,28 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
     }
 
     async updateApplicationService(
-        serviceId: string,
+        asId: string,
         request: UpdateApplicationServiceRequest,
     ): Promise<ApplicationService> {
         try {
-            await this.client.http.authedRequest<ApplicationService>(
+            const response = await this.client.http.authedRequest<ApplicationServiceResponse>(
                 Method.Put,
-                `/application_services/${encodeURIComponent(serviceId)}`,
+                `/application_services/${encodeURIComponent(asId)}`,
                 undefined,
                 request,
                 { prefix: AdminPrefix.V1 },
             );
 
-            const existing = this.services.get(serviceId);
+            const existing = this.services.get(asId);
+            const fresh = this.fromResponse(response);
             const updated: ApplicationService = {
                 ...existing,
-                ...request,
-                id: serviceId,
-            } as ApplicationService;
+                ...fresh,
+                as_id: asId,
+            };
 
-            this.services.set(serviceId, updated);
-            this.emit(AppServiceEvent.ServiceUpdated, serviceId, updated);
+            this.services.set(asId, updated);
+            this.emit(AppServiceEvent.ServiceUpdated, asId, updated);
 
             return updated;
         } catch (error) {
@@ -197,18 +250,18 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         }
     }
 
-    async unregisterApplicationService(serviceId: string): Promise<void> {
+    async unregisterApplicationService(asId: string): Promise<void> {
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/application_services/${encodeURIComponent(serviceId)}`,
+                `/application_services/${encodeURIComponent(asId)}`,
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
             );
 
-            this.services.delete(serviceId);
-            this.emit(AppServiceEvent.ServiceUnregistered, serviceId);
+            this.services.delete(asId);
+            this.emit(AppServiceEvent.ServiceUnregistered, asId);
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, error as Error);
             throw error;
@@ -217,16 +270,15 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async listApplicationServices(): Promise<ApplicationService[]> {
         try {
-            const response = await this.client.http.authedRequest<{ application_services?: ApplicationService[] }>(
-                Method.Get,
-                "/application_services",
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            // 后端 list_app_services 通过 json_vec_from 直接返回裸数组（app_service.rs:220-227）。
+            // 兼容 {application_services: [...]} 包络以防未来变更。
+            const response = await this.client.http.authedRequest<
+                ApplicationServiceResponse[] | { application_services?: ApplicationServiceResponse[] }
+            >(Method.Get, "/application_services", undefined, undefined, { prefix: AdminPrefix.V1 });
 
-            const services = response.application_services || [];
-            services.forEach((s) => this.services.set(s.id, s));
+            const rawList = Array.isArray(response) ? response : (response?.application_services ?? []);
+            const services = rawList.map((r) => this.fromResponse(r));
+            services.forEach((s) => this.services.set(s.as_id, s));
 
             return services;
         } catch (e) {
@@ -235,34 +287,44 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         }
     }
 
+    /**
+     * 查询某 userId 是否落在已注册 AS 的命名空间内。
+     *
+     * @remarks
+     * 对应后端 `GET /_matrix/client/v3/appservice/user`，handler 使用 `AdminUser` 提取器，
+     * 因此必须以**服务器管理员**身份调用；使用普通用户 access token 会直接 401/403。
+     * 同一逻辑也挂在 `GET /_synapse/admin/v1/application_services/query/user`，推荐管理面板走该路径。
+     */
     async checkUserId(userId: string): Promise<boolean> {
         try {
-            const response = await this.client.http.authedRequest<{ exists?: boolean }>(
-                Method.Get,
-                "/appservice/user",
-                { user_id: userId },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.client.http.authedRequest<{
+                exists?: boolean;
+                application_service?: string | null;
+            }>(Method.Get, "/appservice/user", { user_id: userId }, undefined, { prefix: ClientPrefix.V3 });
 
-            return response.exists === true;
+            if (typeof response?.exists === "boolean") return response.exists;
+            return response?.application_service != null;
         } catch (e) {
             logger.debug("AppServiceManager.checkUser failed", e);
             return false;
         }
     }
 
+    /**
+     * 查询某 room alias 是否落在已注册 AS 的命名空间内。
+     *
+     * @remarks
+     * 对应后端 `GET /_matrix/client/v3/appservice/alias`，同样需要管理员权限。见 {@link checkUserId}。
+     */
     async checkAlias(alias: string): Promise<boolean> {
         try {
-            const response = await this.client.http.authedRequest<{ exists?: boolean }>(
-                Method.Get,
-                "/appservice/alias",
-                { alias },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.client.http.authedRequest<{
+                exists?: boolean;
+                application_service?: string | null;
+            }>(Method.Get, "/appservice/alias", { alias }, undefined, { prefix: ClientPrefix.V3 });
 
-            return response.exists === true;
+            if (typeof response?.exists === "boolean") return response.exists;
+            return response?.application_service != null;
         } catch (e) {
             logger.debug("AppServiceManager.checkAlias failed", e);
             return false;
@@ -362,6 +424,98 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     getCachedService(serviceId: string): ApplicationService | null {
         return this.services.get(serviceId) || null;
+    }
+
+    // ===== Extended appservice admin endpoints (R2-AS-04) =====
+    // The backend registers these under `/_synapse/admin/v1/application_services/...`
+    // — they cover operational/introspection surfaces (state, users, namespaces,
+    // events, statistics, query/user, query/alias) that were previously unreachable
+    // from the SDK.
+
+    async getApplicationServiceState(asId: string): Promise<Record<string, unknown>> {
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/state`,
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async setApplicationServiceState(asId: string, stateKey: string, value: unknown): Promise<void> {
+        await this.client.http.authedRequest(
+            Method.Put,
+            `/application_services/${encodeURIComponent(asId)}/state/${encodeURIComponent(stateKey)}`,
+            undefined,
+            { value },
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async listApplicationServiceUsers(asId: string): Promise<{ users: ApplicationServiceUser[] }> {
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/users`,
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async getApplicationServiceNamespaces(asId: string): Promise<Record<string, unknown>> {
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/namespaces`,
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async listApplicationServiceEvents(
+        asId: string,
+        params: { limit?: number; from?: string } = {},
+    ): Promise<{ events: unknown[]; next_token?: string }> {
+        const q: Record<string, string> = {};
+        if (params.limit !== undefined) q.limit = String(params.limit);
+        if (params.from !== undefined) q.from = params.from;
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/events`,
+            q,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async getApplicationServiceStatistics(asId: string): Promise<Record<string, unknown>> {
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/statistics`,
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async queryApplicationServiceUser(asId: string, userId: string): Promise<Record<string, unknown>> {
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/query/user/${encodeURIComponent(userId)}`,
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    async queryApplicationServiceAlias(asId: string, alias: string): Promise<Record<string, unknown>> {
+        return this.client.http.authedRequest(
+            Method.Get,
+            `/application_services/${encodeURIComponent(asId)}/query/alias/${encodeURIComponent(alias)}`,
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     getCachedServices(): ApplicationService[] {

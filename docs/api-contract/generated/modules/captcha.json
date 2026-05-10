@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "captcha",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 4,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/register/captcha/send",
+      "registered_by": "captcha",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/register/captcha/status",
+      "registered_by": "captcha",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/register/captcha/verify",
+      "registered_by": "captcha",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/captcha/cleanup",
+      "registered_by": "captcha",
+      "path_params": []
+    }
+  ]
+}

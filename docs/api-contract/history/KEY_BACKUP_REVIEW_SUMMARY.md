@@ -2,7 +2,6 @@
 
 > 说明: 本文件保留 2026-04-15 的阶段性审查快照。当前契约结论请以 `key-backup.md`、`README.md` 与 `CHANGELOG.md` 为准。
 
-
 **审查日期**: 2026-04-15  
 **审查状态**: ✅ 已完成审查
 
@@ -14,78 +13,79 @@ Key Backup 模块提供端到端加密密钥的备份和恢复功能，是 E2EE 
 
 ### 审查结果
 
-**核心文件**: 
+**核心文件**:
+
 - `synapse-rust/src/web/routes/key_backup.rs` (500+ 行)
 - `synapse-rust/src/services/backup_service.rs` - 备份服务
 
 **关键发现**:
 
 1. **接口实现**（32 个端点）:
-   
-   **备份版本管理（5 个）**:
-   - ✅ `GET /room_keys/version` - 获取所有备份版本
-   - ✅ `POST /room_keys/version` - 创建备份版本
-   - ✅ `GET /room_keys/version/{version}` - 获取备份版本
-   - ✅ `PUT /room_keys/version/{version}` - 更新备份版本
-   - ✅ `DELETE /room_keys/version/{version}` - 删除备份版本
 
-   **备份密钥读写（11 个）**:
-   - ✅ `GET /room_keys/keys` - 获取所有备份密钥
-   - ✅ `PUT /room_keys/keys` - 上传密钥到最新版本
-   - ✅ `GET /room_keys/keys/{version}` - 获取指定版本的密钥
-   - ✅ `PUT /room_keys/keys/{version}` - 上传密钥到指定版本
-   - ✅ `GET /room_keys/keys/{version}/{room_id}` - 获取房间备份密钥
-   - ✅ `GET /room_keys/keys/{version}/{room_id}/{session_id}` - 获取会话密钥
-   - ✅ `PUT /room_keys/keys/{version}/{room_id}/{session_id}` - 上传会话密钥
-   - ✅ `GET /room_keys/{version}` - 兼容别名
-   - ✅ `PUT /room_keys/{version}` - 兼容别名
-   - ✅ `POST /room_keys/{version}/keys` - 批量上传密钥
-   - ✅ `GET /room_keys/{version}/keys/{room_id}` - 兼容别名
+    **备份版本管理（5 个）**:
+    - ✅ `GET /room_keys/version` - 获取所有备份版本
+    - ✅ `POST /room_keys/version` - 创建备份版本
+    - ✅ `GET /room_keys/version/{version}` - 获取备份版本
+    - ✅ `PUT /room_keys/version/{version}` - 更新备份版本
+    - ✅ `DELETE /room_keys/version/{version}` - 删除备份版本
 
-   **恢复与校验（6 个）**:
-   - ✅ `POST /room_keys/recover` - 恢复密钥
-   - ✅ `GET /room_keys/recovery/{version}/progress` - 获取恢复进度
-   - ✅ `GET /room_keys/verify/{version}` - 验证备份
-   - ✅ `POST /room_keys/batch_recover` - 批量恢复
-   - ✅ `GET /room_keys/recover/{version}/{room_id}` - 恢复房间密钥
-   - ✅ `GET /room_keys/recover/{version}/{room_id}/{session_id}` - 恢复会话密钥
+    **备份密钥读写（11 个）**:
+    - ✅ `GET /room_keys/keys` - 获取所有备份密钥
+    - ✅ `PUT /room_keys/keys` - 上传密钥到最新版本
+    - ✅ `GET /room_keys/keys/{version}` - 获取指定版本的密钥
+    - ✅ `PUT /room_keys/keys/{version}` - 上传密钥到指定版本
+    - ✅ `GET /room_keys/keys/{version}/{room_id}` - 获取房间备份密钥
+    - ✅ `GET /room_keys/keys/{version}/{room_id}/{session_id}` - 获取会话密钥
+    - ✅ `PUT /room_keys/keys/{version}/{room_id}/{session_id}` - 上传会话密钥
+    - ✅ `GET /room_keys/{version}` - 兼容别名
+    - ✅ `PUT /room_keys/{version}` - 兼容别名
+    - ✅ `POST /room_keys/{version}/keys` - 批量上传密钥
+    - ✅ `GET /room_keys/{version}/keys/{room_id}` - 兼容别名
 
-   **导出与导入（4 个）**:
-   - ✅ `GET /room_keys/export` - 导出密钥
-   - ✅ `GET /room_keys/export/{version}` - 导出指定版本
-   - ✅ `POST /room_keys/import` - 导入密钥
-   - ✅ `POST /room_keys/import/{version}` - 导入到指定版本
+    **恢复与校验（6 个）**:
+    - ✅ `POST /room_keys/recover` - 恢复密钥
+    - ✅ `GET /room_keys/recovery/{version}/progress` - 获取恢复进度
+    - ✅ `GET /room_keys/verify/{version}` - 验证备份
+    - ✅ `POST /room_keys/batch_recover` - 批量恢复
+    - ✅ `GET /room_keys/recover/{version}/{room_id}` - 恢复房间密钥
+    - ✅ `GET /room_keys/recover/{version}/{room_id}/{session_id}` - 恢复会话密钥
 
-   **Secure Backup（6 个，在 e2ee_routes.rs）**:
-   - ✅ `POST /keys/backup/secure` - 创建安全备份
-   - ✅ `GET /keys/backup/secure/{backup_id}` - 获取安全备份
-   - ✅ `DELETE /keys/backup/secure/{backup_id}` - 删除安全备份
-   - ✅ `POST /keys/backup/secure/{backup_id}/keys` - 添加密钥
-   - ✅ `POST /keys/backup/secure/{backup_id}/restore` - 恢复
-   - ✅ `POST /keys/backup/secure/{backup_id}/verify` - 验证
+    **导出与导入（4 个）**:
+    - ✅ `GET /room_keys/export` - 导出密钥
+    - ✅ `GET /room_keys/export/{version}` - 导出指定版本
+    - ✅ `POST /room_keys/import` - 导入密钥
+    - ✅ `POST /room_keys/import/{version}` - 导入到指定版本
+
+    **Secure Backup（6 个，在 e2ee_routes.rs）**:
+    - ✅ `POST /keys/backup/secure` - 创建安全备份
+    - ✅ `GET /keys/backup/secure/{backup_id}` - 获取安全备份
+    - ✅ `DELETE /keys/backup/secure/{backup_id}` - 删除安全备份
+    - ✅ `POST /keys/backup/secure/{backup_id}/keys` - 添加密钥
+    - ✅ `POST /keys/backup/secure/{backup_id}/restore` - 恢复
+    - ✅ `POST /keys/backup/secure/{backup_id}/verify` - 验证
 
 2. **核心特性**:
-   - 备份版本管理（创建、查询、更新、删除）
-   - 密钥备份（全量、增量、单会话）
-   - 密钥恢复（全量、批量、单房间、单会话）
-   - 备份验证
-   - 密钥导出/导入
-   - 安全备份（加密备份）
+    - 备份版本管理（创建、查询、更新、删除）
+    - 密钥备份（全量、增量、单会话）
+    - 密钥恢复（全量、批量、单房间、单会话）
+    - 备份验证
+    - 密钥导出/导入
+    - 安全备份（加密备份）
 
 3. **数据约束**:
-   - version: 字符串，自动生成
-   - algorithm: 默认 "m.megolm.v1.aes-sha2"，最大 255 字符
-   - room_id: 1-255 字符
-   - session_id: 字符串
-   - first_message_index: 整数
-   - forwarded_count: 整数
-   - is_verified: 布尔值
+    - version: 字符串，自动生成
+    - algorithm: 默认 "m.megolm.v1.aes-sha2"，最大 255 字符
+    - room_id: 1-255 字符
+    - session_id: 字符串
+    - first_message_index: 整数
+    - forwarded_count: 整数
+    - is_verified: 布尔值
 
 4. **SDK 封装状态**:
-   - ✅ 28 个方法精确对齐后端
-   - ✅ KeyBackupManager 完整实现
-   - ✅ SecureBackupManager 完整实现
-   - ⚠️ 4 个后端兼容别名未单独封装（不影响功能）
+    - ✅ 28 个方法精确对齐后端
+    - ✅ KeyBackupManager 完整实现
+    - ✅ SecureBackupManager 完整实现
+    - ⚠️ 4 个后端兼容别名未单独封装（不影响功能）
 
 ---
 
@@ -197,27 +197,27 @@ Response: { "count", "failed", "total" }
 
 ## 数据约束
 
-| 字段 | 约束 | 说明 |
-|------|------|------|
-| version | 字符串 | 自动生成，通常为数字 |
-| algorithm | 最大 255 字符 | 默认 "m.megolm.v1.aes-sha2" |
-| room_id | 1-255 字符 | Matrix 房间 ID |
-| session_id | 字符串 | Megolm 会话 ID |
-| first_message_index | 整数 | 第一条消息索引 |
-| forwarded_count | 整数 | 转发次数 |
-| is_verified | 布尔值 | 是否已验证 |
-| session_data | 对象 | 加密的会话数据 |
+| 字段                | 约束          | 说明                        |
+| ------------------- | ------------- | --------------------------- |
+| version             | 字符串        | 自动生成，通常为数字        |
+| algorithm           | 最大 255 字符 | 默认 "m.megolm.v1.aes-sha2" |
+| room_id             | 1-255 字符    | Matrix 房间 ID              |
+| session_id          | 字符串        | Megolm 会话 ID              |
+| first_message_index | 整数          | 第一条消息索引              |
+| forwarded_count     | 整数          | 转发次数                    |
+| is_verified         | 布尔值        | 是否已验证                  |
+| session_data        | 对象          | 加密的会话数据              |
 
 ---
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 场景 |
-|--------|------------|------|
-| M_BAD_JSON | 400 | 请求体格式错误 |
-| M_INVALID_PARAM | 400 | 参数验证失败 |
-| M_UNKNOWN_TOKEN | 401 | Token 无效 |
-| M_NOT_FOUND | 404 | 备份版本或密钥不存在 |
+| 错误码          | HTTP 状态码 | 场景                 |
+| --------------- | ----------- | -------------------- |
+| M_BAD_JSON      | 400         | 请求体格式错误       |
+| M_INVALID_PARAM | 400         | 参数验证失败         |
+| M_UNKNOWN_TOKEN | 401         | Token 无效           |
+| M_NOT_FOUND     | 404         | 备份版本或密钥不存在 |
 
 ---
 
@@ -290,6 +290,7 @@ CREATE TABLE e2e_room_keys_backup_version (
 **评级**: ⭐⭐⭐⭐⭐ **优秀**
 
 **理由**:
+
 - ✅ 现有文档非常完整和详细
 - ✅ 覆盖了所有 32 个端点
 - ✅ SDK 封装完整（28 个方法）
@@ -322,29 +323,29 @@ CREATE TABLE e2e_room_keys_backup_version (
 
 ## 注意事项
 
-1. **备份版本管理**: 
-   - 版本号自动生成
-   - 删除版本会删除所有相关密钥
+1. **备份版本管理**:
+    - 版本号自动生成
+    - 删除版本会删除所有相关密钥
 
 2. **密钥备份**:
-   - 支持增量备份
-   - 支持批量上传
-   - 自动生成 etag
+    - 支持增量备份
+    - 支持批量上传
+    - 自动生成 etag
 
 3. **密钥恢复**:
-   - 需要恢复密钥
-   - 支持分页恢复
-   - 可以查询恢复进度
+    - 需要恢复密钥
+    - 支持分页恢复
+    - 可以查询恢复进度
 
 4. **安全备份**:
-   - 使用密码或恢复密钥加密
-   - 独立于普通备份
-   - 更高的安全性
+    - 使用密码或恢复密钥加密
+    - 独立于普通备份
+    - 更高的安全性
 
 5. **兼容性**:
-   - 支持 r0/v1/v3 前缀
-   - 提供兼容别名路径
-   - SDK 封装主要路径
+    - 支持 r0/v1/v3 前缀
+    - 提供兼容别名路径
+    - SDK 封装主要路径
 
 ---
 

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "typing",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 4,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/typing",
+      "registered_by": "typing",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/typing",
+      "registered_by": "typing",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/typing/{user_id}",
+      "registered_by": "typing",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/typing/{user_id}",
+      "registered_by": "typing",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    }
+  ]
+}

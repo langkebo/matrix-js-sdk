@@ -1,3 +1,11 @@
+---
+module: device
+generated_from: docs/api-contract/generated/modules/device.json
+generated_hash: sha256-54901cb52bad0602f86e7a1998da079cbbaf9c2ee56238e20daa34057566d9f1
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Device 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/device.rs`

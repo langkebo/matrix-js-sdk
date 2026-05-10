@@ -1,0 +1,231 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "push",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 27,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/notifications",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/notifications/{notification_id}/ack",
+      "registered_by": "push",
+      "path_params": [
+        "notification_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/pushers",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/pushers",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/pushers/set",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/pushrules",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/pushrules/{scope}",
+      "registered_by": "push",
+      "path_params": [
+        "scope"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/pushrules/{scope}/{kind}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/notifications",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/notifications/{notification_id}/ack",
+      "registered_by": "push",
+      "path_params": [
+        "notification_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/pushers",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/pushers",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/pushers/set",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/pushrules",
+      "registered_by": "push",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/pushrules/{scope}",
+      "registered_by": "push",
+      "path_params": [
+        "scope"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled",
+      "registered_by": "push",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    }
+  ]
+}

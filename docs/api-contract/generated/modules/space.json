@@ -1,0 +1,560 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "space",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 72,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/spaces",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/public",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/room/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/room/{room_id}/parents",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/search",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/statistics",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/user",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/spaces/{space_id}/children/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/hierarchy",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/hierarchy/v1",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/spaces/{space_id}/invite",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/spaces/{space_id}/join",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/spaces/{space_id}/leave",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/members",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/rooms",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/state",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/summary",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/summary/with_children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/spaces/{space_id}/tree_path",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/spaces",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/public",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/room/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/room/{room_id}/parents",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/search",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/statistics",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/user",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/spaces/{space_id}/children/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/hierarchy",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/hierarchy/v1",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/spaces/{space_id}/invite",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/spaces/{space_id}/join",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/spaces/{space_id}/leave",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/members",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/rooms",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/state",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/summary",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/summary/with_children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/spaces/{space_id}/tree_path",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/spaces",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/public",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/room/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/room/{room_id}/parents",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/search",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/statistics",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/user",
+      "registered_by": "space",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/spaces/{space_id}/children/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/hierarchy",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/hierarchy/v1",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/spaces/{space_id}/invite",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/spaces/{space_id}/join",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/spaces/{space_id}/leave",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/members",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/rooms",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/state",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/summary",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/summary/with_children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/spaces/{space_id}/tree_path",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ]
+    }
+  ]
+}

@@ -36,7 +36,7 @@ import { createClient } from "matrix-js-sdk";
 const client = createClient({
     baseUrl: "https://matrix.example.com",
     accessToken: "your_admin_access_token",
-    userId: "@admin:example.com"
+    userId: "@admin:example.com",
 });
 
 // 获取 Admin Manager
@@ -57,7 +57,7 @@ console.log(`用户: ${user.displayname}, 管理员: ${user.admin}`);
 // 2. 创建新用户
 await adminManager.createUser("@bob:example.com", {
     password: "secure123",
-    displayname: "Bob Smith"
+    displayname: "Bob Smith",
 });
 
 // 3. 获取房间列表
@@ -115,19 +115,19 @@ if (!user) {
 // 创建普通用户
 const user = await adminManager.createUser("@bob:example.com", {
     password: "secure123",
-    displayname: "Bob Smith"
+    displayname: "Bob Smith",
 });
 
 // 创建管理员用户
 const admin = await adminManager.createUser("@admin2:example.com", {
     password: "admin123",
     displayname: "Admin User",
-    admin: true
+    admin: true,
 });
 
 // 创建已停用的用户（用于占位）
 const placeholder = await adminManager.createUser("@reserved:example.com", {
-    deactivated: true
+    deactivated: true,
 });
 ```
 
@@ -152,7 +152,7 @@ await adminManager.deactivateUser("@spam:example.com", true);
 ```typescript
 // 获取用户的所有设备
 const devices = await adminManager.getUserDevices("@alice:example.com");
-devices.forEach(device => {
+devices.forEach((device) => {
     console.log(`设备: ${device.device_id}`);
     console.log(`  名称: ${device.display_name}`);
     console.log(`  最后活跃: ${new Date(device.last_seen_ts!)}`);
@@ -162,11 +162,7 @@ devices.forEach(device => {
 await adminManager.deleteUserDevice("@alice:example.com", "DEVICE123");
 
 // 批量删除设备
-await adminManager.deleteUserDevices("@alice:example.com", [
-    "DEVICE1",
-    "DEVICE2",
-    "DEVICE3"
-]);
+await adminManager.deleteUserDevices("@alice:example.com", ["DEVICE1", "DEVICE2", "DEVICE3"]);
 ```
 
 ### 速率限制
@@ -180,7 +176,7 @@ console.log(`突发数量: ${rateLimit?.burst_count}`);
 // 设置速率限制
 await adminManager.setRateLimit("@alice:example.com", {
     messages_per_second: 10,
-    burst_count: 20
+    burst_count: 20,
 });
 
 // 删除速率限制（使用默认值）
@@ -219,7 +215,7 @@ console.log(`总共 ${result.rooms.length} 个房间`);
 
 // 搜索房间
 const result = await adminManager.getRooms(undefined, 50, "general");
-result.rooms.forEach(room => {
+result.rooms.forEach((room) => {
     console.log(`${room.name} (${room.room_id})`);
     console.log(`  成员数: ${room.joined_members}`);
 });
@@ -249,7 +245,7 @@ console.log(`成员: ${members.join(", ")}`);
 
 // 获取房间状态
 const state = await adminManager.getRoomState("!abc123:example.com");
-state.state.forEach(event => {
+state.state.forEach((event) => {
     console.log(`${event.type}: ${event.state_key}`);
 });
 ```
@@ -262,7 +258,7 @@ await adminManager.deleteRoom("!spam:example.com");
 
 // 删除房间并清除历史
 await adminManager.deleteRoom("!spam:example.com", {
-    purge: true
+    purge: true,
 });
 
 // 封禁房间（阻止新用户加入）
@@ -361,15 +357,12 @@ console.log(`Python 版本: ${version.python_version}`);
 // 获取黑名单
 const blacklist = await adminManager.getFederationBlacklist();
 console.log(`黑名单中有 ${blacklist.length} 个服务器`);
-blacklist.forEach(entry => {
+blacklist.forEach((entry) => {
     console.log(`${entry.server_name}: ${entry.reason}`);
 });
 
 // 添加到黑名单
-await adminManager.addToFederationBlacklist(
-    "spam-server.com",
-    "发送垃圾消息"
-);
+await adminManager.addToFederationBlacklist("spam-server.com", "发送垃圾消息");
 
 // 从黑名单移除
 await adminManager.removeFromFederationBlacklist("spam-server.com");
@@ -386,7 +379,7 @@ for (const server of spamServers) {
 ```typescript
 // 获取联邦目的地列表
 const destinations = await adminManager.getFederationDestinations();
-destinations.forEach(dest => {
+destinations.forEach((dest) => {
     console.log(`${dest.destination}: 最后重试 ${dest.retry_last_ts}`);
 });
 
@@ -409,32 +402,26 @@ await adminManager.disconnectFederation("spam-server.com");
 
 ```typescript
 // 发送文本通知
-const result = await adminManager.sendServerNotice(
-    "@user:example.com",
-    {
-        msgtype: "m.text",
-        body: "重要通知：服务器将于今晚 22:00 维护"
-    }
-);
+const result = await adminManager.sendServerNotice("@user:example.com", {
+    msgtype: "m.text",
+    body: "重要通知：服务器将于今晚 22:00 维护",
+});
 console.log(`通知已发送，事件 ID: ${result.event_id}`);
 
 // 发送 HTML 格式通知
-await adminManager.sendServerNotice(
-    "@user:example.com",
-    {
-        msgtype: "m.text",
-        body: "系统更新",
-        format: "org.matrix.custom.html",
-        formatted_body: "<strong>系统更新</strong><br>新功能已上线"
-    }
-);
+await adminManager.sendServerNotice("@user:example.com", {
+    msgtype: "m.text",
+    body: "系统更新",
+    format: "org.matrix.custom.html",
+    formatted_body: "<strong>系统更新</strong><br>新功能已上线",
+});
 
 // 批量发送通知
 const users = ["@alice:example.com", "@bob:example.com"];
 for (const userId of users) {
     await adminManager.sendServerNotice(userId, {
         msgtype: "m.text",
-        body: "系统维护通知"
+        body: "系统维护通知",
     });
 }
 ```
@@ -444,7 +431,7 @@ for (const userId of users) {
 ```typescript
 // 获取最近的通知
 const result = await adminManager.getServerNotices(50);
-result?.notices.forEach(notice => {
+result?.notices.forEach((notice) => {
     console.log(`发送给: ${notice.user_id}`);
     console.log(`时间: ${new Date(notice.sent_ts)}`);
     console.log(`内容: ${notice.content}`);
@@ -539,16 +526,16 @@ try {
 async function getAllUsers(): Promise<UserInfo[]> {
     const allUsers: UserInfo[] = [];
     let from: string | undefined;
-    
+
     do {
         const result = await adminManager.getUsers(from, 100);
         allUsers.push(...result.users);
         from = result.next_token;
-        
+
         // 避免过快请求
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
     } while (from);
-    
+
     return allUsers;
 }
 ```
@@ -558,16 +545,13 @@ async function getAllUsers(): Promise<UserInfo[]> {
 对于可重试的错误，实现重试逻辑：
 
 ```typescript
-async function retryOperation<T>(
-    operation: () => Promise<T>,
-    maxRetries: number = 3
-): Promise<T> {
+async function retryOperation<T>(operation: () => Promise<T>, maxRetries: number = 3): Promise<T> {
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await operation();
         } catch (error) {
             if (error instanceof RetryableError && i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
                 continue;
             }
             throw error;
@@ -577,9 +561,7 @@ async function retryOperation<T>(
 }
 
 // 使用
-const user = await retryOperation(() => 
-    adminManager.getUser("@alice:example.com")
-);
+const user = await retryOperation(() => adminManager.getUser("@alice:example.com"));
 ```
 
 ### 4. 批量操作
@@ -590,7 +572,7 @@ const user = await retryOperation(() =>
 async function batchOperation<T>(
     items: T[],
     operation: (item: T) => Promise<void>,
-    concurrency: number = 5
+    concurrency: number = 5,
 ): Promise<void> {
     for (let i = 0; i < items.length; i += concurrency) {
         const batch = items.slice(i, i + concurrency);
@@ -604,7 +586,7 @@ await batchOperation(
     async (userId) => {
         await adminManager.deactivateUser(userId);
     },
-    5 // 每次处理 5 个
+    5, // 每次处理 5 个
 );
 ```
 
@@ -659,7 +641,7 @@ console.log(`房间有 ${members.length} 个成员`);
 
 // 3. 确认后删除
 await adminManager.deleteRoom("!room:example.com", {
-    purge: true // 清除历史记录
+    purge: true, // 清除历史记录
 });
 ```
 
@@ -670,20 +652,20 @@ await adminManager.deleteRoom("!room:example.com", {
 ```typescript
 async function deactivateInactiveUsers(inactiveDays: number) {
     let from: string | undefined;
-    const cutoffTime = Date.now() - (inactiveDays * 24 * 60 * 60 * 1000);
-    
+    const cutoffTime = Date.now() - inactiveDays * 24 * 60 * 60 * 1000;
+
     do {
         const result = await adminManager.getUsers(from, 100);
-        
+
         for (const user of result.users) {
             if (user.last_seen_ts && user.last_seen_ts < cutoffTime) {
                 await adminManager.deactivateUser(user.user_id);
                 console.log(`停用不活跃用户: ${user.user_id}`);
             }
         }
-        
+
         from = result.next_token;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
     } while (from);
 }
 ```

@@ -1,0 +1,155 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "event_report",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 19,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports",
+      "registered_by": "event_report",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/event_reports",
+      "registered_by": "event_report",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/count",
+      "registered_by": "event_report",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/event/{event_id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/rate_limit/{user_id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/event_reports/rate_limit/{user_id}/block",
+      "registered_by": "event_report",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock",
+      "registered_by": "event_report",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/reporter/{reporter_user_id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "reporter_user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/room/{room_id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/stats",
+      "registered_by": "event_report",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/status/{status}",
+      "registered_by": "event_report",
+      "path_params": [
+        "status"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/status/{status}/count",
+      "registered_by": "event_report",
+      "path_params": [
+        "status"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/event_reports/{id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/{id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/event_reports/{id}",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/event_reports/{id}/dismiss",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/event_reports/{id}/escalate",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/event_reports/{id}/history",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/event_reports/{id}/resolve",
+      "registered_by": "event_report",
+      "path_params": [
+        "id"
+      ]
+    }
+  ]
+}

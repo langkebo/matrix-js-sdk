@@ -1,3 +1,11 @@
+---
+module: background_update
+generated_from: docs/api-contract/generated/modules/background_update.json
+generated_hash: sha256-a3e7dcb679f07e4b76daac36ae10e369ab6a26b28c52ad67697ad8cf3e6bde92
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Background Update API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/background_update.rs`  
@@ -27,14 +35,15 @@ Background Update API 提供后台更新任务管理功能，用于数据库迁�
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface BackgroundUpdatesResponse {
-  updates: Array<{
-    name: string;
-    status: string;
-    progress: number;
-    started_ts?: number;
-  }>;
+    updates: Array<{
+        name: string;
+        status: string;
+        progress: number;
+        started_ts?: number;
+    }>;
 }
 ```
 
@@ -44,9 +53,10 @@ interface BackgroundUpdatesResponse {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {
-  "count": 5
+    "count": 5
 }
 ```
 
@@ -56,9 +66,10 @@ interface BackgroundUpdatesResponse {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface PendingUpdates {
-  pending: string[];
+    pending: string[];
 }
 ```
 
@@ -68,13 +79,14 @@ interface PendingUpdates {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface RunningUpdates {
-  running: Array<{
-    name: string;
-    progress: number;
-    started_ts: number;
-  }>;
+    running: Array<{
+        name: string;
+        progress: number;
+        started_ts: number;
+    }>;
 }
 ```
 
@@ -84,9 +96,10 @@ interface RunningUpdates {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {
-  "name": "update_name"
+    "name": "update_name"
 }
 ```
 
@@ -96,11 +109,12 @@ interface RunningUpdates {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface UpdateStatus {
-  enabled: boolean;
-  current_updates: number;
-  total_duration_ms: number;
+    enabled: boolean;
+    current_updates: number;
+    total_duration_ms: number;
 }
 ```
 
@@ -110,9 +124,10 @@ interface UpdateStatus {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {
-  "retried": 3
+    "retried": 3
 }
 ```
 
@@ -122,6 +137,7 @@ interface UpdateStatus {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -132,14 +148,15 @@ interface UpdateStatus {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface JobDetail {
-  name: string;
-  status: string;
-  progress: number;
-  started_ts?: number;
-  completed_ts?: number;
-  error?: string;
+    name: string;
+    status: string;
+    progress: number;
+    started_ts?: number;
+    completed_ts?: number;
+    error?: string;
 }
 ```
 
@@ -149,13 +166,14 @@ interface JobDetail {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface UpdateStats {
-  total_updates: number;
-  completed: number;
-  failed: number;
-  running: number;
-  pending: number;
+    total_updates: number;
+    completed: number;
+    failed: number;
+    running: number;
+    pending: number;
 }
 ```
 
@@ -169,6 +187,6 @@ interface UpdateStats {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

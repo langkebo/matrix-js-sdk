@@ -1,0 +1,59 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "sync",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 8,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/events",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/joined_rooms",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/sync",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/sync",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/events",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/joined_rooms",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/my_rooms",
+      "registered_by": "sync",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/sync",
+      "registered_by": "sync",
+      "path_params": []
+    }
+  ]
+}

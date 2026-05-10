@@ -28,13 +28,12 @@ limitations under the License.
  * - 监控指标: 请求统计和性能监控
  */
 
-import { logger } from "../logger.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
-import { MatrixError } from "../http-api/errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { BaseManager } from "../managers/base-manager.ts";
+import { SdkError } from "../errors.ts";
 
 export enum EphemeralEvent {
     EphemeralReceived = "EphemeralReceived",
@@ -78,69 +77,22 @@ interface EphemeralManagerEventMap {
     [EphemeralEvent.EphemeralCleared]: (roomId: string) => void;
     [EphemeralEvent.EphemeralError]: (roomId: string, error: Error) => void;
 }
-export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, EphemeralManagerEventMap> {
-    private client: MatrixClient;
+
+/**
+ * EphemeralManager handles room ephemeral events like typing and receipts.
+ * Aligned with synapse-rust /room_keys/ephemeral logic.
+ */
+export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManagerEventMap> {
     private ephemeralEventsCache: LRUCache<IEphemeralEventInfo[]>;
     private defaultLimit = 100;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000;
-    private requestStats = { total: 0, successful: 0, failed: 0, retried: 0 };
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
-        this.ephemeralEventsCache = new LRUCache<IEphemeralEventInfo[]>(100, 60 * 1000);
-    }
-
-    private isRetryableError(error: unknown): boolean {
-        if (error instanceof MatrixError) {
-            return (
-                ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"].includes(error.errcode ?? "") ||
-                [429, 500, 502, 503, 504].includes(error.httpStatus ?? 0)
-            );
-        }
-        const err = error as Record<string, unknown>;
-        return (
-            ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
-            [429, 500, 502, 503, 504].includes(err?.httpStatus as number)
-        );
-    }
-
-    private getErrorType(error: unknown): string {
-        if (error instanceof MatrixError) return error.errcode ?? `http_${error.httpStatus}`;
-        if (error instanceof Error) return error.name ?? "UnknownError";
-        return "UnknownError";
-    }
-
-    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
-        let lastError: unknown;
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    throw error;
-                }
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`EphemeralManager.${method} failed, retrying in ${delay}ms`);
-                    await new Promise((r) => setTimeout(r, delay));
-                }
-            }
-        }
-        this.recordRequest(false, true);
-        throw lastError;
-    }
-
-    private recordRequest(success: boolean, retried: boolean): void {
-        this.requestStats.total++;
-        if (success) this.requestStats.successful++;
-        else this.requestStats.failed++;
-        if (retried) this.requestStats.retried++;
+        super(client);
+        this.ephemeralEventsCache = new LRUCache<IEphemeralEventInfo[]>({
+            maxSize: 100,
+            ttl: 60 * 1000,
+            name: "ephemeral-events-cache",
+        });
     }
 
     public getMetrics(): EphemeralManagerMetrics {
@@ -189,26 +141,29 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
         const cached = this.ephemeralEventsCache.get(roomId);
         if (cached) return cached;
 
-        return this.withRetry(async () => {
-            const response = (await this.client.http.authedRequest(
-                Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/ephemeral`,
-                { limit: limit ?? this.defaultLimit },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            )) as IServerEphemeralEventsResponse;
+        return this.withRetry(
+            async () => {
+                const response = await this.client.http.authedRequest<IServerEphemeralEventsResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/ephemeral`,
+                    { limit: limit ?? this.defaultLimit },
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
 
-            const events: IEphemeralEventInfo[] = (response.chunk || []).map((e) => ({
-                roomId,
-                type: e.type,
-                sender: e.sender,
-                content: e.content,
-                timestamp: Date.now(),
-            }));
-            this.ephemeralEventsCache.set(roomId, events);
-            this.emit(EphemeralEvent.EphemeralReceived, roomId, events);
-            return events;
-        }, "getEphemeralEventsFromServer");
+                const events: IEphemeralEventInfo[] = (response.chunk || []).map((e) => ({
+                    roomId,
+                    type: e.type,
+                    sender: e.sender,
+                    content: e.content,
+                    timestamp: Date.now(),
+                }));
+                this.ephemeralEventsCache.set(roomId, events);
+                this.emit(EphemeralEvent.EphemeralReceived, roomId, events);
+                return events;
+            },
+            { label: "getEphemeralEventsFromServer", idempotent: true },
+        );
     }
 
     public async getTypingEvents(roomId: string): Promise<string[]> {
@@ -254,6 +209,10 @@ export class EphemeralManager extends TypedEventEmitter<EphemeralEvent, Ephemera
     }
     public stop(): void {
         this.ephemeralEventsCache.clear();
+    }
+
+    protected normalizeError(error: unknown, method: string): SdkError {
+        return super.normalizeError(error, method);
     }
 }
 

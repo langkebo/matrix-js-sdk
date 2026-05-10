@@ -1,3 +1,11 @@
+---
+module: key_rotation
+generated_from: docs/api-contract/generated/modules/key_rotation.json
+generated_hash: sha256-86fee3458e25ffcaf98fd90701b9d49a4295a90bf16f5c23630a752aedf5f1f1
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Key Rotation API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/key_rotation.rs`  
@@ -10,6 +18,7 @@
 ### 1.1 功能描述
 
 Key Rotation API 提供端到端加密密钥轮换功能，用于：
+
 - 定期轮换加密密钥以提高安全性
 - 查询密钥轮换状态和历史
 - 撤销已泄露的密钥
@@ -32,13 +41,14 @@ Key Rotation API 提供端到端加密密钥轮换功能，用于：
 **挂载版本**: `v1`
 
 **响应**: `200 OK`
+
 ```typescript
 interface KeyRotationStatus {
-  current_key_id: string;
-  rotation_period_ms: number;
-  last_rotation_ts: number;
-  next_rotation_ts: number;
-  auto_rotation_enabled: boolean;
+    current_key_id: string;
+    rotation_period_ms: number;
+    last_rotation_ts: number;
+    next_rotation_ts: number;
+    auto_rotation_enabled: boolean;
 }
 ```
 
@@ -49,17 +59,19 @@ interface KeyRotationStatus {
 **挂载版本**: `v1`
 
 **请求体**:
+
 ```json
 {
-  "reason": "scheduled_rotation"
+    "reason": "scheduled_rotation"
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "new_key_id": "key_v2_abc123",
-  "rotated_at": 1714176000000
+    "new_key_id": "key_v2_abc123",
+    "rotated_at": 1714176000000
 }
 ```
 
@@ -81,15 +93,16 @@ interface KeyRotationStatus {
 | `from` | string | 否 | 分页起始 token |
 
 **响应**: `200 OK`
+
 ```typescript
 interface KeyRotationHistory {
-  rotations: Array<{
-    key_id: string;
-    rotated_at: number;
-    reason: string;
-    previous_key_id?: string;
-  }>;
-  next_batch?: string;
+    rotations: Array<{
+        key_id: string;
+        rotated_at: number;
+        reason: string;
+        previous_key_id?: string;
+    }>;
+    next_batch?: string;
 }
 ```
 
@@ -100,18 +113,20 @@ interface KeyRotationHistory {
 **挂载版本**: `v1`
 
 **请求体**:
+
 ```json
 {
-  "key_id": "key_v1_old123",
-  "reason": "compromised"
+    "key_id": "key_v1_old123",
+    "reason": "compromised"
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "revoked": true,
-  "revoked_at": 1714176000000
+    "revoked": true,
+    "revoked_at": 1714176000000
 }
 ```
 
@@ -122,17 +137,19 @@ interface KeyRotationHistory {
 **挂载版本**: `v1`
 
 **请求体**:
+
 ```json
 {
-  "auto_rotation_enabled": true,
-  "rotation_period_ms": 2592000000
+    "auto_rotation_enabled": true,
+    "rotation_period_ms": 2592000000
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "updated": true
+    "updated": true
 }
 ```
 
@@ -148,11 +165,12 @@ interface KeyRotationHistory {
 | `key_id` | string | 是 | 要检查的密钥 ID |
 
 **响应**: `200 OK`
+
 ```typescript
 interface KeyCheckResponse {
-  valid: boolean;
-  revoked: boolean;
-  expires_at?: number;
+    valid: boolean;
+    revoked: boolean;
+    expires_at?: number;
 }
 ```
 
@@ -160,14 +178,14 @@ interface KeyCheckResponse {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
-| `GET /rotation/status` | `keyRotationManager.getStatus()` | ✅ 已封装 |
-| `POST /rotation/rotate` | `keyRotationManager.rotateKey()` | ✅ 已封装 |
+| 后端端点                            | SDK 方法                                  | 状态      |
+| ----------------------------------- | ----------------------------------------- | --------- |
+| `GET /rotation/status`              | `keyRotationManager.getStatus()`          | ✅ 已封装 |
+| `POST /rotation/rotate`             | `keyRotationManager.rotateKey()`          | ✅ 已封装 |
 | `GET /rotation/history/{device_id}` | `keyRotationManager.getRotationHistory()` | ✅ 已封装 |
-| `POST /rotation/revoke` | `keyRotationManager.revokeKey()` | ✅ 已封装 |
-| `PUT /rotation/config` | `keyRotationManager.updateConfig()` | ✅ 已封装 |
-| `GET /rotation/check` | `keyRotationManager.checkKeyValidity()` | ✅ 已封装 |
+| `POST /rotation/revoke`             | `keyRotationManager.revokeKey()`          | ✅ 已封装 |
+| `PUT /rotation/config`              | `keyRotationManager.updateConfig()`       | ✅ 已封装 |
+| `GET /rotation/check`               | `keyRotationManager.checkKeyValidity()`   | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
@@ -182,17 +200,17 @@ interface KeyCheckResponse {
 
 ## 四、常见错误码
 
-| 状态码 | 错误码 | 说明 |
-|-------|--------|------|
-| 400 | `M_INVALID_PARAM` | 参数无效 |
-| 401 | `M_UNAUTHORIZED` | 未认证 |
-| 403 | `M_FORBIDDEN` | 无权限操作 |
-| 404 | `M_NOT_FOUND` | 密钥不存在 |
-| 429 | `M_LIMIT_EXCEEDED` | 轮换频率过高 |
+| 状态码 | 错误码             | 说明         |
+| ------ | ------------------ | ------------ |
+| 400    | `M_INVALID_PARAM`  | 参数无效     |
+| 401    | `M_UNAUTHORIZED`   | 未认证       |
+| 403    | `M_FORBIDDEN`      | 无权限操作   |
+| 404    | `M_NOT_FOUND`      | 密钥不存在   |
+| 429    | `M_LIMIT_EXCEEDED` | 轮换频率过高 |
 
 ## 五、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更                                             | 影响                      |
+| ---------- | ------------------------------------------------ | ------------------------- |
+| 2026-04-27 | 初版                                             | -                         |
 | 2026-04-27 | 新增 `KeyRotationManager` SDK 封装并补齐单元测试 | SDK 封装覆盖率提升至 100% |

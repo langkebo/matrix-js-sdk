@@ -1,3 +1,11 @@
+---
+module: admin
+generated_from: docs/api-contract/generated/modules/admin.json
+generated_hash: sha256-544aff80b2be5b3a89f2720d4b7ef2d0b655db3706390c79b506dd2ccd530e28
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Admin 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/admin/mod.rs` 及其子模块
@@ -182,30 +190,30 @@
 
 ### 修正（breaking）
 
-| SDK 方法                          | 变更                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `setAdmin`                        | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                                             |
-| `addToFederationBlacklist`        | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}`                          |
-| `removeFromFederationBlacklist`   | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**                                    |
-| `getRoomStats(roomId)`            | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                                          |
-| `getAccountStatus`                | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                                              |
-| `getServerInfo`                   | `/v1/info`（不存在）→ 并行合并 `/v1/status` + `/v1/config` + `/v1/server_version`                                                 |
-| `resetPassword(userId, pw)`       | 移除 `logout_devices` 参数（后端忽略）                                                                                          |
-| `deactivateUser(userId)`          | 移除 `erase` body 参数（后端无 body extractor）                                                                                 |
-| `disconnectFederation`            | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）                                  |
+| SDK 方法                        | 变更                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `setAdmin`                      | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                     |
+| `addToFederationBlacklist`      | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}` |
+| `removeFromFederationBlacklist` | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**            |
+| `getRoomStats(roomId)`          | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                 |
+| `getAccountStatus`              | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                      |
+| `getServerInfo`                 | `/v1/info`（不存在）→ 并行合并 `/v1/status` + `/v1/config` + `/v1/server_version`                       |
+| `resetPassword(userId, pw)`     | 移除 `logout_devices` 参数（后端忽略）                                                                  |
+| `deactivateUser(userId)`        | 移除 `erase` body 参数（后端无 body extractor）                                                         |
+| `disconnectFederation`          | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）          |
 
 ### 新增封装
 
-| 领域                  | SDK 方法                                                                                                                           |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Retention policy      | `getRetentionPolicy` / `setRetentionPolicy` / `getRoomRetentionPolicy` / `setRoomRetentionPolicy` / `runRetention` / `getRetentionStatus` |
-| Audit events          | `listAuditEvents` / `getAuditEvent` / `createAuditEvent`                                                                           |
-| Feature flags         | `listFeatureFlags` / `getFeatureFlag` / `createFeatureFlag` / `updateFeatureFlag`                                                  |
-| Federation detail     | `resolveFederation` / `rewriteFederation` / `deleteFederationDestination` / `getFederationDestinationRooms`                        |
-| Modules               | `listModules` / `listModulesByType` / `getModule` / `createModule` / `updateModuleConfig` / `setModuleEnabled` / `deleteModule` / `checkModuleSpam` / `getModuleLogs` |
-| Event report limit    | `checkEventReportRateLimit` / `blockEventReportUser` / `unblockEventReportUser`                                                    |
-| Telemetry             | `listTelemetryAlerts` / `acknowledgeTelemetryAlert`                                                                                |
-| Media quota           | `getMediaQuota`                                                                                                                    |
+| 领域               | SDK 方法                                                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Retention policy   | `getRetentionPolicy` / `setRetentionPolicy` / `getRoomRetentionPolicy` / `setRoomRetentionPolicy` / `runRetention` / `getRetentionStatus`                             |
+| Audit events       | `listAuditEvents` / `getAuditEvent` / `createAuditEvent`                                                                                                              |
+| Feature flags      | `listFeatureFlags` / `getFeatureFlag` / `createFeatureFlag` / `updateFeatureFlag`                                                                                     |
+| Federation detail  | `resolveFederation` / `rewriteFederation` / `deleteFederationDestination` / `getFederationDestinationRooms`                                                           |
+| Modules            | `listModules` / `listModulesByType` / `getModule` / `createModule` / `updateModuleConfig` / `setModuleEnabled` / `deleteModule` / `checkModuleSpam` / `getModuleLogs` |
+| Event report limit | `checkEventReportRateLimit` / `blockEventReportUser` / `unblockEventReportUser`                                                                                       |
+| Telemetry          | `listTelemetryAlerts` / `acknowledgeTelemetryAlert`                                                                                                                   |
+| Media quota        | `getMediaQuota`                                                                                                                                                       |
 
 ### 分页规范
 

@@ -178,6 +178,10 @@ export class MediaManager extends BaseManager {
             throw new ValidationError("URL must start with http:// or https://");
         }
 
+        if (typeof this.client.getUrlPreview === "function") {
+            return this.client.getUrlPreview(url, ts ?? 0) as Promise<UrlPreview>;
+        }
+
         const params: Record<string, string | number> = { url };
         if (ts !== undefined) {
             params.ts = ts;

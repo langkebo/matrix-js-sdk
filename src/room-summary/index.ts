@@ -36,8 +36,7 @@ import { BaseManager } from "../managers/base-manager.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types.ts";
-import { AdminValidators } from "../admin/validators";
-import { ValidationError } from "../errors";
+
 export interface RoomSummaryHero {
     user_id: string;
     display_name?: string;

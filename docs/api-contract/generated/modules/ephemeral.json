@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "ephemeral",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 1,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/ephemeral",
+      "registered_by": "ephemeral",
+      "path_params": [
+        "room_id"
+      ]
+    }
+  ]
+}

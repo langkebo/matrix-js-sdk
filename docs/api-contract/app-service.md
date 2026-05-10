@@ -1,3 +1,11 @@
+---
+module: app_service
+generated_from: docs/api-contract/generated/modules/app_service.json
+generated_hash: sha256-c76a1a214dfce99ecf80c860326515012934e57c886c65a5e82c929ad074b363
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Application Service API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/app_service.rs`  
@@ -31,6 +39,7 @@ Application Service API 提供应用服务（AS）集成功能，用于桥接和
 **认证**: AS token
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -41,13 +50,15 @@ Application Service API 提供应用服务（AS）集成功能，用于桥接和
 **认证**: AS token
 
 **请求体**:
+
 ```json
 {
-  "events": []
+    "events": []
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -58,11 +69,12 @@ Application Service API 提供应用服务（AS）集成功能，用于桥接和
 **认证**: AS token
 
 **响应**: `200 OK`
+
 ```typescript
 interface ASUser {
-  user_id: string;
-  displayname?: string;
-  avatar_url?: string;
+    user_id: string;
+    displayname?: string;
+    avatar_url?: string;
 }
 ```
 
@@ -72,10 +84,11 @@ interface ASUser {
 **认证**: AS token
 
 **响应**: `200 OK`
+
 ```typescript
 interface ASRoom {
-  room_id: string;
-  alias: string;
+    room_id: string;
+    alias: string;
 }
 ```
 
@@ -85,14 +98,15 @@ interface ASRoom {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface AppServicesResponse {
-  appservices: Array<{
-    id: string;
-    url: string;
-    sender_localpart: string;
-    namespaces: object;
-  }>;
+    appservices: Array<{
+        id: string;
+        url: string;
+        sender_localpart: string;
+        namespaces: object;
+    }>;
 }
 ```
 
@@ -106,6 +120,6 @@ interface AppServicesResponse {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "ai_connection",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 6,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/mcp/tools",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/mcp/tools/call",
+      "registered_by": "ai_connection",
+      "path_params": []
+    }
+  ]
+}

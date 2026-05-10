@@ -1,3 +1,11 @@
+---
+module: key_backup
+generated_from: docs/api-contract/generated/modules/key_backup.json
+generated_hash: sha256-c2217add8c57e388b1d2af96203431df76b59118cf5197ff1ed7ba45702c45d2
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Key Backup 模块 API 审计报告
 
 > 审计日期: 2026-04-04

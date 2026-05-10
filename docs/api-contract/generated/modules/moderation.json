@@ -1,0 +1,82 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "moderation",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 8,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/rooms/{room_id}/report/{event_id}",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/rooms/{room_id}/report/{event_id}/score",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}/score",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/report",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/report/{event_id}",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/report/{event_id}/score",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    }
+  ]
+}

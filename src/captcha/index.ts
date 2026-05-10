@@ -48,15 +48,15 @@ export interface CaptchaStatusResponse {
 }
 
 export interface CaptchaManagerEvents {
-    captcha_sent: { captchaId: string; captchaType: string; expires_in: number };
-    captcha_verified: { captchaId: string };
-    captcha_expired: { captchaId: string };
+    captchaSent: { captchaId: string; captchaType: string; expires_in: number };
+    captchaVerified: { captchaId: string };
+    captchaExpired: { captchaId: string };
 }
 
 interface CaptchaManagerEventMap {
-    captcha_sent: (data: CaptchaManagerEvents["captcha_sent"]) => void;
-    captcha_verified: (data: CaptchaManagerEvents["captcha_verified"]) => void;
-    captcha_expired: (data: CaptchaManagerEvents["captcha_expired"]) => void;
+    captchaSent: (data: CaptchaManagerEvents["captchaSent"]) => void;
+    captchaVerified: (data: CaptchaManagerEvents["captchaVerified"]) => void;
+    captchaExpired: (data: CaptchaManagerEvents["captchaExpired"]) => void;
 }
 
 export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, CaptchaManagerEventMap> {
@@ -64,11 +64,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         super(client);
     }
 
-    public async sendCaptcha(
-        captchaType: string,
-        target: string,
-        templateName?: string,
-    ): Promise<CaptchaSendResponse> {
+    public async sendCaptcha(captchaType: string, target: string, templateName?: string): Promise<CaptchaSendResponse> {
         try {
             const body: Record<string, unknown> = {
                 captcha_type: captchaType,
@@ -86,7 +82,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                 { prefix: ClientPrefix.R0 },
             );
 
-            this.emit("captcha_sent", {
+            this.emit("captchaSent", {
                 captchaId: response.captcha_id,
                 captchaType: response.captcha_type,
                 expires_in: response.expires_in,
@@ -109,7 +105,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
             );
 
             if (response.verified) {
-                this.emit("captcha_verified", { captchaId });
+                this.emit("captchaVerified", { captchaId });
             }
 
             return response;

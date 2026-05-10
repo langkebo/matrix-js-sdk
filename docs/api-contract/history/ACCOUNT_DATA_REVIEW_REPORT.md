@@ -27,6 +27,7 @@
 ### 1.1 审查范围
 
 **审查文件**:
+
 - `synapse-rust/src/web/routes/account_data.rs` - 路由和处理器实现
 - `synapse-rust/src/common/error.rs` - 错误处理
 - `synapse-rust/src/web/routes/extractors/auth.rs` - 身份验证
@@ -36,28 +37,28 @@
 
 #### 1.2.1 Account Data 端点
 
-| 端点 | 方法 | 实现状态 | 说明 |
-|------|------|---------|------|
-| `/user/{user_id}/account_data/` | GET | ✅ 已实现 | 列出全部 account data |
-| `/user/{user_id}/account_data/{type}` | GET | ✅ 已实现 | 读取用户级数据 |
-| `/user/{user_id}/account_data/{type}` | PUT | ✅ 已实现 | 写入用户级数据 |
-| `/user/{user_id}/account_data/{type}` | DELETE | ✅ 已实现 | 删除用户级数据 |
-| `/user/{user_id}/rooms/{room_id}/account_data/{type}` | GET | ✅ 已实现 | 读取房间级数据 |
-| `/user/{user_id}/rooms/{room_id}/account_data/{type}` | PUT | ✅ 已实现 | 写入房间级数据 |
-| `/user/{user_id}/rooms/{room_id}/account_data/{type}` | DELETE | ✅ 已实现 | 删除房间级数据 |
+| 端点                                                  | 方法   | 实现状态  | 说明                  |
+| ----------------------------------------------------- | ------ | --------- | --------------------- |
+| `/user/{user_id}/account_data/`                       | GET    | ✅ 已实现 | 列出全部 account data |
+| `/user/{user_id}/account_data/{type}`                 | GET    | ✅ 已实现 | 读取用户级数据        |
+| `/user/{user_id}/account_data/{type}`                 | PUT    | ✅ 已实现 | 写入用户级数据        |
+| `/user/{user_id}/account_data/{type}`                 | DELETE | ✅ 已实现 | 删除用户级数据        |
+| `/user/{user_id}/rooms/{room_id}/account_data/{type}` | GET    | ✅ 已实现 | 读取房间级数据        |
+| `/user/{user_id}/rooms/{room_id}/account_data/{type}` | PUT    | ✅ 已实现 | 写入房间级数据        |
+| `/user/{user_id}/rooms/{room_id}/account_data/{type}` | DELETE | ✅ 已实现 | 删除房间级数据        |
 
 #### 1.2.2 Filter 端点
 
-| 端点 | 方法 | 实现状态 | 说明 |
-|------|------|---------|------|
-| `/user/{user_id}/filter` | POST/PUT | ✅ 已实现 | 创建 filter |
-| `/user/{user_id}/filter/{filter_id}` | GET | ✅ 已实现 | 获取 filter |
-| `/user/{user_id}/filter/{filter_id}` | DELETE | ✅ 已实现 | 删除 filter |
+| 端点                                 | 方法     | 实现状态  | 说明        |
+| ------------------------------------ | -------- | --------- | ----------- |
+| `/user/{user_id}/filter`             | POST/PUT | ✅ 已实现 | 创建 filter |
+| `/user/{user_id}/filter/{filter_id}` | GET      | ✅ 已实现 | 获取 filter |
+| `/user/{user_id}/filter/{filter_id}` | DELETE   | ✅ 已实现 | 删除 filter |
 
 #### 1.2.3 OpenID 端点
 
-| 端点 | 方法 | 实现状态 | 说明 |
-|------|------|---------|------|
+| 端点                                   | 方法     | 实现状态  | 说明              |
+| -------------------------------------- | -------- | --------- | ----------------- |
 | `/user/{user_id}/openid/request_token` | GET/POST | ✅ 已实现 | 获取 OpenID token |
 
 ### 1.3 数据结构分析
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS account_data (
 ```
 
 **关键特性**:
+
 - 使用 JSONB 类型存储内容，支持高效查询
 - `(user_id, data_type)` 唯一约束确保数据唯一性
 - 包含创建和更新时间戳
@@ -99,6 +101,7 @@ CREATE TABLE IF NOT EXISTS room_account_data (
 ```
 
 **关键特性**:
+
 - `(user_id, room_id, data_type)` 三元唯一约束
 - 字段名为 `data` 而非 `content`（与用户级表不同）
 
@@ -117,6 +120,7 @@ CREATE TABLE IF NOT EXISTS filters (
 ```
 
 **关键特性**:
+
 - `filter_id` 由服务器生成（16 字符随机字符串）
 - 包含用户和 filter_id 的索引
 
@@ -133,25 +137,26 @@ CREATE TABLE IF NOT EXISTS openid_tokens (
     is_valid BOOLEAN DEFAULT TRUE,
     CONSTRAINT pk_openid_tokens PRIMARY KEY (id),
     CONSTRAINT uq_openid_tokens_token UNIQUE (token),
-    CONSTRAINT fk_openid_tokens_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_openid_tokens_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 ```
 
 **关键特性**:
+
 - Token 长度为 32 字符
 - 有效期固定为 3600 秒（1 小时）
 - 外键约束支持级联删除
 
 ### 1.4 数据约束验证
 
-| 约束项 | 后端实现 | 验证位置 |
-|--------|---------|---------|
-| data_type 最大长度 | 128 字符 | `account_data.rs:92-96` |
-| 内容最大大小 | 64KB (65536 字节) | `account_data.rs:98-104` |
-| Filter ID 长度 | 16 字符 | `account_data.rs:243` |
-| OpenID Token 长度 | 32 字符 | `account_data.rs:382` |
-| OpenID Token 有效期 | 3600 秒 | `account_data.rs:383` |
+| 约束项              | 后端实现          | 验证位置                 |
+| ------------------- | ----------------- | ------------------------ |
+| data_type 最大长度  | 128 字符          | `account_data.rs:92-96`  |
+| 内容最大大小        | 64KB (65536 字节) | `account_data.rs:98-104` |
+| Filter ID 长度      | 16 字符           | `account_data.rs:243`    |
+| OpenID Token 长度   | 32 字符           | `account_data.rs:382`    |
+| OpenID Token 有效期 | 3600 秒           | `account_data.rs:383`    |
 
 **验证代码示例**:
 
@@ -177,21 +182,21 @@ if body_str.len() > 65536 {
 
 #### 1.5.1 Matrix 标准错误码映射
 
-| 错误码 | HTTP 状态码 | 使用场景 |
-|--------|------------|---------|
-| `M_FORBIDDEN` | 403 | 访问其他用户数据 |
-| `M_NOT_FOUND` | 404 | 数据或资源不存在 |
-| `M_BAD_JSON` | 400 | 无效的 JSON 格式 |
-| `M_INVALID_PARAM` | 400 | 参数错误（type 过长等） |
-| `M_TOO_LARGE` | 413 | 请求体过大 |
-| `M_UNKNOWN` | 500 | 内部服务器错误 |
+| 错误码            | HTTP 状态码 | 使用场景                |
+| ----------------- | ----------- | ----------------------- |
+| `M_FORBIDDEN`     | 403         | 访问其他用户数据        |
+| `M_NOT_FOUND`     | 404         | 数据或资源不存在        |
+| `M_BAD_JSON`      | 400         | 无效的 JSON 格式        |
+| `M_INVALID_PARAM` | 400         | 参数错误（type 过长等） |
+| `M_TOO_LARGE`     | 413         | 请求体过大              |
+| `M_UNKNOWN`       | 500         | 内部服务器错误          |
 
 #### 1.5.2 错误响应格式
 
 ```json
 {
-  "errcode": "M_FORBIDDEN",
-  "error": "Cannot set account data for other users"
+    "errcode": "M_FORBIDDEN",
+    "error": "Cannot set account data for other users"
 }
 ```
 
@@ -223,6 +228,7 @@ if user_id != auth_user.user_id {
 ```
 
 **关键发现**:
+
 - ✅ 所有接口都需要身份验证
 - ✅ 用户只能访问自己的数据
 - ✅ 管理员没有特殊权限（与 tags 端点不同）
@@ -284,6 +290,7 @@ sqlx::query(
 #### 2.1.2 补充内容
 
 **接口文档**:
+
 - ✅ 完整的路径参数说明
 - ✅ 请求体格式和示例
 - ✅ 响应格式和示例
@@ -292,6 +299,7 @@ sqlx::query(
 - ✅ 验证规则
 
 **数据约束**:
+
 - ✅ data_type 最大长度: 128 字符
 - ✅ 内容最大大小: 64KB
 - ✅ Filter ID 长度: 16 字符
@@ -299,6 +307,7 @@ sqlx::query(
 - ✅ OpenID Token 有效期: 3600 秒
 
 **错误处理**:
+
 - ✅ 完整的错误码列表
 - ✅ HTTP 状态码映射
 - ✅ 错误响应格式
@@ -351,14 +360,14 @@ sqlx::query(
 
 ### 2.3 文档质量指标
 
-| 指标 | 数值 |
-|------|------|
-| 总字数 | ~8,500 字 |
-| 接口数量 | 11 个 |
-| 代码示例 | 30+ 个 |
-| 表格数量 | 15+ 个 |
-| SQL 语句 | 15+ 个 |
-| 完整性 | 100% |
+| 指标     | 数值      |
+| -------- | --------- |
+| 总字数   | ~8,500 字 |
+| 接口数量 | 11 个     |
+| 代码示例 | 30+ 个    |
+| 表格数量 | 15+ 个    |
+| SQL 语句 | 15+ 个    |
+| 完整性   | 100%      |
 
 ---
 
@@ -371,22 +380,24 @@ sqlx::query(
 **新增功能**:
 
 1. **数据验证方法**:
-   ```typescript
-   private validateDataType(eventType: string): void
-   private validateContentSize(content: Record<string, unknown>): void
-   ```
+
+    ```typescript
+    private validateDataType(eventType: string): void
+    private validateContentSize(content: Record<string, unknown>): void
+    ```
 
 2. **房间级数据管理**:
-   ```typescript
-   public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void>
-   public async deleteRoomAccountData(roomId: string, eventType: string): Promise<void>
-   ```
+
+    ```typescript
+    public async setRoomAccountData(roomId: string, eventType: string, content: Record<string, unknown>): Promise<void>
+    public async deleteRoomAccountData(roomId: string, eventType: string): Promise<void>
+    ```
 
 3. **常量定义**:
-   ```typescript
-   const MAX_DATA_TYPE_LENGTH = 128;
-   const MAX_CONTENT_SIZE = 65536; // 64KB
-   ```
+    ```typescript
+    const MAX_DATA_TYPE_LENGTH = 128;
+    const MAX_CONTENT_SIZE = 65536; // 64KB
+    ```
 
 #### 3.1.2 方法文档增强
 
@@ -401,7 +412,7 @@ sqlx::query(
  * @throws Error 当 eventType 过长或 content 过大时
  */
 public async setAccountData<K extends string>(
-    eventType: K, 
+    eventType: K,
     content: Record<string, unknown>
 ): Promise<void>
 ```
@@ -416,39 +427,43 @@ public async setAccountData<K extends string>(
 
 #### 3.2.1 测试套件
 
-| 测试套件 | 测试用例数 | 状态 |
-|---------|-----------|------|
-| setAccountData | 2 | ✅ 通过 |
-| setAccountDataRaw | 1 | ✅ 通过 |
-| getAccountData | 2 | ✅ 通过 |
-| getAccountDataFromServer | 2 | ✅ 通过 |
-| listAccountData | 2 | ✅ 通过 |
-| getRoomAccountDataFromServer | 2 | ✅ 通过 |
-| setRoomAccountData | 1 | ✅ 通过 |
-| deleteAccountData | 3 | ✅ 通过 |
-| deleteRoomAccountData | 1 | ✅ 通过 |
-| Data Validation | 4 | ✅ 通过 |
-| Error Handling | 3 | ✅ 通过 |
-| **总计** | **23** | **✅ 100%** |
+| 测试套件                     | 测试用例数 | 状态        |
+| ---------------------------- | ---------- | ----------- |
+| setAccountData               | 2          | ✅ 通过     |
+| setAccountDataRaw            | 1          | ✅ 通过     |
+| getAccountData               | 2          | ✅ 通过     |
+| getAccountDataFromServer     | 2          | ✅ 通过     |
+| listAccountData              | 2          | ✅ 通过     |
+| getRoomAccountDataFromServer | 2          | ✅ 通过     |
+| setRoomAccountData           | 1          | ✅ 通过     |
+| deleteAccountData            | 3          | ✅ 通过     |
+| deleteRoomAccountData        | 1          | ✅ 通过     |
+| Data Validation              | 4          | ✅ 通过     |
+| Error Handling               | 3          | ✅ 通过     |
+| **总计**                     | **23**     | **✅ 100%** |
 
 #### 3.2.2 新增测试用例
 
 **数据验证测试**:
+
 ```typescript
 it("should reject data_type longer than 128 characters", async () => {
     const longType = "a".repeat(129);
-    await expect(accountDataManager.setAccountData(longType, { data: "value" }))
-        .rejects.toThrow("data_type too long (max 128 characters)");
+    await expect(accountDataManager.setAccountData(longType, { data: "value" })).rejects.toThrow(
+        "data_type too long (max 128 characters)",
+    );
 });
 
 it("should reject content larger than 64KB", async () => {
     const largeContent = { data: "x".repeat(65537) };
-    await expect(accountDataManager.setAccountData("m.test", largeContent))
-        .rejects.toThrow("Account data too large (max 65536 bytes)");
+    await expect(accountDataManager.setAccountData("m.test", largeContent)).rejects.toThrow(
+        "Account data too large (max 65536 bytes)",
+    );
 });
 ```
 
 **房间级数据测试**:
+
 ```typescript
 it("should set room account data", async () => {
     mockAuthedRequest.mockResolvedValue({});
@@ -466,13 +481,13 @@ it("should set room account data", async () => {
 
 ### 3.3 代码质量指标
 
-| 指标 | 数值 |
-|------|------|
-| 测试覆盖率 | 100% |
-| 方法数量 | 10 个 |
-| 代码行数 | ~200 行 |
-| 文档覆盖率 | 100% |
-| 类型安全 | ✅ 完全类型化 |
+| 指标       | 数值          |
+| ---------- | ------------- |
+| 测试覆盖率 | 100%          |
+| 方法数量   | 10 个         |
+| 代码行数   | ~200 行       |
+| 文档覆盖率 | 100%          |
+| 类型安全   | ✅ 完全类型化 |
 
 ---
 
@@ -510,20 +525,20 @@ it("should set room account data", async () => {
 
 ### 4.3 验证覆盖范围
 
-| 验证类别 | 验证项数 | 通过率 |
-|---------|---------|--------|
-| 文件存在性 | 4 | 100% |
-| 常量定义 | 2 | 100% |
-| 方法实现 | 10 | 100% |
-| 路径构建 | 5 | 100% |
-| 测试覆盖 | 10 | 100% |
-| 验证逻辑 | 4 | 100% |
-| 文档章节 | 9 | 100% |
-| 接口端点 | 7 | 100% |
-| 错误码 | 6 | 100% |
-| 数据库表 | 4 | 100% |
-| 数据约束 | 5 | 100% |
-| **总计** | **66** | **100%** |
+| 验证类别   | 验证项数 | 通过率   |
+| ---------- | -------- | -------- |
+| 文件存在性 | 4        | 100%     |
+| 常量定义   | 2        | 100%     |
+| 方法实现   | 10       | 100%     |
+| 路径构建   | 5        | 100%     |
+| 测试覆盖   | 10       | 100%     |
+| 验证逻辑   | 4        | 100%     |
+| 文档章节   | 9        | 100%     |
+| 接口端点   | 7        | 100%     |
+| 错误码     | 6        | 100%     |
+| 数据库表   | 4        | 100%     |
+| 数据约束   | 5        | 100%     |
+| **总计**   | **66**   | **100%** |
 
 ---
 
@@ -541,21 +556,21 @@ it("should set room account data", async () => {
 ### 5.2 需要注意的实现细节
 
 1. **字段名差异**:
-   - 用户级表使用 `content` 字段
-   - 房间级表使用 `data` 字段
-   - SDK 需要正确处理这个差异
+    - 用户级表使用 `content` 字段
+    - 房间级表使用 `data` 字段
+    - SDK 需要正确处理这个差异
 
 2. **m.push_rules 特殊处理**:
-   - 不存在时返回默认骨架而非 404
-   - SDK 应该了解这个行为
+    - 不存在时返回默认骨架而非 404
+    - SDK 应该了解这个行为
 
 3. **时间戳格式**:
-   - 使用 Unix 毫秒时间戳
-   - `chrono::Utc::now().timestamp_millis()`
+    - 使用 Unix 毫秒时间戳
+    - `chrono::Utc::now().timestamp_millis()`
 
 4. **Filter 和 OpenID Token**:
-   - ID/Token 由服务器生成
-   - 客户端不应尝试自己生成
+    - ID/Token 由服务器生成
+    - 客户端不应尝试自己生成
 
 ### 5.3 SDK 实现改进
 
@@ -579,34 +594,34 @@ it("should set room account data", async () => {
 ### 6.2 长期建议
 
 1. **性能优化**:
-   - 考虑添加本地缓存机制
-   - 批量操作支持（如果后端支持）
+    - 考虑添加本地缓存机制
+    - 批量操作支持（如果后端支持）
 
 2. **开发体验**:
-   - 添加类型化的 account data 类型定义
-   - 提供常见类型的辅助方法（如 m.direct, m.push_rules）
+    - 添加类型化的 account data 类型定义
+    - 提供常见类型的辅助方法（如 m.direct, m.push_rules）
 
 3. **监控和日志**:
-   - 添加性能监控
-   - 详细的操作日志
+    - 添加性能监控
+    - 详细的操作日志
 
 4. **文档增强**:
-   - 添加更多使用示例
-   - 创建最佳实践指南
+    - 添加更多使用示例
+    - 创建最佳实践指南
 
 ### 6.3 后续工作
 
 1. **集成测试**:
-   - 针对真实后端的集成测试
-   - 端到端测试场景
+    - 针对真实后端的集成测试
+    - 端到端测试场景
 
 2. **性能测试**:
-   - 大数据量测试
-   - 并发操作测试
+    - 大数据量测试
+    - 并发操作测试
 
 3. **兼容性测试**:
-   - 不同 Matrix 服务器实现的兼容性
-   - 向后兼容性验证
+    - 不同 Matrix 服务器实现的兼容性
+    - 向后兼容性验证
 
 ---
 

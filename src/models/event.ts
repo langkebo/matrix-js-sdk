@@ -1674,7 +1674,9 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
      */
     public toSnapshot(): MatrixEvent {
         const ev = new MatrixEvent(JSON.parse(JSON.stringify(this.event)));
-        const snapshotProperties = Object.fromEntries(Object.entries(this).filter(([property]) => property !== "event"));
+        const snapshotProperties = Object.fromEntries(
+            Object.entries(this).filter(([property]) => property !== "event"),
+        );
         Object.assign(ev as unknown as Record<string, unknown>, snapshotProperties);
         return ev;
     }

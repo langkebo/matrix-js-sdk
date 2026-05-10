@@ -1,3 +1,11 @@
+---
+module: cas
+generated_from: docs/api-contract/generated/modules/cas.json
+generated_hash: sha256-8b74490ce2a7680a687e8726fb1bc6e6c83fa94a506f47a739df34a4a05691d8
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # CAS Authentication API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/cas.rs`  
@@ -51,6 +59,7 @@ CAS (Central Authentication Service) API 提供单点登录功能。
 | `ticket` | string | 是 | CAS ticket |
 
 **响应**: `200 OK` (XML)
+
 ```xml
 <cas:serviceResponse>
   <cas:authenticationSuccess>
@@ -100,9 +109,10 @@ CAS (Central Authentication Service) API 提供单点登录功能。
 **认证**: CAS 管理员
 
 **响应**: `200 OK`
+
 ```json
 {
-  "services": []
+    "services": []
 }
 ```
 
@@ -112,9 +122,10 @@ CAS (Central Authentication Service) API 提供单点登录功能。
 **认证**: CAS 管理员
 
 **响应**: `200 OK`
+
 ```json
 {
-  "attributes": {}
+    "attributes": {}
 }
 ```
 
@@ -123,16 +134,29 @@ CAS (Central Authentication Service) API 提供单点登录功能。
 ### 3.1 封装覆盖率
 
 - **总端点数**: 8
-- **已封装**: 0
-- **覆盖率**: 0%
+- **已封装**: 5 admin 端点 + 2 URL 助手（浏览器消费的 XML 路由保留给上层跳转，不封装 JSON API）
+- **覆盖率**: admin 面 100%；公共 CAS 协议（`/login`、`/serviceValidate`、`/proxyValidate`、`/proxy`、`/p3/serviceValidate`、`/logout`）由浏览器重定向消费，返回 XML/text，不适合 JSON 客户端封装
 
-### 3.2 已知差异
+### 3.2 SDK 入口
 
-- CAS 是独立的认证协议，通常不直接在 SDK 中封装
-- 建议使用专门的 CAS 客户端库
+| 端点                                                       | SDK Manager  | 方法                     | 状态         |
+| ---------------------------------------------------------- | ------------ | ------------------------ | ------------ |
+| `POST /_synapse/admin/v1/cas/services`                     | `CasManager` | `registerService()`      | ✅ 已封装    |
+| `GET /_synapse/admin/v1/cas/services`                      | `CasManager` | `listServices()`         | ✅ 已封装    |
+| `DELETE /_synapse/admin/v1/cas/services/{service_id}`      | `CasManager` | `deleteService()`        | ✅ 已封装    |
+| `POST /_synapse/admin/v1/cas/users/{user_id}/attributes`   | `CasManager` | `setUserAttribute()`     | ✅ 已封装    |
+| `GET /_synapse/admin/v1/cas/users/{user_id}/attributes`    | `CasManager` | `getUserAttributes()`    | ✅ 已封装    |
+| `GET /login`（浏览器 CAS 跳转）                            | `CasManager` | `buildLoginUrl()`        | ✅ URL 助手 |
+| `GET /logout`（浏览器 CAS 跳转）                           | `CasManager` | `buildLogoutUrl()`       | ✅ URL 助手 |
+
+### 3.3 已知差异
+
+- CAS 协议 XML 端点由上层通过 `buildLoginUrl(serviceUrl)` / `buildLogoutUrl(serviceUrl?)` 拿到 URL 后发起浏览器跳转消费，不走 `MatrixClient.http.authedRequest`。
+- `getCasManager()` 由 `src/cas/index.ts` 的 `extendMatrixClient()` 注册，已在 `matrix-client-extensions.d.ts` 与 `manager-extensions/index.ts` 默认扩展列表中挂载。
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更                                                                         | 影响                  |
+| ---------- | ---------------------------------------------------------------------------- | --------------------- |
+| 2026-04-27 | 初版                                                                         | -                     |
+| 2026-05-05 | 新增 `CasManager` 覆盖 5 admin 端点 + 2 URL 助手（R2-CAS-01 闭环）          | SDK 对齐状态升级至完整 |

@@ -135,8 +135,6 @@ export type RoomStateEventHandlerMap = {
 type EmittedEvents = RoomStateEvent;
 type EventHandlerMap = RoomStateEventHandlerMap;
 
-type KeysMatching<T, V> = { [K in keyof T]-?: T[K] extends V ? K : never }[keyof T];
-
 export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap> {
     public readonly reEmitter = new TypedReEmitter<EmittedEvents, EventHandlerMap>(this);
     private sentinels: Record<string, RoomMember> = {}; // userId: RoomMember
@@ -784,10 +782,7 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
      * @param powerLevel - The power level of the member
      * @returns true if the given power level is sufficient
      */
-    public hasSufficientPowerLevelFor(
-        action: PowerLevelAction,
-        powerLevel: number,
-    ): boolean {
+    public hasSufficientPowerLevelFor(action: PowerLevelAction, powerLevel: number): boolean {
         const powerLevelsEvent = this.getStateEvents(EventType.RoomPowerLevels, "");
 
         let powerLevels: IPowerLevelsContent = {};

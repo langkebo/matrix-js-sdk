@@ -1,3 +1,11 @@
+---
+module: worker
+generated_from: docs/api-contract/generated/modules/worker.json
+generated_hash: sha256-309dbb9df3b83da15013f44146bfad47dda413a9fd2b452f471ac679b7d2a48e
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Worker Admin 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/worker.rs`、`synapse-rust/src/worker/types.rs`
@@ -15,48 +23,48 @@
 
 ## 认证要求
 
-| 路由组 | 实际认证 |
-| ------ | -------- |
-| 注册 / 查询 / 注销 worker、发送命令、派发任务、统计、选路 | 管理员鉴权 |
+| 路由组                                                                           | 实际认证              |
+| -------------------------------------------------------------------------------- | --------------------- |
+| 注册 / 查询 / 注销 worker、发送命令、派发任务、统计、选路                        | 管理员鉴权            |
 | heartbeat、worker 拉取命令、完成/失败命令、完成/失败任务、连接、复制位置、事件流 | replication HTTP 鉴权 |
 
 ## 路由总表
 
 ### 管理员控制面
 
-| 方法 | 路径 | 说明 | 实际响应 |
-| ---- | ---- | ---- | -------- |
-| `POST` | `/_synapse/worker/v1/register` | 注册 worker | `201` + `WorkerResponse` |
-| `GET` | `/_synapse/worker/v1/workers` | 列出活跃 worker | `200` + `WorkerResponse[]` |
-| `GET` | `/_synapse/worker/v1/workers/type/{worker_type}` | 按类型列出 worker | `200` + `WorkerResponse[]` |
-| `GET` | `/_synapse/worker/v1/workers/{worker_id}` | 查询单个 worker | `200` + `WorkerResponse` |
-| `DELETE` | `/_synapse/worker/v1/workers/{worker_id}` | 注销 worker | `204 No Content` |
-| `POST` | `/_synapse/worker/v1/workers/{worker_id}/commands` | 下发命令 | `201` + `WorkerCommandResponse` |
-| `POST` | `/_synapse/worker/v1/tasks` | 派发任务 | `201` + `WorkerTaskResponse` |
-| `GET` | `/_synapse/worker/v1/tasks` | 获取待处理任务 | `200` + `WorkerTaskResponse[]` |
-| `POST` | `/_synapse/worker/v1/tasks/claim/{worker_id}` | 为指定 worker 领取下一条 pending task | `200` + `WorkerTaskResponse` |
-| `POST` | `/_synapse/worker/v1/tasks/{task_id}/claim/{worker_id}` | 将指定任务标记为该 worker 认领 | `200` + `{ "status": "claimed" }` |
-| `GET` | `/_synapse/worker/v1/statistics` | 获取整体统计 | `200` + service 直接序列化结果 |
-| `GET` | `/_synapse/worker/v1/statistics/types` | 获取按类型统计 | `200` + service 直接序列化结果 |
-| `GET` | `/_synapse/worker/v1/select/{task_type}` | 为任务类型选择 worker | `200` + `{ "task_type": string, "selected_worker": string \| null }` |
+| 方法     | 路径                                                    | 说明                                  | 实际响应                                                             |
+| -------- | ------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| `POST`   | `/_synapse/worker/v1/register`                          | 注册 worker                           | `201` + `WorkerResponse`                                             |
+| `GET`    | `/_synapse/worker/v1/workers`                           | 列出活跃 worker                       | `200` + `WorkerResponse[]`                                           |
+| `GET`    | `/_synapse/worker/v1/workers/type/{worker_type}`        | 按类型列出 worker                     | `200` + `WorkerResponse[]`                                           |
+| `GET`    | `/_synapse/worker/v1/workers/{worker_id}`               | 查询单个 worker                       | `200` + `WorkerResponse`                                             |
+| `DELETE` | `/_synapse/worker/v1/workers/{worker_id}`               | 注销 worker                           | `204 No Content`                                                     |
+| `POST`   | `/_synapse/worker/v1/workers/{worker_id}/commands`      | 下发命令                              | `201` + `WorkerCommandResponse`                                      |
+| `POST`   | `/_synapse/worker/v1/tasks`                             | 派发任务                              | `201` + `WorkerTaskResponse`                                         |
+| `GET`    | `/_synapse/worker/v1/tasks`                             | 获取待处理任务                        | `200` + `WorkerTaskResponse[]`                                       |
+| `POST`   | `/_synapse/worker/v1/tasks/claim/{worker_id}`           | 为指定 worker 领取下一条 pending task | `200` + `WorkerTaskResponse`                                         |
+| `POST`   | `/_synapse/worker/v1/tasks/{task_id}/claim/{worker_id}` | 将指定任务标记为该 worker 认领        | `200` + `{ "status": "claimed" }`                                    |
+| `GET`    | `/_synapse/worker/v1/statistics`                        | 获取整体统计                          | `200` + service 直接序列化结果                                       |
+| `GET`    | `/_synapse/worker/v1/statistics/types`                  | 获取按类型统计                        | `200` + service 直接序列化结果                                       |
+| `GET`    | `/_synapse/worker/v1/select/{task_type}`                | 为任务类型选择 worker                 | `200` + `{ "task_type": string, "selected_worker": string \| null }` |
 
 ### Worker 协议面
 
 以下路由仅在 `worker.enabled = true` 时可达：
 
-| 方法 | 路径 | 说明 | 实际响应 |
-| ---- | ---- | ---- | -------- |
-| `POST` | `/_synapse/worker/v1/workers/{worker_id}/heartbeat` | worker 心跳上报 | `{ "status": "ok" }` |
-| `POST` | `/_synapse/worker/v1/workers/{worker_id}/connect` | 建立 worker 连接 | `{ "status": "connected" }` |
-| `POST` | `/_synapse/worker/v1/workers/{worker_id}/disconnect` | 断开 worker 连接 | `{ "status": "disconnected" }` |
-| `GET` | `/_synapse/worker/v1/workers/{worker_id}/commands` | 拉取待处理命令 | `200` + `WorkerCommandResponse[]` |
-| `POST` | `/_synapse/worker/v1/commands/{command_id}/complete` | 标记命令完成 | `{ "status": "completed" }` |
-| `POST` | `/_synapse/worker/v1/commands/{command_id}/fail` | 标记命令失败 | `{ "status": "failed" }` |
-| `POST` | `/_synapse/worker/v1/tasks/{task_id}/complete` | 标记任务完成 | `{ "status": "completed" }` |
-| `POST` | `/_synapse/worker/v1/tasks/{task_id}/fail` | 标记任务失败 | `{ "status": "failed" }` |
-| `GET` | `/_synapse/worker/v1/replication/{worker_id}/position` | 查询复制位点，需要 `stream_name` 查询参数 | `{ "worker_id": string, "stream_name": string, "position": number }` |
-| `PUT` | `/_synapse/worker/v1/replication/{worker_id}/{stream_name}` | 更新复制位点 | `{ "status": "updated" }` |
-| `GET` | `/_synapse/worker/v1/events` | 获取自某个 `stream_id` 之后的事件 | `200` + 事件数组 |
+| 方法   | 路径                                                        | 说明                                      | 实际响应                                                             |
+| ------ | ----------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| `POST` | `/_synapse/worker/v1/workers/{worker_id}/heartbeat`         | worker 心跳上报                           | `{ "status": "ok" }`                                                 |
+| `POST` | `/_synapse/worker/v1/workers/{worker_id}/connect`           | 建立 worker 连接                          | `{ "status": "connected" }`                                          |
+| `POST` | `/_synapse/worker/v1/workers/{worker_id}/disconnect`        | 断开 worker 连接                          | `{ "status": "disconnected" }`                                       |
+| `GET`  | `/_synapse/worker/v1/workers/{worker_id}/commands`          | 拉取待处理命令                            | `200` + `WorkerCommandResponse[]`                                    |
+| `POST` | `/_synapse/worker/v1/commands/{command_id}/complete`        | 标记命令完成                              | `{ "status": "completed" }`                                          |
+| `POST` | `/_synapse/worker/v1/commands/{command_id}/fail`            | 标记命令失败                              | `{ "status": "failed" }`                                             |
+| `POST` | `/_synapse/worker/v1/tasks/{task_id}/complete`              | 标记任务完成                              | `{ "status": "completed" }`                                          |
+| `POST` | `/_synapse/worker/v1/tasks/{task_id}/fail`                  | 标记任务失败                              | `{ "status": "failed" }`                                             |
+| `GET`  | `/_synapse/worker/v1/replication/{worker_id}/position`      | 查询复制位点，需要 `stream_name` 查询参数 | `{ "worker_id": string, "stream_name": string, "position": number }` |
+| `PUT`  | `/_synapse/worker/v1/replication/{worker_id}/{stream_name}` | 更新复制位点                              | `{ "status": "updated" }`                                            |
+| `GET`  | `/_synapse/worker/v1/events`                                | 获取自某个 `stream_id` 之后的事件         | `200` + 事件数组                                                     |
 
 ## 请求体与稳定响应字段
 
@@ -64,43 +72,43 @@
 
 ```json
 {
-  "worker_id": "worker-1",
-  "worker_name": "Worker One",
-  "worker_type": "frontend",
-  "host": "127.0.0.1",
-  "port": 8080,
-  "config": {},
-  "metadata": {},
-  "version": "1.0.0"
+    "worker_id": "worker-1",
+    "worker_name": "Worker One",
+    "worker_type": "frontend",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "config": {},
+    "metadata": {},
+    "version": "1.0.0"
 }
 ```
 
 - `worker_type` 通过 `WorkerType::from_str()` 校验。
 - 当前合法值来自 `src/worker/types.rs`：
-  - `master`
-  - `frontend`
-  - `background`
-  - `event_persister`
-  - `synchrotron`
-  - `federation_sender`
-  - `federation_reader`
-  - `media_repository`
-  - `pusher`
-  - `appservice`
+    - `master`
+    - `frontend`
+    - `background`
+    - `event_persister`
+    - `synchrotron`
+    - `federation_sender`
+    - `federation_reader`
+    - `media_repository`
+    - `pusher`
+    - `appservice`
 
 ### `HeartbeatBody`
 
 ```json
 {
-  "status": "running",
-  "load_stats": {
-    "cpu_usage": 0.4,
-    "memory_usage": 1048576,
-    "active_connections": 120,
-    "requests_per_second": 35.5,
-    "average_latency_ms": 12.4,
-    "queue_depth": 3
-  }
+    "status": "running",
+    "load_stats": {
+        "cpu_usage": 0.4,
+        "memory_usage": 1048576,
+        "active_connections": 120,
+        "requests_per_second": 35.5,
+        "average_latency_ms": 12.4,
+        "queue_depth": 3
+    }
 }
 ```
 
@@ -111,10 +119,10 @@
 
 ```json
 {
-  "command_type": "rebalance",
-  "command_data": { "room_id": "!room:example.com" },
-  "priority": 5,
-  "max_retries": 3
+    "command_type": "rebalance",
+    "command_data": { "room_id": "!room:example.com" },
+    "priority": 5,
+    "max_retries": 3
 }
 ```
 
@@ -122,10 +130,10 @@
 
 ```json
 {
-  "task_type": "media_thumbnail",
-  "task_data": { "media_id": "mxc://example.com/abc" },
-  "priority": 10,
-  "preferred_worker_id": "worker-b"
+    "task_type": "media_thumbnail",
+    "task_data": { "media_id": "mxc://example.com/abc" },
+    "priority": 10,
+    "preferred_worker_id": "worker-b"
 }
 ```
 
@@ -145,8 +153,8 @@
 
 ```json
 {
-  "stream_name": "events",
-  "position": 123
+    "stream_name": "events",
+    "position": 123
 }
 ```
 
@@ -156,15 +164,15 @@
 
 ```json
 {
-  "id": 1,
-  "worker_id": "worker-1",
-  "worker_name": "Worker One",
-  "worker_type": "frontend",
-  "host": "127.0.0.1",
-  "port": 8080,
-  "status": "running",
-  "last_heartbeat_ts": 1710000000000,
-  "started_ts": 1710000000000
+    "id": 1,
+    "worker_id": "worker-1",
+    "worker_name": "Worker One",
+    "worker_type": "frontend",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "status": "running",
+    "last_heartbeat_ts": 1710000000000,
+    "started_ts": 1710000000000
 }
 ```
 
@@ -172,11 +180,11 @@
 
 ```json
 {
-  "command_id": "cmd-1",
-  "target_worker_id": "worker-1",
-  "command_type": "rebalance",
-  "status": "pending",
-  "created_ts": 1710000000000
+    "command_id": "cmd-1",
+    "target_worker_id": "worker-1",
+    "command_type": "rebalance",
+    "status": "pending",
+    "created_ts": 1710000000000
 }
 ```
 
@@ -184,10 +192,10 @@
 
 ```json
 {
-  "task_id": "task-1",
-  "task_type": "media_thumbnail",
-  "status": "pending",
-  "assigned_worker_id": "worker-1"
+    "task_id": "task-1",
+    "task_type": "media_thumbnail",
+    "status": "pending",
+    "assigned_worker_id": "worker-1"
 }
 ```
 
@@ -202,13 +210,13 @@
 
 ## 错误与兼容性
 
-| 场景 | 实际返回 |
-| ---- | -------- |
-| 非法 `worker_type` | `400` |
-| 非法 `status` | `400` |
-| worker 未找到 | `404` |
-| 未通过管理员鉴权 | `401`/`403`，取决于中间件实现 |
-| `worker.enabled = false` 时访问协议面 | 路由未挂载，返回 `404` |
+| 场景                                  | 实际返回                      |
+| ------------------------------------- | ----------------------------- |
+| 非法 `worker_type`                    | `400`                         |
+| 非法 `status`                         | `400`                         |
+| worker 未找到                         | `404`                         |
+| 未通过管理员鉴权                      | `401`/`403`，取决于中间件实现 |
+| `worker.enabled = false` 时访问协议面 | 路由未挂载，返回 `404`        |
 
 - 当前文档只承诺路由层显式可见的字段，不把 `WorkerInfo` 内部的 `stopped_ts`、`config`、`metadata`、`version` 自动外推到 `WorkerResponse`，因为这些字段没有出现在实际响应 DTO 中。
 - 协议面与控制面虽然共用 `/_synapse/worker/v1` 前缀，但认证方式不同，前端或运维工具不能混用 token。

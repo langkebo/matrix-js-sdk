@@ -2,7 +2,6 @@
 
 > 说明: 本文件保留 2026-04-15 的阶段性审查快照。当前契约结论请以 `friend.md`、`README.md` 与 `CHANGELOG.md` 为准。
 
-
 **审查日期**: 2026-04-15  
 **审查状态**: ✅ 已完成审查
 
@@ -14,66 +13,67 @@ Friend 模块提供好友管理功能，包括好友请求、好友列表、好�
 
 ### 审查结果
 
-**核心文件**: 
+**核心文件**:
+
 - `synapse-rust/src/web/routes/friend_room.rs` (600+ 行)
 - `synapse-rust/src/services/friend_room_service.rs` - 好友服务
 
 **关键发现**:
 
 1. **接口实现**（25+ 个端点）:
-   
-   **好友管理（14 个）**:
-   - ✅ `GET /friends` - 获取好友列表
-   - ✅ `POST /friends` - 发送好友请求
-   - ✅ `POST /friends/request` - 发送好友请求（别名）
-   - ✅ `GET /friends/request/received` - 获取收到的请求
-   - ✅ `POST /friends/request/{user_id}/accept` - 接受请求
-   - ✅ `POST /friends/request/{user_id}/reject` - 拒绝请求
-   - ✅ `POST /friends/request/{user_id}/cancel` - 取消请求
-   - ✅ `GET /friends/requests/incoming` - 获取收到的请求（别名）
-   - ✅ `GET /friends/requests/outgoing` - 获取发出的请求
-   - ✅ `GET /friends/check/{user_id}` - 检查好友关系
-   - ✅ `GET /friends/suggestions` - 获取好友建议
-   - ✅ `DELETE /friends/{user_id}` - 删除好友
-   - ✅ `PUT /friends/{user_id}/note` - 更新好友备注
-   - ✅ `GET /friends/{user_id}/status` - 获取好友状态
-   - ✅ `PUT /friends/{user_id}/status` - 更新好友状态
-   - ✅ `GET /friends/{user_id}/info` - 获取好友信息
-   - ✅ `PUT /friends/{user_id}/displayname` - 设置好友显示名
 
-   **好友分组（11 个）**:
-   - ✅ `GET /friends/groups` - 获取分组列表
-   - ✅ `POST /friends/groups` - 创建分组
-   - ✅ `DELETE /friends/groups/{group_id}` - 删除分组
-   - ✅ `PUT /friends/groups/{group_id}/name` - 重命名分组
-   - ✅ `POST /friends/groups/{group_id}/add/{user_id}` - 添加好友到分组
-   - ✅ `DELETE /friends/groups/{group_id}/remove/{user_id}` - 从分组移除好友
-   - ✅ `GET /friends/groups/{group_id}/friends` - 获取分组内好友
-   - ✅ `GET /friends/{user_id}/groups` - 获取用户所属分组
+    **好友管理（14 个）**:
+    - ✅ `GET /friends` - 获取好友列表
+    - ✅ `POST /friends` - 发送好友请求
+    - ✅ `POST /friends/request` - 发送好友请求（别名）
+    - ✅ `GET /friends/request/received` - 获取收到的请求
+    - ✅ `POST /friends/request/{user_id}/accept` - 接受请求
+    - ✅ `POST /friends/request/{user_id}/reject` - 拒绝请求
+    - ✅ `POST /friends/request/{user_id}/cancel` - 取消请求
+    - ✅ `GET /friends/requests/incoming` - 获取收到的请求（别名）
+    - ✅ `GET /friends/requests/outgoing` - 获取发出的请求
+    - ✅ `GET /friends/check/{user_id}` - 检查好友关系
+    - ✅ `GET /friends/suggestions` - 获取好友建议
+    - ✅ `DELETE /friends/{user_id}` - 删除好友
+    - ✅ `PUT /friends/{user_id}/note` - 更新好友备注
+    - ✅ `GET /friends/{user_id}/status` - 获取好友状态
+    - ✅ `PUT /friends/{user_id}/status` - 更新好友状态
+    - ✅ `GET /friends/{user_id}/info` - 获取好友信息
+    - ✅ `PUT /friends/{user_id}/displayname` - 设置好友显示名
+
+    **好友分组（11 个）**:
+    - ✅ `GET /friends/groups` - 获取分组列表
+    - ✅ `POST /friends/groups` - 创建分组
+    - ✅ `DELETE /friends/groups/{group_id}` - 删除分组
+    - ✅ `PUT /friends/groups/{group_id}/name` - 重命名分组
+    - ✅ `POST /friends/groups/{group_id}/add/{user_id}` - 添加好友到分组
+    - ✅ `DELETE /friends/groups/{group_id}/remove/{user_id}` - 从分组移除好友
+    - ✅ `GET /friends/groups/{group_id}/friends` - 获取分组内好友
+    - ✅ `GET /friends/{user_id}/groups` - 获取用户所属分组
 
 2. **核心特性**:
-   - 好友请求管理（发送、接受、拒绝、取消）
-   - 好友列表管理
-   - 好友信息管理（备注、状态、显示名）
-   - 好友分组管理
-   - 好友建议
-   - 好友关系检查
+    - 好友请求管理（发送、接受、拒绝、取消）
+    - 好友列表管理
+    - 好友信息管理（备注、状态、显示名）
+    - 好友分组管理
+    - 好友建议
+    - 好友关系检查
 
 3. **数据约束**:
-   - user_id: Matrix User ID 格式
-   - message: 可选，好友请求消息
-   - note: 字符串，好友备注
-   - status: 字符串，好友状态
-   - displayname: 字符串，好友显示名
-   - group_id: 字符串，分组 ID
-   - group_name: 字符串，分组名称
+    - user_id: Matrix User ID 格式
+    - message: 可选，好友请求消息
+    - note: 字符串，好友备注
+    - status: 字符串，好友状态
+    - displayname: 字符串，好友显示名
+    - group_id: 字符串，分组 ID
+    - group_name: 字符串，分组名称
 
 4. **SDK 封装状态**:
-   - ✅ FriendManager 完整实现
-   - ✅ 所有核心接口都已封装
-   - ✅ 事件系统完善
-   - ✅ 缓存机制完整
-   - ✅ 错误处理统一
+    - ✅ FriendManager 完整实现
+    - ✅ 所有核心接口都已封装
+    - ✅ 事件系统完善
+    - ✅ 缓存机制完整
+    - ✅ 错误处理统一
 
 ---
 
@@ -154,27 +154,27 @@ Response: { "friends": [...] }
 
 ## 数据约束
 
-| 字段 | 约束 | 说明 |
-|------|------|------|
-| user_id | Matrix User ID | 格式: @user:server |
-| message | 可选字符串 | 好友请求消息 |
-| note | 字符串 | 好友备注 |
-| status | 字符串 | 好友状态 |
-| displayname | 字符串 | 好友显示名 |
-| group_id | 字符串 | 分组 ID |
-| group_name | 字符串 | 分组名称 |
+| 字段        | 约束           | 说明               |
+| ----------- | -------------- | ------------------ |
+| user_id     | Matrix User ID | 格式: @user:server |
+| message     | 可选字符串     | 好友请求消息       |
+| note        | 字符串         | 好友备注           |
+| status      | 字符串         | 好友状态           |
+| displayname | 字符串         | 好友显示名         |
+| group_id    | 字符串         | 分组 ID            |
+| group_name  | 字符串         | 分组名称           |
 
 ---
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 场景 |
-|--------|------------|------|
-| M_BAD_JSON | 400 | 请求体格式错误 |
-| M_INVALID_PARAM | 400 | 参数不合法（如给自己发请求） |
-| M_UNKNOWN_TOKEN | 401 | Token 无效 |
-| M_NOT_FOUND | 404 | 好友或分组不存在 |
-| M_CONFLICT | 409 | 已经是好友或请求已存在 |
+| 错误码          | HTTP 状态码 | 场景                         |
+| --------------- | ----------- | ---------------------------- |
+| M_BAD_JSON      | 400         | 请求体格式错误               |
+| M_INVALID_PARAM | 400         | 参数不合法（如给自己发请求） |
+| M_UNKNOWN_TOKEN | 401         | Token 无效                   |
+| M_NOT_FOUND     | 404         | 好友或分组不存在             |
+| M_CONFLICT      | 409         | 已经是好友或请求已存在       |
 
 ---
 
@@ -203,11 +203,11 @@ Response: { "friends": [...] }
 
 ## 版本兼容性
 
-| 前缀 | 说明 |
-|------|------|
-| `/_matrix/client/v3` | 主要接口（好友列表和请求） |
+| 前缀                 | 说明                         |
+| -------------------- | ---------------------------- |
+| `/_matrix/client/v3` | 主要接口（好友列表和请求）   |
 | `/_matrix/client/v1` | 详细功能（请求管理、分组等） |
-| `/_matrix/client/r0` | 兼容别名（逐步废弃） |
+| `/_matrix/client/r0` | 兼容别名（逐步废弃）         |
 
 ---
 
@@ -216,6 +216,7 @@ Response: { "friends": [...] }
 **评级**: ⭐⭐⭐⭐⭐ **优秀**
 
 **理由**:
+
 - ✅ 现有文档非常完整和详细
 - ✅ 覆盖了所有 25+ 个端点
 - ✅ SDK 封装完整
@@ -246,30 +247,30 @@ Response: { "friends": [...] }
 
 ## 注意事项
 
-1. **不能给自己发请求**: 
-   - 后端会返回 400 错误
-   - SDK 应该在客户端验证
+1. **不能给自己发请求**:
+    - 后端会返回 400 错误
+    - SDK 应该在客户端验证
 
 2. **好友列表房间**:
-   - 每个用户有专门的房间
-   - 自动创建
-   - 返回 room_id
+    - 每个用户有专门的房间
+    - 自动创建
+    - 返回 room_id
 
 3. **好友分组**:
-   - 支持多个分组
-   - 一个好友可以在多个分组
-   - 删除分组不删除好友
+    - 支持多个分组
+    - 一个好友可以在多个分组
+    - 删除分组不删除好友
 
 4. **版本兼容**:
-   - 优先使用 v3 和 v1 接口
-   - r0 接口逐步废弃
-   - SDK 已对齐主要接口
+    - 优先使用 v3 和 v1 接口
+    - r0 接口逐步废弃
+    - SDK 已对齐主要接口
 
 5. **请求状态**:
-   - pending: 待处理
-   - accepted: 已接受
-   - rejected: 已拒绝
-   - cancelled: 已取消
+    - pending: 待处理
+    - accepted: 已接受
+    - rejected: 已拒绝
+    - cancelled: 已取消
 
 ---
 

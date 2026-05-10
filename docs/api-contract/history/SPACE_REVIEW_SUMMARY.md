@@ -2,7 +2,6 @@
 
 > 说明: 本文件保留 2026-04-15 的阶段性审查快照。当前契约结论请以 `space.md`、`README.md` 与 `CHANGELOG.md` 为准。
 
-
 **审查日期**: 2026-04-15  
 **审查状态**: ✅ 已完成审查
 
@@ -14,7 +13,8 @@ Space 模块提供空间（Space）管理功能，包括空间创建、层级管
 
 ### 审查结果
 
-**核心文件**: 
+**核心文件**:
+
 - `synapse-rust/src/web/routes/space.rs` (主路由)
 - `synapse-rust/src/web/routes/space/lifecycle_query.rs` - 生命周期和查询
 - `synapse-rust/src/web/routes/space/children_hierarchy.rs` - 子空间层级
@@ -24,60 +24,60 @@ Space 模块提供空间（Space）管理功能，包括空间创建、层级管
 **关键发现**:
 
 1. **接口实现**（20+ 个端点）:
-   
-   **空间生命周期（7 个）**:
-   - ✅ `POST /spaces` - 创建空间
-   - ✅ `GET /spaces/public` - 获取公开空间列表
-   - ✅ `GET /spaces/search` - 搜索空间
-   - ✅ `GET /spaces/statistics` - 获取统计信息
-   - ✅ `GET /spaces/user` - 获取用户空间列表
-   - ✅ `GET /spaces/{space_id}` - 获取空间详情
-   - ✅ `PUT /spaces/{space_id}` - 更新空间
-   - ✅ `DELETE /spaces/{space_id}` - 删除空间
 
-   **空间层级（4 个）**:
-   - ✅ `GET /spaces/{space_id}/children` - 获取子房间列表
-   - ✅ `POST /spaces/{space_id}/children` - 添加子房间
-   - ✅ `DELETE /spaces/{space_id}/children/{room_id}` - 移除子房间
-   - ✅ `GET /spaces/{space_id}/hierarchy` - 获取层级结构
-   - ✅ `GET /spaces/{space_id}/hierarchy/v1` - 获取层级结构 v1
+    **空间生命周期（7 个）**:
+    - ✅ `POST /spaces` - 创建空间
+    - ✅ `GET /spaces/public` - 获取公开空间列表
+    - ✅ `GET /spaces/search` - 搜索空间
+    - ✅ `GET /spaces/statistics` - 获取统计信息
+    - ✅ `GET /spaces/user` - 获取用户空间列表
+    - ✅ `GET /spaces/{space_id}` - 获取空间详情
+    - ✅ `PUT /spaces/{space_id}` - 更新空间
+    - ✅ `DELETE /spaces/{space_id}` - 删除空间
 
-   **成员管理（4 个）**:
-   - ✅ `GET /spaces/{space_id}/members` - 获取成员列表
-   - ✅ `POST /spaces/{space_id}/invite` - 邀请用户
-   - ✅ `POST /spaces/{space_id}/join` - 加入空间
-   - ✅ `POST /spaces/{space_id}/leave` - 离开空间
+    **空间层级（4 个）**:
+    - ✅ `GET /spaces/{space_id}/children` - 获取子房间列表
+    - ✅ `POST /spaces/{space_id}/children` - 添加子房间
+    - ✅ `DELETE /spaces/{space_id}/children/{room_id}` - 移除子房间
+    - ✅ `GET /spaces/{space_id}/hierarchy` - 获取层级结构
+    - ✅ `GET /spaces/{space_id}/hierarchy/v1` - 获取层级结构 v1
 
-   **空间查询（5 个）**:
-   - ✅ `GET /spaces/{space_id}/rooms` - 获取房间列表
-   - ✅ `GET /spaces/{space_id}/state` - 获取状态快照
-   - ✅ `GET /spaces/{space_id}/summary` - 获取摘要
-   - ✅ `GET /spaces/{space_id}/summary/with_children` - 获取摘要（含子空间）
-   - ✅ `GET /spaces/{space_id}/tree_path` - 获取树路径
-   - ✅ `GET /spaces/room/{room_id}` - 通过房间获取空间
-   - ✅ `GET /spaces/room/{room_id}/parents` - 获取父空间
+    **成员管理（4 个）**:
+    - ✅ `GET /spaces/{space_id}/members` - 获取成员列表
+    - ✅ `POST /spaces/{space_id}/invite` - 邀请用户
+    - ✅ `POST /spaces/{space_id}/join` - 加入空间
+    - ✅ `POST /spaces/{space_id}/leave` - 离开空间
+
+    **空间查询（5 个）**:
+    - ✅ `GET /spaces/{space_id}/rooms` - 获取房间列表
+    - ✅ `GET /spaces/{space_id}/state` - 获取状态快照
+    - ✅ `GET /spaces/{space_id}/summary` - 获取摘要
+    - ✅ `GET /spaces/{space_id}/summary/with_children` - 获取摘要（含子空间）
+    - ✅ `GET /spaces/{space_id}/tree_path` - 获取树路径
+    - ✅ `GET /spaces/room/{room_id}` - 通过房间获取空间
+    - ✅ `GET /spaces/room/{room_id}/parents` - 获取父空间
 
 2. **核心特性**:
-   - 空间 CRUD 操作
-   - 层级结构管理（父子关系）
-   - 成员管理（邀请、加入、离开）
-   - 空间搜索和发现
-   - 空间摘要和统计
-   - 树路径查询
+    - 空间 CRUD 操作
+    - 层级结构管理（父子关系）
+    - 成员管理（邀请、加入、离开）
+    - 空间搜索和发现
+    - 空间摘要和统计
+    - 树路径查询
 
 3. **数据约束**:
-   - space_id: 房间 ID 格式（!xxx:server）
-   - name: 字符串，空间名称
-   - topic: 字符串，空间主题
-   - join_rule: "public" | "invite" | "knock"
-   - visibility: "public" | "private"
-   - order: 字符串，排序键
-   - suggested: 布尔值，是否推荐
+    - space_id: 房间 ID 格式（!xxx:server）
+    - name: 字符串，空间名称
+    - topic: 字符串，空间主题
+    - join_rule: "public" | "invite" | "knock"
+    - visibility: "public" | "private"
+    - order: 字符串，排序键
+    - suggested: 布尔值，是否推荐
 
 4. **SDK 封装状态**:
-   - ✅ SpaceManager 已实现
-   - ✅ 核心接口已封装
-   - ✅ 根据 CHANGELOG，已补充多个方法
+    - ✅ SpaceManager 已实现
+    - ✅ 核心接口已封装
+    - ✅ 根据 CHANGELOG，已补充多个方法
 
 ---
 
@@ -172,29 +172,29 @@ Response: { "space_id", "name", "num_joined_members", "room_count", ... }
 
 ## 数据约束
 
-| 字段 | 约束 | 说明 |
-|------|------|------|
-| space_id | 房间 ID 格式 | !xxx:server |
-| name | 字符串 | 空间名称 |
-| topic | 字符串 | 空间主题 |
-| join_rule | 枚举 | "public", "invite", "knock" |
-| visibility | 枚举 | "public", "private" |
-| order | 字符串 | 排序键（如 "01", "02"） |
-| suggested | 布尔值 | 是否推荐 |
-| max_depth | 整数 | 层级深度限制 |
+| 字段       | 约束         | 说明                        |
+| ---------- | ------------ | --------------------------- |
+| space_id   | 房间 ID 格式 | !xxx:server                 |
+| name       | 字符串       | 空间名称                    |
+| topic      | 字符串       | 空间主题                    |
+| join_rule  | 枚举         | "public", "invite", "knock" |
+| visibility | 枚举         | "public", "private"         |
+| order      | 字符串       | 排序键（如 "01", "02"）     |
+| suggested  | 布尔值       | 是否推荐                    |
+| max_depth  | 整数         | 层级深度限制                |
 
 ---
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 场景 |
-|--------|------------|------|
-| M_BAD_JSON | 400 | 请求体格式错误 |
-| M_INVALID_PARAM | 400 | 参数不合法 |
-| M_UNKNOWN_TOKEN | 401 | Token 无效 |
-| M_FORBIDDEN | 403 | 无权限 |
-| M_NOT_FOUND | 404 | 空间或房间不存在 |
-| M_LIMIT_EXCEEDED | 429 | 限流 |
+| 错误码           | HTTP 状态码 | 场景             |
+| ---------------- | ----------- | ---------------- |
+| M_BAD_JSON       | 400         | 请求体格式错误   |
+| M_INVALID_PARAM  | 400         | 参数不合法       |
+| M_UNKNOWN_TOKEN  | 401         | Token 无效       |
+| M_FORBIDDEN      | 403         | 无权限           |
+| M_NOT_FOUND      | 404         | 空间或房间不存在 |
+| M_LIMIT_EXCEEDED | 429         | 限流             |
 
 ---
 
@@ -228,8 +228,8 @@ Response: { "space_id", "name", "num_joined_members", "room_count", ... }
 
 ## 版本兼容性
 
-| 前缀 | 说明 |
-|------|------|
+| 前缀                 | 说明              |
+| -------------------- | ----------------- |
 | `/_matrix/client/v1` | 与 r0/v3 共享路由 |
 | `/_matrix/client/r0` | 与 v1/v3 共享路由 |
 | `/_matrix/client/v3` | 与 v1/r0 共享路由 |
@@ -241,6 +241,7 @@ Response: { "space_id", "name", "num_joined_members", "room_count", ... }
 **评级**: ⭐⭐⭐⭐⭐ **优秀**
 
 **理由**:
+
 - ✅ 现有文档比较完整
 - ✅ 覆盖了主要端点
 - ✅ 包含错误码映射
@@ -252,6 +253,7 @@ Response: { "space_id", "name", "num_joined_members", "room_count", ... }
 ## SDK 封装状态
 
 根据 CHANGELOG（2026-04-14）记录：
+
 - ✅ `joinSpace()` - 已补充
 - ✅ `leaveSpace()` - 已补充
 - ✅ `inviteToSpace()` - 已补充
@@ -275,27 +277,27 @@ Response: { "space_id", "name", "num_joined_members", "room_count", ... }
 ## 注意事项
 
 1. **空间本质是房间**:
-   - space_id 就是 room_id
-   - 继承房间的大部分特性
+    - space_id 就是 room_id
+    - 继承房间的大部分特性
 
 2. **层级结构**:
-   - 支持多层嵌套
-   - 可以设置排序和推荐
-   - 需要管理父子关系
+    - 支持多层嵌套
+    - 可以设置排序和推荐
+    - 需要管理父子关系
 
 3. **成员管理**:
-   - 继承房间的成员管理
-   - 支持不同的加入规则
-   - 需要权限验证
+    - 继承房间的成员管理
+    - 支持不同的加入规则
+    - 需要权限验证
 
 4. **空间发现**:
-   - 公开空间可被搜索
-   - 私有空间需要邀请
-   - 支持用户空间列表
+    - 公开空间可被搜索
+    - 私有空间需要邀请
+    - 支持用户空间列表
 
 5. **版本兼容**:
-   - v1/r0/v3 共享路由
-   - SDK 优先使用 v3
+    - v1/r0/v3 共享路由
+    - SDK 优先使用 v3
 
 ---
 

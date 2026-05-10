@@ -49,6 +49,17 @@ export interface AudioSettings {
     noiseSuppression: boolean;
 }
 
+type LegacyNavigator = Navigator & {
+    webkitGetUserMedia?: unknown;
+};
+
+type ChromeDesktopTrackConstraints = MediaTrackConstraints & {
+    mandatory?: {
+        chromeMediaSource: "desktop";
+        chromeMediaSourceId: string;
+    };
+};
+
 export class MediaHandler extends TypedEventEmitter<
     MediaHandlerEvent.LocalStreamsChanged,
     MediaHandlerEventHandlerMap
@@ -467,7 +478,7 @@ export class MediaHandler extends TypedEventEmitter<
     }
 
     private getUserMediaContraints(audio: boolean, video: boolean, exactDeviceId?: boolean): MediaStreamConstraints {
-        const isWebkit = !!navigator.webkitGetUserMedia;
+        const isWebkit = !!(navigator as LegacyNavigator).webkitGetUserMedia;
         const deviceIdKey = exactDeviceId ? "exact" : "ideal";
 
         const audioConstraints: MediaTrackConstraints = {};
@@ -502,14 +513,15 @@ export class MediaHandler extends TypedEventEmitter<
     private getScreenshareContraints(opts: IScreensharingOpts): MediaStreamConstraints {
         const { desktopCapturerSourceId, audio } = opts;
         if (desktopCapturerSourceId) {
+            const desktopConstraints: ChromeDesktopTrackConstraints = {
+                mandatory: {
+                    chromeMediaSource: "desktop",
+                    chromeMediaSourceId: desktopCapturerSourceId,
+                },
+            };
             return {
                 audio: audio ?? false,
-                video: {
-                    mandatory: {
-                        chromeMediaSource: "desktop",
-                        chromeMediaSourceId: desktopCapturerSourceId,
-                    },
-                },
+                video: desktopConstraints,
             };
         } else {
             return {

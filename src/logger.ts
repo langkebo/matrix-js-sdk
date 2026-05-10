@@ -123,8 +123,7 @@ loglevel.methodFactory = function (methodName, _logLevel, _loggerName) {
  * Implementation of {@link Logger} based on `loglevel`.
  */
 interface PrefixedLogger
-    extends Omit<loglevel.Logger, "log" | "trace" | "debug" | "info" | "warn" | "error">,
-        LoggerWithLogMethod {
+    extends Omit<loglevel.Logger, "log" | "trace" | "debug" | "info" | "warn" | "error">, LoggerWithLogMethod {
     prefix?: string;
 }
 

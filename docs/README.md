@@ -9,6 +9,7 @@
 ### 🎯 快速开始
 
 **新接手项目？从这里开始：**
+
 1. 📄 [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md) - **项目交接文档**（最重要）
 2. 📊 [PROJECT_STATUS_FINAL.md](PROJECT_STATUS_FINAL.md) - 最终状态报告
 3. 🚀 [NEXT_STEPS.md](NEXT_STEPS.md) - 下一步行动计划
@@ -24,12 +25,14 @@
 ### 📚 契约文档
 
 **索引与管理**:
+
 - [api-contract/CONTRACT_INDEX.md](api-contract/CONTRACT_INDEX.md) - 43个模块统一索引
 - [api-contract/AUDIT_INDEX.md](api-contract/AUDIT_INDEX.md) - 审计状态总览
 - [api-contract/PROGRESS_REPORT.md](api-contract/PROGRESS_REPORT.md) - 进度追踪
 - [api-contract/contract-version.yml](api-contract/contract-version.yml) - 版本管理
 
 **新增契约文档（18个）**:
+
 - Week 1: typing, reactions, relations, key-rotation, moderation, thirdparty
 - Week 2: event-report, telemetry, feature-flags, app-service, background-update
 - Week 3: module, captcha, ephemeral, external-service, burn-after-read
@@ -97,14 +100,17 @@
 ### 按角色查找
 
 **开发人员**:
+
 - [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md) - 实施代码和检查清单
 - [api-contract/](api-contract/) - 契约文档目录
 
 **项目经理**:
+
 - [PROJECT_STATUS_FINAL.md](PROJECT_STATUS_FINAL.md) - 项目状态
 - [PROGRESS_REPORT.md](api-contract/PROGRESS_REPORT.md) - 进度追踪
 
 **技术负责人**:
+
 - [SDK_CONTRACT_OPTIMIZATION_PLAN_2026-04-27.md](SDK_CONTRACT_OPTIMIZATION_PLAN_2026-04-27.md) - 完整方案
 - [AUDIT_INDEX.md](api-contract/AUDIT_INDEX.md) - 审计状态
 

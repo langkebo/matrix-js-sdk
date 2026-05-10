@@ -1,0 +1,71 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "push_notification",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 9,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/push/devices",
+      "registered_by": "push_notification",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/push/devices",
+      "registered_by": "push_notification",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/push/devices/{device_id}",
+      "registered_by": "push_notification",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/push/rules",
+      "registered_by": "push_notification",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/push/rules",
+      "registered_by": "push_notification",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}",
+      "registered_by": "push_notification",
+      "path_params": [
+        "scope",
+        "kind",
+        "rule_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/push/send",
+      "registered_by": "push_notification",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/push/cleanup",
+      "registered_by": "push_notification",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/push/process",
+      "registered_by": "push_notification",
+      "path_params": []
+    }
+  ]
+}

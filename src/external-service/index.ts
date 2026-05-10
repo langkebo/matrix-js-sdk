@@ -83,6 +83,14 @@ export interface IRegisterExternalServiceRequest {
     config?: Record<string, unknown>;
 }
 
+export interface IUpdateExternalServiceRequest {
+    displayName?: string;
+    webhookUrl?: string;
+    apiKey?: string;
+    config?: Record<string, unknown>;
+    isEnabled?: boolean;
+}
+
 export interface IHealthCheckResult {
     asId: string;
     isHealthy: boolean;
@@ -157,6 +165,46 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
             this.emit(ExternalServiceEvent.Error, error as Error);
             throw error;
         }
+    }
+
+    /**
+     * Update an existing external service
+     * PUT /_synapse/admin/v1/external_services/{as_id}
+     */
+    public async updateService(asId: string, request: IUpdateExternalServiceRequest): Promise<IExternalService> {
+        if (!asId) {
+            throw new Error("Service ID is required");
+        }
+
+        const body: Record<string, unknown> = {};
+        if (request.displayName !== undefined) body.display_name = request.displayName;
+        if (request.webhookUrl !== undefined) body.webhook_url = request.webhookUrl;
+        if (request.apiKey !== undefined) body.api_key = request.apiKey;
+        if (request.config !== undefined) body.config = request.config;
+        if (request.isEnabled !== undefined) body.is_enabled = request.isEnabled;
+
+        const response = await this.adminRequest<{
+            as_id: string;
+            service_type: string;
+            service_id: string;
+            display_name: string;
+            is_enabled?: boolean;
+            is_healthy?: boolean;
+            created_ts: number;
+        }>(Method.Put, `/external_services/${encodeURIComponent(asId)}`, undefined, body);
+
+        const service: IExternalService = {
+            asId: response.as_id,
+            serviceType: response.service_type,
+            serviceId: response.service_id,
+            displayName: response.display_name,
+            isEnabled: response.is_enabled ?? true,
+            isHealthy: response.is_healthy ?? true,
+            createdTs: response.created_ts,
+        };
+
+        this.servicesCache.set(service.asId, service);
+        return service;
     }
 
     /**

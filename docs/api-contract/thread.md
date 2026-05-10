@@ -1,3 +1,11 @@
+---
+module: thread
+generated_from: docs/api-contract/generated/modules/thread.json
+generated_hash: sha256-0d9402c9004786e3017aef4516466031db60a92cb8f303fc1734eaf2b4ffc199
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Thread 模块契约
 
 > 版本: v1.0.0

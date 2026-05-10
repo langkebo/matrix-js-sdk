@@ -1,0 +1,276 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "ledger_entry_count": 1192,
+  "profiles": {
+    "default": {
+      "entry_count": 1192,
+      "file": "route-manifest.default.json",
+      "sha256": "sha256-ac85aa3d6b458a302a9896f07f10cd1a308fa06b7cfce0235f6ef562f4a9f6fe"
+    },
+    "worker": {
+      "entry_count": 1203,
+      "file": "route-manifest.worker.json",
+      "sha256": "sha256-a4ce23ae6862c8f4cdac4a97de48cb787eff8e73af40733b84227075844ad959"
+    },
+    "openclaw": {
+      "entry_count": 1221,
+      "file": "route-manifest.openclaw.json",
+      "sha256": "sha256-3c95a01c0d21ac818cfea75121e06992f877f67f0f9d5e82d9670eebb8099675"
+    },
+    "all": {
+      "entry_count": 1258,
+      "file": "route-manifest.all.json",
+      "sha256": "sha256-2421ea424083d140b4f314cdaf15bd0cbfd0d9d923274d898f8948e71c909b22"
+    }
+  },
+  "modules": {
+    "account_data": {
+      "entry_count": 26,
+      "file": "modules/account_data.json",
+      "sha256": "sha256-d5d47789fb1e6997fe727a6732c4a5b0fdf268789a680aa84ccf3fe54d324cf7"
+    },
+    "admin": {
+      "entry_count": 157,
+      "file": "modules/admin.json",
+      "sha256": "sha256-544aff80b2be5b3a89f2720d4b7ef2d0b655db3706390c79b506dd2ccd530e28"
+    },
+    "ai_connection": {
+      "entry_count": 6,
+      "file": "modules/ai_connection.json",
+      "sha256": "sha256-850a222edd3d17b69beabcb840c1be1ce8dd8b50c84e8bf5ad57f969c898d244"
+    },
+    "app_service": {
+      "entry_count": 25,
+      "file": "modules/app_service.json",
+      "sha256": "sha256-c76a1a214dfce99ecf80c860326515012934e57c886c65a5e82c929ad074b363"
+    },
+    "assembly": {
+      "entry_count": 152,
+      "file": "modules/assembly.json",
+      "sha256": "sha256-4757efb8218b5384b3cd23e9ece8b66bd641a64ef4e5200c4b5ab63280b9f234"
+    },
+    "background_update": {
+      "entry_count": 19,
+      "file": "modules/background_update.json",
+      "sha256": "sha256-a3e7dcb679f07e4b76daac36ae10e369ab6a26b28c52ad67697ad8cf3e6bde92"
+    },
+    "burn_after_read": {
+      "entry_count": 7,
+      "file": "modules/burn_after_read.json",
+      "sha256": "sha256-3e0f8eff483c0741865e33ff0fb79c0ac470ca3bf10e99584416f16299bb7ba8"
+    },
+    "captcha": {
+      "entry_count": 4,
+      "file": "modules/captcha.json",
+      "sha256": "sha256-2ae628c33194b8b3b1c5ba206c97e7bd578c8153836eaa89c3750f182d1d20b5"
+    },
+    "cas": {
+      "entry_count": 16,
+      "file": "modules/cas.json",
+      "sha256": "sha256-8b74490ce2a7680a687e8726fb1bc6e6c83fa94a506f47a739df34a4a05691d8"
+    },
+    "device": {
+      "entry_count": 12,
+      "file": "modules/device.json",
+      "sha256": "sha256-54901cb52bad0602f86e7a1998da079cbbaf9c2ee56238e20daa34057566d9f1"
+    },
+    "dm": {
+      "entry_count": 8,
+      "file": "modules/dm.json",
+      "sha256": "sha256-8aaf2934301123187745584fe231dc31619c8311447648e282cd91acc842de48"
+    },
+    "e2ee_routes": {
+      "entry_count": 51,
+      "file": "modules/e2ee_routes.json",
+      "sha256": "sha256-9e0152a849d9584e1ccf8743ac6eb86389a2cf34fa5605bdc2ed0ea5d15f1c9c"
+    },
+    "ephemeral": {
+      "entry_count": 1,
+      "file": "modules/ephemeral.json",
+      "sha256": "sha256-3d9089ffd1f66bc1aec7e0c84b9f0adfdf19408ce8078281c4ea0d7533a51472"
+    },
+    "event_report": {
+      "entry_count": 19,
+      "file": "modules/event_report.json",
+      "sha256": "sha256-5f214615a29d1a132986610dc81060017476d993e9b80a334a22c9ba091bf4f6"
+    },
+    "external_service": {
+      "entry_count": 10,
+      "file": "modules/external_service.json",
+      "sha256": "sha256-ff78986ade9336fa343d0a73718dacc79cf5f1180dd8234d0f379deec65a4eb4"
+    },
+    "feature_flags": {
+      "entry_count": 4,
+      "file": "modules/feature_flags.json",
+      "sha256": "sha256-d0eee28ce4fc77b67c66922d413296bf786eee35bdb7678a5bd1d4823b7d0a18"
+    },
+    "federation": {
+      "entry_count": 52,
+      "file": "modules/federation.json",
+      "sha256": "sha256-bff0dc1145f23af6d9ea3bcb6ca35cf25dfb0b75ab93f4521454eaf8875ddb57"
+    },
+    "friend_room": {
+      "entry_count": 54,
+      "file": "modules/friend_room.json",
+      "sha256": "sha256-e07aa0ca791cb97140673fe4808662f3fa31f71207b23e5ec73b6eb88a7bae73"
+    },
+    "guest": {
+      "entry_count": 3,
+      "file": "modules/guest.json",
+      "sha256": "sha256-9b0fed107abcf054d429137ac81d5046ecbbeb3e275f45da3d3559e9b90795c2"
+    },
+    "key_backup": {
+      "entry_count": 99,
+      "file": "modules/key_backup.json",
+      "sha256": "sha256-c2217add8c57e388b1d2af96203431df76b59118cf5197ff1ed7ba45702c45d2"
+    },
+    "key_rotation": {
+      "entry_count": 6,
+      "file": "modules/key_rotation.json",
+      "sha256": "sha256-86fee3458e25ffcaf98fd90701b9d49a4295a90bf16f5c23630a752aedf5f1f1"
+    },
+    "media": {
+      "entry_count": 21,
+      "file": "modules/media.json",
+      "sha256": "sha256-f44ca715bfec1ab4bdba985fa6f68c63fb19cf05f480ce1b72248704a38d9074"
+    },
+    "moderation": {
+      "entry_count": 8,
+      "file": "modules/moderation.json",
+      "sha256": "sha256-bccd6b6f2f8ffaeb099daca73f66fbf6caf59f02323ec900dfeff01145272033"
+    },
+    "module": {
+      "entry_count": 27,
+      "file": "modules/module.json",
+      "sha256": "sha256-9a95aeec955d769ab115753f82595ae3549f1ae793060d2e8109d2bd27c4de1f"
+    },
+    "oidc": {
+      "entry_count": 19,
+      "file": "modules/oidc.json",
+      "sha256": "sha256-c01064777085dec4e1e70a3567b8b1b64cb9dc2e40669c1fa0242895259ec16c"
+    },
+    "openclaw": {
+      "entry_count": 23,
+      "file": "modules/openclaw.json",
+      "sha256": "sha256-9bfa0c05b2083c1dadde4f6b8c3dad81a83e5355f79840de79e237e02ff54181"
+    },
+    "presence": {
+      "entry_count": 8,
+      "file": "modules/presence.json",
+      "sha256": "sha256-96e78c5b92a1b3da6216a65b6e68457fbc21701ac40639ecfc9d05595dd5efc7"
+    },
+    "push": {
+      "entry_count": 27,
+      "file": "modules/push.json",
+      "sha256": "sha256-5c499dd8ace26bef2adf5aa8126fd8682aa8e3fff33dcd5e88440c494dd951e1"
+    },
+    "push_notification": {
+      "entry_count": 9,
+      "file": "modules/push_notification.json",
+      "sha256": "sha256-84969ea597fef70a656545f840518e2dc40fa45bf3edd882c6875962eb78e3ed"
+    },
+    "reactions": {
+      "entry_count": 2,
+      "file": "modules/reactions.json",
+      "sha256": "sha256-db672c9a10b2d1b405bcb9e63cf60dda769d630e199e52d2e478edba86872f75"
+    },
+    "relations": {
+      "entry_count": 11,
+      "file": "modules/relations.json",
+      "sha256": "sha256-e6ebee03f07c6fa761f13b63c599441fd01a5c4e04a321884a8c396dcb09da0e"
+    },
+    "rendezvous": {
+      "entry_count": 6,
+      "file": "modules/rendezvous.json",
+      "sha256": "sha256-50e8212dabf234fb0d27669c2e1cd3ed8f5a193533108c5d2d91b54d9124ff78"
+    },
+    "room": {
+      "entry_count": 129,
+      "file": "modules/room.json",
+      "sha256": "sha256-392fd06a61931eb8a8d95e092ca070a2c43ff4d58805483c2f95813848c6be15"
+    },
+    "room_summary": {
+      "entry_count": 23,
+      "file": "modules/room_summary.json",
+      "sha256": "sha256-310a1fa9b8daf35547bcc6f3022bbaee91516b1999ea828d972344b7ec3b7465"
+    },
+    "saml": {
+      "entry_count": 9,
+      "file": "modules/saml.json",
+      "sha256": "sha256-e8fa77294554c00dce3f09f20ab7ba189ce64a68f3b22607c7c71144a1a98c90"
+    },
+    "search": {
+      "entry_count": 11,
+      "file": "modules/search.json",
+      "sha256": "sha256-eaab76c60ce7c245c8e47fbecb46119ad672463b181838528f2bc5d3612ed6bc"
+    },
+    "sliding_sync": {
+      "entry_count": 3,
+      "file": "modules/sliding_sync.json",
+      "sha256": "sha256-ea7c8f2314d7858ae6cc3789346ecef71ded670891b6194cce31e13acd5e67b3"
+    },
+    "space": {
+      "entry_count": 72,
+      "file": "modules/space.json",
+      "sha256": "sha256-8a7226884b02bcaaa63b9a36885da8d27e61fcc96ef1b0b6268c97031e57cab5"
+    },
+    "sync": {
+      "entry_count": 8,
+      "file": "modules/sync.json",
+      "sha256": "sha256-e7a69580fa664bda896b550cab41531d8f499c2e79001e0bf10f560c42cae5e0"
+    },
+    "tags": {
+      "entry_count": 8,
+      "file": "modules/tags.json",
+      "sha256": "sha256-6beabeb1588011a108da7a49c37b0bf2d880dc6b0b4fe8482553e5d8db72a93f"
+    },
+    "telemetry": {
+      "entry_count": 6,
+      "file": "modules/telemetry.json",
+      "sha256": "sha256-d2b0bd1ae3313d299eec145b726133c9754017aaa218a2c66f696433bbff43df"
+    },
+    "thirdparty": {
+      "entry_count": 10,
+      "file": "modules/thirdparty.json",
+      "sha256": "sha256-b7bd440dde8b489b98506efe0c87e56384d5827698a877eadadd05314be63728"
+    },
+    "thread": {
+      "entry_count": 21,
+      "file": "modules/thread.json",
+      "sha256": "sha256-0d9402c9004786e3017aef4516466031db60a92cb8f303fc1734eaf2b4ffc199"
+    },
+    "typing": {
+      "entry_count": 4,
+      "file": "modules/typing.json",
+      "sha256": "sha256-c22be42079c5e9d6cd1667df791a0a2f148c8d3e31e1d12f3d2836d305b97e2b"
+    },
+    "verification_routes": {
+      "entry_count": 18,
+      "file": "modules/verification_routes.json",
+      "sha256": "sha256-6425720e52ccaf5d380257c2e2efe83c26f3016d95ac54e7534dec1fa7ca0311"
+    },
+    "voice": {
+      "entry_count": 2,
+      "file": "modules/voice.json",
+      "sha256": "sha256-26abf93d652fe04187556c196046430c00c89948382d28b0acb66363fc3f5066"
+    },
+    "widget": {
+      "entry_count": 18,
+      "file": "modules/widget.json",
+      "sha256": "sha256-3a81f51dc367bd02c0c2f46959162351fed582d953a37d4d074ebf0b418d0329"
+    },
+    "worker": {
+      "entry_count": 13,
+      "file": "modules/worker.json",
+      "sha256": "sha256-309dbb9df3b83da15013f44146bfad47dda413a9fd2b452f471ac679b7d2a48e"
+    },
+    "worker_body": {
+      "entry_count": 11,
+      "file": "modules/worker_body.json",
+      "sha256": "sha256-0cad1fcc4406ca41c09d567905ffe89f97832f279594a6160062c1156d850f3c"
+    }
+  }
+}

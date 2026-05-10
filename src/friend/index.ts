@@ -97,11 +97,25 @@ export type FriendStatus =
     | "blocked"
     | "hidden";
 
+/**
+ * 单个好友分组（对应后端 `friend_room_service::create_friend_group` 返回的对象）。
+ * 后端字段：`id`、`name`、`members`、`created_at`、`updated_ts`（可选）。
+ */
+export interface FriendGroup {
+    id: string;
+    name: string;
+    members: string[];
+    created_at?: number;
+    updated_ts?: number;
+}
+
+/**
+ * 内部缓存：按 group `id` 索引的分组映射。
+ * 注意：之前版本曾以 `{name, users}` 描述分组，
+ * 现已与后端对齐为 `{id, name, members, created_at}`。
+ */
 export interface FriendGroups {
-    [groupId: string]: {
-        name: string;
-        users: string[];
-    };
+    [groupId: string]: FriendGroup;
 }
 
 interface FriendManagerEventMap {
@@ -136,15 +150,11 @@ interface IFriendRequestsResponse {
 }
 
 interface IFriendGroupsResponse {
-    groups?: FriendGroups;
+    /** 后端 `routes/friend_room.rs::get_friend_groups` 返回 `{groups: FriendGroup[]}`（裸数组） */
+    groups?: FriendGroup[];
 }
 
-interface ICreateGroupResponse {
-    id: string;
-    name?: string;
-    members?: string[];
-    created_at?: number;
-}
+interface ICreateGroupResponse extends FriendGroup {}
 
 interface IFriendSuggestionsResponse {
     suggestions?: Friend[];
@@ -230,10 +240,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
      * @throws {InvalidParamError} 如果尝试添加自己为好友
      * @throws {ApiError} 如果 API 调用失败
      */
-    async sendFriendRequest(
-        userId: string,
-        reason?: string,
-    ): Promise<{ request_id?: string; status?: string }> {
+    async sendFriendRequest(userId: string, reason?: string): Promise<{ request_id?: string; status?: string }> {
         AdminValidators.validateUserId(userId);
 
         if (userId === this.client.getUserId()) {
@@ -261,6 +268,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
         this.outgoingRequests.set(userId, request);
         this.emit(FriendEvent.Invited, userId, request);
+        this.emit(FriendEvent.RequestSent, userId);
         return { request_id: response?.request_id, status: response?.status };
     }
 
@@ -300,13 +308,16 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             this.incomingRequests.delete(userId);
         }
 
-        this.friends.set(userId, {
+        const friendObj: Friend = {
             user_id: userId,
             since: Date.now(),
             status: FriendRelationshipStatus.Normal,
-        });
+        };
+        this.friends.set(userId, friendObj);
 
         this.emit(FriendEvent.Accepted, userId);
+        this.emit(FriendEvent.RequestAccepted, userId);
+        this.emit(FriendEvent.FriendAdded, friendObj);
         this.emit(FriendEvent.ListUpdated);
         return { room_id: response?.room_id };
     }
@@ -343,6 +354,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
         this.incomingRequests.delete(userId);
         this.emit(FriendEvent.Rejected, userId);
+        this.emit(FriendEvent.RequestRejected, userId);
     }
 
     /**
@@ -377,6 +389,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
         this.outgoingRequests.delete(userId);
         this.emit(FriendEvent.Cancelled, userId);
+        this.emit(FriendEvent.RequestCancelled, userId);
     }
 
     /**
@@ -411,6 +424,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
         this.friends.delete(userId);
         this.emit(FriendEvent.Removed, userId);
+        this.emit(FriendEvent.FriendRemoved, userId);
         this.emit(FriendEvent.ListUpdated);
     }
 
@@ -491,7 +505,10 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
             this.incomingRequests.clear();
-            requests.forEach((r) => this.incomingRequests.set(r.user_id, r));
+            requests.forEach((r) => {
+                this.incomingRequests.set(r.user_id, r);
+                this.emit(FriendEvent.RequestReceived, r);
+            });
 
             return requests;
         } catch (e) {
@@ -581,6 +598,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
      * `isFriend` 需要先拉整张好友列表，代价高。保留兼容性，不会被删除。
      */
     async isFriend(userId: string): Promise<boolean> {
+        logger.warn("FriendManager.isFriend() is deprecated, use checkFriendship() instead");
         AdminValidators.validateUserId(userId);
         if (this.friends.has(userId)) {
             return true;
@@ -597,7 +615,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         return this.friends.has(userId);
     }
 
-    async getFriendGroups(): Promise<FriendGroups> {
+    async getFriendGroups(): Promise<FriendGroup[]> {
         try {
             const response = await this.client.http.authedRequest<IFriendGroupsResponse>(
                 Method.Get,
@@ -607,8 +625,20 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
                 { prefix: ClientPrefix.V1 },
             );
 
-            this.groups = response.groups || {};
-            return this.groups;
+            const list = response.groups ?? [];
+            this.groups = {};
+            for (const g of list) {
+                if (g && g.id) {
+                    this.groups[g.id] = {
+                        id: g.id,
+                        name: g.name,
+                        members: g.members ?? [],
+                        created_at: g.created_at,
+                        updated_ts: g.updated_ts,
+                    };
+                }
+            }
+            return list;
         } catch (e) {
             throw this.normalizeError(e, "getFriendGroups");
         }
@@ -634,12 +664,13 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
      * @throws {ApiError} 如果 API 调用失败
      */
     async createFriendGroup(name: string): Promise<string> {
-        if (!name || name.trim().length === 0) {
-            throw new ValidationError("Group name is required");
+        if (!name || name.length === 0) {
+            throw new InvalidParamError("Group name is required");
         }
-        if (name.length > 255) {
-            throw new ValidationError("Group name too long (max 255 characters)");
+        if (name.length > 50) {
+            throw new InvalidParamError("Group name too long (max 50 characters)");
         }
+
         const response = await this.client.http.authedRequest<ICreateGroupResponse>(
             Method.Post,
             "/friends/groups",
@@ -649,12 +680,21 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         );
 
         const groupId = response.id;
-        this.groups[groupId] = { name, users: [] };
+        this.groups[groupId] = {
+            id: groupId,
+            name: response.name ?? name,
+            members: response.members ?? [],
+            created_at: response.created_at,
+        };
 
         return groupId;
     }
 
     async addToFriendGroup(groupId: string, userId: string): Promise<void> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+        AdminValidators.validateUserId(userId);
         await this.client.http.authedRequest(
             Method.Post,
             `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`,
@@ -663,10 +703,9 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             { prefix: ClientPrefix.V1 },
         );
 
-        if (this.groups[groupId]) {
-            if (!this.groups[groupId].users.includes(userId)) {
-                this.groups[groupId].users.push(userId);
-            }
+        const cached = this.groups[groupId];
+        if (cached && !cached.members.includes(userId)) {
+            cached.members.push(userId);
         }
     }
 
@@ -679,8 +718,9 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             { prefix: ClientPrefix.V1 },
         );
 
-        if (this.groups[groupId]) {
-            this.groups[groupId].users = this.groups[groupId].users.filter((u) => u !== userId);
+        const cached = this.groups[groupId];
+        if (cached) {
+            cached.members = cached.members.filter((u) => u !== userId);
         }
     }
 
@@ -693,6 +733,9 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 
     async setFriendDisplayName(userId: string, displayName: string): Promise<void> {
+        if (!displayName || displayName.length < 1 || displayName.length > 256) {
+            throw new InvalidParamError("Display name must be between 1 and 256 characters");
+        }
         await this.client.http.authedRequest(
             Method.Put,
             `/friends/${encodeURIComponent(userId)}/displayname`,
@@ -724,6 +767,9 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     async updateFriendNote(userId: string, note: string): Promise<void> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
+        }
+        if (note.length > 1000) {
+            throw new InvalidParamError("Note too long (max 1000 characters)");
         }
 
         await this.client.http.authedRequest(
@@ -785,8 +831,11 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 
     async renameFriendGroup(groupId: string, name: string): Promise<void> {
-        if (!name || name.length > 50) {
-            throw new InvalidParamError("Group name must be between 1 and 50 characters");
+        if (!name || name.length === 0) {
+            throw new InvalidParamError("Group name is required");
+        }
+        if (name.length > 50) {
+            throw new InvalidParamError("Group name too long (max 50 characters)");
         }
 
         await this.client.http.authedRequest(
@@ -797,8 +846,9 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             { prefix: ClientPrefix.V1 },
         );
 
-        if (this.groups[groupId]) {
-            this.groups[groupId].name = name;
+        const cached = this.groups[groupId];
+        if (cached) {
+            cached.name = name;
         }
     }
 
@@ -814,12 +864,12 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         return (response.friends || []).map(normalizeFriend);
     }
 
-    async getGroupsForUser(userId: string): Promise<string[]> {
+    async getGroupsForUser(userId: string): Promise<FriendGroup[]> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
 
-        const response = await this.client.http.authedRequest<{ groups: string[] }>(
+        const response = await this.client.http.authedRequest<{ groups?: FriendGroup[] }>(
             Method.Get,
             `/friends/${encodeURIComponent(userId)}/groups`,
             undefined,
@@ -827,7 +877,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             { prefix: ClientPrefix.V1 },
         );
 
-        return response.groups || [];
+        return response.groups ?? [];
     }
 
     getFriendListRoomId(): string | null {

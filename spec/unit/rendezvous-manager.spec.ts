@@ -28,18 +28,12 @@ describe("RendezvousManager", () => {
 
         await manager.getSession("sess-1", "rz-key");
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/rendezvous/sess-1",
-            {},
-            undefined,
-            {
-                prefix: "/_matrix/client/v1",
-                headers: {
-                    "X-Matrix-Rendezvous-Key": "rz-key",
-                },
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/rendezvous/sess-1", {}, undefined, {
+            prefix: "/_matrix/client/v1",
+            headers: {
+                "X-Matrix-Rendezvous-Key": "rz-key",
             },
-        );
+        });
     });
 
     it("should forward session key through pollForMessages", async () => {
@@ -63,31 +57,17 @@ describe("RendezvousManager", () => {
         });
 
         expect(messages).toEqual([{ type: "m.login.progress", content: { stage: "waiting" } }]);
-        expect(authedRequest).toHaveBeenNthCalledWith(
-            1,
-            Method.Get,
-            "/rendezvous/sess-2",
-            {},
-            undefined,
-            {
-                prefix: "/_matrix/client/v1",
-                headers: {
-                    "X-Matrix-Rendezvous-Key": "poll-key",
-                },
+        expect(authedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/rendezvous/sess-2", {}, undefined, {
+            prefix: "/_matrix/client/v1",
+            headers: {
+                "X-Matrix-Rendezvous-Key": "poll-key",
             },
-        );
-        expect(authedRequest).toHaveBeenNthCalledWith(
-            2,
-            Method.Get,
-            "/rendezvous/sess-2/messages",
-            {},
-            undefined,
-            {
-                prefix: "/_matrix/client/v1",
-                headers: {
-                    "X-Matrix-Rendezvous-Key": "poll-key",
-                },
+        });
+        expect(authedRequest).toHaveBeenNthCalledWith(2, Method.Get, "/rendezvous/sess-2/messages", {}, undefined, {
+            prefix: "/_matrix/client/v1",
+            headers: {
+                "X-Matrix-Rendezvous-Key": "poll-key",
             },
-        );
+        });
     });
 });

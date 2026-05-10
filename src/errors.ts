@@ -39,23 +39,12 @@ export class KeySignatureUploadError extends Error {
     }
 }
 
-/**
- * It is invalid to call most methods once {@link MatrixClient#stopClient} has been called.
- *
- * This error will be thrown if you attempt to do so.
- *
- * {@link MatrixClient#stopClient} itself is an exception to this: it may safely be called multiple times on the same
- * instance.
- */
 export class ClientStoppedError extends Error {
     public constructor() {
         super("MatrixClient has been stopped");
     }
 }
 
-/**
- * This error is thrown when the Homeserver does not support the delayed events endpoints.
- */
 export class UnsupportedDelayedEventsEndpointError extends Error {
     public constructor(
         message: string,
@@ -73,9 +62,6 @@ export class UnsupportedDelayedEventsEndpointError extends Error {
     }
 }
 
-/**
- * This error is thrown when the Homeserver does not support the sticky events endpoints.
- */
 export class UnsupportedStickyEventsEndpointError extends Error {
     public constructor(
         message: string,
@@ -87,61 +73,103 @@ export class UnsupportedStickyEventsEndpointError extends Error {
 }
 
 /**
- * Base class for SDK errors
+ * Base class for SDK errors - D7 Compliant
  */
 export class SdkError extends Error {
+    public readonly errorCode?: string;
+    public readonly traceId?: string;
+    public readonly userTip?: string;
+    public readonly retryAfter?: number;
+    public readonly isRetryable: boolean;
+    public readonly statusCode: number;
+
     public constructor(
         message: string,
-        public readonly code: string,
-        public readonly statusCode: number,
-        public readonly cause?: unknown,
+        options: {
+            errorCode?: string;
+            traceId?: string;
+            userTip?: string;
+            retryAfter?: number;
+            isRetryable?: boolean;
+            statusCode?: number;
+            cause?: unknown;
+        } = {},
     ) {
         super(message);
         this.name = this.constructor.name;
+        this.errorCode = options.errorCode;
+        this.traceId = options.traceId;
+        this.userTip = options.userTip;
+        this.retryAfter = options.retryAfter;
+        this.isRetryable = options.isRetryable ?? false;
+        this.statusCode = options.statusCode ?? 0;
+        (this as any).cause = options.cause;
+
+        // Legacy compatibility
+        (this as any).code = this.errorCode;
+        (this as any).httpStatus = this.statusCode;
+        (this as any).errcode = this.errorCode;
     }
 }
 
-/**
- * Authentication error - thrown when token is invalid or expired
- */
 export class AuthError extends SdkError {
     public constructor(message: string, cause?: unknown) {
-        super(message, "AUTH_ERROR", 401, cause);
+        const errcode = (cause as any)?.errcode || "AUTH_ERROR";
+        const httpStatus = (cause as any)?.httpStatus || 401;
+        super(message, {
+            errorCode: errcode,
+            statusCode: httpStatus,
+            cause,
+        });
     }
 }
 
-/**
- * Not found error - thrown when resource does not exist
- */
 export class NotFoundError extends SdkError {
     public constructor(message: string, cause?: unknown) {
-        super(message, "NOT_FOUND", 404, cause);
+        const errcode = (cause as any)?.errcode || "NOT_FOUND";
+        const httpStatus = (cause as any)?.httpStatus || 404;
+        super(message, {
+            errorCode: errcode,
+            statusCode: httpStatus,
+            cause,
+        });
     }
 }
 
-/**
- * Retryable error - thrown when request can be retried (network errors, timeouts)
- */
 export class RetryableError extends SdkError {
     public constructor(message: string, cause?: unknown) {
-        super(message, "RETRYABLE", 0, cause);
+        const errcode = (cause as any)?.errcode || "RETRYABLE";
+        const httpStatus = (cause as any)?.httpStatus || 500;
+        const retryAfter = (cause as any)?.retryAfter || (cause as any)?.data?.retry_after_ms;
+        const traceId = (cause as any)?.httpHeaders?.get?.("x-trace-id");
+
+        super(message, {
+            errorCode: errcode,
+            statusCode: httpStatus,
+            retryAfter,
+            traceId,
+            isRetryable: true,
+            cause,
+        });
     }
 }
 
-/**
- * API error - general API error
- */
 export class ApiError extends SdkError {
-    public constructor(message: string, code: string = "API_ERROR", statusCode: number = 0, cause?: unknown) {
-        super(message, code, statusCode, cause);
+    public constructor(message: string, errorCode: string = "API_ERROR", statusCode: number = 0, cause?: unknown) {
+        super(message, {
+            errorCode,
+            statusCode,
+            cause,
+        });
     }
 }
 
-/**
- * Validation error - thrown when input validation fails
- */
 export class ValidationError extends SdkError {
     public constructor(message: string, cause?: unknown) {
-        super(message, "VALIDATION_ERROR", 400, cause);
+        super(message, {
+            errorCode: "VALIDATION_ERROR",
+            statusCode: 400,
+            cause,
+        });
     }
 }

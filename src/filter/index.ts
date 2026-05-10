@@ -98,7 +98,7 @@ export class FilterManager extends BaseManager {
                 const normalized = this.normalizeError(error, "getFilter");
                 const isUnknown =
                     normalized instanceof ApiError &&
-                    (normalized.code === "M_UNKNOWN" || normalized.code === "UNKNOWN");
+                    (normalized.errorCode === "M_UNKNOWN" || normalized.errorCode === "UNKNOWN");
                 if (!(normalized instanceof NotFoundError) && !isUnknown) {
                     throw normalized;
                 }

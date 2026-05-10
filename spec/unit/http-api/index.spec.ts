@@ -92,7 +92,7 @@ describe("MatrixHttpApi", () => {
         upload = api.uploadContent({} as File);
         expect(getRequest()!.open).toHaveBeenCalledWith(
             Method.Post,
-            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?access_token=token",
+            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?content_type=application%2Foctet-stream&access_token=token",
         );
         expect(getRequest()!.setRequestHeader).not.toHaveBeenCalledWith("Authorization");
     });
@@ -107,7 +107,7 @@ describe("MatrixHttpApi", () => {
         upload = api.uploadContent({} as File);
         expect(getRequest()!.open).toHaveBeenCalledWith(
             Method.Post,
-            baseUrl.toLowerCase() + "/_matrix/media/v3/upload",
+            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?content_type=application%2Foctet-stream",
         );
         expect(getRequest()!.setRequestHeader).toHaveBeenCalledWith("Authorization", "Bearer token");
     });
@@ -117,7 +117,7 @@ describe("MatrixHttpApi", () => {
         upload = api.uploadContent({} as File, { name: "name" });
         expect(getRequest()!.open).toHaveBeenCalledWith(
             Method.Post,
-            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?filename=name",
+            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?filename=name&content_type=application%2Foctet-stream",
         );
     });
 
@@ -126,7 +126,7 @@ describe("MatrixHttpApi", () => {
         upload = api.uploadContent({} as File, { name: "name", includeFilename: false });
         expect(getRequest()!.open).toHaveBeenCalledWith(
             Method.Post,
-            baseUrl.toLowerCase() + "/_matrix/media/v3/upload",
+            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?content_type=application%2Foctet-stream",
         );
     });
 

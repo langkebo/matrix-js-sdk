@@ -1,3 +1,11 @@
+---
+module: thirdparty
+generated_from: docs/api-contract/generated/modules/thirdparty.json
+generated_hash: sha256-b7bd440dde8b489b98506efe0c87e56384d5827698a877eadadd05314be63728
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Thirdparty Integration API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/thirdparty.rs`  
@@ -10,6 +18,7 @@
 ### 1.1 功能描述
 
 Thirdparty API 提供第三方协议集成功能，用于：
+
 - 查询支持的第三方协议
 - 查询第三方位置（如 IRC 频道）
 - 查询第三方用户（如 IRC 用户）
@@ -32,21 +41,25 @@ Thirdparty API 提供第三方协议集成功能，用于：
 **挂载版本**: `r0`, `v3`
 
 **响应**: `200 OK`
+
 ```typescript
 interface ProtocolsResponse {
-  [protocol_id: string]: {
-    user_fields: string[];
-    location_fields: string[];
-    icon: string;
-    field_types: Record<string, {
-      regexp: string;
-      placeholder: string;
-    }>;
-    instances: Array<{
-      network_id: string;
-      fields: Record<string, string>;
-    }>;
-  };
+    [protocol_id: string]: {
+        user_fields: string[];
+        location_fields: string[];
+        icon: string;
+        field_types: Record<
+            string,
+            {
+                regexp: string;
+                placeholder: string;
+            }
+        >;
+        instances: Array<{
+            network_id: string;
+            fields: Record<string, string>;
+        }>;
+    };
 }
 ```
 
@@ -75,12 +88,14 @@ interface ProtocolsResponse {
 | `searchFields...` | string | 否 | 协议特定的搜索字段 |
 
 **响应**: `200 OK`
+
 ```typescript
 interface LocationResponse {
-  alias: string;
-  protocol: string;
-  fields: Record<string, string>;
-}[]
+    alias: string;
+    protocol: string;
+    fields: Record<string, string>;
+}
+[];
 ```
 
 ### 2.4 查询协议用户
@@ -92,12 +107,14 @@ interface LocationResponse {
 **查询参数**: 同 2.3
 
 **响应**: `200 OK`
+
 ```typescript
 interface UserResponse {
-  userid: string;
-  protocol: string;
-  fields: Record<string, string>;
-}[]
+    userid: string;
+    protocol: string;
+    fields: Record<string, string>;
+}
+[];
 ```
 
 ### 2.5 查询所有位置（v3）
@@ -130,14 +147,14 @@ interface UserResponse {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
-| `GET /protocols` | `ThirdPartyManager.getProtocols()` | ✅ 已封装 |
-| `GET /protocol/{protocol}` | `ThirdPartyManager.getProtocol()` | ⚠️ 间接实现（复用 `getProtocols()` 全量查询后本地筛选） |
-| `GET /location/{protocol}` | `ThirdPartyManager.searchLocations()` | ✅ 已封装 |
-| `GET /user/{protocol}` | `ThirdPartyManager.searchUsers()` | ✅ 已封装 |
-| `GET /location` | - | ❌ 未封装 |
-| `GET /user` | - | ❌ 未封装 |
+| 后端端点                   | SDK 方法                              | 状态                                                    |
+| -------------------------- | ------------------------------------- | ------------------------------------------------------- |
+| `GET /protocols`           | `ThirdPartyManager.getProtocols()`    | ✅ 已封装                                               |
+| `GET /protocol/{protocol}` | `ThirdPartyManager.getProtocol()`     | ⚠️ 间接实现（复用 `getProtocols()` 全量查询后本地筛选） |
+| `GET /location/{protocol}` | `ThirdPartyManager.searchLocations()` | ✅ 已封装                                               |
+| `GET /user/{protocol}`     | `ThirdPartyManager.searchUsers()`     | ✅ 已封装                                               |
+| `GET /location`            | -                                     | ❌ 未封装                                               |
+| `GET /user`                | -                                     | ❌ 未封装                                               |
 
 ### 3.2 封装覆盖率
 
@@ -153,14 +170,14 @@ interface UserResponse {
 
 ## 四、常见错误码
 
-| 状态码 | 错误码 | 说明 |
-|-------|--------|------|
-| 400 | `M_INVALID_PARAM` | 参数无效 |
-| 401 | `M_UNAUTHORIZED` | 未认证 |
-| 404 | `M_NOT_FOUND` | 协议不存在 |
+| 状态码 | 错误码            | 说明       |
+| ------ | ----------------- | ---------- |
+| 400    | `M_INVALID_PARAM` | 参数无效   |
+| 401    | `M_UNAUTHORIZED`  | 未认证     |
+| 404    | `M_NOT_FOUND`     | 协议不存在 |
 
 ## 五、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

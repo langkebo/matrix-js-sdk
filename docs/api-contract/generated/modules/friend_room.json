@@ -1,0 +1,403 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "friend_room",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 54,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/check/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/groups",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friends/groups",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/friends/groups/{group_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friends/groups/{group_id}/add/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/groups/{group_id}/friends",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/friends/groups/{group_id}/name",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/friends/groups/{group_id}/remove/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friends/request",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/request/received",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friends/request/{user_id}/accept",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friends/request/{user_id}/cancel",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friends/request/{user_id}/reject",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/requests/incoming",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/suggestions",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/friends/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/friends/{user_id}/displayname",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/{user_id}/groups",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/{user_id}/info",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/friends/{user_id}/note",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/{user_id}/status",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/friends/{user_id}/status",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friendships",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/friendships",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/check/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/groups",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/groups",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/friends/groups/{group_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/groups/{group_id}/add/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/groups/{group_id}/friends",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/friends/groups/{group_id}/name",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/friends/groups/{group_id}/remove/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "group_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/request",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/request/received",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/request/{user_id}/accept",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/request/{user_id}/cancel",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/request/{user_id}/reject",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/requests/incoming",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/suggestions",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/friends/{user_id}",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/friends/{user_id}/displayname",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/{user_id}/groups",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/{user_id}/info",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/friends/{user_id}/note",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/{user_id}/status",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/friends/{user_id}/status",
+      "registered_by": "friend_room",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/friends",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/friends",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/friends/requests/incoming",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    }
+  ]
+}

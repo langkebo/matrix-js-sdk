@@ -1,19 +1,27 @@
+---
+module: dm
+generated_from: docs/api-contract/generated/modules/dm.json
+generated_hash: sha256-8aaf2934301123187745584fe231dc31619c8311447648e282cd91acc842de48
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # DM 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/dm.rs`
 
 ## 真实后端路由
 
-| 方法 | 路径                                            | 说明                              | 认证 |
-| ---- | ----------------------------------------------- | --------------------------------- | ---- |
-| POST | `/_matrix/client/r0/create_dm`                  | 创建私聊房间                      | 用户 |
-| POST | `/_matrix/client/v3/create_dm`                  | 创建私聊房间                      | 用户 |
+| 方法 | 路径                                            | 说明                               | 认证 |
+| ---- | ----------------------------------------------- | ---------------------------------- | ---- |
+| POST | `/_matrix/client/r0/create_dm`                  | 创建私聊房间                       | 用户 |
+| POST | `/_matrix/client/v3/create_dm`                  | 创建私聊房间                       | 用户 |
 | GET  | `/_matrix/client/r0/direct`                     | 获取当前用户 direct map / 私聊房间 | 用户 |
-| PUT  | `/_matrix/client/r0/direct/{room_id}`           | 更新某个房间的私聊映射            | 用户 |
+| PUT  | `/_matrix/client/r0/direct/{room_id}`           | 更新某个房间的私聊映射             | 用户 |
 | GET  | `/_matrix/client/v3/direct`                     | 获取当前用户 direct map / 私聊房间 | 用户 |
-| PUT  | `/_matrix/client/v3/direct/{room_id}`           | 更新某个房间的私聊映射            | 用户 |
+| PUT  | `/_matrix/client/v3/direct/{room_id}`           | 更新某个房间的私聊映射             | 用户 |
 | GET  | `/_matrix/client/v3/rooms/{room_id}/dm`         | 判断房间是否为私聊                 | 用户 |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取私聊对端资料                  | 用户 |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取私聊对端资料                   | 用户 |
 
 ## 请求/响应要点
 
@@ -54,13 +62,13 @@
 
 ## 典型 errcode
 
-| errcode            | 常见 HTTP | 说明                              |
-| ------------------ | --------- | --------------------------------- |
-| `M_UNKNOWN_TOKEN`  | `401`     | access token 无效、过期或缺失     |
+| errcode            | 常见 HTTP | 说明                               |
+| ------------------ | --------- | ---------------------------------- |
+| `M_UNKNOWN_TOKEN`  | `401`     | access token 无效、过期或缺失      |
 | `M_NOT_FOUND`      | `404`     | 私聊房间、对端用户或映射记录不存在 |
-| `M_BAD_JSON`       | `400`     | 请求体结构不符合接口要求          |
-| `M_INVALID_PARAM`  | `400`     | 参数类型或取值非法                |
-| `M_LIMIT_EXCEEDED` | `429`     | 触发限流，需延迟重试              |
+| `M_BAD_JSON`       | `400`     | 请求体结构不符合接口要求           |
+| `M_INVALID_PARAM`  | `400`     | 参数类型或取值非法                 |
+| `M_LIMIT_EXCEEDED` | `429`     | 触发限流，需延迟重试               |
 
 ## 备注
 

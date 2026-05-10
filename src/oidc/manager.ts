@@ -37,7 +37,6 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
-import { logger } from "../logger";
 
 export interface IOidcDiscovery {
     issuer: string;
@@ -135,11 +134,11 @@ export interface IOidcRegisterRequest {
 }
 
 export interface OidcManagerEvents {
-    oidc_discovered: (payload: { issuer: string }) => void;
-    oidc_token_refreshed: (payload: { expires_in: number }) => void;
-    oidc_authorized: (payload: { state: string; code: string }) => void;
-    oidc_logged_out: (payload: Record<string, never>) => void;
-    oidc_error: (payload: { error: Error }) => void;
+    oidcDiscovered: (payload: { issuer: string }) => void;
+    oidcTokenRefreshed: (payload: { expires_in: number }) => void;
+    oidcAuthorized: (payload: { state: string; code: string }) => void;
+    oidcLoggedOut: (payload: Record<string, never>) => void;
+    oidcError: (payload: { error: Error }) => void;
 }
 
 export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManagerEvents> {
@@ -161,7 +160,7 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
             );
             this.discoveryCache = response;
             this.currentProvider = response.issuer;
-            this.emit("oidc_discovered", { issuer: response.issuer });
+            this.emit("oidcDiscovered", { issuer: response.issuer });
             return response;
         }, "discover");
     }
@@ -169,13 +168,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async getJwks(): Promise<IOidcJwks> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IOidcJwks>(
-                    Method.Get,
-                    "/.well-known/jwks.json",
-                    undefined,
-                    undefined,
-                    { prefix: "" },
-                ),
+                this.client.http.authedRequest<IOidcJwks>(Method.Get, "/.well-known/jwks.json", undefined, undefined, {
+                    prefix: "",
+                }),
             "getJwks",
         );
     }
@@ -270,13 +265,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async getUserInfo(): Promise<IOidcUserInfo> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IOidcUserInfo>(
-                    Method.Get,
-                    "/oidc/userinfo",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                ),
+                this.client.http.authedRequest<IOidcUserInfo>(Method.Get, "/oidc/userinfo", undefined, undefined, {
+                    prefix: ClientPrefix.V3,
+                }),
             "getUserInfo",
         );
     }
@@ -290,23 +281,19 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
             grant_type: "refresh_token",
             refresh_token: refreshToken,
         });
-        this.emit("oidc_token_refreshed", { expires_in: response.expires_in });
+        this.emit("oidcTokenRefreshed", { expires_in: response.expires_in });
         return response;
     }
 
     async logout(request?: IOidcLogoutRequest): Promise<void> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Post,
-                    "/oidc/logout",
-                    undefined,
-                    request ?? {},
-                    { prefix: ClientPrefix.V3 },
-                ),
+                this.client.http.authedRequest<void>(Method.Post, "/oidc/logout", undefined, request ?? {}, {
+                    prefix: ClientPrefix.V3,
+                }),
             "logout",
         ).then(() => {
-            this.emit("oidc_logged_out", {});
+            this.emit("oidcLoggedOut", {});
         });
     }
 
@@ -326,16 +313,22 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IOidcLoginResponse>(Method.Post, "/oidc/login", undefined, {
-                    client_id: request.client_id,
-                    redirect_uri: request.redirect_uri,
-                    scope: request.scope ?? "openid",
-                    state: request.state,
-                    nonce: request.nonce,
-                    code_verifier: request.code_verifier,
-                    username: request.username,
-                    password: request.password,
-                }, { prefix: ClientPrefix.V3 }),
+                this.client.http.authedRequest<IOidcLoginResponse>(
+                    Method.Post,
+                    "/oidc/login",
+                    undefined,
+                    {
+                        client_id: request.client_id,
+                        redirect_uri: request.redirect_uri,
+                        scope: request.scope ?? "openid",
+                        state: request.state,
+                        nonce: request.nonce,
+                        code_verifier: request.code_verifier,
+                        username: request.username,
+                        password: request.password,
+                    },
+                    { prefix: ClientPrefix.V3 },
+                ),
             "builtinLogin",
         );
     }
@@ -357,13 +350,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async ssoUserInfo(): Promise<IOidcUserInfo> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IOidcUserInfo>(
-                    Method.Get,
-                    "/login/sso/userinfo",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                ),
+                this.client.http.authedRequest<IOidcUserInfo>(Method.Get, "/login/sso/userinfo", undefined, undefined, {
+                    prefix: ClientPrefix.V3,
+                }),
             "ssoUserInfo",
         );
     }

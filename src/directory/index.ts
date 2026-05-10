@@ -72,17 +72,21 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         since?: string;
     }): Promise<IPublicRoomsResponse> {
         return this.withRetry(() => {
+            if (typeof this.client.publicRooms === "function") {
+                return this.client.publicRooms(opts ?? {}) as Promise<IPublicRoomsResponse>;
+            }
+
             const path = "/publicRooms";
-            return this.client.http.authedRequest<IPublicRoomsResponse>(
-                Method.Get,
-                path,
-                opts as Record<string, string>,
-            );
+            return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Get, path, opts as Record<string, string>);
         }, "getPublicRoomsList");
     }
 
     public async getPublicRooms(server: string, limit?: number, since?: string): Promise<IPublicRoomsResponse> {
         return this.withRetry(() => {
+            if (typeof this.client.publicRooms === "function") {
+                return this.client.publicRooms({ server, limit, since }) as Promise<IPublicRoomsResponse>;
+            }
+
             const path = "/publicRooms";
             const reqOpts: Record<string, string | number> = { server };
             if (limit) reqOpts.limit = limit;

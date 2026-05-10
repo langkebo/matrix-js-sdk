@@ -46,6 +46,7 @@ We've completed a comprehensive optimization of the SDK with significant improve
 - ✅ **Developer Experience**: 600+ lines of Admin API guide, 400+ lines of version policy documentation
 
 **Key Features**:
+
 - Input validation with `AdminValidators` to prevent injection attacks
 - Unified pagination format with `PaginatedResponse<T>`
 - Comprehensive error handling with typed errors (`ValidationError`, `AuthError`, etc.)
@@ -183,7 +184,7 @@ console.log(`User: ${user.displayname}, Admin: ${user.admin}`);
 // Create user
 await adminManager.createUser("@bob:example.com", {
     password: "secure123",
-    displayname: "Bob Smith"
+    displayname: "Bob Smith",
 });
 
 // Get server status
@@ -193,7 +194,7 @@ console.log(`Server status: ${status?.status}`);
 // Send server notice
 await adminManager.sendServerNotice("@user:example.com", {
     msgtype: "m.text",
-    body: "Important: Server maintenance tonight at 22:00"
+    body: "Important: Server maintenance tonight at 22:00",
 });
 ```
 
@@ -206,7 +207,6 @@ await adminManager.sendServerNotice("@user:example.com", {
 - **Notification Management**: Send server notices
 
 For detailed documentation, see [Admin API Guide](./docs/ADMIN_GUIDE.md).
-
 
 - Exposes high-level objects like `Rooms`, `RoomState`, `RoomMembers` and `Users`
   which can be listened to for things like name changes, new messages, membership

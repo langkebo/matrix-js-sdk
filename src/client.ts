@@ -19,6 +19,7 @@ limitations under the License.
  */
 
 import { type ISyncStateData, type SetPresence, SyncApi, type SyncApiOptions, SyncState } from "./sync.ts";
+import type { MatrixClientExtensionMethods, MatrixClientInternalMethods } from "./matrix-client-extensions.d.ts";
 import {
     EventStatus,
     type IContent,
@@ -84,6 +85,7 @@ import { type BeaconEvent, type BeaconEventHandlerMap } from "./models/beacon.ts
 import { type AuthDict } from "./interactive-auth.ts";
 import { type IRoomEvent, type ReceivedToDeviceMessage } from "./sync-accumulator.ts";
 import type { EventTimelineSet } from "./models/event-timeline-set.ts";
+import { InflightRequestCache, stableSerialize } from "./utils/inflight-request-cache.ts";
 import { LRUCache } from "./utils/lru-cache.ts";
 import { NotificationCountType, type Room, type RoomEvent, type RoomEventHandlerMap } from "./models/room.ts";
 import { RoomMemberEvent, type RoomMemberEventHandlerMap } from "./models/room-member.ts";
@@ -777,10 +779,11 @@ const SSO_ACTION_PARAM = new UnstableValue("action", "org.matrix.msc3824.action"
  * custom modules. Normally, {@link createClient} should be used
  * as it specifies 'sensible' defaults for these modules.
  */
-import type { MatrixClientExtensionMethods, MatrixClientInternalMethods } from "./matrix-client-extensions.d.ts";
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface MatrixClient extends MatrixClientExtensionMethods, MatrixClientInternalMethods {}
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHandlerMap> {
     public static readonly RESTORE_BACKUP_ERROR_BAD_KEY = "RESTORE_BACKUP_ERROR_BAD_KEY";
 
@@ -804,10 +807,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public scheduler?: MatrixScheduler;
     public clientRunning = false;
     public timelineSupport = false;
-    public urlPreviewCache: LRUCache<Promise<IPreviewUrlResponse>> = new LRUCache<Promise<IPreviewUrlResponse>>(
-        100,
-        3600000,
-    );
+    public urlPreviewCache = new LRUCache<IPreviewUrlResponse>(100, 3600000);
+    private readonly urlPreviewRequestCache = new InflightRequestCache<IPreviewUrlResponse>(this.urlPreviewCache);
+    private readonly publicRoomsCache = new LRUCache<IPublicRoomsResponse>(50, 30_000);
+    private readonly publicRoomsRequestCache = new InflightRequestCache<IPublicRoomsResponse>(this.publicRoomsCache);
     public identityServer?: IIdentityServerProvider;
     public http: MatrixHttpApi<IHttpOpts & { onlyData: true }>; // Intended private, used in code.
     private readonly authedRequestProxy = <T>(
@@ -3102,7 +3105,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * May return synthesized attributes if the URL lacked OG meta.
      */
     public getUrlPreview(url: string, ts: number): Promise<IPreviewUrlResponse> {
-        return getUrlPreviewRequest<IPreviewUrlResponse>(url, ts, this.urlPreviewCache, this.authedRequestProxy);
+        return getUrlPreviewRequest<IPreviewUrlResponse>(url, ts, this.urlPreviewRequestCache, this.authedRequestProxy);
     }
 
     /**
@@ -5292,7 +5295,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         since,
         ...options
     }: IRoomDirectoryOptions = {}): Promise<IPublicRoomsResponse> {
-        return publicRoomsRequest({ server, limit, since, ...options }, this.authedRequestProxy);
+        const request = { server, limit, since, ...options };
+        const key = stableSerialize(request);
+        return this.publicRoomsRequestCache.getOrCreate(key, () => publicRoomsRequest(request, this.authedRequestProxy));
     }
 
     /**
@@ -6750,8 +6755,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getUnsentEvents(_roomId: string): MatrixEvent[] {
         return [];
     }
-    public reactToMessage(_roomId: string, _eventId: string, _key: string): Promise<void> {
-        return Promise.resolve();
+    public reactToMessage(roomId: string, eventId: string, key: string): Promise<void> {
+        return this.getRoomEventsManager()
+            .sendReaction(roomId, eventId, key)
+            .then(() => undefined);
     }
     public async redactReaction(_roomId: string, _eventId: string): Promise<void> {}
     public getReactionUsers(_roomId: string, _eventId: string): Promise<Array<{ userId: string }>> {

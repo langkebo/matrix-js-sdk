@@ -1,0 +1,89 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "search",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 11,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/search",
+      "registered_by": "search",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/search_recipients",
+      "registered_by": "search",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/search_rooms",
+      "registered_by": "search",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/rooms/{room_id}/context/{event_id}",
+      "registered_by": "search",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/rooms/{room_id}/hierarchy",
+      "registered_by": "search",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/rooms/{room_id}/timestamp_to_event",
+      "registered_by": "search",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/context/{event_id}",
+      "registered_by": "search",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/hierarchy",
+      "registered_by": "search",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/search",
+      "registered_by": "search",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/search_recipients",
+      "registered_by": "search",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/search_rooms",
+      "registered_by": "search",
+      "path_params": []
+    }
+  ]
+}

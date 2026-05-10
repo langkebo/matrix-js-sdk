@@ -1,3 +1,11 @@
+---
+module: push
+generated_from: docs/api-contract/generated/modules/push.json
+generated_hash: sha256-5c499dd8ace26bef2adf5aa8126fd8682aa8e3fff33dcd5e88440c494dd951e1
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Push 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/push.rs`、`synapse-rust/src/web/routes/push_rules.rs`

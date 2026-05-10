@@ -49,13 +49,9 @@ describe("KeyRotationManager", () => {
 
         const result = await manager.getStatus();
 
-        expect(mockHttp.authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/keys/rotation/status",
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        expect(mockHttp.authedRequest).toHaveBeenCalledWith(Method.Get, "/keys/rotation/status", undefined, undefined, {
+            prefix: ClientPrefix.V1,
+        });
         expect(result).toEqual(mockResponse);
     });
 

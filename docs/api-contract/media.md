@@ -1,3 +1,11 @@
+---
+module: media
+generated_from: docs/api-contract/generated/modules/media.json
+generated_hash: sha256-f44ca715bfec1ab4bdba985fa6f68c63fb19cf05f480ce1b72248704a38d9074
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Media 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/media.rs`、`synapse-rust/src/web/routes/assembly.rs`
@@ -13,41 +21,41 @@
 
 ## 路由清单
 
-| 方法 | 路径                                                             | 说明                                                            | 认证              |
-| ---- | ---------------------------------------------------------------- | --------------------------------------------------------------- | ----------------- |
-| POST | `/_matrix/media/v1/upload`                                       | 传统上传                                                        | 用户              |
-| GET  | `/_matrix/media/{v1,r0,v3}/config`                               | 上传配置                                                        | 公开              |
-| GET  | `/_matrix/client/v1/media/config`                                | authenticated media 配置                                        | 用户              |
-| GET  | `/_matrix/media/v1/preview_url`                                  | URL 预览                                                        | 公开              |
-| POST | `/_matrix/media/v1/delete/{server_name}/{media_id}`              | 删除媒体                                                        | 用户              |
-| GET  | `/_matrix/media/v3/preview_url`                                  | URL 预览                                                        | 公开              |
-| POST | `/_matrix/media/v3/delete/{server_name}/{media_id}`              | 删除媒体                                                        | 用户              |
-| GET  | `/_matrix/media/v1/download/{server_name}/{media_id}`            | 传统下载                                                        | 公开/按处理器逻辑 |
-| GET  | `/_matrix/media/v1/download/{server_name}/{media_id}/{filename}` | 带文件名下载                                                    | 同上              |
-| GET  | `/_matrix/media/v1/quota/check`                                  | 配额检查                                                        | 用户              |
-| GET  | `/_matrix/media/v1/quota/stats`                                  | 配额统计                                                        | 用户              |
-| GET  | `/_matrix/media/v1/quota/alerts`                                 | 配额告警                                                        | 用户              |
-| POST | `/_matrix/media/v3/upload`                                       | 现代上传                                                        | 用户              |
-| PUT  | `/_matrix/media/v3/upload/{server_name}/{media_id}`              | 具名上传；要求本机 `server_name`，并按路径中的 `media_id` 落盘  | 用户              |
-| GET  | `/_matrix/media/v3/download/{server_name}/{media_id}`            | 下载                                                            | 公开/按处理器逻辑 |
-| GET  | `/_matrix/media/v3/download/{server_name}/{media_id}/{filename}` | 带文件名下载                                                    | 同上              |
-| GET  | `/_matrix/media/v3/thumbnail/{server_name}/{media_id}`           | 缩略图                                                          | 公开/按处理器逻辑 |
-| POST | `/_matrix/media/r0/upload`                                       | 兼容上传                                                        | 用户              |
-| GET  | `/_matrix/media/r1/download/{server_name}/{media_id}`            | 兼容下载                                                        | 公开/按处理器逻辑 |
-| GET  | `/_matrix/media/r1/download/{server_name}/{media_id}/{filename}` | 兼容带文件名下载                                                | 同上              |
+| 方法 | 路径                                                             | 说明                                                           | 认证              |
+| ---- | ---------------------------------------------------------------- | -------------------------------------------------------------- | ----------------- |
+| POST | `/_matrix/media/v1/upload`                                       | 传统上传                                                       | 用户              |
+| GET  | `/_matrix/media/{v1,r0,v3}/config`                               | 上传配置                                                       | 公开              |
+| GET  | `/_matrix/client/v1/media/config`                                | authenticated media 配置                                       | 用户              |
+| GET  | `/_matrix/media/v1/preview_url`                                  | URL 预览                                                       | 公开              |
+| POST | `/_matrix/media/v1/delete/{server_name}/{media_id}`              | 删除媒体                                                       | 用户              |
+| GET  | `/_matrix/media/v3/preview_url`                                  | URL 预览                                                       | 公开              |
+| POST | `/_matrix/media/v3/delete/{server_name}/{media_id}`              | 删除媒体                                                       | 用户              |
+| GET  | `/_matrix/media/v1/download/{server_name}/{media_id}`            | 传统下载                                                       | 公开/按处理器逻辑 |
+| GET  | `/_matrix/media/v1/download/{server_name}/{media_id}/{filename}` | 带文件名下载                                                   | 同上              |
+| GET  | `/_matrix/media/v1/quota/check`                                  | 配额检查                                                       | 用户              |
+| GET  | `/_matrix/media/v1/quota/stats`                                  | 配额统计                                                       | 用户              |
+| GET  | `/_matrix/media/v1/quota/alerts`                                 | 配额告警                                                       | 用户              |
+| POST | `/_matrix/media/v3/upload`                                       | 现代上传                                                       | 用户              |
+| PUT  | `/_matrix/media/v3/upload/{server_name}/{media_id}`              | 具名上传；要求本机 `server_name`，并按路径中的 `media_id` 落盘 | 用户              |
+| GET  | `/_matrix/media/v3/download/{server_name}/{media_id}`            | 下载                                                           | 公开/按处理器逻辑 |
+| GET  | `/_matrix/media/v3/download/{server_name}/{media_id}/{filename}` | 带文件名下载                                                   | 同上              |
+| GET  | `/_matrix/media/v3/thumbnail/{server_name}/{media_id}`           | 缩略图                                                         | 公开/按处理器逻辑 |
+| POST | `/_matrix/media/r0/upload`                                       | 兼容上传                                                       | 用户              |
+| GET  | `/_matrix/media/r1/download/{server_name}/{media_id}`            | 兼容下载                                                       | 公开/按处理器逻辑 |
+| GET  | `/_matrix/media/r1/download/{server_name}/{media_id}/{filename}` | 兼容带文件名下载                                               | 同上              |
 
 ## 代码中可见稳定响应
 
-| 路径                | 响应要点                                                                                                 |
-| ------------------- | -------------------------------------------------------------------------------------------------------- |
-| `GET /config`       | `{ "m.upload.size": 52428800 }`                                                                          |
-| `GET /quota/check`  | `limit` `used` `remaining` `rule`                                                                        |
-| `GET /quota/stats`  | `user_id` `storage_bytes` `media_count` `limit_bytes` `statistics`                                       |
-| `GET /quota/alerts` | `{ "alerts": [...] }`，告警项含 `alert_id` `alert_type` `threshold_percent` 等                           |
-| 上传接口            | service 返回上传结果对象；具名上传会保留路径中的 `media_id`，重复 ID 返回冲突                           |
-| `GET /preview_url`  | 成功时返回 preview 对象；抓取失败时仍返回 JSON 对象，字段退化为 `url/title/description`                  |
-| `POST /delete/...`  | 返回 `{ "deleted": true, "media_id": string }`                                                           |
-| 下载接口            | 成功时返回二进制响应；失败时返回 JSON 错误体并携带匹配的 HTTP 状态码                                     |
+| 路径                | 响应要点                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| `GET /config`       | `{ "m.upload.size": 52428800 }`                                                         |
+| `GET /quota/check`  | `limit` `used` `remaining` `rule`                                                       |
+| `GET /quota/stats`  | `user_id` `storage_bytes` `media_count` `limit_bytes` `statistics`                      |
+| `GET /quota/alerts` | `{ "alerts": [...] }`，告警项含 `alert_id` `alert_type` `threshold_percent` 等          |
+| 上传接口            | service 返回上传结果对象；具名上传会保留路径中的 `media_id`，重复 ID 返回冲突           |
+| `GET /preview_url`  | 成功时返回 preview 对象；抓取失败时仍返回 JSON 对象，字段退化为 `url/title/description` |
+| `POST /delete/...`  | 返回 `{ "deleted": true, "media_id": string }`                                          |
+| 下载接口            | 成功时返回二进制响应；失败时返回 JSON 错误体并携带匹配的 HTTP 状态码                    |
 
 ## 请求体与请求参数
 

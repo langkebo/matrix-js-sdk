@@ -38,6 +38,7 @@ try {
     indexedDB = globalThis.indexedDB;
 } catch (error) {
     // IndexedDB may not be available in some environments (e.g., private browsing)
+    // eslint-disable-next-line no-console
     console.warn("IndexedDB not available, crypto store will not be initialized", error);
 }
 

@@ -454,7 +454,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * 获取数据约束常量
      */
-    public static getConstraints() {
+    public static getConstraints(): {
+        USERNAME_MAX_LENGTH: number;
+        PASSWORD_MAX_LENGTH: number;
+        DEVICE_ID_LENGTH: number;
+    } {
         return {
             USERNAME_MAX_LENGTH,
             PASSWORD_MAX_LENGTH,

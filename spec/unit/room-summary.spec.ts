@@ -69,7 +69,9 @@ describe("RoomSummaryManager", () => {
 
         it("should throw on error when throwOnError is true", async () => {
             authedRequest.mockRejectedValue(new Error("Not found"));
-            await expect(summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true)).rejects.toThrow();
+            await expect(
+                summaryManager.getRoomSummary("!unknown2:example.com", undefined, true, true),
+            ).rejects.toThrow();
         });
     });
 

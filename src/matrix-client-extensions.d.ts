@@ -206,6 +206,12 @@ export interface MatrixClientExtensionMethods {
     getUserReportManager(): import("./user-report/index").UserReportManager;
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
+    getEventReportManager(): import("./event-report/index").EventReportManager;
+    getFeatureFlagManager(): import("./feature-flags/index").FeatureFlagManager;
+    getModerationManager(): import("./moderation/index").ModerationManager;
+    getVerificationManager(): import("./verification/index").VerificationManager;
+    getCasManager(): import("./cas/index").CasManager;
+    getE2EEManager(): import("./e2ee/index").E2EEManager;
 }
 
 /**

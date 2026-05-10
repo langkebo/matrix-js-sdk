@@ -17,6 +17,7 @@
 ### ✅ 3.1 建立版本策略
 
 **成果**:
+
 - ✅ 创建完整的版本策略文档（`docs/VERSION_POLICY.md`）
 - ✅ 定义语义化版本规范
 - ✅ 明确 API 弃用周期（3 个阶段）
@@ -25,32 +26,29 @@
 **版本策略内容**:
 
 1. **语义化版本**
-   - MAJOR: 破坏性变更
-   - MINOR: 向后兼容的新功能
-   - PATCH: 向后兼容的 bug 修复
+    - MAJOR: 破坏性变更
+    - MINOR: 向后兼容的新功能
+    - PATCH: 向后兼容的 bug 修复
 
 2. **弃用周期**
-   - 标记阶段（当前版本）
-   - 警告阶段（至少 2 个 minor 版本）
-   - 移除阶段（下一个 major 版本）
+    - 标记阶段（当前版本）
+    - 警告阶段（至少 2 个 minor 版本）
+    - 移除阶段（下一个 major 版本）
 
 3. **弃用工具**
-   ```typescript
-   deprecationWarning(
-       "getUsers()",
-       "getUsersPaginated()",
-       "v41.0.0",
-       "https://example.com/migration"
-   );
-   ```
+    ```typescript
+    deprecationWarning("getUsers()", "getUsersPaginated()", "v41.0.0", "https://example.com/migration");
+    ```
 
 **新增文件**:
+
 - `/docs/VERSION_POLICY.md` - 版本策略文档（400+ 行）
 - `/src/utils/deprecation.ts` - 弃用警告工具
 
 ### ✅ 3.2 减少代码重复
 
 **成果**:
+
 - ✅ 创建通用工具函数（`src/admin/utils.ts`）
 - ✅ 提取查询参数构建逻辑
 - ✅ 重构 `getUsers()` 和 `getRooms()` 方法
@@ -76,7 +74,7 @@ if (limit !== undefined) {
 const response = await this.adminRequest(
     Method.Get,
     "/v2/users",
-    Object.keys(queryParams).length > 0 ? queryParams : undefined
+    Object.keys(queryParams).length > 0 ? queryParams : undefined,
 );
 
 // 改进后（使用工具函数）
@@ -84,19 +82,17 @@ if (limit !== undefined) {
     AdminValidators.validateLimit(limit);
 }
 const queryParams = buildPaginationParams(from, limit);
-const response = await this.adminRequest(
-    Method.Get,
-    "/v2/users",
-    buildQueryParams(queryParams)
-);
+const response = await this.adminRequest(Method.Get, "/v2/users", buildQueryParams(queryParams));
 ```
 
 **新增文件**:
+
 - `/src/admin/utils.ts` - Admin 工具函数
 
 ### ✅ 3.3 更新 CLAUDE.md
 
 **成果**:
+
 - ✅ 添加 Admin 模块架构说明
 - ✅ 添加代码质量标准
 - ✅ 添加最佳实践指南
@@ -105,22 +101,22 @@ const response = await this.adminRequest(
 **新增内容**:
 
 1. **Admin 模块架构**
-   - 核心组件说明
-   - 关键特性列表
-   - 安全性说明
-   - API 设计原则
-   - 文档链接
+    - 核心组件说明
+    - 关键特性列表
+    - 安全性说明
+    - API 设计原则
+    - 文档链接
 
 2. **代码质量标准**
-   - 错误处理规范
-   - 输入验证规范
-   - API 设计规范
-   - 类型安全规范
+    - 错误处理规范
+    - 输入验证规范
+    - API 设计规范
+    - 类型安全规范
 
 3. **最佳实践**
-   - 新功能开发指南
-   - 重构指南
-   - 测试指南
+    - 新功能开发指南
+    - 重构指南
+    - 测试指南
 
 ---
 
@@ -129,45 +125,45 @@ const response = await this.adminRequest(
 ### Phase 1: 架构优化（P0 - Critical）✅
 
 1. **增强输入验证** ✅
-   - ValidationError 类
-   - AdminValidators 工具类
-   - 7 个方法添加验证
-   - 9 个边界条件测试
+    - ValidationError 类
+    - AdminValidators 工具类
+    - 7 个方法添加验证
+    - 9 个边界条件测试
 
 ### Phase 2: 代码质量优化（P1 - High）✅
 
 1. **添加使用示例文档** ✅
-   - 10+ 个方法有 @example
-   - 600+ 行使用指南
-   - README 更新
+    - 10+ 个方法有 @example
+    - 600+ 行使用指南
+    - README 更新
 
 2. **完善类型定义** ✅
-   - WhoisResponse 类型
-   - 消除 any 类型
+    - WhoisResponse 类型
+    - 消除 any 类型
 
 3. **清理吞错模式** ✅
-   - 清理 5 处空捕获块
-   - 添加显式错误处理
+    - 清理 5 处空捕获块
+    - 添加显式错误处理
 
 4. **统一 API 返回值格式** ✅
-   - PaginatedResponse<T> 类型
-   - getUsersPaginated() 方法
-   - getRoomsPaginated() 方法
+    - PaginatedResponse<T> 类型
+    - getUsersPaginated() 方法
+    - getRoomsPaginated() 方法
 
 ### Phase 3: 可维护性优化（P2 - Medium）✅
 
 1. **建立版本策略** ✅
-   - 版本策略文档
-   - 弃用警告工具
+    - 版本策略文档
+    - 弃用警告工具
 
 2. **减少代码重复** ✅
-   - Admin 工具函数
-   - 重构分页方法
+    - Admin 工具函数
+    - 重构分页方法
 
 3. **更新 CLAUDE.md** ✅
-   - Admin 架构说明
-   - 代码质量标准
-   - 最佳实践指南
+    - Admin 架构说明
+    - 代码质量标准
+    - 最佳实践指南
 
 ---
 
@@ -175,39 +171,40 @@ const response = await this.adminRequest(
 
 ### 代码质量
 
-| 指标 | 改进前 | 改进后 | 提升 |
-|------|--------|--------|------|
-| 输入验证覆盖 | 0% | 100% | +100% |
-| 边界条件测试 | 0 个 | 9 个 | +9 |
-| 方法文档示例 | 0 个 | 10+ 个 | +10+ |
-| `any` 类型使用 | 1 个 | 0 个 | -1 |
-| 吞错模式 | 5 处 | 0 处 | -5 |
-| 代码重复 | 高 | 低 | ⬇️ |
-| API 一致性 | 低 | 高 | ⬆️ |
-| 版本策略 | 无 | 完整 | ✅ |
+| 指标           | 改进前 | 改进后 | 提升  |
+| -------------- | ------ | ------ | ----- |
+| 输入验证覆盖   | 0%     | 100%   | +100% |
+| 边界条件测试   | 0 个   | 9 个   | +9    |
+| 方法文档示例   | 0 个   | 10+ 个 | +10+  |
+| `any` 类型使用 | 1 个   | 0 个   | -1    |
+| 吞错模式       | 5 处   | 0 处   | -5    |
+| 代码重复       | 高     | 低     | ⬇️    |
+| API 一致性     | 低     | 高     | ⬆️    |
+| 版本策略       | 无     | 完整   | ✅    |
 
 ### 测试覆盖
 
-| 测试类型 | 数量 | 状态 |
-|---------|------|------|
-| 单元测试 | 113 | ✅ 全部通过 |
-| 边界条件测试 | 9 | ✅ 全部通过 |
-| 类型检查 | - | ✅ 通过 |
+| 测试类型     | 数量 | 状态        |
+| ------------ | ---- | ----------- |
+| 单元测试     | 113  | ✅ 全部通过 |
+| 边界条件测试 | 9    | ✅ 全部通过 |
+| 类型检查     | -    | ✅ 通过     |
 
 ### 文档完整性
 
-| 文档类型 | 状态 |
-|---------|------|
+| 文档类型        | 状态          |
+| --------------- | ------------- |
 | 方法级 @example | ✅ 10+ 个方法 |
-| 方法级 @throws | ✅ 所有方法 |
-| Admin 使用指南 | ✅ 600+ 行 |
-| 版本策略文档 | ✅ 400+ 行 |
-| README 说明 | ✅ 已添加 |
-| CLAUDE.md | ✅ 已更新 |
+| 方法级 @throws  | ✅ 所有方法   |
+| Admin 使用指南  | ✅ 600+ 行    |
+| 版本策略文档    | ✅ 400+ 行    |
+| README 说明     | ✅ 已添加     |
+| CLAUDE.md       | ✅ 已更新     |
 
 ### 新增/修改文件
 
 **新增文件** (9 个):
+
 1. `/src/errors.ts` - ValidationError 类
 2. `/src/admin/validators.ts` - 验证工具类（135 行）
 3. `/src/admin/utils.ts` - Admin 工具函数
@@ -219,6 +216,7 @@ const response = await this.adminRequest(
 9. `/docs/SDK_OPTIMIZATION_FINAL_2026-04-15.md` - Phase 1&2 最终报告
 
 **修改文件** (8 个):
+
 1. `/src/admin/index.ts` - 验证、文档、类型、统一 API、工具函数
 2. `/spec/unit/admin.spec.ts` - 测试用例
 3. `/README.md` - Admin 模块说明
@@ -235,27 +233,27 @@ const response = await this.adminRequest(
 ### 防护措施
 
 1. **格式验证**
-   - 用户 ID: `@localpart:homeserver`
-   - 房间 ID: `!localpart:homeserver`
-   - 防止 SQL 注入、XSS 等攻击
+    - 用户 ID: `@localpart:homeserver`
+    - 房间 ID: `!localpart:homeserver`
+    - 防止 SQL 注入、XSS 等攻击
 
 2. **边界检查**
-   - limit 参数: 1-10000
-   - 防止资源耗尽攻击
+    - limit 参数: 1-10000
+    - 防止资源耗尽攻击
 
 3. **错误处理**
-   - 清晰的验证错误信息
-   - 显式的错误日志记录
-   - 不再静默忽略错误
+    - 清晰的验证错误信息
+    - 显式的错误日志记录
+    - 不再静默忽略错误
 
 ### 攻击面减少
 
-| 攻击类型 | 改进前 | 改进后 |
-|---------|--------|--------|
-| 注入攻击 | 高风险 | 低风险 ✅ |
+| 攻击类型 | 改进前 | 改进后      |
+| -------- | ------ | ----------- |
+| 注入攻击 | 高风险 | 低风险 ✅   |
 | 格式错误 | 未检测 | 提前拦截 ✅ |
-| 资源耗尽 | 可能 | 已防护 ✅ |
-| 错误泄露 | 可能 | 已控制 ✅ |
+| 资源耗尽 | 可能   | 已防护 ✅   |
+| 错误泄露 | 可能   | 已控制 ✅   |
 
 ---
 
@@ -264,11 +262,13 @@ const response = await this.adminRequest(
 ### 版本管理
 
 **改进前**:
+
 - ❌ 无明确的版本策略
 - ❌ 无弃用周期定义
 - ❌ 无迁移指南
 
 **改进后**:
+
 - ✅ 完整的版本策略文档
 - ✅ 明确的弃用周期（3 个阶段）
 - ✅ 弃用警告工具
@@ -277,10 +277,12 @@ const response = await this.adminRequest(
 ### 代码复用
 
 **改进前**:
+
 - ❌ 查询参数构建代码重复
 - ❌ 每个方法都重复相同逻辑
 
 **改进后**:
+
 - ✅ 提取通用工具函数
 - ✅ 减少代码重复约 30 行
 - ✅ 更易于维护和扩展
@@ -288,11 +290,13 @@ const response = await this.adminRequest(
 ### 文档完整性
 
 **改进前**:
+
 - ❌ 无 Admin 架构说明
 - ❌ 无代码质量标准
 - ❌ 无最佳实践指南
 
 **改进后**:
+
 - ✅ 完整的 Admin 架构说明
 - ✅ 明确的代码质量标准
 - ✅ 详细的最佳实践指南
@@ -305,6 +309,7 @@ const response = await this.adminRequest(
 ### 文档改进
 
 **改进前**:
+
 - ❌ 无使用示例
 - ❌ 无错误处理说明
 - ❌ 无最佳实践指导
@@ -312,6 +317,7 @@ const response = await this.adminRequest(
 - ❌ API 返回值不一致
 
 **改进后**:
+
 - ✅ 10+ 个方法有详细示例
 - ✅ 完整的错误处理文档
 - ✅ 最佳实践指导
@@ -325,6 +331,7 @@ const response = await this.adminRequest(
 ### API 一致性
 
 **改进前**:
+
 ```typescript
 // 不一致的返回值格式
 getUsers() => { users: [], next_token: "" }
@@ -337,6 +344,7 @@ if (limit) queryParams["limit"] = String(limit);
 ```
 
 **改进后**:
+
 ```typescript
 // 统一的返回值格式
 getUsersPaginated() => { items: [], nextToken: "" }
@@ -352,25 +360,25 @@ const queryParams = buildPaginationParams(from, limit);
 
 ### 完成情况
 
-| Phase | 任务数 | 完成数 | 完成率 |
-|-------|--------|--------|--------|
-| Phase 1 | 1 | 1 | 100% |
-| Phase 2 | 4 | 4 | 100% |
-| Phase 3 | 3 | 3 | 100% |
-| **总计** | **8** | **8** | **100%** |
+| Phase    | 任务数 | 完成数 | 完成率   |
+| -------- | ------ | ------ | -------- |
+| Phase 1  | 1      | 1      | 100%     |
+| Phase 2  | 4      | 4      | 100%     |
+| Phase 3  | 3      | 3      | 100%     |
+| **总计** | **8**  | **8**  | **100%** |
 
 ### 代码统计
 
-| 维度 | 数值 |
-|------|------|
-| 新增文件 | 9 个 |
-| 修改文件 | 8 个 |
-| 新增代码行数 | ~1500 行 |
-| 新增文档行数 | ~1000 行 |
-| 清理的吞错 | 5 处 |
-| 减少的重复代码 | ~30 行 |
-| 新增测试 | 9 个 |
-| 测试通过率 | 100% (113/113) |
+| 维度           | 数值           |
+| -------------- | -------------- |
+| 新增文件       | 9 个           |
+| 修改文件       | 8 个           |
+| 新增代码行数   | ~1500 行       |
+| 新增文档行数   | ~1000 行       |
+| 清理的吞错     | 5 处           |
+| 减少的重复代码 | ~30 行         |
+| 新增测试       | 9 个           |
+| 测试通过率     | 100% (113/113) |
 
 ---
 
@@ -381,12 +389,12 @@ const queryParams = buildPaginationParams(from, limit);
 **预计时间**: 3-4 周
 
 1. **拆分 AdminManager** (3 天)
-   - 创建 6 个子管理器
-   - 保持向后兼容
+    - 创建 6 个子管理器
+    - 保持向后兼容
 
 2. **修复依赖漏洞** (1 天)
-   - 升级 vitest/vite
-   - 添加 CI 安全检查
+    - 升级 vitest/vite
+    - 添加 CI 安全检查
 
 ### Phase 2: 剩余工作
 
@@ -401,45 +409,47 @@ const queryParams = buildPaginationParams(from, limit);
 ### 对开发者
 
 1. **使用新的统一 API**
-   ```typescript
-   // 推荐
-   const result = await adminManager.getUsersPaginated({ limit: 50 });
-   ```
+
+    ```typescript
+    // 推荐
+    const result = await adminManager.getUsersPaginated({ limit: 50 });
+    ```
 
 2. **使用验证器**
-   ```typescript
-   AdminValidators.validateUserId(userId);
-   ```
+
+    ```typescript
+    AdminValidators.validateUserId(userId);
+    ```
 
 3. **处理错误**
-   ```typescript
-   catch (error) {
-       if (error instanceof ValidationError) {
-           console.error("Invalid input:", error.message);
-       }
-   }
-   ```
+    ```typescript
+    catch (error) {
+        if (error instanceof ValidationError) {
+            console.error("Invalid input:", error.message);
+        }
+    }
+    ```
 
 ### 对维护者
 
 1. **添加新方法时**
-   - 使用 AdminValidators 验证输入
-   - 添加 @example 和 @throws 文档
-   - 添加边界条件测试
-   - 使用统一的返回值格式
-   - 使用工具函数减少重复
+    - 使用 AdminValidators 验证输入
+    - 添加 @example 和 @throws 文档
+    - 添加边界条件测试
+    - 使用统一的返回值格式
+    - 使用工具函数减少重复
 
 2. **修改现有方法时**
-   - 保持向后兼容
-   - 标记旧方法为 @deprecated
-   - 提供迁移路径
-   - 更新测试用例
-   - 更新文档
+    - 保持向后兼容
+    - 标记旧方法为 @deprecated
+    - 提供迁移路径
+    - 更新测试用例
+    - 更新文档
 
 3. **错误处理**
-   - 不要使用空的 catch 块
-   - 添加日志记录
-   - 提供清晰的错误信息
+    - 不要使用空的 catch 块
+    - 添加日志记录
+    - 提供清晰的错误信息
 
 ---
 
@@ -448,23 +458,27 @@ const queryParams = buildPaginationParams(from, limit);
 ### 主要成果
 
 ✅ **安全性显著提升**
+
 - 完整的输入验证
 - 防止注入攻击
 - 清晰的错误信息
 
 ✅ **代码质量大幅提升**
+
 - 清理了所有吞错模式
 - 统一了 API 返回值格式
 - 消除了 any 类型
 - 减少了代码重复
 
 ✅ **可维护性大幅提升**
+
 - 完整的版本策略
 - 弃用警告工具
 - 通用工具函数
 - 完善的文档
 
 ✅ **文档完整性大幅提升**
+
 - 10+ 个方法有详细示例
 - 600+ 行的使用指南
 - 400+ 行的版本策略
@@ -472,6 +486,7 @@ const queryParams = buildPaginationParams(from, limit);
 - CLAUDE.md 全面更新
 
 ✅ **测试覆盖增强**
+
 - 新增 9 个边界条件测试
 - 所有测试通过（113/113）
 - 类型检查通过

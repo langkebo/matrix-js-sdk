@@ -2,7 +2,8 @@ import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
-import { ValidationError } from "../errors";
+import { Method } from "../http-api";
+import * as utils from "../utils";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -34,11 +35,11 @@ export class TypingManager extends BaseManager {
      *
      * @param roomId - 房间 ID（格式：!localpart:homeserver）
      * @param options - 选项
-     * @param options.timeout - 超时时间（毫秒，默认 10000）
+     * @param options.timeout - 超时时间（毫秒，默认 30000，与后端 `typing.rs` 默认值一致）
      *
      * @example
      * ```typescript
-     * // 开始打字（默认 10 秒超时）
+     * // 开始打字（默认 30 秒超时）
      * await typingManager.startTyping("!abc:example.com");
      *
      * // 自定义超时时间
@@ -54,7 +55,7 @@ export class TypingManager extends BaseManager {
      */
     async startTyping(roomId: string, options?: TypingOptions): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        const timeout = options?.timeout || 10000;
+        const timeout = options?.timeout || 30000;
 
         // 清除之前的定时器
         const timerKey = `${roomId}`;
@@ -166,6 +167,71 @@ export class TypingManager extends BaseManager {
     async isUserTyping(roomId: string, userId: string): Promise<boolean> {
         const users = await this.getTypingUsers(roomId);
         return users.some((u) => u.userId === userId);
+    }
+
+    /**
+     * 从服务器拉取房间内正在打字的用户列表（GET /rooms/{room_id}/typing）。
+     *
+     * 与 `getTypingUsers` 不同，此方法绕过本地 `m.typing` 缓存，直接向后端
+     * 发起请求，适用于 sync 还未完成或需要实时数据的场景。
+     */
+    async fetchTypingUsers(roomId: string): Promise<TypingUser[]> {
+        AdminValidators.validateRoomId(roomId);
+        const path = utils.encodeUri("/rooms/$roomId/typing", { $roomId: roomId });
+        const response = await this.client.http.authedRequest<{ typing?: string[] }>(
+            Method.Get,
+            path,
+            undefined,
+            undefined,
+        );
+        const users = Array.isArray(response?.typing) ? response.typing : [];
+        return users.map((userId) => ({ userId, timeout: 30000 }));
+    }
+
+    /**
+     * 查询单个用户是否在某个房间内打字（GET /rooms/{room_id}/typing/{user_id}）。
+     */
+    async fetchUserTyping(roomId: string, userId: string): Promise<boolean> {
+        AdminValidators.validateRoomId(roomId);
+        AdminValidators.validateUserId(userId);
+        const path = utils.encodeUri("/rooms/$roomId/typing/$userId", {
+            $roomId: roomId,
+            $userId: userId,
+        });
+        const response = await this.client.http.authedRequest<{ typing?: boolean }>(
+            Method.Get,
+            path,
+            undefined,
+            undefined,
+        );
+        return response?.typing === true;
+    }
+
+    /**
+     * 批量查询多个房间的打字状态（POST /rooms/typing）。
+     *
+     * 返回值为 roomId -> TypingUser[] 的映射。
+     */
+    async fetchRoomsTyping(rooms: string[]): Promise<Map<string, TypingUser[]>> {
+        for (const roomId of rooms) {
+            AdminValidators.validateRoomId(roomId);
+        }
+        const response = await this.client.http.authedRequest<Record<string, { typing?: string[] }>>(
+            Method.Post,
+            "/rooms/typing",
+            undefined,
+            { rooms },
+        );
+
+        const result = new Map<string, TypingUser[]>();
+        for (const [roomId, entry] of Object.entries(response ?? {})) {
+            const users = Array.isArray(entry?.typing) ? entry.typing : [];
+            result.set(
+                roomId,
+                users.map((userId) => ({ userId, timeout: 30000 })),
+            );
+        }
+        return result;
     }
 
     /**

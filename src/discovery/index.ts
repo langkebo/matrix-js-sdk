@@ -149,16 +149,14 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getPublicRooms(limit?: number, since?: string, server?: string): Promise<PublicRoomsResponse> {
+        if (typeof this.client.publicRooms === "function") {
+            return this.client.publicRooms({ limit, since, server }) as Promise<PublicRoomsResponse>;
+        }
+
         const queryParams: Record<string, string | number> = {};
-        if (limit !== undefined) {
-            queryParams.limit = limit;
-        }
-        if (since !== undefined) {
-            queryParams.since = since;
-        }
-        if (server !== undefined) {
-            queryParams.server = server;
-        }
+        if (limit !== undefined) queryParams.limit = limit;
+        if (since !== undefined) queryParams.since = since;
+        if (server !== undefined) queryParams.server = server;
         return this.client.http.authedRequest<PublicRoomsResponse>(Method.Get, "/publicRooms", queryParams);
     }
 
@@ -167,13 +165,13 @@ export class DiscoveryManager extends BaseManager {
         limit?: number,
         since?: string,
     ): Promise<PublicRoomsResponse> {
+        if (typeof this.client.publicRooms === "function") {
+            return this.client.publicRooms({ limit, since, filter }) as Promise<PublicRoomsResponse>;
+        }
+
         const queryParams: Record<string, string | number> = {};
-        if (limit !== undefined) {
-            queryParams.limit = limit;
-        }
-        if (since !== undefined) {
-            queryParams.since = since;
-        }
+        if (limit !== undefined) queryParams.limit = limit;
+        if (since !== undefined) queryParams.since = since;
         return this.client.http.authedRequest<PublicRoomsResponse>(Method.Post, "/publicRooms", queryParams, {
             filter,
         });

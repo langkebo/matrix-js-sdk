@@ -1,6 +1,38 @@
+---
+umbrella: true
+umbrella_sources:
+    - synapse-rust/src/web/routes/assembly.rs
+    - synapse-rust/src/web/routes/admin/mod.rs
+    - docs/api-contract/README.md
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Auth / Account / Discovery 契约
 
 > 审查范围覆盖 `assembly.rs` 中的 auth、account、directory 兼容路由，以及顶层版本/发现端点。
+
+## Umbrella 固定治理方案
+
+- `auth.md` 明确作为跨领域 umbrella 文档存在，不再要求它与单一 `generated/modules/*.json` 做 1:1 绑定。
+- 该文档的权威来源固定为四类装配面:
+    - `assembly.rs` 中的 auth / account / directory 顶层挂载
+    - 顶层公开发现端点（`versions`、`well-known`、`server_version`、`health`）
+    - 与认证闭环强耦合、但按功能分散挂载的扩展面（如 `keys/*`、`voip/*`、`search`、`sendToDevice`、`users/{user_id}/report`）
+    - `README.md` 中对 auth umbrella 的目录级说明
+- 固定校验口径如下：
+    - 路由枚举以 `assembly.rs` 实际装配结果为准，不以历史专项文档为准
+    - 认证语义以 `AuthenticatedUser` / `OptionalAuthenticatedUser` / appservice / public 路径的真实提取器为准
+    - SDK 映射以当前 `AuthManager`、`AccountManager`、`DiscoveryManager`、`QrLoginManager`、`UserReportManager` 和 `MatrixClient` 暴露面为准
+    - 新增认证相关路由时，允许继续归档到 `auth.md`，前提是它满足“跨 auth/account/directory/discovery 共用治理语义”，否则必须拆到独立模块文档
+- 因此，本页采用“**umbrella 固定方案**”而非“单模块 frontmatter pin”：
+    - `generated/modules/*.json` 的 **47/47** 单模块 pin 继续保持
+    - `auth.md` 作为 **1 个治理型 umbrella 页面** 单独计入闭环
+    - `docs/api-contract/README.md` 作为 **1 个目录索引页** 单独计入闭环
+- 以上口径下，文档层理论完整度记为 **49/49**，其中：
+    - `47` 个模块页为 machine-pinned
+    - `1` 个 umbrella 页为 governed-fixed
+    - `1` 个目录页为 index-governed
 
 ## 路由挂载概览
 

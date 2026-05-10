@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { EventType } from "../@types/event";
 import { BaseManager } from "../managers/base-manager";
 import { MatrixError } from "../http-api/errors";
+import { NotFoundError } from "../errors";
 import type { IPowerLevelsContent } from "../models/room-state";
 import type { ISendEventResponse } from "../@types/requests";
 import type { IContent } from "../models/event";
@@ -76,7 +77,12 @@ export class StateSendManager extends BaseManager<keyof StateSendManagerEvents, 
                     "",
                 )) as IPowerLevelsContent;
             } catch (e: unknown) {
-                if (e instanceof MatrixError && e.errcode === "M_NOT_FOUND") {
+                const notFound =
+                    e instanceof NotFoundError ||
+                    (e instanceof MatrixError && e.errcode === "M_NOT_FOUND") ||
+                    (e as { errorCode?: string; statusCode?: number })?.errorCode === "M_NOT_FOUND" ||
+                    (e as { statusCode?: number })?.statusCode === 404;
+                if (notFound) {
                     content = {};
                 } else {
                     throw e;

@@ -1,0 +1,51 @@
+[debug] Comparing join: /_matrix/client/{}/join/{} vs /_matrix/client/{}/rooms/{}/join
+[debug] Comparing join: /_matrix/client/{}/rooms/{}/joined_members vs /_matrix/client/{}/rooms/{}/joined_members
+[debug] Comparing join: /_matrix/client/{}/rooms/{}/joined_members vs /_matrix/client/{}/rooms/{}/joined_members
+[debug] Comparing join: /_matrix/client/{}/joined_rooms vs /_matrix/client/{}/joined_rooms
+[debug] Comparing join: /_matrix/client/{}/rooms/{}/joined_members vs /_matrix/client/{}/joined_rooms
+[debug] Comparing join: /_matrix/client/{}/rooms/{}/joined_members vs /_matrix/client/{}/joined_rooms
+[debug] Comparing join: /_matrix/client/{}/joined_rooms vs /_matrix/client/{}/joined_rooms
+[debug] MISSING: POST /_matrix/client/{r0,v3}/keys/device_list/update
+[debug]   Checked 290 backend routes
+[debug]   Found whoami in backend: GET /_matrix/client/v1/account/whoami
+[debug] Comparing join: /_matrix/client/{}/rooms/{}/join vs /_matrix/client/{}/rooms/{}/join
+[debug] MISSING: GET /_matrix/client/{v1,v3}/rooms/{}/context/{}
+[debug]   Checked 587 backend routes
+[debug]   Found whoami in backend: GET /_matrix/client/v1/account/whoami
+[debug] Comparing join: /_matrix/client/{}/rooms/{}/joined_members vs /_matrix/client/{}/rooms/{}/joined_members
+[debug] MISSING: GET /_matrix/client/{v1,v3}/rooms/{}/hierarchy
+[debug]   Checked 587 backend routes
+[debug]   Found whoami in backend: GET /_matrix/client/v1/account/whoami
+[debug] Comparing join: /_matrix/client/{}/joined_rooms vs /_matrix/client/{}/joined_rooms
+[debug] Comparing join: /_matrix/client/{}/joined_rooms vs /_matrix/client/{}/joined_rooms
+[sdk-contract-alignment] contract alignment check failed
+[sdk-contract-alignment] missing SDK methods referenced by docs:
+- docs/api-contract/auth.md:384 -> ThreePidsManager.addThreePid()
+- docs/api-contract/room.md:145 -> RoomEventsManager.sendEvent()
+- docs/api-contract/room.md:147 -> RoomEventsManager.getEventContext()
+- docs/api-contract/room.md:150 -> RoomManager.getHierarchy()
+- docs/api-contract/sync.md:157 -> SlidingSync.sync()
+[sdk-contract-alignment] semantic (DTO field) mismatches detected:
+- docs/api-contract/device.md:70 -> POST /_matrix/client/{r0,v3}/keys/device_list/update via DeviceManager.getDeviceListUpdates()
+  reason: SDK missing interface DeviceListUpdatesResponse
+[sdk-contract-alignment] documented method-to-endpoint mappings do not match traced request paths:
+- docs/api-contract/room.md:136 -> POST /_matrix/client/{r0,v3}/rooms/{}/join via RoomManager.joinRoom()
+  traced: POST /_matrix/client/v3/join/{}
+[sdk-contract-alignment] unable to parse backend route files referenced by docs:
+- docs/api-contract/auth.md -> no public router factory or manifest found
+- docs/api-contract/auth.md -> backend file not found: ../synapse-rust/src/web/routes/profile.rs
+- docs/api-contract/auth.md -> no public router factory or manifest found
+- docs/api-contract/auth.md -> no public router factory or manifest found
+- docs/api-contract/auth.md -> no public router factory or manifest found
+[sdk-contract-alignment] documented endpoints not found in referenced backend route files:
+- docs/api-contract/device.md:54 -> POST /_matrix/client/{r0,v3}/keys/device_list/update (../synapse-rust/src/web/routes/device.rs, ../synapse-rust/src/web/routes/assembly.rs)
+- docs/api-contract/room.md:84 -> GET /_matrix/client/{v1,v3}/rooms/{}/context/{} (../synapse-rust/src/web/routes/room.rs, ../synapse-rust/src/web/routes/assembly.rs, ../synapse-rust/src/web/routes/handlers/search.rs, ../synapse-rust/src/web/routes/moderation.rs, ../synapse-rust/src/web/routes/typing.rs)
+- docs/api-contract/room.md:108 -> GET /_matrix/client/{v1,v3}/rooms/{}/hierarchy (../synapse-rust/src/web/routes/room.rs, ../synapse-rust/src/web/routes/assembly.rs, ../synapse-rust/src/web/routes/handlers/search.rs, ../synapse-rust/src/web/routes/moderation.rs, ../synapse-rust/src/web/routes/typing.rs)
+[sdk-contract-alignment] remediation hints:
+- keep `SDK 对齐状态` tables using either `Owner.method()` or split `SDK Manager` / `SDK 方法` columns
+- keep `后端端点` rows in `METHOD /path` format and ensure they map to a detailed `**路径**` entry
+- update docs when the source symbol name changes
+- update docs when a method is implemented via a different backend route than documented
+- keep doc `> 后端代码:` pointers pointing at concrete synapse-rust route files
+- keep critical managers extending BaseManager and avoid reintroducing private retry/error helpers
+- re-run: pnpm quality:sdk-contracts

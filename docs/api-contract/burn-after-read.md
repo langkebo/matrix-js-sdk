@@ -1,3 +1,11 @@
+---
+module: burn_after_read
+generated_from: docs/api-contract/generated/modules/burn_after_read.json
+generated_hash: sha256-3e0f8eff483c0741865e33ff0fb79c0ac470ca3bf10e99584416f16299bb7ba8
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Burn After Read API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/burn_after_read.rs`  
@@ -28,10 +36,11 @@ Burn After Read API 提供阅后即焚功能，消息在阅读后自动删除。
 **认证**: `AuthenticatedUser` + 房间成员
 
 **请求体**:
+
 ```json
 {
-  "enabled": true,
-  "timeout_ms": 60000
+    "enabled": true,
+    "timeout_ms": 60000
 }
 ```
 
@@ -43,10 +52,11 @@ Burn After Read API 提供阅后即焚功能，消息在阅读后自动删除。
 **认证**: `AuthenticatedUser` + 房间成员
 
 **响应**: `200 OK`
+
 ```typescript
 interface BurnConfig {
-  enabled: boolean;
-  timeout_ms: number;
+    enabled: boolean;
+    timeout_ms: number;
 }
 ```
 
@@ -56,12 +66,13 @@ interface BurnConfig {
 **认证**: `AuthenticatedUser` + 房间成员
 
 **响应**: `200 OK`
+
 ```typescript
 interface PendingBurnResponse {
-  events: Array<{
-    event_id: string;
-    burn_at: number;
-  }>;
+    events: Array<{
+        event_id: string;
+        burn_at: number;
+    }>;
 }
 ```
 
@@ -78,10 +89,11 @@ interface PendingBurnResponse {
 **认证**: `AuthenticatedUser`
 
 **请求体**:
+
 ```json
 {
-  "default_enabled": false,
-  "default_timeout_ms": 30000
+    "default_enabled": false,
+    "default_timeout_ms": 30000
 }
 ```
 
@@ -93,10 +105,11 @@ interface PendingBurnResponse {
 **认证**: `AuthenticatedUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface BurnStats {
-  total_burned: number;
-  rooms_with_burn: number;
+    total_burned: number;
+    rooms_with_burn: number;
 }
 ```
 
@@ -110,6 +123,6 @@ interface BurnStats {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

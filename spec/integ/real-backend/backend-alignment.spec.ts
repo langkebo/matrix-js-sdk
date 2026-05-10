@@ -118,7 +118,9 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             const resp = await friend.sendFriendRequest(target, "integration test");
             expect(resp).toBeTypeOf("object");
             if (resp) {
+                // eslint-disable-next-line @vitest/no-conditional-expect
                 expect(typeof resp.request_id === "string" || resp.request_id === undefined).toBe(true);
+                // eslint-disable-next-line @vitest/no-conditional-expect
                 expect(typeof resp.status === "string" || resp.status === undefined).toBe(true);
             }
             // cleanup — cancel so test is idempotent

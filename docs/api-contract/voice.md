@@ -1,3 +1,11 @@
+---
+module: voice
+generated_from: docs/api-contract/generated/modules/voice.json
+generated_hash: sha256-26abf93d652fe04187556c196046430c00c89948382d28b0acb66363fc3f5066
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Voice 模块契约
 
 > 版本: v1.0.0
@@ -97,25 +105,25 @@
 
 ## 常见状态码
 
-| 状态码 | 说明                                                                                    |
-| ------ | --------------------------------------------------------------------------------------- |
-| `200`  | 请求成功                                                                                |
-| `400`  | base64 无效、音频 MIME 非法、`duration_ms` 不合法、参数缺失，或 `convert` / `optimize` 当前未启用 |
-| `401`  | 需认证接口缺少或使用无效令牌                                                            |
+| 状态码 | 说明                                                                                                        |
+| ------ | ----------------------------------------------------------------------------------------------------------- |
+| `200`  | 请求成功                                                                                                    |
+| `400`  | base64 无效、音频 MIME 非法、`duration_ms` 不合法、参数缺失，或 `convert` / `optimize` 当前未启用           |
+| `401`  | 需认证接口缺少或使用无效令牌                                                                                |
 | `403`  | 跨用户读取用户级语音数据、非成员向他人房间上传语音、无权读取房间/消息级语音内容，或非所有者删除语音时被拒绝 |
-| `404`  | 语音消息不存在                                                                          |
-| `500`  | service 层或存储层内部错误                                                              |
+| `404`  | 语音消息不存在                                                                                              |
+| `500`  | service 层或存储层内部错误                                                                                  |
 
 ## SDK Manager 对应关系
 
-| 后端端点                                      | SDK Manager           | 方法                       | 现状                                                           |
-| --------------------------------------------- | --------------------- | -------------------------- | -------------------------------------------------------------- |
-| `POST /_matrix/client/r0/voice/upload`        | `VoiceMessageManager` | `uploadVoiceMessage()`     | ❌ SDK 走 `uploadContent()+sendEvent()`，未调用该后端端点      |
-| `GET /_matrix/client/r0/voice/stats`          | `VoiceMessageManager` | `getVoiceStats()`          | ❌ SDK 统计来自本地房间时间线，不调用后端                      |
-| `GET /_matrix/client/r0/voice/{message_id}`   | `VoiceMessageManager` | `getVoiceMessageInfo()`    | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端            |
-| `POST /_matrix/client/r0/voice/convert`       | `VoiceMessageManager` | `convertVoiceMessage()`    | ⚠️ SDK 路径与请求体已对齐，但后端当前显式返回未支持错误       |
-| `POST /_matrix/client/r0/voice/optimize`      | `VoiceMessageManager` | `optimizeVoiceMessage()`   | ⚠️ SDK 路径与请求体已对齐，但后端当前显式返回未支持错误       |
-| `POST /_matrix/client/v1/voice/transcription` | `VoiceMessageManager` | `transcribeVoiceMessage()` | ✅ 已改为发送 `event_id` / `mxc`，并映射后端稳定响应字段       |
+| 后端端点                                      | SDK Manager           | 方法                       | 现状                                                      |
+| --------------------------------------------- | --------------------- | -------------------------- | --------------------------------------------------------- |
+| `POST /_matrix/client/r0/voice/upload`        | `VoiceMessageManager` | `uploadVoiceMessage()`     | ❌ SDK 走 `uploadContent()+sendEvent()`，未调用该后端端点 |
+| `GET /_matrix/client/r0/voice/stats`          | `VoiceMessageManager` | `getVoiceStats()`          | ❌ SDK 统计来自本地房间时间线，不调用后端                 |
+| `GET /_matrix/client/r0/voice/{message_id}`   | `VoiceMessageManager` | `getVoiceMessageInfo()`    | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端       |
+| `POST /_matrix/client/r0/voice/convert`       | `VoiceMessageManager` | `convertVoiceMessage()`    | ⚠️ SDK 路径与请求体已对齐，但后端当前显式返回未支持错误   |
+| `POST /_matrix/client/r0/voice/optimize`      | `VoiceMessageManager` | `optimizeVoiceMessage()`   | ⚠️ SDK 路径与请求体已对齐，但后端当前显式返回未支持错误   |
+| `POST /_matrix/client/v1/voice/transcription` | `VoiceMessageManager` | `transcribeVoiceMessage()` | ✅ 已改为发送 `event_id` / `mxc`，并映射后端稳定响应字段  |
 
 ## 当前对齐结论
 

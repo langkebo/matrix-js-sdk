@@ -14,18 +14,19 @@
 **新增方法**:
 
 1. `getRoomTyping(roomId: string): Promise<string[]>`
-   - 端点: `GET /rooms/{room_id}/typing`
-   - 功能: 查询房间当前输入状态
-   - 状态: ✅ 代码已准备
+    - 端点: `GET /rooms/{room_id}/typing`
+    - 功能: 查询房间当前输入状态
+    - 状态: ✅ 代码已准备
 
 2. `getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>>`
-   - 端点: `POST /rooms/typing`
-   - 功能: 批量查询多个房间的输入状态
-   - 状态: ✅ 代码已准备
+    - 端点: `POST /rooms/typing`
+    - 功能: 批量查询多个房间的输入状态
+    - 状态: ✅ 代码已准备
 
 **实施位置**: `src/client.ts`
 
 **下一步**:
+
 1. 将方法添加到 MatrixClient 类
 2. 添加单元测试
 3. 更新 typing.md 契约文档
@@ -35,11 +36,11 @@
 
 ## 进度追踪
 
-| 模块 | 当前 | 目标 | 状态 |
-|------|------|------|------|
-| Typing | 33% | 100% | 🔄 进行中 |
-| Relations | 60% | 100% | ⏳ 待开始 |
-| Moderation | 25% | 75% | ⏳ 待开始 |
+| 模块       | 当前 | 目标 | 状态      |
+| ---------- | ---- | ---- | --------- |
+| Typing     | 33%  | 100% | 🔄 进行中 |
+| Relations  | 60%  | 100% | ⏳ 待开始 |
+| Moderation | 25%  | 75%  | ⏳ 待开始 |
 
 ---
 

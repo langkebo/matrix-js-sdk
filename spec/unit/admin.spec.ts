@@ -82,13 +82,9 @@ describe("AdminManager", () => {
 
             const status = await adminManager.getServerStatus();
             expect(status).toEqual({ status: "online", uptime: 12345 });
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/v1/status",
-                {},
-                undefined,
-                { prefix: "/_synapse/admin" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/v1/status", {}, undefined, {
+                prefix: "/_synapse/admin",
+            });
         });
 
         it("应该获取服务器健康状态", async () => {

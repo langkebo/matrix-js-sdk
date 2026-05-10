@@ -24,7 +24,7 @@ import { logger } from "../logger.ts";
 import { type ISavedSync, type StoreEvent, type StoreEventHandlerMap } from "./index.ts";
 import { type IIndexedDBBackend } from "./indexeddb-backend.ts";
 import { type ISyncResponse } from "../sync-accumulator.ts";
-import { type EventEmitterEvents, TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { type IStateEventWithRoomId } from "../@types/search.ts";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage.ts";
 import { type IStoredClientOpts } from "../client.ts";

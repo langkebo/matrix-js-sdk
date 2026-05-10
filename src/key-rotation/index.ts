@@ -258,7 +258,12 @@ export class KeyRotationManager {
             );
         }
 
-        return new ApiError(`KeyRotationManager.${method} failed: ${err?.message ?? String(error)}`, "UNKNOWN", 0, error);
+        return new ApiError(
+            `KeyRotationManager.${method} failed: ${err?.message ?? String(error)}`,
+            "UNKNOWN",
+            0,
+            error,
+        );
     }
 }
 

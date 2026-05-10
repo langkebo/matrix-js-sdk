@@ -35,11 +35,7 @@ export function getMyRoomsRequest<T>(authedRequest: AuthedRequestFn): Promise<T>
 }
 
 /** POST /_matrix/client/v3/search_rooms */
-export function searchRoomsRequest<T>(
-    authedRequest: AuthedRequestFn,
-    searchTerm: string,
-    limit?: number,
-): Promise<T> {
+export function searchRoomsRequest<T>(authedRequest: AuthedRequestFn, searchTerm: string, limit?: number): Promise<T> {
     return authedRequest<T>(
         Method.Post,
         "/search_rooms",

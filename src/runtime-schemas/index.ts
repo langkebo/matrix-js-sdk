@@ -29,13 +29,13 @@ const mentionsSchema: z.ZodType<IMentions> = z
 
 export const matrixEventContentSchema: z.ZodType<IContent> = z
     .object({
-        msgtype: z.string().optional(),
-        membership: z.string().optional(),
-        avatar_url: z.string().optional(),
-        displayname: z.string().optional(),
-        body: z.string().optional(),
-        url: z.string().optional(),
-        info: z.unknown().optional(),
+        "msgtype": z.string().optional(),
+        "membership": z.string().optional(),
+        "avatar_url": z.string().optional(),
+        "displayname": z.string().optional(),
+        "body": z.string().optional(),
+        "url": z.string().optional(),
+        "info": z.unknown().optional(),
         "m.relates_to": z.record(z.string(), z.unknown()).optional(),
         "m.mentions": mentionsSchema.optional(),
     })
@@ -50,16 +50,16 @@ const strippedStateSchema = z.object({
 
 export const matrixUnsignedSchema: z.ZodType<IUnsigned> = z
     .object({
-        age: z.number().optional(),
-        prev_sender: z.string().optional(),
-        prev_content: matrixEventContentSchema.optional(),
-        redacted_because: z.lazy(() => matrixEventWireSchema).optional(),
-        replaces_state: z.string().optional(),
-        transaction_id: z.string().optional(),
-        invite_room_state: z.array(strippedStateSchema).optional(),
+        "age": z.number().optional(),
+        "prev_sender": z.string().optional(),
+        "prev_content": matrixEventContentSchema.optional(),
+        "redacted_because": z.lazy(() => matrixEventWireSchema).optional(),
+        "replaces_state": z.string().optional(),
+        "transaction_id": z.string().optional(),
+        "invite_room_state": z.array(strippedStateSchema).optional(),
         "m.relations": z.record(z.string(), z.unknown()).optional(),
-        msc4354_sticky_duration_ttl_ms: z.number().optional(),
-        membership: z.string().optional(),
+        "msc4354_sticky_duration_ttl_ms": z.number().optional(),
+        "membership": z.string().optional(),
         "io.element.msc4115.membership": z.string().optional(),
     })
     .catchall(z.unknown());
@@ -127,7 +127,10 @@ export function parseMatrixEventWire(event: unknown): MatrixEventWire {
 }
 
 export function createMatrixEventSnapshot(
-    event: Pick<MatrixEvent, "getId" | "getRoomId" | "getType" | "getSender" | "getTs" | "getStateKey" | "getContent" | "getUnsigned">,
+    event: Pick<
+        MatrixEvent,
+        "getId" | "getRoomId" | "getType" | "getSender" | "getTs" | "getStateKey" | "getContent" | "getUnsigned"
+    >,
 ): MatrixEventSnapshot {
     return matrixEventSnapshotSchema.parse({
         eventId: event.getId(),
@@ -142,7 +145,10 @@ export function createMatrixEventSnapshot(
 }
 
 export function createRoomSnapshot(
-    room: Pick<Room, "roomId" | "name" | "normalizedName" | "tags" | "getMyMembership" | "getType" | "getPendingEvents">,
+    room: Pick<
+        Room,
+        "roomId" | "name" | "normalizedName" | "tags" | "getMyMembership" | "getType" | "getPendingEvents"
+    >,
 ): RoomSnapshot {
     return roomSnapshotSchema.parse({
         roomId: room.roomId,

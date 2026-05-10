@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "key_rotation",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 6,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/keys/rotation/check",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/keys/rotation/config",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/keys/rotation/history/{device_id}",
+      "registered_by": "key_rotation",
+      "path_params": [
+        "device_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/keys/rotation/revoke",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/keys/rotation/rotate",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/keys/rotation/status",
+      "registered_by": "key_rotation",
+      "path_params": []
+    }
+  ]
+}

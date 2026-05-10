@@ -1,3 +1,11 @@
+---
+module: ai_connection
+generated_from: docs/api-contract/generated/modules/ai_connection.json
+generated_hash: sha256-850a222edd3d17b69beabcb840c1be1ce8dd8b50c84e8bf5ad57f969c898d244
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # AI Connection API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/ai_connection.rs`  
@@ -28,14 +36,15 @@ AI Connection API 提供 AI 服务集成功能，支持 MCP (Model Context Proto
 **认证**: `AuthenticatedUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface AIConnectionsResponse {
-  connections: Array<{
-    id: string;
-    name: string;
-    type: string;
-    status: string;
-  }>;
+    connections: Array<{
+        id: string;
+        name: string;
+        type: string;
+        status: string;
+    }>;
 }
 ```
 
@@ -45,21 +54,23 @@ interface AIConnectionsResponse {
 **认证**: `AuthenticatedUser`
 
 **请求体**:
+
 ```json
 {
-  "name": "My AI Assistant",
-  "type": "openai",
-  "config": {
-    "api_key": "...",
-    "model": "gpt-4"
-  }
+    "name": "My AI Assistant",
+    "type": "openai",
+    "config": {
+        "api_key": "...",
+        "model": "gpt-4"
+    }
 }
 ```
 
 **响应**: `201 Created`
+
 ```json
 {
-  "id": "conn_abc123"
+    "id": "conn_abc123"
 }
 ```
 
@@ -69,13 +80,14 @@ interface AIConnectionsResponse {
 **认证**: `AuthenticatedUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface AIConnection {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  config: Record<string, unknown>;
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    config: Record<string, unknown>;
 }
 ```
 
@@ -92,13 +104,14 @@ interface AIConnection {
 **认证**: `AuthenticatedUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface MCPToolsResponse {
-  tools: Array<{
-    name: string;
-    description: string;
-    parameters: object;
-  }>;
+    tools: Array<{
+        name: string;
+        description: string;
+        parameters: object;
+    }>;
 }
 ```
 
@@ -108,19 +121,21 @@ interface MCPToolsResponse {
 **认证**: `AuthenticatedUser`
 
 **请求体**:
+
 ```json
 {
-  "tool": "search",
-  "parameters": {
-    "query": "..."
-  }
+    "tool": "search",
+    "parameters": {
+        "query": "..."
+    }
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "result": {}
+    "result": {}
 }
 ```
 
@@ -139,6 +154,6 @@ interface MCPToolsResponse {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

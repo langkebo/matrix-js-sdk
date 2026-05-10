@@ -10,12 +10,14 @@
 ### Phase 1: 契约文档优化 ✅ 100% 完成
 
 **交付成果**:
+
 - ✅ 18 个新增契约文档
 - ✅ 88 个端点详细记录
 - ✅ 33 个管理文档
 - ✅ 完整的工程化体系
 
 **关键发现**:
+
 - Key Rotation: 100% 完成（原以为 0%）
 - Key Backup: ~90% 完成（原以为 0%）
 - Secure Backup: 100% 完成（原以为 0%）
@@ -27,17 +29,20 @@
 ### 优先级调整
 
 **新 P0（交互功能）**:
+
 1. Typing: 33% → 100%（2个方法，简单）
 2. Relations: 60% → 100%（2个方法，简单）
 3. Moderation: 25% → 75%（3个方法，中等）
 
 **新 P1（管理功能）**:
+
 1. Event Report: 0% → 100%（3端点，简单）
 2. Telemetry: 0% → 100%（6端点，简单）
 
 ### 实施代码示例
 
 **Typing 模块扩展** (`src/client.ts`):
+
 ```typescript
 /**
  * Get typing users in a room
@@ -82,6 +87,7 @@ public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>
 ```
 
 **Relations 模块扩展** (`src/client.ts`):
+
 ```typescript
 /**
  * Get aggregations for an event
@@ -103,6 +109,7 @@ public async getAggregations(
 ```
 
 **Moderation 模块扩展** (`src/client.ts`):
+
 ```typescript
 /**
  * Score a report
@@ -158,6 +165,7 @@ public async reportRoom(roomId: string, reason: string, description?: string): P
 所有文档位于: `/Users/ljf/Desktop/hu/matrix-js-sdk/docs/`
 
 **核心文档**:
+
 1. `PROJECT_STATUS_FINAL.md` - 最终状态报告（最重要）
 2. `PHASE1_COMPLETION_REPORT.md` - Phase 1 完成报告
 3. `PHASE2_IMPLEMENTATION_LOG.md` - Phase 2 实施日志
@@ -165,6 +173,7 @@ public async reportRoom(roomId: string, reason: string, description?: string): P
 5. `SDK_CONTRACT_OPTIMIZATION_PLAN_2026-04-27.md` - 完整方案
 
 **契约文档** (`api-contract/`):
+
 - 18 个新增模块契约文档
 - `CONTRACT_INDEX.md` - 统一索引
 - `AUDIT_INDEX.md` - 审计状态
@@ -192,9 +201,10 @@ public async reportRoom(roomId: string, reason: string, description?: string): P
 describe("MatrixClient typing", () => {
     it("should get room typing users", async () => {
         const client = new MatrixClient({ baseUrl: "https://example.com" });
-        httpBackend.when("GET", "/rooms/!room:server/typing")
+        httpBackend
+            .when("GET", "/rooms/!room:server/typing")
             .respond(200, { user_ids: ["@user1:server", "@user2:server"] });
-        
+
         const users = await client.getRoomTyping("!room:server");
         expect(users).toEqual(["@user1:server", "@user2:server"]);
     });
@@ -209,9 +219,9 @@ describe("MatrixClient typing", () => {
 
 - 运行 `pnpm quality:sdk-contracts` 会执行 `scripts/quality/check-sdk-contract-alignment.mjs`
 - 脚本当前已支持三层校验：
-- 1. `SDK 对齐状态` 表中的 `Owner.method()` / `SDK Manager` + `SDK 方法` 是否能在 `src/` 中解析到真实符号
-- 2. 契约文档声明的 `后端端点` 是否能与 SDK 实际请求路径归因结果匹配
-- 3. 契约文档顶部 `> 后端代码:` 指向的 `synapse-rust/src/web/routes/*.rs` 是否真的声明了文档中的 `**路径**`
+-   1. `SDK 对齐状态` 表中的 `Owner.method()` / `SDK Manager` + `SDK 方法` 是否能在 `src/` 中解析到真实符号
+-   2. 契约文档声明的 `后端端点` 是否能与 SDK 实际请求路径归因结果匹配
+-   3. 契约文档顶部 `> 后端代码:` 指向的 `synapse-rust/src/web/routes/*.rs` 是否真的声明了文档中的 `**路径**`
 
 ### 当前边界
 
@@ -231,15 +241,15 @@ describe("MatrixClient typing", () => {
 
 ### Phase 2 完成后（Week 10）
 
-| 指标 | 当前 | 目标 | 提升 |
-|------|------|------|------|
-| Typing 覆盖率 | 33% | 100% | +67% |
-| Relations 覆盖率 | 60% | 100% | +40% |
-| Moderation 覆盖率 | 25% | 75% | +50% |
-| Event Report 覆盖率 | 0% | 100% | +100% |
-| Telemetry 覆盖率 | 0% | 100% | +100% |
-| Admin 覆盖率 | 59% | 80% | +21% |
-| **平均覆盖率** | **~65%** | **~85%** | **+20%** |
+| 指标                | 当前     | 目标     | 提升     |
+| ------------------- | -------- | -------- | -------- |
+| Typing 覆盖率       | 33%      | 100%     | +67%     |
+| Relations 覆盖率    | 60%      | 100%     | +40%     |
+| Moderation 覆盖率   | 25%      | 75%      | +50%     |
+| Event Report 覆盖率 | 0%       | 100%     | +100%    |
+| Telemetry 覆盖率    | 0%       | 100%     | +100%    |
+| Admin 覆盖率        | 59%      | 80%      | +21%     |
+| **平均覆盖率**      | **~65%** | **~85%** | **+20%** |
 
 ---
 
@@ -248,6 +258,7 @@ describe("MatrixClient typing", () => {
 ### 1. 现有实现已完成的模块
 
 以下模块**无需重新实现**，已有完整封装：
+
 - ✅ Key Rotation (`src/key-rotation/index.ts`)
 - ✅ Key Backup (`src/key-backup/index.ts`)
 - ✅ Secure Backup (`src/secure-backup/index.ts`)
@@ -266,6 +277,7 @@ describe("MatrixClient typing", () => {
 ### 4. 文档同步
 
 每次添加方法后必须更新：
+
 - 对应的契约文档（`docs/api-contract/*.md`）
 - 版本管理文件（`docs/api-contract/contract-version.yml`）
 - 进度报告（`docs/api-contract/PROGRESS_REPORT.md`）

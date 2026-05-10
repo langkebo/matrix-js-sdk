@@ -58,6 +58,7 @@ export function deprecationWarning(
         .filter(Boolean)
         .join("\n");
 
+    // eslint-disable-next-line no-console
     console.warn(message);
 }
 

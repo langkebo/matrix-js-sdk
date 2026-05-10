@@ -274,15 +274,9 @@ describe("API encapsulation audit", () => {
 
         await manager.initiateLogin();
 
-        expect(request).toHaveBeenCalledWith(
-            Method.Post,
-            "/login/sso/redirect/saml",
-            undefined,
-            undefined,
-            {
-                prefix: ClientPrefix.R0,
-            },
-        );
+        expect(request).toHaveBeenCalledWith(Method.Post, "/login/sso/redirect/saml", undefined, undefined, {
+            prefix: ClientPrefix.R0,
+        });
     });
 
     it("uses relative voice config api path with the r0 client prefix", async () => {
@@ -298,15 +292,9 @@ describe("API encapsulation audit", () => {
 
         await manager.getServerConfig();
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/voice/config",
-            undefined,
-            undefined,
-            {
-                prefix: "/_matrix/client/r0",
-            },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/voice/config", undefined, undefined, {
+            prefix: "/_matrix/client/r0",
+        });
     });
 
     it("uses the v3 widget capability endpoint", async () => {

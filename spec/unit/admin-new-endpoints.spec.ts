@@ -130,9 +130,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("unblock uses POST without body", async () => {
             await manager.unblockEventReportUser("@a:x");
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe(
-                "/v1/event_reports/rate_limit/%40a%3Ax/unblock",
-            );
+            expect(req.mock.calls[0][1]).toBe("/v1/event_reports/rate_limit/%40a%3Ax/unblock");
         });
     });
 

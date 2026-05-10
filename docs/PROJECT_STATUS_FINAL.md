@@ -17,12 +17,12 @@
 
 ### 关键指标
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| 契约文档总数 | 49 | 67 | +37% |
-| 独立模块文档 | 25 | 43 | +72% |
-| 已记录端点数 | ~450 | ~538 | +20% |
-| 文档覆盖率 | 58% | 100% | +42% |
+| 指标         | 优化前 | 优化后 | 提升 |
+| ------------ | ------ | ------ | ---- |
+| 契约文档总数 | 49     | 67     | +37% |
+| 独立模块文档 | 25     | 43     | +72% |
+| 已记录端点数 | ~450   | ~538   | +20% |
+| 文档覆盖率   | 58%    | 100%   | +42% |
 
 ---
 
@@ -31,18 +31,21 @@
 ### 加密模块（原 P0）- 已完成 ✅
 
 **Key Rotation 模块**
+
 - 状态: ✅ 100% 完成
 - 实现: `src/key-rotation/index.ts`
 - Manager: `KeyRotationManager`
 - 方法数: 6/6
 
 **Key Backup 模块**
+
 - 状态: ✅ ~90% 完成
 - 实现: `src/key-backup/index.ts`
 - Manager: `KeyBackupManager`
 - 方法数: 26+ (包含版本管理、密钥读写、恢复、导入导出)
 
 **Secure Backup 模块**
+
 - 状态: ✅ 100% 完成
 - 实现: `src/secure-backup/index.ts`
 - Manager: `SecureBackupManager`
@@ -51,11 +54,13 @@
 ### 真正的优先级问题
 
 **P0 - 交互功能不完整**
+
 1. Typing: 33% 覆盖率（缺少查询功能）
 2. Relations: 60% 覆盖率（缺少聚合查询）
 3. Moderation: 25% 覆盖率（缺少评分、扫描器、房间举报）
 
 **P1 - 管理功能缺失**
+
 1. Event Report: 0% 覆盖率（3 端点）
 2. Telemetry: 0% 覆盖率（6 端点）
 3. Module: 0% 覆盖率（13 端点）
@@ -64,6 +69,7 @@
 6. AI Connection: 0% 覆盖率（6 端点）
 
 **P2 - 其他改进**
+
 - Admin: 59% → 80%（补齐高级管理功能）
 - Feature Flags, App Service, Background Update, CAPTCHA, CAS
 
@@ -75,11 +81,11 @@
 
 **目标**: 快速提升用户体验
 
-| 模块 | 当前 | 目标 | 工作量 |
-|------|------|------|--------|
-| Typing | 33% | 100% | 2 个方法 |
-| Relations | 60% | 100% | 2 个方法 |
-| Moderation | 25% | 75% | 3 个方法 |
+| 模块       | 当前 | 目标 | 工作量   |
+| ---------- | ---- | ---- | -------- |
+| Typing     | 33%  | 100% | 2 个方法 |
+| Relations  | 60%  | 100% | 2 个方法 |
+| Moderation | 25%  | 75%  | 3 个方法 |
 
 **预计时间**: 1-2 周  
 **难度**: 低（简单 HTTP 封装）
@@ -88,10 +94,10 @@
 
 **目标**: 补齐管理端点
 
-| 模块 | 端点数 | 难度 |
-|------|--------|------|
-| Event Report | 3 | 低 |
-| Telemetry | 6 | 低 |
+| 模块         | 端点数 | 难度 |
+| ------------ | ------ | ---- |
+| Event Report | 3      | 低   |
+| Telemetry    | 6      | 低   |
 
 **预计时间**: 2 周  
 **难度**: 低-中
@@ -101,6 +107,7 @@
 **目标**: 59% → 80%
 
 优先封装：
+
 - 联邦管理高级功能（10 端点）
 - 报表管理（8 端点）
 - 保留策略（6 端点）
@@ -111,14 +118,14 @@
 
 ### Phase 2 目标（Week 5-10）
 
-| 模块 | 当前 | Week 6 | Week 8 | Week 10 |
-|------|------|--------|--------|---------|
-| Typing | 33% | 100% | 100% | 100% |
-| Relations | 60% | 100% | 100% | 100% |
-| Moderation | 25% | 75% | 75% | 75% |
-| Event Report | 0% | 0% | 100% | 100% |
-| Telemetry | 0% | 0% | 100% | 100% |
-| Admin | 59% | 60% | 65% | 80% |
+| 模块           | 当前     | Week 6   | Week 8   | Week 10  |
+| -------------- | -------- | -------- | -------- | -------- |
+| Typing         | 33%      | 100%     | 100%     | 100%     |
+| Relations      | 60%      | 100%     | 100%     | 100%     |
+| Moderation     | 25%      | 75%      | 75%      | 75%      |
+| Event Report   | 0%       | 0%       | 100%     | 100%     |
+| Telemetry      | 0%       | 0%       | 100%     | 100%     |
+| Admin          | 59%      | 60%      | 65%      | 80%      |
 | **平均覆盖率** | **~65%** | **~70%** | **~75%** | **~85%** |
 
 ---
@@ -126,20 +133,24 @@
 ## 💡 关键洞察
 
 ### 1. 项目基础扎实
+
 - 核心加密功能（Key Backup、Key Rotation、Secure Backup）已完整实现
 - 社交功能（Friend、DM、Space）100% 完成
 - 基础功能（Auth、Device、Room、Sync）85%+ 完成
 
 ### 2. 缺口集中在两个领域
+
 - **交互功能**: Typing、Relations、Moderation 等用户体验相关
 - **管理功能**: Event Report、Telemetry、Module 等运维相关
 
 ### 3. 工作量可控
+
 - 大部分缺失功能是简单的 HTTP 封装
 - 无复杂的加密或状态管理逻辑
 - 预计 6 周可完成 Phase 2
 
 ### 4. 自动化验证已起步
+
 - `scripts/quality/check-sdk-contract-alignment.mjs` 已接入 `pnpm quality:sdk-contracts`
 - 当前已支持 SDK 符号解析、请求路径归因、后端路由文件与契约端点的路径级对齐校验
 - 已基于真实校验结果修正 `relations.md` 中一处将通用 `sendEvent()` 路径误写为 relations 专用路由的问题
@@ -189,6 +200,7 @@ docs/
 ### 本周（Week 5）
 
 **Day 1-2: Typing 模块**
+
 ```typescript
 // src/typing/index.ts (扩展)
 async getRoomTyping(roomId: string): Promise<string[]>;
@@ -196,12 +208,14 @@ async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>>;
 ```
 
 **Day 3-4: Relations 模块**
+
 ```typescript
 // src/relations/index.ts (扩展)
 async getAggregations(roomId: string, eventId: string, relType: string): Promise<Aggregations>;
 ```
 
 **Day 5: Moderation 模块**
+
 ```typescript
 // src/moderation/index.ts (扩展)
 async scoreReport(roomId: string, eventId: string, score: number): Promise<void>;
@@ -221,12 +235,12 @@ async scoreReport(roomId: string, eventId: string, score: number): Promise<void>
 
 ### Phase 完成度
 
-| Phase | 状态 | 完成度 | 说明 |
-|-------|------|--------|------|
-| Phase 1 | ✅ 完成 | 100% | 契约文档全部完成 |
-| Phase 2 | 🔄 准备中 | 0% | 优先级已调整 |
-| Phase 3 | 🔄 进行中 | 35% | 首版 SDK 契约自动化验证已落地，正扩展后端路由覆盖 |
-| Phase 4 | 🔄 并行中 | 60% | 工程化改进 |
+| Phase   | 状态      | 完成度 | 说明                                              |
+| ------- | --------- | ------ | ------------------------------------------------- |
+| Phase 1 | ✅ 完成   | 100%   | 契约文档全部完成                                  |
+| Phase 2 | 🔄 准备中 | 0%     | 优先级已调整                                      |
+| Phase 3 | 🔄 进行中 | 35%    | 首版 SDK 契约自动化验证已落地，正扩展后端路由覆盖 |
+| Phase 4 | 🔄 并行中 | 60%    | 工程化改进                                        |
 
 ### 团队准备度
 

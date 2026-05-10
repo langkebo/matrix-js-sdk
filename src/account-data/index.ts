@@ -198,6 +198,8 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
         eventType: K,
         content: Record<string, unknown>,
     ): Promise<void> {
+        this.validateDataType(eventType);
+        this.validateContentSize(content);
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
 
         try {

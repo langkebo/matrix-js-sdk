@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { SpaceManager } from "../../src/space/index";
+import { SpaceEvent, SpaceManager } from "../../src/space/index";
 import { ClientPrefix, MatrixError, Method } from "../../src/http-api";
 import { NotFoundError } from "../../src/errors";
 
@@ -34,13 +34,13 @@ describe("SpaceManager", () => {
         const authedRequest = vi.fn().mockResolvedValue({ space_id: "!space:test", room_id: "!space:test" });
         const manager = makeManager(authedRequest);
 
-        await manager.createSpace({ name: "Docs", topic: "Root", visibility: "public" });
+        await manager.createSpace({ room_id: "!space:test", name: "Docs", topic: "Root", visibility: "public" });
 
         expect(authedRequest).toHaveBeenCalledWith(
             Method.Post,
             "/spaces",
             undefined,
-            { name: "Docs", topic: "Root", visibility: "public" },
+            { room_id: "!space:test", name: "Docs", topic: "Root", visibility: "public" },
             { prefix: ClientPrefix.V3 },
         );
     });
@@ -90,7 +90,6 @@ describe("SpaceManager", () => {
         await manager.addChild("!space:test", {
             room_id: "!child:test",
             via_servers: ["test"],
-            order: "abc",
             suggested: true,
         });
 
@@ -101,7 +100,6 @@ describe("SpaceManager", () => {
             {
                 room_id: "!child:test",
                 via_servers: ["test"],
-                order: "abc",
                 suggested: true,
             },
             { prefix: ClientPrefix.V3 },
@@ -181,5 +179,18 @@ describe("SpaceManager", () => {
         const manager = makeManager(authedRequest);
 
         await expect(manager.getSpace("!missing:test")).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it("emits SpaceError on non-retryable failures", async () => {
+        const authedRequest = vi
+            .fn()
+            .mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND", error: "missing" }, 404));
+        const manager = makeManager(authedRequest);
+        const onError = vi.fn();
+        manager.on(SpaceEvent.SpaceError, onError);
+
+        await expect(manager.getSpace("!missing:test")).rejects.toBeInstanceOf(NotFoundError);
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
     });
 });

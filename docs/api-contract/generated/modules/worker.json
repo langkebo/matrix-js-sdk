@@ -1,0 +1,104 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "worker",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 13,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_synapse/worker/v1/register",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/select/{task_type}",
+      "registered_by": "worker",
+      "path_params": [
+        "task_type"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/statistics",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/statistics/types",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/tasks",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/worker/v1/tasks",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/worker/v1/tasks/claim/{worker_id}",
+      "registered_by": "worker",
+      "path_params": [
+        "worker_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/worker/v1/tasks/{task_id}/claim/{worker_id}",
+      "registered_by": "worker",
+      "path_params": [
+        "task_id",
+        "worker_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/workers",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/workers/type/{worker_type}",
+      "registered_by": "worker",
+      "path_params": [
+        "worker_type"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/worker/v1/workers/{worker_id}",
+      "registered_by": "worker",
+      "path_params": [
+        "worker_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/workers/{worker_id}",
+      "registered_by": "worker",
+      "path_params": [
+        "worker_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/worker/v1/workers/{worker_id}/commands",
+      "registered_by": "worker",
+      "path_params": [
+        "worker_id"
+      ]
+    }
+  ]
+}

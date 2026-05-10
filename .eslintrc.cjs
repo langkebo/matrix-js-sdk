@@ -136,7 +136,16 @@ module.exports = {
                 "@stylistic/semi": "off",
                 "@stylistic/member-delimiter-style": "off",
                 // Allow unused vars in some cases
-                "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+                "@typescript-eslint/no-unused-vars": [
+                    "warn",
+                    {
+                        argsIgnorePattern: "^_",
+                        varsIgnorePattern: "^_",
+                        destructuredArrayIgnorePattern: "^_",
+                        caughtErrorsIgnorePattern: "^_",
+                        ignoreRestSiblings: true,
+                    },
+                ],
                 // Disable no-restricted-imports for events - we need it in some places
                 "no-restricted-imports": "off",
                 // Disable Function type check - we use it for compatibility

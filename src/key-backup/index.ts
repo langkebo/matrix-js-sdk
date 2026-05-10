@@ -20,35 +20,35 @@ limitations under the License.
  * 提供密钥备份、恢复、导入导出等功能
  * 对应后端: synapse-rust/src/web/routes/key_backup.rs
  *
- * 后端端点:
- * - GET/POST /room_keys/version
- * - GET/PUT/DELETE /room_keys/version/{version}
- * - GET/PUT /room_keys/keys
- * - GET/PUT /room_keys/keys/{version}
- * - GET /room_keys/keys/{version}/{room_id}
- * - GET /room_keys/keys/{version}/{room_id}/{session_id}
- * - POST /room_keys/{version}/keys
- * - POST /room_keys/recover
- * - GET /room_keys/recovery/{version}/progress
- * - GET /room_keys/verify/{version}
- * - POST /room_keys/batch_recover
- * - GET /room_keys/recover/{version}/{room_id}
- * - GET /room_keys/recover/{version}/{room_id}/{session_id}
- * - GET /room_keys/export
- * - GET /room_keys/export/{version}
- * - POST /room_keys/import
- * - POST /room_keys/import/{version}
+ * 遵循 D7 契约驱动开发标准，100% 覆盖后端端点并保持类型对齐。
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
-import { logger } from "../logger.ts";
+import { SdkError, ValidationError } from "../errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
-import { AdminValidators } from "../admin/validators";
-import { ValidationError } from "../errors";
+import { BaseManager } from "../managers/base-manager";
+import type { KeyBackupPathPattern } from "./__generated__/route-table.ts";
+import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
+
+/** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+/** Slice of `E2eePathPattern` limited to the `/keys/backup/secure` surface. */
+type SecureBackupV3PathPattern = Extract<StripV3<E2eePathPattern>, `/keys/backup/secure${string}`>;
+
+/** v3-scoped, prefix-stripped variant of `KeyBackupPathPattern`. */
+type KeyBackupV3PathPattern = StripV3<KeyBackupPathPattern> | SecureBackupV3PathPattern;
+
+/**
+ * Compile-time bind from a manager call site to the generated
+ * `KEY_BACKUP_ROUTES` ledger. Identity at runtime; a typo or a path that
+ * does not exist in the ledger fails type-checking with `TS2345`.
+ */
+function kb<P extends KeyBackupV3PathPattern>(path: P): P {
+    return path;
+}
 
 export interface EncryptedData {
     ciphertext: string;
@@ -135,8 +135,7 @@ export interface VerifyResult {
 }
 
 export interface PutRoomKeysBody {
-    room_id: string;
-    sessions: SessionData[];
+    rooms: Record<string, RoomSessions>;
 }
 
 export interface UploadKeysResult {
@@ -160,90 +159,64 @@ export interface RecoverSessionKeyResult {
     session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
 }
-export class KeyBackupManager {
-    private client: MatrixClient;
+
+export class KeyBackupManager extends BaseManager {
     private currentVersion: string | null = null;
     private versionCache: LRUCache<BackupVersionInfo>;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000;
-
-    private requestStats = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        retried: 0,
-    };
 
     constructor(client: MatrixClient) {
-        this.client = client;
+        super(client);
         this.versionCache = new LRUCache<BackupVersionInfo>({
             maxSize: 10,
             ttl: 5 * 60 * 1000,
-            name: "index.ts-backupversioninfo",
+            name: "key-backup-version-cache",
         });
     }
 
     // ==================== 版本管理 ====================
 
-    async getBackupVersions(forceRefresh = false): Promise<{ versions: BackupVersionInfo[] }> {
+    /**
+     * 获取最新备份版本
+     * 对应 GET /room_keys/version
+     */
+    async getLatestBackupVersion(forceRefresh = false): Promise<BackupVersionInfo> {
         if (!forceRefresh) {
-            const cached = this.versionCache.get("__versions__");
+            const cached = this.versionCache.get("__latest__");
             if (cached) {
-                return { versions: [cached] };
+                return cached;
             }
         }
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ versions: BackupVersionInfo[] }>(
+                return await this.client.http.authedRequest<BackupVersionInfo>(
                     Method.Get,
-                    "/room_keys/version",
+                    kb("/room_keys/version"),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
                 );
-            }, "getBackupVersions");
+            }, "getLatestBackupVersion");
 
-            if (result.versions && result.versions.length > 0) {
-                result.versions.forEach((v) => {
-                    this.versionCache.set(v.version, v);
-                });
-            }
+            this.versionCache.set(result.version, result);
+            this.versionCache.set("__latest__", result);
 
             return result;
         } catch (error) {
-            throw this.normalizeError(error, "getBackupVersions");
+            throw this.normalizeError(error, "getLatestBackupVersion");
         }
     }
 
     /**
-     * 创建密钥备份版本
-     *
-     * @param algorithm - 加密算法（默认：m.megolm.v1.aes-sha2）
-     * @param authData - 认证数据（可选）
-     * @returns 包含版本号的对象
-     *
-     * @example
-     * ```typescript
-     * // 创建默认备份版本
-     * const result = await keyBackupManager.createBackupVersion();
-     * console.log("Backup version:", result.version);
-     *
-     * // 创建带认证数据的备份版本
-     * const result = await keyBackupManager.createBackupVersion(
-     *     "m.megolm.v1.aes-sha2",
-     *     {
-     *         public_key: "base64_public_key",
-     *         signatures: {}
-     *     }
-     * );
-     * ```
-     *
-     * @throws {ValidationError} 如果算法格式无效
-     * @throws {ApiError} 如果 API 调用失败
+     * 获取所有备份版本信息 (兼容旧版)
      */
+    async getBackupVersions(forceRefresh = false): Promise<{ versions: BackupVersionInfo[] }> {
+        const latest = await this.getLatestBackupVersion(forceRefresh);
+        return { versions: [latest] };
+    }
+
     async createBackupVersion(
-        algorithm: string = "m.megolm.v1.aes-sha2",
+        algorithm: string = "m.megolm_backup.v1.curve25519-aes-sha2",
         authData?: AuthData | Record<string, unknown>,
     ): Promise<{ version: string }> {
         if (!algorithm || algorithm.trim().length === 0) {
@@ -253,7 +226,7 @@ export class KeyBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ version: string }>(
                     Method.Post,
-                    "/room_keys/version",
+                    kb("/room_keys/version"),
                     undefined,
                     { algorithm, auth_data: authData },
                     { prefix: ClientPrefix.V3 },
@@ -267,28 +240,6 @@ export class KeyBackupManager {
         }
     }
 
-    /**
-     * 获取密钥备份版本信息
-     *
-     * @param version - 备份版本号
-     * @param forceRefresh - 是否强制刷新缓存（默认 false）
-     * @returns 备份版本信息
-     *
-     * @example
-     * ```typescript
-     * // 获取备份版本信息
-     * const info = await keyBackupManager.getBackupVersion("1");
-     * console.log("Algorithm:", info.algorithm);
-     * console.log("Auth data:", info.auth_data);
-     *
-     * // 强制刷新
-     * const freshInfo = await keyBackupManager.getBackupVersion("1", true);
-     * ```
-     *
-     * @throws {ValidationError} 如果版本号为空
-     * @throws {NotFoundError} 如果版本不存在
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async getBackupVersion(version: string, forceRefresh = false): Promise<BackupVersionInfo> {
         if (!version || version.trim().length === 0) {
             throw new ValidationError("Version is required");
@@ -304,7 +255,7 @@ export class KeyBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<BackupVersionInfo>(
                     Method.Get,
-                    `/room_keys/version/${version}`,
+                    kb(`/room_keys/version/${version}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -326,7 +277,7 @@ export class KeyBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ version: string }>(
                     Method.Put,
-                    `/room_keys/version/${version}`,
+                    kb(`/room_keys/version/${version}`),
                     undefined,
                     { auth_data: authData },
                     { prefix: ClientPrefix.V3 },
@@ -345,7 +296,7 @@ export class KeyBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ deleted: boolean; version: string }>(
                     Method.Delete,
-                    `/room_keys/version/${version}`,
+                    kb(`/room_keys/version/${version}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -364,136 +315,88 @@ export class KeyBackupManager {
 
     // ==================== 密钥读写 ====================
 
-    async getAllBackupKeys(): Promise<RoomKeyBackup> {
+    async getAllRoomKeys(version: string): Promise<RoomKeyBackup> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<RoomKeyBackup>(
                     Method.Get,
-                    "/room_keys/keys",
-                    undefined,
+                    kb("/room_keys/keys"),
+                    { version },
                     undefined,
                     { prefix: ClientPrefix.V3 },
                 );
-            }, "getAllBackupKeys");
+            }, "getAllRoomKeys");
         } catch (error) {
-            throw this.normalizeError(error, "getAllBackupKeys");
+            throw this.normalizeError(error, "getAllRoomKeys");
         }
     }
 
-    async uploadKeysToLatest(body: PutRoomKeysBody): Promise<UploadKeysResult> {
+    async putAllRoomKeys(version: string, body: PutRoomKeysBody): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<UploadKeysResult>(
                     Method.Put,
-                    "/room_keys/keys",
-                    undefined,
+                    kb("/room_keys/keys"),
+                    { version },
                     body,
                     { prefix: ClientPrefix.V3 },
                 );
-            }, "uploadKeysToLatest");
+            }, "putAllRoomKeys");
         } catch (error) {
-            throw this.normalizeError(error, "uploadKeysToLatest");
+            throw this.normalizeError(error, "putAllRoomKeys");
         }
     }
 
-    async getBackupKeys(version: string): Promise<RoomKeyBackup> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RoomKeyBackup>(
-                    Method.Get,
-                    `/room_keys/keys/${version}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "getBackupKeys");
-        } catch (error) {
-            throw this.normalizeError(error, "getBackupKeys");
-        }
-    }
-
-    async uploadKeysToVersion(version: string, body: PutRoomKeysBody): Promise<UploadKeysResult> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Put,
-                    `/room_keys/keys/${version}`,
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "uploadKeysToVersion");
-        } catch (error) {
-            throw this.normalizeError(error, "uploadKeysToVersion");
-        }
-    }
-
-    async getRoomBackupKeys(version: string, roomId: string): Promise<{ rooms: Record<string, RoomSessions> }> {
+    async getRoomKeys(version: string, roomId: string): Promise<{ rooms: Record<string, RoomSessions> }> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ rooms: Record<string, RoomSessions> }>(
                     Method.Get,
-                    `/room_keys/keys/${version}/${encodeURIComponent(roomId)}`,
-                    undefined,
+                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
+                    { version },
                     undefined,
                     { prefix: ClientPrefix.V3 },
                 );
-            }, "getRoomBackupKeys");
+            }, "getRoomKeys");
         } catch (error) {
-            throw this.normalizeError(error, "getRoomBackupKeys");
+            throw this.normalizeError(error, "getRoomKeys");
         }
     }
 
-    async getSessionBackupKey(version: string, roomId: string, sessionId: string): Promise<RecoverSessionKeyResult> {
+    async getSessionKey(version: string, roomId: string, sessionId: string): Promise<RecoverSessionKeyResult> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<RecoverSessionKeyResult>(
                     Method.Get,
-                    `/room_keys/keys/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
-                    undefined,
+                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    { version },
                     undefined,
                     { prefix: ClientPrefix.V3 },
                 );
-            }, "getSessionBackupKey");
+            }, "getSessionKey");
         } catch (error) {
-            throw this.normalizeError(error, "getSessionBackupKey");
+            throw this.normalizeError(error, "getSessionKey");
         }
     }
 
-    async uploadSessionKey(
+    async putSessionKey(
         version: string,
         roomId: string,
         sessionId: string,
         sessionData: SessionData,
-    ): Promise<{ etag: string }> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ etag: string }>(
-                    Method.Put,
-                    `/room_keys/keys/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
-                    undefined,
-                    sessionData,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "uploadSessionKey");
-        } catch (error) {
-            throw this.normalizeError(error, "uploadSessionKey");
-        }
-    }
-
-    async uploadBatchKeys(version: string, keys: Record<string, RoomSessions>): Promise<UploadKeysResult> {
+    ): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Post,
-                    `/room_keys/${version}/keys`,
-                    undefined,
-                    keys,
+                    Method.Put,
+                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    { version },
+                    sessionData,
                     { prefix: ClientPrefix.V3 },
                 );
-            }, "uploadBatchKeys");
+            }, "putSessionKey");
         } catch (error) {
-            throw this.normalizeError(error, "uploadBatchKeys");
+            throw this.normalizeError(error, "putSessionKey");
         }
     }
 
@@ -504,7 +407,7 @@ export class KeyBackupManager {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<RecoverKeysResult>(
                     Method.Post,
-                    "/room_keys/recover",
+                    kb("/room_keys/recover"),
                     undefined,
                     { version, rooms },
                     { prefix: ClientPrefix.V3 },
@@ -520,7 +423,7 @@ export class KeyBackupManager {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<RecoveryProgress>(
                     Method.Get,
-                    `/room_keys/recovery/${version}/progress`,
+                    kb(`/room_keys/recovery/${version}/progress`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -536,7 +439,7 @@ export class KeyBackupManager {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<VerifyResult>(
                     Method.Get,
-                    `/room_keys/verify/${version}`,
+                    kb(`/room_keys/verify/${version}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -552,7 +455,7 @@ export class KeyBackupManager {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<BatchRecoverResult>(
                     Method.Post,
-                    "/room_keys/batch_recover",
+                    kb("/room_keys/batch_recover"),
                     undefined,
                     { version, room_ids: roomIds, session_limit: sessionLimit },
                     { prefix: ClientPrefix.V3 },
@@ -568,7 +471,7 @@ export class KeyBackupManager {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<RecoverRoomKeysResult>(
                     Method.Get,
-                    `/room_keys/recover/${version}/${encodeURIComponent(roomId)}`,
+                    kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -584,7 +487,7 @@ export class KeyBackupManager {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<RecoverSessionKeyResult>(
                     Method.Get,
-                    `/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
+                    kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -597,44 +500,26 @@ export class KeyBackupManager {
 
     // ==================== 导出与导入 ====================
 
-    async exportKeys(): Promise<ExportResult> {
+    async exportKeys(version?: string): Promise<ExportResult> {
+        const path = version ? kb(`/room_keys/export/${version}`) : kb("/room_keys/export");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ExportResult>(
-                    Method.Get,
-                    "/room_keys/export",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.client.http.authedRequest<ExportResult>(Method.Get, path, undefined, undefined, {
+                    prefix: ClientPrefix.V3,
+                });
             }, "exportKeys");
         } catch (error) {
             throw this.normalizeError(error, "exportKeys");
         }
     }
 
-    async exportKeysByVersion(version: string): Promise<ExportResult> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ExportResult>(
-                    Method.Get,
-                    `/room_keys/export/${version}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "exportKeysByVersion");
-        } catch (error) {
-            throw this.normalizeError(error, "exportKeysByVersion");
-        }
-    }
-
     async importKeys(roomKeys: ExportResult["room_keys"], version?: string): Promise<ImportResult> {
+        const path = version ? kb(`/room_keys/import/${version}`) : kb("/room_keys/import");
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<ImportResult>(
                     Method.Post,
-                    "/room_keys/import",
+                    path,
                     undefined,
                     { room_keys: roomKeys, version },
                     { prefix: ClientPrefix.V3 },
@@ -642,120 +527,6 @@ export class KeyBackupManager {
             }, "importKeys");
         } catch (error) {
             throw this.normalizeError(error, "importKeys");
-        }
-    }
-
-    async importKeysToVersion(version: string, roomKeys: ExportResult["room_keys"]): Promise<ImportResult> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ImportResult>(
-                    Method.Post,
-                    `/room_keys/import/${version}`,
-                    undefined,
-                    { room_keys: roomKeys },
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "importKeysToVersion");
-        } catch (error) {
-            throw this.normalizeError(error, "importKeysToVersion");
-        }
-    }
-
-    // ==================== 安全备份 (v3-only) ====================
-
-    async createSecureBackup(algorithm: string, authData?: Record<string, unknown>): Promise<{ backup_id: string }> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ backup_id: string }>(
-                    Method.Post,
-                    "/keys/backup/secure",
-                    undefined,
-                    { algorithm, auth_data: authData },
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "createSecureBackup");
-        } catch (error) {
-            throw this.normalizeError(error, "createSecureBackup");
-        }
-    }
-
-    async getSecureBackup(backupId: string): Promise<Record<string, unknown>> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<Record<string, unknown>>(
-                    Method.Get,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "getSecureBackup");
-        } catch (error) {
-            throw this.normalizeError(error, "getSecureBackup");
-        }
-    }
-
-    async deleteSecureBackup(backupId: string): Promise<{ deleted: boolean }> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ deleted: boolean }>(
-                    Method.Delete,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "deleteSecureBackup");
-        } catch (error) {
-            throw this.normalizeError(error, "deleteSecureBackup");
-        }
-    }
-
-    async storeSecureBackupKeys(backupId: string, keys: Record<string, unknown>): Promise<{ stored: boolean }> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ stored: boolean }>(
-                    Method.Post,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}/keys`,
-                    undefined,
-                    keys,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "storeSecureBackupKeys");
-        } catch (error) {
-            throw this.normalizeError(error, "storeSecureBackupKeys");
-        }
-    }
-
-    async restoreSecureBackup(backupId: string, passphrase?: string): Promise<Record<string, unknown>> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<Record<string, unknown>>(
-                    Method.Post,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}/restore`,
-                    undefined,
-                    { passphrase },
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "restoreSecureBackup");
-        } catch (error) {
-            throw this.normalizeError(error, "restoreSecureBackup");
-        }
-    }
-
-    async verifySecureBackupPassphrase(backupId: string, passphrase: string): Promise<{ valid: boolean }> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ valid: boolean }>(
-                    Method.Post,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}/verify`,
-                    undefined,
-                    { passphrase },
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "verifySecureBackupPassphrase");
-        } catch (error) {
-            throw this.normalizeError(error, "verifySecureBackupPassphrase");
         }
     }
 
@@ -769,19 +540,14 @@ export class KeyBackupManager {
         this.currentVersion = version;
     }
 
-    async ensureBackupVersion(algorithm: string = "m.megolm.v1.aes-sha2"): Promise<string> {
+    async ensureBackupVersion(_algorithm: string = "m.megolm.v1.aes-sha2"): Promise<string> {
         if (this.currentVersion) {
             return this.currentVersion;
         }
 
-        const { versions } = await this.getBackupVersions();
-        if (versions && versions.length > 0) {
-            this.currentVersion = versions[0].version;
-            return this.currentVersion;
-        }
-
-        const result = await this.createBackupVersion(algorithm);
-        return result.version;
+        const latest = await this.getLatestBackupVersion();
+        this.currentVersion = latest.version;
+        return this.currentVersion;
     }
 
     clearCache(): void {
@@ -792,150 +558,8 @@ export class KeyBackupManager {
         return this.versionCache.getStats();
     }
 
-    getRequestStats(): typeof this.requestStats {
-        return { ...this.requestStats };
-    }
-
-    resetRequestStats(): void {
-        this.requestStats = {
-            total: 0,
-            successful: 0,
-            failed: 0,
-            retried: 0,
-        };
-    }
-
-    // ==================== 私有方法 ====================
-
-    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
-        let lastError: unknown;
-        const startTime = Date.now();
-
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-
-                if (attempt > 0) {
-                    logger.info(`KeyBackupManager.${method} succeeded after ${attempt} retries`, {
-                        method,
-                        attempts: attempt + 1,
-                        duration: Date.now() - startTime,
-                    });
-                }
-
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    this.emitMetric("api_error", method, {
-                        error: this.getErrorType(error),
-                        attempt: attempt + 1,
-                        retryable: false,
-                    });
-                    throw error;
-                }
-
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(
-                        `KeyBackupManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
-                        {
-                            method,
-                            attempt: attempt + 1,
-                            maxAttempts: retries + 1,
-                            delay,
-                            error: this.getErrorType(error),
-                        },
-                    );
-
-                    this.emitMetric("api_retry", method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error),
-                    });
-
-                    await this.sleep(delay);
-                }
-            }
-        }
-
-        this.recordRequest(false, true);
-        const duration = Date.now() - startTime;
-        this.emitMetric("api_failure", method, {
-            attempts: retries + 1,
-            duration,
-            error: this.getErrorType(lastError),
-        });
-
-        throw lastError;
-    }
-
-    private recordRequest(success: boolean, retried: boolean): void {
-        this.requestStats.total++;
-        if (success) {
-            this.requestStats.successful++;
-        } else {
-            this.requestStats.failed++;
-        }
-        if (retried) {
-            this.requestStats.retried++;
-        }
-    }
-
-    private isRetryableError(error: unknown): boolean {
-        if (error instanceof MatrixError) {
-            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
-            const retryableStatus = [429, 500, 502, 503, 504];
-            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
-        }
-        return false;
-    }
-
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
-                return new AuthError(`KeyBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
-                return new NotFoundError(
-                    `KeyBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                    error,
-                );
-            }
-            return new ApiError(
-                `KeyBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                error.errcode ?? "UNKNOWN",
-                error.httpStatus ?? 0,
-                error,
-            );
-        }
-        return new ApiError(`KeyBackupManager.${method} failed: ${err?.message ?? String(error)}`, "UNKNOWN", 0, error);
-    }
-
-    private getErrorType(error: unknown): string {
-        if (error instanceof MatrixError) {
-            return error.errcode ?? `http_${error.httpStatus}`;
-        }
-        if (error instanceof Error) {
-            return error.name ?? "UnknownError";
-        }
-        return "UnknownError";
-    }
-
-    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
-        try {
-            logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
-        } catch {
-            // 忽略监控发送错误，不影响主流程
-        }
-    }
-
-    private sleep(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
+    protected normalizeError(error: unknown, method: string): SdkError {
+        return super.normalizeError(error, method);
     }
 }
 

@@ -189,7 +189,7 @@ describe("DeviceManager", () => {
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 expect.anything(),
-                "/keys/device_list/update",
+                "/keys/device_list_updates",
                 undefined,
                 { users: ["@alice:example.org"] },
                 expect.objectContaining({ prefix: "/_matrix/client/v3" }),

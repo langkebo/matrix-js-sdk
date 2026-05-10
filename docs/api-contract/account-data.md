@@ -1,3 +1,11 @@
+---
+module: account_data
+generated_from: docs/api-contract/generated/modules/account_data.json
+generated_hash: sha256-d5d47789fb1e6997fe727a6732c4a5b0fdf268789a680aa84ccf3fe54d324cf7
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Account Data 模块契约
 
 > **审查来源**: `synapse-rust/src/web/routes/account_data.rs`、`synapse-rust/src/web/routes/tags.rs`
@@ -15,8 +23,8 @@
 
 ## 挂载版本
 
-| 前缀 | 实际挂载 |
-| ---- | -------- |
+| 前缀                 | 实际挂载                           |
+| -------------------- | ---------------------------------- |
 | `/_matrix/client/r0` | account data、filter、openid、tags |
 | `/_matrix/client/v3` | account data、filter、openid、tags |
 
@@ -31,30 +39,89 @@
 
 ### Account Data / Filter / OpenID
 
-| 方法 | 路径 | 说明 | 实际响应 |
-| ---- | ---- | ---- | -------- |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/` | 列出用户级 account data | `{ "account_data": { [data_type]: json } }` |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/{type}` | 读取用户级 account data | 直接返回该类型的 JSON 内容 |
-| `PUT` | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/{type}` | 写入用户级 account data | `{}` |
-| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/{type}` | 删除用户级 account data | `{}` |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/account_data/{type}` | 读取房间级 account data | 直接返回该类型的 JSON 内容 |
-| `PUT` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/account_data/{type}` | 写入房间级 account data | `{}` |
-| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/account_data/{type}` | 删除房间级 account data | `{}` |
-| `POST` | `/_matrix/client/{r0,v3}/user/{user_id}/filter` | 创建 filter | `{ "filter_id": string }` |
-| `PUT` | `/_matrix/client/{r0,v3}/user/{user_id}/filter` | 与 `POST` 相同，也会创建新 filter | `{ "filter_id": string }` |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/filter/{filter_id}` | 读取 filter | 直接返回 filter JSON |
-| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/filter/{filter_id}` | 删除 filter | `{}` |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/openid/request_token` | 生成 OpenID token | `{ access_token, token_type, matrix_server_name, expires_in }` |
-| `POST` | `/_matrix/client/{r0,v3}/user/{user_id}/openid/request_token` | 与 `GET` 相同，也会生成新 token | `{ access_token, token_type, matrix_server_name, expires_in }` |
+| 方法     | 路径                                                                         | 说明                              | 实际响应                                                       |
+| -------- | ---------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------- |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/`                       | 列出用户级 account data           | `{ "account_data": { [data_type]: json } }`                    |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/{type}`                 | 读取用户级 account data           | 直接返回该类型的 JSON 内容                                     |
+| `PUT`    | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/{type}`                 | 写入用户级 account data           | `{}`                                                           |
+| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/account_data/{type}`                 | 删除用户级 account data           | `{}`                                                           |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/account_data/{type}` | 读取房间级 account data           | 直接返回该类型的 JSON 内容                                     |
+| `PUT`    | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/account_data/{type}` | 写入房间级 account data           | `{}`                                                           |
+| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/account_data/{type}` | 删除房间级 account data           | `{}`                                                           |
+| `POST`   | `/_matrix/client/{r0,v3}/user/{user_id}/filter`                              | 创建 filter                       | `{ "filter_id": string }`                                      |
+| `PUT`    | `/_matrix/client/{r0,v3}/user/{user_id}/filter`                              | 与 `POST` 相同，也会创建新 filter | `{ "filter_id": string }`                                      |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/filter/{filter_id}`                  | 读取 filter                       | 直接返回 filter JSON                                           |
+| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/filter/{filter_id}`                  | 删除 filter                       | `{}`                                                           |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/openid/request_token`                | 生成 OpenID token                 | `{ access_token, token_type, matrix_server_name, expires_in }` |
+| `POST`   | `/_matrix/client/{r0,v3}/user/{user_id}/openid/request_token`                | 与 `GET` 相同，也会生成新 token   | `{ access_token, token_type, matrix_server_name, expires_in }` |
 
 ### Tags
 
-| 方法 | 路径 | 说明 | 实际响应 |
-| ---- | ---- | ---- | -------- |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/tags` | 返回该用户全部房间标签 | `{ "tags": { [room_id]: { [tag]: { "order": number } } } }` |
-| `GET` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/tags` | 返回单房间标签 | `{ "tags": { [tag]: { "order": number } } }` |
-| `PUT` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/tags/{tag}` | 新增或覆盖标签 | `{}` |
-| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/tags/{tag}` | 删除标签 | `{}` |
+| 方法     | 路径                                                                | 说明                   | 实际响应                                                    |
+| -------- | ------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------- |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/tags`                       | 返回该用户全部房间标签 | `{ "tags": { [room_id]: { [tag]: { "order": number } } } }` |
+| `GET`    | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/tags`       | 返回单房间标签         | `{ "tags": { [tag]: { "order": number } } }`                |
+| `PUT`    | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/tags/{tag}` | 新增或覆盖标签         | `{}`                                                        |
+| `DELETE` | `/_matrix/client/{r0,v3}/user/{user_id}/rooms/{room_id}/tags/{tag}` | 删除标签               | `{}`                                                        |
+
+## 路由 ↔ SDK 方法映射
+
+> 审查来源：`src/account-data/index.ts`（`AccountDataManager`）、`src/client-account-data-requests.ts`（路径构造）、`src/client.ts`（基础 `setAccountData / getAccountData` 与 tags 相关方法）。
+> 标注：✅ = 已通过专用 Manager 封装；ℹ️ = 由 `MatrixClient` 基类直接封装；— = 无 SDK 入口（见兼容性说明）。
+
+### Account Data（用户级）
+
+| 方法 | 后端路由 | SDK 入口 | 说明 |
+|------|---------|---------|------|
+| `GET`    | `/user/{user_id}/account_data/`           | `AccountDataManager.listAccountData()` | ✅ 返回 `{ account_data: { [type]: content } }` |
+| `GET`    | `/user/{user_id}/account_data/{type}`     | `AccountDataManager.getAccountDataFromServer(type)` / `getAccountData(type)` (本地缓存) | ✅ 缓存命中走 `store`；未命中时才发网络请求 |
+| `PUT`    | `/user/{user_id}/account_data/{type}`     | `AccountDataManager.setAccountData(type, content)` | ✅ 写前校验 `data_type ≤ 128`、`content ≤ 64KB`，触发 `AccountDataUpdated` |
+| `DELETE` | `/user/{user_id}/account_data/{type}`     | `AccountDataManager.deleteAccountData(type)` | ✅ 触发 `AccountDataUpdated`；错误触发 `AccountDataError` |
+
+### Room Account Data（房间级）
+
+| 方法 | 后端路由 | SDK 入口 | 说明 |
+|------|---------|---------|------|
+| `GET`    | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.getRoomAccountDataFromServer(roomId, type)` | ✅ 404 统一经 `normalizeError` |
+| `PUT`    | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.setRoomAccountData(roomId, type, content)` | ✅ 与用户级一致，写前 `validateDataType` + `validateContentSize` |
+| `DELETE` | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.deleteRoomAccountData(roomId, type)` | ✅ 后端删除不存在的记录也返回 `{}` |
+
+### Filter
+
+| 方法 | 后端路由 | SDK 入口 | 说明 |
+|------|---------|---------|------|
+| `POST` / `PUT` | `/user/{user_id}/filter`               | `MatrixClient.createFilter(filter)` | ℹ️ 基类封装；返回 `{ filter_id }` |
+| `GET`          | `/user/{user_id}/filter/{filter_id}`   | `MatrixClient.getFilter(userId, filterId, allowCached?)` | ℹ️ 基类封装；`FilterComponent`/`Filter` 模型 |
+| `DELETE`       | `/user/{user_id}/filter/{filter_id}`   | — | 后端支持，SDK 当前未暴露删除入口（保留兼容别名） |
+
+### OpenID Token
+
+| 方法 | 后端路由 | SDK 入口 | 说明 |
+|------|---------|---------|------|
+| `GET` / `POST` | `/user/{user_id}/openid/request_token` | `MatrixClient.getOpenIdToken()` | ℹ️ 基类封装；返回 `{ access_token, token_type, matrix_server_name, expires_in }` |
+
+### Tags
+
+| 方法 | 后端路由 | SDK 入口 | 说明 |
+|------|---------|---------|------|
+| `GET`    | `/user/{user_id}/tags`                         | — | 全量标签读取后端已就绪，SDK 以 sync `tag` EDU 聚合到 `Room.tags` 为准 |
+| `GET`    | `/user/{user_id}/rooms/{room_id}/tags`         | `MatrixClient` 内部经由 sync / `Room.getTags()` 暴露 | ℹ️ 默认走 sync，也可经由 `http.authedRequest` 直接调用 |
+| `PUT`    | `/user/{user_id}/rooms/{room_id}/tags/{tag}`   | `MatrixClient.setRoomTag(roomId, tag, metadata)` | ℹ️ `metadata.order` 可选 |
+| `DELETE` | `/user/{user_id}/rooms/{room_id}/tags/{tag}`   | `MatrixClient.deleteRoomTag(roomId, tag)` | ℹ️ 删除未命中也返回 `{}` |
+
+### SDK 事件（`AccountDataManager`）
+
+| 事件 | 触发时机 |
+|------|---------|
+| `AccountDataEvent.AccountDataUpdated` | `setAccountData` / `getAccountDataFromServer` / `deleteAccountData` 成功时 |
+| `AccountDataEvent.AccountDataError`   | 上述方法 `catch` 分支；`setRoomAccountData` / `getRoomAccountDataFromServer` / `deleteRoomAccountData` / `listAccountData` 目前只 throw，不额外 emit（与契约只 throw 保持一致） |
+
+### 校验常量
+
+| 常量 | 值 | 位置 | 对齐的后端校验 |
+|------|----|----|-------------|
+| `MAX_DATA_TYPE_LENGTH` | `128` | `src/account-data/index.ts:52` | 用户级 `PUT /account_data/{type}` |
+| `MAX_CONTENT_SIZE`     | `65536` (64KB) | `src/account-data/index.ts:53` | 用户级 `PUT /account_data/{type}` body 上限；SDK 主动把同一约束对齐到房间级写入 |
 
 ## 关键行为对齐
 
@@ -66,14 +133,14 @@
 
 ```json
 {
-  "account_data": {
-    "m.direct": {
-      "@alice:example.com": ["!room1:example.com"]
-    },
-    "custom.type": {
-      "key": "value"
+    "account_data": {
+        "m.direct": {
+            "@alice:example.com": ["!room1:example.com"]
+        },
+        "custom.type": {
+            "key": "value"
+        }
     }
-  }
 }
 ```
 
@@ -92,13 +159,13 @@ SELECT data_type, content FROM account_data WHERE user_id = $1
 
 ```json
 {
-  "global": {
-    "content": [],
-    "override": [],
-    "room": [],
-    "sender": [],
-    "underride": []
-  }
+    "global": {
+        "content": [],
+        "override": [],
+        "room": [],
+        "sender": [],
+        "underride": []
+    }
 }
 ```
 
@@ -162,10 +229,10 @@ VALUES ($1, $2, $3, $4)
 
 ```json
 {
-  "access_token": "abc123def456...",
-  "token_type": "Bearer",
-  "matrix_server_name": "example.com",
-  "expires_in": 3600
+    "access_token": "abc123def456...",
+    "token_type": "Bearer",
+    "matrix_server_name": "example.com",
+    "expires_in": 3600
 }
 ```
 
@@ -179,12 +246,12 @@ VALUES ($1, $2, $3, $4)
 
 ```json
 {
-  "tags": {
-    "!room1:example.com": {
-      "m.favourite": { "order": 0.5 },
-      "u.work": { "order": 1.0 }
+    "tags": {
+        "!room1:example.com": {
+            "m.favourite": { "order": 0.5 },
+            "u.work": { "order": 1.0 }
+        }
     }
-  }
 }
 ```
 
@@ -192,9 +259,9 @@ VALUES ($1, $2, $3, $4)
 
 ```json
 {
-  "tags": {
-    "m.favourite": { "order": 0.5 }
-  }
+    "tags": {
+        "m.favourite": { "order": 0.5 }
+    }
 }
 ```
 
@@ -202,7 +269,7 @@ VALUES ($1, $2, $3, $4)
 
 ```json
 {
-  "order": 0.5
+    "order": 0.5
 }
 ```
 
@@ -291,14 +358,14 @@ CREATE TABLE IF NOT EXISTS room_tags (
 
 ## 错误语义
 
-| 场景 | HTTP | 说明 |
-| ---- | ---- | ---- |
-| 访问他人资源 | `403` | `account_data.rs` 与 `tags.rs` 都先比较 `user_id` |
-| account data / room account data / filter 不存在 | `404` | 读取或删除未命中时返回 |
-| `m.push_rules` 缺失 | `200` | 返回默认骨架，不走 `404` |
-| `data_type` 过长 | `400` | 仅用户级 `PUT /account_data/{type}` 明确校验 |
-| 用户级 account data body 超 64KB | `400` | 错误文本为 `Account data too large (max 64KB)` |
-| 数据库写入/查询失败 | `500` | 统一走 `ApiError::internal(...)` |
+| 场景                                             | HTTP  | 说明                                              |
+| ------------------------------------------------ | ----- | ------------------------------------------------- |
+| 访问他人资源                                     | `403` | `account_data.rs` 与 `tags.rs` 都先比较 `user_id` |
+| account data / room account data / filter 不存在 | `404` | 读取或删除未命中时返回                            |
+| `m.push_rules` 缺失                              | `200` | 返回默认骨架，不走 `404`                          |
+| `data_type` 过长                                 | `400` | 仅用户级 `PUT /account_data/{type}` 明确校验      |
+| 用户级 account data body 超 64KB                 | `400` | 错误文本为 `Account data too large (max 64KB)`    |
+| 数据库写入/查询失败                              | `500` | 统一走 `ApiError::internal(...)`                  |
 
 - 文档只对路由层显式可见的状态码和错误分支做承诺。
 - `Axum` JSON 反序列化失败也会导致 `400`，但错误体细节由框架与统一错误封装共同决定，不在此文档中虚构固定文案。

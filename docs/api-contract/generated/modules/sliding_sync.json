@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "sliding_sync",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 3,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc3575/sync",
+      "registered_by": "sliding_sync",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync",
+      "registered_by": "sliding_sync",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/sync",
+      "registered_by": "sliding_sync",
+      "path_params": []
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "module",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 27,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/account_data_callbacks",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/account_data_callbacks",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/account_validity",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/account_validity/{user_id}",
+      "registered_by": "module",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/account_validity/{user_id}/renew",
+      "registered_by": "module",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/media_callbacks",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/media_callbacks",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/media_callbacks/{callback_type}",
+      "registered_by": "module",
+      "path_params": [
+        "callback_type"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/modules",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/modules/check_spam",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/modules/check_third_party_rule",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules/logs/{module_name}",
+      "registered_by": "module",
+      "path_params": [
+        "module_name"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules/spam_check/sender/{sender}",
+      "registered_by": "module",
+      "path_params": [
+        "sender"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules/spam_check/{event_id}",
+      "registered_by": "module",
+      "path_params": [
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules/third_party_rule/{event_id}",
+      "registered_by": "module",
+      "path_params": [
+        "event_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules/type/{module_type}",
+      "registered_by": "module",
+      "path_params": [
+        "module_type"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/modules/{module_name}",
+      "registered_by": "module",
+      "path_params": [
+        "module_name"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/modules/{module_name}",
+      "registered_by": "module",
+      "path_params": [
+        "module_name"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/modules/{module_name}/config",
+      "registered_by": "module",
+      "path_params": [
+        "module_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/modules/{module_name}/enable",
+      "registered_by": "module",
+      "path_params": [
+        "module_name"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/password_auth_providers",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/password_auth_providers",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/presence_routes",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/presence_routes",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rate_limit_callbacks",
+      "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rate_limit_callbacks",
+      "registered_by": "module",
+      "path_params": []
+    }
+  ]
+}

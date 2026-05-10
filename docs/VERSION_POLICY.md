@@ -47,35 +47,35 @@ MAJOR.MINOR.PATCH
 ### 弃用流程
 
 1. **标记阶段** (当前版本)
-   - 在代码中添加 `@deprecated` 标记
-   - 在文档中说明替代方案
-   - 在 CHANGELOG 中记录
+    - 在代码中添加 `@deprecated` 标记
+    - 在文档中说明替代方案
+    - 在 CHANGELOG 中记录
 
 2. **警告阶段** (至少 2 个 minor 版本)
-   - 保持功能正常工作
-   - 在开发环境中输出警告
-   - 提供迁移指南
+    - 保持功能正常工作
+    - 在开发环境中输出警告
+    - 提供迁移指南
 
 3. **移除阶段** (下一个 major 版本)
-   - 完全移除已弃用的 API
-   - 在 CHANGELOG 中详细说明
-   - 提供自动化迁移工具（如果可能）
+    - 完全移除已弃用的 API
+    - 在 CHANGELOG 中详细说明
+    - 提供自动化迁移工具（如果可能）
 
 ### 弃用标记格式
 
-```typescript
+````typescript
 /**
  * Get user list (legacy format)
  *
  * @deprecated Use {@link getUsersPaginated} for consistent pagination format.
  * This method will be removed in v41.0.0 (estimated 2026-Q4).
- * 
+ *
  * Migration:
  * ```typescript
  * // Old
  * const result = await adminManager.getUsers(from, limit);
  * result.users.forEach(user => ...);
- * 
+ *
  * // New
  * const result = await adminManager.getUsersPaginated({ from, limit });
  * result.items.forEach(user => ...);
@@ -84,7 +84,7 @@ MAJOR.MINOR.PATCH
 async getUsers(from?: string, limit?: number): Promise<{ users: UserInfo[]; next_token?: string }> {
     // Implementation
 }
-```
+````
 
 ### 运行时警告
 
@@ -125,57 +125,57 @@ async getUsers(from?: string, limit?: number) {
 以下情况被视为破坏性变更，需要增加 MAJOR 版本号：
 
 1. **删除公共 API**
-   - 删除类、方法、属性
-   - 删除导出的类型或接口
+    - 删除类、方法、属性
+    - 删除导出的类型或接口
 
 2. **修改 API 签名**
-   - 修改方法参数（添加必需参数、删除参数、改变参数顺序）
-   - 修改返回值类型
-   - 修改异常类型
+    - 修改方法参数（添加必需参数、删除参数、改变参数顺序）
+    - 修改返回值类型
+    - 修改异常类型
 
 3. **修改行为**
-   - 改变方法的默认行为
-   - 改变错误处理逻辑
-   - 改变数据格式
+    - 改变方法的默认行为
+    - 改变错误处理逻辑
+    - 改变数据格式
 
 4. **修改依赖**
-   - 升级主要依赖的 MAJOR 版本
-   - 删除对某个平台的支持
+    - 升级主要依赖的 MAJOR 版本
+    - 删除对某个平台的支持
 
 ### 非破坏性变更
 
 以下情况不被视为破坏性变更：
 
 1. **添加新功能**
-   - 添加新的类、方法、属性
-   - 添加可选参数
-   - 添加新的导出
+    - 添加新的类、方法、属性
+    - 添加可选参数
+    - 添加新的导出
 
 2. **Bug 修复**
-   - 修复不符合文档说明的行为
-   - 修复安全漏洞
+    - 修复不符合文档说明的行为
+    - 修复安全漏洞
 
 3. **性能优化**
-   - 不改变 API 行为的性能优化
+    - 不改变 API 行为的性能优化
 
 4. **文档更新**
-   - 改进文档、注释、示例
+    - 改进文档、注释、示例
 
 ### 破坏性变更的处理
 
 1. **提前通知**
-   - 在至少 2 个 minor 版本前标记为 deprecated
-   - 在 CHANGELOG 中详细说明
+    - 在至少 2 个 minor 版本前标记为 deprecated
+    - 在 CHANGELOG 中详细说明
 
 2. **提供迁移路径**
-   - 提供替代 API
-   - 提供迁移指南
-   - 提供自动化工具（如果可能）
+    - 提供替代 API
+    - 提供迁移指南
+    - 提供自动化工具（如果可能）
 
 3. **版本发布**
-   - 在 CHANGELOG 中突出显示
-   - 在 GitHub Release 中详细说明
-   - 发布博客文章（重大变更）
+    - 在 CHANGELOG 中突出显示
+    - 在 GitHub Release 中详细说明
+    - 发布博客文章（重大变更）
 
 ---
 
@@ -190,28 +190,30 @@ async getUsers(from?: string, limit?: number) {
 **破坏性变更**:
 
 1. **移除已弃用的分页方法**
-   ```typescript
-   // ❌ 将被移除
-   getUsers(from?: string, limit?: number)
-   getRooms(from?: string, limit?: number, searchTerm?: string)
-   
-   // ✅ 使用新方法
-   getUsersPaginated(options?: { from?: string; limit?: number })
-   getRoomsPaginated(options?: { from?: string; limit?: number; searchTerm?: string })
-   ```
+
+    ```typescript
+    // ❌ 将被移除
+    getUsers(from?: string, limit?: number)
+    getRooms(from?: string, limit?: number, searchTerm?: string)
+
+    // ✅ 使用新方法
+    getUsersPaginated(options?: { from?: string; limit?: number })
+    getRoomsPaginated(options?: { from?: string; limit?: number; searchTerm?: string })
+    ```
 
 2. **统一错误类型**
-   ```typescript
-   // ❌ 旧的错误处理
-   catch (error) {
-       if (error.errcode === "M_NOT_FOUND") { ... }
-   }
-   
-   // ✅ 新的错误处理
-   catch (error) {
-       if (error instanceof NotFoundError) { ... }
-   }
-   ```
+
+    ```typescript
+    // ❌ 旧的错误处理
+    catch (error) {
+        if (error.errcode === "M_NOT_FOUND") { ... }
+    }
+
+    // ✅ 新的错误处理
+    catch (error) {
+        if (error instanceof NotFoundError) { ... }
+    }
+    ```
 
 **迁移步骤**:
 
@@ -232,6 +234,7 @@ npx @matrix-org/js-sdk-codemod v40-to-v41 src/
 #### v39.x → v40.0.0
 
 **主要变更**:
+
 - 移除 legacy crypto 支持
 - 统一 Manager 模式
 - 引入 BaseManager 基类
@@ -297,9 +300,9 @@ npx @matrix-org/js-sdk-codemod v40-to-v41 src/
 
 - **Node.js**: 当前 LTS 版本和前一个 LTS 版本
 - **浏览器**: 最新的 2 个主要版本
-  - Chrome/Edge
-  - Firefox
-  - Safari
+    - Chrome/Edge
+    - Firefox
+    - Safari
 
 ### 依赖策略
 
@@ -313,16 +316,16 @@ npx @matrix-org/js-sdk-codemod v40-to-v41 src/
 
 ### 当前已弃用的 API
 
-| API | 弃用版本 | 移除版本 | 替代方案 |
-|-----|---------|---------|---------|
-| `getUsers(from, limit)` | v40.2.0 | v41.0.0 | `getUsersPaginated(options)` |
-| `getRooms(from, limit, searchTerm)` | v40.2.0 | v41.0.0 | `getRoomsPaginated(options)` |
+| API                                 | 弃用版本 | 移除版本 | 替代方案                     |
+| ----------------------------------- | -------- | -------- | ---------------------------- |
+| `getUsers(from, limit)`             | v40.2.0  | v41.0.0  | `getUsersPaginated(options)` |
+| `getRooms(from, limit, searchTerm)` | v40.2.0  | v41.0.0  | `getRoomsPaginated(options)` |
 
 ### 计划弃用的 API
 
-| API | 计划弃用版本 | 计划移除版本 | 原因 |
-|-----|------------|------------|------|
-| `initLegacyCrypto()` | v40.x | v42.0.0 | 使用 Rust crypto |
+| API                  | 计划弃用版本 | 计划移除版本 | 原因             |
+| -------------------- | ------------ | ------------ | ---------------- |
+| `initLegacyCrypto()` | v40.x        | v42.0.0      | 使用 Rust crypto |
 
 ---
 
@@ -331,38 +334,38 @@ npx @matrix-org/js-sdk-codemod v40-to-v41 src/
 ### 对于 SDK 用户
 
 1. **及时更新**
-   - 定期更新到最新的 MINOR 版本
-   - 在 MAJOR 版本发布后 3 个月内完成迁移
+    - 定期更新到最新的 MINOR 版本
+    - 在 MAJOR 版本发布后 3 个月内完成迁移
 
 2. **关注弃用警告**
-   - 在开发环境中启用警告
-   - 及时迁移到新 API
+    - 在开发环境中启用警告
+    - 及时迁移到新 API
 
 3. **锁定版本**
-   - 在 package.json 中使用精确版本号
-   - 使用 package-lock.json 或 pnpm-lock.yaml
+    - 在 package.json 中使用精确版本号
+    - 使用 package-lock.json 或 pnpm-lock.yaml
 
 4. **测试覆盖**
-   - 保持良好的测试覆盖率
-   - 在升级前运行完整测试
+    - 保持良好的测试覆盖率
+    - 在升级前运行完整测试
 
 ### 对于 SDK 维护者
 
 1. **谨慎引入破坏性变更**
-   - 评估影响范围
-   - 提供充分的迁移时间
+    - 评估影响范围
+    - 提供充分的迁移时间
 
 2. **完善文档**
-   - 及时更新文档
-   - 提供清晰的迁移指南
+    - 及时更新文档
+    - 提供清晰的迁移指南
 
 3. **社区沟通**
-   - 提前通知重大变更
-   - 收集社区反馈
+    - 提前通知重大变更
+    - 收集社区反馈
 
 4. **自动化工具**
-   - 提供 codemod 工具
-   - 提供类型检查工具
+    - 提供 codemod 工具
+    - 提供类型检查工具
 
 ---
 
@@ -376,8 +379,8 @@ npx @matrix-org/js-sdk-codemod v40-to-v41 src/
 
 ## 变更历史
 
-| 版本 | 日期 | 变更 |
-|------|------|------|
+| 版本 | 日期       | 变更     |
+| ---- | ---------- | -------- |
 | v1.0 | 2026-04-15 | 初始版本 |
 
 ---

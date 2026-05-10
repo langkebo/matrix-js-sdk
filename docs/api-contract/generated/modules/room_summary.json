@@ -1,0 +1,195 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "room_summary",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 23,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/rooms/{room_id}/summary/members",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/rooms/{room_id}/summary/state",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/rooms/{room_id}/summary/stats",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "state_key"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "state_key"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/stats",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/sync",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/summary/unread/clear",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/room_summary/v1/summaries",
+      "registered_by": "room_summary",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/room_summary/v1/summaries",
+      "registered_by": "room_summary",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/room_summary/v1/updates/process",
+      "registered_by": "room_summary",
+      "path_params": []
+    }
+  ]
+}

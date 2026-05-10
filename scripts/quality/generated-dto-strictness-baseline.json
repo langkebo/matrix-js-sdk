@@ -1,0 +1,20 @@
+{
+    "generatedAt": "2026-05-03T09:55:53.741Z",
+    "ids": [
+        "src/appservice/__generated__/dto.ts:35:bare-unknown:f40b1a80e89672cf866a7a856fb50c21e22968e5",
+        "src/e2ee/__generated__/dto.ts:18:bare-unknown:a4b4e394cad3bb524899f6e8f56bb409d0a98ed7",
+        "src/e2ee/__generated__/dto.ts:18:record-unknown:98acaf0f1c8468e613eccf892f5b7584f988180e",
+        "src/e2ee/__generated__/dto.ts:38:explicit-any:48847087f253fa8c9ff3c2170e23553313f36ad6",
+        "src/key-backup/__generated__/dto.ts:15:explicit-any:52e982b61112ee1da8efe992f4b89cbe5a638dc6",
+        "src/key-backup/__generated__/dto.ts:21:explicit-any:01aedb4da94c561d07bda7ca280d03b3988dc536",
+        "src/key-backup/__generated__/dto.ts:37:explicit-any:892b4b0459faac90b7950d8677d7f84b2284bdea",
+        "src/key-backup/__generated__/dto.ts:47:explicit-any:774d4a7289ed43ace5ac139ec2912791ccd16068",
+        "src/key-backup/__generated__/dto.ts:61:explicit-any:9eee0f8172f1f409b30f9ca7510d73eac35b7529",
+        "src/key-backup/__generated__/dto.ts:63:explicit-any:4a4c3d6c5dc2105efbb37b7b72caf88ffb60019c",
+        "src/key-backup/__generated__/dto.ts:70:explicit-any:4a8450b27307bca9ef7b32b976e5dec2b81e362f",
+        "src/rendezvous/__generated__/dto.ts:22:bare-unknown:398fcc114a5e5b22f8e4d44c294febf45fe36b02",
+        "src/rendezvous/__generated__/dto.ts:22:record-unknown:fadd1ec7b0a3a780dedb6b6857cdae1a3f3a6025",
+        "src/rendezvous/__generated__/dto.ts:49:bare-unknown:0b145be8d8d39ba40b1a41b387837ceb61aaad6e",
+        "src/rendezvous/__generated__/dto.ts:49:record-unknown:650abc906a6410f1a65eb6702d3f42a8fcab9a02"
+    ]
+}

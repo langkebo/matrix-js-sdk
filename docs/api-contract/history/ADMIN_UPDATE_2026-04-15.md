@@ -28,13 +28,10 @@ const info = await client.getAdminManager().getServerInfo();
 
 ```typescript
 // 发送服务器通知给用户
-const result = await client.getAdminManager().sendServerNotice(
-    "@user:example.com",
-    {
-        msgtype: "m.text",
-        body: "重要通知：服务器将于今晚维护"
-    }
-);
+const result = await client.getAdminManager().sendServerNotice("@user:example.com", {
+    msgtype: "m.text",
+    body: "重要通知：服务器将于今晚维护",
+});
 // { event_id: string }
 
 // 获取服务器通知列表
@@ -52,10 +49,7 @@ const blacklist = await client.getAdminManager().getFederationBlacklist();
 // FederationBlacklistEntry[]
 
 // 添加服务器到黑名单
-await client.getAdminManager().addToFederationBlacklist(
-    "evil.com",
-    "spam server"
-);
+await client.getAdminManager().addToFederationBlacklist("evil.com", "spam server");
 
 // 从黑名单移除服务器
 await client.getAdminManager().removeFromFederationBlacklist("evil.com");
@@ -70,10 +64,7 @@ await client.getAdminManager().disconnectFederation("server.com");
 
 ```typescript
 // 删除单个设备
-await client.getAdminManager().deleteUserDevice(
-    "@user:example.com",
-    "DEVICE123"
-);
+await client.getAdminManager().deleteUserDevice("@user:example.com", "DEVICE123");
 
 // 获取账户状态
 const status = await client.getAdminManager().getAccountStatus("@user:example.com");
@@ -153,6 +144,7 @@ interface FederationBlacklistEntry {
 所有新增功能均已添加单元测试，测试文件：`spec/unit/admin.spec.ts`
 
 测试覆盖：
+
 - ✅ 服务器状态监控（3 个测试）
 - ✅ 通知管理（2 个测试）
 - ✅ 联邦黑名单管理（4 个测试）
@@ -160,14 +152,14 @@ interface FederationBlacklistEntry {
 
 ## 统计数据
 
-| 指标 | 更新前 | 更新后 | 提升 |
-|------|--------|--------|------|
-| 总封装方法数 | 70 | 83 | +13 |
-| 封装覆盖率 | 50% | 59% | +9% |
-| 用户管理覆盖率 | 74% | 86% | +12% |
-| 服务器管理覆盖率 | 30% | 60% | +30% |
-| 联邦管理覆盖率 | 38% | 88% | +50% |
-| 通知管理覆盖率 | 0% | 20% | +20% |
+| 指标             | 更新前 | 更新后 | 提升 |
+| ---------------- | ------ | ------ | ---- |
+| 总封装方法数     | 70     | 83     | +13  |
+| 封装覆盖率       | 50%    | 59%    | +9%  |
+| 用户管理覆盖率   | 74%    | 86%    | +12% |
+| 服务器管理覆盖率 | 30%    | 60%    | +30% |
+| 联邦管理覆盖率   | 38%    | 88%    | +50% |
+| 通知管理覆盖率   | 0%     | 20%    | +20% |
 
 ## 质量评级
 

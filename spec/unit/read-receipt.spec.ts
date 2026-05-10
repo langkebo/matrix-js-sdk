@@ -219,8 +219,7 @@ describe("Read receipt", () => {
             const fakeReadReceipt = synthesizeReceipt(userId, event, receiptType);
             const content = fakeReadReceipt.getContent<{
                 [eventId: string]: { [key: string]: { [userId: string]: { thread_id?: string } } };
-            }>()
-                [event.getId()!][receiptType][userId];
+            }>()[event.getId()!][receiptType][userId];
 
             expect(content.thread_id).toEqual(destinationId);
         });

@@ -11,16 +11,16 @@ Auth 模块提供完整的用户认证、注册、登录、登出和 token 管�
 
 ## 数据约束
 
-| 字段 | 约束 | 说明 |
-|------|------|------|
-| username | 最大 255 字符 | 必须符合 Matrix ID 规范，不能包含特殊字符 |
-| password | 最大 128 字符 | 必须满足密码策略（长度、复杂度） |
-| device_id | 16 字符 | 服务器生成的随机字符串 |
-| access_token | JWT | 包含 user_id, device_id, admin, exp, iat 等声明 |
-| refresh_token | 随机字符串 | 用于刷新 access_token |
-| token_expiry | 可配置 | 默认值在 SecurityConfig 中设置 |
-| lockout_threshold | 可配置 | 默认失败次数阈值 |
-| lockout_duration | 可配置 | 默认锁定时长（秒） |
+| 字段              | 约束          | 说明                                            |
+| ----------------- | ------------- | ----------------------------------------------- |
+| username          | 最大 255 字符 | 必须符合 Matrix ID 规范，不能包含特殊字符       |
+| password          | 最大 128 字符 | 必须满足密码策略（长度、复杂度）                |
+| device_id         | 16 字符       | 服务器生成的随机字符串                          |
+| access_token      | JWT           | 包含 user_id, device_id, admin, exp, iat 等声明 |
+| refresh_token     | 随机字符串    | 用于刷新 access_token                           |
+| token_expiry      | 可配置        | 默认值在 SecurityConfig 中设置                  |
+| lockout_threshold | 可配置        | 默认失败次数阈值                                |
+| lockout_duration  | 可配置        | 默认锁定时长（秒）                              |
 
 ## 核心接口
 
@@ -29,29 +29,32 @@ Auth 模块提供完整的用户认证、注册、登录、登出和 token 管�
 **端点**: `POST /_matrix/client/{r0,v3}/register`
 
 **请求体**:
+
 ```json
 {
-  "username": "alice",
-  "password": "secret123",
-  "auth": {
-    "type": "m.login.dummy"
-  },
-  "device_id": "ABCDEFGHIJKLMNOP",
-  "initial_device_display_name": "Alice's Phone"
+    "username": "alice",
+    "password": "secret123",
+    "auth": {
+        "type": "m.login.dummy"
+    },
+    "device_id": "ABCDEFGHIJKLMNOP",
+    "initial_device_display_name": "Alice's Phone"
 }
 ```
 
 **响应 200**:
+
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user_id": "@alice:example.com",
-  "device_id": "ABCDEFGHIJKLMNOP",
-  "refresh_token": "def50200..."
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user_id": "@alice:example.com",
+    "device_id": "ABCDEFGHIJKLMNOP",
+    "refresh_token": "def50200..."
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `400 M_INVALID_USERNAME` - 用户名不符合规范
 - `400 M_WEAK_PASSWORD` - 密码不满足策略
@@ -59,12 +62,14 @@ Auth 模块提供完整的用户认证、注册、登录、登出和 token 管�
 - `429 M_LIMIT_EXCEEDED` - 请求过于频繁
 
 **验证规则**:
+
 - username 和 password 必填
 - username 长度 ≤ 255 字符
 - password 长度 ≤ 128 字符
 - 密码必须满足强度要求（由 Validator 检查）
 
 **数据库操作**:
+
 ```sql
 -- 创建用户（事务）
 INSERT INTO users (user_id, username, password_hash, is_admin, created_ts)
@@ -82,36 +87,39 @@ VALUES ($1, $2, $3, $4, $4);
 **端点**: `POST /_matrix/client/{r0,v3}/login`
 
 **请求体**:
+
 ```json
 {
-  "type": "m.login.password",
-  "identifier": {
-    "type": "m.id.user",
-    "user": "alice"
-  },
-  "password": "secret123",
-  "device_id": "ABCDEFGHIJKLMNOP",
-  "initial_device_display_name": "Alice's Phone"
+    "type": "m.login.password",
+    "identifier": {
+        "type": "m.id.user",
+        "user": "alice"
+    },
+    "password": "secret123",
+    "device_id": "ABCDEFGHIJKLMNOP",
+    "initial_device_display_name": "Alice's Phone"
 }
 ```
 
 **响应 200**:
+
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user_id": "@alice:example.com",
-  "device_id": "ABCDEFGHIJKLMNOP",
-  "refresh_token": "def50200...",
-  "expires_in": 3600,
-  "well_known": {
-    "m.homeserver": {
-      "base_url": "http://localhost:28008"
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user_id": "@alice:example.com",
+    "device_id": "ABCDEFGHIJKLMNOP",
+    "refresh_token": "def50200...",
+    "expires_in": 3600,
+    "well_known": {
+        "m.homeserver": {
+            "base_url": "http://localhost:28008"
+        }
     }
-  }
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `401 M_UNAUTHORIZED` - 用户名或密码错误
 - `403 M_FORBIDDEN` - 账户被锁定
@@ -119,12 +127,14 @@ VALUES ($1, $2, $3, $4, $4);
 - `429 M_LIMIT_EXCEEDED` - 登录失败次数过多
 
 **账户保护机制**:
+
 1. **失败计数**: 每次登录失败，失败计数 +1
 2. **自动锁定**: 失败次数达到阈值（可配置），账户自动锁定
 3. **锁定时长**: 锁定时长可配置（默认秒数）
 4. **成功清零**: 登录成功后，失败计数清零
 
 **密码验证流程**:
+
 1. 查询用户记录
 2. 检查账户是否停用
 3. 检查账户是否锁定
@@ -140,28 +150,32 @@ VALUES ($1, $2, $3, $4, $4);
 **端点**: `POST /_matrix/client/{r0,v3}/refresh`
 
 **请求体**:
+
 ```json
 {
-  "refresh_token": "def50200..."
+    "refresh_token": "def50200..."
 }
 ```
 
 **响应 200**:
+
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "def50200...",
-  "expires_in": 3600,
-  "device_id": "ABCDEFGHIJKLMNOP"
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "def50200...",
+    "expires_in": 3600,
+    "device_id": "ABCDEFGHIJKLMNOP"
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `401 M_UNKNOWN_TOKEN` - refresh_token 无效或已过期
 - `401 M_UNAUTHORIZED` - refresh_token 已被撤销
 
 **Token 刷新逻辑**:
+
 1. 验证 refresh_token 有效性
 2. 检查是否已撤销
 3. 检查是否过期
@@ -176,20 +190,24 @@ VALUES ($1, $2, $3, $4, $4);
 **端点**: `POST /_matrix/client/{r0,v3}/logout`
 
 **请求头**:
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **响应 200**:
+
 ```json
 {}
 ```
 
 **错误码**:
+
 - `401 M_UNKNOWN_TOKEN` - access_token 无效
 - `401 M_MISSING_TOKEN` - 缺少 Authorization 头
 
 **登出操作**:
+
 1. 将 access_token 加入黑名单
 2. 从数据库删除 token 记录
 3. 删除该设备的所有 token
@@ -202,20 +220,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **端点**: `POST /_matrix/client/{r0,v3}/logout/all`
 
 **请求头**:
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **响应 200**:
+
 ```json
 {}
 ```
 
 **错误码**:
+
 - `401 M_UNKNOWN_TOKEN` - access_token 无效
 - `401 M_MISSING_TOKEN` - 缺少 Authorization 头
 
 **全设备登出操作**:
+
 1. 获取用户的所有 token
 2. 将所有 token 加入黑名单
 3. 删除所有 access_token 记录
@@ -230,14 +252,16 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **端点**: `GET /_matrix/client/{r0,v3}/register/available?username=alice`
 
 **响应 200**:
+
 ```json
 {
-  "available": false,
-  "username": "alice"
+    "available": false,
+    "username": "alice"
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 缺少 username 参数
 - `400 M_INVALID_USERNAME` - 用户名不符合规范
 
@@ -248,24 +272,27 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **端点**: `POST /_matrix/client/{r0,v3}/register/email/requestToken`
 
 **请求体**:
+
 ```json
 {
-  "email": "alice@example.com",
-  "client_secret": "this_is_a_secret",
-  "send_attempt": 1
+    "email": "alice@example.com",
+    "client_secret": "this_is_a_secret",
+    "send_attempt": 1
 }
 ```
 
 **响应 200**:
+
 ```json
 {
-  "sid": "123456",
-  "submit_url": "https://example.com:28008/_matrix/client/r0/register/email/submitToken",
-  "expires_in": 3600
+    "sid": "123456",
+    "submit_url": "https://example.com:28008/_matrix/client/r0/register/email/submitToken",
+    "expires_in": 3600
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `400 M_INVALID_EMAIL` - 邮箱格式不正确
 
@@ -276,22 +303,25 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **端点**: `POST /_matrix/client/{r0,v3}/register/email/submitToken`
 
 **请求体**:
+
 ```json
 {
-  "sid": "123456",
-  "client_secret": "this_is_a_secret",
-  "token": "abc123"
+    "sid": "123456",
+    "client_secret": "this_is_a_secret",
+    "token": "abc123"
 }
 ```
 
 **响应 200**:
+
 ```json
 {
-  "success": true
+    "success": true
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `400 M_INVALID_PARAM` - sid 或 token 无效
 - `400 M_SESSION_NOT_FOUND` - 会话不存在
@@ -342,7 +372,7 @@ CREATE TABLE IF NOT EXISTS devices (
     first_seen_ts BIGINT NOT NULL,
     user_agent TEXT,
     CONSTRAINT pk_devices PRIMARY KEY (device_id),
-    CONSTRAINT fk_devices_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_devices_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 
@@ -364,7 +394,7 @@ CREATE TABLE IF NOT EXISTS access_tokens (
     is_revoked BOOLEAN DEFAULT FALSE,
     CONSTRAINT pk_access_tokens PRIMARY KEY (id),
     CONSTRAINT uq_access_tokens_token_hash UNIQUE (token_hash),
-    CONSTRAINT fk_access_tokens_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_access_tokens_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 
@@ -387,7 +417,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     is_revoked BOOLEAN DEFAULT FALSE,
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
     CONSTRAINT uq_refresh_tokens_token_hash UNIQUE (token_hash),
-    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 
@@ -403,11 +433,13 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)
 **算法**: Argon2id
 
 **参数**（可配置）:
+
 - `m_cost`: 内存成本
 - `t_cost`: 时间成本
 - `p_cost`: 并行度
 
 **旧哈希迁移**:
+
 - 支持从旧哈希算法自动迁移
 - 登录时检测旧哈希并自动升级
 - 迁移过程对用户透明
@@ -415,6 +447,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)
 ### 2. 账户保护
 
 **登录失败计数**:
+
 ```rust
 // 缓存键格式
 auth:failures:{user_id}
@@ -425,6 +458,7 @@ cache.set(key, failures, lockout_duration)
 ```
 
 **账户锁定**:
+
 ```rust
 // 达到阈值时锁定
 if failures >= threshold {
@@ -434,6 +468,7 @@ if failures >= threshold {
 ```
 
 **锁定检查**:
+
 ```rust
 // 登录前检查
 if cache.get("auth:lockout:{user_id}") > now {
@@ -444,6 +479,7 @@ if cache.get("auth:lockout:{user_id}") > now {
 ### 3. Token 管理
 
 **JWT Claims**:
+
 ```rust
 {
     "sub": "user_id",           // Subject (user ID)
@@ -457,11 +493,13 @@ if cache.get("auth:lockout:{user_id}") > now {
 ```
 
 **Token 黑名单**:
+
 - 登出时将 token 加入黑名单
 - 验证 token 时检查黑名单
 - 黑名单使用 token_hash 存储
 
 **Token 轮换**:
+
 - 刷新时可选生成新的 refresh_token
 - 旧 refresh_token 自动失效
 - 防止 token 泄露风险
@@ -469,6 +507,7 @@ if cache.get("auth:lockout:{user_id}") > now {
 ### 4. 审计日志
 
 **登录成功**:
+
 ```rust
 tracing::info!(
     target: "security_audit",
@@ -479,6 +518,7 @@ tracing::info!(
 ```
 
 **登录失败**:
+
 ```rust
 tracing::warn!(
     target: "security_audit",
@@ -489,6 +529,7 @@ tracing::warn!(
 ```
 
 **账户锁定**:
+
 ```rust
 tracing::warn!(
     target: "security_audit",
@@ -502,23 +543,23 @@ tracing::warn!(
 
 ## 错误码完整映射
 
-| 错误码 | HTTP 状态码 | 场景 | 错误消息示例 |
-|--------|------------|------|-------------|
-| `M_FORBIDDEN` | 403 | 账户被锁定 | "Account is temporarily locked due to too many failed login attempts" |
-| `M_FORBIDDEN` | 403 | 注册已禁用 | "Registration is disabled" |
-| `M_USER_IN_USE` | 409 | 用户名已占用 | "Username already taken" |
-| `M_INVALID_USERNAME` | 400 | 用户名不符合规范 | "Username contains invalid characters" |
-| `M_WEAK_PASSWORD` | 400 | 密码不满足策略 | "Password does not meet policy requirements" |
-| `M_BAD_JSON` | 400 | 请求体格式错误 | "Invalid JSON" |
-| `M_UNAUTHORIZED` | 401 | 用户名或密码错误 | "Invalid credentials" |
-| `M_UNKNOWN_TOKEN` | 401 | Token 无效 | "Invalid or expired token" |
-| `M_MISSING_TOKEN` | 401 | 缺少 Token | "Missing access token" |
-| `M_USER_DEACTIVATED` | 403 | 账户已停用 | "User account has been deactivated" |
-| `M_LIMIT_EXCEEDED` | 429 | 请求过于频繁 | "Too many requests" |
-| `M_INVALID_EMAIL` | 400 | 邮箱格式错误 | "Invalid email address format" |
-| `M_SESSION_NOT_FOUND` | 400 | 会话不存在 | "Invalid session ID or session not found" |
-| `M_TOKEN_EXPIRED` | 400 | Token 已过期 | "Verification token has expired" |
-| `M_TOKEN_ALREADY_USED` | 400 | Token 已使用 | "Verification token has already been used" |
+| 错误码                 | HTTP 状态码 | 场景             | 错误消息示例                                                          |
+| ---------------------- | ----------- | ---------------- | --------------------------------------------------------------------- |
+| `M_FORBIDDEN`          | 403         | 账户被锁定       | "Account is temporarily locked due to too many failed login attempts" |
+| `M_FORBIDDEN`          | 403         | 注册已禁用       | "Registration is disabled"                                            |
+| `M_USER_IN_USE`        | 409         | 用户名已占用     | "Username already taken"                                              |
+| `M_INVALID_USERNAME`   | 400         | 用户名不符合规范 | "Username contains invalid characters"                                |
+| `M_WEAK_PASSWORD`      | 400         | 密码不满足策略   | "Password does not meet policy requirements"                          |
+| `M_BAD_JSON`           | 400         | 请求体格式错误   | "Invalid JSON"                                                        |
+| `M_UNAUTHORIZED`       | 401         | 用户名或密码错误 | "Invalid credentials"                                                 |
+| `M_UNKNOWN_TOKEN`      | 401         | Token 无效       | "Invalid or expired token"                                            |
+| `M_MISSING_TOKEN`      | 401         | 缺少 Token       | "Missing access token"                                                |
+| `M_USER_DEACTIVATED`   | 403         | 账户已停用       | "User account has been deactivated"                                   |
+| `M_LIMIT_EXCEEDED`     | 429         | 请求过于频繁     | "Too many requests"                                                   |
+| `M_INVALID_EMAIL`      | 400         | 邮箱格式错误     | "Invalid email address format"                                        |
+| `M_SESSION_NOT_FOUND`  | 400         | 会话不存在       | "Invalid session ID or session not found"                             |
+| `M_TOKEN_EXPIRED`      | 400         | Token 已过期     | "Verification token has expired"                                      |
+| `M_TOKEN_ALREADY_USED` | 400         | Token 已使用     | "Verification token has already been used"                            |
 
 ---
 
@@ -527,6 +568,7 @@ tracing::warn!(
 ### v1.0 (2026-04-15)
 
 **新增**:
+
 - 完整的认证接口文档
 - 数据约束详细说明
 - 数据库表结构定义
@@ -535,12 +577,14 @@ tracing::warn!(
 - 账户保护机制文档
 
 **数据约束**:
+
 - username 最大长度: 255 字符
 - password 最大长度: 128 字符
 - device_id 长度: 16 字符
 - token 过期时间: 可配置
 
 **安全特性**:
+
 - Argon2 密码哈希
 - 登录失败计数和账户锁定
 - JWT token 管理
@@ -548,6 +592,7 @@ tracing::warn!(
 - 完整的安全审计日志
 
 **兼容性**:
+
 - 支持 `/_matrix/client/r0` 和 `/_matrix/client/v3` 前缀
 - 支持 `m.login.password` 和 `m.login.token` 登录方式
 - 支持 `m.login.dummy` 和 `m.login.password` 注册方式

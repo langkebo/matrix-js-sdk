@@ -4,46 +4,46 @@
 
 ## 审计状态总览
 
-| 模块 | 最新审计日期 | 审计报告 | 状态 | 封装覆盖率 | 优先级 |
-|------|------------|---------|------|-----------|--------|
-| Admin | 2026-04-15 | [ADMIN_SDK_COVERAGE_REPORT.md](ADMIN_SDK_COVERAGE_REPORT.md) | ✅ 良好 | 59% | P1 |
-| Auth | 2026-04-10 | [AUTH_REVIEW_REPORT.md](AUTH_REVIEW_REPORT.md) | ✅ 优秀 | 95% | - |
-| Account Data | 2026-04-13 | [ACCOUNT_DATA_REVIEW_REPORT.md](ACCOUNT_DATA_REVIEW_REPORT.md) | ✅ 优秀 | 90% | - |
-| Device | 2026-04-11 | [DEVICE_REVIEW_SUMMARY.md](DEVICE_REVIEW_SUMMARY.md) | ✅ 良好 | 85% | - |
-| DM | 2026-04-11 | [DM_REVIEW_SUMMARY.md](DM_REVIEW_SUMMARY.md) | ✅ 优秀 | 90% | - |
-| E2EE | 2026-04-11 | [E2EE_REVIEW_SUMMARY.md](E2EE_REVIEW_SUMMARY.md) | ⚠️ 待提升 | 75% | P1 |
-| Friend | 2026-04-04 | [FRIEND_REVIEW_SUMMARY.md](FRIEND_REVIEW_SUMMARY.md) | ✅ 优秀 | 100% | - |
-| Key Backup | 2026-04-04 | 契约文档 | 🔴 紧急 | 0% | P0 |
-| Presence | 2026-04-04 | 契约文档 | ⚠️ 待提升 | 80% | P2 |
-| Media | 2026-04-04 | 契约文档 | ⚠️ 待提升 | 78% | P2 |
+| 模块         | 最新审计日期 | 审计报告                                                       | 状态      | 封装覆盖率 | 优先级 |
+| ------------ | ------------ | -------------------------------------------------------------- | --------- | ---------- | ------ |
+| Admin        | 2026-04-15   | [ADMIN_SDK_COVERAGE_REPORT.md](ADMIN_SDK_COVERAGE_REPORT.md)   | ✅ 良好   | 59%        | P1     |
+| Auth         | 2026-04-10   | [AUTH_REVIEW_REPORT.md](AUTH_REVIEW_REPORT.md)                 | ✅ 优秀   | 95%        | -      |
+| Account Data | 2026-04-13   | [ACCOUNT_DATA_REVIEW_REPORT.md](ACCOUNT_DATA_REVIEW_REPORT.md) | ✅ 优秀   | 90%        | -      |
+| Device       | 2026-04-11   | [DEVICE_REVIEW_SUMMARY.md](DEVICE_REVIEW_SUMMARY.md)           | ✅ 良好   | 85%        | -      |
+| DM           | 2026-04-11   | [DM_REVIEW_SUMMARY.md](DM_REVIEW_SUMMARY.md)                   | ✅ 优秀   | 90%        | -      |
+| E2EE         | 2026-04-11   | [E2EE_REVIEW_SUMMARY.md](E2EE_REVIEW_SUMMARY.md)               | ⚠️ 待提升 | 75%        | P1     |
+| Friend       | 2026-04-04   | [FRIEND_REVIEW_SUMMARY.md](FRIEND_REVIEW_SUMMARY.md)           | ✅ 优秀   | 100%       | -      |
+| Key Backup   | 2026-04-04   | 契约文档                                                       | 🔴 紧急   | 0%         | P0     |
+| Presence     | 2026-04-04   | 契约文档                                                       | ⚠️ 待提升 | 80%        | P2     |
+| Media        | 2026-04-04   | 契约文档                                                       | ⚠️ 待提升 | 78%        | P2     |
 
 ## 新增模块（2026-04-27）
 
-| 模块 | 契约文档 | 状态 | 封装覆盖率 | 优先级 |
-|------|---------|------|-----------|--------|
-| Typing | [typing.md](typing.md) | 🔴 待封装 | 33% | P1 |
-| Reactions | [reactions.md](reactions.md) | ✅ 完善 | 100% | - |
-| Relations | [relations.md](relations.md) | ⚠️ 待提升 | 60% | P1 |
-| Key Rotation | [key-rotation.md](key-rotation.md) | 🔴 紧急 | 0% | P0 |
-| Moderation | [moderation.md](moderation.md) | 🔴 待封装 | 25% | P1 |
-| Thirdparty | [thirdparty.md](thirdparty.md) | ⚠️ 待提升 | 67% | P2 |
-| Event Report | [event-report.md](event-report.md) | 🔴 待封装 | 0% | P1 |
-| Telemetry | [telemetry.md](telemetry.md) | 🔴 待封装 | 0% | P1 |
-| Feature Flags | [feature-flags.md](feature-flags.md) | 🔴 待封装 | 0% | P2 |
-| App Service | [app-service.md](app-service.md) | 🔴 待封装 | 0% | P2 |
-| Background Update | [background-update.md](background-update.md) | 🔴 待封装 | 0% | P2 |
+| 模块              | 契约文档                                     | 状态      | 封装覆盖率 | 优先级 |
+| ----------------- | -------------------------------------------- | --------- | ---------- | ------ |
+| Typing            | [typing.md](typing.md)                       | 🔴 待封装 | 33%        | P1     |
+| Reactions         | [reactions.md](reactions.md)                 | ✅ 完善   | 100%       | -      |
+| Relations         | [relations.md](relations.md)                 | ⚠️ 待提升 | 60%        | P1     |
+| Key Rotation      | [key-rotation.md](key-rotation.md)           | 🔴 紧急   | 0%         | P0     |
+| Moderation        | [moderation.md](moderation.md)               | 🔴 待封装 | 25%        | P1     |
+| Thirdparty        | [thirdparty.md](thirdparty.md)               | ⚠️ 待提升 | 67%        | P2     |
+| Event Report      | [event-report.md](event-report.md)           | 🔴 待封装 | 0%         | P1     |
+| Telemetry         | [telemetry.md](telemetry.md)                 | 🔴 待封装 | 0%         | P1     |
+| Feature Flags     | [feature-flags.md](feature-flags.md)         | 🔴 待封装 | 0%         | P2     |
+| App Service       | [app-service.md](app-service.md)             | 🔴 待封装 | 0%         | P2     |
+| Background Update | [background-update.md](background-update.md) | 🔴 待封装 | 0%         | P2     |
 
 ## 待审计模块
 
-| 模块 | 优先级 | 计划日期 | 预计端点数 |
-|------|-------|---------|-----------|
-| Module System | P2 | 2026-05-05 | ~20 |
-| CAPTCHA | P3 | 2026-05-08 | ~4 |
-| Ephemeral | P3 | 2026-05-10 | ~1 |
-| External Service | P2 | 2026-05-12 | ~5 |
-| Burn After Read | P2 | 2026-05-15 | ~5 |
-| AI Connection | P2 | 2026-05-18 | ~4 |
-| CAS | P3 | 2026-05-20 | ~8 |
+| 模块             | 优先级 | 计划日期   | 预计端点数 |
+| ---------------- | ------ | ---------- | ---------- |
+| Module System    | P2     | 2026-05-05 | ~20        |
+| CAPTCHA          | P3     | 2026-05-08 | ~4         |
+| Ephemeral        | P3     | 2026-05-10 | ~1         |
+| External Service | P2     | 2026-05-12 | ~5         |
+| Burn After Read  | P2     | 2026-05-15 | ~5         |
+| AI Connection    | P2     | 2026-05-18 | ~4         |
+| CAS              | P3     | 2026-05-20 | ~8         |
 
 ## 审计统计
 

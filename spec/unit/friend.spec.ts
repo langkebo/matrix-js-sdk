@@ -514,11 +514,15 @@ describe("FriendManager", () => {
         });
 
         it("should get groups for user", async () => {
-            mockAuthedRequest.mockResolvedValue({ groups: ["group1", "group2"] });
+            const mockGroups = [
+                { id: "group1", name: "Work", members: ["@bob:example.com"], created_at: 1700000000000 },
+                { id: "group2", name: "Family", members: ["@bob:example.com"], created_at: 1700000000000 },
+            ];
+            mockAuthedRequest.mockResolvedValue({ groups: mockGroups });
 
             const groups = await friendManager.getGroupsForUser("@bob:example.com");
 
-            expect(groups).toEqual(["group1", "group2"]);
+            expect(groups).toEqual(mockGroups);
         });
     });
 
@@ -671,7 +675,7 @@ describe("FriendManager", () => {
                 .mockResolvedValueOnce({ friends: [] })
                 .mockResolvedValueOnce({ requests: [] })
                 .mockResolvedValueOnce({ requests: [] })
-                .mockResolvedValueOnce({ groups: {} });
+                .mockResolvedValueOnce({ groups: [] });
 
             await friendManager.start();
 
@@ -683,7 +687,7 @@ describe("FriendManager", () => {
                 .mockResolvedValueOnce({ friends: [] })
                 .mockResolvedValueOnce({ requests: [] })
                 .mockResolvedValueOnce({ requests: [] })
-                .mockResolvedValueOnce({ groups: {} });
+                .mockResolvedValueOnce({ groups: [] });
 
             await friendManager.start();
             await friendManager.start();

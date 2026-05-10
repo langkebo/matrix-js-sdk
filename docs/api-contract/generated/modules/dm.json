@@ -1,0 +1,67 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "dm",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 8,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/create_dm",
+      "registered_by": "dm",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/direct",
+      "registered_by": "dm",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/direct/{room_id}",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/create_dm",
+      "registered_by": "dm",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/direct",
+      "registered_by": "dm",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/direct/{room_id}",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/dm",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/dm/partner",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ]
+    }
+  ]
+}

@@ -128,6 +128,7 @@ export { IdentityProviderBrand, SSOAction } from "./@types/auth";
 export type { ISSOFlow as SSOFlow, LoginFlow } from "./@types/auth";
 export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as HierarchyRoom } from "./@types/spaces";
 export { DebugLogger } from "./logger";
+export { TelemetryManager } from "./telemetry/index";
 export {
     extendMatrixClientWithManagers,
     offManagerExtensionsLifecycle,
@@ -164,7 +165,7 @@ function amendClientOpts(opts: ICreateClientOpts): ICreateClientOpts {
     return opts;
 }
 
-function autoInitManagerExtensions(opts: ICreateClientOpts): void {
+async function autoInitManagerExtensions(opts: ICreateClientOpts): Promise<void> {
     if (opts.disableDynamicExtensions) {
         return;
     }
@@ -176,9 +177,7 @@ function autoInitManagerExtensions(opts: ICreateClientOpts): void {
         return;
     }
 
-    void initializeManagerExtensions().catch((error) => {
-        logger.warn("createClient auto manager extension init failed:", error);
-    });
+    await initializeManagerExtensions();
 }
 
 export async function initializeManagerExtensions(): Promise<void> {

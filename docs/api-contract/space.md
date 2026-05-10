@@ -1,3 +1,11 @@
+---
+module: space
+generated_from: docs/api-contract/generated/modules/space.json
+generated_hash: sha256-8a7226884b02bcaaa63b9a36885da8d27e61fcc96ef1b0b6268c97031e57cab5
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Space 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/space.rs`、`space/lifecycle_query.rs`、`space/children_hierarchy.rs`、`space/membership_state.rs`、`space/summary.rs`、`space/types.rs`
@@ -7,49 +15,49 @@
 
 `create_space_router()` 将同一套路由同时挂到以下前缀：
 
-| 前缀                 | 说明 |
-| -------------------- | ---- |
+| 前缀                 | 说明                               |
+| -------------------- | ---------------------------------- |
 | `/_matrix/client/v1` | 与 `r0/v3` 共用同一组 space 处理器 |
 | `/_matrix/client/r0` | 与 `v1/v3` 共用同一组 space 处理器 |
 | `/_matrix/client/v3` | 与 `v1/r0` 共用同一组 space 处理器 |
 
 ## 认证规则
 
-| 场景 | 实际要求 |
-| ---- | -------- |
+| 场景         | 实际要求                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
 | 公开只读接口 | `GET /spaces/public` 无认证；私有 space 可见性由 `OptionalAuthenticatedUser` + `ensure_space_visible()` 决定 |
-| 私有只读接口 | 未登录访问私有 space 返回 `401`；已登录但无权限返回 `403` |
-| 写接口 | 创建、更新、删除、加子房间、邀请、加入、离开均要求 `AuthenticatedUser` |
-| 搜索接口 | `GET /spaces/search` 要求 `AuthenticatedUser`，后端会把当前用户 ID 传给 `space_service.search_spaces()` |
+| 私有只读接口 | 未登录访问私有 space 返回 `401`；已登录但无权限返回 `403`                                                    |
+| 写接口       | 创建、更新、删除、加子房间、邀请、加入、离开均要求 `AuthenticatedUser`                                       |
+| 搜索接口     | `GET /spaces/search` 要求 `AuthenticatedUser`，后端会把当前用户 ID 传给 `space_service.search_spaces()`      |
 
 ## 路由总表
 
-| 方法 | 路径 | 认证 | 请求参数/请求体 | 实际响应 |
-| ---- | ---- | ---- | --------------- | -------- |
-| `POST` | `/_matrix/client/{v1,r0,v3}/spaces` | `AuthenticatedUser` | `CreateSpaceBody`：`room_id` 必填；`name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?` `parent_space_id?` | `201` + `SpaceResponse` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/public` | 无 | `limit?` 默认 `100`，`offset?` 默认 `0` | `200` + `SpaceResponse[]` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/search` | `AuthenticatedUser` | 查询参数 `query`，支持别名 `search_term`；`limit?` 默认 `10` | `200` + `SpaceResponse[]` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/statistics` | 可匿名 | 无 | `200` + `serde_json::Value[]`，仅返回当前调用方可见 space 的统计条目 |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/user` | `AuthenticatedUser` | 无 | `200` + `SpaceResponse[]` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `SpaceResponse` |
-| `PUT` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}` | `AuthenticatedUser` | `UpdateSpaceBody`：`name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?` | `200` + `SpaceResponse` |
-| `DELETE` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}` | `AuthenticatedUser` | 路径参数 `space_id` | `204 No Content` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children` | 可匿名读公开 space | 无 | `200` + `SpaceChildResponse[]` |
-| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children` | `AuthenticatedUser` | `AddChildBody`：`room_id` 必填，`via_servers` 为字符串数组，`suggested?` 默认 `false` | `201` + `SpaceChildResponse` |
-| `DELETE` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children/{room_id}` | `AuthenticatedUser` | 路径参数 `space_id`、`room_id` | `204 No Content` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy` | 可匿名读公开 space | 查询参数仅消费 `max_depth?`，默认 `1` | `200` + `SpaceHierarchyResponse` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy/v1` | 可匿名读公开 space | `max_depth?` 默认 `1`，`suggested_only?` 默认 `false`，并透传 `limit?`、`from?` | `200` + service 直接序列化结果 |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/tree_path` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `SpaceResponse[]` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}/parents` | 可匿名读公开 parent space | 路径参数 `room_id` | `200` + `SpaceResponse[]` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/members` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `SpaceMemberResponse[]` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/rooms` | 可匿名读公开 space | 路径参数 `space_id` | `200` + `{ "space_id": string, "rooms": string[] }` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/state` | 可匿名读公开 space | 路径参数 `space_id` | `200` + service 直接序列化的状态对象 |
-| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/invite` | `AuthenticatedUser` | `InviteUserBody`：`user_id` 必填 | `201` + `SpaceMemberResponse` |
-| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/join` | `AuthenticatedUser` | 无 body | `200` + `SpaceMemberResponse` |
-| `POST` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/leave` | `AuthenticatedUser` | 无 body | `204 No Content` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary` | 可匿名读公开 space | 路径参数 `space_id` | `200` + summary 对象；不存在时 `404` |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary/with_children` | 可匿名读公开 space | 路径参数 `space_id` | `200` + service 直接序列化结果 |
-| `GET` | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}` | 可匿名读公开 space | 路径参数 `room_id` | `200` + `SpaceResponse` |
+| 方法     | 路径                                                                 | 认证                      | 请求参数/请求体                                                                                                              | 实际响应                                                             |
+| -------- | -------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `POST`   | `/_matrix/client/{v1,r0,v3}/spaces`                                  | `AuthenticatedUser`       | `CreateSpaceBody`：`room_id` 必填；`name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?` `parent_space_id?` | `201` + `SpaceResponse`                                              |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/public`                           | 无                        | `limit?` 默认 `100`，`offset?` 默认 `0`                                                                                      | `200` + `SpaceResponse[]`                                            |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/search`                           | `AuthenticatedUser`       | 查询参数 `query`，支持别名 `search_term`；`limit?` 默认 `10`                                                                 | `200` + `SpaceResponse[]`                                            |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/statistics`                       | 可匿名                    | 无                                                                                                                           | `200` + `serde_json::Value[]`，仅返回当前调用方可见 space 的统计条目 |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/user`                             | `AuthenticatedUser`       | 无                                                                                                                           | `200` + `SpaceResponse[]`                                            |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}`                       | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + `SpaceResponse`                                              |
+| `PUT`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}`                       | `AuthenticatedUser`       | `UpdateSpaceBody`：`name?` `topic?` `avatar_url?` `join_rule?` `visibility?` `is_public?`                                    | `200` + `SpaceResponse`                                              |
+| `DELETE` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}`                       | `AuthenticatedUser`       | 路径参数 `space_id`                                                                                                          | `204 No Content`                                                     |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children`              | 可匿名读公开 space        | 无                                                                                                                           | `200` + `SpaceChildResponse[]`                                       |
+| `POST`   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children`              | `AuthenticatedUser`       | `AddChildBody`：`room_id` 必填，`via_servers` 为字符串数组，`suggested?` 默认 `false`                                        | `201` + `SpaceChildResponse`                                         |
+| `DELETE` | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/children/{room_id}`    | `AuthenticatedUser`       | 路径参数 `space_id`、`room_id`                                                                                               | `204 No Content`                                                     |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy`             | 可匿名读公开 space        | 查询参数仅消费 `max_depth?`，默认 `1`                                                                                        | `200` + `SpaceHierarchyResponse`                                     |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/hierarchy/v1`          | 可匿名读公开 space        | `max_depth?` 默认 `1`，`suggested_only?` 默认 `false`，并透传 `limit?`、`from?`                                              | `200` + service 直接序列化结果                                       |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/tree_path`             | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + `SpaceResponse[]`                                            |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}/parents`           | 可匿名读公开 parent space | 路径参数 `room_id`                                                                                                           | `200` + `SpaceResponse[]`                                            |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/members`               | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + `SpaceMemberResponse[]`                                      |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/rooms`                 | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + `{ "space_id": string, "rooms": string[] }`                  |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/state`                 | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + service 直接序列化的状态对象                                 |
+| `POST`   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/invite`                | `AuthenticatedUser`       | `InviteUserBody`：`user_id` 必填                                                                                             | `201` + `SpaceMemberResponse`                                        |
+| `POST`   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/join`                  | `AuthenticatedUser`       | 无 body                                                                                                                      | `200` + `SpaceMemberResponse`                                        |
+| `POST`   | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/leave`                 | `AuthenticatedUser`       | 无 body                                                                                                                      | `204 No Content`                                                     |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary`               | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + summary 对象；不存在时 `404`                                 |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/{space_id}/summary/with_children` | 可匿名读公开 space        | 路径参数 `space_id`                                                                                                          | `200` + service 直接序列化结果                                       |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/spaces/room/{room_id}`                   | 可匿名读公开 space        | 路径参数 `room_id`                                                                                                           | `200` + `SpaceResponse`                                              |
 
 ## 稳定请求/响应结构
 
@@ -57,18 +65,18 @@
 
 ```json
 {
-  "space_id": "space_123",
-  "room_id": "!room:example.com",
-  "name": "My Space",
-  "topic": "optional",
-  "avatar_url": "mxc://example.com/avatar",
-  "creator": "@alice:example.com",
-  "join_rule": "invite",
-  "visibility": "private",
-  "is_public": false,
-  "created_ts": 1710000000000,
-  "updated_ts": 1710000100000,
-  "parent_space_id": "space_parent"
+    "space_id": "space_123",
+    "room_id": "!room:example.com",
+    "name": "My Space",
+    "topic": "optional",
+    "avatar_url": "mxc://example.com/avatar",
+    "creator": "@alice:example.com",
+    "join_rule": "invite",
+    "visibility": "private",
+    "is_public": false,
+    "created_ts": 1710000000000,
+    "updated_ts": 1710000100000,
+    "parent_space_id": "space_parent"
 }
 ```
 
@@ -76,12 +84,12 @@
 
 ```json
 {
-  "space_id": "space_123",
-  "room_id": "!child:example.com",
-  "via_servers": ["example.com"],
-  "sender": "@alice:example.com",
-  "is_suggested": true,
-  "added_ts": 1710000000000
+    "space_id": "space_123",
+    "room_id": "!child:example.com",
+    "via_servers": ["example.com"],
+    "sender": "@alice:example.com",
+    "is_suggested": true,
+    "added_ts": 1710000000000
 }
 ```
 
@@ -89,11 +97,11 @@
 
 ```json
 {
-  "space_id": "space_123",
-  "user_id": "@alice:example.com",
-  "membership": "join",
-  "joined_ts": 1710000000000,
-  "inviter": "@admin:example.com"
+    "space_id": "space_123",
+    "user_id": "@alice:example.com",
+    "membership": "join",
+    "joined_ts": 1710000000000,
+    "inviter": "@admin:example.com"
 }
 ```
 
@@ -101,9 +109,22 @@
 
 ```json
 {
-  "space": { "space_id": "space_123", "room_id": "!space:example.com", "join_rule": "invite", "is_public": false, "creator": "@alice:example.com", "created_ts": 1710000000000, "updated_ts": null, "name": "My Space", "topic": null, "avatar_url": null, "visibility": "private", "parent_space_id": null },
-  "children": [],
-  "members": []
+    "space": {
+        "space_id": "space_123",
+        "room_id": "!space:example.com",
+        "join_rule": "invite",
+        "is_public": false,
+        "creator": "@alice:example.com",
+        "created_ts": 1710000000000,
+        "updated_ts": null,
+        "name": "My Space",
+        "topic": null,
+        "avatar_url": null,
+        "visibility": "private",
+        "parent_space_id": null
+    },
+    "children": [],
+    "members": []
 }
 ```
 
@@ -119,12 +140,12 @@
 
 ## 错误与兼容性
 
-| 场景 | 实际返回 |
-| ---- | -------- |
-| 私有 space 未认证访问 | `401` |
-| 无权查看或修改 space | `403` |
-| space / summary 不存在 | `404` |
-| `validator` 校验失败 | `400`，错误文本前缀为 `Validation error:` |
+| 场景                   | 实际返回                                  |
+| ---------------------- | ----------------------------------------- |
+| 私有 space 未认证访问  | `401`                                     |
+| 无权查看或修改 space   | `403`                                     |
+| space / summary 不存在 | `404`                                     |
+| `validator` 校验失败   | `400`，错误文本前缀为 `Validation error:` |
 
 - 文档只声明 `space/types.rs` 中显式可见的稳定 DTO 字段。
 - `GET /summary`、`GET /summary/with_children`、`GET /state`、`GET /statistics`、`GET /hierarchy/v1` 的具体深层字段由 service 直接序列化，当前文档不虚构未在路由层稳定暴露的子字段。

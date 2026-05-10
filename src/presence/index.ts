@@ -261,7 +261,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         if (!userIds || userIds.length === 0) {
             throw new ValidationError("User IDs list cannot be empty");
         }
-        userIds.forEach(userId => AdminValidators.validateUserId(userId));
+        userIds.forEach((userId) => AdminValidators.validateUserId(userId));
         await this.subscribeToPresence(userIds);
     }
 
@@ -286,7 +286,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         if (!userIds || userIds.length === 0) {
             throw new ValidationError("User IDs list cannot be empty");
         }
-        userIds.forEach(userId => AdminValidators.validateUserId(userId));
+        userIds.forEach((userId) => AdminValidators.validateUserId(userId));
         await this.unsubscribeFromPresence(userIds);
     }
 

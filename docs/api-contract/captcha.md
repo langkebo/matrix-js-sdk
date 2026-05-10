@@ -1,3 +1,11 @@
+---
+module: captcha
+generated_from: docs/api-contract/generated/modules/captcha.json
+generated_hash: sha256-2ae628c33194b8b3b1c5ba206c97e7bd578c8153836eaa89c3750f182d1d20b5
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # CAPTCHA API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/captcha.rs`  
@@ -30,16 +38,18 @@ CAPTCHA API 提供验证码功能，用于注册时的人机验证。
 **挂载版本**: `r0`
 
 **请求体**:
+
 ```json
 {
-  "session": "session_id"
+    "session": "session_id"
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "captcha_url": "https://..."
+    "captcha_url": "https://..."
 }
 ```
 
@@ -50,17 +60,19 @@ CAPTCHA API 提供验证码功能，用于注册时的人机验证。
 **挂载版本**: `r0`
 
 **请求体**:
+
 ```json
 {
-  "session": "session_id",
-  "response": "captcha_response"
+    "session": "session_id",
+    "response": "captcha_response"
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "success": true
+    "success": true
 }
 ```
 
@@ -76,9 +88,10 @@ CAPTCHA API 提供验证码功能，用于注册时的人机验证。
 | `session` | string | 是 | 会话 ID |
 
 **响应**: `200 OK`
+
 ```json
 {
-  "verified": false
+    "verified": false
 }
 ```
 
@@ -89,9 +102,10 @@ CAPTCHA API 提供验证码功能，用于注册时的人机验证。
 **挂载版本**: `v1`
 
 **响应**: `200 OK`
+
 ```json
 {
-  "cleaned": 42
+    "cleaned": 42
 }
 ```
 
@@ -105,6 +119,6 @@ CAPTCHA API 提供验证码功能，用于注册时的人机验证。
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

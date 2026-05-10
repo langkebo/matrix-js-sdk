@@ -1,0 +1,35 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`codegen template validation > matches the current template fingerprint snapshot 1`] = `
+{
+  "canonicalPromptSha256": "6dcd0d860b54b6c80eaa83a09bfa60c75c82b09ee53e033a3abea96a85a242d7",
+  "checklistHeadings": [
+    "### 2.1 Route fidelity",
+    "### 2.2 DTO fidelity",
+    "### 2.3 Style consistency",
+    "### 2.4 Deprecations",
+    "### 2.5 Tests",
+    "### 2.6 CHANGELOG",
+  ],
+  "inputBoundFields": [
+    "\`endpoint_diff_json\` entries",
+    "\`current_sdk_snippet\` lines",
+    "Rendered prompt total length",
+    "Future bounded backfill pages per session",
+  ],
+  "placeholders": [
+    "{{ change_type }}",
+    "{{ endpoint_diff_json }}",
+    "{{ current_sdk_snippet }}",
+  ],
+  "sectionHeadings": [
+    "## 0. How this template is used",
+    "## 1. Canonical prompt",
+    "## 2. Reviewer checklist (run against every model output)",
+    "## 3. Anti-patterns to reject outright",
+    "## 4. Input bounds",
+    "## 5. Provenance",
+    "## 6. Change log for this template",
+  ],
+}
+`;

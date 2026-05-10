@@ -224,7 +224,8 @@ export class CallEventHandler {
         const content = getCallContent(event);
         const groupCallId = typeof content.conf_id === "string" ? content.conf_id : undefined;
         const callRoomId =
-            event.getRoomId() || (groupCallId ? this.client.groupCallEventHandler!.getGroupCallById(groupCallId)?.room?.roomId : undefined);
+            event.getRoomId() ||
+            (groupCallId ? this.client.groupCallEventHandler!.getGroupCallById(groupCallId)?.room?.roomId : undefined);
         const type = event.getType() as EventType;
         const senderId = event.getSender()!;
         const callId = hasCallId(content) ? content.call_id : undefined;
@@ -298,7 +299,8 @@ export class CallEventHandler {
                     forceTURN: this.client.forceTURN,
                     opponentDeviceId,
                     groupCallId,
-                    opponentSessionId: typeof content.sender_session_id === "string" ? content.sender_session_id : undefined,
+                    opponentSessionId:
+                        typeof content.sender_session_id === "string" ? content.sender_session_id : undefined,
                 }) ?? undefined;
             if (!call) {
                 logger.log(
@@ -401,7 +403,8 @@ export class CallEventHandler {
                 call =
                     createNewMatrixCall(this.client, callRoomId, {
                         opponentDeviceId,
-                        opponentSessionId: typeof content.sender_session_id === "string" ? content.sender_session_id : undefined,
+                        opponentSessionId:
+                            typeof content.sender_session_id === "string" ? content.sender_session_id : undefined,
                     }) ?? undefined;
                 if (call) {
                     call.callId = callId;

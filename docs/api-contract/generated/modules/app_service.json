@@ -1,0 +1,197 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "app_service",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 25,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/app/v1/ping",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/app/v1/rooms/{alias}",
+      "registered_by": "app_service",
+      "path_params": [
+        "alias"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/app/v1/transactions/{as_id}/{txn_id}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "txn_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/app/v1/users/{user_id}",
+      "registered_by": "app_service",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/app/v1/{as_id}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/user/{user_id}/appservice",
+      "registered_by": "app_service",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/appservice/alias",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/appservice/user",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/application_services",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/query/alias",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/query/user",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/statistics",
+      "registered_by": "app_service",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/events",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/events",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/namespaces",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/ping",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/state",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/state",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/state/{state_key}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "state_key"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/users",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/application_services/{as_id}/users",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id"
+      ]
+    }
+  ]
+}

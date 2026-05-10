@@ -1,12 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-    BurnAfterReadManager,
-    BurnAfterReadEvent,
-    type IBurnSettings,
-    type IBurnStats,
-    type IBurnAfterReadMessage,
-} from "../../src/burn-after-read/index";
+import { BurnAfterReadManager, BurnAfterReadEvent } from "../../src/burn-after-read/index";
 import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../../src/errors";
 import { MatrixError } from "../../src/http-api/errors";
 import { Method } from "../../src/http-api/method";
@@ -188,13 +182,9 @@ describe("BurnAfterReadManager", () => {
 
             const settings = await manager.getBurnSettings("!room:test");
 
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/rooms/!room%3Atest/burn",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/rooms/!room%3Atest/burn", undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
             expect(settings).toEqual({ enabled: true, burn_after_ms: 45000 });
         });
 
@@ -345,13 +335,9 @@ describe("BurnAfterReadManager", () => {
 
             const stats = await manager.getBurnStats();
 
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/user/burn/stats",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/user/burn/stats", undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
             expect(stats).toEqual({
                 total_burned: 10,
                 total_pending: 3,
@@ -387,7 +373,7 @@ describe("BurnAfterReadManager", () => {
                 undefined,
                 expect.objectContaining({
                     "m.burn_after_read": { expires_in: 60000 },
-                    body: "secret message",
+                    "body": "secret message",
                 }),
                 { prefix: ClientPrefix.V3 },
             );
@@ -763,6 +749,7 @@ describe("BurnAfterReadManager", () => {
             for (const call of calls) {
                 const prefixArg = call[4];
                 if (typeof prefixArg === "object" && prefixArg !== null) {
+                    // eslint-disable-next-line @vitest/no-conditional-expect
                     expect([ClientPrefix.V1, ClientPrefix.V3]).toContain(prefixArg.prefix);
                 }
             }
@@ -773,8 +760,16 @@ describe("BurnAfterReadManager", () => {
         it("getOrCreateManager ensures same instance for same key", () => {
             const client = createMockClient();
 
-            const instance1 = getOrCreateManager(client, "BurnAfterReadManager", () => new BurnAfterReadManager(client));
-            const instance2 = getOrCreateManager(client, "BurnAfterReadManager", () => new BurnAfterReadManager(client));
+            const instance1 = getOrCreateManager(
+                client,
+                "BurnAfterReadManager",
+                () => new BurnAfterReadManager(client),
+            );
+            const instance2 = getOrCreateManager(
+                client,
+                "BurnAfterReadManager",
+                () => new BurnAfterReadManager(client),
+            );
 
             expect(instance1).toBe(instance2);
         });

@@ -1,3 +1,11 @@
+---
+module: module
+generated_from: docs/api-contract/generated/modules/module.json
+generated_hash: sha256-9a95aeec955d769ab115753f82595ae3549f1ae793060d2e8109d2bd27c4de1f
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Module System API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/module.rs`  
@@ -27,14 +35,15 @@ Module System API 提供服务器模块管理功能，支持动态加载和配�
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface ModulesResponse {
-  modules: Array<{
-    name: string;
-    type: string;
-    enabled: boolean;
-    version: string;
-  }>;
+    modules: Array<{
+        name: string;
+        type: string;
+        enabled: boolean;
+        version: string;
+    }>;
 }
 ```
 
@@ -44,11 +53,12 @@ interface ModulesResponse {
 **认证**: `AdminUser`
 
 **请求体**:
+
 ```json
 {
-  "name": "spam_checker",
-  "type": "spam_check",
-  "config": {}
+    "name": "spam_checker",
+    "type": "spam_check",
+    "config": {}
 }
 ```
 
@@ -95,16 +105,18 @@ interface ModulesResponse {
 **认证**: `AdminUser`
 
 **请求体**:
+
 ```json
 {
-  "event": {}
+    "event": {}
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "is_spam": false
+    "is_spam": false
 }
 ```
 
@@ -153,6 +165,6 @@ interface ModulesResponse {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

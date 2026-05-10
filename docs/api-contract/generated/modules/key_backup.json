@@ -1,0 +1,794 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "key_backup",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 99,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/room_keys/batch_recover",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/export",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/export/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/room_keys/import",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/room_keys/import/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/room_keys/recover",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/recover/{version}/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/recover/{version}/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/recovery/{version}/progress",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/verify/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/version",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/room_keys/version",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/room_keys/batch_recover",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/export",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/export/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/room_keys/import",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/room_keys/import/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/room_keys/recover",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/recover/{version}/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/recover/{version}/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/recovery/{version}/progress",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/verify/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/version",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/room_keys/version",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/room_keys/batch_recover",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/export",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/export/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/room_keys/import",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/room_keys/import/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/keys",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/room_keys/recover",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/recover/{version}/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/recover/{version}/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/recovery/{version}/progress",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/verify/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/version",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/room_keys/version",
+      "registered_by": "key_backup",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/version/{version}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys/{room_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}",
+      "registered_by": "key_backup",
+      "path_params": [
+        "version",
+        "room_id",
+        "session_id"
+      ]
+    }
+  ]
+}

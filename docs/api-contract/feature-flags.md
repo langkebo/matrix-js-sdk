@@ -1,3 +1,11 @@
+---
+module: feature_flags
+generated_from: docs/api-contract/generated/modules/feature_flags.json
+generated_hash: sha256-d0eee28ce4fc77b67c66922d413296bf786eee35bdb7678a5bd1d4823b7d0a18
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Feature Flags API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/feature_flags.rs`  
@@ -27,15 +35,16 @@ Feature Flags API 提供特性开关管理功能，用于动态控制功能启�
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface FeatureFlagsResponse {
-  flags: Array<{
-    name: string;
-    enabled: boolean;
-    description: string;
-    created_ts: number;
-    updated_ts: number;
-  }>;
+    flags: Array<{
+        name: string;
+        enabled: boolean;
+        description: string;
+        created_ts: number;
+        updated_ts: number;
+    }>;
 }
 ```
 
@@ -45,13 +54,14 @@ interface FeatureFlagsResponse {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface FeatureFlag {
-  name: string;
-  enabled: boolean;
-  description: string;
-  created_ts: number;
-  updated_ts: number;
+    name: string;
+    enabled: boolean;
+    description: string;
+    created_ts: number;
+    updated_ts: number;
 }
 ```
 
@@ -61,13 +71,15 @@ interface FeatureFlag {
 **认证**: `AdminUser`
 
 **请求体**:
+
 ```json
 {
-  "enabled": true
+    "enabled": true
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -78,6 +90,7 @@ interface FeatureFlag {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -92,6 +105,6 @@ interface FeatureFlag {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

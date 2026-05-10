@@ -1,0 +1,143 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "background_update",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 19,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/cleanup_locks",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/count",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/next",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/pending",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/retry_failed",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/running",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/stats",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/status",
+      "registered_by": "background_update",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/status/{status}/count",
+      "registered_by": "background_update",
+      "path_params": [
+        "status"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}/cancel",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}/complete",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}/fail",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}/history",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}/progress",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/background_updates/{job_name}/start",
+      "registered_by": "background_update",
+      "path_params": [
+        "job_name"
+      ]
+    }
+  ]
+}

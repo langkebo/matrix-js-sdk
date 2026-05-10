@@ -17,6 +17,7 @@
 ### 审查范围
 
 通过三个维度的全面审查：
+
 1. **最佳实践对标** - 对比业界优秀 SDK 的设计模式
 2. **架构和代码质量** - 全面审查模块化、类型安全、API 设计
 3. **测试和文档** - 评估测试覆盖率和文档完整性
@@ -26,30 +27,30 @@
 #### Critical（严重）- 3 个问题
 
 1. **AdminManager 职责过重** (1817 行)
-   - 单文件包含 5+ 个领域
-   - 圈复杂度高，难以维护
+    - 单文件包含 5+ 个领域
+    - 圈复杂度高，难以维护
 
 2. **依赖安全漏洞** (21 个)
-   - 13 个高危，8 个中危
-   - 主要在 vitest/vite 链路
+    - 13 个高危，8 个中危
+    - 主要在 vitest/vite 链路
 
 3. **输入验证不足** ⚠️ 已修复
-   - 仅检查空值，未验证格式
-   - 存在注入风险
+    - 仅检查空值，未验证格式
+    - 存在注入风险
 
 #### High（高优先级）- 4 个问题
 
 4. **吞错模式残留**
-   - 多处 `catch {}` 空捕获块
+    - 多处 `catch {}` 空捕获块
 
 5. **API 返回值不一致**
-   - 分页接口命名不统一
+    - 分页接口命名不统一
 
 6. **缺少使用示例**
-   - 93 个方法都没有 @example
+    - 93 个方法都没有 @example
 
 7. **测试覆盖不足** ⚠️ 部分完成
-   - 缺少边界条件测试
+    - 缺少边界条件测试
 
 #### Medium（中优先级）- 3 个问题
 
@@ -68,27 +69,27 @@
 **解决方案**:
 
 1. **创建 ValidationError 类**
-   - 文件: `/src/errors.ts`
-   - 新增 `ValidationError` 继承自 `SdkError`
-   - 状态码: 400
+    - 文件: `/src/errors.ts`
+    - 新增 `ValidationError` 继承自 `SdkError`
+    - 状态码: 400
 
 2. **创建 AdminValidators 工具类**
-   - 文件: `/src/admin/validators.ts`
-   - 提供 5 个验证方法：
-     - `validateUserId()` - 验证用户 ID 格式 (@localpart:homeserver)
-     - `validateRoomId()` - 验证房间 ID 格式 (!localpart:homeserver)
-     - `validateSpaceId()` - 验证空间 ID 格式
-     - `validateServerName()` - 验证服务器名称
-     - `validateLimit()` - 验证分页限制（1-10000）
+    - 文件: `/src/admin/validators.ts`
+    - 提供 5 个验证方法：
+        - `validateUserId()` - 验证用户 ID 格式 (@localpart:homeserver)
+        - `validateRoomId()` - 验证房间 ID 格式 (!localpart:homeserver)
+        - `validateSpaceId()` - 验证空间 ID 格式
+        - `validateServerName()` - 验证服务器名称
+        - `validateLimit()` - 验证分页限制（1-10000）
 
 3. **在关键方法中添加验证**
-   - `getUser()` - 验证用户 ID
-   - `createUser()` - 验证用户 ID
-   - `deactivateUser()` - 验证用户 ID
-   - `resetPassword()` - 验证用户 ID
-   - `getRoom()` - 验证房间 ID
-   - `deleteRoom()` - 验证房间 ID
-   - `getUsers()` - 验证 limit 参数
+    - `getUser()` - 验证用户 ID
+    - `createUser()` - 验证用户 ID
+    - `deactivateUser()` - 验证用户 ID
+    - `resetPassword()` - 验证用户 ID
+    - `getRoom()` - 验证房间 ID
+    - `deleteRoom()` - 验证房间 ID
+    - `getUsers()` - 验证 limit 参数
 
 **验证规则**:
 
@@ -103,6 +104,7 @@
 ```
 
 **影响**:
+
 - ✅ 防止注入攻击
 - ✅ 提供清晰的错误信息
 - ✅ 提前捕获无效输入
@@ -113,24 +115,25 @@
 **新增测试用例**: 9 个
 
 1. **空值测试**
-   - 空用户 ID
-   - 空房间 ID
+    - 空用户 ID
+    - 空房间 ID
 
 2. **格式验证测试**
-   - 无效的用户 ID 格式（3 个用例）
-   - 无效的房间 ID 格式（3 个用例）
+    - 无效的用户 ID 格式（3 个用例）
+    - 无效的房间 ID 格式（3 个用例）
 
 3. **边界值测试**
-   - limit = 0（应拒绝）
-   - limit = -1（应拒绝）
-   - limit = 10001（应拒绝）
-   - limit = 1.5（应拒绝）
-   - limit = 100（应接受）
+    - limit = 0（应拒绝）
+    - limit = -1（应拒绝）
+    - limit = 10001（应拒绝）
+    - limit = 1.5（应拒绝）
+    - limit = 100（应接受）
 
 4. **特殊字符测试**
-   - 用户 ID 包含下划线、连字符
+    - 用户 ID 包含下划线、连字符
 
 **测试结果**:
+
 - ✅ 所有测试通过（71 个测试）
 - ✅ 覆盖了主要的边界情况
 - ✅ 验证了错误处理逻辑
@@ -141,20 +144,20 @@
 
 ### 代码质量
 
-| 指标 | 改进前 | 改进后 | 提升 |
-|------|--------|--------|------|
-| 输入验证覆盖 | 0% | 100% | +100% |
-| 边界条件测试 | 0 个 | 9 个 | +9 |
-| 安全漏洞风险 | 高 | 低 | ⬇️ |
-| ValidationError | 无 | 有 | ✅ |
+| 指标            | 改进前 | 改进后 | 提升  |
+| --------------- | ------ | ------ | ----- |
+| 输入验证覆盖    | 0%     | 100%   | +100% |
+| 边界条件测试    | 0 个   | 9 个   | +9    |
+| 安全漏洞风险    | 高     | 低     | ⬇️    |
+| ValidationError | 无     | 有     | ✅    |
 
 ### 测试覆盖
 
-| 测试类型 | 数量 | 状态 |
-|---------|------|------|
-| 单元测试 | 71 | ✅ 全部通过 |
-| 边界条件测试 | 9 | ✅ 全部通过 |
-| 类型检查 | - | ✅ 通过 |
+| 测试类型     | 数量 | 状态        |
+| ------------ | ---- | ----------- |
+| 单元测试     | 71   | ✅ 全部通过 |
+| 边界条件测试 | 9    | ✅ 全部通过 |
+| 类型检查     | -    | ✅ 通过     |
 
 ### 新增文件
 
@@ -173,25 +176,25 @@
 ### 防护措施
 
 1. **格式验证**
-   - 用户 ID 必须符合 Matrix 规范
-   - 房间 ID 必须符合 Matrix 规范
-   - 防止 SQL 注入、XSS 等攻击
+    - 用户 ID 必须符合 Matrix 规范
+    - 房间 ID 必须符合 Matrix 规范
+    - 防止 SQL 注入、XSS 等攻击
 
 2. **边界检查**
-   - limit 参数限制在 1-10000
-   - 防止资源耗尽攻击
+    - limit 参数限制在 1-10000
+    - 防止资源耗尽攻击
 
 3. **错误信息**
-   - 提供清晰的验证错误信息
-   - 帮助开发者快速定位问题
+    - 提供清晰的验证错误信息
+    - 帮助开发者快速定位问题
 
 ### 攻击面减少
 
-| 攻击类型 | 改进前 | 改进后 |
-|---------|--------|--------|
-| 注入攻击 | 高风险 | 低风险 |
+| 攻击类型 | 改进前 | 改进后   |
+| -------- | ------ | -------- |
+| 注入攻击 | 高风险 | 低风险   |
 | 格式错误 | 未检测 | 提前拦截 |
-| 资源耗尽 | 可能 | 已防护 |
+| 资源耗尽 | 可能   | 已防护   |
 
 ---
 
@@ -202,21 +205,21 @@
 **预计时间**: 2 周
 
 1. **清理吞错模式** (2 天)
-   - 搜索并替换所有 `catch {}` 空捕获块
-   - 添加显式错误处理
+    - 搜索并替换所有 `catch {}` 空捕获块
+    - 添加显式错误处理
 
 2. **统一 API 返回值** (1 天)
-   - 定义 `PaginatedResponse<T>` 类型
-   - 更新所有分页方法
+    - 定义 `PaginatedResponse<T>` 类型
+    - 更新所有分页方法
 
 3. **添加使用示例** (2 天)
-   - 为 93 个方法添加 @example
-   - 添加 @throws 文档
+    - 为 93 个方法添加 @example
+    - 添加 @throws 文档
 
 4. **增强测试覆盖** (5 天)
-   - 创建集成测试
-   - 添加并发测试
-   - 添加性能测试
+    - 创建集成测试
+    - 添加并发测试
+    - 添加性能测试
 
 ### Phase 3: 可维护性优化（P2 - Medium）
 
@@ -232,12 +235,12 @@
 **预计时间**: 3-4 周
 
 1. **拆分 AdminManager** (3 天)
-   - 创建 6 个子管理器
-   - 保持向后兼容
+    - 创建 6 个子管理器
+    - 保持向后兼容
 
 2. **修复依赖漏洞** (1 天)
-   - 升级 vitest/vite
-   - 添加 CI 安全检查
+    - 升级 vitest/vite
+    - 添加 CI 安全检查
 
 ---
 
@@ -246,40 +249,42 @@
 ### 对开发者
 
 1. **使用验证器**
-   ```typescript
-   import { AdminValidators } from "./admin/validators";
-   
-   // 在自定义方法中使用
-   AdminValidators.validateUserId(userId);
-   ```
+
+    ```typescript
+    import { AdminValidators } from "./admin/validators";
+
+    // 在自定义方法中使用
+    AdminValidators.validateUserId(userId);
+    ```
 
 2. **处理 ValidationError**
-   ```typescript
-   try {
-       await adminManager.getUser(userId);
-   } catch (error) {
-       if (error instanceof ValidationError) {
-           console.error("Invalid input:", error.message);
-       }
-   }
-   ```
+
+    ```typescript
+    try {
+        await adminManager.getUser(userId);
+    } catch (error) {
+        if (error instanceof ValidationError) {
+            console.error("Invalid input:", error.message);
+        }
+    }
+    ```
 
 3. **遵循格式规范**
-   - 用户 ID: `@localpart:homeserver`
-   - 房间 ID: `!localpart:homeserver`
-   - Limit: 1-10000
+    - 用户 ID: `@localpart:homeserver`
+    - 房间 ID: `!localpart:homeserver`
+    - Limit: 1-10000
 
 ### 对维护者
 
 1. **添加新方法时**
-   - 使用 `AdminValidators` 验证输入
-   - 添加边界条件测试
-   - 提供使用示例
+    - 使用 `AdminValidators` 验证输入
+    - 添加边界条件测试
+    - 提供使用示例
 
 2. **修改现有方法时**
-   - 保持向后兼容
-   - 更新测试用例
-   - 更新文档
+    - 保持向后兼容
+    - 更新测试用例
+    - 更新文档
 
 ---
 
@@ -288,16 +293,19 @@
 ### 成果
 
 ✅ **安全性显著提升**
+
 - 添加了完整的输入验证
 - 防止了注入攻击
 - 提供了清晰的错误信息
 
 ✅ **测试覆盖增强**
+
 - 新增 9 个边界条件测试
 - 所有测试通过（71/71）
 - 类型检查通过
 
 ✅ **代码质量改进**
+
 - 新增 ValidationError 类
 - 新增 AdminValidators 工具类
 - 代码更加健壮
@@ -311,6 +319,7 @@
 ### 下一步
 
 继续执行 Phase 2 的优化计划，重点关注：
+
 1. 清理吞错模式
 2. 统一 API 返回值
 3. 添加使用示例

@@ -1,0 +1,179 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "openclaw",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 23,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/connections",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/connections",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/connections/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/connections/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/connections/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/connections/{id}/test",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations/{id}/messages",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/conversations/{id}/messages",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/generations",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/generations",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/generations/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/generations/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/messages/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/roles",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/roles",
+      "registered_by": "openclaw",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/roles/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/roles/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.synapse_rust.openclaw/roles/{id}",
+      "registered_by": "openclaw",
+      "path_params": [
+        "id"
+      ]
+    }
+  ]
+}

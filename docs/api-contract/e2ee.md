@@ -1,3 +1,11 @@
+---
+module: e2ee_routes
+generated_from: docs/api-contract/generated/modules/e2ee_routes.json
+generated_hash: sha256-9e0152a849d9584e1ccf8743ac6eb86389a2cf34fa5605bdc2ed0ea5d15f1c9c
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # E2EE (End-to-End Encryption) API 契约
 
 > 版本: v1.0.0
@@ -404,3 +412,23 @@ const claimedKeys = await deviceKeysManager.claimKeys({
     },
 });
 ```
+
+---
+
+## 低层入口：`E2EEManager`
+
+`matrix-js-sdk/src/e2ee/index.ts` 的 `E2EEManager` 是针对 `e2ee_routes.rs` 全部 25 条端点的**薄**封装：
+对绝大多数应用不应直接使用它——请优先使用 `MatrixClient.initRustCrypto()` 暴露的类型化高层
+API（`DeviceKeysManager`、`CrossSigningManager`、`SecureBackupManager` 等）。`E2EEManager`
+仅为需要绕过 Rust crypto 直接驱动后端的高级集成（管理工具、迁移脚本、契约测试）预留。
+
+入口方法：`MatrixClient.getE2EEManager()`。覆盖：
+
+| 前缀族 | 数量 | 典型方法 |
+| ------ | ---- | -------- |
+| 兼容（r0/v1/v3） | 13 | `uploadKeys` · `queryKeys` · `claimKeys` · `getKeyChanges` · `postDeviceListUpdate` · `uploadSignatures` · `uploadSignaturesAlt` · `uploadDeviceSigning` · `createRoomKeyRequest` · `listRoomKeyRequests` · `deleteRoomKeyRequest` · `getRoomKeyDistribution` · `sendToDevice` |
+| 仅 v3 | 12 | `requestDeviceVerification` · `respondDeviceVerification` · `getDeviceVerificationStatus` · `getDeviceTrustList` · `getDeviceTrust` · `getSecuritySummary` · `createSecureBackup` · `getSecureBackup` · `deleteSecureBackup` · `storeSecureBackupKeys` · `restoreSecureBackup` · `verifySecureBackupPassphrase` |
+
+> 所有方法统一使用 `Record<string, unknown>` 作为 body，不做字段级类型断言——类型安全与
+> 加密密钥的语义校验交给 `initRustCrypto()` 路径。`getE2EEManager()` 由 `extendMatrixClient()`
+> 注册，并在 `manager-extensions/index.ts` 默认扩展列表里挂载。

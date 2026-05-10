@@ -273,7 +273,10 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
 
             for (const event of events) {
                 if (event.getType() === "m.room.message") {
-                    const content = event.getContent<{ msgtype?: string; info?: { duration?: number; size?: number } }>();
+                    const content = event.getContent<{
+                        msgtype?: string;
+                        info?: { duration?: number; size?: number };
+                    }>();
                     if (content.msgtype === "m.audio" && content.info) {
                         totalDuration += content.info.duration || 0;
                         totalSize += content.info.size || 0;

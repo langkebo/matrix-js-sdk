@@ -10,15 +10,15 @@
 
 ## Module Breakdown
 
-| Module | Total | Implemented | Coverage |
-|--------|-------|-------------|----------|
-| event-report | 3 | 0 | 🔴 0.0% |
-| thirdparty | 6 | 3 | 🟠 50.0% |
-| moderation | 4 | 3 | 🟠 75.0% |
-| relations | 4 | 3 | 🟠 75.0% |
-| key-rotation | 6 | 6 | ✅ 100.0% |
-| reactions | 1 | 1 | ✅ 100.0% |
-| typing | 3 | 3 | ✅ 100.0% |
+| Module       | Total | Implemented | Coverage  |
+| ------------ | ----- | ----------- | --------- |
+| event-report | 3     | 0           | 🔴 0.0%   |
+| thirdparty   | 6     | 3           | 🟠 50.0%  |
+| moderation   | 4     | 3           | 🟠 75.0%  |
+| relations    | 4     | 3           | 🟠 75.0%  |
+| key-rotation | 6     | 6           | ✅ 100.0% |
+| reactions    | 1     | 1           | ✅ 100.0% |
+| typing       | 3     | 3           | ✅ 100.0% |
 
 ## Legend
 

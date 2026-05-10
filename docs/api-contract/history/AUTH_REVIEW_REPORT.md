@@ -27,6 +27,7 @@
 ### 1.1 审查范围
 
 **审查文件**:
+
 - `synapse-rust/src/auth/mod.rs` - AuthService 核心实现（1600+ 行）
 - `synapse-rust/src/web/routes/auth_compat.rs` - 认证路由处理器（381 行）
 - `synapse-rust/src/services/registration_service.rs` - 注册服务
@@ -37,27 +38,27 @@
 
 #### AuthService 公开方法（20+ 个）
 
-| 方法 | 功能 | 行数 |
-|------|------|------|
-| `register()` | 用户注册 | 79-207 |
-| `login()` | 用户登录 | 209-296 |
-| `logout()` | 单设备登出 | 440-472 |
-| `logout_all()` | 全设备登出 | 474-520 |
-| `refresh_token()` | 刷新 token | 521-583 |
-| `validate_token()` | 验证 token | 584-790 |
-| `change_password()` | 修改密码 | 791-834 |
-| `deactivate_user()` | 停用账户 | 835-856 |
-| `generate_access_token()` | 生成访问 token | 857-894 |
+| 方法                       | 功能           | 行数    |
+| -------------------------- | -------------- | ------- |
+| `register()`               | 用户注册       | 79-207  |
+| `login()`                  | 用户登录       | 209-296 |
+| `logout()`                 | 单设备登出     | 440-472 |
+| `logout_all()`             | 全设备登出     | 474-520 |
+| `refresh_token()`          | 刷新 token     | 521-583 |
+| `validate_token()`         | 验证 token     | 584-790 |
+| `change_password()`        | 修改密码       | 791-834 |
+| `deactivate_user()`        | 停用账户       | 835-856 |
+| `generate_access_token()`  | 生成访问 token | 857-894 |
 | `generate_refresh_token()` | 生成刷新 token | 895-999 |
 
 ### 1.3 数据约束验证
 
-| 约束项 | 后端实现 | 验证位置 |
-|--------|---------|---------|
+| 约束项            | 后端实现 | 验证位置                 |
+| ----------------- | -------- | ------------------------ |
 | username 最大长度 | 255 字符 | `auth_compat.rs:293-295` |
 | password 最大长度 | 128 字符 | `auth_compat.rs:297-301` |
-| device_id 长度 | 16 字符 | `auth/mod.rs:177` |
-| token 类型 | JWT | `auth/mod.rs:18-27` |
+| device_id 长度    | 16 字符  | `auth/mod.rs:177`        |
+| token 类型        | JWT      | `auth/mod.rs:18-27`      |
 
 **验证代码示例**:
 
@@ -82,6 +83,7 @@ if password.len() > 128 {
 **算法**: Argon2id
 
 **参数配置**:
+
 ```rust
 pub struct AuthService {
     pub argon2_m_cost: u32,      // 内存成本
@@ -92,6 +94,7 @@ pub struct AuthService {
 ```
 
 **旧哈希迁移**:
+
 ```rust
 if is_legacy_hash(password_hash) {
     if let Err(e) = self.migrate_password(&user.user_id, password).await {
@@ -103,29 +106,31 @@ if is_legacy_hash(password_hash) {
 #### 1.4.2 账户保护
 
 **失败计数**:
+
 ```rust
 async fn record_login_failure(&self, user_id: &str) -> ApiResult<()> {
     let key = format!("auth:failures:{}", user_id);
     let failures: i64 = self.cache.get(&key).await?.unwrap_or(0) + 1;
-    
+
     self.cache.set(&key, &failures, self.login_lockout_duration_seconds).await;
-    
+
     if failures >= self.login_failure_lockout_threshold as i64 {
         let lockout_until = Utc::now().timestamp() + self.login_lockout_duration_seconds as i64;
         let lockout_key = format!("auth:lockout:{}", user_id);
         self.cache.set(&lockout_key, &lockout_until, self.login_lockout_duration_seconds).await;
     }
-    
+
     Ok(())
 }
 ```
 
 **锁定检查**:
+
 ```rust
 async fn is_account_locked(&self, user_id: &str) -> ApiResult<bool> {
     let key = format!("auth:lockout:{}", user_id);
     let lockout_until: Option<i64> = self.cache.get(&key).await?;
-    
+
     if let Some(timestamp) = lockout_until {
         if timestamp > Utc::now().timestamp() {
             return Ok(true);
@@ -139,6 +144,7 @@ async fn is_account_locked(&self, user_id: &str) -> ApiResult<bool> {
 #### 1.4.3 Token 管理
 
 **JWT Claims**:
+
 ```rust
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
@@ -153,14 +159,15 @@ pub struct Claims {
 ```
 
 **Token 黑名单**:
+
 ```rust
 pub async fn logout(&self, access_token: &str, device_id: Option<&str>) -> ApiResult<()> {
     self.token_storage
         .add_to_blacklist(access_token, user_id, Some("User logout"))
         .await?;
-    
+
     self.token_storage.delete_token(access_token).await?;
-    
+
     Ok(())
 }
 ```
@@ -168,6 +175,7 @@ pub async fn logout(&self, access_token: &str, device_id: Option<&str>) -> ApiRe
 #### 1.4.4 审计日志
 
 **登录成功**:
+
 ```rust
 tracing::info!(
     target: "security_audit",
@@ -178,6 +186,7 @@ tracing::info!(
 ```
 
 **登录失败**:
+
 ```rust
 tracing::warn!(
     target: "security_audit",
@@ -188,6 +197,7 @@ tracing::warn!(
 ```
 
 **账户锁定**:
+
 ```rust
 tracing::warn!(
     target: "security_audit",
@@ -226,6 +236,7 @@ CREATE TABLE IF NOT EXISTS users (
 ```
 
 **关键字段**:
+
 - `password_hash`: Argon2 哈希
 - `failed_login_attempts`: 失败计数（数据库级别）
 - `locked_until`: 锁定截止时间
@@ -244,7 +255,7 @@ CREATE TABLE IF NOT EXISTS devices (
     first_seen_ts BIGINT NOT NULL,
     user_agent TEXT,
     CONSTRAINT pk_devices PRIMARY KEY (device_id),
-    CONSTRAINT fk_devices_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_devices_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 ```
@@ -264,7 +275,7 @@ CREATE TABLE IF NOT EXISTS access_tokens (
     is_revoked BOOLEAN DEFAULT FALSE,
     CONSTRAINT pk_access_tokens PRIMARY KEY (id),
     CONSTRAINT uq_access_tokens_token_hash UNIQUE (token_hash),
-    CONSTRAINT fk_access_tokens_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_access_tokens_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 ```
@@ -284,7 +295,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     is_revoked BOOLEAN DEFAULT FALSE,
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
     CONSTRAINT uq_refresh_tokens_token_hash UNIQUE (token_hash),
-    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) 
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 ```
@@ -311,6 +322,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 #### 接口文档详细程度
 
 每个接口包含：
+
 - ✅ 端点路径和 HTTP 方法
 - ✅ 完整的请求体示例
 - ✅ 完整的响应体示例
@@ -321,14 +333,14 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 ### 2.2 文档统计
 
-| 指标 | 数值 |
-|------|------|
-| 总字数 | ~6,000 |
+| 指标     | 数值         |
+| -------- | ------------ |
+| 总字数   | ~6,000       |
 | 接口数量 | 8 个核心接口 |
-| 代码示例 | 30+ 个 |
-| 表格数量 | 10+ 个 |
-| SQL 语句 | 10+ 个 |
-| 完整性 | 100% |
+| 代码示例 | 30+ 个       |
+| 表格数量 | 10+ 个       |
+| SQL 语句 | 10+ 个       |
+| 完整性   | 100%         |
 
 ---
 
@@ -361,6 +373,7 @@ const DEVICE_ID_LENGTH = 16;
 #### 增强现有方法
 
 **register() 方法**:
+
 ```typescript
 public async register(
     username: string,
@@ -370,19 +383,19 @@ public async register(
     // 新增：客户端验证
     this.validateUsername(username);
     this.validatePassword(password);
-    
+
     // 原有逻辑...
 }
 ```
 
 ### 3.2 代码统计
 
-| 指标 | 优化前 | 优化后 | 增加 |
-|------|--------|--------|------|
-| 代码行数 | 310 | 380 | +70 |
-| 方法数量 | 12 | 18 | +6 |
-| 常量定义 | 0 | 3 | +3 |
-| 文档注释 | 基础 | 详细 | 增强 |
+| 指标     | 优化前 | 优化后 | 增加 |
+| -------- | ------ | ------ | ---- |
+| 代码行数 | 310    | 380    | +70  |
+| 方法数量 | 12     | 18     | +6   |
+| 常量定义 | 0      | 3      | +3   |
+| 文档注释 | 基础   | 详细   | 增强 |
 
 ---
 
@@ -392,35 +405,39 @@ public async register(
 
 **文件**: `spec/unit/auth.spec.ts`
 
-| 测试套件 | 测试用例数 | 状态 |
-|---------|-----------|------|
-| Data Validation | 6 | ✅ 通过 |
-| Static Validation Methods | 8 | ✅ 通过 |
-| Constraints | 1 | ✅ 通过 |
-| Authentication State | 7 | ✅ 通过 |
-| Login Flows | 8 | ✅ 通过 |
-| Register Flows | 4 | ✅ 通过 |
-| Cache Management | 4 | ✅ 通过 |
-| **总计** | **38** | **✅ 100%** |
+| 测试套件                  | 测试用例数 | 状态        |
+| ------------------------- | ---------- | ----------- |
+| Data Validation           | 6          | ✅ 通过     |
+| Static Validation Methods | 8          | ✅ 通过     |
+| Constraints               | 1          | ✅ 通过     |
+| Authentication State      | 7          | ✅ 通过     |
+| Login Flows               | 8          | ✅ 通过     |
+| Register Flows            | 4          | ✅ 通过     |
+| Cache Management          | 4          | ✅ 通过     |
+| **总计**                  | **38**     | **✅ 100%** |
 
 ### 4.2 新增测试用例
 
 **数据验证测试**:
+
 ```typescript
 it("should reject username longer than 255 characters", async () => {
     const longUsername = "a".repeat(256);
-    await expect(authManager.register(longUsername, "password", null, auth))
-        .rejects.toThrow("Username too long (max 255 characters)");
+    await expect(authManager.register(longUsername, "password", null, auth)).rejects.toThrow(
+        "Username too long (max 255 characters)",
+    );
 });
 
 it("should reject password longer than 128 characters", async () => {
     const longPassword = "a".repeat(129);
-    await expect(authManager.register("alice", longPassword, null, auth))
-        .rejects.toThrow("Password too long (max 128 characters)");
+    await expect(authManager.register("alice", longPassword, null, auth)).rejects.toThrow(
+        "Password too long (max 128 characters)",
+    );
 });
 ```
 
 **格式验证测试**:
+
 ```typescript
 it("should validate username format - invalid characters", () => {
     const result = AuthManager.validateUsernameFormat("alice@domain");
@@ -451,23 +468,25 @@ Duration    702ms
 
 ### 5.1 验证项目
 
-| 验证类别 | 验证项数 | 通过率 |
-|---------|---------|--------|
-| 数据约束 | 8 | 100% |
-| 接口端点 | 8 | 100% |
-| 错误码 | 15 | 100% |
-| 安全特性 | 7 | 100% |
-| 数据库表 | 4 | 100% |
-| **总计** | **42** | **100%** |
+| 验证类别 | 验证项数 | 通过率   |
+| -------- | -------- | -------- |
+| 数据约束 | 8        | 100%     |
+| 接口端点 | 8        | 100%     |
+| 错误码   | 15       | 100%     |
+| 安全特性 | 7        | 100%     |
+| 数据库表 | 4        | 100%     |
+| **总计** | **42**   | **100%** |
 
 ### 5.2 一致性检查
 
 **数据约束一致性**:
+
 - ✅ username 最大长度: 255（后端 ✓ 文档 ✓ SDK ✓）
 - ✅ password 最大长度: 128（后端 ✓ 文档 ✓ SDK ✓）
 - ✅ device_id 长度: 16（后端 ✓ 文档 ✓ SDK ✓）
 
 **错误码一致性**:
+
 - ✅ M_FORBIDDEN (403) - 账户锁定
 - ✅ M_USER_IN_USE (409) - 用户名已占用
 - ✅ M_INVALID_USERNAME (400) - 用户名不符合规范
@@ -475,6 +494,7 @@ Duration    702ms
 - ✅ M_UNAUTHORIZED (401) - 凭据错误
 
 **安全特性一致性**:
+
 - ✅ Argon2 密码哈希
 - ✅ 登录失败计数
 - ✅ 账户自动锁定
@@ -497,6 +517,7 @@ Duration    702ms
 ### 6.2 实现细节
 
 **性能优化**:
+
 ```rust
 // 使用 spawn_blocking 避免阻塞异步执行器
 let password_hash = tokio::task::spawn_blocking(move || {
@@ -506,6 +527,7 @@ let password_hash = tokio::task::spawn_blocking(move || {
 ```
 
 **事务安全**:
+
 ```rust
 // 使用事务确保原子性
 let mut tx = self.user_storage.pool.begin().await?;
@@ -535,6 +557,7 @@ tx.commit().await?;
 ### 7.2 长期建议（可选）
 
 1. **自动 Token 刷新**:
+
 ```typescript
 class TokenRefresher {
     async autoRefresh(refreshToken: string) {
@@ -548,11 +571,12 @@ class TokenRefresher {
 ```
 
 2. **账户锁定提示**:
+
 ```typescript
 try {
     await client.login(username, password);
 } catch (error) {
-    if (error.errcode === 'M_FORBIDDEN' && error.error.includes('locked')) {
+    if (error.errcode === "M_FORBIDDEN" && error.error.includes("locked")) {
         // 显示账户锁定提示和剩余时间
         showAccountLockedMessage(error);
     }
@@ -560,6 +584,7 @@ try {
 ```
 
 3. **密码强度检查器**:
+
 ```typescript
 class PasswordStrengthChecker {
     check(password: string): {
@@ -585,21 +610,22 @@ class PasswordStrengthChecker {
 
 ### 8.2 质量指标
 
-| 指标 | 优化前 | 优化后 | 改善 |
-|------|--------|--------|------|
-| 文档完整性 | 60% | 100% | +40% |
-| 接口文档详细度 | 30% | 100% | +70% |
-| 数据约束文档 | 0% | 100% | +100% |
-| 错误码文档 | 20% | 100% | +80% |
-| 安全特性文档 | 0% | 100% | +100% |
-| SDK 数据验证 | 0% | 100% | +100% |
-| 测试覆盖率 | 70% | 100% | +30% |
+| 指标           | 优化前 | 优化后 | 改善  |
+| -------------- | ------ | ------ | ----- |
+| 文档完整性     | 60%    | 100%   | +40%  |
+| 接口文档详细度 | 30%    | 100%   | +70%  |
+| 数据约束文档   | 0%     | 100%   | +100% |
+| 错误码文档     | 20%    | 100%   | +80%  |
+| 安全特性文档   | 0%     | 100%   | +100% |
+| SDK 数据验证   | 0%     | 100%   | +100% |
+| 测试覆盖率     | 70%    | 100%   | +30%  |
 
 ### 8.3 最终评价
 
 **评级**: ⭐⭐⭐⭐⭐ **优秀**
 
 **理由**:
+
 - ✅ 完成了后端代码的深入审查
 - ✅ 创建了完整优化的契约文档
 - ✅ 实现了 SDK 的数据验证

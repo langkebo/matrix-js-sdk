@@ -8,14 +8,14 @@
     "scripts": {
         "prepare": "pnpm build",
         "start": "echo THIS IS FOR LEGACY PURPOSES ONLY. && babel src -w -s -d lib --verbose --extensions \".ts,.js\"",
-        "clean": "rimraf lib",
+        "clean": "rimraf lib node_modules/.tsbuildinfo",
         "build": "pnpm clean && pnpm build:compile && pnpm build:types",
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
         "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
         "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers",
-        "lint:js": "eslint --max-warnings 0 src spec && prettier --check .",
-        "lint:js-fix": "prettier --log-level=warn --write . && eslint --fix src spec",
+        "lint:js": "eslint --max-warnings 0 src spec && node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --check .",
+        "lint:js-fix": "node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --log-level=warn --write . && eslint --fix src spec",
         "lint:types": "tsc --noEmit",
         "lint:types:real-backend": "tsc -p tsconfig.real-backend.json --noEmit",
         "test:types": "pnpm build:types && tsd",
@@ -36,15 +36,24 @@
         "quality:exports": "node scripts/quality/check-exports-docs.mjs",
         "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
         "quality:sdk-contracts": "node scripts/quality/check-sdk-contract-alignment.mjs",
+        "quality:generated-dto-strictness": "node scripts/quality/check-generated-dto-strictness.mjs",
+        "quality:public-jsdoc-examples": "node scripts/quality/check-public-jsdoc-examples.mjs",
         "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
         "quality:swallow-fallbacks": "node scripts/quality/check-swallow-fallbacks.mjs",
         "quality:debt-markers": "node scripts/quality/scan-technical-debt.mjs",
         "quality:log-sensitive": "node scripts/quality/check-log-sensitive.mjs",
         "quality:type-coverage": "node scripts/quality/check-type-coverage.mjs",
-        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts",
+        "contract:sync": "node scripts/contract-sync.mjs",
+        "contract:sync:drafts": "node scripts/contract-sync.mjs --render-drafts",
+        "contract:check": "node scripts/contract-sync.mjs --check",
+        "contract:codegen": "node scripts/sdk-contract-codegen.mjs",
+        "contract:codegen:check": "node scripts/sdk-contract-codegen.mjs --check",
+        "contract:pin-docs": "node scripts/pin-module-docs.mjs",
+        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
-        "audit:high": "pnpm audit --audit-level=high"
+        "audit:high": "pnpm audit --audit-level=high",
+        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && node scripts/check-bundle-size.mjs"
     },
     "repository": {
         "type": "git",
@@ -126,6 +135,10 @@
             "import": "./lib/store/index.js",
             "types": "./lib/store/index.d.ts"
         },
+        "./store/worker": {
+            "import": "./lib/store/indexeddb-store-worker.js",
+            "types": "./lib/store/indexeddb-store-worker.d.ts"
+        },
         "./http-api": {
             "import": "./lib/http-api/index.js",
             "types": "./lib/http-api/index.d.ts"
@@ -153,6 +166,14 @@
         "./runtime-schemas": {
             "import": "./lib/runtime-schemas/index.js",
             "types": "./lib/runtime-schemas/index.d.ts"
+        },
+        "./telemetry": {
+            "import": "./lib/telemetry/index.js",
+            "types": "./lib/telemetry/index.d.ts"
+        },
+        "./manager-extensions": {
+            "import": "./lib/manager-extensions/index.js",
+            "types": "./lib/manager-extensions/index.d.ts"
         },
         "./@types/partials": {
             "import": "./lib/@types/partials.js",

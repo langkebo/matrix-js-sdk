@@ -1,0 +1,400 @@
+name: Sync Synapse Ledger
+on:
+    repository_dispatch:
+        types: [synapse-ledger-export]
+    workflow_dispatch:
+        inputs:
+            source_repository:
+                description: Source repository that published the ledger artifact
+                required: true
+                default: langkebo/synapse-rust
+                type: string
+            workflow_run_id:
+                description: GitHub Actions run ID in the source repository
+                required: true
+                type: string
+            source_sha:
+                description: Source commit SHA for PR metadata
+                required: false
+                type: string
+            source_ref:
+                description: Source branch or tag for PR metadata
+                required: false
+                type: string
+            artifact_name:
+                description: Artifact name to download (defaults to ledger-export-<sha>)
+                required: false
+                type: string
+            force_sync:
+                description: Open/update the PR even when only metadata changed
+                required: false
+                default: false
+                type: boolean
+concurrency:
+    group: ${{ github.workflow }}-develop
+    cancel-in-progress: true
+permissions:
+    contents: write
+    pull-requests: write
+jobs:
+    sync-ledger:
+        name: Sync synapse-rust ledger export
+        runs-on: ubuntu-24.04
+        timeout-minutes: 25
+        env:
+            RETRY_ATTEMPTS: "3"
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  token: ${{ secrets.ELEMENT_BOT_TOKEN }}
+
+            - name: Setup Node
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  node-version: 22
+
+            - name: Resolve source metadata
+              id: resolve
+              shell: bash
+              run: |
+                  if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+                      source_repository='${{ github.event.client_payload.source_repository }}'
+                      workflow_run_id='${{ github.event.client_payload.workflow_run_id }}'
+                      source_sha='${{ github.event.client_payload.source_sha }}'
+                      source_ref='${{ github.event.client_payload.source_ref }}'
+                      artifact_name='${{ github.event.client_payload.artifact_name }}'
+                      force_sync='false'
+                      run_url='${{ github.event.client_payload.run_url }}'
+                  else
+                      source_repository='${{ inputs.source_repository }}'
+                      workflow_run_id='${{ inputs.workflow_run_id }}'
+                      source_sha='${{ inputs.source_sha }}'
+                      source_ref='${{ inputs.source_ref }}'
+                      artifact_name='${{ inputs.artifact_name }}'
+                      force_sync='${{ inputs.force_sync }}'
+                      run_url="https://github.com/${source_repository}/actions/runs/${workflow_run_id}"
+                  fi
+
+                  if [ -z "${source_repository}" ] || [ -z "${workflow_run_id}" ]; then
+                      echo "source_repository and workflow_run_id are required" >&2
+                      exit 1
+                  fi
+
+                  if [ -z "${artifact_name}" ] && [ -n "${source_sha}" ]; then
+                      artifact_name="ledger-export-${source_sha}"
+                  fi
+
+                  if [ -z "${artifact_name}" ]; then
+                      echo "artifact_name is required when source_sha is not provided" >&2
+                      exit 1
+                  fi
+
+                  short_sha="${source_sha}"
+                  if [ -n "${short_sha}" ]; then
+                      short_sha="${short_sha:0:12}"
+                  else
+                      short_sha="manual"
+                  fi
+
+                  {
+                      echo "SOURCE_REPOSITORY=${source_repository}"
+                      echo "WORKFLOW_RUN_ID=${workflow_run_id}"
+                      echo "SOURCE_SHA=${source_sha}"
+                      echo "SOURCE_REF=${source_ref}"
+                      echo "ARTIFACT_NAME=${artifact_name}"
+                      echo "FORCE_SYNC=${force_sync}"
+                      echo "SOURCE_RUN_URL=${run_url}"
+                      echo "SOURCE_SHA_SHORT=${short_sha}"
+                      echo "LEDGER_SOURCE_DIR=${RUNNER_TEMP}/synapse-ledger-export"
+                  } >> "${GITHUB_ENV}"
+
+                  {
+                      echo "force_sync=${force_sync}"
+                  } >> "${GITHUB_OUTPUT}"
+
+            - name: Download source artifact
+              id: artifact
+              env:
+                  GH_TOKEN: ${{ secrets.ELEMENT_BOT_TOKEN }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p "${LEDGER_SOURCE_DIR}"
+                  artifact_id=""
+
+                  for attempt in 1 2 3; do
+                      if gh api "repos/${SOURCE_REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}/artifacts" > "${RUNNER_TEMP}/ledger-artifacts.json"; then
+                          artifact_id="$(python3 - <<'PY'
+                          import json
+                          import os
+                          import sys
+
+                          with open(os.path.join(os.environ["RUNNER_TEMP"], "ledger-artifacts.json"), "r", encoding="utf-8") as handle:
+                              payload = json.load(handle)
+
+                          wanted = os.environ["ARTIFACT_NAME"]
+                          for artifact in payload.get("artifacts", []):
+                              if artifact.get("name") == wanted and not artifact.get("expired", False):
+                                  print(artifact["id"])
+                                  sys.exit(0)
+
+                          sys.exit(1)
+                          PY
+                          )" || artifact_id=""
+                          if [ -n "${artifact_id}" ]; then
+                              break
+                          fi
+                      fi
+
+                      echo "artifact lookup failed on attempt ${attempt}/${RETRY_ATTEMPTS}" >&2
+                      if [ "${attempt}" -lt "${RETRY_ATTEMPTS}" ]; then
+                          sleep $((attempt * 2))
+                      fi
+                  done
+
+                  if [ -z "${artifact_id}" ]; then
+                      echo "Failed to resolve source artifact after ${RETRY_ATTEMPTS} attempts" >&2
+                      echo "  source_repository: ${SOURCE_REPOSITORY}" >&2
+                      echo "  workflow_run_id: ${WORKFLOW_RUN_ID}" >&2
+                      echo "  artifact_name: ${ARTIFACT_NAME}" >&2
+                      echo "  source_run_url: ${SOURCE_RUN_URL}" >&2
+                      echo "  available artifacts payload:" >&2
+                      cat "${RUNNER_TEMP}/ledger-artifacts.json" >&2 || true
+                      exit 1
+                  fi
+
+                  for attempt in 1 2 3; do
+                      if gh api "repos/${SOURCE_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "${RUNNER_TEMP}/ledger-export.zip"; then
+                          unzip -o "${RUNNER_TEMP}/ledger-export.zip" -d "${LEDGER_SOURCE_DIR}"
+                          break
+                      fi
+
+                      echo "artifact download failed on attempt ${attempt}/${RETRY_ATTEMPTS}" >&2
+                      if [ "${attempt}" -eq "${RETRY_ATTEMPTS}" ]; then
+                          echo "Failed to download artifact zip after ${RETRY_ATTEMPTS} attempts" >&2
+                          echo "  source_repository: ${SOURCE_REPOSITORY}" >&2
+                          echo "  workflow_run_id: ${WORKFLOW_RUN_ID}" >&2
+                          echo "  artifact_name: ${ARTIFACT_NAME}" >&2
+                          echo "  artifact_id: ${artifact_id}" >&2
+                          echo "  source_run_url: ${SOURCE_RUN_URL}" >&2
+                          exit 1
+                      fi
+                      sleep $((attempt * 2))
+                  done
+
+                  {
+                      echo "artifact_id=${artifact_id}"
+                  } >> "${GITHUB_OUTPUT}"
+
+            - name: Detect semantic ledger changes
+              id: semantic-diff
+              shell: bash
+              run: |
+                  python3 - <<'PY' >> "${GITHUB_OUTPUT}"
+                  import json
+                  import os
+                  from pathlib import Path
+
+                  profiles = ["default", "worker", "openclaw", "all"]
+                  current_root = Path(os.environ["GITHUB_WORKSPACE"]) / "docs" / "api-contract" / "generated"
+                  incoming_root = Path(os.environ["LEDGER_SOURCE_DIR"])
+
+                  def normalise(path: Path) -> str:
+                      data = json.loads(path.read_text(encoding="utf-8"))
+                      data.pop("generated_at", None)
+                      data.pop("synapse_rust_commit", None)
+                      return json.dumps(data, sort_keys=True, separators=(",", ":"))
+
+                  changed = False
+                  for profile in profiles:
+                      current = current_root / f"route-manifest.{profile}.json"
+                      incoming = incoming_root / f"{profile}.json"
+                      if not current.exists() or normalise(current) != normalise(incoming):
+                          changed = True
+                          break
+
+                  print(f"semantic_changes={'true' if changed else 'false'}")
+                  PY
+
+            - name: Sync generated contract mirror
+              if: steps.semantic-diff.outputs.semantic_changes == 'true' || steps.resolve.outputs.force_sync == 'true'
+              run: node scripts/contract-sync.mjs --source="${LEDGER_SOURCE_DIR}" --render-drafts
+
+            - name: Verify generated contract mirror
+              if: steps.semantic-diff.outputs.semantic_changes == 'true' || steps.resolve.outputs.force_sync == 'true'
+              run: node scripts/contract-sync.mjs --check --source="${LEDGER_SOURCE_DIR}"
+
+            - name: Upload rendered contract drafts
+              if: steps.semantic-diff.outputs.semantic_changes == 'true' || steps.resolve.outputs.force_sync == 'true'
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+              with:
+                  name: contract-drafts-${{ env.SOURCE_SHA_SHORT }}
+                  path: docs/api-contract/drafts/*.md
+                  if-no-files-found: ignore
+                  retention-days: 7
+
+            - name: Summarise rendered draft provenance
+              if: steps.semantic-diff.outputs.semantic_changes == 'true' || steps.resolve.outputs.force_sync == 'true'
+              shell: bash
+              run: |
+                  python3 - <<'PY'
+                  import os
+                  from pathlib import Path
+
+                  drafts_dir = Path(os.environ["GITHUB_WORKSPACE"]) / "docs" / "api-contract" / "drafts"
+                  draft_files = sorted(drafts_dir.glob("*.md"))
+
+                  change_types = []
+                  modules = []
+                  seen_change_types = set()
+                  seen_modules = set()
+
+                  for draft in draft_files:
+                      for line in draft.read_text(encoding="utf-8").splitlines():
+                          if line.startswith("change-type:"):
+                              value = line.split(":", 1)[1].strip()
+                              if value and value not in seen_change_types:
+                                  seen_change_types.add(value)
+                                  change_types.append(value)
+                          elif line.startswith("module:"):
+                              value = line.split(":", 1)[1].strip()
+                              if value and value not in seen_modules:
+                                  seen_modules.add(value)
+                                  modules.append(value)
+
+                  change_type_value = ",".join(change_types) if change_types else "generated-sync"
+                  module_value = ",".join(modules) if modules else "generated/*"
+
+                  with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
+                      handle.write(f"PROVENANCE_PROMPT=artifact://contract-drafts-{os.environ['SOURCE_SHA_SHORT']}\n")
+                      handle.write(f"PROVENANCE_CHANGE_TYPE={change_type_value}\n")
+                      handle.write(f"PROVENANCE_MODULE={module_value}\n")
+                  PY
+
+            - name: Create or update PR
+              if: steps.semantic-diff.outputs.semantic_changes == 'true' || steps.resolve.outputs.force_sync == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.ELEMENT_BOT_TOKEN }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if git diff --quiet -- docs/api-contract/generated; then
+                      echo "No generated/ changes to commit after sync."
+                      exit 0
+                  fi
+
+                  branch="automation/synapse-ledger-sync"
+                  title="docs(api-contract): sync synapse ledger ${SOURCE_SHA_SHORT}"
+                  body_file="${RUNNER_TEMP}/synapse-ledger-pr.md"
+
+                  cat > "${body_file}" <<EOF
+                  ## Summary
+                  - sync \`docs/api-contract/generated/\` from the latest \`synapse-rust\` ledger export artifact
+                  - refresh the committed route-manifest JSON files and per-module generated mirrors
+
+                  ## Source
+                  - source repository: \`${SOURCE_REPOSITORY}\`
+                  - source ref: \`${SOURCE_REF:-unknown}\`
+                  - source sha: \`${SOURCE_SHA:-unknown}\`
+                  - workflow run: [${WORKFLOW_RUN_ID}](${SOURCE_RUN_URL})
+                  - artifact: \`${ARTIFACT_NAME}\`
+
+                  ## Notes
+                  - auto-generated by the D8 cross-repo ledger sync workflow
+                  - rendered Phase-E prompt drafts are attached to this workflow run as the \`contract-drafts-${SOURCE_SHA_SHORT}\` artifact
+
+                  ## Provenance
+                  ```text
+                  contract-prompt: ${PROVENANCE_PROMPT}
+                  ledger-commit:   synapse-rust@${SOURCE_SHA:-unknown}
+                  ledger-profile:  all
+                  change-type:     ${PROVENANCE_CHANGE_TYPE}
+                  module:          ${PROVENANCE_MODULE}
+                  ```
+                  EOF
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git checkout -B "${branch}"
+                  git add docs/api-contract/generated
+                  git commit -m "${title}"
+
+                  pushed=""
+                  for attempt in 1 2 3; do
+                      if git push --force origin "${branch}"; then
+                          pushed="yes"
+                          break
+                      fi
+                      echo "git push failed on attempt ${attempt}/${RETRY_ATTEMPTS}" >&2
+                      if [ "${attempt}" -lt "${RETRY_ATTEMPTS}" ]; then
+                          sleep $((attempt * 2))
+                      fi
+                  done
+
+                  if [ -z "${pushed}" ]; then
+                      echo "Failed to push automation branch after ${RETRY_ATTEMPTS} attempts" >&2
+                      echo "  branch: ${branch}" >&2
+                      echo "  source_repository: ${SOURCE_REPOSITORY}" >&2
+                      echo "  source_sha: ${SOURCE_SHA:-unknown}" >&2
+                      echo "  source_run_url: ${SOURCE_RUN_URL}" >&2
+                      exit 1
+                  fi
+
+                  pr_number=""
+                  for attempt in 1 2 3; do
+                      pr_number="$(gh pr list --base develop --head "${branch}" --json number --jq '.[0].number')" || pr_number=""
+                      if [ -n "${pr_number}" ] && [ "${pr_number}" != "null" ]; then
+                          if gh pr edit "${pr_number}" --title "${title}" --body-file "${body_file}"; then
+                              break
+                          fi
+                      else
+                          if gh pr create \
+                              --base develop \
+                              --head "${branch}" \
+                              --title "${title}" \
+                              --body-file "${body_file}" \
+                              --label "T-Task"; then
+                              pr_number="$(gh pr list --base develop --head "${branch}" --json number --jq '.[0].number')" || pr_number=""
+                              break
+                          fi
+                      fi
+
+                      echo "PR sync failed on attempt ${attempt}/${RETRY_ATTEMPTS}" >&2
+                      if [ "${attempt}" -lt "${RETRY_ATTEMPTS}" ]; then
+                          sleep $((attempt * 2))
+                      fi
+                  done
+
+                  if [ -z "${pr_number}" ] || [ "${pr_number}" = "null" ]; then
+                      echo "Failed to create or update PR after ${RETRY_ATTEMPTS} attempts" >&2
+                      echo "  branch: ${branch}" >&2
+                      echo "  title: ${title}" >&2
+                      echo "  source_repository: ${SOURCE_REPOSITORY}" >&2
+                      echo "  source_sha: ${SOURCE_SHA:-unknown}" >&2
+                      echo "  source_run_url: ${SOURCE_RUN_URL}" >&2
+                      exit 1
+                  fi
+
+            - name: Sync diagnostics
+              if: always()
+              shell: bash
+              run: |
+                  {
+                      echo "## Synapse Ledger Sync"
+                      echo
+                      echo "- source repository: \`${SOURCE_REPOSITORY:-unknown}\`"
+                      echo "- source ref: \`${SOURCE_REF:-unknown}\`"
+                      echo "- source sha: \`${SOURCE_SHA:-unknown}\`"
+                      echo "- workflow run id: \`${WORKFLOW_RUN_ID:-unknown}\`"
+                      echo "- artifact name: \`${ARTIFACT_NAME:-unknown}\`"
+                      echo "- artifact id: \`${{ steps.artifact.outputs.artifact_id || 'n/a' }}\`"
+                      echo "- source run url: ${SOURCE_RUN_URL:-unknown}"
+                      echo "- semantic changes: \`${{ steps.semantic-diff.outputs.semantic_changes || 'unknown' }}\`"
+                      echo "- force sync: \`${{ steps.resolve.outputs.force_sync || 'unknown' }}\`"
+                  } >> "${GITHUB_STEP_SUMMARY}"
+
+            - name: No semantic route changes
+              if: steps.semantic-diff.outputs.semantic_changes != 'true' && steps.resolve.outputs.force_sync != 'true'
+              run: |
+                  echo "Downloaded ledger export matches committed route manifests after stripping metadata-only fields."

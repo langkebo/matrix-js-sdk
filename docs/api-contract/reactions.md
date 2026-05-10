@@ -1,3 +1,11 @@
+---
+module: reactions
+generated_from: docs/api-contract/generated/modules/reactions.json
+generated_hash: sha256-db672c9a10b2d1b405bcb9e63cf60dda769d630e199e52d2e478edba86872f75
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Reactions API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/reactions.rs`  
@@ -35,20 +43,22 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 | `txn_id` | string | 事务 ID（客户端生成） |
 
 **请求体**:
+
 ```json
 {
-  "m.relates_to": {
-    "rel_type": "m.annotation",
-    "event_id": "$target_event_id",
-    "key": "👍"
-  }
+    "m.relates_to": {
+        "rel_type": "m.annotation",
+        "event_id": "$target_event_id",
+        "key": "👍"
+    }
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "event_id": "$reaction_event_id"
+    "event_id": "$reaction_event_id"
 }
 ```
 
@@ -56,8 +66,8 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
+| 后端端点                        | SDK 方法                   | 状态      |
+| ------------------------------- | -------------------------- | --------- |
 | `PUT /send/m.reaction/{txn_id}` | `MatrixClient.sendEvent()` | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
@@ -73,15 +83,15 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ## 四、常见错误码
 
-| 状态码 | 错误码 | 说明 |
-|-------|--------|------|
-| 400 | `M_INVALID_PARAM` | 参数无效 |
-| 401 | `M_UNAUTHORIZED` | 未认证 |
-| 403 | `M_FORBIDDEN` | 非房间成员 |
-| 404 | `M_NOT_FOUND` | 目标事件或房间不存在 |
+| 状态码 | 错误码            | 说明                 |
+| ------ | ----------------- | -------------------- |
+| 400    | `M_INVALID_PARAM` | 参数无效             |
+| 401    | `M_UNAUTHORIZED`  | 未认证               |
+| 403    | `M_FORBIDDEN`     | 非房间成员           |
+| 404    | `M_NOT_FOUND`     | 目标事件或房间不存在 |
 
 ## 五、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

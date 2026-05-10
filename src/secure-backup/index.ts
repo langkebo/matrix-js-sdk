@@ -36,6 +36,22 @@ import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
+
+/** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+/** Slice of `E2eePathPattern` limited to the `/keys/backup/secure` surface. */
+type SecureBackupV3PathPattern = Extract<StripV3<E2eePathPattern>, `/keys/backup/secure${string}`>;
+
+/**
+ * Compile-time bind from a secure-backup call site to the `/keys/backup/secure`
+ * slice of the generated `E2EE_ROUTES` ledger. Identity at runtime; a typo
+ * fails type-checking with `TS2345`.
+ */
+function sb<P extends SecureBackupV3PathPattern>(path: P): P {
+    return path;
+}
 
 export interface SecureBackupAuthData {
     public_key?: string;
@@ -101,7 +117,7 @@ export class SecureBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<SecureBackupInfo>(
                     Method.Post,
-                    "/keys/backup/secure",
+                    sb("/keys/backup/secure"),
                     undefined,
                     { passphrase },
                     { prefix: ClientPrefix.V3 },
@@ -131,7 +147,7 @@ export class SecureBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<SecureBackupInfo>(
                     Method.Get,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -154,7 +170,7 @@ export class SecureBackupManager {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Delete,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -180,7 +196,7 @@ export class SecureBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<SecureBackupKeysResponse>(
                     Method.Post,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}/keys`,
+                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys`),
                     undefined,
                     { passphrase, session_keys: sessionKeys },
                     { prefix: ClientPrefix.V3 },
@@ -203,7 +219,7 @@ export class SecureBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<SecureBackupRestoreResponse>(
                     Method.Post,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}/restore`,
+                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore`),
                     undefined,
                     { passphrase },
                     { prefix: ClientPrefix.V3 },
@@ -225,7 +241,7 @@ export class SecureBackupManager {
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<SecureBackupVerifyResponse>(
                     Method.Post,
-                    `/keys/backup/secure/${encodeURIComponent(backupId)}/verify`,
+                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify`),
                     undefined,
                     { passphrase },
                     { prefix: ClientPrefix.V3 },

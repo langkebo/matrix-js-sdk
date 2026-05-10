@@ -1,3 +1,11 @@
+---
+module: telemetry
+generated_from: docs/api-contract/generated/modules/telemetry.json
+generated_hash: sha256-d2b0bd1ae3313d299eec145b726133c9754017aaa218a2c66f696433bbff43df
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Telemetry API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/telemetry.rs`  
@@ -27,11 +35,12 @@ Telemetry API 提供服务器遥测监控功能，包括状态、指标、告警
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface TelemetryStatus {
-  enabled: boolean;
-  collection_interval_ms: number;
-  last_collection_ts: number;
+    enabled: boolean;
+    collection_interval_ms: number;
+    last_collection_ts: number;
 }
 ```
 
@@ -41,13 +50,14 @@ interface TelemetryStatus {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface TelemetryAttributes {
-  server_name: string;
-  server_version: string;
-  python_version: string;
-  database_engine: string;
-  database_version: string;
+    server_name: string;
+    server_version: string;
+    python_version: string;
+    database_engine: string;
+    database_version: string;
 }
 ```
 
@@ -57,14 +67,15 @@ interface TelemetryAttributes {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface TelemetryMetrics {
-  metrics: Array<{
-    name: string;
-    value: number;
-    timestamp: number;
-    labels?: Record<string, string>;
-  }>;
+    metrics: Array<{
+        name: string;
+        value: number;
+        timestamp: number;
+        labels?: Record<string, string>;
+    }>;
 }
 ```
 
@@ -74,15 +85,16 @@ interface TelemetryMetrics {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface TelemetryAlerts {
-  alerts: Array<{
-    id: string;
-    severity: string;
-    message: string;
-    created_ts: number;
-    acknowledged: boolean;
-  }>;
+    alerts: Array<{
+        id: string;
+        severity: string;
+        message: string;
+        created_ts: number;
+        acknowledged: boolean;
+    }>;
 }
 ```
 
@@ -92,6 +104,7 @@ interface TelemetryAlerts {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -102,14 +115,15 @@ interface TelemetryAlerts {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface HealthStatus {
-  healthy: boolean;
-  checks: Array<{
-    name: string;
-    status: string;
-    message?: string;
-  }>;
+    healthy: boolean;
+    checks: Array<{
+        name: string;
+        status: string;
+        message?: string;
+    }>;
 }
 ```
 
@@ -123,6 +137,6 @@ interface HealthStatus {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

@@ -1,3 +1,11 @@
+---
+module: typing
+generated_from: docs/api-contract/generated/modules/typing.json
+generated_hash: sha256-c22be42079c5e9d6cd1667df791a0a2f148c8d3e31e1d12f3d2836d305b97e2b
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Typing Indicators API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/typing.rs`  
@@ -38,10 +46,11 @@ Typing Indicators API 提供输入状态指示功能，用于显示"正在输入
 | `user_id` | string | 用户 ID（必须是当前用户） |
 
 **请求体**:
+
 ```json
 {
-  "typing": true,
-  "timeout": 30000
+    "typing": true,
+    "timeout": 30000
 }
 ```
 
@@ -52,6 +61,7 @@ Typing Indicators API 提供输入状态指示功能，用于显示"正在输入
 | `timeout` | integer | 否 | 超时时间（毫秒），默认 30000 |
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -63,9 +73,10 @@ Typing Indicators API 提供输入状态指示功能，用于显示"正在输入
 **挂载版本**: `v3`
 
 **响应**: `200 OK`
+
 ```typescript
 interface TypingResponse {
-  user_ids: string[];
+    user_ids: string[];
 }
 ```
 
@@ -76,20 +87,22 @@ interface TypingResponse {
 **挂载版本**: `v3`
 
 **请求体**:
+
 ```json
 {
-  "room_ids": ["!room1:server", "!room2:server"]
+    "room_ids": ["!room1:server", "!room2:server"]
 }
 ```
 
 **响应**: `200 OK`
+
 ```typescript
 interface BatchTypingResponse {
-  rooms: {
-    [room_id: string]: {
-      user_ids: string[];
+    rooms: {
+        [room_id: string]: {
+            user_ids: string[];
+        };
     };
-  };
 }
 ```
 
@@ -97,11 +110,11 @@ interface BatchTypingResponse {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
-| `PUT /typing/{user_id}` | `MatrixClient.sendTyping()` | ✅ 已封装 |
-| `GET /typing` | `MatrixClient.getRoomTyping()` | ✅ 已封装 |
-| `POST /rooms/typing` | `MatrixClient.getBatchTyping()` | ✅ 已封装 |
+| 后端端点                | SDK 方法                        | 状态      |
+| ----------------------- | ------------------------------- | --------- |
+| `PUT /typing/{user_id}` | `MatrixClient.sendTyping()`     | ✅ 已封装 |
+| `GET /typing`           | `MatrixClient.getRoomTyping()`  | ✅ 已封装 |
+| `POST /rooms/typing`    | `MatrixClient.getBatchTyping()` | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
@@ -115,15 +128,15 @@ interface BatchTypingResponse {
 
 ## 四、常见错误码
 
-| 状态码 | 错误码 | 说明 |
-|-------|--------|------|
-| 400 | `M_INVALID_PARAM` | 参数无效 |
-| 401 | `M_UNAUTHORIZED` | 未认证 |
-| 403 | `M_FORBIDDEN` | 非房间成员或尝试更新他人状态 |
-| 404 | `M_NOT_FOUND` | 房间不存在 |
+| 状态码 | 错误码            | 说明                         |
+| ------ | ----------------- | ---------------------------- |
+| 400    | `M_INVALID_PARAM` | 参数无效                     |
+| 401    | `M_UNAUTHORIZED`  | 未认证                       |
+| 403    | `M_FORBIDDEN`     | 非房间成员或尝试更新他人状态 |
+| 404    | `M_NOT_FOUND`     | 房间不存在                   |
 
 ## 五、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

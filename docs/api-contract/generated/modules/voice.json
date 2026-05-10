@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "voice",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 2,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/voice/config",
+      "registered_by": "voice",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/voice/upload",
+      "registered_by": "voice",
+      "path_params": []
+    }
+  ]
+}

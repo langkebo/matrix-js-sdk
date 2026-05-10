@@ -2,7 +2,6 @@
 
 > 说明: 本文件保留 2026-04-15 的阶段性审查快照。当前契约结论请以 `federation.md`、`README.md` 与 `CHANGELOG.md` 为准。
 
-
 **审查日期**: 2026-04-15  
 **审查状态**: ✅ 已完成审查
 
@@ -14,35 +13,36 @@ Federation 模块提供联邦功能，包括服务器发现、密钥管理、房
 
 ### 审查结果
 
-**核心文件**: 
+**核心文件**:
+
 - `synapse-rust/src/web/routes/federation.rs`
 
 **关键发现**:
 
 1. **接口实现**（60+ 个端点）:
-   
-   **Public Federation（10 个）**:
-   - 服务器密钥查询
-   - 版本信息、发现信息
-   - 公开房间列表
-   - 房间层级、事件查询
 
-   **Protected Federation（50+ 个）**:
-   - 房间成员管理
-   - 事件同步（send/join/leave/invite）
-   - 密钥管理（claim/query/upload）
-   - 媒体联邦下载
-   - 第三方邀请
+    **Public Federation（10 个）**:
+    - 服务器密钥查询
+    - 版本信息、发现信息
+    - 公开房间列表
+    - 房间层级、事件查询
+
+    **Protected Federation（50+ 个）**:
+    - 房间成员管理
+    - 事件同步（send/join/leave/invite）
+    - 密钥管理（claim/query/upload）
+    - 媒体联邦下载
+    - 第三方邀请
 
 2. **核心特性**:
-   - 服务器间通信
-   - 联邦签名认证
-   - 事件同步
-   - 密钥交换
+    - 服务器间通信
+    - 联邦签名认证
+    - 事件同步
+    - 密钥交换
 
 3. **认证模型**:
-   - Public 路由无需签名
-   - Protected 路由需要 X-Matrix 签名
+    - Public 路由无需签名
+    - Protected 路由需要 X-Matrix 签名
 
 ---
 
@@ -51,6 +51,7 @@ Federation 模块提供联邦功能，包括服务器发现、密钥管理、房
 **评级**: ⭐⭐⭐⭐⭐ **优秀**
 
 **理由**:
+
 - ✅ 现有文档比较完整
 - ✅ 覆盖了 60+ 个端点
 - ✅ 分类清晰（Public/Protected）

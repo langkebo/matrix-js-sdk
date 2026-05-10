@@ -1,3 +1,11 @@
+---
+module: moderation
+generated_from: docs/api-contract/generated/modules/moderation.json
+generated_hash: sha256-bccd6b6f2f8ffaeb099daca73f66fbf6caf59f02323ec900dfeff01145272033
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Moderation API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/moderation.rs`  
@@ -10,6 +18,7 @@
 ### 1.1 功能描述
 
 Moderation API 提供内容审核功能，用于：
+
 - 举报不当内容或行为
 - 对举报内容进行评分
 - 查询扫描器信息（v1 专属）
@@ -40,10 +49,11 @@ Moderation API 提供内容审核功能，用于：
 | `event_id` | string | 要举报的事件 ID |
 
 **请求体**:
+
 ```json
 {
-  "score": -100,
-  "reason": "spam"
+    "score": -100,
+    "reason": "spam"
 }
 ```
 
@@ -54,6 +64,7 @@ Moderation API 提供内容审核功能，用于：
 | `reason` | string | 否 | 举报原因 |
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -65,13 +76,15 @@ Moderation API 提供内容审核功能，用于：
 **挂载版本**: `r0`, `v1`, `v3`
 
 **请求体**:
+
 ```json
 {
-  "score": -50
+    "score": -50
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -83,12 +96,13 @@ Moderation API 提供内容审核功能，用于：
 **挂载版本**: `v1`
 
 **响应**: `200 OK`
+
 ```typescript
 interface ScannerInfo {
-  scanner_id: string;
-  scan_result: string;
-  confidence: number;
-  scanned_at: number;
+    scanner_id: string;
+    scan_result: string;
+    confidence: number;
+    scanned_at: number;
 }
 ```
 
@@ -99,17 +113,19 @@ interface ScannerInfo {
 **挂载版本**: `v3`
 
 **请求体**:
+
 ```json
 {
-  "reason": "inappropriate_content",
-  "description": "This room contains spam"
+    "reason": "inappropriate_content",
+    "description": "This room contains spam"
 }
 ```
 
 **响应**: `200 OK`
+
 ```json
 {
-  "report_id": "report_abc123"
+    "report_id": "report_abc123"
 }
 ```
 
@@ -117,12 +133,12 @@ interface ScannerInfo {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
-| `POST /report/{event_id}` | `MatrixClient.reportEvent()` | ✅ 已封装 |
-| `PUT /report/{event_id}/score` | `MatrixClient.scoreReport()` | ✅ 已封装 |
+| 后端端点                              | SDK 方法                        | 状态      |
+| ------------------------------------- | ------------------------------- | --------- |
+| `POST /report/{event_id}`             | `MatrixClient.reportEvent()`    | ✅ 已封装 |
+| `PUT /report/{event_id}/score`        | `MatrixClient.scoreReport()`    | ✅ 已封装 |
 | `GET /report/{event_id}/scanner_info` | `MatrixClient.getScannerInfo()` | ✅ 已封装 |
-| `POST /rooms/{room_id}/report` | - | ❌ 未封装 |
+| `POST /rooms/{room_id}/report`        | -                               | ❌ 未封装 |
 
 ### 3.2 封装覆盖率
 
@@ -136,16 +152,16 @@ interface ScannerInfo {
 
 ## 四、常见错误码
 
-| 状态码 | 错误码 | 说明 |
-|-------|--------|------|
-| 400 | `M_INVALID_PARAM` | 参数无效 |
-| 401 | `M_UNAUTHORIZED` | 未认证 |
-| 403 | `M_FORBIDDEN` | 非房间成员 |
-| 404 | `M_NOT_FOUND` | 事件或房间不存在 |
-| 429 | `M_LIMIT_EXCEEDED` | 举报频率过高 |
+| 状态码 | 错误码             | 说明             |
+| ------ | ------------------ | ---------------- |
+| 400    | `M_INVALID_PARAM`  | 参数无效         |
+| 401    | `M_UNAUTHORIZED`   | 未认证           |
+| 403    | `M_FORBIDDEN`      | 非房间成员       |
+| 404    | `M_NOT_FOUND`      | 事件或房间不存在 |
+| 429    | `M_LIMIT_EXCEEDED` | 举报频率过高     |
 
 ## 五、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

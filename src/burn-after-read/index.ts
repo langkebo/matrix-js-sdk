@@ -42,9 +42,9 @@ limitations under the License.
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
-import { BaseManager, type RetryOptions, type RequestStats } from "../managers/base-manager.ts";
+import { BaseManager, type RequestStats } from "../managers/base-manager.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError, SdkError } from "../errors.ts";
+import { NotFoundError, ValidationError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 
 const DEFAULT_BURN_AFTER_MS = 60000;
@@ -393,13 +393,9 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         try {
             const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest<IBurnStats>(
-                        Method.Get,
-                        "/user/burn/stats",
-                        undefined,
-                        undefined,
-                        { prefix: ClientPrefix.V1 },
-                    ),
+                    this.client.http.authedRequest<IBurnStats>(Method.Get, "/user/burn/stats", undefined, undefined, {
+                        prefix: ClientPrefix.V1,
+                    }),
                 "getBurnStats",
             );
 
@@ -709,16 +705,12 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
 
         const minTime = this.config.min_expire_time ?? MIN_BURN_AFTER_MS;
         if (burnMs < minTime) {
-            throw new ValidationError(
-                `BurnAfterReadManager: burn time ${burnMs}ms is below minimum ${minTime}ms`,
-            );
+            throw new ValidationError(`BurnAfterReadManager: burn time ${burnMs}ms is below minimum ${minTime}ms`);
         }
 
         const maxTime = this.config.max_expire_time ?? MAX_BURN_AFTER_MS;
         if (burnMs > maxTime) {
-            throw new ValidationError(
-                `BurnAfterReadManager: burn time ${burnMs}ms exceeds maximum ${maxTime}ms`,
-            );
+            throw new ValidationError(`BurnAfterReadManager: burn time ${burnMs}ms exceeds maximum ${maxTime}ms`);
         }
     }
 

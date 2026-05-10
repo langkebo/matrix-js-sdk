@@ -1,3 +1,11 @@
+---
+module: external_service
+generated_from: docs/api-contract/generated/modules/external_service.json
+generated_hash: sha256-ff78986ade9336fa343d0a73718dacc79cf5f1180dd8234d0f379deec65a4eb4
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # External Service API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/external_service.rs`  
@@ -29,14 +37,15 @@ External Service API 提供外部服务集成功能，包括 webhook 和服务�
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface ExternalServicesResponse {
-  services: Array<{
-    id: string;
-    type: string;
-    url: string;
-    enabled: boolean;
-  }>;
+    services: Array<{
+        id: string;
+        type: string;
+        url: string;
+        enabled: boolean;
+    }>;
 }
 ```
 
@@ -46,18 +55,20 @@ interface ExternalServicesResponse {
 **认证**: `AdminUser`
 
 **请求体**:
+
 ```json
 {
-  "type": "trendradar",
-  "url": "https://...",
-  "config": {}
+    "type": "trendradar",
+    "url": "https://...",
+    "config": {}
 }
 ```
 
 **响应**: `201 Created`
+
 ```json
 {
-  "id": "service_id"
+    "id": "service_id"
 }
 ```
 
@@ -82,6 +93,7 @@ interface ExternalServicesResponse {
 **挂载版本**: 动态
 
 **支持的服务类型**:
+
 - `trendradar`
 - `openclaw`
 - 通用 `webhook`
@@ -96,6 +108,6 @@ interface ExternalServicesResponse {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

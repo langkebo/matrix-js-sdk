@@ -1,3 +1,11 @@
+---
+module: rendezvous
+generated_from: docs/api-contract/generated/modules/rendezvous.json
+generated_hash: sha256-50e8212dabf234fb0d27669c2e1cd3ed8f5a193533108c5d2d91b54d9124ff78
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Rendezvous API 契约 (二维码登录)
 
 > 版本: v1.0.0
@@ -15,8 +23,8 @@ Rendezvous API 提供 MSC4108 二维码登录功能，允许用户通过扫描�
 
 - `POST /_matrix/client/v1/rendezvous` 允许匿名创建会话。
 - 其余 `/{session_id}` 与 `/{session_id}/messages` 路由必须满足以下任一条件：
-  - 请求头携带 `X-Matrix-Rendezvous-Key: <key>`，且值与创建会话返回的 `key` 一致。
-  - 会话已在 `status = connected` 阶段绑定用户，且调用方就是该绑定用户或服务器管理员。
+    - 请求头携带 `X-Matrix-Rendezvous-Key: <key>`，且值与创建会话返回的 `key` 一致。
+    - 会话已在 `status = connected` 阶段绑定用户，且调用方就是该绑定用户或服务器管理员。
 - 将会话更新为 `connected` 时，除了有效的会话 key，还必须带有效的 Matrix 访问令牌以完成用户绑定。
 
 ---
@@ -275,15 +283,15 @@ created → connected → completed
 
 ## 错误码
 
-| 错误码                 | HTTP 状态码 | 说明               |
-| ---------------------- | ----------- | ------------------ |
+| 错误码                 | HTTP 状态码 | 说明                              |
+| ---------------------- | ----------- | --------------------------------- |
 | M_MISSING_TOKEN        | 401         | 更新为 `connected` 时缺少访问令牌 |
-| M_UNKNOWN_TOKEN        | 401         | 无效的访问令牌     |
+| M_UNKNOWN_TOKEN        | 401         | 无效的访问令牌                    |
 | M_UNAUTHORIZED         | 401         | 缺少或提供了错误的 rendezvous key |
-| M_FORBIDDEN            | 403         | 已绑定会话被其他用户越权访问 |
-| M_NOT_FOUND            | 404         | 会话不存在或已过期 |
-| M_RENDEZVOUS_EXPIRED   | 410         | 会话已过期         |
-| M_RENDEZVOUS_CANCELLED | 410         | 会话已取消         |
+| M_FORBIDDEN            | 403         | 已绑定会话被其他用户越权访问      |
+| M_NOT_FOUND            | 404         | 会话不存在或已过期                |
+| M_RENDEZVOUS_EXPIRED   | 410         | 会话已过期                        |
+| M_RENDEZVOUS_CANCELLED | 410         | 会话已取消                        |
 
 ---
 
@@ -389,13 +397,17 @@ const sessionKey = "session_key_from_qr_code";
 await rendezvousManager.connectToSession(sessionId, sessionKey);
 
 // 发送确认消息
-await rendezvousManager.sendMessage(sessionId, {
-    type: "m.login.reciprocate",
-    content: {
-        user_id: "@user:example.com",
-        device_id: "EXISTING_DEVICE",
+await rendezvousManager.sendMessage(
+    sessionId,
+    {
+        type: "m.login.reciprocate",
+        content: {
+            user_id: "@user:example.com",
+            device_id: "EXISTING_DEVICE",
+        },
     },
-}, sessionKey);
+    sessionKey,
+);
 
 // 完成会话
 await rendezvousManager.updateSession(sessionId, "completed", sessionKey);

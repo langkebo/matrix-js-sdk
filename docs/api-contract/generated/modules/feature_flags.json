@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "feature_flags",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 4,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/feature-flags",
+      "registered_by": "feature_flags",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/feature-flags",
+      "registered_by": "feature_flags",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/feature-flags/{flag_key}",
+      "registered_by": "feature_flags",
+      "path_params": [
+        "flag_key"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/_synapse/admin/v1/feature-flags/{flag_key}",
+      "registered_by": "feature_flags",
+      "path_params": [
+        "flag_key"
+      ]
+    }
+  ]
+}

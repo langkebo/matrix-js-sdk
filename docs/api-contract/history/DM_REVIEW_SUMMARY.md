@@ -2,7 +2,6 @@
 
 > 说明: 本文件保留 2026-04-15 的阶段性审查快照。当前主契约请优先以 `dm.md`、`README.md`、`CHANGELOG.md` 与 `VERIFICATION_REPORT.md` 为准；`dm-enhanced.md` 仅作为历史增强版补充材料。
 
-
 **评审日期**: 2026-04-15  
 **评审状态**: ✅ 已完成基础审查
 
@@ -19,39 +18,41 @@
 **关键发现**:
 
 1. **接口实现**:
-   - ✅ `POST /create_dm` - 创建 DM 房间
-   - ✅ `GET /direct` - 获取 DM 映射
-   - ✅ `PUT /direct/{room_id}` - 更新 DM 映射
-   - ✅ `GET /rooms/{room_id}/dm` - 检查是否为 DM
-   - ✅ `GET /rooms/{room_id}/dm/partner` - 获取 DM 伙伴信息
+    - ✅ `POST /create_dm` - 创建 DM 房间
+    - ✅ `GET /direct` - 获取 DM 映射
+    - ✅ `PUT /direct/{room_id}` - 更新 DM 映射
+    - ✅ `GET /rooms/{room_id}/dm` - 检查是否为 DM
+    - ✅ `GET /rooms/{room_id}/dm/partner` - 获取 DM 伙伴信息
 
 2. **数据结构**:
-   - `CreateDmRequest`: user_id, invite, is_direct, name, visibility
-   - `UpdateDmRequest`: content, users
-   - m.direct 存储在 account_data 表中
+    - `CreateDmRequest`: user_id, invite, is_direct, name, visibility
+    - `UpdateDmRequest`: content, users
+    - m.direct 存储在 account_data 表中
 
 3. **数据约束**:
-   - user_id: 最大 100 字符
-   - invite: 最大 100 字符/项，最多 20 个邀请
-   - name: 最大 255 字符
-   - visibility: 最大 50 字符
+    - user_id: 最大 100 字符
+    - invite: 最大 100 字符/项，最多 20 个邀请
+    - name: 最大 255 字符
+    - visibility: 最大 50 字符
 
 4. **核心逻辑**:
-   - m.direct 是用户级别的 account data
-   - 格式: `{ "@user:server": ["!room1:server", "!room2:server"] }`
-   - 自动从房间成员关系构建 DM 映射（回退机制）
-   - DM 房间必须恰好 2 个成员
+    - m.direct 是用户级别的 account data
+    - 格式: `{ "@user:server": ["!room1:server", "!room2:server"] }`
+    - 自动从房间成员关系构建 DM 映射（回退机制）
+    - DM 房间必须恰好 2 个成员
 
 ### 契约文档状态
 
 **当前文档**: `docs/api-contract/dm.md`
 
 **优点**:
+
 - ✅ 路由清单完整
 - ✅ 包含 SDK Manager 映射
 - ✅ 错误码说明清晰
 
 **需要改进**:
+
 - ⚠️ 缺少详细的请求/响应示例
 - ⚠️ 缺少数据约束说明
 - ⚠️ 缺少数据库表结构
@@ -62,12 +63,14 @@
 **当前实现**: `src/dm/index.ts` (979 行)
 
 **优点**:
+
 - ✅ 完整的 DirectMessageManager 实现
 - ✅ 支持所有后端接口
 - ✅ 包含缓存机制
 - ✅ 事件系统完善
 
 **特点**:
+
 - ✅ 正确理解 m.direct 是用户级别 account data
 - ✅ 提供回退机制（从房间扫描）
 - ✅ 完整的 DM 生命周期管理
@@ -83,7 +86,7 @@ const DM_CONSTRAINTS = {
     MAX_INVITEES: 20,
     NAME_MAX_LENGTH: 255,
     VISIBILITY_MAX_LENGTH: 50,
-    DM_MEMBER_COUNT: 2
+    DM_MEMBER_COUNT: 2,
 };
 ```
 
@@ -141,12 +144,12 @@ Response 200:
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 场景 |
-|--------|------------|------|
-| M_NOT_FOUND | 404 | 房间不是 DM 或找不到伙伴 |
-| M_BAD_JSON | 400 | 请求体格式错误 |
-| M_INVALID_PARAM | 400 | 参数不合法 |
-| M_UNKNOWN_TOKEN | 401 | Token 无效 |
+| 错误码          | HTTP 状态码 | 场景                     |
+| --------------- | ----------- | ------------------------ |
+| M_NOT_FOUND     | 404         | 房间不是 DM 或找不到伙伴 |
+| M_BAD_JSON      | 400         | 请求体格式错误           |
+| M_INVALID_PARAM | 400         | 参数不合法               |
+| M_UNKNOWN_TOKEN | 401         | Token 无效               |
 
 ---
 

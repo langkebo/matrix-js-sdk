@@ -60,10 +60,10 @@ export interface ICallSessionResponse {
 }
 
 export interface VoIPCallsManagerEvents {
-    call_created: (payload: { roomId: string; call: MatrixCall }) => void;
-    call_ended: (payload: { roomId: string; callId: string }) => void;
-    call_answered: (payload: { roomId: string; callId: string }) => void;
-    turn_servers_updated: (payload: { servers: ITurnServerResponse }) => void;
+    callCreated: (payload: { roomId: string; call: MatrixCall }) => void;
+    callEnded: (payload: { roomId: string; callId: string }) => void;
+    callAnswered: (payload: { roomId: string; callId: string }) => void;
+    turnServersUpdated: (payload: { servers: ITurnServerResponse }) => void;
 }
 
 export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, VoIPCallsManagerEvents> {
@@ -136,7 +136,7 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
             );
             this.cachedTurnServers = response;
             this.turnServerExpiry = Date.now() + (response.ttl ?? 3600) * 1000;
-            this.emit("turn_servers_updated", { servers: response });
+            this.emit("turnServersUpdated", { servers: response });
             return response;
         }, "getTurnServers");
     }

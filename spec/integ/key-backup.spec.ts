@@ -14,12 +14,12 @@ describe("KeyBackupManager", () => {
     });
 
     it("getBackupVersions calls /room_keys/version", async () => {
-        const versions: BackupVersionInfo[] = [{ version: "1", algorithm: "m.megolm_backup.v1", auth_data: {} }];
-        authedRequest.mockResolvedValueOnce({ versions });
+        const version: BackupVersionInfo = { version: "1", algorithm: "m.megolm_backup.v1", auth_data: {} };
+        authedRequest.mockResolvedValueOnce(version);
 
         const result = await keyBackupManager.getBackupVersions();
 
-        expect(result).toEqual({ versions });
+        expect(result).toEqual({ versions: [version] });
         expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/version", undefined, undefined, {
             prefix: ClientPrefix.V3,
         });
@@ -63,14 +63,14 @@ describe("KeyBackupManager", () => {
         });
     });
 
-    it("getAllBackupKeys calls GET /room_keys/keys", async () => {
+    it("getAllRoomKeys calls GET /room_keys/keys with version query", async () => {
         const keys: RoomKeyBackup = { rooms: {}, etag: '"1"' };
         authedRequest.mockResolvedValueOnce(keys);
 
-        const result = await keyBackupManager.getAllBackupKeys();
+        const result = await keyBackupManager.getAllRoomKeys("1");
 
         expect(result).toEqual(keys);
-        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/keys", undefined, undefined, {
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/keys", { version: "1" }, undefined, {
             prefix: ClientPrefix.V3,
         });
     });

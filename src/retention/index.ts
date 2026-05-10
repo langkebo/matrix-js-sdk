@@ -77,10 +77,10 @@ export interface IRetentionStatus {
 }
 
 export interface RetentionManagerEvents {
-    retention_policy_updated: (data: { roomId: string; policy: RetentionPolicy }) => void;
-    server_policy_updated: (data: { policy: RetentionPolicy }) => void;
-    retention_run_completed: (data: { result: IRetentionRunResult }) => void;
-    message_expired: (data: { roomId: string; eventId: string }) => void;
+    retentionPolicyUpdated: (data: { roomId: string; policy: RetentionPolicy }) => void;
+    serverPolicyUpdated: (data: { policy: RetentionPolicy }) => void;
+    retentionRunCompleted: (data: { result: IRetentionRunResult }) => void;
+    messageExpired: (data: { roomId: string; eventId: string }) => void;
 }
 
 export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, RetentionManagerEvents> {
@@ -90,27 +90,19 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
 
     public async getServerRetentionPolicy(): Promise<RetentionPolicy> {
         return this.withRetry(async () => {
-            const response = await this.adminRequest<RetentionPolicy>(
-                Method.Get,
-                "/retention/policy",
-            );
+            const response = await this.adminRequest<RetentionPolicy>(Method.Get, "/retention/policy");
             return response;
         }, "getServerRetentionPolicy");
     }
 
     public async setServerRetentionPolicy(policy: RetentionPolicy): Promise<RetentionPolicy> {
         return this.withRetry(async () => {
-            const response = await this.adminRequest<RetentionPolicy>(
-                Method.Post,
-                "/retention/policy",
-                undefined,
-                {
-                    max_lifetime: policy.max_lifetime ?? null,
-                    min_lifetime: policy.min_lifetime ?? null,
-                    expire_on_clients: policy.expire_on_clients ?? false,
-                },
-            );
-            this.emit("server_policy_updated", { policy: response });
+            const response = await this.adminRequest<RetentionPolicy>(Method.Post, "/retention/policy", undefined, {
+                max_lifetime: policy.max_lifetime ?? null,
+                min_lifetime: policy.min_lifetime ?? null,
+                expire_on_clients: policy.expire_on_clients ?? false,
+            });
+            this.emit("serverPolicyUpdated", { policy: response });
             return response;
         }, "setServerRetentionPolicy");
     }
@@ -129,7 +121,10 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         }, "getRoomRetentionPolicy");
     }
 
-    public async setRoomRetentionPolicy(roomId: string, policy: RetentionPolicy): Promise<RetentionPolicy & { room_id: string }> {
+    public async setRoomRetentionPolicy(
+        roomId: string,
+        policy: RetentionPolicy,
+    ): Promise<RetentionPolicy & { room_id: string }> {
         if (!roomId) {
             throw new InvalidParamError("roomId is required");
         }
@@ -145,7 +140,7 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
                     expire_on_clients: policy.expire_on_clients ?? false,
                 },
             );
-            this.emit("retention_policy_updated", { roomId, policy: response });
+            this.emit("retentionPolicyUpdated", { roomId, policy: response });
             return response;
         }, "setRoomRetentionPolicy");
     }
@@ -163,7 +158,7 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
                 undefined,
                 body,
             );
-            this.emit("retention_run_completed", { result: response });
+            this.emit("retentionRunCompleted", { result: response });
             return response;
         }, "runRetention");
     }

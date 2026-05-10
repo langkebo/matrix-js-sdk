@@ -1,3 +1,11 @@
+---
+module: event_report
+generated_from: docs/api-contract/generated/modules/event_report.json
+generated_hash: sha256-5f214615a29d1a132986610dc81060017476d993e9b80a334a22c9ba091bf4f6
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Event Report API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/event_report.rs`  
@@ -36,20 +44,21 @@ Event Report API 提供管理员查看和管理用户举报的功能。
 | `room_id` | string | 否 | 过滤房间 |
 
 **响应**: `200 OK`
+
 ```typescript
 interface EventReportsResponse {
-  event_reports: Array<{
-    id: number;
-    received_ts: number;
-    room_id: string;
-    event_id: string;
-    user_id: string;
-    reason?: string;
-    score?: number;
-    sender: string;
-  }>;
-  next_token?: number;
-  total: number;
+    event_reports: Array<{
+        id: number;
+        received_ts: number;
+        room_id: string;
+        event_id: string;
+        user_id: string;
+        reason?: string;
+        score?: number;
+        sender: string;
+    }>;
+    next_token?: number;
+    total: number;
 }
 ```
 
@@ -59,18 +68,19 @@ interface EventReportsResponse {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```typescript
 interface EventReportDetail {
-  id: number;
-  received_ts: number;
-  room_id: string;
-  event_id: string;
-  user_id: string;
-  reason?: string;
-  score?: number;
-  sender: string;
-  canonical_alias?: string;
-  event_json: object;
+    id: number;
+    received_ts: number;
+    room_id: string;
+    event_id: string;
+    user_id: string;
+    reason?: string;
+    score?: number;
+    sender: string;
+    canonical_alias?: string;
+    event_json: object;
 }
 ```
 
@@ -80,6 +90,7 @@ interface EventReportDetail {
 **认证**: `AdminUser`
 
 **响应**: `200 OK`
+
 ```json
 {}
 ```
@@ -88,11 +99,11 @@ interface EventReportDetail {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
-| `GET /event_reports` | - | ❌ 未封装 |
-| `GET /event_reports/{id}` | - | ❌ 未封装 |
-| `DELETE /event_reports/{id}` | - | ❌ 未封装 |
+| 后端端点                     | SDK 方法 | 状态      |
+| ---------------------------- | -------- | --------- |
+| `GET /event_reports`         | -        | ❌ 未封装 |
+| `GET /event_reports/{id}`    | -        | ❌ 未封装 |
+| `DELETE /event_reports/{id}` | -        | ❌ 未封装 |
 
 ### 3.2 封装覆盖率
 
@@ -102,6 +113,6 @@ interface EventReportDetail {
 
 ## 四、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |

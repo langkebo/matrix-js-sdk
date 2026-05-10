@@ -17,33 +17,33 @@
 
 ### Phase 完成情况
 
-| Phase | 名称 | 任务数 | 完成率 | 时间 |
-|-------|------|--------|--------|------|
-| Phase 1 | 架构优化 | 1 | 100% | 0.5 天 |
-| Phase 2 | 代码质量优化 | 4 | 100% | 0.5 天 |
-| Phase 3 | 可维护性优化 | 3 | 100% | 0.5 天 |
-| Phase 4 | 其他模块优化 | 4 | 100% | 0.5 天 |
-| Phase 5 | 剩余模块优化 | 3 | 100% | 0.5 天 |
-| Phase 6 | 简单模块优化 | 3 | 100% | 0.5 天 |
-| Phase 7 | 辅助模块优化 | 1 | 100% | 0.2 天 |
-| **总计** | - | **19** | **100%** | **3.2 天** |
+| Phase    | 名称         | 任务数 | 完成率   | 时间       |
+| -------- | ------------ | ------ | -------- | ---------- |
+| Phase 1  | 架构优化     | 1      | 100%     | 0.5 天     |
+| Phase 2  | 代码质量优化 | 4      | 100%     | 0.5 天     |
+| Phase 3  | 可维护性优化 | 3      | 100%     | 0.5 天     |
+| Phase 4  | 其他模块优化 | 4      | 100%     | 0.5 天     |
+| Phase 5  | 剩余模块优化 | 3      | 100%     | 0.5 天     |
+| Phase 6  | 简单模块优化 | 3      | 100%     | 0.5 天     |
+| Phase 7  | 辅助模块优化 | 1      | 100%     | 0.2 天     |
+| **总计** | -            | **19** | **100%** | **3.2 天** |
 
 ### 模块优化覆盖
 
-| 模块 | 方法数 | 已优化 | 覆盖率 | 状态 |
-|------|--------|--------|--------|------|
-| Admin | 30+ | 10+ | ~33% | ✅ |
-| Auth | 7 | 5 | ~71% | ✅ |
-| Friend | 30 | 6 | ~20% | ✅ |
-| DM | 23 | 1 | ~4% | ✅ |
-| Device | 9 | 3 | ~33% | ✅ |
-| Profile | 8 | 8 | **100%** | ✅ |
-| Presence | 16 | 3 | ~19% | ✅ |
-| Notifications | 2 | 1 | **50%** | ✅ |
-| Typing | 5 | 3 | **60%** | ✅ |
-| Media | 3 | 2 | **67%** | ✅ |
-| Media-Quota | 11 | 4 | **36%** | ✅ |
-| **总计** | **144+** | **46+** | **~32%** | - |
+| 模块          | 方法数   | 已优化  | 覆盖率   | 状态 |
+| ------------- | -------- | ------- | -------- | ---- |
+| Admin         | 30+      | 10+     | ~33%     | ✅   |
+| Auth          | 7        | 5       | ~71%     | ✅   |
+| Friend        | 30       | 6       | ~20%     | ✅   |
+| DM            | 23       | 1       | ~4%      | ✅   |
+| Device        | 9        | 3       | ~33%     | ✅   |
+| Profile       | 8        | 8       | **100%** | ✅   |
+| Presence      | 16       | 3       | ~19%     | ✅   |
+| Notifications | 2        | 1       | **50%**  | ✅   |
+| Typing        | 5        | 3       | **60%**  | ✅   |
+| Media         | 3        | 2       | **67%**  | ✅   |
+| Media-Quota   | 11       | 4       | **36%**  | ✅   |
+| **总计**      | **144+** | **46+** | **~32%** | -    |
 
 ---
 
@@ -51,34 +51,34 @@
 
 ### 代码质量指标
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| 输入验证覆盖 | 0% | 11 个核心模块 100% | +100% |
-| 方法文档示例 | 0 个 | 46+ 个 | +46+ |
-| 使用指南 | 0 个 | 1 个（600+ 行） | +1 |
-| 版本策略文档 | 0 个 | 1 个（400+ 行） | +1 |
-| 边界条件测试 | 0 个 | 9 个 | +9 |
-| `any` 类型使用 | 1 个 | 0 个 | -1 |
-| 吞错模式 | 5 处 | 0 处 | -5 |
-| 代码重复 | 高 | 低 | ⬇️ |
-| API 一致性 | 低 | 高 | ⬆️ |
-| 测试通过率 | - | 100% (113/113) | ✅ |
+| 指标           | 优化前 | 优化后             | 提升  |
+| -------------- | ------ | ------------------ | ----- |
+| 输入验证覆盖   | 0%     | 11 个核心模块 100% | +100% |
+| 方法文档示例   | 0 个   | 46+ 个             | +46+  |
+| 使用指南       | 0 个   | 1 个（600+ 行）    | +1    |
+| 版本策略文档   | 0 个   | 1 个（400+ 行）    | +1    |
+| 边界条件测试   | 0 个   | 9 个               | +9    |
+| `any` 类型使用 | 1 个   | 0 个               | -1    |
+| 吞错模式       | 5 处   | 0 处               | -5    |
+| 代码重复       | 高     | 低                 | ⬇️    |
+| API 一致性     | 低     | 高                 | ⬆️    |
+| 测试通过率     | -      | 100% (113/113)     | ✅    |
 
 ### 安全性提升
 
-| 模块 | 优化前风险 | 优化后风险 | 状态 |
-|------|-----------|-----------|------|
-| Admin | 高 | 低 | ✅ |
-| Auth | 中 | 低 | ✅ |
-| Friend | 中 | 低 | ✅ |
-| DM | 中 | 低 | ✅ |
-| Device | 低 | 低 | ✅ |
-| Profile | 中 | 低 | ✅ |
-| Presence | 中 | 低 | ✅ |
-| Notifications | 低 | 低 | ✅ |
-| Typing | 中 | 低 | ✅ |
-| Media | 中 | 低 | ✅ |
-| Media-Quota | 低 | 低 | ✅ |
+| 模块          | 优化前风险 | 优化后风险 | 状态 |
+| ------------- | ---------- | ---------- | ---- |
+| Admin         | 高         | 低         | ✅   |
+| Auth          | 中         | 低         | ✅   |
+| Friend        | 中         | 低         | ✅   |
+| DM            | 中         | 低         | ✅   |
+| Device        | 低         | 低         | ✅   |
+| Profile       | 中         | 低         | ✅   |
+| Presence      | 中         | 低         | ✅   |
+| Notifications | 低         | 低         | ✅   |
+| Typing        | 中         | 低         | ✅   |
+| Media         | 中         | 低         | ✅   |
+| Media-Quota   | 低         | 低         | ✅   |
 
 ---
 
@@ -87,28 +87,13 @@
 ### 新增文件（19 个）
 
 **核心代码** (4 个):
+
 1. `/src/errors.ts` - ValidationError 类
 2. `/src/admin/validators.ts` - 验证工具类（135 行）
 3. `/src/admin/utils.ts` - Admin 工具函数
 4. `/src/utils/deprecation.ts` - 弃用警告工具
 
-**文档** (15 个):
-5. `/docs/ADMIN_GUIDE.md` - Admin 使用指南（600+ 行）
-6. `/docs/VERSION_POLICY.md` - 版本策略文档（400+ 行）
-7. `/docs/OPTIMIZATION_SHOWCASE.md` - 优化成果展示
-8. `/docs/SDK_OPTIMIZATION_SUMMARY_2026-04-15.md` - Phase 1 总结
-9. `/docs/SDK_OPTIMIZATION_COMPLETE_2026-04-15.md` - Phase 2 总结
-10. `/docs/SDK_OPTIMIZATION_FINAL_2026-04-15.md` - Phase 1&2 报告
-11. `/docs/SDK_OPTIMIZATION_PHASE3_2026-04-15.md` - Phase 3 报告
-12. `/docs/OTHER_MODULES_AUDIT_2026-04-16.md` - 其他模块审查报告
-13. `/docs/SDK_OPTIMIZATION_PHASE4_2026-04-16.md` - Phase 4 报告
-14. `/docs/SDK_OPTIMIZATION_FINAL_REPORT_2026-04-16.md` - 最终总结报告
-15. `/docs/REMAINING_MODULES_AUDIT_2026-04-16.md` - 剩余模块审查报告
-16. `/docs/SDK_OPTIMIZATION_PHASE5_2026-04-16.md` - Phase 5 报告
-17. `/docs/SDK_OPTIMIZATION_COMPREHENSIVE_REPORT_2026-04-16.md` - 综合报告
-18. `/docs/UNOPTIMIZED_MODULES_LIST_2026-04-16.md` - 未优化模块清单
-19. `/docs/SDK_OPTIMIZATION_PHASE6_2026-04-16.md` - Phase 6 报告
-20. `/CHANGELOG_v40.2.0.md` - 版本更新日志
+**文档** (15 个): 5. `/docs/ADMIN_GUIDE.md` - Admin 使用指南（600+ 行）6. `/docs/VERSION_POLICY.md` - 版本策略文档（400+ 行）7. `/docs/OPTIMIZATION_SHOWCASE.md` - 优化成果展示 8. `/docs/SDK_OPTIMIZATION_SUMMARY_2026-04-15.md` - Phase 1 总结 9. `/docs/SDK_OPTIMIZATION_COMPLETE_2026-04-15.md` - Phase 2 总结 10. `/docs/SDK_OPTIMIZATION_FINAL_2026-04-15.md` - Phase 1&2 报告 11. `/docs/SDK_OPTIMIZATION_PHASE3_2026-04-15.md` - Phase 3 报告 12. `/docs/OTHER_MODULES_AUDIT_2026-04-16.md` - 其他模块审查报告 13. `/docs/SDK_OPTIMIZATION_PHASE4_2026-04-16.md` - Phase 4 报告 14. `/docs/SDK_OPTIMIZATION_FINAL_REPORT_2026-04-16.md` - 最终总结报告 15. `/docs/REMAINING_MODULES_AUDIT_2026-04-16.md` - 剩余模块审查报告 16. `/docs/SDK_OPTIMIZATION_PHASE5_2026-04-16.md` - Phase 5 报告 17. `/docs/SDK_OPTIMIZATION_COMPREHENSIVE_REPORT_2026-04-16.md` - 综合报告 18. `/docs/UNOPTIMIZED_MODULES_LIST_2026-04-16.md` - 未优化模块清单 19. `/docs/SDK_OPTIMIZATION_PHASE6_2026-04-16.md` - Phase 6 报告 20. `/CHANGELOG_v40.2.0.md` - 版本更新日志
 
 ### 修改文件（18 个）
 
@@ -186,7 +171,7 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 
 ### 3. 完整的文档
 
-```typescript
+````typescript
 /**
  * 检查是否有足够的存储空间
  *
@@ -207,7 +192,7 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
  *
  * @throws {ValidationError} 如果需要的字节数为负数
  */
-```
+````
 
 ---
 
@@ -215,46 +200,46 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 
 ### 工作量统计
 
-| 维度 | 数值 |
-|------|------|
-| 工作时间 | 3.2 天 |
-| 完成 Phase | 7 个 |
-| 完成任务 | 19 个 |
-| 新增文件 | 19 个 |
-| 修改文件 | 18 个 |
-| 新增代码 | ~2100 行 |
-| 新增文档 | ~2000 行 |
-| 优化方法 | 46+ 个 |
-| 优化模块 | 11 个 |
+| 维度       | 数值     |
+| ---------- | -------- |
+| 工作时间   | 3.2 天   |
+| 完成 Phase | 7 个     |
+| 完成任务   | 19 个    |
+| 新增文件   | 19 个    |
+| 修改文件   | 18 个    |
+| 新增代码   | ~2100 行 |
+| 新增文档   | ~2000 行 |
+| 优化方法   | 46+ 个   |
+| 优化模块   | 11 个    |
 
 ### 模块详细统计
 
-| 模块 | 方法数 | 已优化方法 | 覆盖率 | 新增文档行数 |
-|------|--------|-----------|--------|-------------|
-| Admin | 30+ | 10+ | ~33% | ~400 |
-| Auth | 7 | 5 | ~71% | ~200 |
-| Friend | 30 | 6 | ~20% | ~250 |
-| DM | 23 | 1 | ~4% | ~100 |
-| Device | 9 | 3 | ~33% | ~150 |
-| Profile | 8 | 8 | 100% | ~300 |
-| Presence | 16 | 3 | ~19% | ~200 |
-| Notifications | 2 | 1 | 50% | ~100 |
-| Typing | 5 | 3 | 60% | ~150 |
-| Media | 3 | 2 | 67% | ~150 |
-| Media-Quota | 11 | 4 | 36% | ~200 |
-| **总计** | **144+** | **46+** | **~32%** | **~2200** |
+| 模块          | 方法数   | 已优化方法 | 覆盖率   | 新增文档行数 |
+| ------------- | -------- | ---------- | -------- | ------------ |
+| Admin         | 30+      | 10+        | ~33%     | ~400         |
+| Auth          | 7        | 5          | ~71%     | ~200         |
+| Friend        | 30       | 6          | ~20%     | ~250         |
+| DM            | 23       | 1          | ~4%      | ~100         |
+| Device        | 9        | 3          | ~33%     | ~150         |
+| Profile       | 8        | 8          | 100%     | ~300         |
+| Presence      | 16       | 3          | ~19%     | ~200         |
+| Notifications | 2        | 1          | 50%      | ~100         |
+| Typing        | 5        | 3          | 60%      | ~150         |
+| Media         | 3        | 2          | 67%      | ~150         |
+| Media-Quota   | 11       | 4          | 36%      | ~200         |
+| **总计**      | **144+** | **46+**    | **~32%** | **~2200**    |
 
 ### 文档完整性
 
-| 文档类型 | 数量 | 总行数 |
-|---------|------|--------|
-| 方法级 @example | 46+ 个 | ~1000 行 |
-| 方法级 @throws | 所有核心方法 | ~300 行 |
-| Admin 使用指南 | 1 个 | 600+ 行 |
-| 版本策略文档 | 1 个 | 400+ 行 |
-| 优化报告 | 10 个 | ~4000 行 |
-| README 更新 | 1 个 | ~50 行 |
-| CLAUDE.md 更新 | 1 个 | ~100 行 |
+| 文档类型        | 数量         | 总行数   |
+| --------------- | ------------ | -------- |
+| 方法级 @example | 46+ 个       | ~1000 行 |
+| 方法级 @throws  | 所有核心方法 | ~300 行  |
+| Admin 使用指南  | 1 个         | 600+ 行  |
+| 版本策略文档    | 1 个         | 400+ 行  |
+| 优化报告        | 10 个        | ~4000 行 |
+| README 更新     | 1 个         | ~50 行   |
+| CLAUDE.md 更新  | 1 个         | ~100 行  |
 
 ---
 
@@ -263,9 +248,11 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 ### 输入验证覆盖
 
 **改进前**:
+
 - ❌ 11 个模块无验证或基础验证
 
 **改进后**:
+
 - ✅ Admin: 完整验证（用户 ID、房间 ID、参数边界）
 - ✅ Auth: 完整验证（用户名、密码长度）
 - ✅ Friend: 标准验证（用户 ID 格式）
@@ -281,26 +268,26 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 ### 防护措施
 
 1. **格式验证**
-   - 用户 ID: `@localpart:homeserver`
-   - 房间 ID: `!localpart:homeserver`
-   - MXC URL: `mxc://server/media_id`
-   - HTTP URL: `http://` 或 `https://`
-   - 防止注入攻击
+    - 用户 ID: `@localpart:homeserver`
+    - 房间 ID: `!localpart:homeserver`
+    - MXC URL: `mxc://server/media_id`
+    - HTTP URL: `http://` 或 `https://`
+    - 防止注入攻击
 
 2. **边界检查**
-   - limit 参数: 1-10000
-   - 显示名称: 最大 255 字符
-   - 文件大小: 非负数
-   - 防止资源耗尽
+    - limit 参数: 1-10000
+    - 显示名称: 最大 255 字符
+    - 文件大小: 非负数
+    - 防止资源耗尽
 
 3. **枚举验证**
-   - Presence 状态: online, offline, unavailable, busy
-   - 防止无效值
+    - Presence 状态: online, offline, unavailable, busy
+    - 防止无效值
 
 4. **错误处理**
-   - 清晰的验证错误信息
-   - 显式的错误日志记录
-   - 类型化错误（ValidationError, AuthError, NotFoundError）
+    - 清晰的验证错误信息
+    - 显式的错误日志记录
+    - 类型化错误（ValidationError, AuthError, NotFoundError）
 
 ---
 
@@ -309,62 +296,65 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 ### 对开发者
 
 1. **使用标准验证**
-   ```typescript
-   import { AdminValidators } from "matrix-js-sdk/admin/validators";
-   AdminValidators.validateUserId(userId);
-   AdminValidators.validateRoomId(roomId);
-   ```
+
+    ```typescript
+    import { AdminValidators } from "matrix-js-sdk/admin/validators";
+    AdminValidators.validateUserId(userId);
+    AdminValidators.validateRoomId(roomId);
+    ```
 
 2. **使用新的统一 API**
-   ```typescript
-   // 推荐
-   const result = await adminManager.getUsersPaginated({ limit: 50 });
-   
-   // 不推荐（已弃用）
-   const result = await adminManager.getUsers(undefined, 50);
-   ```
+
+    ```typescript
+    // 推荐
+    const result = await adminManager.getUsersPaginated({ limit: 50 });
+
+    // 不推荐（已弃用）
+    const result = await adminManager.getUsers(undefined, 50);
+    ```
 
 3. **处理类型化错误**
-   ```typescript
-   try {
-       await operation();
-   } catch (error) {
-       if (error instanceof ValidationError) {
-           // 处理验证错误
-       } else if (error instanceof AuthError) {
-           // 处理认证错误
-       }
-   }
-   ```
+
+    ```typescript
+    try {
+        await operation();
+    } catch (error) {
+        if (error instanceof ValidationError) {
+            // 处理验证错误
+        } else if (error instanceof AuthError) {
+            // 处理认证错误
+        }
+    }
+    ```
 
 4. **参考文档示例**
-   - 所有核心方法都有 @example
-   - 查看 JSDoc 获取使用示例
-   - 参考 Admin 使用指南
+    - 所有核心方法都有 @example
+    - 查看 JSDoc 获取使用示例
+    - 参考 Admin 使用指南
 
 ### 对维护者
 
 1. **添加新方法时**
-   - 使用 AdminValidators 验证输入
-   - 添加 @example 和 @throws 文档
-   - 使用统一的返回值格式
-   - 添加边界条件测试
+    - 使用 AdminValidators 验证输入
+    - 添加 @example 和 @throws 文档
+    - 使用统一的返回值格式
+    - 添加边界条件测试
 
 2. **修改现有方法时**
-   - 保持向后兼容
-   - 标记旧方法为 @deprecated
-   - 提供迁移路径
-   - 更新测试用例
+    - 保持向后兼容
+    - 标记旧方法为 @deprecated
+    - 提供迁移路径
+    - 更新测试用例
 
 3. **错误处理**
-   - 不要使用空的 catch 块
-   - 添加日志记录
-   - 使用类型化错误
+    - 不要使用空的 catch 块
+    - 添加日志记录
+    - 使用类型化错误
 
 4. **版本管理**
-   - 遵循语义化版本规范
-   - 遵循 API 弃用周期（3 个阶段）
-   - 提供迁移指南
+    - 遵循语义化版本规范
+    - 遵循 API 弃用周期（3 个阶段）
+    - 提供迁移指南
 
 ---
 
@@ -373,16 +363,19 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 ### 剩余核心模块
 
 **Space 模块** (27 个方法):
+
 - [ ] 添加输入验证
 - [ ] 添加使用示例
 - [ ] 创建使用指南
 
 **Push 模块** (23 个方法):
+
 - [ ] 添加输入验证
 - [ ] 添加使用示例
 - [ ] 创建推送规则配置指南
 
 **Room-Summary 模块** (50 个方法):
+
 - [ ] 完善现有验证
 - [ ] 添加使用示例
 - [ ] 创建房间摘要使用指南
@@ -390,10 +383,12 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 ### 剩余辅助模块
 
 **Search 模块** (4 个方法):
+
 - [ ] 添加输入验证
 - [ ] 添加使用示例
 
 **Key-Backup 模块** (24 个方法):
+
 - [ ] 添加输入验证
 - [ ] 添加使用示例
 
@@ -445,23 +440,27 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 ### 主要成果
 
 ✅ **安全性显著提升**
+
 - 11 个核心模块 100% 输入验证覆盖
 - 防止注入攻击和格式错误
 - 清晰的错误信息
 
 ✅ **代码质量大幅提升**
+
 - 清理了所有吞错模式
 - 统一了 API 返回值格式
 - 消除了 any 类型
 - 减少了代码重复
 
 ✅ **可维护性大幅提升**
+
 - 完整的版本策略（400+ 行）
 - 弃用警告工具
 - 通用工具函数
 - 完善的文档
 
 ✅ **文档完整性大幅提升**
+
 - 46+ 个方法有详细示例
 - 600+ 行的使用指南
 - 400+ 行的版本策略
@@ -469,6 +468,7 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 - CLAUDE.md 全面更新
 
 ✅ **测试覆盖增强**
+
 - 新增 9 个边界条件测试
 - 所有测试通过（113/113）
 - 类型检查通过
@@ -483,18 +483,18 @@ console.log(`Room media: ${(size / 1024 / 1024).toFixed(2)} MB`);
 
 ### 统计数据
 
-| 维度 | 数值 |
-|------|------|
-| 完成的 Phase | 7 个 |
-| 完成的任务 | 19 个 |
-| 新增文件 | 19 个 |
-| 修改文件 | 18 个 |
-| 新增代码行数 | ~2100 行 |
-| 新增文档行数 | ~2000 行 |
-| 优化的方法 | 46+ 个 |
-| 优化的模块 | 11 个 |
-| 测试通过率 | 100% (113/113) |
-| 工作时间 | 3.2 天 |
+| 维度         | 数值           |
+| ------------ | -------------- |
+| 完成的 Phase | 7 个           |
+| 完成的任务   | 19 个          |
+| 新增文件     | 19 个          |
+| 修改文件     | 18 个          |
+| 新增代码行数 | ~2100 行       |
+| 新增文档行数 | ~2000 行       |
+| 优化的方法   | 46+ 个         |
+| 优化的模块   | 11 个          |
+| 测试通过率   | 100% (113/113) |
+| 工作时间     | 3.2 天         |
 
 ---
 

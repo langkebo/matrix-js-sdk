@@ -189,11 +189,7 @@ export class DeviceTrustManager extends TypedEventEmitter<DeviceTrustEvent, Devi
     }
 
     async getDeviceTrustList(forceRefresh = false): Promise<IDeviceTrustInfo[]> {
-        if (
-            !forceRefresh &&
-            this.deviceTrustListCache &&
-            Date.now() - this.deviceTrustListCacheAt < this.cacheTTL
-        ) {
+        if (!forceRefresh && this.deviceTrustListCache && Date.now() - this.deviceTrustListCacheAt < this.cacheTTL) {
             return this.deviceTrustListCache;
         }
 

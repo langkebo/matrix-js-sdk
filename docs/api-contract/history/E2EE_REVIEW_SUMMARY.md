@@ -2,7 +2,6 @@
 
 > 说明: 本文件保留 2026-04-15 的阶段性审查快照。当前契约结论请以 `e2ee.md`、`README.md` 与 `CHANGELOG.md` 为准。
 
-
 **审查日期**: 2026-04-15  
 **审查状态**: ✅ 已完成基础审查
 
@@ -14,7 +13,8 @@ E2EE（端到端加密）模块是 Matrix 协议的核心安全功能，负责�
 
 ### 审查结果
 
-**核心文件**: 
+**核心文件**:
+
 - `synapse-rust/src/web/routes/e2ee_routes.rs` (600+ 行)
 - `synapse-rust/src/e2ee/device_keys.rs` - 设备密钥服务
 - `synapse-rust/src/e2ee/cross_signing.rs` - 跨设备签名服务
@@ -22,42 +22,42 @@ E2EE（端到端加密）模块是 Matrix 协议的核心安全功能，负责�
 **关键发现**:
 
 1. **接口实现**（15+ 个核心接口）:
-   - ✅ `POST /keys/upload` - 上传设备密钥和一次性密钥
-   - ✅ `POST /keys/query` - 查询设备密钥
-   - ✅ `POST /keys/claim` - 声明一次性密钥
-   - ✅ `GET /keys/changes` - 获取密钥变化
-   - ✅ `POST /keys/device_list/update` - 更新设备列表
-   - ✅ `POST /keys/signatures/upload` - 上传签名
-   - ✅ `POST /keys/device_signing/upload` - 上传设备签名密钥
-   - ✅ `POST /room_keys/request` - 创建房间密钥请求
-   - ✅ `GET /room_keys/request` - 获取房间密钥请求
-   - ✅ `DELETE /room_keys/request/{request_id}` - 删除密钥请求
-   - ✅ `GET /rooms/{room_id}/keys/distribution` - 获取房间密钥分发
-   - ✅ `PUT /sendToDevice/{event_type}/{txn_id}` - 发送设备消息
-   - ✅ `POST /device_verification/*` - 设备验证（v3）
-   - ✅ `GET /device_trust*` - 设备信任（v3）
-   - ✅ `POST /keys/backup/secure*` - 安全备份（v3）
+    - ✅ `POST /keys/upload` - 上传设备密钥和一次性密钥
+    - ✅ `POST /keys/query` - 查询设备密钥
+    - ✅ `POST /keys/claim` - 声明一次性密钥
+    - ✅ `GET /keys/changes` - 获取密钥变化
+    - ✅ `POST /keys/device_list/update` - 更新设备列表
+    - ✅ `POST /keys/signatures/upload` - 上传签名
+    - ✅ `POST /keys/device_signing/upload` - 上传设备签名密钥
+    - ✅ `POST /room_keys/request` - 创建房间密钥请求
+    - ✅ `GET /room_keys/request` - 获取房间密钥请求
+    - ✅ `DELETE /room_keys/request/{request_id}` - 删除密钥请求
+    - ✅ `GET /rooms/{room_id}/keys/distribution` - 获取房间密钥分发
+    - ✅ `PUT /sendToDevice/{event_type}/{txn_id}` - 发送设备消息
+    - ✅ `POST /device_verification/*` - 设备验证（v3）
+    - ✅ `GET /device_trust*` - 设备信任（v3）
+    - ✅ `POST /keys/backup/secure*` - 安全备份（v3）
 
 2. **核心特性**:
-   - 设备密钥管理（Curve25519 + Ed25519）
-   - 一次性密钥（Signed Curve25519）
-   - 跨设备签名（Master Key, Self-Signing Key, User-Signing Key）
-   - 房间密钥分发（Megolm）
-   - To-Device 消息
-   - 设备列表变更追踪
-   - 安全备份
+    - 设备密钥管理（Curve25519 + Ed25519）
+    - 一次性密钥（Signed Curve25519）
+    - 跨设备签名（Master Key, Self-Signing Key, User-Signing Key）
+    - 房间密钥分发（Megolm）
+    - To-Device 消息
+    - 设备列表变更追踪
+    - 安全备份
 
 3. **数据约束**:
-   - device_id: 必需（除 query/claim）
-   - algorithms: 数组，通常包含 "m.olm.v1.curve25519-aes-sha2"
-   - keys: 对象，键格式为 "algorithm:device_id"
-   - signatures: 嵌套对象，格式为 user_id -> key_id -> signature
+    - device_id: 必需（除 query/claim）
+    - algorithms: 数组，通常包含 "m.olm.v1.curve25519-aes-sha2"
+    - keys: 对象，键格式为 "algorithm:device_id"
+    - signatures: 嵌套对象，格式为 user_id -> key_id -> signature
 
 4. **安全特性**:
-   - 设备密钥签名验证
-   - 跨设备签名链
-   - 房间成员验证（房间密钥分发）
-   - 设备列表隐私保护（只返回有共享房间的用户）
+    - 设备密钥签名验证
+    - 跨设备签名链
+    - 房间成员验证（房间密钥分发）
+    - 设备列表隐私保护（只返回有共享房间的用户）
 
 ---
 
@@ -138,25 +138,25 @@ Body: {
 
 ## 数据约束
 
-| 字段 | 约束 | 说明 |
-|------|------|------|
-| device_id | 必需（大部分接口） | 16 字符 |
-| algorithms | 数组 | 支持的加密算法 |
-| keys | 对象 | 格式: "algorithm:device_id" |
-| signatures | 嵌套对象 | user_id -> key_id -> signature |
-| one_time_keys | 对象 | 格式: "algorithm:key_id" |
+| 字段          | 约束               | 说明                           |
+| ------------- | ------------------ | ------------------------------ |
+| device_id     | 必需（大部分接口） | 16 字符                        |
+| algorithms    | 数组               | 支持的加密算法                 |
+| keys          | 对象               | 格式: "algorithm:device_id"    |
+| signatures    | 嵌套对象           | user_id -> key_id -> signature |
+| one_time_keys | 对象               | 格式: "algorithm:key_id"       |
 
 ---
 
 ## 错误码
 
-| 错误码 | HTTP 状态码 | 场景 |
-|--------|------------|------|
-| M_BAD_JSON | 400 | 请求体格式错误 |
-| M_INVALID_SIGNATURE | 400 | 签名无效 |
-| M_UNKNOWN_TOKEN | 401 | Token 无效 |
-| M_FORBIDDEN | 403 | 无权访问房间密钥 |
-| M_NOT_FOUND | 404 | 密钥或会话不存在 |
+| 错误码              | HTTP 状态码 | 场景             |
+| ------------------- | ----------- | ---------------- |
+| M_BAD_JSON          | 400         | 请求体格式错误   |
+| M_INVALID_SIGNATURE | 400         | 签名无效         |
+| M_UNKNOWN_TOKEN     | 401         | Token 无效       |
+| M_FORBIDDEN         | 403         | 无权访问房间密钥 |
+| M_NOT_FOUND         | 404         | 密钥或会话不存在 |
 
 ---
 
@@ -165,6 +165,7 @@ Body: {
 ### 1. 设备密钥
 
 每个设备有两个密钥对：
+
 - **Identity Key** (Curve25519): 用于建立 Olm 会话
 - **Signing Key** (Ed25519): 用于签名消息
 
@@ -178,6 +179,7 @@ Body: {
 ### 3. 跨设备签名
 
 三层密钥结构：
+
 - **Master Key**: 用户的根密钥
 - **Self-Signing Key**: 签名自己的设备
 - **User-Signing Key**: 签名其他用户的 Master Key
@@ -258,6 +260,7 @@ CREATE TABLE e2e_cross_signing_keys (
 **评级**: ⭐⭐⭐⭐⭐ **优秀**
 
 **理由**:
+
 - ✅ 现有文档已经比较完整
 - ✅ 覆盖了核心 E2EE 功能
 - ✅ 包含详细的类型定义

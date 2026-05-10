@@ -1,3 +1,11 @@
+---
+module: room_summary
+generated_from: docs/api-contract/generated/modules/room_summary.json
+generated_hash: sha256-310a1fa9b8daf35547bcc6f3022bbaee91516b1999ea828d972344b7ec3b7465
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Room Summary 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/room_summary.rs`
@@ -12,8 +20,8 @@
 
 ## 客户端路由
 
-| 方法   | 路径                                                                        | 说明             |
-| ------ | --------------------------------------------------------------------------- | ---------------- |
+| 方法   | 路径                                                                        | 说明                                                           |
+| ------ | --------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | GET    | `/_matrix/client/{r0,v3}/rooms/{room_id}/summary`                           | 获取房间摘要；要求调用方为房间成员或管理员，越权返回 `403`     |
 | GET    | `/_matrix/client/{r0,v3}/rooms/{room_id}/summary/members`                   | 获取摘要成员；要求调用方为房间成员或管理员，越权返回 `403`     |
 | GET    | `/_matrix/client/{r0,v3}/rooms/{room_id}/summary/state`                     | 获取摘要状态；要求调用方为房间成员或管理员，越权返回 `403`     |

@@ -12,12 +12,14 @@ DM（Direct Message）模块提供私信房间的创建、管理和查询功能�
 ### 核心概念
 
 **m.direct 映射**:
+
 - 存储位置: 用户级别的 account data（不是房间级别）
 - 数据类型: `m.direct`
 - 格式: `{ "@user:server": ["!room1:server", "!room2:server"] }`
 - 用途: 标记哪些房间是与特定用户的 DM
 
 **DM 房间特征**:
+
 - 恰好 2 个成员（join 或 invite 状态）
 - 通常设置为 `is_direct: true`
 - 使用 `private_chat` 或 `trusted_private_chat` preset
@@ -25,14 +27,14 @@ DM（Direct Message）模块提供私信房间的创建、管理和查询功能�
 
 ## 数据约束
 
-| 字段 | 约束 | 说明 |
-|------|------|------|
-| user_id | 最大 100 字符 | 单个用户 ID |
-| invite | 最大 100 字符/项 | 邀请列表中的每个用户 ID |
-| 邀请数量 | 最多 20 个 | 创建 DM 时的最大邀请数 |
-| name | 最大 255 字符 | DM 房间名称（可选） |
-| visibility | 最大 50 字符 | 房间可见性（默认 "private"） |
-| DM 成员数 | 恰好 2 个 | join + invite 状态的成员总数 |
+| 字段       | 约束             | 说明                         |
+| ---------- | ---------------- | ---------------------------- |
+| user_id    | 最大 100 字符    | 单个用户 ID                  |
+| invite     | 最大 100 字符/项 | 邀请列表中的每个用户 ID      |
+| 邀请数量   | 最多 20 个       | 创建 DM 时的最大邀请数       |
+| name       | 最大 255 字符    | DM 房间名称（可选）          |
+| visibility | 最大 50 字符     | 房间可见性（默认 "private"） |
+| DM 成员数  | 恰好 2 个        | join + invite 状态的成员总数 |
 
 ## 核心接口
 
@@ -41,38 +43,44 @@ DM（Direct Message）模块提供私信房间的创建、管理和查询功能�
 **端点**: `POST /_matrix/client/{r0,v3}/create_dm`
 
 **请求体**:
+
 ```json
 {
-  "user_id": "@bob:example.com",
-  "is_direct": true,
-  "name": "Chat with Bob",
-  "visibility": "private"
+    "user_id": "@bob:example.com",
+    "is_direct": true,
+    "name": "Chat with Bob",
+    "visibility": "private"
 }
 ```
 
 **可选字段**:
+
 - `invite`: 邀请用户列表（数组），优先于 `user_id`
 - `name`: 房间名称
 - `visibility`: 房间可见性（默认 "private"）
 
 **响应 200**:
+
 ```json
 {
-  "room_id": "!abc123:example.com"
+    "room_id": "!abc123:example.com"
 }
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `400 M_INVALID_PARAM` - 参数不合法（如邀请数量超过 20）
 - `401 M_UNKNOWN_TOKEN` - Token 无效
 
 **验证规则**:
+
 - 至少提供 `user_id` 或 `invite` 之一
 - `invite` 列表不能超过 20 个用户
 - 自动设置 `is_direct: true` 和 `preset: "private_chat"`
 
 **业务逻辑**:
+
 ```rust
 // 1. 验证输入
 validate_input(user_id, invite);
@@ -98,6 +106,7 @@ return { room_id };
 ```
 
 **数据库操作**:
+
 ```sql
 -- 创建房间（由 room_service 处理）
 INSERT INTO rooms (room_id, creator, ...) VALUES (...);
@@ -105,7 +114,7 @@ INSERT INTO rooms (room_id, creator, ...) VALUES (...);
 -- 更新 m.direct
 INSERT INTO account_data (user_id, data_type, content, created_ts, updated_ts)
 VALUES ($1, 'm.direct', $2, $3, $3)
-ON CONFLICT (user_id, data_type) 
+ON CONFLICT (user_id, data_type)
 DO UPDATE SET content = EXCLUDED.content, updated_ts = EXCLUDED.updated_ts;
 ```
 
@@ -116,19 +125,22 @@ DO UPDATE SET content = EXCLUDED.content, updated_ts = EXCLUDED.updated_ts;
 **端点**: `GET /_matrix/client/{r0,v3}/direct`
 
 **响应 200**:
+
 ```json
 {
-  "rooms": {
-    "@bob:example.com": ["!room1:example.com", "!room2:example.com"],
-    "@alice:example.com": ["!room3:example.com"]
-  }
+    "rooms": {
+        "@bob:example.com": ["!room1:example.com", "!room2:example.com"],
+        "@alice:example.com": ["!room3:example.com"]
+    }
 }
 ```
 
 **错误码**:
+
 - `401 M_UNKNOWN_TOKEN` - Token 无效
 
 **业务逻辑**:
+
 ```rust
 // 1. 加载 m.direct 映射
 let mut direct_map = load_direct_map(user_id);
@@ -144,25 +156,26 @@ return { rooms: direct_map };
 
 **回退机制**:
 当 m.direct 为空时，自动扫描用户的所有房间：
+
 ```rust
 async fn build_direct_map_from_memberships(user_id: &str) -> Map<String, Value> {
     let rooms = get_user_rooms(user_id);
     let mut direct_map = Map::new();
-    
+
     for room_id in rooms {
         let members = get_room_members(room_id);
-        
+
         // 只处理恰好 2 个成员的房间
         if members.len() == 2 {
             let other_member = members.iter()
                 .find(|m| m.user_id != user_id);
-            
+
             if let Some(member) = other_member {
                 ensure_room_in_direct_map(&mut direct_map, &member.user_id, room_id);
             }
         }
     }
-    
+
     direct_map
 }
 ```
@@ -174,42 +187,48 @@ async fn build_direct_map_from_memberships(user_id: &str) -> Map<String, Value> 
 **端点**: `PUT /_matrix/client/{r0,v3}/direct/{room_id}`
 
 **请求体（方式 1 - 使用 users 数组）**:
+
 ```json
 {
-  "users": ["@bob:example.com", "@alice:example.com"]
+    "users": ["@bob:example.com", "@alice:example.com"]
 }
 ```
 
 **请求体（方式 2 - 使用 content 对象）**:
+
 ```json
 {
-  "content": {
-    "user_id": "@bob:example.com"
-  }
+    "content": {
+        "user_id": "@bob:example.com"
+    }
 }
 ```
 
 **请求体（方式 3 - 完整替换）**:
+
 ```json
 {
-  "content": {
-    "@bob:example.com": ["!room1:example.com"],
-    "@alice:example.com": ["!room2:example.com"]
-  }
+    "content": {
+        "@bob:example.com": ["!room1:example.com"],
+        "@alice:example.com": ["!room2:example.com"]
+    }
 }
 ```
 
 **响应 200**:
+
 ```json
 {}
 ```
 
 **错误码**:
+
 - `400 M_BAD_JSON` - 请求体格式错误
 - `400 M_INVALID_PARAM` - users 必须是数组或对象
 - `401 M_UNKNOWN_TOKEN` - Token 无效
 
 **业务逻辑**:
+
 ```rust
 // 1. 加载当前映射
 let mut direct_map = load_direct_map(user_id);
@@ -252,18 +271,21 @@ save_direct_map(user_id, &direct_map);
 **端点**: `GET /_matrix/client/v3/rooms/{room_id}/dm`
 
 **响应 200**:
+
 ```json
 {
-  "room_id": "!abc123:example.com",
-  "m.direct": true
+    "room_id": "!abc123:example.com",
+    "m.direct": true
 }
 ```
 
 **错误码**:
+
 - `404 M_NOT_FOUND` - 房间不是 DM
 - `401 M_UNKNOWN_TOKEN` - Token 无效
 
 **业务逻辑**:
+
 ```rust
 // 1. 加载 m.direct 映射
 let mut direct_map = load_direct_map(user_id);
@@ -293,20 +315,23 @@ if is_dm {
 **端点**: `GET /_matrix/client/v3/rooms/{room_id}/dm/partner`
 
 **响应 200**:
+
 ```json
 {
-  "room_id": "!abc123:example.com",
-  "user_id": "@bob:example.com",
-  "display_name": "Bob Smith",
-  "avatar_url": "mxc://example.com/avatar123"
+    "room_id": "!abc123:example.com",
+    "user_id": "@bob:example.com",
+    "display_name": "Bob Smith",
+    "avatar_url": "mxc://example.com/avatar123"
 }
 ```
 
 **错误码**:
+
 - `404 M_NOT_FOUND` - DM 伙伴不存在
 - `401 M_UNKNOWN_TOKEN` - Token 无效
 
 **业务逻辑**:
+
 ```rust
 // 1. 从 m.direct 找到伙伴 ID
 let direct_map = load_direct_map(user_id);
@@ -354,6 +379,7 @@ CREATE INDEX IF NOT EXISTS idx_account_data_type ON account_data(data_type);
 ```
 
 **m.direct 示例数据**:
+
 ```sql
 SELECT * FROM account_data WHERE data_type = 'm.direct';
 
@@ -399,7 +425,7 @@ async fn load_direct_map(user_id: &str) -> Result<Map<String, Value>, ApiError> 
     .bind(user_id)
     .fetch_optional(&pool)
     .await?;
-    
+
     match row {
         Some(row) => match row.get::<Option<Value>, _>("content") {
             Some(Value::Object(map)) => Ok(map),
@@ -421,12 +447,12 @@ async fn save_direct_map(
     direct_map: &Map<String, Value>
 ) -> Result<(), ApiError> {
     let now = chrono::Utc::now().timestamp_millis();
-    
+
     sqlx::query(
         r#"
         INSERT INTO account_data (user_id, data_type, content, created_ts, updated_ts)
         VALUES ($1, 'm.direct', $2, $3, $3)
-        ON CONFLICT (user_id, data_type) 
+        ON CONFLICT (user_id, data_type)
         DO UPDATE SET content = EXCLUDED.content, updated_ts = EXCLUDED.updated_ts
         "#
     )
@@ -435,7 +461,7 @@ async fn save_direct_map(
     .bind(now)
     .execute(&pool)
     .await?;
-    
+
     Ok(())
 }
 ```
@@ -453,11 +479,11 @@ fn ensure_room_in_direct_map(
     let entry = direct_map
         .entry(target_user_id.to_string())
         .or_insert_with(|| Value::Array(Vec::new()));
-    
+
     if !entry.is_array() {
         *entry = Value::Array(Vec::new());
     }
-    
+
     if let Some(rooms) = entry.as_array_mut() {
         if !rooms.iter().any(|v| v.as_str() == Some(room_id)) {
             rooms.push(Value::String(room_id.to_string()));
@@ -511,15 +537,15 @@ fn parse_dm_users(value: &Value) -> Result<Vec<String>, ApiError> {
 
 ## 错误码完整映射
 
-| 错误码 | HTTP 状态码 | 场景 | 错误消息示例 |
-|--------|------------|------|-------------|
-| `M_NOT_FOUND` | 404 | 房间不是 DM | "Room is not a DM" |
-| `M_NOT_FOUND` | 404 | DM 伙伴不存在 | "DM partner not found" |
-| `M_BAD_JSON` | 400 | 请求体格式错误 | "Invalid JSON" |
-| `M_INVALID_PARAM` | 400 | 参数不合法 | "users must contain at least one Matrix user ID" |
-| `M_INVALID_PARAM` | 400 | 邀请过多 | "DM room cannot have more than 20 invitees" |
-| `M_INVALID_PARAM` | 400 | 缺少必需参数 | "At least one user must be invited to create a DM" |
-| `M_UNKNOWN_TOKEN` | 401 | Token 无效 | "Invalid or expired token" |
+| 错误码            | HTTP 状态码 | 场景           | 错误消息示例                                       |
+| ----------------- | ----------- | -------------- | -------------------------------------------------- |
+| `M_NOT_FOUND`     | 404         | 房间不是 DM    | "Room is not a DM"                                 |
+| `M_NOT_FOUND`     | 404         | DM 伙伴不存在  | "DM partner not found"                             |
+| `M_BAD_JSON`      | 400         | 请求体格式错误 | "Invalid JSON"                                     |
+| `M_INVALID_PARAM` | 400         | 参数不合法     | "users must contain at least one Matrix user ID"   |
+| `M_INVALID_PARAM` | 400         | 邀请过多       | "DM room cannot have more than 20 invitees"        |
+| `M_INVALID_PARAM` | 400         | 缺少必需参数   | "At least one user must be invited to create a DM" |
+| `M_UNKNOWN_TOKEN` | 401         | Token 无效     | "Invalid or expired token"                         |
 
 ---
 
@@ -528,6 +554,7 @@ fn parse_dm_users(value: &Value) -> Result<Vec<String>, ApiError> {
 ### v1.0 (2026-04-15)
 
 **新增**:
+
 - 完整的 DM 接口文档（5 个接口）
 - 数据约束详细说明
 - 数据库表结构定义
@@ -536,6 +563,7 @@ fn parse_dm_users(value: &Value) -> Result<Vec<String>, ApiError> {
 - m.direct 格式和存储位置说明
 
 **数据约束**:
+
 - user_id 最大长度: 100 字符
 - invite 最大长度: 100 字符/项
 - 最大邀请数: 20 个
@@ -544,11 +572,13 @@ fn parse_dm_users(value: &Value) -> Result<Vec<String>, ApiError> {
 - DM 成员数: 恰好 2 个
 
 **核心特性**:
+
 - m.direct 是用户级别的 account data
 - 自动从房间成员关系构建 DM 映射（回退机制）
 - 支持多种更新方式（users 数组、content 对象、完整替换）
 
 **兼容性**:
+
 - 支持 `/_matrix/client/r0` 和 `/_matrix/client/v3` 前缀
 - 向后兼容旧版本的 m.direct 格式
 
@@ -564,40 +594,40 @@ fn parse_dm_users(value: &Value) -> Result<Vec<String>, ApiError> {
 
 ## 注意事项
 
-1. **m.direct 存储位置**: 
-   - ✅ 正确: 用户级别的 account data
-   - ❌ 错误: 房间级别的 account data
+1. **m.direct 存储位置**:
+    - ✅ 正确: 用户级别的 account data
+    - ❌ 错误: 房间级别的 account data
 
 2. **DM 房间判断**:
-   - 优先使用 m.direct 映射
-   - 回退到成员数量判断（恰好 2 个成员）
-   - 不依赖 `is_direct` 标志（可能不准确）
+    - 优先使用 m.direct 映射
+    - 回退到成员数量判断（恰好 2 个成员）
+    - 不依赖 `is_direct` 标志（可能不准确）
 
 3. **回退机制**:
-   - 当 m.direct 为空时，自动扫描房间
-   - 只识别恰好 2 个成员的房间
-   - 自动构建 m.direct 映射
+    - 当 m.direct 为空时，自动扫描房间
+    - 只识别恰好 2 个成员的房间
+    - 自动构建 m.direct 映射
 
 4. **并发安全**:
-   - m.direct 更新使用 `ON CONFLICT DO UPDATE`
-   - 避免并发更新导致数据丢失
+    - m.direct 更新使用 `ON CONFLICT DO UPDATE`
+    - 避免并发更新导致数据丢失
 
 5. **性能考虑**:
-   - m.direct 映射应该缓存
-   - 回退机制可能较慢（扫描所有房间）
-   - 建议客户端主动维护 m.direct
+    - m.direct 映射应该缓存
+    - 回退机制可能较慢（扫描所有房间）
+    - 建议客户端主动维护 m.direct
 
 6. **数据一致性**:
-   - 离开房间时应该更新 m.direct
-   - 删除房间时应该清理 m.direct
-   - 成员变化时应该检查 DM 状态
+    - 离开房间时应该更新 m.direct
+    - 删除房间时应该清理 m.direct
+    - 成员变化时应该检查 DM 状态
 
 7. **邀请限制**:
-   - 最多 20 个邀请（防止滥用）
-   - 实际 DM 只能有 2 个成员
-   - 多余的邀请会被忽略
+    - 最多 20 个邀请（防止滥用）
+    - 实际 DM 只能有 2 个成员
+    - 多余的邀请会被忽略
 
 8. **错误处理**:
-   - 404 表示房间不是 DM 或伙伴不存在
-   - 400 表示参数错误
-   - 401 表示认证失败
+    - 404 表示房间不是 DM 或伙伴不存在
+    - 400 表示参数错误
+    - 401 表示认证失败

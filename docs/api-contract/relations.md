@@ -1,3 +1,11 @@
+---
+module: relations
+generated_from: docs/api-contract/generated/modules/relations.json
+generated_hash: sha256-e6ebee03f07c6fa761f13b63c599441fd01a5c4e04a321884a8c396dcb09da0e
+ledger_schema: 1
+last_reviewed: 2026-05-03
+---
+
 # Relations API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/relations.rs`  
@@ -10,6 +18,7 @@
 ### 1.1 功能描述
 
 Relations API 提供事件关系查询功能，支持：
+
 - 查询事件的所有关系（回复、编辑、反应等）
 - 按关系类型过滤（`m.replace`、`m.thread`、`m.annotation` 等）
 - 分页查询与聚合统计
@@ -47,11 +56,12 @@ Relations API 提供事件关系查询功能，支持：
 | `dir` | string | 否 | 方向：`f` (forward) 或 `b` (backward) |
 
 **响应**: `200 OK`
+
 ```typescript
 interface RelationsResponse {
-  chunk: MatrixEvent[];
-  next_batch?: string;
-  prev_batch?: string;
+    chunk: MatrixEvent[];
+    next_batch?: string;
+    prev_batch?: string;
 }
 ```
 
@@ -87,35 +97,38 @@ interface RelationsResponse {
 | `target_event_id` | string | 被关联的目标事件 ID |
 
 **请求体**:
+
 ```json
 {
-  "content": {
-    "body": "edited content",
-    "msgtype": "m.text"
-  },
-  "m.new_content": {
-    "body": "edited content",
-    "msgtype": "m.text"
-  },
-  "key": "👍"
+    "content": {
+        "body": "edited content",
+        "msgtype": "m.text"
+    },
+    "m.new_content": {
+        "body": "edited content",
+        "msgtype": "m.text"
+    },
+    "key": "👍"
 }
 ```
 
 **业务规则**:
+
 - `m.annotation` 从 `key` 读取 reaction key，未提供时后端默认 `"👍"`
 - `m.reference` 从 `content` 读取引用事件内容
 - `m.replace` 优先读取 `content`，其次回退到 `m.new_content`
 - 房间不存在时返回 `404`
 
 **响应**: `200 OK`
+
 ```json
 {
-  "event_id": "$new_event_id",
-  "room_id": "!room:example.com",
-  "relates_to": {
-    "event_id": "$target_event_id",
-    "rel_type": "m.replace"
-  }
+    "event_id": "$new_event_id",
+    "room_id": "!room:example.com",
+    "relates_to": {
+        "event_id": "$target_event_id",
+        "rel_type": "m.replace"
+    }
 }
 ```
 
@@ -126,13 +139,14 @@ interface RelationsResponse {
 **挂载版本**: `r0`, `v1`, `v3`
 
 **响应**: `200 OK`
+
 ```typescript
 interface AggregationsResponse {
-  chunk: Array<{
-    type: string;
-    key: string;
-    count: number;
-  }>;
+    chunk: Array<{
+        type: string;
+        key: string;
+        count: number;
+    }>;
 }
 ```
 
@@ -148,12 +162,12 @@ interface AggregationsResponse {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-|---------|---------|------|
-| `GET /relations/{event_id}` | `MatrixClient.relations()` | ✅ 已封装 |
-| `GET /relations/{event_id}/{rel_type}` | `MatrixClient.relations()` | ✅ 已封装 |
-| `GET /aggregations/{event_id}/{rel_type}` | `MatrixClient.getAggregations()` | ✅ 已封装 |
-| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `MatrixClient.sendEvent()` | ⚠️ 间接实现（SDK 走通用事件发送接口，未调用 relations.rs 专用路由） |
+| 后端端点                                                 | SDK 方法                         | 状态                                                                |
+| -------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| `GET /relations/{event_id}`                              | `MatrixClient.relations()`       | ✅ 已封装                                                           |
+| `GET /relations/{event_id}/{rel_type}`                   | `MatrixClient.relations()`       | ✅ 已封装                                                           |
+| `GET /aggregations/{event_id}/{rel_type}`                | `MatrixClient.getAggregations()` | ✅ 已封装                                                           |
+| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `MatrixClient.sendEvent()`       | ⚠️ 间接实现（SDK 走通用事件发送接口，未调用 relations.rs 专用路由） |
 
 ### 3.2 封装覆盖率
 
@@ -169,15 +183,15 @@ interface AggregationsResponse {
 
 ## 四、常见错误码
 
-| 状态码 | 错误码 | 说明 |
-|-------|--------|------|
-| 400 | `M_INVALID_PARAM` | 参数无效 |
-| 401 | `M_UNAUTHORIZED` | 未认证 |
-| 403 | `M_FORBIDDEN` | 非房间成员 |
-| 404 | `M_NOT_FOUND` | 事件或房间不存在 |
+| 状态码 | 错误码            | 说明             |
+| ------ | ----------------- | ---------------- |
+| 400    | `M_INVALID_PARAM` | 参数无效         |
+| 401    | `M_UNAUTHORIZED`  | 未认证           |
+| 403    | `M_FORBIDDEN`     | 非房间成员       |
+| 404    | `M_NOT_FOUND`     | 事件或房间不存在 |
 
 ## 五、变更历史
 
-| 日期 | 变更 | 影响 |
-|------|------|------|
-| 2026-04-27 | 初版 | - |
+| 日期       | 变更 | 影响 |
+| ---------- | ---- | ---- |
+| 2026-04-27 | 初版 | -    |
