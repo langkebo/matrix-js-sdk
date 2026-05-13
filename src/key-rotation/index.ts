@@ -16,8 +16,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
-import { ApiError, AuthError, NotFoundError, SdkError } from "../errors";
-import { MatrixError } from "../http-api/errors";
+import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -86,11 +85,13 @@ interface StatusCacheEntry {
     expiresAt: number;
 }
 
-export class KeyRotationManager {
+export class KeyRotationManager extends BaseManager {
     private readonly statusCacheTtlMs = 30_000;
     private statusCache: StatusCacheEntry | null = null;
 
-    public constructor(private readonly client: MatrixClient) {}
+    public constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getStatus(forceRefresh = false): Promise<KeyRotationStatus> {
         if (!forceRefresh && this.statusCache && this.statusCache.expiresAt > Date.now()) {
@@ -231,40 +232,6 @@ export class KeyRotationManager {
 
     public clearStatusCache(): void {
         this.statusCache = null;
-    }
-
-    private requireNonEmptyString(value: string, fieldName: string): void {
-        if (!value || value.trim().length === 0) {
-            throw new InvalidParamError(`${fieldName} is required`);
-        }
-    }
-
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
-                return new AuthError(`KeyRotationManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
-                return new NotFoundError(
-                    `KeyRotationManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                    error,
-                );
-            }
-            return new ApiError(
-                `KeyRotationManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                error.errcode ?? "UNKNOWN",
-                error.httpStatus ?? 0,
-                error,
-            );
-        }
-
-        return new ApiError(
-            `KeyRotationManager.${method} failed: ${err?.message ?? String(error)}`,
-            "UNKNOWN",
-            0,
-            error,
-        );
     }
 }
 

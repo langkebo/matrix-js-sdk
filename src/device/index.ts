@@ -26,14 +26,14 @@ limitations under the License.
  * 后端实现: synapse-rust/src/web/routes/device.rs
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../errors.ts";
+import { BaseManager } from "../managers/base-manager";
+import { NotFoundError, ValidationError } from "../errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import type { DevicePathPattern } from "./__generated__/route-table.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -146,25 +146,14 @@ function dp<P extends StripV3<DevicePathPattern>>(path: P): P {
     return path;
 }
 
-export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerEventMap> {
-    private client: MatrixClient;
+export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMap> {
     private deviceListCache: LRUCache<IDevice[]>;
     private deviceCache: LRUCache<IDevice>;
     private currentDeviceId: string | null = null;
     private initialized: boolean = false;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000;
-
-    private requestStats = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        retried: 0,
-    };
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
         this.currentDeviceId = client.deviceId ?? null;
 
         this.deviceListCache = new LRUCache<IDevice[]>({ maxSize: 10, ttl: 5 * 60 * 1000, name: "index.ts-idevice" });
@@ -556,25 +545,6 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         };
     }
 
-    /**
-     * 获取请求统计
-     */
-    public getRequestStats(): typeof this.requestStats {
-        return { ...this.requestStats };
-    }
-
-    /**
-     * 重置请求统计
-     */
-    public resetRequestStats(): void {
-        this.requestStats = {
-            total: 0,
-            successful: 0,
-            failed: 0,
-            retried: 0,
-        };
-    }
-
     async start(): Promise<void> {
         if (this.initialized) return;
 
@@ -591,78 +561,6 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         this.initialized = false;
     }
 
-    /**
-     * 带重试的请求封装
-     */
-    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
-        let lastError: unknown;
-        const startTime = Date.now();
-
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-
-                if (attempt > 0) {
-                    logger.info(`DeviceManager.${method} succeeded after ${attempt} retries`, {
-                        method,
-                        attempts: attempt + 1,
-                        duration: Date.now() - startTime,
-                    });
-                }
-
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    this.emitMetric("api_error", method, {
-                        error: this.getErrorType(error),
-                        attempt: attempt + 1,
-                        retryable: false,
-                    });
-                    throw error;
-                }
-
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(
-                        `DeviceManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
-                        {
-                            method,
-                            attempt: attempt + 1,
-                            maxAttempts: retries + 1,
-                            delay,
-                            error: this.getErrorType(error),
-                        },
-                    );
-
-                    this.emitMetric("api_retry", method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error),
-                    });
-
-                    await this.sleep(delay);
-                }
-            }
-        }
-
-        this.recordRequest(false, true);
-        const duration = Date.now() - startTime;
-        this.emitMetric("api_failure", method, {
-            attempts: retries + 1,
-            duration,
-            error: this.getErrorType(lastError),
-        });
-
-        throw lastError;
-    }
-
-    /**
-     * 记录请求统计
-     */
     private recordRequest(success: boolean, retried: boolean): void {
         this.requestStats.total++;
         if (success) {
@@ -675,9 +573,6 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         }
     }
 
-    /**
-     * 检查错误是否可重试
-     */
     private isRetryableError(error: unknown): boolean {
         if (error instanceof MatrixError) {
             const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
@@ -687,38 +582,6 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         return false;
     }
 
-    /**
-     * 规范化错误
-     */
-    private normalizeError(error: unknown, method: string): Error {
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
-                return new NotFoundError(`DeviceManager.${method} failed: ${error.message}`, error);
-            }
-            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
-                return new AuthError(`DeviceManager.${method} failed: ${error.message}`, error);
-            }
-            if (this.isRetryableError(error)) {
-                return new RetryableError(`DeviceManager.${method} failed: ${error.message}`, error);
-            }
-            return new ApiError(
-                `DeviceManager.${method} failed: ${error.message}`,
-                error.errcode ?? "UNKNOWN",
-                error.httpStatus,
-                error,
-            );
-        }
-        return new ApiError(
-            `DeviceManager.${method} failed: ${error instanceof Error ? error.message : String(error)}`,
-            "UNKNOWN",
-            0,
-            error,
-        );
-    }
-
-    /**
-     * 获取错误类型
-     */
     private getErrorType(error: unknown): string {
         if (error instanceof MatrixError) {
             return error.errcode ?? `http_${error.httpStatus}`;
@@ -729,9 +592,6 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         return "UnknownError";
     }
 
-    /**
-     * 发送监控指标
-     */
     private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
         try {
             this.emit(DeviceEvent.DeviceError, new Error(`Metric: ${type}.${method}`));
@@ -739,13 +599,6 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
         } catch {
             // 忽略监控发送错误，不影响主流程
         }
-    }
-
-    /**
-     * 延迟工具函数
-     */
-    private sleep(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

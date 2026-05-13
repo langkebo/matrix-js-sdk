@@ -1,4 +1,3 @@
-import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -25,6 +24,8 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
+import { logger } from "../logger";
+import { ValidationError } from "../errors";
 import type { TagsPathPattern } from "./__generated__/route-table.ts";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -75,7 +76,7 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
         try {
             const userId = this.client.getUserId();
             if (!userId) {
-                throw new Error("User ID is required");
+                throw new ValidationError("User ID is required");
             }
             const response = await this.client.http.authedRequest<{ tags?: IRoomTags }>(
                 Method.Get,
@@ -100,13 +101,13 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
     async addRoomTag(roomId: string, tag: string, order?: number): Promise<void> {
         if (!roomId || !tag) {
-            throw new Error("Room ID and tag are required");
+            throw new ValidationError("Room ID and tag are required");
         }
 
         try {
             const userId = this.client.getUserId();
             if (!userId) {
-                throw new Error("User ID is required");
+                throw new ValidationError("User ID is required");
             }
             const body: Record<string, unknown> = {};
 
@@ -138,13 +139,13 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
     async removeRoomTag(roomId: string, tag: string): Promise<void> {
         if (!roomId || !tag) {
-            throw new Error("Room ID and tag are required");
+            throw new ValidationError("Room ID and tag are required");
         }
 
         try {
             const userId = this.client.getUserId();
             if (!userId) {
-                throw new Error("User ID is required");
+                throw new ValidationError("User ID is required");
             }
 
             await this.client.http.authedRequest(

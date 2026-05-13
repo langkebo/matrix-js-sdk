@@ -3,6 +3,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { Direction } from "../models/event-timeline";
+import { ValidationError } from "../errors";
 
 export enum InviteListEvent {
     InviteReceived = "InviteReceived",
@@ -107,7 +108,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
 
     async acceptInvite(roomId: string): Promise<void> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new ValidationError("Room ID is required");
         }
 
         try {
@@ -124,7 +125,7 @@ export class InviteListManager extends TypedEventEmitter<InviteListEvent, Invite
 
     async rejectInvite(roomId: string): Promise<void> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new ValidationError("Room ID is required");
         }
 
         try {

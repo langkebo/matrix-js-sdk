@@ -33,7 +33,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
+import { BaseManager } from "../managers/base-manager";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
@@ -87,21 +87,11 @@ export interface SecureBackupRestoreResponse {
 export interface SecureBackupVerifyResponse {
     valid: boolean;
 }
-export class SecureBackupManager {
-    private client: MatrixClient;
+export class SecureBackupManager extends BaseManager {
     private backupCache: LRUCache<SecureBackupInfo>;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000;
-
-    private requestStats = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        retried: 0,
-    };
 
     constructor(client: MatrixClient) {
-        this.client = client;
+        super(client);
         this.backupCache = new LRUCache<SecureBackupInfo>({
             maxSize: 10,
             ttl: 5 * 60 * 1000,
@@ -263,85 +253,6 @@ export class SecureBackupManager {
         return this.backupCache.getStats();
     }
 
-    getRequestStats(): typeof this.requestStats {
-        return { ...this.requestStats };
-    }
-
-    resetRequestStats(): void {
-        this.requestStats = {
-            total: 0,
-            successful: 0,
-            failed: 0,
-            retried: 0,
-        };
-    }
-
-    private async withRetry<T>(requestFn: () => Promise<T>, method: string, retries = this.maxRetries): Promise<T> {
-        let lastError: unknown;
-        const startTime = Date.now();
-
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-
-                if (attempt > 0) {
-                    logger.info(`SecureBackupManager.${method} succeeded after ${attempt} retries`, {
-                        method,
-                        attempts: attempt + 1,
-                        duration: Date.now() - startTime,
-                    });
-                }
-
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    this.emitMetric("api_error", method, {
-                        error: this.getErrorType(error),
-                        attempt: attempt + 1,
-                        retryable: false,
-                    });
-                    throw error;
-                }
-
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(
-                        `SecureBackupManager.${method} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`,
-                        {
-                            method,
-                            attempt: attempt + 1,
-                            maxAttempts: retries + 1,
-                            delay,
-                            error: this.getErrorType(error),
-                        },
-                    );
-
-                    this.emitMetric("api_retry", method, {
-                        attempt: attempt + 1,
-                        delay,
-                        error: this.getErrorType(error),
-                    });
-
-                    await this.sleep(delay);
-                }
-            }
-        }
-
-        this.recordRequest(false, true);
-        const duration = Date.now() - startTime;
-        this.emitMetric("api_failure", method, {
-            attempts: retries + 1,
-            duration,
-            error: this.getErrorType(lastError),
-        });
-
-        throw lastError;
-    }
-
     private recordRequest(success: boolean, retried: boolean): void {
         this.requestStats.total++;
         if (success) {
@@ -363,33 +274,6 @@ export class SecureBackupManager {
         return false;
     }
 
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
-                return new AuthError(`SecureBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
-                return new NotFoundError(
-                    `SecureBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                    error,
-                );
-            }
-            return new ApiError(
-                `SecureBackupManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                error.errcode ?? "UNKNOWN",
-                error.httpStatus ?? 0,
-                error,
-            );
-        }
-        return new ApiError(
-            `SecureBackupManager.${method} failed: ${err?.message ?? String(error)}`,
-            "UNKNOWN",
-            0,
-            error,
-        );
-    }
-
     private getErrorType(error: unknown): string {
         if (error instanceof MatrixError) {
             return error.errcode ?? `http_${error.httpStatus}`;
@@ -406,10 +290,6 @@ export class SecureBackupManager {
         } catch {
             // 忽略监控发送错误，不影响主流程
         }
-    }
-
-    private sleep(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 

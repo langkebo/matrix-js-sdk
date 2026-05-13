@@ -16,7 +16,7 @@ limitations under the License.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { InvalidParamError } from "../../src/common/errors";
+import { ValidationError } from "../../src/errors";
 import { KeyRotationManager } from "../../src/key-rotation/index";
 import { ClientPrefix } from "../../src/http-api/prefix";
 import { Method } from "../../src/http-api/method";
@@ -182,12 +182,12 @@ describe("KeyRotationManager", () => {
     });
 
     it("should validate required device id for history", async () => {
-        await expect(manager.getRotationHistory("")).rejects.toBeInstanceOf(InvalidParamError);
+        await expect(manager.getRotationHistory("")).rejects.toBeInstanceOf(ValidationError);
         expect(mockHttp.authedRequest).not.toHaveBeenCalled();
     });
 
     it("should validate positive limit for history", async () => {
-        await expect(manager.getRotationHistory("DEVICE1", { limit: 0 })).rejects.toBeInstanceOf(InvalidParamError);
+        await expect(manager.getRotationHistory("DEVICE1", { limit: 0 })).rejects.toBeInstanceOf(ValidationError);
         expect(mockHttp.authedRequest).not.toHaveBeenCalled();
     });
 
@@ -197,7 +197,7 @@ describe("KeyRotationManager", () => {
                 auto_rotation_enabled: true,
                 rotation_period_ms: 0,
             }),
-        ).rejects.toBeInstanceOf(InvalidParamError);
+        ).rejects.toBeInstanceOf(ValidationError);
 
         expect(mockHttp.authedRequest).not.toHaveBeenCalled();
     });

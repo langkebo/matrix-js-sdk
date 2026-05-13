@@ -19,7 +19,7 @@ import { FilterManager as CoreFilterManager } from "../filter/index";
 import { type MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { NotFoundError } from "../errors";
+import { NotFoundError, ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 
 export enum FilterEvent {
@@ -75,7 +75,7 @@ export class FilterManager extends BaseManager<FilterEvent, FilterManagerEventMa
 
     public async createFilter(definition: IFilterManagerDefinition): Promise<string> {
         if (!definition) {
-            throw new Error("Filter definition is required");
+            throw new ValidationError("Filter definition is required");
         }
 
         try {
@@ -93,7 +93,7 @@ export class FilterManager extends BaseManager<FilterEvent, FilterManagerEventMa
 
     public async getFilter(filterId: string, allowCached = true): Promise<IFilterManagerDefinition | null> {
         if (!filterId) {
-            throw new Error("Filter ID is required");
+            throw new ValidationError("Filter ID is required");
         }
 
         if (allowCached && this.filterCache.has(filterId)) {
@@ -102,7 +102,7 @@ export class FilterManager extends BaseManager<FilterEvent, FilterManagerEventMa
 
         const userId = this.client.getUserId();
         if (!userId) {
-            throw new Error("User ID is required");
+            throw new ValidationError("User ID is required");
         }
         return this.coreManager.getFilter(userId, filterId, allowCached).then(
             (filter) => {
@@ -123,13 +123,13 @@ export class FilterManager extends BaseManager<FilterEvent, FilterManagerEventMa
 
     public async deleteFilter(filterId: string): Promise<void> {
         if (!filterId) {
-            throw new Error("Filter ID is required");
+            throw new ValidationError("Filter ID is required");
         }
 
         try {
             const userId = this.client.getUserId();
             if (!userId) {
-                throw new Error("User ID is required");
+                throw new ValidationError("User ID is required");
             }
             await this.client.http.authedRequest(
                 Method.Delete,

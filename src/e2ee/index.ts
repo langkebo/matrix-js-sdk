@@ -146,7 +146,7 @@ export class E2EEManager extends BaseManager {
     }
 
     public async deleteRoomKeyRequest(requestId: string): Promise<void> {
-        this.requireNonEmpty(requestId, "requestId");
+        this.requireNonEmptyString(requestId, "requestId");
         try {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
@@ -161,7 +161,7 @@ export class E2EEManager extends BaseManager {
     }
 
     public async getRoomKeyDistribution(roomId: string): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(roomId, "roomId");
+        this.requireNonEmptyString(roomId, "roomId");
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
@@ -180,8 +180,8 @@ export class E2EEManager extends BaseManager {
         transactionId: string,
         messages: SendToDeviceMessages,
     ): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(eventType, "eventType");
-        this.requireNonEmpty(transactionId, "transactionId");
+        this.requireNonEmptyString(eventType, "eventType");
+        this.requireNonEmptyString(transactionId, "transactionId");
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Put,
@@ -213,7 +213,7 @@ export class E2EEManager extends BaseManager {
     }
 
     public async getDeviceVerificationStatus(token: string): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(token, "token");
+        this.requireNonEmptyString(token, "token");
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
@@ -242,7 +242,7 @@ export class E2EEManager extends BaseManager {
     }
 
     public async getDeviceTrust(deviceId: string): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(deviceId, "deviceId");
+        this.requireNonEmptyString(deviceId, "deviceId");
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
@@ -272,12 +272,12 @@ export class E2EEManager extends BaseManager {
     }
 
     public async createSecureBackup(body: SecurityBackupCreateBody): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(body.passphrase, "passphrase");
+        this.requireNonEmptyString(body.passphrase, "passphrase");
         return this.post(ep("/keys/backup/secure"), body, "createSecureBackup");
     }
 
     public async getSecureBackup(backupId: string): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(backupId, "backupId");
+        this.requireNonEmptyString(backupId, "backupId");
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
@@ -292,7 +292,7 @@ export class E2EEManager extends BaseManager {
     }
 
     public async deleteSecureBackup(backupId: string): Promise<void> {
-        this.requireNonEmpty(backupId, "backupId");
+        this.requireNonEmptyString(backupId, "backupId");
         try {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
@@ -310,7 +310,7 @@ export class E2EEManager extends BaseManager {
         backupId: string,
         body: Record<string, unknown>,
     ): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(backupId, "backupId");
+        this.requireNonEmptyString(backupId, "backupId");
         return this.post(
             ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys` as StripV3<E2eePathPattern>),
             body,
@@ -322,7 +322,7 @@ export class E2EEManager extends BaseManager {
         backupId: string,
         body: Record<string, unknown>,
     ): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(backupId, "backupId");
+        this.requireNonEmptyString(backupId, "backupId");
         return this.post(
             ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore` as StripV3<E2eePathPattern>),
             body,
@@ -334,7 +334,7 @@ export class E2EEManager extends BaseManager {
         backupId: string,
         body: Record<string, unknown>,
     ): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(backupId, "backupId");
+        this.requireNonEmptyString(backupId, "backupId");
         return this.post(
             ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify` as StripV3<E2eePathPattern>),
             body,
@@ -359,12 +359,6 @@ export class E2EEManager extends BaseManager {
             );
         } catch (e) {
             throw this.normalizeError(e, label);
-        }
-    }
-
-    private requireNonEmpty(value: string | undefined, field: string): void {
-        if (!value || value.length === 0) {
-            throw new InvalidParamError(`${field} is required`);
         }
     }
 

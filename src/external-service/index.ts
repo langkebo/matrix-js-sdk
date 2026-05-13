@@ -34,6 +34,7 @@ import { Body } from "../http-api/interface.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 export enum ExternalServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -174,7 +175,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async updateService(asId: string, request: IUpdateExternalServiceRequest): Promise<IExternalService> {
         if (!asId) {
-            throw new Error("Service ID is required");
+            throw new ValidationError("Service ID is required");
         }
 
         const body: Record<string, unknown> = {};
@@ -254,7 +255,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async getServiceHealth(asId: string): Promise<IExternalServiceHealth | null> {
         if (!asId) {
-            throw new Error("Service ID is required");
+            throw new ValidationError("Service ID is required");
         }
 
         try {
@@ -290,7 +291,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async checkServiceHealth(asId: string): Promise<IHealthCheckResult> {
         if (!asId) {
-            throw new Error("Service ID is required");
+            throw new ValidationError("Service ID is required");
         }
 
         try {
@@ -315,7 +316,7 @@ export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEve
      */
     public async unregisterService(asId: string): Promise<void> {
         if (!asId) {
-            throw new Error("Service ID is required");
+            throw new ValidationError("Service ID is required");
         }
 
         try {

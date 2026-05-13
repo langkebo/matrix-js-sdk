@@ -1,4 +1,3 @@
-import { logger } from "../logger";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 
@@ -25,6 +24,8 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
+import { logger } from "../logger";
+import { ValidationError } from "../errors";
 
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -173,7 +174,7 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
 
     async registerAppService(request: RegisterApplicationServiceRequest): Promise<ApplicationService> {
         if (!request.id || !request.url || !request.as_token || !request.hs_token || !request.sender_localpart) {
-            throw new Error("Missing required fields for application service registration");
+            throw new ValidationError("Missing required fields for application service registration");
         }
 
         try {

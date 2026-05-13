@@ -12,7 +12,6 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
-import { InvalidParamError } from "../common/errors";
 import type { CasPathPattern } from "./__generated__/route-table.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -83,9 +82,9 @@ export class CasManager extends BaseManager {
     }
 
     public async registerService(request: RegisterCasServiceRequest): Promise<CasService> {
-        this.requireNonEmpty(request.service_id, "service_id");
-        this.requireNonEmpty(request.name, "name");
-        this.requireNonEmpty(request.service_url_pattern, "service_url_pattern");
+        this.requireNonEmptyString(request.service_id, "service_id");
+        this.requireNonEmptyString(request.name, "name");
+        this.requireNonEmptyString(request.service_url_pattern, "service_url_pattern");
         try {
             return await this.client.http.authedRequest<CasService>(
                 Method.Post,
@@ -116,7 +115,7 @@ export class CasManager extends BaseManager {
     }
 
     public async deleteService(serviceId: string): Promise<void> {
-        this.requireNonEmpty(serviceId, "serviceId");
+        this.requireNonEmptyString(serviceId, "serviceId");
         try {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
@@ -131,8 +130,8 @@ export class CasManager extends BaseManager {
     }
 
     public async setUserAttribute(userId: string, request: SetCasAttributeRequest): Promise<SetCasAttributeResponse> {
-        this.requireNonEmpty(userId, "userId");
-        this.requireNonEmpty(request.attribute_name, "attribute_name");
+        this.requireNonEmptyString(userId, "userId");
+        this.requireNonEmptyString(request.attribute_name, "attribute_name");
         try {
             return await this.client.http.authedRequest<SetCasAttributeResponse>(
                 Method.Post,
@@ -147,7 +146,7 @@ export class CasManager extends BaseManager {
     }
 
     public async getUserAttributes(userId: string): Promise<CasUserAttribute[]> {
-        this.requireNonEmpty(userId, "userId");
+        this.requireNonEmptyString(userId, "userId");
         try {
             const response = await this.client.http.authedRequest<CasUserAttribute[]>(
                 Method.Get,
@@ -168,7 +167,7 @@ export class CasManager extends BaseManager {
      * 后端 `/login` handler 会 302 重定向到 `/cas/login?service=...`。
      */
     public buildLoginUrl(serviceUrl: string): string {
-        this.requireNonEmpty(serviceUrl, "serviceUrl");
+        this.requireNonEmptyString(serviceUrl, "serviceUrl");
         const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
         const path = publicPath("/login");
         return `${baseUrl}${path}?service=${encodeURIComponent(serviceUrl)}`;
@@ -197,17 +196,11 @@ export class CasManager extends BaseManager {
         ticket: string,
         serviceUrl: string,
     ): string {
-        this.requireNonEmpty(ticket, "ticket");
-        this.requireNonEmpty(serviceUrl, "serviceUrl");
+        this.requireNonEmptyString(ticket, "ticket");
+        this.requireNonEmptyString(serviceUrl, "serviceUrl");
         const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
         const path = publicPath(`/${type}` as CasPathPattern);
         return `${baseUrl}${path}?ticket=${encodeURIComponent(ticket)}&service=${encodeURIComponent(serviceUrl)}`;
-    }
-
-    private requireNonEmpty(value: string | undefined, field: string): void {
-        if (!value || value.length === 0) {
-            throw new InvalidParamError(`${field} is required`);
-        }
     }
 
     public start(): void {}

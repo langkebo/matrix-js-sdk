@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { InvalidParamError } from "../../src/common/errors";
+import { ValidationError } from "../../src/errors";
 import { logger } from "../../src/logger";
 import { VerificationManager } from "../../src/verification/index";
 
@@ -197,7 +197,7 @@ describe("VerificationManager", () => {
                 from_device: "",
                 to_user: "@alice:example.org",
             }),
-        ).rejects.toBeInstanceOf(InvalidParamError);
+        ).rejects.toBeInstanceOf(ValidationError);
 
         await expect(
             manager.scanQrCode({
@@ -208,7 +208,7 @@ describe("VerificationManager", () => {
                 device_ed25519_key: "ed25519",
                 device_curve25519_key: "curve25519",
             }),
-        ).rejects.toBeInstanceOf(InvalidParamError);
+        ).rejects.toBeInstanceOf(ValidationError);
 
         expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
     });

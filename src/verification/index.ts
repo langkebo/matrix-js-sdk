@@ -12,7 +12,6 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { InvalidParamError } from "../common/errors";
 import type { VerificationPathPattern } from "./__generated__/route-table.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -162,8 +161,8 @@ export class VerificationManager extends BaseManager {
     }
 
     public async startVerification(request: VerificationStartRequest): Promise<VerificationStartResponse> {
-        this.requireNonEmpty(request.from_device, "from_device");
-        this.requireNonEmpty(request.to_user, "to_user");
+        this.requireNonEmptyString(request.from_device, "from_device");
+        this.requireNonEmptyString(request.to_user, "to_user");
         try {
             return await this.client.http.authedRequest<VerificationStartResponse>(
                 Method.Post,
@@ -178,9 +177,9 @@ export class VerificationManager extends BaseManager {
     }
 
     public async acceptVerification(request: VerificationAcceptRequest): Promise<VerificationAcceptResponse> {
-        this.requireNonEmpty(request.transaction_id, "transaction_id");
-        this.requireNonEmpty(request.key_agreement_protocol, "key_agreement_protocol");
-        this.requireNonEmpty(request.hash, "hash");
+        this.requireNonEmptyString(request.transaction_id, "transaction_id");
+        this.requireNonEmptyString(request.key_agreement_protocol, "key_agreement_protocol");
+        this.requireNonEmptyString(request.hash, "hash");
         try {
             return await this.client.http.authedRequest<VerificationAcceptResponse>(
                 Method.Put,
@@ -197,8 +196,8 @@ export class VerificationManager extends BaseManager {
     public async exchangeKeys(
         request: VerificationKeyAgreementRequest,
     ): Promise<VerificationKeyAgreementResponse> {
-        this.requireNonEmpty(request.transaction_id, "transaction_id");
-        this.requireNonEmpty(request.pubkey, "pubkey");
+        this.requireNonEmptyString(request.transaction_id, "transaction_id");
+        this.requireNonEmptyString(request.pubkey, "pubkey");
         try {
             return await this.client.http.authedRequest<VerificationKeyAgreementResponse>(
                 Method.Post,
@@ -213,8 +212,8 @@ export class VerificationManager extends BaseManager {
     }
 
     public async confirmMac(request: VerificationMacRequest): Promise<VerificationMacResponse> {
-        this.requireNonEmpty(request.transaction_id, "transaction_id");
-        this.requireNonEmpty(request.mac, "mac");
+        this.requireNonEmptyString(request.transaction_id, "transaction_id");
+        this.requireNonEmptyString(request.mac, "mac");
         try {
             return await this.client.http.authedRequest<VerificationMacResponse>(
                 Method.Post,
@@ -229,8 +228,8 @@ export class VerificationManager extends BaseManager {
     }
 
     public async completeVerification(request: VerificationDoneRequest): Promise<{ transaction_id: string }> {
-        this.requireNonEmpty(request.transaction_id, "transaction_id");
-        this.requireNonEmpty(request.mac, "mac");
+        this.requireNonEmptyString(request.transaction_id, "transaction_id");
+        this.requireNonEmptyString(request.mac, "mac");
         try {
             return await this.client.http.authedRequest<{ transaction_id: string }>(
                 Method.Post,
@@ -245,9 +244,9 @@ export class VerificationManager extends BaseManager {
     }
 
     public async cancelVerification(request: VerificationCancelRequest): Promise<VerificationCancelResponse> {
-        this.requireNonEmpty(request.transaction_id, "transaction_id");
-        this.requireNonEmpty(request.code, "code");
-        this.requireNonEmpty(request.reason, "reason");
+        this.requireNonEmptyString(request.transaction_id, "transaction_id");
+        this.requireNonEmptyString(request.code, "code");
+        this.requireNonEmptyString(request.reason, "reason");
         try {
             return await this.client.http.authedRequest<VerificationCancelResponse>(
                 Method.Post,
@@ -291,12 +290,12 @@ export class VerificationManager extends BaseManager {
     }
 
     public async scanQrCode(request: ScanQrCodeRequest): Promise<ScanQrCodeResponse> {
-        this.requireNonEmpty(request.transaction_id, "transaction_id");
-        this.requireNonEmpty(request.server_name, "server_name");
-        this.requireNonEmpty(request.user_id, "user_id");
-        this.requireNonEmpty(request.device_id, "device_id");
-        this.requireNonEmpty(request.device_ed25519_key, "device_ed25519_key");
-        this.requireNonEmpty(request.device_curve25519_key, "device_curve25519_key");
+        this.requireNonEmptyString(request.transaction_id, "transaction_id");
+        this.requireNonEmptyString(request.server_name, "server_name");
+        this.requireNonEmptyString(request.user_id, "user_id");
+        this.requireNonEmptyString(request.device_id, "device_id");
+        this.requireNonEmptyString(request.device_ed25519_key, "device_ed25519_key");
+        this.requireNonEmptyString(request.device_curve25519_key, "device_curve25519_key");
         try {
             return await this.client.http.authedRequest<ScanQrCodeResponse>(
                 Method.Post,
@@ -307,12 +306,6 @@ export class VerificationManager extends BaseManager {
             );
         } catch (e) {
             throw this.normalizeError(e, "scanQrCode");
-        }
-    }
-
-    private requireNonEmpty(value: string | undefined, field: string): void {
-        if (!value || value.length === 0) {
-            throw new InvalidParamError(`${field} is required`);
         }
     }
 

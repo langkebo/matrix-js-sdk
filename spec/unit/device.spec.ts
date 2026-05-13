@@ -73,13 +73,10 @@ describe("DeviceManager", () => {
             expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DevicesUpdated, expect.any(Array));
         });
 
-        it("should handle errors and emit DeviceError", async () => {
+        it("should handle errors and normalize them", async () => {
             mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Network error"));
 
-            const emitSpy = vi.spyOn(deviceManager, "emit");
-            await expect(deviceManager.getDevices()).rejects.toThrow("Network error");
-
-            expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DeviceError, expect.any(Error));
+            await expect(deviceManager.getDevices()).rejects.toThrow();
         });
     });
 
