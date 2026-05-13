@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ScanResult {
     url: string;
@@ -82,7 +83,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getContentScanManager = function (): ContentScanManager {
-        return new ContentScanManager(this);
+        return getOrCreateManager(this, "contentScan", () => new ContentScanManager(this));
     };
 }
 

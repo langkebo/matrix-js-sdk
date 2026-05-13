@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export class RoomListManager {
     constructor(private client: MatrixClient) {}
@@ -68,7 +69,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomListManager = function (): RoomListManager {
-        return new RoomListManager(this);
+        return getOrCreateManager(this, "roomList", () => new RoomListManager(this));
     };
 }
 

@@ -4,6 +4,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { ThirdpartyPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -292,7 +293,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getThirdPartyManager = function (): ThirdPartyManager {
-        return new ThirdPartyManager(this);
+        return getOrCreateManager(this, "thirdparty", () => new ThirdPartyManager(this));
     };
 }
 

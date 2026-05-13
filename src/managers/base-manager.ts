@@ -26,7 +26,7 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
-import { AuthError, NotFoundError, ApiError, SdkError, RetryableError } from "../errors";
+import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, ValidationError } from "../errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 
@@ -242,6 +242,36 @@ export abstract class BaseManager<
      *
      * @param ms - Duration in milliseconds
      */
+    protected requireNonEmptyString(value: string | undefined | null, fieldName: string): asserts value is string {
+        if (!value || value.trim().length === 0) {
+            throw new ValidationError(`${fieldName} is required`);
+        }
+    }
+
+    protected requirePositiveInteger(value: number | undefined | null, fieldName: string): void {
+        if (value === undefined || value === null || !Number.isInteger(value) || value <= 0) {
+            throw new ValidationError(`${fieldName} must be a positive integer`);
+        }
+    }
+
+    protected requireNonNull<T>(value: T | undefined | null, fieldName: string): asserts value is T {
+        if (value === undefined || value === null) {
+            throw new ValidationError(`${fieldName} is required`);
+        }
+    }
+
+    protected requireNonEmptyArray(value: unknown[] | undefined | null, fieldName: string): asserts value is unknown[] {
+        if (!value || value.length === 0) {
+            throw new ValidationError(`${fieldName} must be a non-empty array`);
+        }
+    }
+
+    protected requireMaxLength(value: string | undefined | null, maxLength: number, fieldName: string): void {
+        if (value && value.length > maxLength) {
+            throw new ValidationError(`${fieldName} too long (max ${maxLength} characters)`);
+        }
+    }
+
     protected sleep(ms: number): Promise<void> {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }

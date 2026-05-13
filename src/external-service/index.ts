@@ -33,6 +33,7 @@ import { AdminPrefix } from "../http-api/prefix.ts";
 import { Body } from "../http-api/interface.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum ExternalServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -460,7 +461,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getExternalServiceManager = function (): ExternalServiceManager {
-        return new ExternalServiceManager(this);
+        return getOrCreateManager(this, "externalService", () => new ExternalServiceManager(this));
     };
 }
 

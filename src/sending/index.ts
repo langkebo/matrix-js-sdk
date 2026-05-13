@@ -19,6 +19,7 @@ import { EventType } from "../@types/event";
 import type { ISendEventResponse } from "../@types/requests";
 import type { RoomMessageEventContent } from "../@types/events";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IImageInfo {
     w?: number;
@@ -299,7 +300,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSendingManager = function (): SendingManager {
-        return new SendingManager(this);
+        return getOrCreateManager(this, "sending", () => new SendingManager(this));
     };
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../client.ts";
 import { EventManager } from "./EventManager.ts";
 import type { RetryOptions } from "../managers/base-manager.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export * from "./EventManager.ts";
 
@@ -26,18 +27,11 @@ declare module "../client.ts" {
     }
 }
 
-const eventManagerCache = new WeakMap<MatrixClient, EventManager>();
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getEventManager")) return;
 
     MatrixClient.prototype.getEventManager = function (this: MatrixClient): EventManager {
-        let manager = eventManagerCache.get(this);
-        if (!manager) {
-            manager = new EventManager(this);
-            eventManagerCache.set(this, manager);
-        }
-        return manager;
+        return getOrCreateManager(this, "event", () => new EventManager(this));
     };
 }
 

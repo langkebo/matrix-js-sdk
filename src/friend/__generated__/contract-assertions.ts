@@ -6,10 +6,10 @@
 
 import { FRIEND_ROUTES } from "./route-table";
 
-export const FRIEND_ROUTES_ENTRY_COUNT = 57 as const;
+export const FRIEND_ROUTES_ENTRY_COUNT = 59 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _FriendEntryCountAssertion: 57 = FRIEND_ROUTES.length;
+const _FriendEntryCountAssertion: 59 = FRIEND_ROUTES.length;
 void _FriendEntryCountAssertion;
 
 export const FRIEND_ROUTES_STATUS_SCENARIOS = [

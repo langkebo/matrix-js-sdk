@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IGroupCallOptions {
     isPtt?: boolean;
@@ -93,7 +94,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getGroupCallManager = function (): GroupCallManager {
-        return new GroupCallManager(this);
+        return getOrCreateManager(this, "groupManagement", () => new GroupCallManager(this));
     };
 }
 

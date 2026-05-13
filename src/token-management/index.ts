@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TokenInfo {
     accessToken: string | undefined;
@@ -95,7 +96,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTokenManager = function (): TokenManager {
-        return new TokenManager(this);
+        return getOrCreateManager(this, "tokenManagement", () => new TokenManager(this));
     };
 }
 

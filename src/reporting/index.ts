@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ReportResult {
     report_id: string;
@@ -71,7 +72,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReportingManager = function (): ReportingManager {
-        return new ReportingManager(this);
+        return getOrCreateManager(this, "reporting", () => new ReportingManager(this));
     };
 }
 

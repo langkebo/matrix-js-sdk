@@ -34,6 +34,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { InvalidParamError } from "../common/errors";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RetentionPolicy {
     max_lifetime?: number;
@@ -261,7 +262,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRetentionManager = function (): RetentionManager {
-        return new RetentionManager(this);
+        return getOrCreateManager(this, "retention", () => new RetentionManager(this));
     };
 }
 

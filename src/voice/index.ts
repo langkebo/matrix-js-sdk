@@ -31,6 +31,8 @@ import { MatrixClient } from "../client";
 import { getHttpUriForMxc } from "../content-repo.ts";
 import type { RoomMessageEventContent } from "../@types/events.ts";
 import type { VoicePathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 const VOICE_R0_PREFIX = "/_matrix/client/r0";
 
@@ -185,16 +187,16 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
         const { roomId, file, duration, mimeType } = params;
 
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new ValidationError("Room ID is required");
         }
         if (!file) {
-            throw new Error("File is required");
+            throw new ValidationError("File is required");
         }
 
         const actualMimeType = mimeType || (file instanceof Blob ? file.type : "audio/ogg");
         const actualDuration = duration ?? 0;
         if (actualDuration <= 0) {
-            throw new Error("Duration is required");
+            throw new ValidationError("Duration is required");
         }
 
         const waveform = await this.generateWaveform(file);
@@ -221,18 +223,18 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
         const { roomId, file, filename, duration, size, mimeType } = params;
 
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new ValidationError("Room ID is required");
         }
 
         if (!file) {
-            throw new Error("File is required");
+            throw new ValidationError("File is required");
         }
 
         const actualSize = size || (file instanceof Blob ? file.size : (file as ArrayBuffer).byteLength);
         const actualMimeType = mimeType || (file instanceof Blob ? file.type : "audio/ogg");
 
         if (this.config.maxDuration && duration && duration > this.config.maxDuration) {
-            throw new Error(`Voice message duration exceeds maximum allowed (${this.config.maxDuration}ms)`);
+            throw new ValidationError(`Voice message duration exceeds maximum allowed (${this.config.maxDuration}ms)`);
         }
 
         try {
@@ -507,7 +509,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVoiceManager = function (): VoiceMessageManager {
-        return new VoiceMessageManager(this);
+        return getOrCreateManager(this, "voice", () => new VoiceMessageManager(this));
     };
 }
 

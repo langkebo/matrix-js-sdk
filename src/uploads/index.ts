@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IUploadOptions {
     name?: string;
@@ -100,7 +101,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUploadsManager = function (): UploadsManager {
-        return new UploadsManager(this);
+        return getOrCreateManager(this, "uploads", () => new UploadsManager(this));
     };
 }
 

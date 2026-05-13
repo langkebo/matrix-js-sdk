@@ -5,6 +5,8 @@ import { AdminValidators } from "../admin/validators";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { TypingPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -83,7 +85,7 @@ export class TypingManager extends BaseManager {
         try {
             const userId = this.client.getUserId();
             if (!userId) {
-                throw new Error("User ID is required");
+                throw new ValidationError("User ID is required");
             }
             await this.client.sendTyping(roomId, true, timeout);
 
@@ -284,7 +286,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTypingManager = function (): TypingManager {
-        return new TypingManager(this);
+        return getOrCreateManager(this, "typing", () => new TypingManager(this));
     };
 }
 

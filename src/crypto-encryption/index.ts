@@ -25,6 +25,7 @@ import { MatrixEvent } from "../models/event";
 import { Room } from "../models/room";
 import { CryptoApi } from "../crypto-api";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IEncryptionResult {
     event: MatrixEvent;
@@ -173,7 +174,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoEncryptionManager = function (): CryptoEncryptionManager {
-        return new CryptoEncryptionManager(this);
+        return getOrCreateManager(this, "cryptoEncryption", () => new CryptoEncryptionManager(this));
     };
 }
 

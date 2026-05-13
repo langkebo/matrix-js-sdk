@@ -31,6 +31,7 @@ import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RoomKeyRequest {
     request_id: string;
@@ -282,7 +283,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomKeysManager = function (): RoomKeysManager {
-        return new RoomKeysManager(this);
+        return getOrCreateManager(this, "roomKeys", () => new RoomKeysManager(this));
     };
 }
 

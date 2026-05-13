@@ -23,6 +23,7 @@ limitations under the License.
 import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export class FilteringManager extends BaseManager {
     constructor(client: MatrixClient) {
@@ -81,7 +82,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFilteringManager = function (): FilteringManager {
-        return new FilteringManager(this);
+        return getOrCreateManager(this, "filtering", () => new FilteringManager(this));
     };
 }
 

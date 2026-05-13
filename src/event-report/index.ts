@@ -15,6 +15,7 @@ import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import { AdminValidators } from "../admin/validators";
 import type { EventReportPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAdminPrefix<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 type EventReportAdminPathPattern = StripAdminPrefix<EventReportPathPattern>;
@@ -111,18 +112,6 @@ export interface EventReportCountResponse {
 export class EventReportManager extends BaseManager {
     constructor(client: MatrixClient) {
         super(client);
-    }
-
-    private requirePositiveInteger(value: number, fieldName: string): void {
-        if (!Number.isInteger(value) || value <= 0) {
-            throw new ValidationError(`${fieldName} must be a positive integer`);
-        }
-    }
-
-    private requireNonEmptyString(value: string, fieldName: string): void {
-        if (!value || value.trim().length === 0) {
-            throw new ValidationError(`${fieldName} is required`);
-        }
     }
 
     private buildQueryParams(params?: QueryParams): Record<string, string | number> | undefined {
@@ -460,6 +449,6 @@ declare module "../client.ts" {
 /** @internal */
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventReportManager = function (): EventReportManager {
-        return new EventReportManager(this);
+        return getOrCreateManager(this, "eventReport", () => new EventReportManager(this));
     };
 }

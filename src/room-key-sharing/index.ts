@@ -29,6 +29,7 @@ import {
 } from "../client";
 import { type EmptyObject } from "../@types/common";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RoomKeyInfo {
     roomId: string;
@@ -114,7 +115,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomKeySharingManager = function (): RoomKeySharingManager {
-        return new RoomKeySharingManager(this);
+        return getOrCreateManager(this, "roomKeySharing", () => new RoomKeySharingManager(this));
     };
 }
 

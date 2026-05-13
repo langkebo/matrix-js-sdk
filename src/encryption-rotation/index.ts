@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface EncryptionRotationManagerEvents {
     keys_rotated: void;
@@ -66,7 +67,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEncryptionRotationManager = function (): EncryptionRotationManager {
-        return new EncryptionRotationManager(this);
+        return getOrCreateManager(this, "encryptionRotation", () => new EncryptionRotationManager(this));
     };
 }
 

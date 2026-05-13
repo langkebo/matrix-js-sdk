@@ -21,6 +21,7 @@ import { MatrixClient } from "../client.ts";
 import { ValidationError } from "../errors.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import type { WorkerAdminPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
@@ -189,6 +190,6 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWorkerAdminManager = function (): WorkerAdminManager {
-        return new WorkerAdminManager(this);
+        return getOrCreateManager(this, "workerAdmin", () => new WorkerAdminManager(this));
     };
 }

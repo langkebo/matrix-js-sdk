@@ -39,6 +39,7 @@ import { BaseManager } from "../managers/base-manager.ts";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface DeviceKeys {
     user_id: string;
@@ -628,7 +629,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceKeysManager = function (): DeviceKeysManager {
-        return new DeviceKeysManager(this);
+        return getOrCreateManager(this, "deviceKeys", () => new DeviceKeysManager(this));
     };
 }
 

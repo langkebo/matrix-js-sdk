@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface NotificationsLegacyManagerEvents {
     notification_count_changed: { roomId: string; count: number };
@@ -73,7 +74,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getNotificationsLegacyManager = function (): NotificationsLegacyManager {
-        return new NotificationsLegacyManager(this);
+        return getOrCreateManager(this, "notificationsLegacy", () => new NotificationsLegacyManager(this));
     };
 }
 

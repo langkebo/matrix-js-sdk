@@ -55,6 +55,7 @@ export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/v1/friends/requests/outgoing" },
     { method: "GET", path: "/_matrix/client/v1/friends/search" },
+    { method: "POST", path: "/_matrix/client/v1/friends/search" },
     { method: "GET", path: "/_matrix/client/v1/friends/suggestions" },
     { method: "DELETE", path: "/_matrix/client/v1/friends/{user_id}" },
     { method: "PUT", path: "/_matrix/client/v1/friends/{user_id}/displayname" },
@@ -68,6 +69,7 @@ export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/outgoing" },
     { method: "GET", path: "/_matrix/client/v3/friends/search" },
+    { method: "POST", path: "/_matrix/client/v3/friends/search" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `FRIEND_ROUTES`. */

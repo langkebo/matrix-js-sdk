@@ -23,6 +23,7 @@ limitations under the License.
 import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { type EmptyObject } from "../@types/common";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export class SessionManager extends BaseManager {
     constructor(client: MatrixClient) {
@@ -81,7 +82,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSessionManager = function (): SessionManager {
-        return new SessionManager(this);
+        return getOrCreateManager(this, "session", () => new SessionManager(this));
     };
 }
 

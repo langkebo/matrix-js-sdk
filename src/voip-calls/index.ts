@@ -36,6 +36,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ITurnServerResponse {
     uris: string[];
@@ -212,7 +213,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVoIPCallsManager = function (): VoIPCallsManager {
-        return new VoIPCallsManager(this);
+        return getOrCreateManager(this, "voipCalls", () => new VoIPCallsManager(this));
     };
 }
 

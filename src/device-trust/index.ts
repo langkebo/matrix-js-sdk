@@ -38,6 +38,7 @@ import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum DeviceTrustEvent {
     VerificationRequested = "VerificationRequested",
@@ -472,7 +473,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceTrustManager = function (): DeviceTrustManager {
-        return new DeviceTrustManager(this);
+        return getOrCreateManager(this, "deviceTrust", () => new DeviceTrustManager(this));
     };
 }
 

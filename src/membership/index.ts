@@ -18,6 +18,7 @@ import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { RoomMember } from "../models/room-member";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface MembershipManagerEvents {
     membership_changed: { roomId: string; userId: string; membership: string };
@@ -76,7 +77,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMembershipManager = function (): MembershipManager {
-        return new MembershipManager(this);
+        return getOrCreateManager(this, "membership", () => new MembershipManager(this));
     };
 }
 

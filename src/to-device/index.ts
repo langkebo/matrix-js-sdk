@@ -31,6 +31,7 @@ import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import { BaseManager } from "../managers/base-manager.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ToDeviceMessage {
     [userId: string]: {
@@ -279,7 +280,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getToDeviceManager = function (): ToDeviceManager {
-        return new ToDeviceManager(this);
+        return getOrCreateManager(this, "toDevice", () => new ToDeviceManager(this));
     };
 }
 

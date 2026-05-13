@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ILogger {
     log(...args: unknown[]): void;
@@ -83,7 +84,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getLoggerManager = function (): LoggerManager {
-        return new LoggerManager(this);
+        return getOrCreateManager(this, "logger", () => new LoggerManager(this));
     };
 }
 

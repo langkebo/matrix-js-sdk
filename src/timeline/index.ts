@@ -28,6 +28,7 @@ import { MatrixEvent } from "../models/event";
 import { THREAD_RELATION_TYPE } from "../models/thread";
 import { BaseManager } from "../managers/base-manager";
 import type { IContextResponse } from "../@types/requests";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TimelineManagerEvents {
     timelineFetched: (data: { roomId: string; eventId: string }) => void;
@@ -162,7 +163,7 @@ export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getTimelineManager")) return;
 
     MatrixClient.prototype.getTimelineManager = function (this: MatrixClient): TimelineManager {
-        return new TimelineManager(this);
+        return getOrCreateManager(this, "timeline", () => new TimelineManager(this));
     };
 }
 

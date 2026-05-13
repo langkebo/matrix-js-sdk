@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type SecretStorageKeyResult = [string, string] | null;
 
@@ -90,7 +91,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecretStorageManager = function (): SecretStorageManager {
-        return new SecretStorageManager(this);
+        return getOrCreateManager(this, "secretStorage", () => new SecretStorageManager(this));
     };
 }
 

@@ -19,6 +19,7 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import type { OpenclawPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IOpenClawConnection {
     id: number;
@@ -337,7 +338,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getOpenClawManager = function (): OpenClawManager {
-        return new OpenClawManager(this);
+        return getOrCreateManager(this, "openclaw", () => new OpenClawManager(this));
     };
 }
 

@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { IStore } from "../store/index";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface StoresManagerEvents {
     store_initialized: void;
@@ -84,7 +85,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getStoresManager = function (): StoresManager {
-        return new StoresManager(this);
+        return getOrCreateManager(this, "stores", () => new StoresManager(this));
     };
 }
 

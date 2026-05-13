@@ -27,6 +27,7 @@ import type { UploadResponse } from "../http-api/interface.ts";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { MediaPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripMediaPrefix<P extends string> =
     P extends `/_matrix/media/v1${infer Rest}` ? Rest :
@@ -319,7 +320,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMediaManager = function (): MediaManager {
-        return new MediaManager(this);
+        return getOrCreateManager(this, "media", () => new MediaManager(this));
     };
 }
 

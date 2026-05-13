@@ -36,6 +36,7 @@ import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import type { DevicePathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -756,7 +757,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceManager = function (): DeviceManager {
-        return new DeviceManager(this);
+        return getOrCreateManager(this, "device", () => new DeviceManager(this));
     };
 }
 

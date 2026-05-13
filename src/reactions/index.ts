@@ -25,6 +25,7 @@ import { MatrixClient } from "../client";
 import { type MatrixEvent } from "../models/event";
 import { EventType, RelationType } from "../@types/event";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ReactionCount {
     key: string;
@@ -180,7 +181,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReactionsManager = function (): ReactionsManager {
-        return new ReactionsManager(this);
+        return getOrCreateManager(this, "reactions", () => new ReactionsManager(this));
     };
 }
 

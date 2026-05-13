@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "room",
   "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
-  "generated_at": "2026-05-11T14:36:56Z",
+  "generated_at": "2026-05-13T21:21:43Z",
   "source_profile": "all",
-  "entry_count": 132,
+  "entry_count": 134,
   "entries": [
     {
       "method": "POST",
@@ -379,6 +379,12 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v1/rooms/create_private",
+      "registered_by": "room",
+      "path_params": []
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/",
       "registered_by": "room",
@@ -415,6 +421,12 @@
       "path_params": [
         "room_id_or_alias"
       ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/create_private",
+      "registered_by": "room",
+      "path_params": []
     },
     {
       "method": "GET",

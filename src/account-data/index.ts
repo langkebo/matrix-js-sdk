@@ -37,6 +37,7 @@ import {
 } from "../client-account-data-requests";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 export enum AccountDataEvent {
     AccountDataUpdated = "AccountDataUpdated",
@@ -62,7 +63,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      */
     private validateDataType(eventType: string): void {
         if (eventType.length > MAX_DATA_TYPE_LENGTH) {
-            throw new Error(`data_type too long (max ${MAX_DATA_TYPE_LENGTH} characters)`);
+            throw new ValidationError(`data_type too long (max ${MAX_DATA_TYPE_LENGTH} characters)`);
         }
     }
 
@@ -72,7 +73,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     private validateContentSize(content: Record<string, unknown>): void {
         const contentStr = JSON.stringify(content);
         if (contentStr.length > MAX_CONTENT_SIZE) {
-            throw new Error(`Account data too large (max ${MAX_CONTENT_SIZE} bytes)`);
+            throw new ValidationError(`Account data too large (max ${MAX_CONTENT_SIZE} bytes)`);
         }
     }
 

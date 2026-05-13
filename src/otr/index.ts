@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IOtrSession {
     sessionId: string;
@@ -120,7 +121,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getOtrManager = function (): OtrManager {
-        return new OtrManager(this);
+        return getOrCreateManager(this, "otr", () => new OtrManager(this));
     };
 }
 

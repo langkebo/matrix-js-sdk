@@ -41,6 +41,7 @@ import { LRUCache } from "../utils/lru-cache.ts";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
 import type { SpacePathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type JsonObject = Record<string, unknown>;
 
@@ -763,7 +764,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSpaceManager = function (): SpaceManager {
-        return new SpaceManager(this);
+        return getOrCreateManager(this, "space", () => new SpaceManager(this));
     };
 }
 

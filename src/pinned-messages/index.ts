@@ -34,6 +34,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { BaseManager } from "../managers/base-manager";
+import { ValidationError } from "../errors";
 
 export enum PinnedEvent {
     Pinned = "Pinned",
@@ -122,7 +123,7 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
     }
 
     public async getPinnedEventsFromServer(roomId: string): Promise<IPinnedEventInfo[]> {
-        if (!roomId) throw new Error("Room ID is required");
+        if (!roomId) throw new ValidationError("Room ID is required");
         const cached = this.pinnedEventsCache.get(roomId);
         if (cached) return cached;
 
@@ -151,8 +152,8 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
     }
 
     public async pinEventToServer(roomId: string, eventId: string): Promise<void> {
-        if (!roomId) throw new Error("Room ID is required");
-        if (!eventId) throw new Error("Event ID is required");
+        if (!roomId) throw new ValidationError("Room ID is required");
+        if (!eventId) throw new ValidationError("Event ID is required");
 
         return this.withRetry(
             async () => {
@@ -173,8 +174,8 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
     }
 
     public async unpinEventFromServer(roomId: string, eventId: string): Promise<void> {
-        if (!roomId) throw new Error("Room ID is required");
-        if (!eventId) throw new Error("Event ID is required");
+        if (!roomId) throw new ValidationError("Room ID is required");
+        if (!eventId) throw new ValidationError("Event ID is required");
 
         return this.withRetry(
             async () => {

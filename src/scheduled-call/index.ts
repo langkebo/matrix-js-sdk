@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IScheduledCall {
     callId: string;
@@ -100,7 +101,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getScheduledCallManager = function (): ScheduledCallManager {
-        return new ScheduledCallManager(this);
+        return getOrCreateManager(this, "scheduledCall", () => new ScheduledCallManager(this));
     };
 }
 

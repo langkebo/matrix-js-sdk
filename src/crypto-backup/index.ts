@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface CryptoBackupInfo {
     version: string;
@@ -75,7 +76,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoBackupManager = function (): CryptoBackupManager {
-        return new CryptoBackupManager(this);
+        return getOrCreateManager(this, "cryptoBackup", () => new CryptoBackupManager(this));
     };
 }
 

@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface CrossSigningStatus {
     crossSigningVerified: boolean;
@@ -94,7 +95,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCrossSigningManager = function (): CrossSigningManager {
-        return new CrossSigningManager(this);
+        return getOrCreateManager(this, "crossSigning", () => new CrossSigningManager(this));
     };
 }
 

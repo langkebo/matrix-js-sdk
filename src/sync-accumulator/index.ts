@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { SyncAccumulator } from "../sync-accumulator";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISyncAccumulatedData {
     rooms?: {
@@ -98,7 +99,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSyncAccumulatorManager = function (): SyncAccumulatorManager {
-        return new SyncAccumulatorManager(this);
+        return getOrCreateManager(this, "syncAccumulator", () => new SyncAccumulatorManager(this));
     };
 }
 

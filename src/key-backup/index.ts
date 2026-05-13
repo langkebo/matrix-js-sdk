@@ -31,6 +31,7 @@ import { LRUCache } from "../utils/lru-cache.ts";
 import { BaseManager } from "../managers/base-manager";
 import type { KeyBackupPathPattern } from "./__generated__/route-table.ts";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -651,7 +652,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyBackupManager = function (): KeyBackupManager {
-        return new KeyBackupManager(this);
+        return getOrCreateManager(this, "keyBackup", () => new KeyBackupManager(this));
     };
 }
 

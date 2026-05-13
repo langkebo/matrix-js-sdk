@@ -20,6 +20,7 @@ import { ApiError, AuthError, NotFoundError, SdkError } from "../errors";
 import { MatrixError } from "../http-api/errors";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface KeyRotationStatus {
     current_key_id: string;
@@ -275,7 +276,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyRotationManager = function (): KeyRotationManager {
-        return new KeyRotationManager(this);
+        return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
     };
 }
 

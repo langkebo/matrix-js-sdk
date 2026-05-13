@@ -22,6 +22,8 @@ import { type LocalNotificationSettings } from "../@types/local_notifications.ts
 import { BaseManager } from "../managers/base-manager.ts";
 import { AdminValidators } from "../admin/validators.ts";
 import type { PushPathPattern } from "../push/__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -113,7 +115,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      */
     public async ackNotification(notificationId: string): Promise<Record<string, unknown>> {
         if (!notificationId) {
-            throw new Error("notificationId is required");
+            throw new ValidationError("notificationId is required");
         }
 
         return this.withRetry(
@@ -140,7 +142,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getNotificationsManager = function (): NotificationsManager {
-        return new NotificationsManager(this);
+        return getOrCreateManager(this, "notifications", () => new NotificationsManager(this));
     };
 }
 

@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ServerCapabilities {
     [key: string]: unknown;
@@ -69,7 +70,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getServerCapabilitiesManager = function (): ServerCapabilitiesManager {
-        return new ServerCapabilitiesManager(this);
+        return getOrCreateManager(this, "serverCapabilities", () => new ServerCapabilitiesManager(this));
     };
 }
 

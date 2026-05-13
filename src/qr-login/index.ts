@@ -30,6 +30,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -169,7 +170,7 @@ declare module "../client" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getQrLoginManager = function (): QrLoginManager {
-        return new QrLoginManager(this);
+        return getOrCreateManager(this, "qrLogin", () => new QrLoginManager(this));
     };
 }
 

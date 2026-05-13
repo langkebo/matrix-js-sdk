@@ -14,6 +14,7 @@ import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import type { CasPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
@@ -221,7 +222,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCasManager = function (): CasManager {
-        return new CasManager(this);
+        return getOrCreateManager(this, "cas", () => new CasManager(this));
     };
 }
 

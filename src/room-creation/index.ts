@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ICreateRoomOptions {
     room_alias_name?: string;
@@ -122,7 +123,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomCreationManager = function (): RoomCreationManager {
-        return new RoomCreationManager(this);
+        return getOrCreateManager(this, "roomCreation", () => new RoomCreationManager(this));
     };
 }
 

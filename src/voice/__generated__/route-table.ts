@@ -13,6 +13,7 @@
 export const VOICE_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/voice/config" },
     { method: "POST", path: "/_matrix/client/r0/voice/upload" },
+    { method: "GET", path: "/_matrix/client/v1/voice/config" },
     { method: "GET", path: "/_matrix/client/v3/voice/config" },
     { method: "POST", path: "/_matrix/client/v3/voice/upload" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];

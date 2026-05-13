@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { type UploadResponse } from "../http-api/index";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface PendingActionsManagerEvents {
     pending_event_added: { roomId: string; event: MatrixEvent };
@@ -65,7 +66,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPendingActionsManager = function (): PendingActionsManager {
-        return new PendingActionsManager(this);
+        return getOrCreateManager(this, "pendingActions", () => new PendingActionsManager(this));
     };
 }
 

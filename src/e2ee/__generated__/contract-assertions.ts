@@ -6,10 +6,10 @@
 
 import { E2EE_ROUTES } from "./route-table";
 
-export const E2EE_ROUTES_ENTRY_COUNT = 51 as const;
+export const E2EE_ROUTES_ENTRY_COUNT = 52 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _E2eeEntryCountAssertion: 51 = E2EE_ROUTES.length;
+const _E2eeEntryCountAssertion: 52 = E2EE_ROUTES.length;
 void _E2eeEntryCountAssertion;
 
 export const E2EE_ROUTES_STATUS_SCENARIOS = [

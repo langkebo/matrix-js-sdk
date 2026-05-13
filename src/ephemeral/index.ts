@@ -33,8 +33,9 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { BaseManager } from "../managers/base-manager.ts";
-import { SdkError } from "../errors.ts";
+import { SdkError, ValidationError } from "../errors.ts";
 import type { EphemeralPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -147,7 +148,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
     }
 
     public async getEphemeralEventsFromServer(roomId: string, limit?: number): Promise<IEphemeralEventInfo[]> {
-        if (!roomId) throw new Error("Room ID is required");
+        if (!roomId) throw new ValidationError("Room ID is required");
         const cached = this.ephemeralEventsCache.get(roomId);
         if (cached) return cached;
 
@@ -234,7 +235,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEphemeralManager = function (): EphemeralManager {
-        return new EphemeralManager(this);
+        return getOrCreateManager(this, "ephemeral", () => new EphemeralManager(this));
     };
 }
 

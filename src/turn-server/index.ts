@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { type ITurnServer } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TurnServerManagerEvents {
     turn_servers_updated: { servers: ITurnServer[] };
@@ -55,7 +56,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTurnServerManager = function (): TurnServerManager {
-        return new TurnServerManager(this);
+        return getOrCreateManager(this, "turnServer", () => new TurnServerManager(this));
     };
 }
 

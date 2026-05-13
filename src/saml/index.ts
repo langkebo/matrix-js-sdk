@@ -27,6 +27,7 @@ import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import type { SamlPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
@@ -409,7 +410,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSamlAuthManager = function (): SamlAuthManager {
-        return new SamlAuthManager(this);
+        return getOrCreateManager(this, "saml", () => new SamlAuthManager(this));
     };
 }
 

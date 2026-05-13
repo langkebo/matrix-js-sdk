@@ -37,6 +37,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
 import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -279,7 +280,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAccountManager = function (): AccountManager {
-        return new AccountManager(this);
+        return getOrCreateManager(this, "account", () => new AccountManager(this));
     };
 }
 

@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISessionInfo {
     deviceId: string;
@@ -116,7 +117,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSessionsManager = function (): SessionsManager {
-        return new SessionsManager(this);
+        return getOrCreateManager(this, "sessions", () => new SessionsManager(this));
     };
 }
 

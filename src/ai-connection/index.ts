@@ -35,6 +35,7 @@ import { Method } from "../http-api/method.js";
 import { MatrixClient } from "../client.js";
 import { InvalidParamError } from "../common/errors";
 import type { AiConnectionPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 function ap<P extends AiConnectionPathPattern>(path: P): P {
     return path;
@@ -309,7 +310,7 @@ declare module "../client.js" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAIConnectionManager = function (): AIConnectionManager {
-        return new AIConnectionManager(this);
+        return getOrCreateManager(this, "aiConnection", () => new AIConnectionManager(this));
     };
 }
 

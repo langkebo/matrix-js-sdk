@@ -37,6 +37,7 @@ import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import type { RendezvousPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 const RENDEZVOUS_PREFIX = "/_matrix/client/v1";
 const RENDEZVOUS_KEY_HEADER = "X-Matrix-Rendezvous-Key";
@@ -379,7 +380,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRendezvousManager = function (): RendezvousManager {
-        return new RendezvousManager(this);
+        return getOrCreateManager(this, "rendezvous", () => new RendezvousManager(this));
     };
 }
 

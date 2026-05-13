@@ -21,7 +21,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { buildCreateFilterPath, buildFilterPath } from "../client-account-data-requests";
 import { BaseManager } from "../managers/base-manager";
-import { ApiError, NotFoundError } from "../errors";
+import { ApiError, NotFoundError, ValidationError } from "../errors";
 
 export class FilterManager extends BaseManager {
     constructor(client: MatrixClient) {
@@ -31,7 +31,7 @@ export class FilterManager extends BaseManager {
     public async createFilter(definition: IFilterDefinition): Promise<{ filterId: string }> {
         const userId = this.client.getUserId();
         if (!userId) {
-            throw new Error("User ID is required");
+            throw new ValidationError("User ID is required");
         }
 
         try {

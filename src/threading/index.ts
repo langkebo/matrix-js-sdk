@@ -32,6 +32,7 @@ import { BaseManager } from "../managers/base-manager";
 import { ClientPrefix, Method } from "../http-api";
 import type { Body } from "../http-api/interface";
 import type { ThreadPathPattern } from "../thread/__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -701,7 +702,7 @@ export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getThreadingManager")) return;
 
     MatrixClient.prototype.getThreadingManager = function (this: MatrixClient): ThreadingManager {
-        return new ThreadingManager(this);
+        return getOrCreateManager(this, "threading", () => new ThreadingManager(this));
     };
 }
 

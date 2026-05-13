@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IJoinRoomOptions {
     syncRoom?: boolean;
@@ -83,7 +84,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomJoiningManager = function (): RoomJoiningManager {
-        return new RoomJoiningManager(this);
+        return getOrCreateManager(this, "roomJoining", () => new RoomJoiningManager(this));
     };
 }
 

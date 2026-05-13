@@ -30,6 +30,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { encodeUri } from "../utils";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IPresenceResponse {
     presence: string;
@@ -160,7 +161,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserPresenceManager = function (): UserPresenceManager {
-        return new UserPresenceManager(this);
+        return getOrCreateManager(this, "userPresence", () => new UserPresenceManager(this));
     };
 }
 

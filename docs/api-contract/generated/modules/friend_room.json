@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "friend_room",
   "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
-  "generated_at": "2026-05-11T14:36:56Z",
+  "generated_at": "2026-05-13T21:21:43Z",
   "source_profile": "all",
-  "entry_count": 57,
+  "entry_count": 59,
   "entries": [
     {
       "method": "GET",
@@ -326,6 +326,12 @@
       "path_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v1/friends/search",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/v1/friends/suggestions",
       "registered_by": "friend_room",
@@ -413,6 +419,12 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/v3/friends/search",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "POST",
       "path": "/_matrix/client/v3/friends/search",
       "registered_by": "friend_room",
       "path_params": []

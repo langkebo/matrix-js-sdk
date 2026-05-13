@@ -25,6 +25,7 @@ import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRoomEventResponse {
     event_id: string;
@@ -162,7 +163,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomEventsManager = function (): RoomEventsManager {
-        return new RoomEventsManager(this);
+        return getOrCreateManager(this, "roomEvents", () => new RoomEventsManager(this));
     };
 }
 

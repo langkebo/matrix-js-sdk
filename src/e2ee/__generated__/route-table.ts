@@ -42,6 +42,7 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/device_verification/request" },
     { method: "POST", path: "/_matrix/client/v3/device_verification/respond" },
     { method: "GET", path: "/_matrix/client/v3/device_verification/status/{token}" },
+    { method: "GET", path: "/_matrix/client/v3/keys/backup/secure" },
     { method: "POST", path: "/_matrix/client/v3/keys/backup/secure" },
     { method: "DELETE", path: "/_matrix/client/v3/keys/backup/secure/{backup_id}" },
     { method: "GET", path: "/_matrix/client/v3/keys/backup/secure/{backup_id}" },

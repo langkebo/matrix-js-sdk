@@ -30,6 +30,7 @@ import { EventType } from "../@types/event.ts";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { InvalidParamError } from "../common/errors";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum StickyEvent {
     StickySet = "StickySet",
@@ -485,7 +486,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getStickyEventManager = function (): StickyEventManager {
-        return new StickyEventManager(this);
+        return getOrCreateManager(this, "stickyEvent", () => new StickyEventManager(this));
     };
 }
 

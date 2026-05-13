@@ -32,6 +32,8 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
 import type { GuestPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -374,7 +376,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             throw new Error("No guest account to upgrade");
         }
         if (!request.username) {
-            throw new Error("username is required");
+            throw new ValidationError("username is required");
         }
 
         try {
@@ -455,7 +457,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getGuestManager = function (): GuestManager {
-        return new GuestManager(this, this.getHomeserverUrl());
+        return getOrCreateManager(this, "guest", () => new GuestManager(this, this.getHomeserverUrl()));
     };
 }
 

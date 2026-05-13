@@ -17,6 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { CachedReceipt, Receipt } from "../@types/read_receipts";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IReadReceipt {
     eventId: string;
@@ -98,7 +99,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReadReceiptsManager = function (): ReadReceiptsManager {
-        return new ReadReceiptsManager(this);
+        return getOrCreateManager(this, "readReceipts", () => new ReadReceiptsManager(this));
     };
 }
 

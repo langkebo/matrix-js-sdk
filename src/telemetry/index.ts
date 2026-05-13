@@ -20,6 +20,8 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix } from "../http-api/prefix.ts";
 import type { TelemetryPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
@@ -304,7 +306,7 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
 
     public async acknowledgeServerAlert(alertId: string): Promise<ServerTelemetryAlert> {
         if (!alertId) {
-            throw new Error("Alert ID is required");
+            throw new ValidationError("Alert ID is required");
         }
         return this.adminRequest(Method.Post, tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack` as StripAdminV1<TelemetryPathPattern>));
     }
@@ -375,7 +377,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTelemetryManager = function (config?: Partial<TelemetryConfig>): TelemetryManager {
-        return new TelemetryManager(this, config);
+        return getOrCreateManager(this, "telemetry", () => new TelemetryManager(this, config));
     };
 }
 

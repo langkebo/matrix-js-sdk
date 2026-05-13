@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import * as utils from "../utils.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type IdentityServerManagerEvents = Record<"identity_server_url_changed", (url: string | undefined) => void>;
 
@@ -60,7 +61,7 @@ export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getIdentityServerManager")) return;
 
     MatrixClient.prototype.getIdentityServerManager = function (this: MatrixClient): IdentityServerManager {
-        return new IdentityServerManager(this);
+        return getOrCreateManager(this, "identityServer", () => new IdentityServerManager(this));
     };
 }
 

@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISearchOptions {
     term: string;
@@ -244,7 +245,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSearchManager = function (): SearchManager {
-        return new SearchManager(this);
+        return getOrCreateManager(this, "search", () => new SearchManager(this));
     };
 }
 

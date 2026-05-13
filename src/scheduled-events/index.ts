@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IDelayedEventResponse {
     event_id: string;
@@ -155,7 +156,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getScheduledEventsManager = function (): ScheduledEventsManager {
-        return new ScheduledEventsManager(this);
+        return getOrCreateManager(this, "scheduledEvents", () => new ScheduledEventsManager(this));
     };
 }
 

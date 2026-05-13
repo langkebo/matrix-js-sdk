@@ -28,6 +28,7 @@ import { MediaPrefix } from "../http-api/prefix.ts";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
 import { logger } from "../logger";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface MediaQuotaConfig {
     "m.upload.size"?: number;
@@ -353,7 +354,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMediaQuotaManager = function (): MediaQuotaManager {
-        return new MediaQuotaManager(this);
+        return getOrCreateManager(this, "mediaQuota", () => new MediaQuotaManager(this));
     };
 }
 

@@ -27,6 +27,7 @@ import { MatrixClient } from "../client.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { logger } from "../logger.ts";
 import { IUserProfile } from "../user-directory/index.ts";
+import { ValidationError } from "../errors";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -102,7 +103,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     async addToBlacklist(serverName: string, reason?: string): Promise<void> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         try {
@@ -132,7 +133,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     async removeFromBlacklist(serverName: string): Promise<void> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         try {
@@ -171,7 +172,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getServerStatus(serverName: string, throwOnError = true): Promise<IFederationStatus | null> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         return this.client.http
@@ -231,7 +232,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     async disconnectServer(serverName: string): Promise<void> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         try {
@@ -251,7 +252,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     async reconnectServer(serverName: string): Promise<void> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         try {
@@ -278,7 +279,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getServerVersion(serverName: string, throwOnError = true): Promise<{ version: string } | null> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         return this.client.http
@@ -308,7 +309,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         since?: string,
     ): Promise<{ chunk: unknown[]; next_batch?: string; prev_batch?: string }> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
 
         try {
@@ -344,7 +345,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async queryProfile(userId: string): Promise<IUserProfile> {
         if (!userId) {
-            throw new Error("User ID is required");
+            throw new ValidationError("User ID is required");
         }
         return this.client.http.request<IUserProfile>(
             Method.Get,
@@ -361,7 +362,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async queryDirectory(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
         if (!roomAlias) {
-            throw new Error("Room alias is required");
+            throw new ValidationError("Room alias is required");
         }
         return this.client.http.request<{ room_id: string; servers: string[] }>(
             Method.Get,
@@ -378,7 +379,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getHierarchy(roomId: string): Promise<any> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new ValidationError("Room ID is required");
         }
         return this.client.http.request<any>(
             Method.Get,
@@ -402,7 +403,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async queryDestination(destination: string): Promise<any> {
         if (!destination) {
-            throw new Error("Destination is required");
+            throw new ValidationError("Destination is required");
         }
         return this.client.http.request<any>(
             Method.Get,
@@ -420,10 +421,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getRoomEvent(roomId: string, eventId: string): Promise<any> {
         if (!roomId) {
-            throw new Error("Room ID is required");
+            throw new ValidationError("Room ID is required");
         }
         if (!eventId) {
-            throw new Error("Event ID is required");
+            throw new ValidationError("Event ID is required");
         }
         return this.client.http.request<any>(
             Method.Get,
@@ -441,10 +442,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async downloadMedia(serverName: string, mediaId: string): Promise<any> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
         if (!mediaId) {
-            throw new Error("Media ID is required");
+            throw new ValidationError("Media ID is required");
         }
         return this.client.http.request<any>(
             Method.Get,
@@ -462,10 +463,10 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getMediaThumbnail(serverName: string, mediaId: string): Promise<any> {
         if (!serverName) {
-            throw new Error("Server name is required");
+            throw new ValidationError("Server name is required");
         }
         if (!mediaId) {
-            throw new Error("Media ID is required");
+            throw new ValidationError("Media ID is required");
         }
         return this.client.http.request<any>(
             Method.Get,

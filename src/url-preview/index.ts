@@ -22,6 +22,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export class UrlPreviewManager {
     private client: MatrixClient;
@@ -55,7 +56,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUrlPreviewManager = function (): UrlPreviewManager {
-        return new UrlPreviewManager(this);
+        return getOrCreateManager(this, "urlPreview", () => new UrlPreviewManager(this));
     };
 }
 

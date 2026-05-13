@@ -31,6 +31,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum InviteBlocklistEvent {
     BlocklistUpdated = "BlocklistUpdated",
@@ -300,7 +301,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getInviteBlocklistManager = function (): InviteBlocklistManager {
-        return new InviteBlocklistManager(this);
+        return getOrCreateManager(this, "inviteBlocklist", () => new InviteBlocklistManager(this));
     };
 }
 

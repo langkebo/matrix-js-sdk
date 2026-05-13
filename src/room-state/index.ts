@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IStateEvent {
     type: string;
@@ -132,7 +133,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomStateManager = function (): RoomStateManager {
-        return new RoomStateManager(this);
+        return getOrCreateManager(this, "roomState", () => new RoomStateManager(this));
     };
 }
 

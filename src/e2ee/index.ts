@@ -14,6 +14,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import type { E2eePathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -379,7 +380,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getE2EEManager = function (): E2EEManager {
-        return new E2EEManager(this);
+        return getOrCreateManager(this, "e2ee", () => new E2EEManager(this));
     };
 }
 

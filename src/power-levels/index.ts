@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { Room } from "../models/room";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IPowerLevelContent {
     users_default?: number;
@@ -119,7 +120,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPowerLevelsManager = function (): PowerLevelsManager {
-        return new PowerLevelsManager(this);
+        return getOrCreateManager(this, "powerLevels", () => new PowerLevelsManager(this));
     };
 }
 

@@ -43,6 +43,7 @@ import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
 import type { AuthPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -511,7 +512,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAuthManager = function (): AuthManager {
-        return new AuthManager(this);
+        return getOrCreateManager(this, "auth", () => new AuthManager(this));
     };
 }
 

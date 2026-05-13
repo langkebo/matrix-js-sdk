@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type CryptoAlgorithm = string;
 
@@ -70,7 +71,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoAlgorithmsManager = function (): CryptoAlgorithmsManager {
-        return new CryptoAlgorithmsManager(this);
+        return getOrCreateManager(this, "cryptoAlgorithms", () => new CryptoAlgorithmsManager(this));
     };
 }
 

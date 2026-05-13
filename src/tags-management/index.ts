@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { buildRoomAccountDataPath, buildRoomTagPath } from "../client-account-data-requests";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ITagContent {
     order?: number;
@@ -104,7 +105,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTagsManager = function (): TagsManager {
-        return new TagsManager(this);
+        return getOrCreateManager(this, "tagsManagement", () => new TagsManager(this));
     };
 }
 

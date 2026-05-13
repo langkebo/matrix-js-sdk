@@ -20,6 +20,7 @@ limitations under the License.
  * 提供密钥验证功能
  */
 
+import { getOrCreateManager } from "../client-infra/manager-registry";
 import {
     type IDeviceSigningVerificationAcceptRequest,
     type IDeviceSigningVerificationAcceptResponse,
@@ -209,7 +210,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyVerificationManager = function (): KeyVerificationManager {
-        return new KeyVerificationManager(this);
+        return getOrCreateManager(this, "keyVerification", () => new KeyVerificationManager(this));
     };
 }
 

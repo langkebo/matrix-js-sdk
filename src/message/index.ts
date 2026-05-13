@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import type { ISendEventResponse } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface MessageManagerEvents {
     message_sent: { roomId: string; eventId: string };
@@ -67,7 +68,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMessageManager = function (): MessageManager {
-        return new MessageManager(this);
+        return getOrCreateManager(this, "message", () => new MessageManager(this));
     };
 }
 

@@ -28,6 +28,7 @@ import { type MatrixEvent } from "../models/event";
 import { type Room } from "../models/room";
 import { Beacon, type BeaconEventHandlerMap } from "../models/beacon";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface BeaconManagerEvents {
     beacon_created: { roomId: string; beacon: Beacon };
@@ -126,7 +127,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getBeaconManager = function (): BeaconManager {
-        return new BeaconManager(this);
+        return getOrCreateManager(this, "beacon", () => new BeaconManager(this));
     };
 }
 

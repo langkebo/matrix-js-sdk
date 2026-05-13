@@ -26,6 +26,7 @@ import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface WidgetInfo {
     id: string;
@@ -251,7 +252,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWidgetsManager = function (): WidgetsManager {
-        return new WidgetsManager(this);
+        return getOrCreateManager(this, "widgets", () => new WidgetsManager(this));
     };
 }
 

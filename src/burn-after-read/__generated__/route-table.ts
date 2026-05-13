@@ -18,6 +18,13 @@ export const BURN_AFTER_READ_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/rooms/{room_id}/burn/{event_id}" },
     { method: "PUT", path: "/_matrix/client/v1/user/burn/config" },
     { method: "GET", path: "/_matrix/client/v1/user/burn/stats" },
+    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/burn" },
+    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/burn" },
+    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/burn/pending" },
+    { method: "DELETE", path: "/_matrix/client/v3/rooms/{room_id}/burn/{event_id}" },
+    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/burn/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/v3/user/burn/config" },
+    { method: "GET", path: "/_matrix/client/v3/user/burn/stats" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `BURN_AFTER_READ_ROUTES`. */

@@ -3,7 +3,7 @@
   "ledger_schema": "1",
   "module": "push_notification",
   "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
-  "generated_at": "2026-05-11T14:36:56Z",
+  "generated_at": "2026-05-13T21:21:43Z",
   "source_profile": "all",
   "entry_count": 9,
   "entries": [

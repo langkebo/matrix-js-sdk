@@ -11,6 +11,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface FeatureFlag {
     key: string;
@@ -143,7 +144,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFeatureFlagManager = function (): FeatureFlagManager {
-        return new FeatureFlagManager(this);
+        return getOrCreateManager(this, "featureFlags", () => new FeatureFlagManager(this));
     };
 }
 

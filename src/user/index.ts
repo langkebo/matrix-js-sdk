@@ -24,6 +24,8 @@ import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { type EmptyObject } from "../@types/common";
 import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 export interface UserManagerEvents {
     user_ignored: { userId: string };
@@ -43,7 +45,7 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
     public getSafeUserId(): string {
         const userId = this.client.credentials.userId;
         if (!userId) {
-            throw new Error("User ID not set");
+            throw new ValidationError("User ID not set");
         }
         return userId;
     }
@@ -103,7 +105,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserManager = function (): UserManager {
-        return new UserManager(this);
+        return getOrCreateManager(this, "user", () => new UserManager(this));
     };
 }
 

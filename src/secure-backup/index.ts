@@ -37,6 +37,7 @@ import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -420,7 +421,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecureBackupManager = function (): SecureBackupManager {
-        return new SecureBackupManager(this);
+        return getOrCreateManager(this, "secureBackup", () => new SecureBackupManager(this));
     };
 }
 

@@ -29,6 +29,7 @@ import type { IPowerLevelsContent } from "../models/room-state";
 import type { ISendEventResponse } from "../@types/requests";
 import type { IContent } from "../models/event";
 import * as utils from "../utils";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface StateSendManagerEvents {
     stateEventSent: (data: { roomId: string; eventType: string; stateKey: string }) => void;
@@ -120,7 +121,7 @@ export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getStateSendManager")) return;
 
     MatrixClient.prototype.getStateSendManager = function (this: MatrixClient): StateSendManager {
-        return new StateSendManager(this);
+        return getOrCreateManager(this, "stateSend", () => new StateSendManager(this));
     };
 }
 

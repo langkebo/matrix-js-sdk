@@ -14,6 +14,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import type { VerificationPathPattern } from "./__generated__/route-table.ts";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
@@ -327,7 +328,7 @@ declare module "../client.ts" {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVerificationManager = function (): VerificationManager {
-        return new VerificationManager(this);
+        return getOrCreateManager(this, "verification", () => new VerificationManager(this));
     };
 }
 
