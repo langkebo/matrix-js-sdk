@@ -18,16 +18,6 @@ export interface ExternalServicesResponse {
     }>;
 }
 
-export interface ExternalServiceHealthResponse {
-    service_id: string;
-    service_type: string;
-    is_healthy: boolean;
-    last_check_ts: number;
-    last_success_ts?: number;
-    last_error?: string;
-    consecutive_failures: number;
-}
-
 export interface ExternalServiceAdminRequestDto {
     type: string;
     url: string;

@@ -26,6 +26,17 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
+import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+
+type StripAuthPrefix<P extends string> =
+    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
+    P extends `/_matrix/client/r0${infer Rest}` ? Rest :
+    P extends `/_matrix/client/v1${infer Rest}` ? Rest :
+    P;
+
+function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface ReportUserRequest {
     reason: string;
@@ -38,7 +49,7 @@ export class UserReportManager extends BaseManager {
     }
 
     public async reportUser(userId: string, reason: string, roomId?: string): Promise<void> {
-        const path = utils.encodeUri("/users/$userId/report", { $userId: userId });
+        const path = ap(`/users/${encodeURIComponent(userId)}/report` as StripAuthPrefix<AuthPathPattern>);
         const body: ReportUserRequest = { reason };
         if (roomId) {
             body.room_id = roomId;

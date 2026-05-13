@@ -40,7 +40,13 @@ describe("KeyBackupManager", () => {
 
     describe("Version Management", () => {
         it("should get latest backup version", async () => {
-            const mockResponse = { version: "1", algorithm: "m.megolm_backup.v1.curve25519-aes-sha2", auth_data: {} };
+            const mockResponse = {
+                version: "1",
+                algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                auth_data: {},
+                count: 3,
+                etag: "etag-1",
+            };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
             const result = await manager.getLatestBackupVersion();
@@ -55,19 +61,28 @@ describe("KeyBackupManager", () => {
             expect(result).toEqual(mockResponse);
         });
 
-        it("should create backup version", async () => {
+        it("should create backup version with optional UIA auth", async () => {
             const mockResponse = { version: "1" };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
+            const auth = {
+                type: "m.login.password",
+                session: "uia-session",
+                password: "secret",
+            };
 
             const result = await manager.createBackupVersion("m.megolm_backup.v1.curve25519-aes-sha2", {
                 key: "value",
-            });
+            }, auth);
 
             expect(mockHttp.authedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/room_keys/version",
                 undefined,
-                { algorithm: "m.megolm_backup.v1.curve25519-aes-sha2", auth_data: { key: "value" } },
+                {
+                    algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                    auth_data: { key: "value" },
+                    auth,
+                },
                 { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
@@ -75,7 +90,13 @@ describe("KeyBackupManager", () => {
         });
 
         it("should get specific backup version", async () => {
-            const mockResponse = { version: "1", algorithm: "m.megolm_backup.v1.curve25519-aes-sha2", auth_data: {} };
+            const mockResponse = {
+                version: "1",
+                algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                auth_data: {},
+                count: 7,
+                etag: "etag-7",
+            };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
             const result = await manager.getBackupVersion("1");
@@ -122,7 +143,7 @@ describe("KeyBackupManager", () => {
         });
 
         it("should get session key", async () => {
-            const mockResponse = { session_data: "data" };
+            const mockResponse = { ciphertext: "abc", mac: "def", ephemeral: "ghi" };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
             const result = await manager.getSessionKey("1", "!room:abc", "session1");
@@ -135,6 +156,75 @@ describe("KeyBackupManager", () => {
                 { prefix: ClientPrefix.V3 },
             );
             expect(result).toEqual(mockResponse);
+        });
+
+        it("should put room keys for a specific room", async () => {
+            const mockResponse = { count: 2, etag: "etag-room" };
+            mockHttp.authedRequest.mockResolvedValue(mockResponse);
+
+            const body = {
+                sessions: {
+                    sess1: {
+                        first_message_index: 0,
+                        forwarded_count: 0,
+                        is_verified: true,
+                        session_data: { ciphertext: "abc", mac: "def", ephemeral: "ghi" },
+                    },
+                },
+            };
+
+            const result = await manager.putRoomKeys("1", "!room:abc", body);
+
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/room_keys/keys/!room%3Aabc",
+                { version: "1" },
+                body,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result).toEqual(mockResponse);
+        });
+
+        it("should delete all room keys for a version", async () => {
+            const mockResponse = { count: 10, etag: "etag-delete-all" };
+            mockHttp.authedRequest.mockResolvedValue(mockResponse);
+
+            await expect(manager.deleteAllRoomKeys("1")).resolves.toEqual(mockResponse);
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/room_keys/keys",
+                { version: "1" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should delete room keys for a single room", async () => {
+            const mockResponse = { count: 4, etag: "etag-delete-room" };
+            mockHttp.authedRequest.mockResolvedValue(mockResponse);
+
+            await expect(manager.deleteRoomKeys("1", "!room:abc")).resolves.toEqual(mockResponse);
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/room_keys/keys/!room%3Aabc",
+                { version: "1" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should delete a single session key", async () => {
+            const mockResponse = { count: 1, etag: "etag-delete-session" };
+            mockHttp.authedRequest.mockResolvedValue(mockResponse);
+
+            await expect(manager.deleteSessionKey("1", "!room:abc", "session1")).resolves.toEqual(mockResponse);
+            expect(mockHttp.authedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/room_keys/keys/!room%3Aabc/session1",
+                { version: "1" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 

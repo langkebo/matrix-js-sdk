@@ -180,6 +180,7 @@ import { TypedEventEmitter } from "./models/typed-event-emitter.ts";
 import { ReceiptType } from "./@types/read_receipts.ts";
 import { type MSC3575SlidingSyncRequest, type MSC3575SlidingSyncResponse } from "./sliding-sync.ts";
 import { SlidingSyncSdk } from "./sliding-sync-sdk.ts";
+import type { SlidingSyncPathPattern } from "./sliding-sync/__generated__/route-table.ts";
 import {
     determineFeatureSupport,
     FeatureSupport,
@@ -345,6 +346,7 @@ import {
     getKeyChangesRequest,
     getMyRoomsRequest,
     getSSOUserInfoRequest,
+    searchRecipientsRequest,
     searchRoomsRequest,
     getClientConfigRequest,
     getOpenIdTokenRequest,
@@ -458,6 +460,13 @@ export type Store = IStore;
 export type ResetTimelineCallback = (roomId: string) => boolean;
 
 const SCROLLBACK_DELAY_MS = 3000;
+
+type StripSlidingSyncSimplified<P extends string> =
+    P extends `/_matrix/client/unstable/org.matrix.simplified_msc3575${infer Rest}` ? Rest : never;
+
+function ssp<P extends StripSlidingSyncSimplified<SlidingSyncPathPattern>>(path: P): P {
+    return path;
+}
 
 const TURN_CHECK_INTERVAL = 10 * 60 * 1000; // poll for turn credentials every 10 minutes
 
@@ -6390,7 +6399,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         }
         const clientTimeout = req.clientTimeout;
         const { pos: _pos, timeout: _timeout, clientTimeout: _clientTimeout, ...body } = req;
-        return this.http.authedRequest<MSC3575SlidingSyncResponse>(Method.Post, "/sync", qps, body, {
+        return this.http.authedRequest<MSC3575SlidingSyncResponse>(Method.Post, ssp("/sync"), qps, body, {
             prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
             baseUrl: proxyBaseUrl,
             localTimeoutMs: clientTimeout,
@@ -6455,6 +6464,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         limit?: number,
     ): Promise<{ results: unknown[]; count: number; next_batch: string | null }> {
         return searchRoomsRequest<{ results: unknown[]; count: number; next_batch: string | null }>(
+            this.authedRequestProxy,
+            searchTerm,
+            limit,
+        );
+    }
+
+    /**
+     * Search recipients by term (synapse-rust specific).
+     * POST /_matrix/client/v3/search_recipients
+     */
+    public async searchRecipients(
+        searchTerm: string,
+        limit?: number,
+    ): Promise<{ results: unknown[]; count: number; next_batch: string | null }> {
+        return searchRecipientsRequest<{ results: unknown[]; count: number; next_batch: string | null }>(
             this.authedRequestProxy,
             searchTerm,
             limit,

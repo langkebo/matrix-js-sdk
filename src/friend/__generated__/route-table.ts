@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/friend_room.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `friend_room` module. */
@@ -25,6 +26,7 @@ export const FRIEND_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/friends/request/{user_id}/reject" },
     { method: "GET", path: "/_matrix/client/r0/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/r0/friends/requests/outgoing" },
+    { method: "GET", path: "/_matrix/client/r0/friends/search" },
     { method: "GET", path: "/_matrix/client/r0/friends/suggestions" },
     { method: "DELETE", path: "/_matrix/client/r0/friends/{user_id}" },
     { method: "PUT", path: "/_matrix/client/r0/friends/{user_id}/displayname" },
@@ -52,6 +54,7 @@ export const FRIEND_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/friends/request/{user_id}/reject" },
     { method: "GET", path: "/_matrix/client/v1/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/v1/friends/requests/outgoing" },
+    { method: "GET", path: "/_matrix/client/v1/friends/search" },
     { method: "GET", path: "/_matrix/client/v1/friends/suggestions" },
     { method: "DELETE", path: "/_matrix/client/v1/friends/{user_id}" },
     { method: "PUT", path: "/_matrix/client/v1/friends/{user_id}/displayname" },
@@ -64,6 +67,7 @@ export const FRIEND_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/friends" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/outgoing" },
+    { method: "GET", path: "/_matrix/client/v3/friends/search" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `FRIEND_ROUTES`. */
@@ -81,7 +85,7 @@ export type FriendPath = FriendRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type FriendReplaceBraces<P extends string> =
+export type FriendReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${FriendReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

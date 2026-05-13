@@ -23,12 +23,15 @@ describe("AuthManager", () => {
     let mockClient: any;
     let authManager: AuthManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
+    let mockRequest: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
         mockAuthedRequest = vi.fn();
+        mockRequest = vi.fn();
         mockClient = {
             http: {
                 authedRequest: mockAuthedRequest,
+                request: mockRequest,
             },
             isAuthenticated: vi.fn().mockReturnValue(false),
         };
@@ -48,7 +51,7 @@ describe("AuthManager", () => {
         it("should accept username with exactly 255 characters", async () => {
             const maxUsername = "a".repeat(255);
             const auth = { type: "m.login.dummy" };
-            mockAuthedRequest.mockResolvedValue({
+            mockRequest.mockResolvedValue({
                 access_token: "token",
                 user_id: "@user:example.com",
                 device_id: "ABCDEFGHIJKLMNOP",
@@ -56,7 +59,7 @@ describe("AuthManager", () => {
 
             await authManager.register(maxUsername, "password123", null, auth);
 
-            expect(mockAuthedRequest).toHaveBeenCalled();
+            expect(mockRequest).toHaveBeenCalled();
         });
 
         it("should reject password longer than 128 characters", async () => {
@@ -71,7 +74,7 @@ describe("AuthManager", () => {
         it("should accept password with exactly 128 characters", async () => {
             const maxPassword = "a".repeat(128);
             const auth = { type: "m.login.dummy" };
-            mockAuthedRequest.mockResolvedValue({
+            mockRequest.mockResolvedValue({
                 access_token: "token",
                 user_id: "@alice:example.com",
                 device_id: "ABCDEFGHIJKLMNOP",
@@ -79,7 +82,7 @@ describe("AuthManager", () => {
 
             await authManager.register("alice", maxPassword, null, auth);
 
-            expect(mockAuthedRequest).toHaveBeenCalled();
+            expect(mockRequest).toHaveBeenCalled();
         });
     });
 
@@ -191,11 +194,11 @@ describe("AuthManager", () => {
             const flows = {
                 flows: [{ type: "m.login.password" }, { type: "m.login.sso" }],
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             const result = await authManager.getSupportedLoginFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, {
+            expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, {
                 prefix: undefined,
             });
             expect(result).toEqual(flows);
@@ -205,12 +208,12 @@ describe("AuthManager", () => {
             const flows = {
                 flows: [{ type: "m.login.password" }],
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             await authManager.getSupportedLoginFlows();
             const cachedResult = await authManager.getSupportedLoginFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockRequest).toHaveBeenCalledTimes(1);
             expect(cachedResult).toEqual(flows);
         });
 
@@ -218,19 +221,19 @@ describe("AuthManager", () => {
             const flows1 = { flows: [{ type: "m.login.password" }] };
             const flows2 = { flows: [{ type: "m.login.sso" }] };
 
-            mockAuthedRequest.mockResolvedValueOnce(flows1);
-            mockAuthedRequest.mockResolvedValueOnce(flows2);
+            mockRequest.mockResolvedValueOnce(flows1);
+            mockRequest.mockResolvedValueOnce(flows2);
 
             await authManager.getSupportedLoginFlows();
             const result = await authManager.getSupportedLoginFlows(true);
 
-            expect(mockAuthedRequest).toHaveBeenCalledTimes(2);
+            expect(mockRequest).toHaveBeenCalledTimes(2);
             expect(result).toEqual(flows2);
         });
 
         it("should emit LoginFlowUpdated event", async () => {
             const flows = { flows: [{ type: "m.login.password" }] };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             const emitSpy = vi.spyOn(authManager, "emit");
             await authManager.getSupportedLoginFlows();
@@ -242,7 +245,7 @@ describe("AuthManager", () => {
             const flows = {
                 flows: [{ type: "m.login.password" }, { type: "m.login.sso" }],
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             expect(await authManager.hasLoginFlow("m.login.password")).toBe(true);
             expect(await authManager.hasLoginFlow("m.login.token")).toBe(false);
@@ -252,7 +255,7 @@ describe("AuthManager", () => {
             const flows = {
                 flows: [{ type: "m.login.password" }],
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             expect(await authManager.hasPasswordLogin()).toBe(true);
         });
@@ -261,7 +264,7 @@ describe("AuthManager", () => {
             const flows = {
                 flows: [{ type: "m.login.sso" }],
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             expect(await authManager.hasSSOLogin()).toBe(true);
         });
@@ -273,11 +276,11 @@ describe("AuthManager", () => {
                 flows: [{ stages: ["m.login.email.identity", "m.login.msisdn"] }, { stages: ["m.login.dummy"] }],
                 params: {},
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             const result = await authManager.getRegisterFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/register", undefined, undefined, {
+            expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/register", undefined, undefined, {
                 prefix: undefined,
             });
             expect(result).toEqual(flows);
@@ -288,12 +291,12 @@ describe("AuthManager", () => {
                 flows: [{ stages: ["m.login.dummy"] }],
                 params: {},
             };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             await authManager.getRegisterFlows();
             const cachedResult = await authManager.getRegisterFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockRequest).toHaveBeenCalledTimes(1);
             expect(cachedResult).toEqual(flows);
         });
 
@@ -301,19 +304,19 @@ describe("AuthManager", () => {
             const flows1 = { flows: [{ stages: ["m.login.dummy"] }], params: {} };
             const flows2 = { flows: [{ stages: ["m.login.email.identity"] }], params: {} };
 
-            mockAuthedRequest.mockResolvedValueOnce(flows1);
-            mockAuthedRequest.mockResolvedValueOnce(flows2);
+            mockRequest.mockResolvedValueOnce(flows1);
+            mockRequest.mockResolvedValueOnce(flows2);
 
             await authManager.getRegisterFlows();
             const result = await authManager.getRegisterFlows(true);
 
-            expect(mockAuthedRequest).toHaveBeenCalledTimes(2);
+            expect(mockRequest).toHaveBeenCalledTimes(2);
             expect(result).toEqual(flows2);
         });
 
         it("should emit RegisterFlowUpdated event", async () => {
             const flows = { flows: [{ stages: ["m.login.dummy"] }], params: {} };
-            mockAuthedRequest.mockResolvedValue(flows);
+            mockRequest.mockResolvedValue(flows);
 
             const emitSpy = vi.spyOn(authManager, "emit");
             await authManager.getRegisterFlows();
@@ -327,8 +330,8 @@ describe("AuthManager", () => {
             const loginFlows = { flows: [{ type: "m.login.password" }] };
             const registerFlows = { flows: [{ stages: ["m.login.dummy"] }], params: {} };
 
-            mockAuthedRequest.mockResolvedValueOnce(loginFlows);
-            mockAuthedRequest.mockResolvedValueOnce(registerFlows);
+            mockRequest.mockResolvedValueOnce(loginFlows);
+            mockRequest.mockResolvedValueOnce(registerFlows);
 
             await authManager.getSupportedLoginFlows();
             await authManager.getRegisterFlows();
@@ -339,12 +342,12 @@ describe("AuthManager", () => {
             await authManager.getSupportedLoginFlows();
             await authManager.getRegisterFlows();
 
-            expect(mockAuthedRequest).toHaveBeenCalledTimes(4);
+            expect(mockRequest).toHaveBeenCalledTimes(4);
         });
 
         it("should get cache statistics", async () => {
             const loginFlows = { flows: [{ type: "m.login.password" }] };
-            mockAuthedRequest.mockResolvedValue(loginFlows);
+            mockRequest.mockResolvedValue(loginFlows);
 
             await authManager.getSupportedLoginFlows();
             await authManager.getSupportedLoginFlows(); // Cache hit
@@ -361,20 +364,20 @@ describe("AuthManager", () => {
     describe("Error Handling", () => {
         it("should throw normalized error on login flow failure", async () => {
             const error = new Error("Network error");
-            mockAuthedRequest.mockRejectedValue(error);
+            mockRequest.mockRejectedValue(error);
 
             await expect(authManager.getSupportedLoginFlows()).rejects.toThrow();
         });
 
         it("should throw normalized error on register flow failure", async () => {
             const error = new Error("Server error");
-            mockAuthedRequest.mockRejectedValue(error);
+            mockRequest.mockRejectedValue(error);
 
             await expect(authManager.getRegisterFlows()).rejects.toThrow();
         });
 
         it("should handle empty login flows", async () => {
-            mockAuthedRequest.mockResolvedValue({ flows: [] });
+            mockRequest.mockResolvedValue({ flows: [] });
 
             const result = await authManager.getSupportedLoginFlows();
 
@@ -383,7 +386,7 @@ describe("AuthManager", () => {
         });
 
         it("should handle empty response gracefully", async () => {
-            mockAuthedRequest.mockResolvedValue({});
+            mockRequest.mockResolvedValue({});
 
             const result = await authManager.getSupportedLoginFlows();
 

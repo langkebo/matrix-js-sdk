@@ -44,14 +44,14 @@ export interface StorageUsage {
     limit: number;
 }
 
-interface QuotaCheckResponse {
+export interface QuotaCheckResponse {
     limit: number;
     used: number;
     remaining: number;
     rule?: string;
 }
 
-interface QuotaStatsResponse {
+export interface QuotaStatsResponse {
     user_id: string;
     storage_bytes: number;
     media_count: number;
@@ -64,9 +64,10 @@ export interface QuotaAlert {
     alert_type: string;
     threshold_percent: number;
     current_usage_bytes: number;
-    limit_bytes: number;
+    quota_limit_bytes?: number;
     created_ts: number;
     message?: string;
+    is_read?: boolean;
 }
 
 export interface MediaQuotaManagerEvents {
@@ -79,8 +80,30 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
         super(client);
     }
 
-    public async getMediaConfig(): Promise<Awaited<ReturnType<typeof MatrixClient.prototype.getMediaConfig>>> {
-        return this.withRetry(() => this.client.getMediaConfig(), "getMediaConfig");
+    public async getMediaConfig(
+        useAuthenticatedMedia = false,
+    ): Promise<Awaited<ReturnType<typeof MatrixClient.prototype.getMediaConfig>>> {
+        return this.withRetry(() => this.client.getMediaConfig(useAuthenticatedMedia), "getMediaConfig");
+    }
+
+    public async checkQuota(): Promise<QuotaCheckResponse> {
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<QuotaCheckResponse>(Method.Get, "/quota/check", undefined, undefined, {
+                    prefix: MediaPrefix.V1,
+                }),
+            "checkQuota",
+        );
+    }
+
+    public async getQuotaStats(): Promise<QuotaStatsResponse> {
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<QuotaStatsResponse>(Method.Get, "/quota/stats", undefined, undefined, {
+                    prefix: MediaPrefix.V1,
+                }),
+            "getQuotaStats",
+        );
     }
 
     /**
@@ -179,19 +202,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
         if (!userId) return null;
 
         try {
-            const stats = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<QuotaStatsResponse>(
-                        Method.Get,
-                        "/quota/stats",
-                        undefined,
-                        undefined,
-                        {
-                            prefix: MediaPrefix.V1,
-                        },
-                    ),
-                "getUserStorageUsage",
-            );
+            const stats = await this.getQuotaStats();
             return {
                 size: stats.storage_bytes ?? 0,
                 ntFiles: stats.media_count ?? 0,
@@ -212,19 +223,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
 
     public async getStorageQuota(): Promise<number> {
         try {
-            const stats = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<QuotaStatsResponse>(
-                        Method.Get,
-                        "/quota/stats",
-                        undefined,
-                        undefined,
-                        {
-                            prefix: MediaPrefix.V1,
-                        },
-                    ),
-                "getStorageQuota",
-            );
+            const stats = await this.getQuotaStats();
             return stats.limit_bytes ?? 0;
         } catch (e) {
             logger.debug("MediaQuotaManager.getStorageQuota failed, returning 0", e);
@@ -234,19 +233,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
 
     public async getStorageUsagePercent(): Promise<number> {
         try {
-            const quota = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<QuotaCheckResponse>(
-                        Method.Get,
-                        "/quota/check",
-                        undefined,
-                        undefined,
-                        {
-                            prefix: MediaPrefix.V1,
-                        },
-                    ),
-                "getStorageUsagePercent",
-            );
+            const quota = await this.checkQuota();
             if (!quota.limit) return 0;
             return (quota.used / quota.limit) * 100;
         } catch (e) {
@@ -283,19 +270,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
             throw new ValidationError("Required bytes must be non-negative");
         }
         try {
-            const quota = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<QuotaCheckResponse>(
-                        Method.Get,
-                        "/quota/check",
-                        undefined,
-                        undefined,
-                        {
-                            prefix: MediaPrefix.V1,
-                        },
-                    ),
-                "hasStorageSpace",
-            );
+            const quota = await this.checkQuota();
             return quota.remaining >= requiredBytes;
         } catch (e) {
             logger.debug("MediaQuotaManager.hasStorageSpace failed, assuming space available", e);

@@ -1,7 +1,7 @@
 ---
 module: saml
 generated_from: docs/api-contract/generated/modules/saml.json
-generated_hash: sha256-e8fa77294554c00dce3f09f20ab7ba189ce64a68f3b22607c7c71144a1a98c90
+generated_hash: sha256-3bb8b756e737ddbf0d2965fa0e815b00394890d0274b68435a8e8006e8c48ea1
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -43,20 +43,29 @@ last_reviewed: 2026-05-03
 
 ## SDK 对齐状态
 
-| 端点                                              | SDK Manager     | 方法                     | 状态      |
-| ------------------------------------------------- | --------------- | ------------------------ | --------- |
-| `GET /login/sso/redirect/saml`                    | `MatrixClient`  | `getSsoRedirectUrl()`    | ✅ 已封装 |
-| `POST /login/saml/callback`                       | `MatrixClient`  | `login()`                | ✅ 已封装 |
-| `GET /saml/metadata`                              | `AdminManager`  | `getSamlMetadata()`      | ✅ 已封装 |
-| `GET /saml/sp_metadata`                           | `AdminManager`  | `getSpMetadata()`        | ✅ 已封装 |
-| `POST /_synapse/admin/v1/saml/metadata/refresh`   | `AdminManager`  | `refreshIdpMetadata()`   | ✅ 已封装 |
-| `GET /_synapse/admin/v1/saml/config`              | `AdminManager`  | `getSamlConfig()`        | ✅ 已封装 |
-| `PUT /_synapse/admin/v1/saml/config`              | `AdminManager`  | `updateSamlConfig()`     | ✅ 已封装 |
-| `GET /_synapse/admin/v1/saml/mappings`            | `AdminManager`  | `listSamlMappings()`     | ✅ 已封装 |
-| `GET /_synapse/admin/v1/saml/mapping/{name_id}`   | `AdminManager`  | `getSamlMapping()`       | ✅ 已封装 |
-| `PUT /_synapse/admin/v1/saml/mapping/{name_id}`   | `AdminManager`  | `updateSamlMapping()`    | ✅ 已封装 |
-| `DELETE /_synapse/admin/v1/saml/mapping/{name_id}`| `AdminManager`  | `deleteSamlMapping()`    | ✅ 已封装 |
-| `POST /_synapse/admin/v1/saml/logout`             | `AdminManager`  | `samlLogout()`           | ✅ 已封装 |
+| 端点                                              | SDK Manager        | 方法                      | 状态      |
+| ------------------------------------------------- | ------------------ | ------------------------- | --------- |
+| `POST /login/sso/redirect/saml`                   | `SamlAuthManager`  | `initiateLogin()`         | ✅ 已封装 |
+| `POST /login/saml/callback`                       | `SamlAuthManager`  | `handleCallback()`        | ✅ 已封装 |
+| `GET /logout/saml`                                | `SamlAuthManager`  | `logout()`                | ✅ 已封装 |
+| `GET /logout/saml/callback`                       | `SamlAuthManager`  | `handleLogoutCallback()`  | ✅ 已封装 |
+| `GET /saml/metadata`                              | `SamlAuthManager`  | `getIdpMetadata()`        | ✅ 已封装 |
+| `GET /saml/sp_metadata`                           | `SamlAuthManager`  | `getSpMetadata()`         | ✅ 已封装 |
+| `POST /_synapse/admin/v1/saml/metadata/refresh`   | `SamlAuthManager`  | `refreshMetadata()`       | ✅ 已封装 |
+| `GET /_synapse/admin/v1/saml/config`              | `SamlAuthManager`  | `getConfig()`             | ✅ 已封装 |
+| `PUT /_synapse/admin/v1/saml/config`              | `SamlAuthManager`  | `updateConfig()`          | ✅ 已封装 |
+| `GET /_synapse/admin/v1/saml/mappings`            | `SamlAuthManager`  | `getUserMappings()`       | ✅ 已封装 |
+| `GET /_synapse/admin/v1/saml/mapping/{name_id}`   | `SamlAuthManager`  | `getUserMapping()`        | ✅ 已封装 |
+| `PUT /_synapse/admin/v1/saml/mapping/{name_id}`   | `SamlAuthManager`  | `updateUserMapping()`     | ✅ 已封装 |
+| `DELETE /_synapse/admin/v1/saml/mapping/{name_id}`| `SamlAuthManager`  | `removeUserMapping()`     | ✅ 已封装 |
+| `POST /_synapse/admin/v1/saml/logout`             | `SamlAuthManager`  | `adminLogout()`           | ✅ 已封装 |
+
+## 覆盖率口径
+
+- **后端 Ledger 路由总数**: 16
+- **SDK 已封装路由数**: 16
+- **已绑定生成路由模板**: 16
+- **契约覆盖率**: 100%
 
 ### 运行时配置覆盖白名单
 

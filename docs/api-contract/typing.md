@@ -1,7 +1,7 @@
 ---
 module: typing
 generated_from: docs/api-contract/generated/modules/typing.json
-generated_hash: sha256-c22be42079c5e9d6cd1667df791a0a2f148c8d3e31e1d12f3d2836d305b97e2b
+generated_hash: sha256-5935011e2da1332da9230316f8642918542dbf6c92c637fc73578c676ff05ca3
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -124,7 +124,15 @@ interface BatchTypingResponse {
 
 ### 3.3 已知差异
 
-- 无
+- `TypingManager` 额外提供 `fetchTypingUsers()`、`fetchUserTyping()`、`fetchRoomsTyping()`，
+  用于在本地 `m.typing` 缓存之外直接查询服务端实时状态；请求体和响应字段已对齐
+  `room_ids` / `user_ids` 的生成契约。
+
+### 3.4 人工 Review 对齐
+
+- `src/typing/index.ts` 已绑定生成的 `route-table` 路径模式，避免手写路径与 Ledger 漂移。
+- 批量查询兼容 `rooms` 包装响应与旧格式裸对象响应，便于平滑过渡历史实现。
+- 单元测试已覆盖 `v3` 前缀、`room_ids` 请求体、`user_ids` 响应映射及旧字段回退逻辑。
 
 ## 四、常见错误码
 
@@ -140,3 +148,4 @@ interface BatchTypingResponse {
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
 | 2026-04-27 | 初版 | -    |
+| 2026-05-11 | 补充 TypingManager 人工封装对齐说明与测试口径 | 文档与实际实现同步 |

@@ -18,19 +18,11 @@ export const E2EE_ROUTES_STATUS_SCENARIOS = [
 export type E2eeStatusScenario = (typeof E2EE_ROUTES_STATUS_SCENARIOS)[number];
 
 export const E2EE_ROUTES_ERROR_SCENARIOS = [
-    { scenario: "缺少访问令牌", httpOrErrcode: "401 / M_MISSING_TOKEN", sdkErrorType: "AuthError", handling: "缺少访问令牌" },
-    { scenario: "无效的访问令牌", httpOrErrcode: "401 / M_UNKNOWN_TOKEN", sdkErrorType: "AuthError", handling: "无效的访问令牌" },
-    { scenario: "资源不存在", httpOrErrcode: "404 / M_NOT_FOUND", sdkErrorType: "NotFoundError", handling: "资源不存在" },
-    { scenario: "签名无效", httpOrErrcode: "400 / M_INVALID_SIGNATURE", sdkErrorType: "ApiError", handling: "签名无效" },
 ] as const;
 
 export type E2eeErrorScenario = (typeof E2EE_ROUTES_ERROR_SCENARIOS)[number];
 
 export const E2EE_ROUTES_ERRCODES = [
-    { errcode: "M_MISSING_TOKEN", httpStatus: "401", note: "缺少访问令牌" },
-    { errcode: "M_UNKNOWN_TOKEN", httpStatus: "401", note: "无效的访问令牌" },
-    { errcode: "M_NOT_FOUND", httpStatus: "404", note: "资源不存在" },
-    { errcode: "M_INVALID_SIGNATURE", httpStatus: "400", note: "签名无效" },
 ] as const;
 
 export type E2eeErrcode = (typeof E2EE_ROUTES_ERRCODES)[number];

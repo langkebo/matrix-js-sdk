@@ -24,14 +24,14 @@ describe("API encapsulation audit", () => {
     const auditScriptPath = fileURLToPath(new URL("../../scripts/api-contract-audit.cjs", import.meta.url));
 
     it("uses a public request for auth login flows", async () => {
-        const request = vi.fn();
-        const authedRequest = vi.fn().mockResolvedValue({ flows: [] });
+        const request = vi.fn().mockResolvedValue({ flows: [] });
+        const authedRequest = vi.fn();
         const manager = new AuthManager({ http: { request, authedRequest } } as any);
 
         await manager.getSupportedLoginFlows();
 
-        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, { prefix: undefined });
-        expect(request).not.toHaveBeenCalled();
+        expect(request).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, { prefix: undefined });
+        expect(authedRequest).not.toHaveBeenCalled();
     });
 
     it("uses relative device paths with the v3 client prefix", async () => {
@@ -118,6 +118,7 @@ describe("API encapsulation audit", () => {
         const authedRequest = vi.fn().mockResolvedValue({ content_uri: "mxc://test/media" });
         const manager = new MediaManager({
             http: { authedRequest },
+            baseUrl: "https://hs.example.com",
         } as any);
 
         await manager.uploadContentWithId("test", "media", new Blob(["data"]), "text/plain");
@@ -148,6 +149,10 @@ describe("API encapsulation audit", () => {
                 prefix: MediaPrefix.V3,
             },
         );
+        expect(manager.getDownloadUrl("mxc://test/media")).toBe("https://hs.example.com/_matrix/media/v3/download/test/media");
+        expect(
+            manager.getThumbnailUrl("mxc://test/media", { width: 64, height: 64, method: "crop" }),
+        ).toBe("https://hs.example.com/_matrix/media/v3/thumbnail/test/media?width=64&height=64&method=crop");
     });
 
     it("uses the v3 friends list contract and v1 friend request contract", async () => {
@@ -188,20 +193,20 @@ describe("API encapsulation audit", () => {
     });
 
     it("uses relative public rooms paths for federation room discovery", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ chunk: [] });
+        const request = vi.fn().mockResolvedValue({ chunk: [] });
         const manager = new FederationManager({
-            http: { authedRequest },
+            http: { authedRequest: vi.fn(), request },
             getUserId: () => "@admin:test",
         } as any);
 
         await manager.getPublicRoomsOnServer("example.com", 20, "s123");
 
-        expect(authedRequest).toHaveBeenCalledWith(
+        expect(request).toHaveBeenCalledWith(
             Method.Get,
-            "/publicRooms",
-            { limit: 20, since: "s123" },
+            "/_matrix/federation/v1/publicRooms",
+            { limit: 20, server_name: "example.com", since: "s123" },
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: "" },
         );
     });
 

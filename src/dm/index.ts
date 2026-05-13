@@ -83,6 +83,13 @@ export interface CreateDmRoomResponse {
     room_id: string;
 }
 
+export interface CreateDmRoomOptions {
+    name?: string;
+    topic?: string;
+    invite?: string[];
+    visibility?: "private" | "public";
+}
+
 export interface DirectRoomsResponse {
     rooms: IDirectRoomsMap;
 }
@@ -97,6 +104,18 @@ export interface DmPartnerResponse {
     user_id: string;
     display_name: string;
     avatar_url: string;
+}
+
+export interface UpdateDirectRoomResponse {
+    room_id: string;
+    users: string[];
+    direct_map: IDirectRoomsMap;
+    updated_ts: number;
+}
+
+export interface UpdateDirectRoomOptions {
+    userIds?: string[];
+    content?: Record<string, unknown>;
 }
 
 interface DirectMessageManagerEventMap {
@@ -846,27 +865,51 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      *
      * @param userId - 对端用户 ID
      * @param options - 可选配置
-     * @returns 新创建的 DM 房间 ID
+     * @returns 后端原始响应
      */
-    async createDmRoom(userId: string, options?: { name?: string; topic?: string }): Promise<string> {
+    async createDmRoomDetailed(userId: string, options?: CreateDmRoomOptions): Promise<CreateDmRoomResponse> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
 
+        AdminValidators.validateUserId(userId);
+        options?.invite?.forEach((invitee) => AdminValidators.validateUserId(invitee));
+
         try {
-            const response = await this.withRetry(async () => {
+            return await this.withRetry(async () => {
+                const invite = options?.invite?.length ? Array.from(new Set([userId, ...options.invite])) : undefined;
                 return await this.client.http.authedRequest<CreateDmRoomResponse>(
                     Method.Post,
                     "/create_dm",
                     undefined,
                     {
                         user_id: userId,
+                        invite,
                         is_direct: true,
-                        ...options,
+                        name: options?.name,
+                        topic: options?.topic,
+                        visibility: options?.visibility,
                     },
                     { prefix: ClientPrefix.V3 },
                 );
             });
+        } catch (error) {
+            throw this.normalizeError(error, "createDmRoomDetailed");
+        }
+    }
+
+    /**
+     * 创建 DM 房间 (专用 API 封装)
+     *
+     * 后端实现: POST /_matrix/client/v3/create_dm
+     *
+     * @param userId - 对端用户 ID
+     * @param options - 可选配置
+     * @returns 新创建的 DM 房间 ID
+     */
+    async createDmRoom(userId: string, options?: CreateDmRoomOptions): Promise<string> {
+        try {
+            const response = await this.createDmRoomDetailed(userId, options);
 
             const roomId = response.room_id;
 
@@ -905,24 +948,42 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         }
     }
 
-    async updateDirectRoom(roomId: string, userIds: string[]): Promise<void> {
+    async updateDirectRoom(roomId: string, userIds: string[]): Promise<UpdateDirectRoomResponse>;
+    async updateDirectRoom(roomId: string, options: UpdateDirectRoomOptions): Promise<UpdateDirectRoomResponse>;
+    async updateDirectRoom(
+        roomId: string,
+        userIdsOrOptions: string[] | UpdateDirectRoomOptions,
+    ): Promise<UpdateDirectRoomResponse> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
 
+        const usersToValidate = Array.isArray(userIdsOrOptions)
+            ? userIdsOrOptions
+            : userIdsOrOptions.userIds ?? [];
+        usersToValidate.forEach((userId) => AdminValidators.validateUserId(userId));
+
+        const body =
+            Array.isArray(userIdsOrOptions)
+                ? { users: userIdsOrOptions }
+                : userIdsOrOptions.content
+                  ? { content: userIdsOrOptions.content }
+                  : { users: userIdsOrOptions.userIds ?? [] };
+
         try {
-            await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<UpdateDirectRoomResponse>(
                     Method.Put,
                     `/direct/${encodeURIComponent(roomId)}`,
                     undefined,
-                    { users: userIds },
+                    body,
                     { prefix: ClientPrefix.V3 },
                 );
             });
 
             this.emit(DMEvent.ListUpdated);
             this.emit(DMEvent.DMUpdated, roomId);
+            return response;
         } catch (error) {
             throw this.normalizeError(error, "updateDirectRoom");
         }

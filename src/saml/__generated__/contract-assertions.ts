@@ -6,10 +6,10 @@
 
 import { SAML_ROUTES } from "./route-table";
 
-export const SAML_ROUTES_ENTRY_COUNT = 9 as const;
+export const SAML_ROUTES_ENTRY_COUNT = 16 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _SamlEntryCountAssertion: 9 = SAML_ROUTES.length;
+const _SamlEntryCountAssertion: 16 = SAML_ROUTES.length;
 void _SamlEntryCountAssertion;
 
 export const SAML_ROUTES_STATUS_SCENARIOS = [
@@ -25,42 +25,12 @@ export const SAML_ROUTES_STATUS_SCENARIOS = [
 export type SamlStatusScenario = (typeof SAML_ROUTES_STATUS_SCENARIOS)[number];
 
 export const SAML_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "SAML 请求已过期或响应校验失败",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "重新发起 SSO 流程，不复用旧 RelayState",
-    },
-    {
-        scenario: "SAML 断言或元数据格式不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "检查 SAMLResponse、RelayState 与 IdP 元数据配置",
-    },
-    {
-        scenario: "身份映射被策略拒绝",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "提示用户联系管理员确认账号映射策略",
-    },
-    {
-        scenario: "登出会话不存在",
-        httpOrErrcode: "404 / M_NOT_FOUND",
-        sdkErrorType: "NotFoundError",
-        handling: "将本地会话视为已失效并刷新登录态",
-    },
-    {
-        scenario: "限流或短暂服务异常",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "使用退避重试",
-    },
-    {
-        scenario: "其他 API 错误",
-        httpOrErrcode: "其他 4xx/5xx",
-        sdkErrorType: "ApiError",
-        handling: "按 code 与 statusCode 做兜底处理",
-    },
+    { scenario: "SAML 请求已过期或响应校验失败", httpOrErrcode: "401 / M_UNKNOWN_TOKEN", sdkErrorType: "AuthError", handling: "重新发起 SSO 流程，不复用旧 RelayState" },
+    { scenario: "SAML 断言或元数据格式不合法", httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "检查 SAMLResponse、RelayState 与 IdP 元数据配置" },
+    { scenario: "身份映射被策略拒绝", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "提示用户联系管理员确认账号映射策略" },
+    { scenario: "登出会话不存在", httpOrErrcode: "404 / M_NOT_FOUND", sdkErrorType: "NotFoundError", handling: "将本地会话视为已失效并刷新登录态" },
+    { scenario: "限流或短暂服务异常", httpOrErrcode: "429 / M_LIMIT_EXCEEDED", sdkErrorType: "RetryableError", handling: "使用退避重试" },
+    { scenario: "其他 API 错误", httpOrErrcode: "其他 4xx/5xx", sdkErrorType: "ApiError", handling: "按 code 与 statusCode 做兜底处理" },
 ] as const;
 
 export type SamlErrorScenario = (typeof SAML_ROUTES_ERROR_SCENARIOS)[number];

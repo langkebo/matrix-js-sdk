@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/captcha.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `captcha` module. */
@@ -13,6 +14,9 @@ export const CAPTCHA_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/register/captcha/send" },
     { method: "GET", path: "/_matrix/client/r0/register/captcha/status" },
     { method: "POST", path: "/_matrix/client/r0/register/captcha/verify" },
+    { method: "POST", path: "/_matrix/client/v3/register/captcha/send" },
+    { method: "GET", path: "/_matrix/client/v3/register/captcha/status" },
+    { method: "POST", path: "/_matrix/client/v3/register/captcha/verify" },
     { method: "POST", path: "/_synapse/admin/v1/captcha/cleanup" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
@@ -31,11 +35,8 @@ export type CaptchaPath = CaptchaRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type CaptchaReplaceBraces<P extends string> = P extends `${infer A}{${infer ParamSegment}}${infer B}`
-    ? ParamSegment extends string
-        ? `${A}${string}${CaptchaReplaceBraces<B>}`
-        : never
-    : P;
+export type CaptchaReplaceBraces<P extends string> =
+    P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${CaptchaReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */
 export type CaptchaPathPattern = CaptchaReplaceBraces<CaptchaPath>;

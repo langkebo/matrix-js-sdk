@@ -9,4 +9,14 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type NotificationsContractDtoPlaceholder = never;
+export interface INotificationsResponse {
+    next_token?: string;
+    notifications: Array<{
+        actions: unknown[];
+        event: Record<string, unknown>;
+        profile_tag?: string;
+        read: boolean;
+        room_id: string;
+        ts: number;
+    }>;
+}

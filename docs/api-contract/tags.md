@@ -1,13 +1,15 @@
 ---
 module: tags
 generated_from: docs/api-contract/generated/modules/tags.json
-generated_hash: sha256-6beabeb1588011a108da7a49c37b0bf2d880dc6b0b4fe8482553e5d8db72a93f
+generated_hash: sha256-b17581525fb03a6ffa83fd109852b428c88019b227fee63d2db84aae23ffd076
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
 
 # 标签契约
 
+> **审计状态**: ✅ `RoomManager` / `MatrixClient` 标签入口与独立 `TagManager` 已绑定生成 `TagsPathPattern`
+>
 > 审查来源: `synapse-rust/src/web/routes/room.rs` (tags section)
 
 ## 真实后端路由
@@ -61,3 +63,16 @@ last_reviewed: 2026-05-03
 | `M_FORBIDDEN`      | `403`     | 无权读取或写入该房间标签      |
 | `M_NOT_FOUND`      | `404`     | 房间或指定标签不存在          |
 | `M_LIMIT_EXCEEDED` | `429`     | 标签相关请求触发限流          |
+
+## SDK 对齐结论
+
+- `src/room/RoomManager.ts` 中的 `getRoomTags()`、`setRoomTag()`、`deleteRoomTag()` 已绑定生成的 `TagsPathPattern`，因此 `MatrixClient` 对外暴露的同名入口也一并纳入契约约束。
+- `src/tags/index.ts` 中的独立 `TagManager` 读取、写入、删除标签路径同样绑定到 `TagsPathPattern`，保留既有缓存、事件和 fallback 语义不变。
+- `spec/unit/room-manager.spec.ts` 与 `spec/unit/tags.spec.ts` 已补充显式路径断言，覆盖 `GET /tags`、`PUT /tags/{tag}`、`DELETE /tags/{tag}` 的 v3 主路径调用。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 8
+- **SDK 主路径覆盖**: 8/8
+- **已绑定生成路由模板**: 8/8
+- **契约覆盖率**: 100%

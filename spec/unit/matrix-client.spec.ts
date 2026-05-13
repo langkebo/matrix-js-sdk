@@ -623,6 +623,30 @@ describe("MatrixClient", function () {
         });
     });
 
+    describe("searchRooms", () => {
+        it("calls the search rooms helper route", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                results: [{ room_id: "!room:example.com" }],
+                count: 1,
+                next_batch: null,
+            });
+
+            await expect(client.searchRooms("matrix", 20)).resolves.toEqual({
+                results: [{ room_id: "!room:example.com" }],
+                count: 1,
+                next_batch: null,
+            });
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/search_rooms",
+                undefined,
+                { search_term: "matrix", limit: 20 },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
     describe("getSafeUserId()", () => {
         it("returns the logged in user id", () => {
             expect(client.getSafeUserId()).toEqual(userId);
@@ -2642,6 +2666,36 @@ describe("MatrixClient", function () {
                 ReceiptType.ReadPrivate,
             );
         });
+
+        it("sendTyping calls the room typing helper route", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({});
+
+            await expect(client.sendTyping("!room:example.org", true, 5000)).resolves.toEqual({});
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/rooms/!room%3Aexample.org/typing/%40alice%3Abar",
+                undefined,
+                { typing: true, timeout: 5000 },
+                undefined,
+            );
+        });
+
+        it("getRoomTyping fetches typing users on v3", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                user_ids: ["@alice:bar", "@bob:example.org"],
+            } as any);
+
+            await expect(client.getRoomTyping("!room:example.org")).resolves.toEqual(["@alice:bar", "@bob:example.org"]);
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/rooms/!room%3Aexample.org/typing",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
     });
 
     describe("setRoomTopic", () => {
@@ -2675,6 +2729,168 @@ describe("MatrixClient", function () {
             client.sendStateEvent = sendStateEvent;
             await client.setRoomTopic(roomId, "pizza", "<b>pizza</b>");
             expect(sendStateEvent).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("auth compatibility contract alignment", () => {
+        it("delegates register to AuthManager", async () => {
+            const authManager = {
+                register: vi.fn().mockResolvedValue({
+                    user_id: "@alice:bar",
+                    access_token: "token123",
+                    device_id: "DEVICE1",
+                }),
+            };
+            vi.spyOn(client, "getAuthManager").mockReturnValue(authManager as any);
+
+            await expect(client.register("alice", "password123", null, { type: "m.login.dummy" })).resolves.toEqual({
+                user_id: "@alice:bar",
+                access_token: "token123",
+                device_id: "DEVICE1",
+            });
+
+            expect(authManager.register).toHaveBeenCalledWith(
+                "alice",
+                "password123",
+                null,
+                { type: "m.login.dummy" },
+                undefined,
+                undefined,
+                undefined,
+            );
+        });
+
+        it("calls the register email token helper route", async () => {
+            vi.mocked(client.http.request).mockClear().mockResolvedValue({ sid: "sid123" } as any);
+
+            await expect(
+                client.requestRegisterEmailToken("alice@example.org", "secret456", 7, "https://next.example.org"),
+            ).resolves.toEqual({ sid: "sid123" });
+
+            expect(client.http.request).toHaveBeenCalledWith(Method.Post, "/register/email/requestToken", undefined, {
+                email: "alice@example.org",
+                client_secret: "secret456",
+                send_attempt: 7,
+                next_link: "https://next.example.org",
+            });
+        });
+
+        it("returns false when isUsernameAvailable hits M_USER_IN_USE", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockRejectedValue({ errcode: "M_USER_IN_USE" });
+
+            await expect(client.isUsernameAvailable("alice")).resolves.toBe(false);
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/register/available", {
+                username: "alice",
+            });
+        });
+    });
+
+    describe("account compatibility contract alignment", () => {
+        it("calls whoami through the MatrixClient compatibility surface", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                user_id: "@alice:bar",
+                device_id: "DEVICE1",
+            } as any);
+
+            await expect(client.whoami()).resolves.toEqual({
+                user_id: "@alice:bar",
+                device_id: "DEVICE1",
+            });
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/account/whoami");
+        });
+
+        it("delegates threepid compatibility helpers to ThreePidsManager", async () => {
+            const threePidsManager = {
+                getThreePids: vi.fn().mockResolvedValue({
+                    threepids: [{ medium: "email", address: "alice@example.org" }],
+                }),
+                bindThreePid: vi.fn().mockResolvedValue({}),
+                deleteThreePid: vi.fn().mockResolvedValue({ id_server_unbind_result: "success" }),
+                unbindThreePid: vi.fn().mockResolvedValue({ id_server_unbind_result: "no-support" }),
+            };
+            vi.spyOn(client, "getThreePidsManager").mockReturnValue(threePidsManager as any);
+            vi.spyOn(client, "getIdentityServerUrl").mockReturnValue("https://identity.example.org");
+
+            await expect(client.getThreePids()).resolves.toEqual({
+                threepids: [{ medium: "email", address: "alice@example.org" }],
+            });
+            await expect(
+                client.bindThreePid({
+                    client_secret: "secret456",
+                    sid: "sid123",
+                    id_server: "identity.example.org",
+                    id_access_token: "token123",
+                }),
+            ).resolves.toEqual({});
+            await expect(client.deleteThreePid("email", "alice@example.org")).resolves.toEqual({
+                id_server_unbind_result: "success",
+            });
+            await expect(client.unbindThreePid("email", "alice@example.org")).resolves.toEqual({
+                id_server_unbind_result: "no-support",
+            });
+
+            expect(threePidsManager.getThreePids).toHaveBeenCalledWith();
+            expect(threePidsManager.bindThreePid).toHaveBeenCalledWith(
+                "secret456",
+                "sid123",
+                "identity.example.org",
+                "token123",
+            );
+            expect(threePidsManager.deleteThreePid).toHaveBeenCalledWith("email", "alice@example.org");
+            expect(threePidsManager.unbindThreePid).toHaveBeenCalledWith(
+                "email",
+                "alice@example.org",
+                "https://identity.example.org",
+            );
+        });
+    });
+
+    describe("password recovery compatibility contract alignment", () => {
+        it("delegates password recovery token helpers to PasswordResetManager", async () => {
+            const passwordResetManager = {
+                requestPasswordEmailToken: vi.fn().mockResolvedValue({ sid: "sid-email" }),
+                requestPasswordMsisdnToken: vi.fn().mockResolvedValue({ sid: "sid-msisdn" }),
+            };
+            vi.spyOn(client, "getPasswordResetManager").mockReturnValue(passwordResetManager as any);
+
+            await expect(
+                client.requestPasswordEmailToken("alice@example.org", "secret456", 1, "https://next.example.org"),
+            ).resolves.toEqual({ sid: "sid-email" });
+            await expect(
+                client.requestPasswordMsisdnToken("GB", "07123456789", "secret456", 2, "https://next.example.org"),
+            ).resolves.toEqual({ sid: "sid-msisdn" });
+
+            expect(passwordResetManager.requestPasswordEmailToken).toHaveBeenCalledWith(
+                "alice@example.org",
+                "secret456",
+                1,
+                "https://next.example.org",
+            );
+            expect(passwordResetManager.requestPasswordMsisdnToken).toHaveBeenCalledWith(
+                "GB",
+                "07123456789",
+                "secret456",
+                2,
+                "https://next.example.org",
+            );
+        });
+    });
+
+    describe("identity server compatibility contract alignment", () => {
+        it("delegates get/set identity server URL to IdentityServerManager", () => {
+            const identityServerManager = {
+                getIdentityServerUrl: vi.fn().mockReturnValue("identity.example.org"),
+                setIdentityServerUrl: vi.fn(),
+            };
+            vi.spyOn(client, "getIdentityServerManager").mockReturnValue(identityServerManager as any);
+
+            expect(client.getIdentityServerUrl(true)).toBe("identity.example.org");
+            client.setIdentityServerUrl("https://identity.example.org/");
+
+            expect(identityServerManager.getIdentityServerUrl).toHaveBeenCalledWith(true);
+            expect(identityServerManager.setIdentityServerUrl).toHaveBeenCalledWith("https://identity.example.org/");
         });
     });
 
@@ -2888,6 +3104,162 @@ describe("MatrixClient", function () {
                 transaction_id: "txn-1",
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
+            });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+        });
+
+        it("uses v1 prefix for sendDeviceSigningVerificationKeyAgreement by default", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-1",
+                confirmed: false,
+            });
+
+            await client.sendDeviceSigningVerificationKeyAgreement({
+                transaction_id: "txn-1",
+                pubkey: "curve25519:key",
+            });
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/device_signing/verify_key_agreement");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                transaction_id: "txn-1",
+                pubkey: "curve25519:key",
+            });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
+        });
+
+        it("supports r0 prefix for confirmDeviceSigningVerificationMac", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-1",
+                verified: true,
+            });
+
+            await client.confirmDeviceSigningVerificationMac(
+                {
+                    transaction_id: "txn-1",
+                    mac: "mac-value",
+                },
+                "r0",
+            );
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/device_signing/verify_mac");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                transaction_id: "txn-1",
+                mac: "mac-value",
+            });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+        });
+
+        it("uses v1 prefix for completeDeviceSigningVerification by default", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-1",
+            });
+
+            await client.completeDeviceSigningVerification({
+                transaction_id: "txn-1",
+            });
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/device_signing/verify_done");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                transaction_id: "txn-1",
+            });
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
+        });
+
+        it("supports r0 prefix for cancelDeviceSigningVerification", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-1",
+                state: "cancelled",
+            });
+
+            await client.cancelDeviceSigningVerification(
+                {
+                    transaction_id: "txn-1",
+                    code: "m.user",
+                    reason: "Cancelled by user",
+                },
+                "r0",
+            );
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/device_signing/verify_cancel");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                transaction_id: "txn-1",
+                code: "m.user",
+                reason: "Cancelled by user",
+            });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+        });
+
+        it("gets verification requests on the selected legacy prefix", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                requests: [],
+            });
+
+            await client.getVerificationRequests("r0");
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("GET");
+            expect(path).toBe("/keys/device_signing/requests");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toBeUndefined();
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+        });
+
+        it("shows QR codes on the v1 verification prefix", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-qr",
+            });
+
+            await client.showQrCode();
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("GET");
+            expect(path).toBe("/keys/qr_code/show");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toBeUndefined();
+            expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
+        });
+
+        it("scans QR codes on the selected legacy prefix", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                transaction_id: "txn-qr",
+                state: "pending",
+            });
+
+            await client.scanQrCode(
+                {
+                    transaction_id: "txn-qr",
+                    server_name: "example.org",
+                    user_id: "@alice:example.org",
+                    device_id: "DEVICE",
+                    device_ed25519_key: "ed25519",
+                    device_curve25519_key: "curve25519",
+                },
+                "r0",
+            );
+
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            expect(method).toBe("POST");
+            expect(path).toBe("/keys/qr_code/scan");
+            expect(queryParams).toBeUndefined();
+            expect(requestContent).toEqual({
+                transaction_id: "txn-qr",
+                server_name: "example.org",
+                user_id: "@alice:example.org",
+                device_id: "DEVICE",
+                device_ed25519_key: "ed25519",
+                device_curve25519_key: "curve25519",
             });
             expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
         });
@@ -3119,6 +3491,119 @@ describe("MatrixClient", function () {
                 ],
                 total: 1,
             });
+        });
+
+        it("calls the joined rooms helper route on v3", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                joined_rooms: ["!joined:example.org"],
+            });
+
+            await expect(client.getJoinedRooms()).resolves.toEqual({
+                joined_rooms: ["!joined:example.org"],
+            });
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/joined_rooms", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
+        });
+    });
+
+    describe("tag delegation contract alignment", () => {
+        it("delegates room tag operations to RoomManager", async () => {
+            const roomManager = {
+                getRoomTags: vi.fn().mockResolvedValue({ tags: { "m.favourite": { order: 0.5 } } }),
+                setRoomTag: vi.fn().mockResolvedValue({}),
+                deleteRoomTag: vi.fn().mockResolvedValue({}),
+            };
+            vi.spyOn(client, "getRoomManager").mockReturnValue(roomManager as any);
+
+            await expect(client.getRoomTags("!room:example.org")).resolves.toEqual({
+                tags: { "m.favourite": { order: 0.5 } },
+            });
+            await expect(client.setRoomTag("!room:example.org", "m.favourite", { order: 0.5 })).resolves.toEqual({});
+            await expect(client.deleteRoomTag("!room:example.org", "m.favourite")).resolves.toEqual({});
+
+            expect(roomManager.getRoomTags).toHaveBeenCalledWith("!room:example.org");
+            expect(roomManager.setRoomTag).toHaveBeenCalledWith("!room:example.org", "m.favourite", { order: 0.5 });
+            expect(roomManager.deleteRoomTag).toHaveBeenCalledWith("!room:example.org", "m.favourite");
+        });
+    });
+
+    describe("relations compatibility contract alignment", () => {
+        it("delegates fetchRelations to RelationsManager", async () => {
+            const relationsManager = {
+                fetchRelations: vi.fn().mockResolvedValue({
+                    chunk: [],
+                    next_batch: "next",
+                    prev_batch: "prev",
+                }),
+            };
+            vi.spyOn(client, "getRelationsManager").mockReturnValue(relationsManager as any);
+
+            await expect(
+                client.fetchRelations("!room:example.org", "$event", RelationType.Reference, EventType.RoomMessage, {
+                    dir: Direction.Backward,
+                }),
+            ).resolves.toEqual({
+                chunk: [],
+                next_batch: "next",
+                prev_batch: "prev",
+            });
+
+            expect(relationsManager.fetchRelations).toHaveBeenCalledWith(
+                "!room:example.org",
+                "$event",
+                RelationType.Reference,
+                EventType.RoomMessage,
+                { dir: Direction.Backward },
+            );
+        });
+
+        it("keeps the MatrixClient relations compatibility wrapper wired to fetchRoomEvent and fetchRelations", async () => {
+            const originalEvent = { event_id: "$event", sender: "@alice:bar" };
+            const relatedEvent = { event_id: "$rel-1", sender: "@bob:bar" };
+
+            vi.spyOn(client, "fetchRoomEvent").mockResolvedValue(originalEvent as any);
+            vi.spyOn(client, "fetchRelations").mockResolvedValue({
+                chunk: [relatedEvent],
+                next_batch: "next",
+                prev_batch: "prev",
+            } as any);
+            vi.spyOn(client, "getEventMapper").mockReturnValue(((event: unknown) => event) as any);
+
+            await expect(client.relations("!room:example.org", "$event", RelationType.Reference, null)).resolves.toEqual({
+                originalEvent,
+                events: [relatedEvent],
+                nextBatch: "next",
+                prevBatch: "prev",
+            });
+
+            expect(client.fetchRoomEvent).toHaveBeenCalledWith("!room:example.org", "$event");
+            expect(client.fetchRelations).toHaveBeenCalledWith(
+                "!room:example.org",
+                "$event",
+                RelationType.Reference,
+                null,
+                { dir: Direction.Backward },
+            );
+        });
+
+        it("calls the aggregations route from the MatrixClient compatibility helper", async () => {
+            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
+                chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
+            });
+
+            await expect(client.getAggregations("!room:example.org", "$event", RelationType.Annotation)).resolves.toEqual({
+                chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
+            });
+
+            expect(client.http.authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/rooms/!room%3Aexample.org/aggregations/%24event/m.annotation",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
         });
     });
 
@@ -3844,6 +4329,44 @@ describe("MatrixClient", function () {
         });
     });
 
+    describe("account-data compatibility helpers", () => {
+        const TEST_HOMESERVER_URL = "https://alice-server.com";
+
+        it("createFilter persists a filter created through the MatrixClient compatibility API", async () => {
+            const testClient = createClient({ baseUrl: TEST_HOMESERVER_URL, userId });
+            const storeFilterSpy = vi.spyOn(testClient.store, "storeFilter");
+            vi.spyOn(testClient.http, "authedRequest").mockResolvedValue({ filter_id: "f123" } as any);
+
+            const definition = { room: { timeline: { limit: 20 } } } as any;
+            const created = await testClient.createFilter(definition);
+
+            expect(created.filterId).toBe("f123");
+            expect(testClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                `/user/${encodeURIComponent(userId)}/filter`,
+                undefined,
+                definition,
+            );
+            expect(storeFilterSpy).toHaveBeenCalled();
+        });
+
+        it("getFilter fetches and stores a filter when cache is disabled", async () => {
+            const testClient = createClient({ baseUrl: TEST_HOMESERVER_URL, userId });
+            const storeFilterSpy = vi.spyOn(testClient.store, "storeFilter");
+            vi.spyOn(testClient.store, "getFilter").mockReturnValue(null);
+            vi.spyOn(testClient.http, "authedRequest").mockResolvedValue({ room: { timeline: { limit: 10 } } } as any);
+
+            const filter = await testClient.getFilter(userId, "f321", false);
+
+            expect(filter.filterId).toBe("f321");
+            expect(testClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/user/${encodeURIComponent(userId)}/filter/f321`,
+            );
+            expect(storeFilterSpy).toHaveBeenCalled();
+        });
+    });
+
     describe("room lists and history", () => {
         function roomCreateEvent(newRoomId: string, predecessorRoomId: string): MatrixEvent {
             return new MatrixEvent({
@@ -4503,6 +5026,17 @@ describe("MatrixClient", function () {
                     },
                 });
             });
+        });
+    });
+
+    describe("notification timeline compatibility helpers", () => {
+        it("resetNotifTimelineSet resets the live timeline token to end", () => {
+            const resetLiveTimeline = vi.fn();
+            (client as any).notifTimelineSet = { resetLiveTimeline } as any;
+
+            client.resetNotifTimelineSet();
+
+            expect(resetLiveTimeline).toHaveBeenCalledWith("end");
         });
     });
 

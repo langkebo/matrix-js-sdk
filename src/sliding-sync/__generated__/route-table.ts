@@ -6,13 +6,14 @@
  * Source:        docs/api-contract/generated/modules/sliding_sync.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `sliding_sync` module. */
 export const SLIDING_SYNC_ROUTES = [
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3575/sync" },
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" },
-    { method: "POST", path: "/_matrix/client/v3/sync" },
+    { method: "POST", path: "/_matrix/client/v1/sync" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SLIDING_SYNC_ROUTES`. */
@@ -30,11 +31,8 @@ export type SlidingSyncPath = SlidingSyncRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type SlidingSyncReplaceBraces<P extends string> = P extends `${infer A}{${infer ParamSegment}}${infer B}`
-    ? ParamSegment extends string
-        ? `${A}${string}${SlidingSyncReplaceBraces<B>}`
-        : never
-    : P;
+export type SlidingSyncReplaceBraces<P extends string> =
+    P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${SlidingSyncReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */
 export type SlidingSyncPathPattern = SlidingSyncReplaceBraces<SlidingSyncPath>;

@@ -1,123 +1,178 @@
 ---
 module: dm
 generated_from: docs/api-contract/generated/modules/dm.json
-generated_hash: sha256-8aaf2934301123187745584fe231dc31619c8311447648e282cd91acc842de48
+generated_hash: sha256-e91202784e60f313341304d8424eec86e135ca518a278eef3055b9ee6c891d4e
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # DM 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/dm.rs`
+> 对应 SDK 模块: `src/dm/index.ts`
+
+## 本次复核结论
+
+- `DirectMessageManager` 是混合型 manager，不只是后端 HTTP wrapper:
+  - 一部分功能走本地 `m.direct` account data
+  - 一部分功能走 room scan fallback
+  - 一部分功能才走 `dm.rs` 提供的专用 HTTP 路由
+- `GET /rooms/{room_id}/dm` 的真实返回字段是 `{ "room_id": "...", "m.direct": true }`，不是 `is_dm`。
+- `updateDirectRoom()` 现在既支持原有 `{ users }` 写法，也支持后端原始 `{ content }` 写法，并返回完整响应。
+- `createDmRoom()` 仍保留“返回 `room_id` 字符串”的兼容 helper；若需要后端原始响应，可使用 `createDmRoomDetailed()`。
+- `createDmRoomDetailed()` / `createDmRoom()` 现已支持 `invite[]`、`visibility`。
+
+## 三层能力边界
+
+| 能力层 | 具体方法 | 是否属于后端 HTTP 契约 |
+| --- | --- | --- |
+| 本地 `m.direct` 读写 | `getDirectRoomsByUser()`、`setDmRoom()`、`removeDmRoom()` | 否 |
+| room scan / 本地推断 | `getDMRoomsFromRoomScan()`、`checkRoomIsDm()`、`getDmPartner()` | 否 |
+| 专用后端 DM API | `createDmRoomDetailed()`、`createDmRoom()`、`getDirectRoomsFromServer()`、`updateDirectRoom()`、`isDmRoomFromServer()`、`getDmPartnerFromServer()` | 是 |
 
 ## 真实后端路由
 
-| 方法 | 路径                                            | 说明                               | 认证 |
-| ---- | ----------------------------------------------- | ---------------------------------- | ---- |
-| POST | `/_matrix/client/r0/create_dm`                  | 创建私聊房间                       | 用户 |
-| POST | `/_matrix/client/v3/create_dm`                  | 创建私聊房间                       | 用户 |
-| GET  | `/_matrix/client/r0/direct`                     | 获取当前用户 direct map / 私聊房间 | 用户 |
-| PUT  | `/_matrix/client/r0/direct/{room_id}`           | 更新某个房间的私聊映射             | 用户 |
-| GET  | `/_matrix/client/v3/direct`                     | 获取当前用户 direct map / 私聊房间 | 用户 |
-| PUT  | `/_matrix/client/v3/direct/{room_id}`           | 更新某个房间的私聊映射             | 用户 |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/dm`         | 判断房间是否为私聊                 | 用户 |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取私聊对端资料                   | 用户 |
+| 方法 | 路径 | 说明 | SDK 主入口 |
+| --- | --- | --- | --- |
+| `POST` | `/_matrix/client/r0/create_dm` | 创建私聊房间兼容前缀 | SDK 默认走 `v3` |
+| `POST` | `/_matrix/client/v3/create_dm` | 创建私聊房间 | `createDmRoom()` |
+| `GET` | `/_matrix/client/r0/direct` | 获取 `m.direct` 映射兼容前缀 | SDK 默认走 `v3` |
+| `PUT` | `/_matrix/client/r0/direct/{room_id}` | 更新 direct map 兼容前缀 | SDK 默认走 `v3` |
+| `GET` | `/_matrix/client/v3/direct` | 获取当前用户 direct map | `getDirectRoomsFromServer()` |
+| `PUT` | `/_matrix/client/v3/direct/{room_id}` | 更新某房间的 direct map | `updateDirectRoom()` |
+| `GET` | `/_matrix/client/v3/rooms/{room_id}/dm` | 判断房间是否为 DM | `isDmRoomFromServer()` |
+| `GET` | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取 DM 对端资料 | `getDmPartnerFromServer()` |
 
-## 请求/响应要点
+## 参数与返回值对齐
 
-| 路径                         | 主要请求参数                               | 主要响应字段                                    |
-| ---------------------------- | ------------------------------------------ | ----------------------------------------------- |
-| `create_dm`                  | `user_id` / 对端用户信息、可选私聊创建配置 | `{ "room_id": "..." }`                          |
-| `direct`                     | 无                                         | direct map 或私聊列表                           |
-| `direct/{room_id}`           | `partner_user_id` 或 direct map 更新内容   | 空对象 / 更新结果                               |
-| `rooms/{room_id}/dm`         | `room_id`                                  | `{ "is_dm": true/false, ... }`                  |
-| `rooms/{room_id}/dm/partner` | `room_id`                                  | `room_id` `user_id` `display_name` `avatar_url` |
+### `POST /create_dm`
 
-## 代码可见稳定字段
+- 后端请求体支持:
+  - `user_id?`
+  - `invite?`
+  - `is_direct?`
+  - `name?`
+  - `topic?`
+  - `visibility?`
+- `DirectMessageManager.createDmRoomDetailed(userId, options?)` / `createDmRoom(userId, options?)` 当前发送:
 
-- `GET /rooms/{room_id}/dm/partner` 处理器明确返回:
-    - `room_id`
-    - `user_id`
-    - `display_name`
-    - `avatar_url`
-
-## 常见状态码
-
-| 状态码 | 说明                         |
-| ------ | ---------------------------- |
-| `200`  | 请求成功                     |
-| `400`  | 请求参数不合法               |
-| `401`  | Token 无效或缺失             |
-| `404`  | 房间不是私聊或找不到对端用户 |
-
-## 错误语义对齐（BaseManager）
-
-| 场景                | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                             |
-| ------------------- | -------------------------------------- | ---------------- | -------------------------------------- |
-| 未认证或 token 失效 | `401` / `M_UNKNOWN_TOKEN`              | `AuthError`      | 引导重新登录或刷新凭据，不重试业务请求 |
-| 目标资源不存在      | `404` / `M_NOT_FOUND`                  | `NotFoundError`  | 视为业务态失败，提示房间或用户不存在   |
-| 参数不合法          | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正请求参数后重试                     |
-| 限流或短暂服务异常  | `429` / `M_LIMIT_EXCEEDED`，`5xx`      | `RetryableError` | 使用退避重试，保留幂等保护             |
-| 其他 API 错误       | 其他 `4xx/5xx`                         | `ApiError`       | 按 `code` 与 `statusCode` 做兜底分支   |
-
-## 典型 errcode
-
-| errcode            | 常见 HTTP | 说明                               |
-| ------------------ | --------- | ---------------------------------- |
-| `M_UNKNOWN_TOKEN`  | `401`     | access token 无效、过期或缺失      |
-| `M_NOT_FOUND`      | `404`     | 私聊房间、对端用户或映射记录不存在 |
-| `M_BAD_JSON`       | `400`     | 请求体结构不符合接口要求           |
-| `M_INVALID_PARAM`  | `400`     | 参数类型或取值非法                 |
-| `M_LIMIT_EXCEEDED` | `429`     | 触发限流，需延迟重试               |
-
-## 备注
-
-- 这里记录的是后端真实私聊路由，不再把纯本地 `m.direct` 读写当成后端端点。
-- SDK 若还封装本地 `m.direct` 读写，应视为客户端行为，不属于后端 HTTP 契约。
-
-## SDK Manager 对应关系
-
-> 更新日期: 2026-04-03
-
-| 端点                              | SDK Manager            | 方法                         |
-| --------------------------------- | ---------------------- | ---------------------------- |
-| `POST /create_dm`                 | `DirectMessageManager` | `createDmRoom()`             |
-| `GET /direct`                     | `DirectMessageManager` | `getDirectRoomsFromServer()` |
-| `PUT /direct/{room_id}`           | `DirectMessageManager` | `updateDirectRoom()`         |
-| `GET /rooms/{room_id}/dm`         | `DirectMessageManager` | `isDmRoomFromServer()`       |
-| `GET /rooms/{room_id}/dm/partner` | `DirectMessageManager` | `getDmPartnerFromServer()`   |
-
-### Manager 初始化
-
-```typescript
-import { createClient, extendMatrixClientWithManagers } from "matrix-js-sdk";
-
-// 初始化所有 Manager
-await extendMatrixClientWithManagers();
-
-const client = createClient({ baseUrl: "https://matrix.org" });
-
-// 获取 DirectMessageManager 实例
-const dmManager = client.getDirectMessageManager();
-
-// 使用专用 API 创建私聊房间
-const roomId = await dmManager.createDmRoom("@user:matrix.org");
-
-// 从服务器获取私聊映射
-const dmMap = await dmManager.getDirectRoomsFromServer();
-
-// 检查房间是否为私聊
-const isDm = await dmManager.isDmRoomFromServer("!room:matrix.org");
-
-// 获取私聊对端资料
-const partner = await dmManager.getDmPartnerFromServer("!room:matrix.org");
-console.log("Partner:", partner.display_name);
+```json
+{
+  "user_id": "@user:example.com",
+  "invite": ["@user:example.com", "@other:example.com"],
+  "is_direct": true,
+  "name": "optional",
+  "topic": "optional",
+  "visibility": "private"
+}
 ```
 
-### DirectMessageManager 特性
+- 因此:
+  - `user_id`、`invite[]`、`is_direct`、`name`、`topic`、`visibility` 已对齐
+  - `createDmRoomDetailed()` 返回后端原始 `{ room_id }`
+  - `createDmRoom()` 在其上层继续返回 `room_id: string`
 
-- ✅ 事件系统 (`DMEvent`)
-- ✅ 私聊房间缓存 (`Map<string, DmRoomInfo>`)
-- ✅ 用户私聊映射缓存 (`Map<string, string>`)
-- ✅ m.direct 正确读取位置（用户级别 account data）
-- ✅ 专用 API 封装（create_dm, direct, dm/partner）
+### `GET /direct`
+
+- 后端稳定返回:
+
+```json
+{
+  "rooms": {
+    "@alice:example.com": ["!room:example.com"]
+  }
+}
+```
+
+- SDK `getDirectRoomsFromServer()` 只返回 `response.rooms || {}`
+- 本地 `getDirectRoomsByUser()` 读取的是 account data 中的 `m.direct`，不是此 HTTP 端点
+
+### `PUT /direct/{room_id}`
+
+- 后端 `update_dm_room()` 支持两种 body:
+  - `{ "users": ["@alice:example.com"] }`
+  - `{ "content": { ... } }`
+- SDK `updateDirectRoom()` 当前支持两种调用:
+  - `updateDirectRoom(roomId, userIds)`
+  - `updateDirectRoom(roomId, { userIds })`
+  - `updateDirectRoom(roomId, { content })`
+- `users` 写法示例:
+
+```json
+{
+  "users": ["@alice:example.com"]
+}
+```
+
+- 后端成功响应包含:
+  - `room_id`
+  - `users`
+  - `direct_map`
+  - `updated_ts`
+- SDK 现在返回同样结构的 `UpdateDirectRoomResponse`
+- `users` 写法会对每个用户 ID 做 Matrix ID 校验；`content` 写法透传给后端
+
+### `GET /rooms/{room_id}/dm`
+
+- 后端真实行为:
+  - 是 DM: 返回 `{ "room_id": "!room:example.com", "m.direct": true }`
+  - 非 DM: 返回 `404 M_NOT_FOUND`
+- SDK `isDmRoomFromServer()` 读取 `response["m.direct"] ?? false`
+- `throwOnError = false` 时，SDK 会把 `404` 归一为 `false`
+
+### `GET /rooms/{room_id}/dm/partner`
+
+- 后端稳定返回:
+  - `room_id`
+  - `user_id`
+  - `display_name`
+  - `avatar_url`
+- SDK `DmPartnerResponse` 当前声明为:
+  - `room_id`
+  - `user_id`
+  - `display_name`
+  - `avatar_url`
+- `throwOnError = false` 时，SDK 在 `404` 返回 `null`
+
+## SDK 其他 DM 能力
+
+### `createDm()`
+
+- `createDm()` 不调用后端 `create_dm` 路由，而是:
+  - 走 `client.createRoom(...)`
+  - 之后本地调用 `setDmRoom()` 更新 `m.direct`
+- 这属于客户端侧组合封装，不应与 `createDmRoom()` 混淆
+
+### `getDMRooms()`
+
+- 先读取本地 `m.direct`
+- 若映射为空，再回退到扫描本地房间成员关系
+- 这不是后端 DM 专用 HTTP 契约的一部分
+
+## 错误语义
+
+| 场景 | 后端典型返回 | SDK 语义 |
+| --- | --- | --- |
+| 未认证 | `401` | 统一归一化为鉴权类错误 |
+| `room_id` 非 DM | `404 M_NOT_FOUND` | `isDmRoomFromServer(false)` 返回 `false` |
+| 对端不存在 | `404 M_NOT_FOUND` | `getDmPartnerFromServer(false)` 返回 `null` |
+| `users` / `content` 结构非法 | `400 Bad Request` | `updateDirectRoom()` 抛标准 API 错误 |
+| `users` 中用户 ID 非法 | 本地校验失败 | `updateDirectRoom()` 抛 `InvalidParamError` |
+
+## 事件系统
+
+| 事件 | 触发方法 | 说明 |
+| --- | --- | --- |
+| `DMCreated` | `createDm()`、`createDmRoom()` | 本地创建与专用 API 创建都会触发 |
+| `DMLeft` | `leaveDm()` | 离开房间后触发 |
+| `DMUpdated` | `setDmRoom()`、`removeDmRoom()`、`updateDirectRoom()` | 只表示本地缓存 / direct map 已更新 |
+| `ListUpdated` | `createDm()`、`createDmRoom()`、`leaveDm()`、`setDmRoom()`、`removeDmRoom()`、`updateDirectRoom()` | 列表重新计算信号 |
+
+## 当前对齐结论
+
+- DM 文档已明确区分“本地 `m.direct` 行为”和“后端 DM HTTP 契约”，避免把整个 `DirectMessageManager` 误写成纯后端封装。
+- `createDmRoomDetailed()` 已暴露后端原始 `{ room_id }` 响应；`createDmRoom()` 继续保留 `string` helper。
+- `createDmRoom()` / `createDmRoomDetailed()` 已扩展，支持 `invite[]` 与 `visibility`。
+- `updateDirectRoom()` 已扩展，返回后端完整响应。
+- `rooms/{room_id}/dm` 的返回字段口径已修正为 `"m.direct"`。
+- `updateDirectRoom()` 已同时支持 `{ users }` 和 `{ content }` 两种写法。

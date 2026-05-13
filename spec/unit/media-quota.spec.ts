@@ -47,6 +47,26 @@ describe("MediaQuotaManager", () => {
         await expect(manager.isFileSizeAllowed(1300)).resolves.toBe(false);
     });
 
+    it("exposes direct quota/config wrappers", async () => {
+        await expect(manager.getMediaConfig()).resolves.toEqual({ "m.upload.size": 1234 });
+        await expect(manager.getMediaConfig(true)).resolves.toEqual({ "m.upload.size": 1234 });
+        await expect(manager.checkQuota()).resolves.toEqual({
+            limit: 2000,
+            used: 500,
+            remaining: 1500,
+            rule: "user_quota",
+        });
+        await expect(manager.getQuotaStats()).resolves.toEqual({
+            user_id: "@me:hs",
+            storage_bytes: 500,
+            media_count: 2,
+            limit_bytes: 2000,
+        });
+
+        expect(mockClient.getMediaConfig).toHaveBeenNthCalledWith(1, false);
+        expect(mockClient.getMediaConfig).toHaveBeenNthCalledWith(2, true);
+    });
+
     it("handles usage and derived metrics", async () => {
         await expect(manager.getUserStorageUsage()).resolves.toEqual({ size: 500, ntFiles: 2 });
         await expect(manager.getUsedStorage()).resolves.toBe(500);

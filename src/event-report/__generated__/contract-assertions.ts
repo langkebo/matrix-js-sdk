@@ -14,6 +14,7 @@ void _EventReportEntryCountAssertion;
 
 export const EVENT_REPORT_ROUTES_STATUS_SCENARIOS = [
     { status: 202, note: "初版 | -" },
+    { status: 202, note: "补齐 EventReportManager 缺失端点并增加单测 | SDK 覆盖率提升至 100%" },
 ] as const;
 
 export type EventReportStatusScenario = (typeof EVENT_REPORT_ROUTES_STATUS_SCENARIOS)[number];

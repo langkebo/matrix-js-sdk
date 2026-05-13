@@ -9,46 +9,54 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface TelemetryStatus {
+export interface ServerTelemetryStatus {
     enabled: boolean;
-    collection_interval_ms: number;
-    last_collection_ts: number;
+    trace_enabled: boolean;
+    metrics_enabled: boolean;
+    service_name: string;
+    service_version: string;
+    sampling_ratio: number;
+    export_config: {
+        otlp_endpoint?: string | null;
+        prometheus_port?: number | null;
+        prometheus_path?: string | null;
+        batch_export: boolean;
+    };
 }
 
-export interface TelemetryAttributes {
-    server_name: string;
-    server_version: string;
-    python_version: string;
-    database_engine: string;
-    database_version: string;
+export interface ServerTelemetryAttributes {
+    attributes: Record<string, string>;
 }
 
-export interface TelemetryMetrics {
-    metrics: Array<{
-        name: string;
-        value: number;
-        timestamp: number;
-        labels?: Record<string, string>;
-    }>;
+export interface ServerTelemetryMetricsSummary {
+    total_metrics: number;
+    total_counters: number;
+    total_gauges: number;
+    total_histograms: number;
+    rendered_bytes: number;
+    snapshot_ts: number;
 }
 
-export interface TelemetryAlerts {
-    alerts: Array<{
-        id: string;
-        severity: string;
-        message: string;
-        created_ts: number;
-        acknowledged: boolean;
-    }>;
+export interface ServerTelemetryAlert {
+    alert_id: string;
+    alert_key: string;
+    severity: string;
+    status: string;
+    title?: string;
+    message?: string;
+    created_at_ms?: number;
+    updated_at_ms?: number;
+    acknowledged_by?: string | null;
+    acknowledged_at_ms?: number | null;
+    metadata?: Record<string, unknown>;
 }
 
-export interface HealthStatus {
-    healthy: boolean;
-    checks: Array<{
-        name: string;
-        status: string;
-        message?: string;
-    }>;
+export interface ServerTelemetryHealth {
+    status: string;
+    service: string;
+    trace_enabled: boolean;
+    metrics_enabled: boolean;
+    checks: Array<Record<string, unknown>>;
+    database: Record<string, unknown>;
+    alerts: ServerTelemetryAlert[];
 }
-
-export type TelemetryResponseDto = Record<string, never>;

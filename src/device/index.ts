@@ -35,6 +35,7 @@ import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../errors.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
+import type { DevicePathPattern } from "./__generated__/route-table.ts";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -137,6 +138,13 @@ interface IDeviceResponse {
     last_seen_ts?: number;
     user_id?: string;
 }
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function dp<P extends StripV3<DevicePathPattern>>(path: P): P {
+    return path;
+}
+
 export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerEventMap> {
     private client: MatrixClient;
     private deviceListCache: LRUCache<IDevice[]>;
@@ -199,7 +207,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IDevicesResponse>(
                     Method.Get,
-                    "/devices",
+                    dp("/devices"),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -265,7 +273,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             const device = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IDeviceResponse>(
                     Method.Get,
-                    `/devices/${encodeURIComponent(deviceId)}`,
+                    dp(`/devices/${encodeURIComponent(deviceId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -314,7 +322,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
-                    `/devices/${encodeURIComponent(deviceId)}`,
+                    dp(`/devices/${encodeURIComponent(deviceId)}`),
                     undefined,
                     updates,
                     { prefix: ClientPrefix.V3 },
@@ -400,7 +408,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Delete,
-                    `/devices/${encodeURIComponent(deviceId)}`,
+                    dp(`/devices/${encodeURIComponent(deviceId)}`),
                     undefined,
                     Object.keys(body).length > 0 ? body : undefined,
                     { prefix: ClientPrefix.V3 },
@@ -449,7 +457,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             }
 
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(Method.Post, "/delete_devices", undefined, body, {
+                return await this.client.http.authedRequest(Method.Post, dp("/delete_devices"), undefined, body, {
                     prefix: ClientPrefix.V3,
                 });
             }, "deleteDevices");
@@ -486,7 +494,7 @@ export class DeviceManager extends TypedEventEmitter<DeviceEvent, DeviceManagerE
             const result = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IDeviceListUpdatesResponse>(
                     Method.Post,
-                    "/keys/device_list_updates",
+                    dp("/keys/device_list_updates"),
                     undefined,
                     { users },
                     { prefix: ClientPrefix.V3 },

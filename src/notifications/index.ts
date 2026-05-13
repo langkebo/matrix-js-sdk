@@ -14,13 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixClient } from "../client";
-import { EventTimelineSet } from "../models/event-timeline-set";
-import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
-import { type LocalNotificationSettings } from "../@types/local_notifications";
-import { BaseManager } from "../managers/base-manager";
-import { AdminValidators } from "../admin/validators";
+import { MatrixClient } from "../client.ts";
+import { EventTimelineSet } from "../models/event-timeline-set.ts";
+import { Method } from "../http-api/method.ts";
+import { ClientPrefix } from "../http-api/prefix.ts";
+import { type LocalNotificationSettings } from "../@types/local_notifications.ts";
+import { BaseManager } from "../managers/base-manager.ts";
+import { AdminValidators } from "../admin/validators.ts";
+import type { PushPathPattern } from "../push/__generated__/route-table.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function np<P extends StripV3<PushPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface ILocalNotificationSettings {
     is_silenced: boolean;
@@ -31,14 +38,7 @@ export interface INotificationsResponse {
     next_token?: string;
     notifications: Array<{
         actions: unknown[];
-        event: {
-            content: Record<string, unknown>;
-            event_id: string;
-            origin_server_ts: number;
-            room_id: string;
-            sender: string;
-            type: string;
-        };
+        event: Record<string, unknown>;
         profile_tag?: string;
         read: boolean;
         room_id: string;
@@ -80,34 +80,6 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      * @param opts.limit - 返回数量限制（可选，默认由服务器决定）
      * @param opts.only - 过滤条件（可选，如 "highlight"）
      * @returns 通知列表和分页信息
-     *
-     * @example
-     * ```typescript
-     * // 获取通知列表
-     * const result = await notificationsManager.getNotifications();
-     * result.notifications.forEach(notif => {
-     *     console.log(`Room: ${notif.room_id}`);
-     *     console.log(`Event: ${notif.event.type}`);
-     *     console.log(`Read: ${notif.read}`);
-     * });
-     *
-     * // 分页获取
-     * const result = await notificationsManager.getNotifications({ limit: 20 });
-     * if (result.next_token) {
-     *     const nextPage = await notificationsManager.getNotifications({
-     *         from: result.next_token,
-     *         limit: 20
-     *     });
-     * }
-     *
-     * // 只获取高亮通知
-     * const highlights = await notificationsManager.getNotifications({
-     *     only: "highlight"
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果 limit 参数超出范围
-     * @throws {ApiError} 如果 API 调用失败
      */
     public async getNotifications(opts?: {
         from?: string;
@@ -120,10 +92,42 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<INotificationsResponse>(Method.Get, "/notifications", opts, undefined, {
-                    prefix: ClientPrefix.V3,
-                }),
+                this.client.http.authedRequest<INotificationsResponse>(
+                    Method.Get,
+                    np("/notifications"),
+                    opts,
+                    undefined,
+                    {
+                        prefix: ClientPrefix.V3,
+                    },
+                ),
             "getNotifications",
+        );
+    }
+
+    /**
+     * 确认通知
+     *
+     * @param notificationId - 通知 ID (event_id)
+     * @returns 成功返回空对象
+     */
+    public async ackNotification(notificationId: string): Promise<Record<string, unknown>> {
+        if (!notificationId) {
+            throw new Error("notificationId is required");
+        }
+
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<Record<string, unknown>>(
+                    Method.Post,
+                    np(`/notifications/${encodeURIComponent(notificationId)}/ack` as StripV3<PushPathPattern>),
+                    undefined,
+                    undefined,
+                    {
+                        prefix: ClientPrefix.V3,
+                    },
+                ),
+            "ackNotification",
         );
     }
 }

@@ -22,10 +22,11 @@ limitations under the License.
 
 import { BaseManager } from "../managers/base-manager.ts";
 import { Method } from "../http-api/method.ts";
-import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
+import { AdminPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { logger } from "../logger.ts";
+import { IUserProfile } from "../user-directory/index.ts";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -311,15 +312,17 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         try {
-            const params: { limit?: number; since?: string } = {};
+            const params: { limit?: number; since?: string; server_name: string } = {
+                server_name: serverName,
+            };
             if (limit !== undefined) params.limit = limit;
             if (since !== undefined) params.since = since;
 
-            const response = await this.client.http.authedRequest<{
+            const response = await this.client.http.request<{
                 chunk?: unknown[];
                 next_batch?: string;
                 prev_batch?: string;
-            }>(Method.Get, "/publicRooms", params, undefined, { prefix: ClientPrefix.V3 });
+            }>(Method.Get, `/_matrix/federation/v1/publicRooms`, params, undefined, { prefix: "" });
 
             const result: { chunk: unknown[]; next_batch?: string; prev_batch?: string } = {
                 chunk: response.chunk || [],
@@ -333,6 +336,144 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             this.emit(FederationEvent.FederationError, error);
             throw error;
         }
+    }
+
+    /**
+     * 通过联邦查询用户资料
+     * @param userId - 用户 ID
+     */
+    async queryProfile(userId: string): Promise<IUserProfile> {
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+        return this.client.http.request<IUserProfile>(
+            Method.Get,
+            `/_matrix/federation/v1/query/profile/${encodeURIComponent(userId)}`,
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+    }
+
+    /**
+     * 通过联邦查询房间别名
+     * @param roomAlias - 房间别名
+     */
+    async queryDirectory(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
+        if (!roomAlias) {
+            throw new Error("Room alias is required");
+        }
+        return this.client.http.request<{ room_id: string; servers: string[] }>(
+            Method.Get,
+            `/_matrix/federation/v1/query/directory`,
+            { room_alias: roomAlias },
+            undefined,
+            { prefix: "" },
+        );
+    }
+
+    /**
+     * 通过联邦获取房间层级
+     * @param roomId - 房间 ID
+     */
+    async getHierarchy(roomId: string): Promise<any> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+        return this.client.http.request<any>(
+            Method.Get,
+            `/_matrix/federation/v1/hierarchy/${encodeURIComponent(roomId)}`,
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+    }
+
+    /**
+     * 获取联邦发现信息
+     */
+    async getFederationInfo(): Promise<any> {
+        return this.client.http.request<any>(Method.Get, "/_matrix/federation/v1", undefined, undefined, { prefix: "" });
+    }
+
+    /**
+     * 通过联邦查询目的地
+     * @param destination - 目标 server name
+     */
+    async queryDestination(destination: string): Promise<any> {
+        if (!destination) {
+            throw new Error("Destination is required");
+        }
+        return this.client.http.request<any>(
+            Method.Get,
+            "/_matrix/federation/v1/query/destination",
+            { destination },
+            undefined,
+            { prefix: "" },
+        );
+    }
+
+    /**
+     * 通过联邦获取房间事件
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     */
+    async getRoomEvent(roomId: string, eventId: string): Promise<any> {
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+        if (!eventId) {
+            throw new Error("Event ID is required");
+        }
+        return this.client.http.request<any>(
+            Method.Get,
+            `/_matrix/federation/v1/room/${encodeURIComponent(roomId)}/${encodeURIComponent(eventId)}`,
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+    }
+
+    /**
+     * 通过联邦下载远端媒体
+     * @param serverName - 远端 server name
+     * @param mediaId - 媒体 ID
+     */
+    async downloadMedia(serverName: string, mediaId: string): Promise<any> {
+        if (!serverName) {
+            throw new Error("Server name is required");
+        }
+        if (!mediaId) {
+            throw new Error("Media ID is required");
+        }
+        return this.client.http.request<any>(
+            Method.Get,
+            `/_matrix/federation/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+    }
+
+    /**
+     * 通过联邦获取远端媒体缩略图
+     * @param serverName - 远端 server name
+     * @param mediaId - 媒体 ID
+     */
+    async getMediaThumbnail(serverName: string, mediaId: string): Promise<any> {
+        if (!serverName) {
+            throw new Error("Server name is required");
+        }
+        if (!mediaId) {
+            throw new Error("Media ID is required");
+        }
+        return this.client.http.request<any>(
+            Method.Get,
+            `/_matrix/federation/v1/media/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
     }
 
     getCachedBlacklist(): IBlacklistEntry[] {
@@ -368,111 +509,6 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         this.blacklist.clear();
         this.serverCache.clear();
         this.initialized = false;
-    }
-}
-
-export class FederationBlacklistManager extends BaseManager<FederationEvent, FederationManagerEventMap> {
-    private blacklist: Map<string, IBlacklistEntry> = new Map();
-
-    constructor(client: MatrixClient) {
-        super(client);
-    }
-
-    /**
-     * 获取联邦黑名单
-     *
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 黑名单列表
-     */
-    async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
-        return this.client.http
-            .authedRequest<{
-                blacklist?: IBlacklistEntry[];
-            }>(Method.Get, "/federation/blacklist", undefined, undefined, { prefix: AdminPrefix.V1 })
-            .then(
-                (response) => {
-                    const entries: IBlacklistEntry[] = response.blacklist || [];
-                    this.blacklist.clear();
-                    entries.forEach((e) => this.blacklist.set(e.serverName, e));
-                    return entries;
-                },
-                (e) => {
-                    const error = this.normalizeError(e, "getBlacklist");
-                    if (throwOnError) {
-                        throw error;
-                    }
-                    logger.warn("FederationBlacklistManager.getBlacklist failed:", error);
-                    return Array.from(this.blacklist.values());
-                },
-            );
-    }
-
-    async addServer(serverName: string, reason?: string): Promise<void> {
-        if (!serverName) {
-            throw new Error("Server name is required");
-        }
-
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/federation/blacklist/add",
-                undefined,
-                { server_name: serverName, reason },
-                { prefix: AdminPrefix.V1 },
-            );
-
-            const entry: IBlacklistEntry = {
-                serverName,
-                reason,
-                addedAt: Date.now(),
-            };
-
-            this.blacklist.set(serverName, entry);
-            this.emit(FederationEvent.ServerAdded, serverName);
-        } catch (e) {
-            const error = this.normalizeError(e, "addServer");
-            throw error;
-        }
-    }
-
-    async removeServer(serverName: string): Promise<void> {
-        if (!serverName) {
-            throw new Error("Server name is required");
-        }
-
-        try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/federation/blacklist/remove",
-                undefined,
-                { server_name: serverName },
-                { prefix: AdminPrefix.V1 },
-            );
-
-            this.blacklist.delete(serverName);
-            this.emit(FederationEvent.ServerRemoved, serverName);
-        } catch (e) {
-            const error = this.normalizeError(e, "removeServer");
-            throw error;
-        }
-    }
-
-    isBlacklisted(serverName: string): boolean {
-        return this.blacklist.has(serverName);
-    }
-
-    getCachedBlacklist(): IBlacklistEntry[] {
-        return Array.from(this.blacklist.values());
-    }
-
-    clear(): void {
-        this.blacklist.clear();
-    }
-}
-
-declare module "../client.ts" {
-    interface MatrixClient {
-        getFederationManager(): FederationManager;
     }
 }
 

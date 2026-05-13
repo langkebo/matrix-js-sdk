@@ -6,12 +6,15 @@ import { Method } from "../../src/http-api/index.ts";
 describe("ProfileManager", () => {
     let profileManager: ProfileManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
+    let mockRequest: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
         mockAuthedRequest = vi.fn();
+        mockRequest = vi.fn();
         profileManager = new ProfileManager({
             http: {
                 authedRequest: mockAuthedRequest,
+                request: mockRequest,
             },
             credentials: {
                 userId: "@alice:example.com",
@@ -23,28 +26,28 @@ describe("ProfileManager", () => {
     });
 
     it("uses the dedicated displayname endpoint and reuses the cached field", async () => {
-        mockAuthedRequest.mockResolvedValueOnce({ displayname: "Bob" });
+        mockRequest.mockResolvedValueOnce({ displayname: "Bob" });
 
         await expect(profileManager.getDisplayName("@bob:example.com")).resolves.toBe("Bob");
         await expect(profileManager.getDisplayName("@bob:example.com")).resolves.toBe("Bob");
 
-        expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
-        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/profile/%40bob%3Aexample.com/displayname");
+        expect(mockRequest).toHaveBeenCalledTimes(1);
+        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/profile/%40bob%3Aexample.com/displayname");
     });
 
     it("uses the dedicated avatar_url endpoint and reuses the cached field", async () => {
-        mockAuthedRequest.mockResolvedValueOnce({ avatar_url: "mxc://example.com/avatar" });
+        mockRequest.mockResolvedValueOnce({ avatar_url: "mxc://example.com/avatar" });
 
         await expect(profileManager.getAvatarUrl("@bob:example.com")).resolves.toBe("mxc://example.com/avatar");
         await expect(profileManager.getAvatarUrl("@bob:example.com")).resolves.toBe("mxc://example.com/avatar");
 
-        expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
-        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/profile/%40bob%3Aexample.com/avatar_url");
+        expect(mockRequest).toHaveBeenCalledTimes(1);
+        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/profile/%40bob%3Aexample.com/avatar_url");
     });
 
     it("still fetches the full profile when only a partial field is cached", async () => {
-        mockAuthedRequest.mockResolvedValueOnce({ displayname: "Bob" });
-        mockAuthedRequest.mockResolvedValueOnce({
+        mockRequest.mockResolvedValueOnce({ displayname: "Bob" });
+        mockRequest.mockResolvedValueOnce({
             displayname: "Bob",
             avatar_url: "mxc://example.com/avatar",
         });
@@ -55,12 +58,12 @@ describe("ProfileManager", () => {
             avatar_url: "mxc://example.com/avatar",
         });
 
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/profile/%40bob%3Aexample.com/displayname");
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(2, Method.Get, "/profile/%40bob%3Aexample.com");
+        expect(mockRequest).toHaveBeenNthCalledWith(1, Method.Get, "/profile/%40bob%3Aexample.com/displayname");
+        expect(mockRequest).toHaveBeenNthCalledWith(2, Method.Get, "/profile/%40bob%3Aexample.com");
     });
 
     it("lets full-profile cache satisfy field readers without extra requests", async () => {
-        mockAuthedRequest.mockResolvedValueOnce({
+        mockRequest.mockResolvedValueOnce({
             displayname: "Bob",
             avatar_url: "mxc://example.com/avatar",
         });
@@ -72,13 +75,13 @@ describe("ProfileManager", () => {
         await expect(profileManager.getDisplayName("@bob:example.com")).resolves.toBe("Bob");
         await expect(profileManager.getAvatarUrl("@bob:example.com")).resolves.toBe("mxc://example.com/avatar");
 
-        expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
-        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/profile/%40bob%3Aexample.com");
+        expect(mockRequest).toHaveBeenCalledTimes(1);
+        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/profile/%40bob%3Aexample.com");
     });
 
     it("treats both field caches as a complete profile and avoids an extra full-profile request", async () => {
-        mockAuthedRequest.mockResolvedValueOnce({ displayname: "Bob" });
-        mockAuthedRequest.mockResolvedValueOnce({ avatar_url: "mxc://example.com/avatar" });
+        mockRequest.mockResolvedValueOnce({ displayname: "Bob" });
+        mockRequest.mockResolvedValueOnce({ avatar_url: "mxc://example.com/avatar" });
 
         await expect(profileManager.getDisplayName("@bob:example.com")).resolves.toBe("Bob");
         await expect(profileManager.getAvatarUrl("@bob:example.com")).resolves.toBe("mxc://example.com/avatar");
@@ -87,18 +90,18 @@ describe("ProfileManager", () => {
             avatar_url: "mxc://example.com/avatar",
         });
 
-        expect(mockAuthedRequest).toHaveBeenCalledTimes(2);
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/profile/%40bob%3Aexample.com/displayname");
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(2, Method.Get, "/profile/%40bob%3Aexample.com/avatar_url");
+        expect(mockRequest).toHaveBeenCalledTimes(2);
+        expect(mockRequest).toHaveBeenNthCalledWith(1, Method.Get, "/profile/%40bob%3Aexample.com/displayname");
+        expect(mockRequest).toHaveBeenNthCalledWith(2, Method.Get, "/profile/%40bob%3Aexample.com/avatar_url");
     });
 
     it("does not keep a stale full-profile cache after force-refreshing a single field", async () => {
-        mockAuthedRequest.mockResolvedValueOnce({
+        mockRequest.mockResolvedValueOnce({
             displayname: "Bob",
             avatar_url: "mxc://example.com/original-avatar",
         });
-        mockAuthedRequest.mockResolvedValueOnce({ displayname: "Bob Updated" });
-        mockAuthedRequest.mockResolvedValueOnce({
+        mockRequest.mockResolvedValueOnce({ displayname: "Bob Updated" });
+        mockRequest.mockResolvedValueOnce({
             displayname: "Bob Updated",
             avatar_url: "mxc://example.com/new-avatar",
         });
@@ -113,16 +116,16 @@ describe("ProfileManager", () => {
             avatar_url: "mxc://example.com/new-avatar",
         });
 
-        expect(mockAuthedRequest).toHaveBeenCalledTimes(3);
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/profile/%40bob%3Aexample.com");
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(2, Method.Get, "/profile/%40bob%3Aexample.com/displayname");
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(3, Method.Get, "/profile/%40bob%3Aexample.com");
+        expect(mockRequest).toHaveBeenCalledTimes(3);
+        expect(mockRequest).toHaveBeenNthCalledWith(1, Method.Get, "/profile/%40bob%3Aexample.com");
+        expect(mockRequest).toHaveBeenNthCalledWith(2, Method.Get, "/profile/%40bob%3Aexample.com/displayname");
+        expect(mockRequest).toHaveBeenNthCalledWith(3, Method.Get, "/profile/%40bob%3Aexample.com");
     });
 
     it("emits ProfileError when getDisplayName falls back to null after a request failure", async () => {
         const errorSpy = vi.fn();
         profileManager.on(ProfileEvent.ProfileError, errorSpy);
-        mockAuthedRequest.mockRejectedValueOnce(new Error("boom"));
+        mockRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(profileManager.getDisplayName("@bob:example.com", false, false)).resolves.toBeNull();
 
@@ -133,7 +136,7 @@ describe("ProfileManager", () => {
     it("emits ProfileError and rethrows when getDisplayName uses the default throw behavior", async () => {
         const errorSpy = vi.fn();
         profileManager.on(ProfileEvent.ProfileError, errorSpy);
-        mockAuthedRequest.mockRejectedValueOnce(new Error("boom"));
+        mockRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(profileManager.getDisplayName("@bob:example.com")).rejects.toBeInstanceOf(Error);
 
@@ -144,7 +147,7 @@ describe("ProfileManager", () => {
     it("emits ProfileError and rethrows when getAvatarUrl uses the default throw behavior", async () => {
         const errorSpy = vi.fn();
         profileManager.on(ProfileEvent.ProfileError, errorSpy);
-        mockAuthedRequest.mockRejectedValueOnce(new Error("boom"));
+        mockRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(profileManager.getAvatarUrl("@bob:example.com")).rejects.toBeInstanceOf(Error);
 

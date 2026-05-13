@@ -1,7 +1,7 @@
 ---
 module: room_summary
 generated_from: docs/api-contract/generated/modules/room_summary.json
-generated_hash: sha256-310a1fa9b8daf35547bcc6f3022bbaee91516b1999ea828d972344b7ec3b7465
+generated_hash: sha256-0652acc467fe52646dd0c786d4eea6b3055a56c03124b46976f5885ebb6d4725
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -9,6 +9,7 @@ last_reviewed: 2026-05-03
 # Room Summary 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/room_summary.rs`
+> 审计状态: ✅ summary 主路由族与内部汇总接口已和 SDK 对齐；额外 room 扩展接口独立保留
 
 ## 挂载版本
 
@@ -93,3 +94,26 @@ last_reviewed: 2026-05-03
 
 - 路由与处理器: `synapse-rust/src/web/routes/room_summary.rs`
 - `RoomSummaryManager` 还额外封装了 `synapse-rust/src/web/routes/handlers/room.rs` 中的 `GET /rooms/{room_id}/thread/{event_id}` 与 `GET /rooms/{room_id}/threads/{thread_id}`；这两条线程读取接口不属于本页 summary 路由族，且响应结构彼此不同。
+
+## SDK 对齐结论
+
+- `src/room-summary/index.ts` 已将本页 Ledger 统计的 summary/internal 主路径绑定到生成的 `RoomSummaryPathPattern`。
+- `GET|POST|PUT|DELETE /_matrix/client/v3/rooms/{room_id}/summary*` 路由族已由 `RoomSummaryManager` 显式封装。
+- `GET /_matrix/client/{r0,v3}/rooms/{room_id}/summary*` 中的 `r0` 读路径视为兼容别名，SDK 默认走 `v3` 主路径。
+- `GET|POST /_synapse/room_summary/v1/summaries` 与 `POST /_synapse/room_summary/v1/updates/process` 已通过 `requestInternal()` 统一封装。
+- `RoomSummaryManager` 中的 `notifications`、`capabilities`、`timeline`、`vault_data`、`thread` 等额外能力属于 room 扩展接口，不计入本页 23 条 summary 契约覆盖率。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 23
+- **SDK 已封装**: 23/23
+- **契约覆盖率**: 100%
+- **默认主路径策略**: 优先 `v3`，兼容 `r0` 读别名
+
+## 本轮补充
+
+- `getRoomSummary()`、`getRoomSummaryMembers()`、`getRoomSummaryStats()`、`getAllSummaryState()` 已绑定生成 summary 路径模板。
+- `createOrRefreshSummary()`、`updateSummary()`、`deleteSummary()`、`syncSummary()`、`writeSummaryMembers()`、
+  `updateSummaryMember()`、`deleteSummaryMember()`、`updateSummaryState()`、`recalculateSummaryStats()`、
+  `recalculateSummaryHeroes()`、`clearSummaryUnread()` 已绑定生成 `v3` 路由模板。
+- `listUserSummaries()`、`createInternalSummary()`、`processSummaryUpdates()` 已绑定内部 `/_synapse/room_summary/v1` 路由模板。

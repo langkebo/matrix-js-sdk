@@ -222,7 +222,9 @@ export interface MatrixClientExtensionMethods {
     // ============ Admin & Moderation ============
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
+    getBackgroundUpdateManager(): import("./background-update/index").BackgroundUpdateManager;
     getWorkerAdminManager(): import("./worker-admin/index").WorkerAdminManager;
+    getWorkerBodyManager(): import("./worker-body/index").WorkerBodyManager;
     getReportingManager(): import("./reporting/index").ReportingManager;
     getInviteBlocklistManager(): import("./invite-blocklist/index").InviteBlocklistManager;
 
@@ -278,6 +280,7 @@ export interface MatrixClientExtensionMethods {
     ): import("./telemetry/index").TelemetryManager;
     getRendezvousManager(): import("./rendezvous/RendezvousManager").RendezvousManager;
     getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
+    getOpenClawManager(): import("./openclaw/index").OpenClawManager;
     getStateSendManager(): import("./state-send/index").StateSendManager;
     getUserReportManager(): import("./user-report/index").UserReportManager;
     getSessionManager(): import("./session/index").SessionManager;

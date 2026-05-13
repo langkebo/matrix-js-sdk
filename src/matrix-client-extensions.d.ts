@@ -16,7 +16,10 @@ import type { MatrixEvent } from "./models/event";
 import type { RoomMember } from "./models/room-member";
 import type { ISendEventResponse, IRedactOpts } from "./@types/requests";
 import type { RoomAccountDataEvents } from "./@types/event";
-import { type ITurnServer, type IMediaConfig, type IIdentityServerProvider } from "./client";
+import type { ITurnServer } from "./client";
+import type { IIdentityServerProvider } from "./@types/IIdentityServerProvider";
+import type { IdServerUnbindResult } from "./@types/partials";
+import type { IMediaConfig, IWhoamiResponse } from "./client-internal-types";
 import type { CryptoBackend } from "./common-crypto/CryptoBackend";
 import type { CryptoApi } from "./crypto-api";
 import type { IStoredClientOpts } from "./client-config-types";
@@ -152,6 +155,8 @@ export interface MatrixClientExtensionMethods {
     // ============ Admin & Moderation ============
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
+    getModuleManager(): import("./module/index").ModuleManager;
+    getBackgroundUpdateManager(): import("./background-update/index").BackgroundUpdateManager;
     getWorkerAdminManager(): import("./worker-admin/index").WorkerAdminManager;
     getReportingManager(): import("./reporting/index").ReportingManager;
     getInviteBlocklistManager(): import("./invite-blocklist/index").InviteBlocklistManager;
@@ -212,6 +217,8 @@ export interface MatrixClientExtensionMethods {
     getVerificationManager(): import("./verification/index").VerificationManager;
     getCasManager(): import("./cas/index").CasManager;
     getE2EEManager(): import("./e2ee/index").E2EEManager;
+    getOpenClawManager(): import("./openclaw/index").OpenClawManager;
+    getWorkerBodyManager(): import("./worker-body/index").WorkerBodyManager;
 }
 
 /**

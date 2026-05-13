@@ -49,7 +49,7 @@ const DEFAULT_INGEST_SOURCE_DIR = path.resolve(
     "tests",
     "unit",
     "fixtures",
-    "ledger_export",
+    "ledger_export_sdk",
 );
 /**
  * In `--check` mode the generated/ tree is itself the source of truth: we
@@ -107,7 +107,7 @@ function printHelp() {
             `  --source=DIR   directory containing the four profile manifests. Accepts either\n` +
             `                   <profile>.json (synapse-rust fixture naming) or\n` +
             `                   route-manifest.<profile>.json (SDK generated/ naming).\n` +
-            `                 Default for ingest: ../synapse-rust/tests/unit/fixtures/ledger_export\n` +
+            `                 Default for ingest: ../synapse-rust/tests/unit/fixtures/ledger_export_sdk\n` +
             `                 Default for --check: docs/api-contract/generated/\n` +
             `  --render-drafts compare the incoming manifests against the currently committed\n` +
             `                 generated/ tree and emit prompt drafts under docs/api-contract/drafts/\n` +

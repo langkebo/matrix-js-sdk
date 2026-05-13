@@ -4,26 +4,39 @@
  * 提供事件举报的创建、查询、处理（解决、忽略、升级）、删除及统计功能。
  * 对应后端: synapse-rust/src/web/routes/event_report.rs
  *
- * 遵循 D7 契约驱动开发标准，100% 覆盖后端端点并保持类型对齐。
+ * 遵循 D7 契约驱动开发标准，按最新 ledger 绑定调用路径。
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
+import { type Body } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
+import { ValidationError } from "../errors";
+import { AdminValidators } from "../admin/validators";
+import type { EventReportPathPattern } from "./__generated__/route-table.ts";
+
+type StripAdminPrefix<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+type EventReportAdminPathPattern = StripAdminPrefix<EventReportPathPattern>;
+
+function er<P extends EventReportAdminPathPattern>(path: P): P {
+    return path;
+}
+
+export type ReportStatus = "open" | "resolved" | "dismissed" | "escalated" | string;
 
 export interface CreateReportBody {
     event_id: string;
     room_id: string;
     reported_user_id?: string;
-    event_json?: any;
+    event_json?: Record<string, unknown>;
     reason?: string;
     description?: string;
     score?: number;
 }
 
 export interface UpdateReportBody {
-    status?: string;
+    status?: ReportStatus;
     score?: number;
 }
 
@@ -35,42 +48,60 @@ export interface ReportResponse {
     reported_user_id?: string;
     reason?: string;
     description?: string;
-    status: string;
+    status: ReportStatus;
     score: number;
     received_ts: number;
     resolved_ts?: number;
     resolved_by?: string;
     resolution_reason?: string;
+    canonical_alias?: string;
+    event_json?: Record<string, unknown>;
+    sender?: string;
 }
 
-export interface ReportHistoryResponse {
-    id: number;
-    report_id: number;
-    action: string;
-    actor_user_id?: string;
-    old_status?: string;
-    new_status?: string;
+export interface ResolveReportBody {
+    resolution_reason?: string;
+}
+
+export interface DismissReportBody {
     reason?: string;
-    created_ts: number;
 }
 
-export interface StatsResponse {
-    id: number;
-    date: string;
-    total_reports: number;
-    open_reports: number;
-    resolved_reports: number;
-    dismissed_reports: number;
-    avg_resolution_time_hours?: number;
-    avg_resolution_time_ms?: number;
-    created_ts: number;
-    updated_ts: number;
+export interface EscalateReportBody {
+    reason?: string;
+}
+
+export interface RateLimitResponse {
+    blocked: boolean;
+    user_id: string;
+    reason?: string;
+    blocked_at?: number;
 }
 
 export interface QueryParams {
     limit?: number;
-    offset?: number;
-    [key: string]: any;
+    since_score?: number;
+    since_ts?: number;
+    since_id?: number;
+}
+
+export interface StatsResponse {
+    total: number;
+    open: number;
+    resolved: number;
+    dismissed: number;
+    escalated: number;
+}
+
+export interface StatusCountResponse {
+    status: string;
+    count: number;
+}
+
+export interface EventReportCountResponse {
+    total_reports?: number;
+    status?: string;
+    count?: number;
 }
 
 /**
@@ -82,24 +113,54 @@ export class EventReportManager extends BaseManager {
         super(client);
     }
 
+    private requirePositiveInteger(value: number, fieldName: string): void {
+        if (!Number.isInteger(value) || value <= 0) {
+            throw new ValidationError(`${fieldName} must be a positive integer`);
+        }
+    }
+
+    private requireNonEmptyString(value: string, fieldName: string): void {
+        if (!value || value.trim().length === 0) {
+            throw new ValidationError(`${fieldName} is required`);
+        }
+    }
+
+    private buildQueryParams(params?: QueryParams): Record<string, string | number> | undefined {
+        if (!params) return undefined;
+        if (params.limit !== undefined) this.requirePositiveInteger(params.limit, "limit");
+        if (params.since_id !== undefined) this.requirePositiveInteger(params.since_id, "since_id");
+        if (params.since_ts !== undefined && (!Number.isInteger(params.since_ts) || params.since_ts < 0)) {
+            throw new ValidationError("since_ts must be a non-negative integer");
+        }
+        if (params.since_score !== undefined && !Number.isInteger(params.since_score)) {
+            throw new ValidationError("since_score must be an integer");
+        }
+
+        const query: Record<string, string | number> = {};
+        if (params.limit !== undefined) query.limit = params.limit;
+        if (params.since_score !== undefined) query.since_score = params.since_score;
+        if (params.since_ts !== undefined) query.since_ts = params.since_ts;
+        if (params.since_id !== undefined) query.since_id = params.since_id;
+        return Object.keys(query).length > 0 ? query : undefined;
+    }
+
     /**
      * 创建举报
      * 对应 POST /_synapse/admin/v1/event_reports
      */
     async createReport(body: CreateReportBody): Promise<ReportResponse> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse>(
-                    Method.Post,
-                    "/event_reports",
-                    undefined,
-                    body,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "createReport");
-        } catch (error) {
-            throw this.normalizeError(error, "createReport");
+        this.requireNonEmptyString(body.event_id, "event_id");
+        AdminValidators.validateRoomId(body.room_id);
+        if (body.reported_user_id) {
+            AdminValidators.validateUserId(body.reported_user_id);
         }
+        return await this.client.http.authedRequest<ReportResponse>(
+            Method.Post,
+            er("/event_reports"),
+            undefined,
+            body as Body,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
@@ -107,19 +168,35 @@ export class EventReportManager extends BaseManager {
      * 对应 GET /_synapse/admin/v1/event_reports
      */
     async getAllReports(params?: QueryParams): Promise<ReportResponse[]> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse[]>(
-                    Method.Get,
-                    "/event_reports",
-                    params,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "getAllReports");
-        } catch (error) {
-            throw this.normalizeError(error, "getAllReports");
-        }
+        return this.listReports(params);
+    }
+
+    /**
+     * 列出举报
+     * 对应 GET /_synapse/admin/v1/event_reports
+     */
+    async listReports(params?: QueryParams): Promise<ReportResponse[]> {
+        return await this.client.http.authedRequest<ReportResponse[]>(
+            Method.Get,
+            er("/event_reports"),
+            this.buildQueryParams(params),
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 获取举报总数
+     * 对应 GET /_synapse/admin/v1/event_reports/count
+     */
+    async getReportsCount(): Promise<EventReportCountResponse> {
+        return await this.client.http.authedRequest<EventReportCountResponse>(
+            Method.Get,
+            er("/event_reports/count"),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
@@ -127,99 +204,155 @@ export class EventReportManager extends BaseManager {
      * 对应 GET /_synapse/admin/v1/event_reports/{id}
      */
     async getReport(id: number): Promise<ReportResponse> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse>(
-                    Method.Get,
-                    `/event_reports/${id}`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "getReport");
-        } catch (error) {
-            throw this.normalizeError(error, "getReport");
-        }
+        this.requirePositiveInteger(id, "id");
+        return await this.client.http.authedRequest<ReportResponse>(
+            Method.Get,
+            er(`/event_reports/${id}`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
-     * 更新举报状态或分值
+     * 按事件查询举报
+     * 对应 GET /_synapse/admin/v1/event_reports/event/{event_id}
+     */
+    async getReportsByEvent(eventId: string): Promise<ReportResponse[]> {
+        this.requireNonEmptyString(eventId, "eventId");
+        return await this.client.http.authedRequest<ReportResponse[]>(
+            Method.Get,
+            er(`/event_reports/event/${encodeURIComponent(eventId)}`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 按房间查询举报
+     * 对应 GET /_synapse/admin/v1/event_reports/room/{room_id}
+     */
+    async getReportsByRoom(roomId: string, params?: QueryParams): Promise<ReportResponse[]> {
+        AdminValidators.validateRoomId(roomId);
+        return await this.client.http.authedRequest<ReportResponse[]>(
+            Method.Get,
+            er(`/event_reports/room/${encodeURIComponent(roomId)}`),
+            this.buildQueryParams(params),
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 按举报人查询举报
+     * 对应 GET /_synapse/admin/v1/event_reports/reporter/{reporter_user_id}
+     */
+    async getReportsByReporter(
+        reporterUserId: string,
+        params?: QueryParams,
+    ): Promise<ReportResponse[]> {
+        AdminValidators.validateUserId(reporterUserId);
+        return await this.client.http.authedRequest<ReportResponse[]>(
+            Method.Get,
+            er(`/event_reports/reporter/${encodeURIComponent(reporterUserId)}`),
+            this.buildQueryParams(params),
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 按状态查询举报
+     * 对应 GET /_synapse/admin/v1/event_reports/status/{status}
+     */
+    async getReportsByStatus(
+        status: ReportStatus,
+        params?: QueryParams,
+    ): Promise<ReportResponse[]> {
+        this.requireNonEmptyString(status, "status");
+        return await this.client.http.authedRequest<ReportResponse[]>(
+            Method.Get,
+            er(`/event_reports/status/${encodeURIComponent(status)}`),
+            this.buildQueryParams(params),
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 按状态获取举报计数
+     * 对应 GET /_synapse/admin/v1/event_reports/status/{status}/count
+     */
+    async getStatusCount(status: ReportStatus): Promise<StatusCountResponse> {
+        this.requireNonEmptyString(status, "status");
+        return await this.client.http.authedRequest<StatusCountResponse>(
+            Method.Get,
+            er(`/event_reports/status/${encodeURIComponent(status)}/count`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 更新举报
      * 对应 PUT /_synapse/admin/v1/event_reports/{id}
      */
     async updateReport(id: number, body: UpdateReportBody): Promise<ReportResponse> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse>(
-                    Method.Put,
-                    `/event_reports/${id}`,
-                    undefined,
-                    body,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "updateReport");
-        } catch (error) {
-            throw this.normalizeError(error, "updateReport");
-        }
+        this.requirePositiveInteger(id, "id");
+        return await this.client.http.authedRequest<ReportResponse>(
+            Method.Put,
+            er(`/event_reports/${id}`),
+            undefined,
+            body as Body,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
      * 解决举报
      * 对应 POST /_synapse/admin/v1/event_reports/{id}/resolve
      */
-    async resolveReport(id: number, reason: string): Promise<ReportResponse> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse>(
-                    Method.Post,
-                    `/event_reports/${id}/resolve`,
-                    undefined,
-                    { reason },
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "resolveReport");
-        } catch (error) {
-            throw this.normalizeError(error, "resolveReport");
-        }
+    async resolveReport(id: number, body?: ResolveReportBody): Promise<ReportResponse> {
+        this.requirePositiveInteger(id, "id");
+        return await this.client.http.authedRequest<ReportResponse>(
+            Method.Post,
+            er(`/event_reports/${id}/resolve`),
+            undefined,
+            body as Body,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
-     * 忽略/驳回举报
+     * 驳回举报
      * 对应 POST /_synapse/admin/v1/event_reports/{id}/dismiss
      */
-    async dismissReport(id: number, reason: string): Promise<ReportResponse> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse>(
-                    Method.Post,
-                    `/event_reports/${id}/dismiss`,
-                    undefined,
-                    { reason },
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "dismissReport");
-        } catch (error) {
-            throw this.normalizeError(error, "dismissReport");
-        }
+    async dismissReport(id: number, body?: DismissReportBody): Promise<ReportResponse> {
+        this.requirePositiveInteger(id, "id");
+        return await this.client.http.authedRequest<ReportResponse>(
+            Method.Post,
+            er(`/event_reports/${id}/dismiss`),
+            undefined,
+            body as Body,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
-     * 升级举报（转交给更高级别管理员）
+     * 升级举报
      * 对应 POST /_synapse/admin/v1/event_reports/{id}/escalate
      */
-    async escalateReport(id: number): Promise<ReportResponse> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportResponse>(
-                    Method.Post,
-                    `/event_reports/${id}/escalate`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "escalateReport");
-        } catch (error) {
-            throw this.normalizeError(error, "escalateReport");
-        }
+    async escalateReport(id: number, body?: EscalateReportBody): Promise<ReportResponse> {
+        this.requirePositiveInteger(id, "id");
+        return await this.client.http.authedRequest<ReportResponse>(
+            Method.Post,
+            er(`/event_reports/${id}/escalate`),
+            undefined,
+            body as Body,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
@@ -227,121 +360,94 @@ export class EventReportManager extends BaseManager {
      * 对应 DELETE /_synapse/admin/v1/event_reports/{id}
      */
     async deleteReport(id: number): Promise<void> {
-        try {
-            await this.withRetry(async () => {
-                await this.client.http.authedRequest<void>(
-                    Method.Delete,
-                    `/event_reports/${id}`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "deleteReport");
-        } catch (error) {
-            throw this.normalizeError(error, "deleteReport");
-        }
+        this.requirePositiveInteger(id, "id");
+        await this.client.http.authedRequest<void>(
+            Method.Delete,
+            er(`/event_reports/${id}`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
      * 获取举报历史
      * 对应 GET /_synapse/admin/v1/event_reports/{id}/history
      */
-    async getReportHistory(id: number): Promise<ReportHistoryResponse[]> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ReportHistoryResponse[]>(
-                    Method.Get,
-                    `/event_reports/${id}/history`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "getReportHistory");
-        } catch (error) {
-            throw this.normalizeError(error, "getReportHistory");
-        }
+    async getReportHistory(id: number): Promise<ReportResponse[]> {
+        this.requirePositiveInteger(id, "id");
+        return await this.client.http.authedRequest<ReportResponse[]>(
+            Method.Get,
+            er(`/event_reports/${id}/history`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
      * 获取举报统计
      * 对应 GET /_synapse/admin/v1/event_reports/stats
      */
-    async getStats(params?: QueryParams): Promise<StatsResponse[]> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<StatsResponse[]>(
-                    Method.Get,
-                    "/event_reports/stats",
-                    params,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "getStats");
-        } catch (error) {
-            throw this.normalizeError(error, "getStats");
-        }
+    async getStats(): Promise<StatsResponse> {
+        return await this.client.http.authedRequest<StatsResponse>(
+            Method.Get,
+            er("/event_reports/stats"),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 
     /**
-     * 封禁用户举报功能
-     * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block
-     */
-    async blockUser(userId: string, blockedUntil: number, reason: string): Promise<void> {
-        try {
-            await this.withRetry(async () => {
-                await this.client.http.authedRequest<void>(
-                    Method.Post,
-                    `/event_reports/rate_limit/${encodeURIComponent(userId)}/block`,
-                    undefined,
-                    { blocked_until: blockedUntil, reason },
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "blockUser");
-        } catch (error) {
-            throw this.normalizeError(error, "blockUser");
-        }
-    }
-
-    /**
-     * 解封用户举报功能
-     * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock
-     */
-    async unblockUser(userId: string): Promise<void> {
-        try {
-            await this.withRetry(async () => {
-                await this.client.http.authedRequest<void>(
-                    Method.Post,
-                    `/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "unblockUser");
-        } catch (error) {
-            throw this.normalizeError(error, "unblockUser");
-        }
-    }
-
-    /**
-     * 检查用户举报频率限制状态
+     * 查询用户频率限制状态
      * 对应 GET /_synapse/admin/v1/event_reports/rate_limit/{user_id}
      */
     async checkRateLimit(
         userId: string,
     ): Promise<{ is_allowed: boolean; remaining_reports: number; block_reason?: string }> {
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<any>(
-                    Method.Get,
-                    `/event_reports/rate_limit/${encodeURIComponent(userId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
-            }, "checkRateLimit");
-        } catch (error) {
-            throw this.normalizeError(error, "checkRateLimit");
-        }
+        AdminValidators.validateUserId(userId);
+        return await this.client.http.authedRequest<{
+            is_allowed: boolean;
+            remaining_reports: number;
+            block_reason?: string;
+        }>(
+            Method.Get,
+            er(`/event_reports/rate_limit/${encodeURIComponent(userId)}`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 封禁用户举报频率
+     * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block
+     */
+    async blockUser(userId: string, blockedUntil: number, reason: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        await this.client.http.authedRequest<void>(
+            Method.Post,
+            er(`/event_reports/rate_limit/${encodeURIComponent(userId)}/block`),
+            undefined,
+            { blocked_until: blockedUntil, reason } as Body,
+            { prefix: AdminPrefix.V1 },
+        );
+    }
+
+    /**
+     * 解封用户举报频率
+     * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock
+     */
+    async unblockUser(userId: string): Promise<void> {
+        AdminValidators.validateUserId(userId);
+        await this.client.http.authedRequest<void>(
+            Method.Post,
+            er(`/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`),
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     }
 }
 
@@ -351,10 +457,9 @@ declare module "../client.ts" {
     }
 }
 
+/** @internal */
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventReportManager = function (): EventReportManager {
         return new EventReportManager(this);
     };
 }
-
-export default extendMatrixClient;

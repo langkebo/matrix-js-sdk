@@ -1,192 +1,156 @@
 ---
 module: background_update
 generated_from: docs/api-contract/generated/modules/background_update.json
-generated_hash: sha256-a3e7dcb679f07e4b76daac36ae10e369ab6a26b28c52ad67697ad8cf3e6bde92
+generated_hash: sha256-cba12e8763b2f8e1f383183732e8c3259c1debdf06bef4be810ea337ebecbbf9
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Background Update API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/background_update.rs`  
 > 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
-> 更新日期: 2026-04-27  
+> SDK 入口: `src/background-update/index.ts`  
+> 更新日期: 2026-05-11  
 > 挂载版本: `v1` (Admin)
 
-## 一、模块概述
+## 一、当前审计结论
 
-### 1.1 功能描述
+- `generated/modules/background_update.json` 当前记录 **19** 条后台更新管理路由。
+- 后端实际支持:
+  - 任务列表分页
+  - 创建任务
+  - 按状态统计
+  - 单任务读取 / 启动 / 进度推进 / 完成 / 失败 / 取消 / 删除
+  - 历史记录与统计信息查询
+- SDK 现已提供 `BackgroundUpdateManager`，并通过生成的 `BackgroundUpdatePathPattern` 绑定所有管理端路径。
+- 旧文档中 “10 条端点 / 0% 覆盖率 / count 返回 `{ count }` / pending 返回字符串数组” 均已过期，不再准确。
 
-Background Update API 提供后台更新任务管理功能，用于数据库迁移和维护任务。
-
-### 1.2 路由前缀
+## 二、路由前缀与认证
 
 - `/_synapse/admin/v1/background_updates`
-
-### 1.3 认证要求
-
 - 所有端点需要 `AdminUser`
 
-## 二、端点详情
-
-### 2.1 查询所有后台更新
-
-**路径**: `GET /_synapse/admin/v1/background_updates`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
+## 三、核心请求与响应形状
 
 ```typescript
-interface BackgroundUpdatesResponse {
-    updates: Array<{
-        name: string;
-        status: string;
-        progress: number;
-        started_ts?: number;
-    }>;
+interface CreateBackgroundUpdateBody {
+    job_name: string;
+    job_type: string;
+    description?: string;
+    table_name?: string;
+    column_name?: string;
+    total_items?: number;
+    batch_size?: number;
+    sleep_ms?: number;
+    depends_on?: string[];
+    metadata?: Record<string, unknown>;
 }
 ```
-
-### 2.2 查询更新数量
-
-**路径**: `GET /_synapse/admin/v1/background_updates/count`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```json
-{
-    "count": 5
-}
-```
-
-### 2.3 查询待处理更新
-
-**路径**: `GET /_synapse/admin/v1/background_updates/pending`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
 
 ```typescript
-interface PendingUpdates {
-    pending: string[];
-}
-```
-
-### 2.4 查询运行中更新
-
-**路径**: `GET /_synapse/admin/v1/background_updates/running`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```typescript
-interface RunningUpdates {
-    running: Array<{
-        name: string;
-        progress: number;
-        started_ts: number;
-    }>;
-}
-```
-
-### 2.5 获取下一个更新
-
-**路径**: `GET /_synapse/admin/v1/background_updates/next`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```json
-{
-    "name": "update_name"
-}
-```
-
-### 2.6 查询更新状态
-
-**路径**: `GET /_synapse/admin/v1/background_updates/status`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```typescript
-interface UpdateStatus {
-    enabled: boolean;
-    current_updates: number;
-    total_duration_ms: number;
-}
-```
-
-### 2.7 重试失败更新
-
-**路径**: `POST /_synapse/admin/v1/background_updates/retry_failed`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```json
-{
-    "retried": 3
-}
-```
-
-### 2.8 清理锁
-
-**路径**: `POST /_synapse/admin/v1/background_updates/cleanup_locks`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```json
-{}
-```
-
-### 2.9 查询任务详情
-
-**路径**: `GET /_synapse/admin/v1/background_updates/{job_name}`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```typescript
-interface JobDetail {
-    name: string;
+interface BackgroundUpdateRecord {
+    job_name: string;
+    job_type: string;
+    description?: string | null;
+    table_name?: string | null;
     status: string;
-    progress: number;
-    started_ts?: number;
-    completed_ts?: number;
-    error?: string;
+    progress: Record<string, unknown> | number | null;
+    total_items: number;
+    processed_items: number;
+    created_ts: number;
+    started_ts?: number | null;
+    completed_ts?: number | null;
+    error_message?: string | null;
+    retry_count: number;
 }
 ```
-
-### 2.10 查询统计信息
-
-**路径**: `GET /_synapse/admin/v1/background_updates/stats`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
 
 ```typescript
-interface UpdateStats {
-    total_updates: number;
-    completed: number;
-    failed: number;
-    running: number;
-    pending: number;
+interface BackgroundUpdateHistoryRecord {
+    id: number;
+    job_name: string;
+    execution_start_ts: number;
+    execution_end_ts?: number | null;
+    status: string;
+    items_processed: number;
+    error_message?: string | null;
 }
 ```
 
-## 三、SDK 对齐状态
+```typescript
+interface BackgroundUpdateStatsRecord {
+    id: number;
+    job_name: string;
+    total_updates: number;
+    completed_updates: number;
+    failed_updates: number;
+    last_run_ts?: number | null;
+    next_run_ts?: number | null;
+    average_duration_ms: number;
+    created_ts: number;
+    updated_ts: number;
+}
+```
 
-### 3.1 封装覆盖率
+```typescript
+interface BackgroundUpdateStatusResponse {
+    pending_count: number;
+    running_count: number;
+    completed_count: number;
+    failed_count: number;
+    total_count: number;
+    current_update?: BackgroundUpdateRecord | null;
+}
+```
 
-- **总端点数**: 10
-- **已封装**: 0
-- **覆盖率**: 0%
+补充说明:
 
-## 四、变更历史
+- `GET /background_updates` 返回 `{ updates, next_batch }`，不是单纯数组。
+- `GET /background_updates/count` 返回 `{ total_updates }`，不是旧文档中的 `{ count }`。
+- `GET /background_updates/pending` 与 `GET /background_updates/running` 都返回 `BackgroundUpdateRecord[]`，不是字符串列表包装对象。
+- `GET /background_updates/next` 返回 `BackgroundUpdateRecord | null`。
+- `POST /background_updates/retry_failed` 返回 `{ retried_count }`。
+- `POST /background_updates/cleanup_locks` 返回 `{ cleaned_count }`。
+- `GET /background_updates/status/{status}/count` 返回 `{ status, count }`。
+- `DELETE /background_updates/{job_name}` 返回 `204 No Content`。
+
+## 四、路由与 SDK 对齐表
+
+| 方法 | 路径 | SDK 方法 |
+| ---- | ---- | -------- |
+| GET | `/_synapse/admin/v1/background_updates` | `listBackgroundUpdates()` |
+| POST | `/_synapse/admin/v1/background_updates` | `createBackgroundUpdate()` |
+| POST | `/_synapse/admin/v1/background_updates/cleanup_locks` | `cleanupLocks()` |
+| GET | `/_synapse/admin/v1/background_updates/count` | `getUpdateCount()` |
+| GET | `/_synapse/admin/v1/background_updates/next` | `getNextPendingUpdate()` |
+| GET | `/_synapse/admin/v1/background_updates/pending` | `listPendingUpdates()` |
+| POST | `/_synapse/admin/v1/background_updates/retry_failed` | `retryFailedUpdates()` |
+| GET | `/_synapse/admin/v1/background_updates/running` | `listRunningUpdates()` |
+| GET | `/_synapse/admin/v1/background_updates/stats` | `getStats()` |
+| GET | `/_synapse/admin/v1/background_updates/status` | `getStatus()` |
+| GET | `/_synapse/admin/v1/background_updates/status/{status}/count` | `countByStatus()` |
+| GET | `/_synapse/admin/v1/background_updates/{job_name}` | `getUpdate()` |
+| DELETE | `/_synapse/admin/v1/background_updates/{job_name}` | `deleteUpdate()` |
+| POST | `/_synapse/admin/v1/background_updates/{job_name}/start` | `startUpdate()` |
+| POST | `/_synapse/admin/v1/background_updates/{job_name}/progress` | `updateProgress()` |
+| POST | `/_synapse/admin/v1/background_updates/{job_name}/complete` | `completeUpdate()` |
+| POST | `/_synapse/admin/v1/background_updates/{job_name}/fail` | `failUpdate()` |
+| POST | `/_synapse/admin/v1/background_updates/{job_name}/cancel` | `cancelUpdate()` |
+| GET | `/_synapse/admin/v1/background_updates/{job_name}/history` | `getHistory()` |
+
+## 五、SDK 对齐状态
+
+- **总端点数**: 19
+- **已封装**: 19
+- **覆盖率**: 100%
+- **路径绑定**: `src/background-update/index.ts` 使用生成的 `BackgroundUpdatePathPattern`
+- **客户端扩展**: `MatrixClient#getBackgroundUpdateManager()`
+- **验证状态**: `spec/unit/background-update.spec.ts`
+
+## 六、变更历史
 
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
+| 2026-05-11 | 按后端真实 19 条路由重写文档，并补齐 `BackgroundUpdateManager`、测试与路径绑定 | 修复旧文档长期漂移 |
 | 2026-04-27 | 初版 | -    |

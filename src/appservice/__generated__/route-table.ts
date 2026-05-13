@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/app_service.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `app_service` module. */
@@ -18,23 +19,23 @@ export const APP_SERVICE_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/user/{user_id}/appservice" },
     { method: "GET", path: "/_matrix/client/v3/appservice/alias" },
     { method: "GET", path: "/_matrix/client/v3/appservice/user" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services" },
-    { method: "POST", path: "/_synapse/admin/v1/application_services" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/query/alias" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/query/user" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/statistics" },
-    { method: "DELETE", path: "/_synapse/admin/v1/application_services/{as_id}" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/{as_id}" },
-    { method: "PUT", path: "/_synapse/admin/v1/application_services/{as_id}" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/{as_id}/events" },
-    { method: "POST", path: "/_synapse/admin/v1/application_services/{as_id}/events" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/{as_id}/namespaces" },
-    { method: "POST", path: "/_synapse/admin/v1/application_services/{as_id}/ping" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/{as_id}/state" },
-    { method: "POST", path: "/_synapse/admin/v1/application_services/{as_id}/state" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/{as_id}/state/{state_key}" },
-    { method: "GET", path: "/_synapse/admin/v1/application_services/{as_id}/users" },
-    { method: "POST", path: "/_synapse/admin/v1/application_services/{as_id}/users" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices" },
+    { method: "POST", path: "/_synapse/admin/v1/appservices" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/query/alias" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/query/user" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/statistics" },
+    { method: "DELETE", path: "/_synapse/admin/v1/appservices/{as_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}" },
+    { method: "PUT", path: "/_synapse/admin/v1/appservices/{as_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/events" },
+    { method: "POST", path: "/_synapse/admin/v1/appservices/{as_id}/events" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/namespaces" },
+    { method: "POST", path: "/_synapse/admin/v1/appservices/{as_id}/ping" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/state" },
+    { method: "POST", path: "/_synapse/admin/v1/appservices/{as_id}/state" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/state/{state_key}" },
+    { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/users" },
+    { method: "POST", path: "/_synapse/admin/v1/appservices/{as_id}/users" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `APP_SERVICE_ROUTES`. */
@@ -52,7 +53,7 @@ export type AppServicePath = AppServiceRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type AppServiceReplaceBraces<P extends string> =
+export type AppServiceReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${AppServiceReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

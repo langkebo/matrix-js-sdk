@@ -1,28 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Method } from "../../src/http-api/index.ts";
-import { ClientPrefix } from "../../src/http-api/prefix.ts";
 import { UserDirectoryManager } from "../../src/user-directory/index.ts";
 
 describe("UserDirectoryManager", () => {
-    let authedRequest: ReturnType<typeof vi.fn>;
+    let request: ReturnType<typeof vi.fn>;
     let searchUserDirectory: ReturnType<typeof vi.fn>;
     let getUser: ReturnType<typeof vi.fn>;
     let getUsers: ReturnType<typeof vi.fn>;
     let manager: UserDirectoryManager;
 
     beforeEach(() => {
-        authedRequest = vi.fn();
+        request = vi.fn();
         searchUserDirectory = vi.fn();
         getUser = vi.fn();
         getUsers = vi.fn();
         manager = new UserDirectoryManager({
-            http: { authedRequest },
+            http: { request },
             searchUserDirectory,
             getUser,
             getUsers,
-            // explicitly absent so getProfile takes the http branch
-            getProfileManager: undefined,
         } as any);
     });
 
@@ -34,27 +31,33 @@ describe("UserDirectoryManager", () => {
         expect(searchUserDirectory).toHaveBeenCalledWith({ term: "alice", limit: 10 });
     });
 
-    it("falls back to /profile when no ProfileManager is wired", async () => {
-        authedRequest.mockResolvedValueOnce({ displayname: "Alice" });
+    it("lists user directory via POST /user_directory/list", async () => {
+        request.mockResolvedValueOnce({ users: [{ user_id: "@alice:example.com" }] });
+
+        await expect(manager.listUserDirectory()).resolves.toEqual({
+            users: [{ user_id: "@alice:example.com" }],
+        });
+        expect(request).toHaveBeenCalledWith(Method.Post, "/user_directory/list");
+    });
+
+    it("fetches user directory profile directly", async () => {
+        request.mockResolvedValueOnce({ displayname: "Alice" });
 
         await expect(manager.getProfile("@alice:example.com")).resolves.toEqual({
             displayname: "Alice",
         });
-        expect(authedRequest).toHaveBeenCalledWith(
+        expect(request).toHaveBeenCalledWith(
             Method.Get,
-            "/profile/%40alice%3Aexample.com",
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
+            "/user_directory/profiles/%40alice%3Aexample.com",
         );
     });
 
-    it("propagates 404 errors from the profile fallback", async () => {
+    it("propagates 404 errors from the user directory profile endpoint", async () => {
         const httpError = Object.assign(new Error("Not Found"), {
             httpStatus: 404,
             errcode: "M_NOT_FOUND",
         });
-        authedRequest.mockRejectedValueOnce(httpError);
+        request.mockRejectedValueOnce(httpError);
 
         await expect(manager.getProfile("@missing:example.com")).rejects.toMatchObject({
             httpStatus: 404,
@@ -62,18 +65,18 @@ describe("UserDirectoryManager", () => {
         });
     });
 
-    it("prefers the ProfileManager when the client exposes one", async () => {
-        const getProfileInfo = vi.fn().mockResolvedValueOnce({ displayname: "Alice" });
-        const m = new UserDirectoryManager({
-            http: { authedRequest },
-            getProfileManager: () => ({ getProfileInfo }),
-        } as any);
+    it("delegates getUser to the client cache lookup", () => {
+        getUser.mockReturnValue({ userId: "@alice:example.com" });
 
-        await expect(m.getProfile("@alice:example.com")).resolves.toEqual({
-            displayname: "Alice",
-        });
-        expect(getProfileInfo).toHaveBeenCalledWith("@alice:example.com");
-        expect(authedRequest).not.toHaveBeenCalled();
+        expect(manager.getUser("@alice:example.com")).toEqual({ userId: "@alice:example.com" });
+        expect(getUser).toHaveBeenCalledWith("@alice:example.com");
+    });
+
+    it("delegates getUsers to the client cache lookup", () => {
+        getUsers.mockReturnValue([{ displayName: "Alice" }, { displayName: "Bob" }]);
+
+        expect(manager.getUsers()).toEqual([{ displayName: "Alice" }, { displayName: "Bob" }]);
+        expect(getUsers).toHaveBeenCalledTimes(1);
     });
 
     it("looks up users by display name from the client cache", () => {

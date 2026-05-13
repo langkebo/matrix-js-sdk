@@ -1,7 +1,7 @@
 ---
 module: worker_body
 generated_from: docs/api-contract/generated/modules/worker_body.json
-generated_hash: sha256-0cad1fcc4406ca41c09d567905ffe89f97832f279594a6160062c1156d850f3c
+generated_hash: sha256-be98975c7348c20d0074baf66c5870abd3b222c4b1363c7c4b185426007915c4
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -12,46 +12,33 @@ last_reviewed: 2026-05-03
 
 ## 真实后端路由
 
-| 方法 | 路径                                                 | 说明     | 认证   |
-| ---- | ---------------------------------------------------- | -------- | ------ |
-| POST | `/_synapse/worker/v1/commands/{command_id}/complete` | 完成命令 | Worker |
-| POST | `/_synapse/worker/v1/commands/{command_id}/fail`     | 失败命令 | Worker |
+| 方法 | 路径                                                        | 说明                                      | 认证   |
+| ---- | ----------------------------------------------------------- | ----------------------------------------- | ------ |
+| POST | `/_synapse/worker/v1/workers/{worker_id}/heartbeat`         | worker 心跳上报                           | Worker |
+| POST | `/_synapse/worker/v1/workers/{worker_id}/connect`           | 建立 worker 连接                          | Worker |
+| POST | `/_synapse/worker/v1/workers/{worker_id}/disconnect`        | 断开 worker 连接                          | Worker |
+| GET  | `/_synapse/worker/v1/workers/{worker_id}/commands`          | 拉取待处理命令                            | Worker |
+| POST | `/_synapse/worker/v1/commands/{command_id}/complete`        | 标记命令完成                              | Worker |
+| POST | `/_synapse/worker/v1/commands/{command_id}/fail`            | 标记命令失败                              | Worker |
+| POST | `/_synapse/worker/v1/tasks/{task_id}/complete`              | 标记任务完成                              | Worker |
+| POST | `/_synapse/worker/v1/tasks/{task_id}/fail`                  | 标记任务失败                              | Worker |
+| GET  | `/_synapse/worker/v1/replication/{worker_id}/position`      | 查询复制位点                               | Worker |
+| PUT  | `/_synapse/worker/v1/replication/{worker_id}/{stream_name}` | 更新复制位点                               | Worker |
+| GET  | `/_synapse/worker/v1/events`                                | 获取自某个 `stream_id` 之后的事件          | Worker |
 
 ## SDK 对齐状态
 
-| 端点             | SDK Manager     | 方法                | 状态      |
-| ---------------- | --------------- | ------------------- | --------- |
-| `POST /complete` | `WorkerManager` | `completeCommand()` | ✅ 已封装 |
-| `POST /fail`     | `WorkerManager` | `failCommand()`     | ✅ 已封装 |
+- **封装 Manager**: `WorkerBodyManager`
+- **挂载位置**: `MatrixClient.getWorkerBodyManager()`
+- **路径绑定**: 已通过 `WorkerBodyPathPattern` 绑定所有 11 条路由。
+- **状态**: ✅ 100% 完善
 
-## 常见状态码
+## 覆盖率口径
 
-| 状态码 | 说明                               |
-| ------ | ---------------------------------- |
-| `200`  | 命令完成或失败上报成功             |
-| `400`  | `command_id`、请求体或完成结果非法 |
-| `401`  | replication HTTP 凭据无效或缺失    |
-| `403`  | 当前 worker 凭据无权上报该命令     |
-| `404`  | 目标命令不存在                     |
-
-## 错误语义对齐（BaseManager）
-
-| 场景                         | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                               |
-| ---------------------------- | -------------------------------------- | ---------------- | ---------------------------------------- |
-| replication 凭据无效或缺失   | `401` / `M_UNKNOWN_TOKEN`              | `AuthError`      | 使用正确的 replication HTTP 鉴权重试上报 |
-| command 上报参数或 body 非法 | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正 `command_id`、结果体或错误体后重试  |
-| 当前 worker 无权操作该命令   | `403` / `M_FORBIDDEN`                  | `ApiError`       | 检查 worker 身份与 replication 权限配置  |
-| 目标命令不存在               | `404` / `M_NOT_FOUND`                  | `NotFoundError`  | 刷新命令列表并核对 `command_id` 后重试   |
-
-## 典型 errcode
-
-| errcode           | 常见 HTTP | 说明                                   |
-| ----------------- | --------- | -------------------------------------- |
-| `M_UNKNOWN_TOKEN` | `401`     | replication HTTP 凭据无效、过期或缺失  |
-| `M_BAD_JSON`      | `400`     | complete / fail 请求体结构不合法       |
-| `M_INVALID_PARAM` | `400`     | `command_id`、结果体或错误信息参数非法 |
-| `M_FORBIDDEN`     | `403`     | 当前 worker 无权操作该命令             |
-| `M_NOT_FOUND`     | `404`     | 目标命令不存在                         |
+- **后端 Ledger 路由数**: 11
+- **SDK 已封装路由数**: 11
+- **已绑定生成路由模板**: 11
+- **契约覆盖率**: 100%
 
 ## 代码生成产物
 

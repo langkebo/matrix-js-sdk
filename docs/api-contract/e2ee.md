@@ -1,434 +1,172 @@
 ---
 module: e2ee_routes
 generated_from: docs/api-contract/generated/modules/e2ee_routes.json
-generated_hash: sha256-9e0152a849d9584e1ccf8743ac6eb86389a2cf34fa5605bdc2ed0ea5d15f1c9c
+generated_hash: sha256-1272cbc681e21007fc09df49f0e3c24e2275ce3c1a705b79783450d779fc2d0c
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
-# E2EE (End-to-End Encryption) API 契约
-
-> 版本: v1.0.0
-> 更新日期: 2026-04-05
-> 对应 SDK 模块: `src/device-keys/index.ts`, `src/device-trust/index.ts`, `src/secure-backup/index.ts`
-
----
-
-## 概述
-
-E2EE API 提供端到端加密功能，包括设备密钥管理、一次性密钥、跨设备签名、安全备份等。
-
-## 挂载版本
-
-| 前缀                 | 说明                                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------- |
-| `/_matrix/client/r0` | 兼容核心 E2EE 路由：`keys/*`、`room_keys/request*`、`rooms/{room_id}/keys/distribution`、`sendToDevice`  |
-| `/_matrix/client/v1` | 与 r0 共享同一组兼容核心 E2EE 路由                                                                       |
-| `/_matrix/client/v3` | 兼容核心 E2EE 路由 + `device_verification/*`、`device_trust*`、`security/summary`、`keys/backup/secure*` |
-
-- 下文示例默认以 `v3` 展示。
-- 对于 `keys/upload`、`keys/query`、`keys/claim`、`keys/changes`、`room_keys/request*`、`sendToDevice` 等兼容接口，`r0`、`v1`、`v3` 的请求与响应结构保持一致。
-
----
-
-## API 端点
-
-### 设备密钥管理
-
-#### 上传设备密钥
-
-```
-POST /_matrix/client/v3/keys/upload
-```
-
-**请求体:**
-
-```json
-{
-    "device_keys": {
-        "user_id": "@user:example.com",
-        "device_id": "DEVICEID",
-        "algorithms": ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"],
-        "keys": {
-            "curve25519:DEVICEID": "key_base64",
-            "ed25519:DEVICEID": "key_base64"
-        },
-        "signatures": {
-            "@user:example.com": {
-                "ed25519:DEVICEID": "signature_base64"
-            }
-        }
-    },
-    "one_time_keys": {
-        "signed_curve25519:AAAAAA": {
-            "key": "key_base64",
-            "signatures": {}
-        }
-    }
-}
-```
-
-**响应:**
-
-```json
-{
-    "one_time_key_counts": {
-        "signed_curve25519": 50,
-        "curve25519": 0
-    }
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.uploadKeys()`
-
----
-
-#### 查询设备密钥
-
-```
-POST /_matrix/client/v3/keys/query
-```
-
-**请求体:**
-
-```json
-{
-    "device_keys": {
-        "@user1:example.com": ["DEVICEID1", "DEVICEID2"],
-        "@user2:example.com": []
-    },
-    "token": "stream_token"
-}
-```
-
-**响应:**
-
-```json
-{
-    "device_keys": {
-        "@user1:example.com": {
-            "DEVICEID1": {
-                "user_id": "@user1:example.com",
-                "device_id": "DEVICEID1",
-                "algorithms": [],
-                "keys": {},
-                "signatures": {}
-            }
-        }
-    },
-    "failures": {}
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.queryKeys()`
-
----
-
-#### 声明一次性密钥
-
-```
-POST /_matrix/client/v3/keys/claim
-```
-
-**请求体:**
-
-```json
-{
-    "one_time_keys": {
-        "@user:example.com": {
-            "DEVICEID": "signed_curve25519:AAAAAA"
-        }
-    }
-}
-```
-
-**响应:**
-
-```json
-{
-    "one_time_keys": {
-        "@user:example.com": {
-            "DEVICEID": {
-                "signed_curve25519:AAAAAA": {
-                    "key": "key_base64",
-                    "signatures": {}
-                }
-            }
-        }
-    },
-    "failures": {}
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.claimKeys()`
-
----
-
-#### 获取密钥变化
-
-```
-GET /_matrix/client/v3/keys/changes?from=token&to=token
-```
-
-**响应:**
-
-```json
-{
-    "changed": ["@user1:example.com", "@user2:example.com"],
-    "left": ["@user3:example.com"]
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.getKeyChanges()`
-
----
-
-### 设备签名
-
-#### 上传签名
-
-```
-POST /_matrix/client/v3/keys/signatures/upload
-```
-
-**请求体:**
-
-```json
-{
-    "@user:example.com": {
-        "DEVICEID": {
-            "user_id": "@user:example.com",
-            "device_id": "DEVICEID",
-            "keys": {},
-            "signatures": {}
-        }
-    }
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.uploadSignatures()`
-
----
-
-#### 上传设备签名密钥
-
-```
-POST /_matrix/client/v3/keys/device_signing/upload
-```
-
-**请求体:**
-
-```json
-{
-    "master_key": {},
-    "self_signing_key": {},
-    "user_signing_key": {}
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.uploadDeviceSigning()`
-
----
-
-### 房间密钥请求
-
-#### 创建密钥请求
-
-```
-POST /_matrix/client/v3/room_keys/request
-```
-
-**请求体:**
-
-```json
-{
-    "room_id": "!room:example.com",
-    "session_id": "session_id",
-    "algorithm": "m.megolm.v1.aes-sha2",
-    "request_type": "request"
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.createRoomKeyRequest()`
-
----
-
-#### 获取密钥请求
-
-```
-GET /_matrix/client/v3/room_keys/request
-```
-
-**响应:**
-
-```json
-{
-    "requests": [
-        {
-            "request_id": "request_id",
-            "user_id": "@user:example.com",
-            "device_id": "DEVICEID",
-            "room_id": "!room:example.com",
-            "session_id": "session_id",
-            "algorithm": "m.megolm.v1.aes-sha2",
-            "status": "pending"
-        }
-    ]
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.getRoomKeyRequests()`
-
----
-
-#### 删除密钥请求
-
-```
-DELETE /_matrix/client/v3/room_keys/request/{request_id}
-```
-
-**SDK 方法:** `DeviceKeysManager.deleteRoomKeyRequest()`
-
----
-
-### 设备消息
-
-#### 发送设备消息
-
-```
-PUT /_matrix/client/v3/sendToDevice/{event_type}/{txn_id}
-```
-
-**请求体:**
-
-```json
-{
-    "messages": {
-        "@user1:example.com": {
-            "DEVICEID1": {
-                "algorithm": "m.megolm.v1.aes-sha2",
-                "room_id": "!room:example.com",
-                "session_id": "session_id",
-                "session_key": "key_base64"
-            }
-        }
-    }
-}
-```
-
-**SDK 方法:** `DeviceKeysManager.sendToDevice()`
-
----
-
-## 错误码
-
-| 错误码              | HTTP 状态码 | 说明           |
-| ------------------- | ----------- | -------------- |
-| M_MISSING_TOKEN     | 401         | 缺少访问令牌   |
-| M_UNKNOWN_TOKEN     | 401         | 无效的访问令牌 |
-| M_NOT_FOUND         | 404         | 资源不存在     |
-| M_INVALID_SIGNATURE | 400         | 签名无效       |
-
----
-
-## 类型定义
-
-```typescript
-export interface DeviceKeys {
-    user_id: string;
-    device_id: string;
-    algorithms: string[];
-    keys: Record<string, string>;
-    signatures: Record<string, Record<string, string>>;
-    unsigned?: Record<string, unknown>;
-}
-
-export interface OneTimeKeys {
-    [keyId: string]: {
-        key: string;
-        signatures?: Record<string, Record<string, string>>;
-    };
-}
-
-export interface UploadKeysResponse {
-    one_time_key_counts?: Record<string, number>;
-}
-
-export interface QueryKeysResponse {
-    device_keys?: Record<string, Record<string, DeviceKeys>>;
-    failures?: Record<string, Record<string, string>>;
-}
-
-export interface ClaimKeysResponse {
-    one_time_keys?: Record<string, Record<string, Record<string, any>>>;
-    failures?: Record<string, Record<string, string>>;
-}
-
-export interface KeyChangesResponse {
-    changed?: string[];
-    left?: string[];
-}
-```
-
----
-
-## 使用示例
-
-```typescript
-const client = new MatrixClient({ baseUrl: "https://matrix.example.com" });
-const deviceKeysManager = client.getDeviceKeysManager();
-
-// 上传设备密钥
-await deviceKeysManager.uploadKeys({
-    deviceKeys: {
-        user_id: "@user:example.com",
-        device_id: "DEVICEID",
-        algorithms: ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"],
-        keys: {
-            /* ... */
-        },
-        signatures: {
-            /* ... */
-        },
-    },
-    oneTimeKeys: {
-        /* ... */
-    },
-});
-
-// 查询其他用户的设备密钥
-const keys = await deviceKeysManager.queryKeys({
-    device_keys: {
-        "@other:example.com": [],
-    },
-});
-
-// 声明一次性密钥
-const claimedKeys = await deviceKeysManager.claimKeys({
-    one_time_keys: {
-        "@other:example.com": {
-            DEVICEID: "signed_curve25519:AAAAAA",
-        },
-    },
-});
-```
-
----
-
-## 低层入口：`E2EEManager`
-
-`matrix-js-sdk/src/e2ee/index.ts` 的 `E2EEManager` 是针对 `e2ee_routes.rs` 全部 25 条端点的**薄**封装：
-对绝大多数应用不应直接使用它——请优先使用 `MatrixClient.initRustCrypto()` 暴露的类型化高层
-API（`DeviceKeysManager`、`CrossSigningManager`、`SecureBackupManager` 等）。`E2EEManager`
-仅为需要绕过 Rust crypto 直接驱动后端的高级集成（管理工具、迁移脚本、契约测试）预留。
-
-入口方法：`MatrixClient.getE2EEManager()`。覆盖：
-
-| 前缀族 | 数量 | 典型方法 |
-| ------ | ---- | -------- |
-| 兼容（r0/v1/v3） | 13 | `uploadKeys` · `queryKeys` · `claimKeys` · `getKeyChanges` · `postDeviceListUpdate` · `uploadSignatures` · `uploadSignaturesAlt` · `uploadDeviceSigning` · `createRoomKeyRequest` · `listRoomKeyRequests` · `deleteRoomKeyRequest` · `getRoomKeyDistribution` · `sendToDevice` |
-| 仅 v3 | 12 | `requestDeviceVerification` · `respondDeviceVerification` · `getDeviceVerificationStatus` · `getDeviceTrustList` · `getDeviceTrust` · `getSecuritySummary` · `createSecureBackup` · `getSecureBackup` · `deleteSecureBackup` · `storeSecureBackupKeys` · `restoreSecureBackup` · `verifySecureBackupPassphrase` |
-
-> 所有方法统一使用 `Record<string, unknown>` 作为 body，不做字段级类型断言——类型安全与
-> 加密密钥的语义校验交给 `initRustCrypto()` 路径。`getE2EEManager()` 由 `extendMatrixClient()`
-> 注册，并在 `manager-extensions/index.ts` 默认扩展列表里挂载。
+# E2EE API 契约
+
+> 审查来源: `synapse-rust/src/web/routes/e2ee_routes.rs`
+> 对应 SDK 模块: `src/device-keys/index.ts`, `src/device-trust/index.ts`, `src/secure-backup/index.ts`, `src/e2ee/index.ts`
+
+## 本次复核结论
+
+- 后端实际分为两层路由:
+  - compat 路由同时挂在 `/_matrix/client/r0`、`/_matrix/client/v1`、`/_matrix/client/v3`
+  - v3-only 路由只挂在 `/_matrix/client/v3`
+- SDK 并不是单一 `E2EEManager` 封装，而是四层入口并存:
+  - `DeviceKeysManager`: 设备密钥、签名、room key request、to-device
+  - `DeviceTrustManager`: 设备验证、设备信任、安全摘要
+  - `SecureBackupManager`: secure backup 的高层类型化封装
+  - `E2EEManager`: 面向后端原始端点的低层薄封装
+- `DeviceTrustManager` 与后端 `device_verification/*` 的请求体最贴近；`DeviceKeysManager` 的兼容验证 helper 现已补齐后端兼容字段，但新接入仍建议优先走 `DeviceTrustManager`。
+- `GET /rooms/{room_id}/keys/distribution` 当前后端直接返回 `403 Forbidden`，属于服务端内部接口，不是可正常消费的客户端业务 API。
+- secure backup 后端返回字段比 SDK 高层类型更丰富，文档以下文“稳定字段 + SDK 实际消费字段”的方式说明。
+- `E2EEManager` 现已绑定生成的 `E2eePathPattern`，并补齐 `requestDeviceVerification()` / `createSecureBackup()` 的后端真实参数语义。
+
+## 路由挂载
+
+| 前缀 | 真实后端暴露 |
+| --- | --- |
+| `/_matrix/client/r0` | compat: `keys/*`、`room_keys/request*`、`sendToDevice`、`rooms/{room_id}/keys/distribution` |
+| `/_matrix/client/v1` | 同 r0 |
+| `/_matrix/client/v3` | compat 全量 + `device_verification/*`、`device_trust*`、`security/summary`、`keys/backup/secure*` |
+
+## SDK 入口分层
+
+| SDK 入口 | 主要职责 | 说明 |
+| --- | --- | --- |
+| `DeviceKeysManager` | 密钥上传/查询/claim、设备列表、签名、room key request、to-device | 高层类型较多，但部分返回结构落后于后端 |
+| `DeviceTrustManager` | 验证请求、验证响应、设备信任、安全摘要 | 与后端 `approved` / `token` 语义一致 |
+| `SecureBackupManager` | secure backup 创建、查询、删除、写入、恢复、校验 | 高层类型化接口，屏蔽部分后端扩展字段 |
+| `E2EEManager` | 全量原始端点薄封装 | `Record<string, unknown>` 风格，现已绑定 `E2eePathPattern`，适合契约测试/迁移脚本 |
+
+## 真实端点与封装状态
+
+### Compat 路由
+
+| 方法 | 路径 | 后端行为 | SDK 主入口 |
+| --- | --- | --- | --- |
+| `POST` | `/keys/upload` | 上传设备密钥 / OTK / fallback key | `DeviceKeysManager.uploadKeys()` / `E2EEManager.uploadKeys()` |
+| `POST` | `/keys/upload/{device_id}` | 与 `/keys/upload` 共用 handler | SDK 无专门方法，需低层自拼路径 |
+| `POST` | `/keys/query` | 返回 `device_keys`，并可能额外携带 `master_keys` / `self_signing_keys` / `user_signing_keys` | `DeviceKeysManager.queryKeys()` / `E2EEManager.queryKeys()` |
+| `POST` | `/keys/claim` | claim OTK | `DeviceKeysManager.claimKeys()` / `E2EEManager.claimKeys()` |
+| `GET` | `/keys/changes` | 返回 `changed[]` / `left[]` | `DeviceKeysManager.getKeyChanges()` / `E2EEManager.getKeyChanges()` |
+| `POST` | `/keys/device_list/update` | 初始全量时 `changed` 为设备对象数组；增量时可能含 `deleted[]` 与 `stream_id` | `DeviceKeysManager.updateDeviceList()` / `E2EEManager.postDeviceListUpdate()` |
+| `POST` | `/keys/signatures` | 上传签名 | `DeviceKeysManager.uploadSignatures()` / `E2EEManager.uploadSignatures()` |
+| `POST` | `/keys/signatures/upload` | `/keys/signatures` 兼容别名 | `E2EEManager.uploadSignaturesAlt()` |
+| `POST` | `/keys/device_signing/upload` | 上传 master/self/user signing keys | `DeviceKeysManager.uploadDeviceSigning()` / `E2EEManager.uploadDeviceSigning()` |
+| `POST` | `/room_keys/request` | 创建请求，返回 `request_id` | `DeviceKeysManager.createRoomKeyRequest()` / `E2EEManager.createRoomKeyRequest()` |
+| `GET` | `/room_keys/request` | 返回 `requests[]`，字段含 `action`、`request_type`、`status`、`created_ts`、`is_fulfilled` 等 | `DeviceKeysManager.getRoomKeyRequests()` / `E2EEManager.listRoomKeyRequests()` |
+| `DELETE` | `/room_keys/request/{request_id}` | 删除 / 取消请求 | `DeviceKeysManager.deleteRoomKeyRequest()` / `E2EEManager.deleteRoomKeyRequest()` |
+| `GET` | `/rooms/{room_id}/keys/distribution` | 当前直接返回 `403 Forbidden` | `DeviceKeysManager.getRoomKeyDistribution()` / `E2EEManager.getRoomKeyDistribution()` 仍保留，但调用将报错 |
+| `PUT` | `/sendToDevice/{event_type}/{transaction_id}` | 成功返回空 JSON | `DeviceKeysManager.sendToDevice()` / `E2EEManager.sendToDevice()` |
+
+### V3-only 路由
+
+| 方法 | 路径 | 后端行为 | SDK 主入口 |
+| --- | --- | --- | --- |
+| `POST` | `/device_verification/request` | 读取 `new_device_id` 或 `device_id`，`method` 默认 `sas` | `DeviceTrustManager.requestVerification()` / `E2EEManager.requestDeviceVerification()` |
+| `POST` | `/device_verification/respond` | 读取 `request_token` 或 `token`，以及 `approved: boolean` | `DeviceTrustManager.respondToVerification()` / `E2EEManager.respondDeviceVerification()` |
+| `GET` | `/device_verification/status/{token}` | 找不到时返回 `200 { "status": "not_found" }`，不是 404 | `DeviceTrustManager.getVerificationStatus()` / `E2EEManager.getDeviceVerificationStatus()` |
+| `GET` | `/device_trust` | 返回 `{ devices: [...] }` | `DeviceTrustManager.getDeviceTrustList()` / `E2EEManager.getDeviceTrustList()` |
+| `GET` | `/device_trust/{device_id}` | 未找到返回 `404 M_NOT_FOUND` | `DeviceTrustManager.getDeviceTrust()` / `E2EEManager.getDeviceTrust()` |
+| `GET` | `/security/summary` | 返回安全摘要 | `DeviceTrustManager.getSecuritySummary()` / `E2EEManager.getSecuritySummary()` |
+| `POST` | `/keys/backup/secure` | 仅强制要求 `passphrase` | `SecureBackupManager.createSecureBackup()` / `E2EEManager.createSecureBackup()` |
+| `GET` | `/keys/backup/secure/{backup_id}` | 返回 backup info | `SecureBackupManager.getSecureBackup()` / `E2EEManager.getSecureBackup()` |
+| `DELETE` | `/keys/backup/secure/{backup_id}` | 删除备份 | `SecureBackupManager.deleteSecureBackup()` / `E2EEManager.deleteSecureBackup()` |
+| `POST` | `/keys/backup/secure/{backup_id}/keys` | 返回 `{ count, key_count }` | `SecureBackupManager.addKeysToSecureBackup()` / `E2EEManager.storeSecureBackupKeys()` |
+| `POST` | `/keys/backup/secure/{backup_id}/restore` | 返回 `{ success, restored_keys, key_count, message? }` | `SecureBackupManager.restoreFromSecureBackup()` / `E2EEManager.restoreSecureBackup()` |
+| `POST` | `/keys/backup/secure/{backup_id}/verify` | 返回 `{ valid }` | `SecureBackupManager.verifySecureBackup()` / `E2EEManager.verifySecureBackupPassphrase()` |
+
+## 参数与返回值对齐说明
+
+### 设备密钥与设备列表
+
+- `uploadKeys()`:
+  - SDK 高层参数名为 `deviceKeys` / `oneTimeKeys` / `fallbackKeys`
+  - 发送到后端时分别映射为 `device_keys` / `one_time_keys` / `fallback_keys`
+- `queryKeys()`:
+  - `DeviceKeysManager.QueryKeysResponse` 只稳定声明 `device_keys` 与 `failures`
+  - 后端实际还会返回 `master_keys`、`self_signing_keys`、`user_signing_keys`
+- `updateDeviceList()`:
+  - 后端 `changed` 实际是设备对象数组，不是 `string[]`
+  - 增量响应还可能出现 `deleted[]` 与 `stream_id`
+  - `DeviceKeysManager.updateDeviceList()` 现已扩展为返回 `changed[]` 设备对象、`deleted[]`、`left[]`、`stream_id`
+
+### 设备验证与设备信任
+
+- `requestVerification()`:
+  - 后端实际识别 `new_device_id` 或 `device_id`
+  - `DeviceTrustManager.requestVerification()` 与后端匹配
+  - `E2EEManager.requestDeviceVerification()` 现已改为只要求 `device_id | new_device_id`
+  - `DeviceKeysManager.requestDeviceVerification()` 仍保留旧签名 `(targetUserId, targetDeviceId)`，但现在会同时发送 `device_id` / `new_device_id` 以兼容后端当前 handler；推荐新接入仍优先使用 `DeviceTrustManager`
+- `respondToVerification()`:
+  - 后端识别 `{ token | request_token, approved }`
+  - `DeviceTrustManager.respondToVerification(token, approved)` 完全匹配
+  - `DeviceKeysManager.respondDeviceVerification()` 现已将旧的 `"accept" | "reject"` 或布尔值转换为 `{ token, request_token, approved }`
+- `getVerificationStatus()`:
+  - 后端不存在时返回 `{ status: "not_found" }`
+  - 因此 SDK 调用方不能把“未找到”仅理解为 404
+- `getSecuritySummary()`:
+  - `DeviceTrustManager.getSecuritySummary()` 出错时抛异常
+  - `E2EEManager.getSecuritySummary()` 出错时记录 `logger.warn` 并返回 `{}` fallback
+
+### Secure Backup
+
+- `createSecureBackup()`:
+  - `SecureBackupManager` 只暴露 `passphrase`
+  - `E2EEManager.createSecureBackup()` 允许原始 body，包括 `algorithm` / `auth_data`
+  - `E2EEManager.createSecureBackup()` 现已改为与后端一致，只强制 `passphrase`
+  - 后端当前真正强制校验的只有 `passphrase`
+- `addKeysToSecureBackup()`:
+  - SDK 高层发送 `{ passphrase, session_keys }`
+  - 单个 session 只稳定声明 `room_id` / `session_id` / `session_key`
+  - 后端还兼容 `session_data.session_key`，并给 `first_message_index` / `forwarded_count` / `is_verified` 默认值
+- `restoreFromSecureBackup()`:
+  - SDK 高层类型只声明 `success` / `key_count` / `message?`
+  - 后端额外返回 `restored_keys`，与 `key_count` 含义一致
+- `addKeysToSecureBackup()` 返回:
+  - SDK 高层类型只读取 `key_count`
+  - 后端同时返回 `count`
+
+## 错误语义
+
+| 场景 | 后端典型返回 | SDK 语义 |
+| --- | --- | --- |
+| 未认证 / token 无效 | `401` + `M_MISSING_TOKEN` / `M_UNKNOWN_TOKEN` | manager 统一归一化为鉴权错误 |
+| 设备不存在 | `404` + `M_NOT_FOUND` | `DeviceTrustManager.getDeviceTrust()` 在高层接口中会返回 `null` |
+| 验证 token 不存在 | `200 { "status": "not_found" }` | 不触发 404，调用方需检查 `status` |
+| 房间密钥分发接口 | `403` + forbidden | 当前客户端不应依赖该接口 |
+| secure backup 缺少口令 | `400 Bad Request` | 高层/低层 manager 都会抛标准 API 错误 |
+
+## 事件系统
+
+### `DeviceKeysManager`
+
+| 事件 | 触发方法 | 载荷 |
+| --- | --- | --- |
+| `KeysUploaded` | `uploadKeys()` | `one_time_key_counts` |
+| `KeysQueried` | `queryKeys()` | `device_keys` |
+| `KeyClaimed` | `claimKeys()` | `one_time_keys` |
+| `DeviceListUpdated` | `getKeyChanges()` | `changed[]`, `left[]` |
+| `RoomKeyRequested` | `getRoomKeyRequests()` | `requests[]` |
+
+### `DeviceTrustManager`
+
+| 事件 | 触发方法 | 载荷 |
+| --- | --- | --- |
+| `VerificationRequested` | `requestVerification()` | `IDeviceVerificationResponse` |
+| `VerificationResponded` | `respondToVerification()` | `IVerificationRespondResult` |
+| `SecuritySummaryUpdated` | `getSecuritySummary()` 成功后 | `ISecuritySummary` |
+| `TrustChanged` | 当前代码中未看到直接触发点 | 预留事件 |
+
+## 当前对齐结论
+
+- 文档已按“后端真实契约 + SDK 当前封装行为”同步，不再把 `E2EEManager` 误写为唯一主入口。
+- `DeviceTrustManager` 是当前最可靠的设备验证入口；`DeviceKeysManager` 中的验证 helper 已补齐后端兼容字段，仍以兼容层定位保留。
+- `room_key_distribution` 已标注为当前不可用客户端接口。
+- secure backup 文档已明确区分后端扩展字段与 SDK 高层稳定字段。
+- `spec/unit/e2ee-manager.spec.ts` 已新增专用断言，覆盖生成路由绑定、验证请求参数语义与 `getSecuritySummary()` fallback。

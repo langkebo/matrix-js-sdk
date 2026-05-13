@@ -8,6 +8,9 @@ describe("TelemetryManager", () => {
 
     beforeEach(() => {
         mockClient = {
+            http: {
+                authedRequest: vi.fn(),
+            },
             getCrypto: vi.fn().mockReturnValue({}),
             supportsVoip: vi.fn().mockReturnValue(true),
             supportsThreads: vi.fn().mockReturnValue(true),
@@ -176,6 +179,27 @@ describe("TelemetryManager", () => {
         });
     });
 
+    describe("lifecycle", () => {
+        it("start is a no-op and preserves pending events", () => {
+            telemetryManager.enable();
+            telemetryManager.track("event1");
+
+            telemetryManager.start();
+
+            expect(telemetryManager.getPendingEvents()).toHaveLength(1);
+        });
+
+        it("stop flushes the pending queue", () => {
+            telemetryManager.enable();
+            telemetryManager.track("event1");
+            telemetryManager.track("event2");
+
+            telemetryManager.stop();
+
+            expect(telemetryManager.getPendingEvents()).toHaveLength(0);
+        });
+    });
+
     describe("getClientInfo", () => {
         it("should return client info", () => {
             const info = telemetryManager.getClientInfo();
@@ -183,6 +207,106 @@ describe("TelemetryManager", () => {
             expect(info).toHaveProperty("platform");
             expect(info).toHaveProperty("runtime");
             expect(info).toHaveProperty("features");
+        });
+    });
+
+    describe("admin telemetry endpoints", () => {
+        it("should fetch telemetry status", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ enabled: true });
+
+            await expect(telemetryManager.getServerStatus()).resolves.toEqual({ enabled: true });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/telemetry/status",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should fetch telemetry attributes and metrics summary", async () => {
+            mockClient.http.authedRequest
+                .mockResolvedValueOnce({ attributes: { "service.name": "synapse-rust" } })
+                .mockResolvedValueOnce({ total_metrics: 5 });
+
+            await expect(telemetryManager.getServerAttributes()).resolves.toEqual({
+                attributes: { "service.name": "synapse-rust" },
+            });
+            await expect(telemetryManager.getServerMetricsSummary()).resolves.toEqual({ total_metrics: 5 });
+
+            expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+                1,
+                "GET",
+                "/telemetry/attributes",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+            expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+                2,
+                "GET",
+                "/telemetry/metrics",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should fetch alerts with optional query params", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ alerts: [] });
+
+            await expect(
+                telemetryManager.getServerAlerts({
+                    status: "active",
+                    severity: "critical",
+                    refresh: false,
+                }),
+            ).resolves.toEqual({ alerts: [] });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/telemetry/alerts",
+                {
+                    status: "active",
+                    severity: "critical",
+                    refresh: "false",
+                },
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should acknowledge alerts and fetch health", async () => {
+            mockClient.http.authedRequest
+                .mockResolvedValueOnce({ alert_id: "alert-1", status: "acknowledged" })
+                .mockResolvedValueOnce({ status: "ok", checks: [] });
+
+            await expect(telemetryManager.acknowledgeServerAlert("alert-1")).resolves.toEqual({
+                alert_id: "alert-1",
+                status: "acknowledged",
+            });
+            await expect(telemetryManager.getServerHealth()).resolves.toEqual({ status: "ok", checks: [] });
+
+            expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+                1,
+                "POST",
+                "/telemetry/alerts/alert-1/ack",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+            expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+                2,
+                "GET",
+                "/telemetry/health",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should require an alert id when acknowledging alerts", async () => {
+            await expect(telemetryManager.acknowledgeServerAlert("")).rejects.toThrow("Alert ID is required");
         });
     });
 });

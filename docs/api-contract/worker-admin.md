@@ -1,7 +1,7 @@
 ---
 module: worker
 generated_from: docs/api-contract/generated/modules/worker.json
-generated_hash: sha256-309dbb9df3b83da15013f44146bfad47dda413a9fd2b452f471ac679b7d2a48e
+generated_hash: sha256-6c2b86766aa65759f9dc83ab00b7d601b20909b61de41d4cff207acd8bebe500
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -11,6 +11,7 @@ last_reviewed: 2026-05-03
 > 审查来源: `synapse-rust/src/web/routes/worker.rs`、`synapse-rust/src/worker/types.rs`
 > 挂载前缀: `/_synapse/worker/v1`
 > 更新日期: 2026-04-27
+> 审计状态: ✅ 管理员控制面 13 条 Ledger 契约已与 SDK 绑定；复制协议面 helper 作为额外运维能力保留
 
 ## 路由分层
 
@@ -47,6 +48,8 @@ last_reviewed: 2026-05-03
 | `GET`    | `/_synapse/worker/v1/statistics`                        | 获取整体统计                          | `200` + service 直接序列化结果                                       |
 | `GET`    | `/_synapse/worker/v1/statistics/types`                  | 获取按类型统计                        | `200` + service 直接序列化结果                                       |
 | `GET`    | `/_synapse/worker/v1/select/{task_type}`                | 为任务类型选择 worker                 | `200` + `{ "task_type": string, "selected_worker": string \| null }` |
+
+> `docs/api-contract/generated/modules/worker.json` 当前 `entry_count = 13`，仅统计本节管理员控制面路由。
 
 ### Worker 协议面
 
@@ -208,6 +211,20 @@ last_reviewed: 2026-05-03
 - `claim_next_task` 属于管理员控制面，不是 worker 协议面。
 - `connect` / `disconnect` / `heartbeat` / 命令完成失败 / 任务完成失败都不需要 `AdminUser`，而是依赖 replication 鉴权中间件。
 
+## SDK 对齐状态
+
+- **封装 Manager**: `WorkerAdminManager`
+- **挂载位置**: `MatrixClient.getWorkerAdminManager()`
+- **路径绑定**: 已通过 `WorkerAdminPathPattern` 绑定所有 13 条控制面路由。
+- **状态**: ✅ 100% 完善
+
+## 覆盖率口径
+
+- **后端 Ledger 路由数**: 13
+- **SDK 已封装路由数**: 13
+- **已绑定生成路由模板**: 13
+- **契约覆盖率**: 100%
+
 ## 错误与兼容性
 
 | 场景                                  | 实际返回                      |
@@ -229,6 +246,11 @@ last_reviewed: 2026-05-03
 - 明确 `worker.enabled` 对复制协议面是否可达的条件挂载行为。
 - 修正复制位点接口方法，实际为 `GET /position` 与 `PUT /replication/{worker_id}/{stream_name}`，不存在文档旧版所写的 `GET /replication/{worker_id}/{stream_name}`。
 - 收敛事件流查询参数描述，确认仅支持 `stream_id`，且服务端固定拉取 `100` 条。
+
+### 2026-05-11
+
+- 明确 `generated/modules/worker.json` 的 13 条契约仅覆盖管理员控制面。
+- SDK 管理员控制面方法全部绑定到生成 `route-table`，覆盖率更新为 100%。
 
 ## 代码定位
 

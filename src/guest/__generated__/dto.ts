@@ -9,4 +9,25 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type GuestContractDtoPlaceholder = never;
+export interface GuestRegisterResponse {
+    user_id: string;
+    device_id: string;
+    access_token: string;
+    expires_in: number;
+}
+
+export interface ServerGuestInfo {
+    user_id: string;
+    is_guest: boolean;
+}
+
+export interface UpgradeGuestRequest {
+    username: string;
+    password: string;
+}
+
+export interface UpgradeGuestResponse {
+    success: boolean;
+    user_id: string;
+    access_token: string;
+}

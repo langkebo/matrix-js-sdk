@@ -15,6 +15,8 @@ import type { IStateEventWithRoomId, ISearchRequestBody, ISearchResponse } from 
 import type { EmptyObject } from "./@types/common.ts";
 import type { Visibility } from "./@types/partials.ts";
 import { ReceiptType } from "./@types/read_receipts.ts";
+import type { SyncPathPattern } from "./sync/__generated__/route-table.ts";
+import type { AccountDataPathPattern } from "./account-data/__generated__/route-table.ts";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -23,6 +25,16 @@ type AuthedRequestFn = <T>(
     body?: Body,
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function sp<P extends StripV3<SyncPathPattern>>(path: P): P {
+    return path;
+}
+
+function adp<P extends StripV3<AccountDataPathPattern>>(path: P): P {
+    return path;
+}
 
 export function buildRoomStatePath(roomId: string): string {
     return utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
@@ -107,7 +119,9 @@ export function roomInitialSyncRequest(
 }
 
 export function getJoinedRoomsRequest(authedRequest: AuthedRequestFn): Promise<IJoinedRoomsResponse> {
-    return authedRequest<IJoinedRoomsResponse>(Method.Get, utils.encodeUri("/joined_rooms", {}));
+    return authedRequest<IJoinedRoomsResponse>(Method.Get, sp("/joined_rooms"), undefined, undefined, {
+        prefix: ClientPrefix.V3,
+    });
 }
 
 export function publicRoomsRequest(
@@ -184,6 +198,10 @@ export function searchMessageTextRequest(
 }
 
 export function getOpenIdTokenRequest(userId: string, authedRequest: AuthedRequestFn): Promise<IOpenIDToken> {
-    const path = utils.encodeUri("/user/$userId/openid/request_token", { $userId: userId });
+    const path = adp(
+        utils.encodeUri("/user/$userId/openid/request_token", {
+            $userId: userId,
+        }) as StripV3<AccountDataPathPattern>,
+    );
     return authedRequest<IOpenIDToken>(Method.Post, path, undefined, {});
 }

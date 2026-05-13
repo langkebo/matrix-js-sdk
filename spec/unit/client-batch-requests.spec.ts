@@ -28,6 +28,7 @@ import {
     searchMessageTextRequest,
     getOpenIdTokenRequest,
 } from "../../src/client-batch-requests.ts";
+import { getMyRoomsRequest } from "../../src/client-secure-backup-requests.ts";
 import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { ReceiptType } from "../../src/@types/read_receipts.ts";
 import { Visibility } from "../../src/@types/partials.ts";
@@ -198,7 +199,23 @@ describe("client-batch-requests", () => {
 
             const result = await getJoinedRoomsRequest(mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/joined_rooms");
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/joined_rooms", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
+            expect(result).toEqual(mockResponse);
+        });
+    });
+
+    describe("getMyRoomsRequest", () => {
+        it("should make request to get my rooms on v3", async () => {
+            const mockResponse = { rooms: [], total: 0 };
+            mockAuthedRequest.mockResolvedValue(mockResponse);
+
+            const result = await getMyRoomsRequest(mockAuthedRequest);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/my_rooms", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
             expect(result).toEqual(mockResponse);
         });
     });

@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/sync.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `sync` module. */
@@ -13,7 +14,6 @@ export const SYNC_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/events" },
     { method: "GET", path: "/_matrix/client/r0/joined_rooms" },
     { method: "GET", path: "/_matrix/client/r0/sync" },
-    { method: "GET", path: "/_matrix/client/v1/sync" },
     { method: "GET", path: "/_matrix/client/v3/events" },
     { method: "GET", path: "/_matrix/client/v3/joined_rooms" },
     { method: "GET", path: "/_matrix/client/v3/my_rooms" },
@@ -35,7 +35,7 @@ export type SyncPath = SyncRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type SyncReplaceBraces<P extends string> =
+export type SyncReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${SyncReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

@@ -17,14 +17,26 @@ limitations under the License.
 /**
  * Captcha Manager - 验证码管理
  *
- * 提供验证码发送、验证、状态查询功能
- * 对应后端: /_matrix/client/r0/register/captcha/*
+ * 提供验证码发送、验证、状态查询以及管理清理功能
+ * 对应后端: /_matrix/client/{r0,v3}/register/captcha/* 与 /_synapse/admin/v1/captcha/cleanup
  */
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api";
-import { ClientPrefix } from "../http-api/prefix";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
+import type { CaptchaPathPattern } from "./__generated__/route-table.ts";
+
+type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+
+function cp<P extends StripClientV3<CaptchaPathPattern>>(path: P): P {
+    return path;
+}
+
+function ap<P extends StripAdminV1<CaptchaPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface CaptchaSendResponse {
     captcha_id: string;
@@ -45,6 +57,11 @@ export interface CaptchaStatusResponse {
     max_attempts: number;
     expires_at: number;
     created_at: number;
+}
+
+export interface CaptchaCleanupResponse {
+    cleaned_count: number;
+    message: string;
 }
 
 export interface CaptchaManagerEvents {
@@ -74,12 +91,12 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                 body.template_name = templateName;
             }
 
-            const response = await this.client.http.authedRequest<CaptchaSendResponse>(
+            const response = await this.client.http.request<CaptchaSendResponse>(
                 Method.Post,
-                "/register/captcha/send",
+                cp("/register/captcha/send"),
                 undefined,
                 body,
-                { prefix: ClientPrefix.R0 },
+                { prefix: ClientPrefix.V3 },
             );
 
             this.emit("captchaSent", {
@@ -96,12 +113,12 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
 
     public async verifyCaptcha(captchaId: string, code: string): Promise<CaptchaVerifyResponse> {
         try {
-            const response = await this.client.http.authedRequest<CaptchaVerifyResponse>(
+            const response = await this.client.http.request<CaptchaVerifyResponse>(
                 Method.Post,
-                "/register/captcha/verify",
+                cp("/register/captcha/verify"),
                 undefined,
                 { captcha_id: captchaId, code },
-                { prefix: ClientPrefix.R0 },
+                { prefix: ClientPrefix.V3 },
             );
 
             if (response.verified) {
@@ -116,15 +133,29 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
 
     public async getCaptchaStatus(captchaId: string): Promise<CaptchaStatusResponse> {
         try {
-            return await this.client.http.authedRequest<CaptchaStatusResponse>(
+            return await this.client.http.request<CaptchaStatusResponse>(
                 Method.Get,
-                "/register/captcha/status",
+                cp("/register/captcha/status"),
                 { captcha_id: captchaId },
                 undefined,
-                { prefix: ClientPrefix.R0 },
+                { prefix: ClientPrefix.V3 },
             );
         } catch (error) {
             throw this.normalizeError(error, "getCaptchaStatus");
+        }
+    }
+
+    public async cleanupExpiredCaptchas(): Promise<CaptchaCleanupResponse> {
+        try {
+            return await this.client.http.authedRequest<CaptchaCleanupResponse>(
+                Method.Post,
+                ap("/captcha/cleanup"),
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "cleanupExpiredCaptchas");
         }
     }
 }

@@ -1,9 +1,9 @@
 ---
 module: media
 generated_from: docs/api-contract/generated/modules/media.json
-generated_hash: sha256-f44ca715bfec1ab4bdba985fa6f68c63fb19cf05f480ce1b72248704a38d9074
+generated_hash: sha256-a394406d2f3788edefdcec57ba1188955ead43643ad5ad09fac2ace770761d26
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Media 模块契约
@@ -76,7 +76,9 @@ last_reviewed: 2026-05-03
 
 ## 本轮复核发现
 
-- 当前未见新的 Media 高优先级契约偏差；具名上传与传统下载错误状态码均已收敛
+- `MediaManager` 已补齐高层下载/缩略图 URL helper，不再只依赖底层 `content-repo.ts` 工具函数。
+- `MediaQuotaManager` 已补齐 `checkQuota()`、`getQuotaStats()` 与 authenticated media config 参数透传，`quota/*` 不再只是“部分封装”。
+- 当前未见新的 Media 高优先级契约偏差；具名上传、authenticated media config、配额读取与传统下载错误状态码均已收敛。
 
 ## 代码定位
 
@@ -87,47 +89,67 @@ last_reviewed: 2026-05-03
 
 ## SDK Manager 对应关系
 
-> 更新日期: 2026-04-13
-> 审计状态: ✅ Media 路由已与文档对齐，语音路由已拆至 `voice.md`
+> 更新日期: 2026-05-11
+> 审计状态: ✅ Media 路由、下载/缩略图 helper、quota/config 封装已对齐
 
 ### 媒体上传下载
 
 | 端点                                                              | SDK Manager       | 方法                    | 状态        |
 | ----------------------------------------------------------------- | ----------------- | ----------------------- | ----------- |
-| `POST /_matrix/media/{v1,v3,r0}/upload`                           | `MediaManager`    | `uploadContent()`       | ✅ 已封装   |
-| `PUT /_matrix/media/v3/upload/{server_name}/{media_id}`           | `MediaManager`    | `uploadContentWithId()` | ✅ 已添加   |
-| `GET /_matrix/media/{v1,v3,r1}/download/{server_name}/{media_id}` | `content-repo.ts` | `getHttpUriForMxc()`    | ⚠️ 工具函数 |
-| `GET /_matrix/media/v3/thumbnail/{server_name}/{media_id}`        | `content-repo.ts` | `getHttpUriForMxc()`    | ⚠️ 工具函数 |
+| `POST /_matrix/media/{v1,v3,r0}/upload`                           | `MediaManager`    | `uploadContent()`       | ✅ 已封装 |
+| `PUT /_matrix/media/v3/upload/{server_name}/{media_id}`           | `MediaManager`    | `uploadContentWithId()` | ✅ 已封装 |
+| `GET /_matrix/media/{v1,v3,r1}/download/{server_name}/{media_id}` | `MediaManager`    | `getDownloadUrl()`      | ✅ 已封装 |
+| `GET /_matrix/media/v3/thumbnail/{server_name}/{media_id}`        | `MediaManager`    | `getThumbnailUrl()`     | ✅ 已封装 |
 
 ### 媒体管理
 
 | 端点                                                     | SDK Manager         | 方法               | 状态        |
 | -------------------------------------------------------- | ------------------- | ------------------ | ----------- |
-| `GET /_matrix/media/{v1,r0,v3}/config`                   | `MediaQuotaManager` | `getMediaConfig()` | ⚠️ 部分封装 |
-| `GET /_matrix/media/v1/preview_url`                      | `MediaManager`      | `previewUrl()`     | ✅ 已添加   |
-| `POST /_matrix/media/v1/delete/{server_name}/{media_id}` | `MediaManager`      | `deleteMedia()`    | ✅ 已添加   |
+| `GET /_matrix/media/{v1,r0,v3}/config`                   | `MediaQuotaManager` | `getMediaConfig(false)` | ✅ 已封装 |
+| `GET /_matrix/client/v1/media/config`                    | `MediaQuotaManager` | `getMediaConfig(true)`  | ✅ 已封装 |
+| `GET /_matrix/media/v1/preview_url`                      | `MediaManager`      | `previewUrl()`          | ✅ 已封装 |
+| `POST /_matrix/media/v1/delete/{server_name}/{media_id}` | `MediaManager`      | `deleteMedia()`         | ✅ 已封装 |
 
 ### 配额管理
 
 | 端点                                 | SDK Manager         | 方法                    | 状态        |
 | ------------------------------------ | ------------------- | ----------------------- | ----------- |
-| `GET /_matrix/media/v1/quota/check`  | `MediaQuotaManager` | `hasStorageSpace()`     | ⚠️ 部分封装 |
-| `GET /_matrix/media/v1/quota/stats`  | `MediaQuotaManager` | `getUserStorageUsage()` | ⚠️ 部分封装 |
-| `GET /_matrix/media/v1/quota/alerts` | `MediaQuotaManager` | `getQuotaAlerts()`      | ✅ 已添加   |
+| `GET /_matrix/media/v1/quota/check`  | `MediaQuotaManager` | `checkQuota()` / `hasStorageSpace()`       | ✅ 已封装 |
+| `GET /_matrix/media/v1/quota/stats`  | `MediaQuotaManager` | `getQuotaStats()` / `getUserStorageUsage()` | ✅ 已封装 |
+| `GET /_matrix/media/v1/quota/alerts` | `MediaQuotaManager` | `getQuotaAlerts()`                         | ✅ 已封装 |
+
+## 人工 Review 对齐
+
+- `src/media/index.ts` 已引入生成的 `MediaPathPattern`，并将 `uploadContentWithId()`、`deleteMedia()`、`previewUrl()` 绑定到 media 路由模板。
+- `MediaManager.getDownloadUrl()` 新增显式高层 helper，覆盖:
+  - `/_matrix/media/v3/download/{server_name}/{media_id}`
+  - `/_matrix/media/v1/download/{server_name}/{media_id}`
+  - `/_matrix/media/r1/download/{server_name}/{media_id}`
+  - `filename` 变体路径
+- `MediaManager.getThumbnailUrl()` 新增显式高层 helper，覆盖:
+  - `/_matrix/media/v3/thumbnail/{server_name}/{media_id}`
+  - `/_matrix/client/v1/media/thumbnail/{server_name}/{media_id}` authenticated media 变体
+- `MediaQuotaManager.getMediaConfig(useAuthenticatedMedia)` 现显式透传 `false/true`，分别对应:
+  - `/_matrix/media/v3/config`
+  - `/_matrix/client/v1/media/config`
+- `MediaQuotaManager` 现新增 `checkQuota()` 与 `getQuotaStats()`，其余 `hasStorageSpace()`、`getUserStorageUsage()`、`getStorageQuota()`、`getStorageUsagePercent()` 都基于这两个真实端点复用。
+- `spec/unit/media-manager.spec.ts` 与 `spec/unit/media-quota.spec.ts` 已补 URL helper、authenticated media、quota/config 的专用断言。
 
 ## 当前对齐结论
 
 - 语音相关路由已从本文件拆分到 `voice.md`，避免继续混写 Media 与 Voice 两组契约。
 - `getWaveform()` 已收敛为本地计算能力，不再暗示后端存在独立波形接口。
-- 媒体删除、预览、带自定义内容 ID 上传、配额告警均已纳入当前 SDK 封装。
+- 媒体删除、预览、带自定义内容 ID 上传、下载/缩略图 URL helper、配额告警均已纳入当前 SDK 封装。
 - `PUT /_matrix/media/v3/upload/{server_name}/{media_id}` 现已真正使用路径参数，非本机 `server_name` 返回 `400`，重复 `media_id` 返回 `409`。
 - `/_matrix/media/{v1,r1}/download/...` 失败时现已返回匹配的 `404` 等错误状态码，不再出现 `200 + JSON 错误体`。
+- `/_matrix/client/v1/media/config` authenticated media 配置入口已通过 `MediaQuotaManager.getMediaConfig(true)` 显式暴露。
+- `quota/check` 与 `quota/stats` 已有端点级 wrapper，不再只是派生 helper。
 
 ---
 
 ## 封装覆盖率
 
 - **后端路由总数**: 22 个端点 (media.rs + assembly.rs 中 authenticated media config)
-- **SDK 已封装**: 8 个方法
-- **完全正确封装**: 8/22 (36%)
-- **工具函数**: 5/22 (23%)
+- **SDK 主链路覆盖**: 22/22
+- **已绑定生成路由模板**: 8/8 个相对 media 路径调用点
+- **契约覆盖率**: 100%

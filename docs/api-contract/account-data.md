@@ -1,7 +1,7 @@
 ---
 module: account_data
 generated_from: docs/api-contract/generated/modules/account_data.json
-generated_hash: sha256-d5d47789fb1e6997fe727a6732c4a5b0fdf268789a680aa84ccf3fe54d324cf7
+generated_hash: sha256-90c7d7d7d919493eae1330a70bbf8b6a764445d7c161c1a7b01806928861841b
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -11,6 +11,7 @@ last_reviewed: 2026-05-03
 > **审查来源**: `synapse-rust/src/web/routes/account_data.rs`、`synapse-rust/src/web/routes/tags.rs`
 > **数据库表**: `account_data`, `room_account_data`, `filters`, `openid_tokens`, `room_tags`
 > **最后更新**: 2026-04-27
+> **审计状态**: ✅ `AccountDataManager`、account-data request helpers 与 `MatrixClient` 的 filter / OpenID 入口已绑定生成 `AccountDataPathPattern`
 
 ## 概述
 
@@ -376,6 +377,21 @@ CREATE TABLE IF NOT EXISTS room_tags (
 - `POST /filter` 与 `PUT /filter` 等价。
 - `GET /openid/request_token` 与 `POST /openid/request_token` 等价，都会新建 token。
 - `tags` 路由与 account data 路由虽然分文件实现，但都已在 `assembly.rs` 中挂载，属于当前可达契约。
+
+## SDK 对齐结论
+
+- `src/client-account-data-requests.ts` 现已将用户级 account data、房间级 account data、filter 路径绑定到生成的 `AccountDataPathPattern`。
+- `src/client-batch-requests.ts` 中的 `getOpenIdTokenRequest()` 现已绑定同一套 `AccountDataPathPattern`。
+- `src/account-data/index.ts` 的 `AccountDataManager` 继续复用这些 helper，因此 `listAccountData()`、`getAccountDataFromServer()`、`setAccountData()`、`deleteAccountData()`、`getRoomAccountDataFromServer()`、`setRoomAccountData()`、`deleteRoomAccountData()` 已全部处于生成契约约束下。
+- `src/client.ts` 中的 `createFilter()`、`getFilter()`、`getOpenIdToken()` 也通过上述 helper 间接受到同一套路由模板约束。
+- `tags` 相关 helper 仍保留原有路径构造方式；它们不属于当前 `account_data.json` 的 26 条 Ledger 统计面，不影响本页契约覆盖率。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 26
+- **SDK 主路径覆盖**: 26/26
+- **已绑定生成路由模板**: 26/26
+- **契约覆盖率**: 100%
 
 ## 版本变更记录
 

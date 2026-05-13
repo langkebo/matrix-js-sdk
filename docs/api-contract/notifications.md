@@ -1,57 +1,78 @@
 ---
 module: push_notification
 generated_from: docs/api-contract/generated/modules/push_notification.json
-generated_hash: sha256-84969ea597fef70a656545f840518e2dc40fa45bf3edd882c6875962eb78e3ed
+generated_hash: sha256-caf3026b880f50a2909dec6098ea9e45c7dc970b87ad71b17005590acd26779e
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
-# 推送通知契约
+# 通知契约
 
 > 审查来源: `synapse-rust/src/web/routes/push_notification.rs`
 
+## 模块概述
+
+通知模块负责 Matrix 客户端的通知历史查询以及通知确认（ACK）。
+
+注意：由于 codegen 别名配置，本模块的 SDK 生成代码位于 `push_notification` 命名空间下。
+
 ## 真实后端路由
 
-| 方法 | 路径                               | 说明         | 认证 |
-| ---- | ---------------------------------- | ------------ | ---- |
-| GET  | `/_matrix/client/r0/notifications` | 获取通知历史 | 用户 |
-| GET  | `/_matrix/client/v3/notifications` | 获取通知历史 | 用户 |
+| 方法 | 路径                                                          | 说明         | 认证 |
+| ---- | ------------------------------------------------------------- | ------------ | ---- |
+| GET  | `/_matrix/client/v3/notifications`                            | 获取通知历史 | 用户 |
+| POST | `/_matrix/client/v3/notifications/{notification_id}/ack`      | 确认通知     | 用户 |
+
+## 端点详情
+
+### 1. 获取通知列表
+
+**路径**: `GET /_matrix/client/v3/notifications`  
+**认证**: 用户认证
+
+**查询参数**:
+- `from` (string, optional): 分页起始位置
+- `limit` (number, optional): 返回数量限制
+- `only` (string, optional): 过滤条件，如 "highlight"
+
+**响应体 (INotificationsResponse)**:
+```typescript
+export interface INotificationsResponse {
+    next_token?: string;
+    notifications: Array<{
+        actions: unknown[];
+        event: Record<string, unknown>;
+        profile_tag?: string;
+        read: boolean;
+        room_id: string;
+        ts: number;
+    }>;
+}
+```
+
+### 2. 确认通知
+
+**路径**: `POST /_matrix/client/v3/notifications/{notification_id}/ack`  
+**认证**: 用户认证
+
+**响应**: `200 OK` (空对象)
 
 ## SDK 对齐状态
 
-| 端点                 | SDK Manager    | 方法                 | 状态      |
-| -------------------- | -------------- | -------------------- | --------- |
-| `GET /notifications` | `MatrixClient` | `getNotifications()` | ✅ 已封装 |
+| 端点                               | SDK Manager           | 方法                   | 状态      |
+| ---------------------------------- | --------------------- | ---------------------- | --------- |
+| `GET /notifications`               | `NotificationsManager` | `getNotifications()`   | ✅ 已封装 |
+| `POST /notifications/{id}/ack`     | `NotificationsManager` | `ackNotification()`    | ✅ 已封装 |
 
-## 常见状态码
+## 覆盖率口径
 
-| 状态码 | 说明                     |
-| ------ | ------------------------ |
-| `200`  | 请求成功                 |
-| `400`  | 分页参数或过滤条件不合法 |
-| `401`  | Token 无效或缺失         |
-| `403`  | 无权查看通知流           |
-| `404`  | 分页锚点或关联事件不存在 |
-| `429`  | 触发限流                 |
+- **后端 Ledger 路由数**: 2
+- **SDK 已封装路由数**: 2
+- **已绑定生成路由模板**: 2
+- **契约覆盖率**: 100%
 
-## 错误语义对齐（BaseManager）
+## 代码定位
 
-| 场景                     | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                           |
-| ------------------------ | -------------------------------------- | ---------------- | ------------------------------------ |
-| 未认证或 token 失效      | `401` / `M_UNKNOWN_TOKEN`              | `AuthError`      | 引导重新登录                         |
-| 查询参数不合法           | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正 `from`、`limit`、`only` 后重试  |
-| 权限不足                 | `403` / `M_FORBIDDEN`                  | `ApiError`       | 提示用户当前账号无权访问通知历史     |
-| 分页锚点或关联数据不存在 | `404` / `M_NOT_FOUND`                  | `NotFoundError`  | 清空本地分页游标并重新拉取第一页     |
-| 限流或短暂服务异常       | `429` / `M_LIMIT_EXCEEDED`             | `RetryableError` | 使用退避重试                         |
-| 其他 API 错误            | 其他 `4xx/5xx`                         | `ApiError`       | 按 `code` 与 `statusCode` 做兜底处理 |
-
-## 典型 errcode
-
-| errcode            | 常见 HTTP | 说明                               |
-| ------------------ | --------- | ---------------------------------- |
-| `M_UNKNOWN_TOKEN`  | `401`     | access token 无效、过期或缺失      |
-| `M_BAD_JSON`       | `400`     | 通知查询参数结构不符合接口要求     |
-| `M_INVALID_PARAM`  | `400`     | `limit`、`from` 或 `only` 参数非法 |
-| `M_FORBIDDEN`      | `403`     | 无权读取通知历史                   |
-| `M_NOT_FOUND`      | `404`     | 分页游标或关联通知事件不存在       |
-| `M_LIMIT_EXCEEDED` | `429`     | 通知查询触发限流                   |
+- 后端实现: `synapse-rust/src/web/routes/push_notification.rs`
+- SDK 实现: `src/notifications/index.ts`
+- 生成代码: `src/notifications/__generated__/`

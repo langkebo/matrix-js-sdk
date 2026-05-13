@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-11T14:36:56Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
   "state_profile": "all",
   "profile_flags": {
     "oidc_enabled": true,
@@ -9,7 +9,7 @@
     "saml_enabled": true,
     "openclaw_enabled": true
   },
-  "entry_count": 1258,
+  "entry_count": 1294,
   "entries": [
     {
       "method": "GET",
@@ -441,6 +441,12 @@
     {
       "method": "GET",
       "path": "/_matrix/client/r0/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/search",
       "registered_by": "friend_room",
       "path_params": []
     },
@@ -1713,6 +1719,31 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/r0/rooms/{room_id}/sticky_events",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/rooms/{room_id}/sticky_events",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/r0/rooms/{room_id}/sticky_events/{event_type}",
+      "registered_by": "room",
+      "path_params": [
+        "room_id",
+        "event_type"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/r0/rooms/{room_id}/summary",
       "registered_by": "room_summary",
       "path_params": [
@@ -1997,6 +2028,12 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/r0/thirdparty/location",
+      "registered_by": "thirdparty",
+      "path_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/r0/thirdparty/location/{protocol}",
       "registered_by": "thirdparty",
       "path_params": [
@@ -2014,6 +2051,12 @@
     {
       "method": "GET",
       "path": "/_matrix/client/r0/thirdparty/protocols",
+      "registered_by": "thirdparty",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/thirdparty/user",
       "registered_by": "thirdparty",
       "path_params": []
     },
@@ -2274,6 +2317,12 @@
     {
       "method": "PUT",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
+      "registered_by": "assembly::create_router",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status",
       "registered_by": "assembly::create_router",
       "path_params": []
     },
@@ -2580,6 +2629,46 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/v1/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/ai/mcp/tools",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/ai/mcp/tools/call",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/v1/config/client",
       "registered_by": "assembly::create_router",
       "path_params": []
@@ -2703,6 +2792,12 @@
     {
       "method": "GET",
       "path": "/_matrix/client/v1/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/friends/search",
       "registered_by": "friend_room",
       "path_params": []
     },
@@ -2945,6 +3040,40 @@
       "path": "/_matrix/client/v1/media/config",
       "registered_by": "assembly::media_config",
       "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/download/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/download/{server_name}/{media_id}/{filename}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id",
+        "filename"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/preview_url",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/thumbnail/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ]
     },
     {
       "method": "GET",
@@ -3828,9 +3957,9 @@
       ]
     },
     {
-      "method": "GET",
+      "method": "POST",
       "path": "/_matrix/client/v1/sync",
-      "registered_by": "sync",
+      "registered_by": "sliding_sync",
       "path_params": []
     },
     {
@@ -4064,6 +4193,46 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/v3/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/ai/mcp/tools",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/ai/mcp/tools/call",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/v3/appservice/alias",
       "registered_by": "app_service",
       "path_params": []
@@ -4243,6 +4412,12 @@
     {
       "method": "GET",
       "path": "/_matrix/client/v3/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/friends/search",
       "registered_by": "friend_room",
       "path_params": []
     },
@@ -4707,6 +4882,24 @@
       "method": "GET",
       "path": "/_matrix/client/v3/register/available",
       "registered_by": "assembly::auth_compat",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/register/captcha/send",
+      "registered_by": "captcha",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/register/captcha/status",
+      "registered_by": "captcha",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/register/captcha/verify",
+      "registered_by": "captcha",
       "path_params": []
     },
     {
@@ -6282,12 +6475,6 @@
       "path_params": []
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/v3/sync",
-      "registered_by": "sliding_sync",
-      "path_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/v3/thirdparty/location",
       "registered_by": "thirdparty",
@@ -6522,6 +6709,18 @@
       "method": "GET",
       "path": "/_matrix/client/v3/versions",
       "registered_by": "assembly::create_router",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/voice/config",
+      "registered_by": "voice",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/voice/upload",
+      "registered_by": "voice",
       "path_params": []
     },
     {
@@ -7178,37 +7377,37 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services",
+      "path": "/_synapse/admin/v1/appservices",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services",
+      "path": "/_synapse/admin/v1/appservices",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/query/alias",
+      "path": "/_synapse/admin/v1/appservices/query/alias",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/query/user",
+      "path": "/_synapse/admin/v1/appservices/query/user",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/statistics",
+      "path": "/_synapse/admin/v1/appservices/statistics",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "DELETE",
-      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7216,7 +7415,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7224,7 +7423,7 @@
     },
     {
       "method": "PUT",
-      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7232,7 +7431,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/events",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/events",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7240,7 +7439,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/events",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/events",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7248,7 +7447,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/namespaces",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/namespaces",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7256,7 +7455,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/ping",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/ping",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7264,7 +7463,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/state",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/state",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7272,7 +7471,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/state",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/state",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7280,7 +7479,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/state/{state_key}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/state/{state_key}",
       "registered_by": "app_service",
       "path_params": [
         "as_id",
@@ -7289,7 +7488,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/users",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/users",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -7297,7 +7496,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/users",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/users",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -8551,6 +8750,54 @@
       "path_params": [
         "room_id"
       ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/saml/config",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/saml/config",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/saml/logout",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/saml/mapping/{name_id}",
+      "registered_by": "saml",
+      "path_params": [
+        "name_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/saml/mapping/{name_id}",
+      "registered_by": "saml",
+      "path_params": [
+        "name_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/saml/mapping/{name_id}",
+      "registered_by": "saml",
+      "path_params": [
+        "name_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/saml/mappings",
+      "registered_by": "saml",
+      "path_params": []
     },
     {
       "method": "POST",

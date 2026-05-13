@@ -9,37 +9,4 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface DeviceKeys {
-    user_id: string;
-    device_id: string;
-    algorithms: string[];
-    keys: Record<string, string>;
-    signatures: Record<string, Record<string, string>>;
-    unsigned?: Record<string, unknown>;
-}
-
-export interface OneTimeKeys {
-    [keyId: string]: {
-        key: string;
-        signatures?: Record<string, Record<string, string>>;
-    };
-}
-
-export interface UploadKeysResponse {
-    one_time_key_counts?: Record<string, number>;
-}
-
-export interface QueryKeysResponse {
-    device_keys?: Record<string, Record<string, DeviceKeys>>;
-    failures?: Record<string, Record<string, string>>;
-}
-
-export interface ClaimKeysResponse {
-    one_time_keys?: Record<string, Record<string, Record<string, any>>>;
-    failures?: Record<string, Record<string, string>>;
-}
-
-export interface KeyChangesResponse {
-    changed?: string[];
-    left?: string[];
-}
+export type E2eeContractDtoPlaceholder = never;

@@ -22,10 +22,25 @@ import { MatrixScheduler } from "./scheduler";
 import { MatrixClient, type ICreateClientOpts } from "./client";
 import { RoomWidgetClient, type ICapabilities } from "./embedded";
 import { type CryptoStore } from "./crypto/store/base";
-import { logger } from "./logger";
 import { extendMatrixClientWithManagers, isManagerExtensionsInitialized } from "./manager-extensions";
 import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
+
+export {
+    extendMatrixClientWithManagers,
+    isManagerExtensionsInitialized,
+    offManagerExtensionsLifecycle,
+    onManagerExtensionsLifecycle,
+    resetManagerExtensions,
+} from "./manager-extensions";
+
+export type {
+    ManagerExtensionsLifecycleEvent,
+    ManagerExtensionsLifecycleListener,
+    ManagerExtensionsLifecyclePhase,
+    ManagerExtensionsLifecycleStatus,
+    ManagerExtensionsOptions,
+} from "./manager-extensions";
 
 export * from "./client";
 export * from "./serverCapabilities";
@@ -129,18 +144,7 @@ export type { ISSOFlow as SSOFlow, LoginFlow } from "./@types/auth";
 export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as HierarchyRoom } from "./@types/spaces";
 export { DebugLogger } from "./logger";
 export { TelemetryManager } from "./telemetry/index";
-export {
-    extendMatrixClientWithManagers,
-    offManagerExtensionsLifecycle,
-    onManagerExtensionsLifecycle,
-    isManagerExtensionsInitialized,
-    resetManagerExtensions,
-    type ManagerExtensionsLifecycleEvent,
-    type ManagerExtensionsLifecycleListener,
-    type ManagerExtensionsLifecyclePhase,
-    type ManagerExtensionsLifecycleStatus,
-    type ManagerExtensionsOptions,
-} from "./manager-extensions";
+
 
 let cryptoStoreFactory = (): CryptoStore => new MemoryCryptoStore();
 

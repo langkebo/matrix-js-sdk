@@ -36,6 +36,26 @@
         "quality:exports": "node scripts/quality/check-exports-docs.mjs",
         "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
         "quality:sdk-contracts": "node scripts/quality/check-sdk-contract-alignment.mjs",
+        "quality:manager-codegen": "node scripts/quality/check-manager-codegen-coverage.mjs",
+        "quality:room-space-search": "node scripts/quality/check-room-space-search-granular-coverage.mjs",
+        "quality:sync-tags-relations": "node scripts/quality/check-sync-tags-relations-granular-coverage.mjs",
+        "quality:accountdata-notifications": "node scripts/quality/check-accountdata-notifications-granular-coverage.mjs",
+        "quality:auth-umbrella": "node scripts/quality/check-auth-umbrella-granular-coverage.mjs",
+        "quality:password-identity": "node scripts/quality/check-password-identity-granular-coverage.mjs",
+        "quality:presence-typing-receipts-ephemeral": "node scripts/quality/check-presence-typing-receipts-ephemeral-granular-coverage.mjs",
+        "quality:device-todevice-verification": "node scripts/quality/check-device-todevice-verification-granular-coverage.mjs",
+        "quality:admin-server-federation": "node scripts/quality/check-admin-server-federation-granular-coverage.mjs",
+        "quality:worker-admin": "node scripts/quality/check-worker-admin-granular-coverage.mjs",
+        "quality:background-update": "node scripts/quality/check-background-update-granular-coverage.mjs",
+        "quality:cas": "node scripts/quality/check-cas-granular-coverage.mjs",
+        "quality:burn-after-read": "node scripts/quality/check-burn-after-read-granular-coverage.mjs",
+        "quality:captcha": "node scripts/quality/check-captcha-granular-coverage.mjs",
+        "quality:event-report": "node scripts/quality/check-event-report-granular-coverage.mjs",
+        "quality:ai-connection": "node scripts/quality/check-ai-connection-granular-coverage.mjs",
+        "quality:external-service": "node scripts/quality/check-external-service-granular-coverage.mjs",
+        "quality:user-directory": "node scripts/quality/check-user-directory-granular-coverage.mjs",
+        "quality:telemetry": "node scripts/quality/check-telemetry-granular-coverage.mjs",
+        "quality:guest": "node scripts/quality/check-guest-granular-coverage.mjs",
         "quality:generated-dto-strictness": "node scripts/quality/check-generated-dto-strictness.mjs",
         "quality:public-jsdoc-examples": "node scripts/quality/check-public-jsdoc-examples.mjs",
         "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
@@ -162,6 +182,14 @@
         "./models/event": {
             "import": "./lib/models/event.js",
             "types": "./lib/models/event.d.ts"
+        },
+        "./models/room-state": {
+            "import": "./lib/models/room-state.js",
+            "types": "./lib/models/room-state.d.ts"
+        },
+        "./sync": {
+            "import": "./lib/sync.js",
+            "types": "./lib/sync.d.ts"
         },
         "./runtime-schemas": {
             "import": "./lib/runtime-schemas/index.js",

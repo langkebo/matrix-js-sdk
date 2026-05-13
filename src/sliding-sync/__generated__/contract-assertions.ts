@@ -22,24 +22,9 @@ export const SLIDING_SYNC_ROUTES_STATUS_SCENARIOS = [
 export type SlidingSyncStatusScenario = (typeof SLIDING_SYNC_ROUTES_STATUS_SCENARIOS)[number];
 
 export const SLIDING_SYNC_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "未认证或 token 失效",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "引导重新登录",
-    },
-    {
-        scenario: "Sliding Sync 参数不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正 pos、list ranges、subscriptions 或 extensions 后重试",
-    },
-    {
-        scenario: "长轮询限流或暂时拥塞",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "使用退避重试并保留上一次 pos",
-    },
+    { scenario: "未认证或 token 失效", httpOrErrcode: "401 / M_UNKNOWN_TOKEN", sdkErrorType: "AuthError", handling: "引导重新登录" },
+    { scenario: "Sliding Sync 参数不合法", httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "修正 pos、list ranges、subscriptions 或 extensions 后重试" },
+    { scenario: "长轮询限流或暂时拥塞", httpOrErrcode: "429 / M_LIMIT_EXCEEDED", sdkErrorType: "RetryableError", handling: "使用退避重试并保留上一次 pos" },
 ] as const;
 
 export type SlidingSyncErrorScenario = (typeof SLIDING_SYNC_ROUTES_ERROR_SCENARIOS)[number];

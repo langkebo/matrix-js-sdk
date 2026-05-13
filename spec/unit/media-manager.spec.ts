@@ -173,5 +173,51 @@ describe("MediaManager", () => {
             expect(list).toHaveLength(1);
             expect(list[0].loaded).toBe(5);
         });
+
+        it("builds unauthenticated download URLs", () => {
+            expect(manager.getDownloadUrl("mxc://hs.example.com/m1")).toBe(
+                "https://hs.example.com/_matrix/media/v3/download/hs.example.com/m1",
+            );
+            expect(
+                manager.getDownloadUrl("mxc://hs.example.com/m1", {
+                    filename: "hello world.png",
+                    version: "r1",
+                    allowRedirects: false,
+                }),
+            ).toBe(
+                "https://hs.example.com/_matrix/media/r1/download/hs.example.com/m1/hello%20world.png?allow_redirect=false",
+            );
+        });
+
+        it("builds authenticated media URLs", () => {
+            expect(
+                manager.getDownloadUrl("mxc://hs.example.com/m1", {
+                    filename: "file.txt",
+                    useAuthentication: true,
+                    allowRedirects: true,
+                }),
+            ).toBe(
+                "https://hs.example.com/_matrix/client/v1/media/download/hs.example.com/m1/file.txt?allow_redirect=true",
+            );
+            expect(
+                manager.getThumbnailUrl("mxc://hs.example.com/m1", {
+                    width: 320,
+                    height: 240,
+                    method: "crop",
+                    animated: true,
+                    useAuthentication: true,
+                }),
+            ).toBe(
+                "https://hs.example.com/_matrix/client/v1/media/thumbnail/hs.example.com/m1?width=320&height=240&method=crop&animated=true",
+            );
+        });
+
+        it("returns direct links only when explicitly allowed", () => {
+            expect(manager.getDownloadUrl("https://cdn.example.com/file.png")).toBe("");
+            expect(manager.getDownloadUrl("https://cdn.example.com/file.png", { allowDirectLinks: true })).toBe(
+                "https://cdn.example.com/file.png",
+            );
+            expect(manager.getThumbnailUrl("not-an-mxc")).toBe("");
+        });
     });
 });

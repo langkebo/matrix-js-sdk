@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/room.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `room` module. */
@@ -47,6 +48,9 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/{state_key}" },
     { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/{state_key}" },
+    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/sticky_events" },
+    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/sticky_events" },
+    { method: "DELETE", path: "/_matrix/client/r0/rooms/{room_id}/sticky_events/{event_type}" },
     { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/unban" },
     { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/upgrade" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/version" },
@@ -156,7 +160,7 @@ export type RoomPath = RoomRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type RoomReplaceBraces<P extends string> =
+export type RoomReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${RoomReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

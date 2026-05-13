@@ -6,10 +6,23 @@
  * Source:        docs/api-contract/generated/modules/ai_connection.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `ai_connection` module. */
 export const AI_CONNECTION_ROUTES = [
+    { method: "GET", path: "/_matrix/client/v1/ai/connections" },
+    { method: "POST", path: "/_matrix/client/v1/ai/connections" },
+    { method: "DELETE", path: "/_matrix/client/v1/ai/connections/{id}" },
+    { method: "GET", path: "/_matrix/client/v1/ai/connections/{id}" },
+    { method: "GET", path: "/_matrix/client/v1/ai/mcp/tools" },
+    { method: "POST", path: "/_matrix/client/v1/ai/mcp/tools/call" },
+    { method: "GET", path: "/_matrix/client/v3/ai/connections" },
+    { method: "POST", path: "/_matrix/client/v3/ai/connections" },
+    { method: "DELETE", path: "/_matrix/client/v3/ai/connections/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/ai/connections/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/ai/mcp/tools" },
+    { method: "POST", path: "/_matrix/client/v3/ai/mcp/tools/call" },
     { method: "GET", path: "/connections" },
     { method: "POST", path: "/connections" },
     { method: "DELETE", path: "/connections/{id}" },
@@ -33,11 +46,8 @@ export type AiConnectionPath = AiConnectionRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type AiConnectionReplaceBraces<P extends string> = P extends `${infer A}{${infer ParamSegment}}${infer B}`
-    ? ParamSegment extends string
-        ? `${A}${string}${AiConnectionReplaceBraces<B>}`
-        : never
-    : P;
+export type AiConnectionReplaceBraces<P extends string> =
+    P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${AiConnectionReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */
 export type AiConnectionPathPattern = AiConnectionReplaceBraces<AiConnectionPath>;

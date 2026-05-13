@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/presence.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `presence` module. */
@@ -35,7 +36,7 @@ export type PresencePath = PresenceRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type PresenceReplaceBraces<P extends string> =
+export type PresenceReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${PresenceReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

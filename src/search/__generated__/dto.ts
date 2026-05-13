@@ -9,4 +9,31 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type SearchContractDtoPlaceholder = never;
+export interface SearchRoomEventsResponse {
+    search_categories: {
+        room_events?: {
+            count: number;
+            results: Array<{
+                rank?: number;
+                result: Record<string, unknown>;
+                context?: {
+                    events_before: Array<Record<string, unknown>>;
+                    events_after: Array<Record<string, unknown>>;
+                    profile_info?: Record<string, { displayname?: string; avatar_url?: string }>;
+                };
+            }>;
+            next_batch?: string;
+            highlights?: string[];
+        };
+        users?: {
+            results: Array<Record<string, unknown>>;
+            limited?: boolean;
+        };
+    };
+}
+
+export interface SearchRecipientsOrRoomsResponse {
+    results: unknown[];
+    count: number;
+    next_batch: string | null;
+}

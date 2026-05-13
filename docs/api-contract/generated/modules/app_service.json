@@ -2,8 +2,8 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "app_service",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
-  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
+  "generated_at": "2026-05-11T14:36:56Z",
   "source_profile": "all",
   "entry_count": 25,
   "entries": [
@@ -68,37 +68,37 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services",
+      "path": "/_synapse/admin/v1/appservices",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services",
+      "path": "/_synapse/admin/v1/appservices",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/query/alias",
+      "path": "/_synapse/admin/v1/appservices/query/alias",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/query/user",
+      "path": "/_synapse/admin/v1/appservices/query/user",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/statistics",
+      "path": "/_synapse/admin/v1/appservices/statistics",
       "registered_by": "app_service",
       "path_params": []
     },
     {
       "method": "DELETE",
-      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -106,7 +106,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -114,7 +114,7 @@
     },
     {
       "method": "PUT",
-      "path": "/_synapse/admin/v1/application_services/{as_id}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -122,7 +122,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/events",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/events",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -130,7 +130,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/events",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/events",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -138,7 +138,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/namespaces",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/namespaces",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -146,7 +146,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/ping",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/ping",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -154,7 +154,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/state",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/state",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -162,7 +162,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/state",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/state",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -170,7 +170,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/state/{state_key}",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/state/{state_key}",
       "registered_by": "app_service",
       "path_params": [
         "as_id",
@@ -179,7 +179,7 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/users",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/users",
       "registered_by": "app_service",
       "path_params": [
         "as_id"
@@ -187,7 +187,7 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/application_services/{as_id}/users",
+      "path": "/_synapse/admin/v1/appservices/{as_id}/users",
       "registered_by": "app_service",
       "path_params": [
         "as_id"

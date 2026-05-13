@@ -25,9 +25,16 @@ import { BaseManager } from "../managers/base-manager.ts";
 import { LRUCache, CacheRegistry } from "../utils/lru-cache.ts";
 import { AdminValidators } from "../admin/validators";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { PushPathPattern } from "./__generated__/route-table.ts";
 
 export type { IPushRules } from "../@types/PushRules";
 export { PUSHER_ENABLED } from "../@types/event.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function pp<P extends StripV3<PushPathPattern>>(path: P): P {
+    return path;
+}
 
 export enum PushEvent {
     PushersUpdated = "PushersUpdated",
@@ -138,7 +145,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ pushers: IPusher[] }>(
                     Method.Get,
-                    "/pushers",
+                    pp("/pushers"),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -177,7 +184,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(Method.Post, "/pushers/set", undefined, pusher, {
+                return await this.client.http.authedRequest(Method.Post, pp("/pushers/set"), undefined, pusher, {
                     prefix: ClientPrefix.V3,
                 });
             }, "setPusher");
@@ -228,7 +235,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRules>(
                     Method.Get,
-                    "/pushrules",
+                    pp("/pushrules"),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -254,7 +261,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRuleSet>(
                     Method.Get,
-                    `/pushrules/${encodeURIComponent(scope)}`,
+                    pp(`/pushrules/${encodeURIComponent(scope)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -277,7 +284,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<any>(
                     Method.Get,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`,
+                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -306,7 +313,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IPushRule>(
                     Method.Get,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -336,7 +343,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Post,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
                     undefined,
                     rule,
                     { prefix: ClientPrefix.V3 },
@@ -367,7 +374,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
                     undefined,
                     rule,
                     { prefix: ClientPrefix.V3 },
@@ -392,7 +399,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Delete,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -417,7 +424,9 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<{ enabled: boolean }>(
                     Method.Get,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
+                    pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
+                    ),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -442,7 +451,9 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
+                    pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
+                    ),
                     undefined,
                     { enabled },
                     { prefix: ClientPrefix.V3 },
@@ -473,7 +484,9 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Put,
-                    `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,
+                    pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,
+                    ),
                     undefined,
                     { actions },
                     { prefix: ClientPrefix.V3 },
@@ -508,7 +521,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<INotificationsResponse>(
                     Method.Get,
-                    "/notifications",
+                    pp("/notifications"),
                     query,
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -530,7 +543,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(
                     Method.Post,
-                    `/notifications/${encodeURIComponent(notificationId)}/ack`,
+                    pp(`/notifications/${encodeURIComponent(notificationId)}/ack`),
                     undefined,
                     undefined,
                     { prefix: ClientPrefix.V3 },

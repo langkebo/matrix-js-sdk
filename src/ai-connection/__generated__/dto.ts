@@ -9,63 +9,23 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface AIConnectionsResponse {
-    connections: Array<{
-        id: string;
-        user_id: string;
-        provider: string;
-        config: object | null;
-        is_active: boolean;
-        created_ts: number;
-        updated_ts: number | null;
-    }>;
-}
-
 export interface AIConnection {
     id: string;
     user_id: string;
     provider: string;
-    config: object | null;
+    config: Record<string, unknown> | null;
     is_active: boolean;
     created_ts: number;
     updated_ts: number | null;
 }
 
-export interface MCPToolsResponse {
-    tools: Array<{
-        name: string;
-        description: string;
-        inputSchema?: object;
-    }>;
-}
-
-export interface AiConnectionAIRequestDto {
+export interface CreateConnectionOptions {
     provider: string;
-    config: {
-        mcp_url: string;
-    };
+    config?: Record<string, unknown>;
 }
 
-export interface AiConnectionAIResponseDto {
-    id: string;
-    user_id: string;
-    provider: string;
-    config: {
-        mcp_url: string;
-    };
-    is_active: boolean;
-    created_ts: number;
-    updated_ts: null;
-}
-
-export interface AiConnectionMCPRequestDto {
+export interface McpToolCallRequest {
     provider: string;
     tool_name: string;
-    arguments: {
-        query: string;
-    };
-}
-
-export interface AiConnectionMCPResponseDto {
-    result: Record<string, never>;
+    arguments: Record<string, unknown>;
 }

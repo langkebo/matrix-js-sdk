@@ -9,88 +9,25 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type ModulesResponse = Array<{
-    id: number;
+export interface CreateModuleBody {
     module_name: string;
     module_type: string;
     version: string;
     description?: string;
+    is_enabled?: boolean;
+    priority?: number;
+    config?: Record<string, unknown>;
+}
+
+export interface UpdateModuleConfigBody {
+    config: Record<string, unknown>;
+}
+
+export interface EnableModuleBody {
     is_enabled: boolean;
-    priority: number;
-    config?: object;
-    created_ts: number;
-    updated_ts: number;
-    last_executed_ts?: number;
-    execution_count: number;
-    error_count: number;
-    last_error?: string;
-}>;
-
-export type ModulesByTypeResponse = ModulesResponse;
-
-export type ModuleResponse = ModulesResponse[number];
-
-export interface CheckSpamResult {
-    result: string;
-    score: number;
-    reason?: string;
-    action?: string;
 }
 
-export interface CheckThirdPartyRuleRequest {
-    event_id: string;
-    room_id: string;
-    sender: string;
-    event_type: string;
-    content: object;
-    state_events: object[];
-}
-
-export interface CheckThirdPartyRuleResult {
-    rule_name: string;
-    allowed: boolean;
-    reason?: string;
-    modified_content?: object;
-}
-
-export interface SpamCheckResultResponse {
-    id: number;
-    event_id: string;
-    room_id: string;
-    sender: string;
-    event_type: string;
-    content?: object;
-    result: string;
-    score: number;
-    reason?: string;
-    checker_module: string;
-    checked_ts: number;
-    action_taken?: string;
-}
-
-export type SpamCheckResultsBySenderResponse = SpamCheckResultResponse[];
-
-export interface ThirdPartyRuleResultResponse {
-    id: number;
-    event_id: string;
-    room_id: string;
-    sender: string;
-    event_type: string;
-    rule_name: string;
-    allowed: boolean;
-    reason?: string;
-    modified_content?: object;
-    checked_ts: number;
-}
-
-export type ModuleExecutionLogsResponse = object[];
-
-export interface ModuleRequestDto {
-    module_name: string;
-    module_type: string;
-    version: string;
-    description: string;
-    is_enabled: boolean;
-    priority: number;
-    config: Record<string, never>;
+export interface ListModulesResponse {
+    modules: Array<Record<string, unknown>>;
+    next_batch: string | null;
 }

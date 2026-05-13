@@ -6,10 +6,10 @@
 
 import { SYNC_ROUTES } from "./route-table";
 
-export const SYNC_ROUTES_ENTRY_COUNT = 8 as const;
+export const SYNC_ROUTES_ENTRY_COUNT = 7 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _SyncEntryCountAssertion: 8 = SYNC_ROUTES.length;
+const _SyncEntryCountAssertion: 7 = SYNC_ROUTES.length;
 void _SyncEntryCountAssertion;
 
 export const SYNC_ROUTES_STATUS_SCENARIOS = [

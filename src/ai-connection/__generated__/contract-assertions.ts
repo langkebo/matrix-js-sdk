@@ -6,62 +6,25 @@
 
 import { AI_CONNECTION_ROUTES } from "./route-table";
 
-export const AI_CONNECTION_ROUTES_ENTRY_COUNT = 6 as const;
+export const AI_CONNECTION_ROUTES_ENTRY_COUNT = 18 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _AiConnectionEntryCountAssertion: 6 = AI_CONNECTION_ROUTES.length;
+const _AiConnectionEntryCountAssertion: 18 = AI_CONNECTION_ROUTES.length;
 void _AiConnectionEntryCountAssertion;
 
 export const AI_CONNECTION_ROUTES_STATUS_SCENARIOS = [
-    { status: 200, note: "查询、创建、删除或 MCP 调用成功" },
-    { status: 400, note: "provider、connection_id、工具参数或请求体非法" },
-    { status: 401, note: "用户 access token 无效或缺失" },
-    { status: 404, note: "指定连接不存在，或 provider / tool_name 不可用" },
-    { status: 429, note: "上游 AI / MCP 服务限流或暂时不可用" },
+    { status: 202, note: "修正文档中错误的路径前缀、字段命名与 MCP 请求/响应口径，并补充 SDK 生成路由绑定说明 | 修复长期文档漂移" },
     { status: 202, note: "初版 | -" },
-    {
-        status: 202,
-        note: "按 synapse-rust 路由与 SDK 实现修正路径、请求响应示例与覆盖率 | 覆盖率从 0% 修正为 100%，明确无 Matrix 前缀",
-    },
 ] as const;
 
 export type AiConnectionStatusScenario = (typeof AI_CONNECTION_ROUTES_STATUS_SCENARIOS)[number];
 
 export const AI_CONNECTION_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "用户未登录或 token 失效",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "重新登录后再访问 AI Connection 接口",
-    },
-    {
-        scenario: "provider、tool_name 或请求体非法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正 provider、connectionId 或 MCP arguments 后重试",
-    },
-    {
-        scenario: "目标连接或工具不存在",
-        httpOrErrcode: "404 / M_NOT_FOUND",
-        sdkErrorType: "NotFoundError",
-        handling: "刷新连接列表或工具列表后重试",
-    },
-    {
-        scenario: "上游 AI / MCP 服务限流",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "按退避策略重试，并避免高频调用",
-    },
 ] as const;
 
 export type AiConnectionErrorScenario = (typeof AI_CONNECTION_ROUTES_ERROR_SCENARIOS)[number];
 
 export const AI_CONNECTION_ROUTES_ERRCODES = [
-    { errcode: "M_UNKNOWN_TOKEN", httpStatus: "401", note: "用户 access token 无效、过期或缺失" },
-    { errcode: "M_BAD_JSON", httpStatus: "400", note: "创建连接或调用工具时请求体结构不合法" },
-    { errcode: "M_INVALID_PARAM", httpStatus: "400", note: "provider、connection_id、tool_name 或工具参数非法" },
-    { errcode: "M_NOT_FOUND", httpStatus: "404", note: "指定连接不存在，或 provider / tool_name 未注册" },
-    { errcode: "M_LIMIT_EXCEEDED", httpStatus: "429", note: "上游 AI / MCP 服务限流或暂时不可用" },
 ] as const;
 
 export type AiConnectionErrcode = (typeof AI_CONNECTION_ROUTES_ERRCODES)[number];

@@ -1,7 +1,7 @@
 ---
 module: moderation
 generated_from: docs/api-contract/generated/modules/moderation.json
-generated_hash: sha256-bccd6b6f2f8ffaeb099daca73f66fbf6caf59f02323ec900dfeff01145272033
+generated_hash: sha256-7dfa7896b82ac35862390a86fbe1eca205e0df01d8b159593f0ac6458242559a
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -138,17 +138,23 @@ interface ScannerInfo {
 | `POST /report/{event_id}`             | `MatrixClient.reportEvent()`    | ✅ 已封装 |
 | `PUT /report/{event_id}/score`        | `MatrixClient.scoreReport()`    | ✅ 已封装 |
 | `GET /report/{event_id}/scanner_info` | `MatrixClient.getScannerInfo()` | ✅ 已封装 |
-| `POST /rooms/{room_id}/report`        | -                               | ❌ 未封装 |
+| `POST /rooms/{room_id}/report`        | `MatrixClient.reportRoom()`     | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 4
-- **已封装**: 3
-- **覆盖率**: 75%
+- **已封装**: 4
+- **覆盖率**: 100%
 
 ### 3.3 已知差异
 
-- 缺少房间级举报功能
+- 文档曾遗漏 `reportRoom()`，当前代码已覆盖全部 4 个端点。
+
+### 3.4 人工 Review 对齐
+
+- `src/moderation/index.ts` 已覆盖事件举报、房间举报、评分更新、扫描器信息四类端点。
+- `src/client.ts` 同时暴露 `reportEvent()`、`scoreReport()`、`getScannerInfo()`、`reportRoom()` 便捷方法。
+- 当前差异主要在文档口径，非实现缺失。
 
 ## 四、常见错误码
 
@@ -165,3 +171,4 @@ interface ScannerInfo {
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
 | 2026-04-27 | 初版 | -    |
+| 2026-05-11 | 修正文档中遗漏的房间级举报封装状态 | 覆盖率从 75% 更新为 100% |

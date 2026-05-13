@@ -13,6 +13,13 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
+import type { E2eePathPattern } from "./__generated__/route-table.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function ep<P extends StripV3<E2eePathPattern>>(path: P): P {
+    return path;
+}
 
 /**
  * E2EEManager — 端到端加密原始端点的薄封装。
@@ -52,13 +59,14 @@ import { InvalidParamError } from "../common/errors";
  */
 
 export interface DeviceVerificationRequestBody {
-    user_id: string;
+    user_id?: string;
+    new_device_id?: string;
     device_id?: string;
     method?: string;
 }
 
 export interface SecurityBackupCreateBody {
-    algorithm: string;
+    algorithm?: string;
     auth_data?: Record<string, unknown>;
     passphrase?: string;
 }
@@ -73,22 +81,22 @@ export class E2EEManager extends BaseManager {
     // -------- compat (r0/v1/v3) ----------
 
     public async uploadKeys(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/upload", body, "uploadKeys");
+        return this.post(ep("/keys/upload"), body, "uploadKeys");
     }
 
     public async queryKeys(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/query", body, "queryKeys");
+        return this.post(ep("/keys/query"), body, "queryKeys");
     }
 
     public async claimKeys(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/claim", body, "claimKeys");
+        return this.post(ep("/keys/claim"), body, "claimKeys");
     }
 
     public async getKeyChanges(params: { from?: string; to?: string } = {}): Promise<Record<string, unknown>> {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                "/keys/changes",
+                ep("/keys/changes"),
                 params,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -99,11 +107,11 @@ export class E2EEManager extends BaseManager {
     }
 
     public async postDeviceListUpdate(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/device_list/update", body, "postDeviceListUpdate");
+        return this.post(ep("/keys/device_list/update"), body, "postDeviceListUpdate");
     }
 
     public async uploadSignatures(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/signatures", body, "uploadSignatures");
+        return this.post(ep("/keys/signatures"), body, "uploadSignatures");
     }
 
     /**
@@ -111,22 +119,22 @@ export class E2EEManager extends BaseManager {
      * 后端两条路径都会被路由到 `upload_signatures`，按 SDK 习惯保留两个入口。
      */
     public async uploadSignaturesAlt(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/signatures/upload", body, "uploadSignaturesAlt");
+        return this.post(ep("/keys/signatures/upload"), body, "uploadSignaturesAlt");
     }
 
     public async uploadDeviceSigning(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/keys/device_signing/upload", body, "uploadDeviceSigning");
+        return this.post(ep("/keys/device_signing/upload"), body, "uploadDeviceSigning");
     }
 
     public async createRoomKeyRequest(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/room_keys/request", body, "createRoomKeyRequest");
+        return this.post(ep("/room_keys/request"), body, "createRoomKeyRequest");
     }
 
     public async listRoomKeyRequests(): Promise<Record<string, unknown>> {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                "/room_keys/request",
+                ep("/room_keys/request"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -141,7 +149,7 @@ export class E2EEManager extends BaseManager {
         try {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
-                `/room_keys/request/${encodeURIComponent(requestId)}`,
+                ep(`/room_keys/request/${encodeURIComponent(requestId)}` as StripV3<E2eePathPattern>),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -156,7 +164,7 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/keys/distribution`,
+                ep(`/rooms/${encodeURIComponent(roomId)}/keys/distribution` as StripV3<E2eePathPattern>),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -176,7 +184,9 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Put,
-                `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
+                ep(
+                    `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}` as StripV3<E2eePathPattern>,
+                ),
                 undefined,
                 { messages },
                 { prefix: ClientPrefix.V3 },
@@ -191,12 +201,14 @@ export class E2EEManager extends BaseManager {
     public async requestDeviceVerification(
         body: DeviceVerificationRequestBody,
     ): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(body.user_id, "user_id");
-        return this.post("/device_verification/request", body, "requestDeviceVerification");
+        if (!body.device_id && !body.new_device_id) {
+            throw new InvalidParamError("device_id or new_device_id is required");
+        }
+        return this.post(ep("/device_verification/request"), body, "requestDeviceVerification");
     }
 
     public async respondDeviceVerification(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return this.post("/device_verification/respond", body, "respondDeviceVerification");
+        return this.post(ep("/device_verification/respond"), body, "respondDeviceVerification");
     }
 
     public async getDeviceVerificationStatus(token: string): Promise<Record<string, unknown>> {
@@ -204,7 +216,7 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                `/device_verification/status/${encodeURIComponent(token)}`,
+                ep(`/device_verification/status/${encodeURIComponent(token)}` as StripV3<E2eePathPattern>),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -218,7 +230,7 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                "/device_trust",
+                ep("/device_trust"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -233,7 +245,7 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                `/device_trust/${encodeURIComponent(deviceId)}`,
+                ep(`/device_trust/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -247,7 +259,7 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                "/security/summary",
+                ep("/security/summary"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -259,8 +271,8 @@ export class E2EEManager extends BaseManager {
     }
 
     public async createSecureBackup(body: SecurityBackupCreateBody): Promise<Record<string, unknown>> {
-        this.requireNonEmpty(body.algorithm, "algorithm");
-        return this.post("/keys/backup/secure", body, "createSecureBackup");
+        this.requireNonEmpty(body.passphrase, "passphrase");
+        return this.post(ep("/keys/backup/secure"), body, "createSecureBackup");
     }
 
     public async getSecureBackup(backupId: string): Promise<Record<string, unknown>> {
@@ -268,7 +280,7 @@ export class E2EEManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<Record<string, unknown>>(
                 Method.Get,
-                `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -283,7 +295,7 @@ export class E2EEManager extends BaseManager {
         try {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
-                `/keys/backup/secure/${encodeURIComponent(backupId)}`,
+                ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -298,7 +310,11 @@ export class E2EEManager extends BaseManager {
         body: Record<string, unknown>,
     ): Promise<Record<string, unknown>> {
         this.requireNonEmpty(backupId, "backupId");
-        return this.post(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys`, body, "storeSecureBackupKeys");
+        return this.post(
+            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys` as StripV3<E2eePathPattern>),
+            body,
+            "storeSecureBackupKeys",
+        );
     }
 
     public async restoreSecureBackup(
@@ -306,7 +322,11 @@ export class E2EEManager extends BaseManager {
         body: Record<string, unknown>,
     ): Promise<Record<string, unknown>> {
         this.requireNonEmpty(backupId, "backupId");
-        return this.post(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore`, body, "restoreSecureBackup");
+        return this.post(
+            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore` as StripV3<E2eePathPattern>),
+            body,
+            "restoreSecureBackup",
+        );
     }
 
     public async verifySecureBackupPassphrase(
@@ -315,7 +335,7 @@ export class E2EEManager extends BaseManager {
     ): Promise<Record<string, unknown>> {
         this.requireNonEmpty(backupId, "backupId");
         return this.post(
-            `/keys/backup/secure/${encodeURIComponent(backupId)}/verify`,
+            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify` as StripV3<E2eePathPattern>),
             body,
             "verifySecureBackupPassphrase",
         );

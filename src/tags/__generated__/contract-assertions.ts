@@ -24,42 +24,12 @@ export const TAGS_ROUTES_STATUS_SCENARIOS = [
 export type TagsStatusScenario = (typeof TAGS_ROUTES_STATUS_SCENARIOS)[number];
 
 export const TAGS_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "未认证或 token 失效",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "引导重新登录",
-    },
-    {
-        scenario: "标签参数不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正标签名、order 或请求体后重试",
-    },
-    {
-        scenario: "权限不足",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "提示用户需要对应房间访问权限",
-    },
-    {
-        scenario: "房间或标签不存在",
-        httpOrErrcode: "404 / M_NOT_FOUND",
-        sdkErrorType: "NotFoundError",
-        handling: "刷新本地标签状态后再决定是否重试",
-    },
-    {
-        scenario: "限流或短暂服务异常",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "使用退避重试",
-    },
-    {
-        scenario: "其他 API 错误",
-        httpOrErrcode: "其他 4xx/5xx",
-        sdkErrorType: "ApiError",
-        handling: "按 code 与 statusCode 做兜底处理",
-    },
+    { scenario: "未认证或 token 失效", httpOrErrcode: "401 / M_UNKNOWN_TOKEN", sdkErrorType: "AuthError", handling: "引导重新登录" },
+    { scenario: "标签参数不合法", httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "修正标签名、order 或请求体后重试" },
+    { scenario: "权限不足", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "提示用户需要对应房间访问权限" },
+    { scenario: "房间或标签不存在", httpOrErrcode: "404 / M_NOT_FOUND", sdkErrorType: "NotFoundError", handling: "刷新本地标签状态后再决定是否重试" },
+    { scenario: "限流或短暂服务异常", httpOrErrcode: "429 / M_LIMIT_EXCEEDED", sdkErrorType: "RetryableError", handling: "使用退避重试" },
+    { scenario: "其他 API 错误", httpOrErrcode: "其他 4xx/5xx", sdkErrorType: "ApiError", handling: "按 code 与 statusCode 做兜底处理" },
 ] as const;
 
 export type TagsErrorScenario = (typeof TAGS_ROUTES_ERROR_SCENARIOS)[number];

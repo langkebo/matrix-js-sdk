@@ -13,9 +13,6 @@ const _FederationEntryCountAssertion: 52 = FEDERATION_ROUTES.length;
 void _FederationEntryCountAssertion;
 
 export const FEDERATION_ROUTES_STATUS_SCENARIOS = [
-    { status: 200, note: "请求成功" },
-    { status: 401, note: "联邦签名认证失败" },
-    { status: 404, note: "房间、事件、媒体或资源不存在" },
 ] as const;
 
 export type FederationStatusScenario = (typeof FEDERATION_ROUTES_STATUS_SCENARIOS)[number];

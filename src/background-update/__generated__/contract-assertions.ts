@@ -13,6 +13,7 @@ const _BackgroundUpdateEntryCountAssertion: 19 = BACKGROUND_UPDATE_ROUTES.length
 void _BackgroundUpdateEntryCountAssertion;
 
 export const BACKGROUND_UPDATE_ROUTES_STATUS_SCENARIOS = [
+    { status: 202, note: "按后端真实 19 条路由重写文档，并补齐 BackgroundUpdateManager、测试与路径绑定 | 修复旧文档长期漂移" },
     { status: 202, note: "初版 | -" },
 ] as const;
 

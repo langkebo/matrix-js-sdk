@@ -1,142 +1,137 @@
 ---
 module: telemetry
 generated_from: docs/api-contract/generated/modules/telemetry.json
-generated_hash: sha256-d2b0bd1ae3313d299eec145b726133c9754017aaa218a2c66f696433bbff43df
+generated_hash: sha256-f3680b5fa784653bdecaa043e173187d5ac84c0114f3856db1630ed474b4cc70
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Telemetry API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/telemetry.rs`  
-> 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
-> 更新日期: 2026-04-27  
-> 挂载版本: `v1` (Admin)
+> 后端代码: `synapse-rust/src/web/routes/telemetry.rs`
+> 挂载前缀: `/_synapse/admin/v1`
+> 对应 SDK 模块: `src/telemetry/index.ts`
 
-## 一、模块概述
+## 本轮复核结论
 
-### 1.1 功能描述
+- 后端 `telemetry.rs` 暴露 6 条 admin telemetry 路由，全部要求 `AdminUser`。
+- SDK 当前的 [TelemetryManager](file:///Users/ljf/Desktop/hu_ts/matrix-js-sdk/src/telemetry/index.ts) 同时承担两层职责：
+  - 本地客户端埋点队列与 usage stats
+  - 后端 admin telemetry wrapper
+- 本轮已补齐 6 条后端 telemetry 端点封装，不再是旧文档里“已封装 0 / 覆盖率 0%”的状态。
 
-Telemetry API 提供服务器遥测监控功能，包括状态、指标、告警和健康检查。
+## 路由与 SDK 对齐
 
-### 1.2 路由前缀
+| 方法 | 路径 | 后端响应 | SDK 方法 |
+| --- | --- | --- | --- |
+| `GET` | `/_synapse/admin/v1/telemetry/status` | 遥测开关、trace/metrics 开关、服务名、采样率、导出配置 | `TelemetryManager.getServerStatus()` |
+| `GET` | `/_synapse/admin/v1/telemetry/attributes` | `{ attributes: Record<string, string> }` | `TelemetryManager.getServerAttributes()` |
+| `GET` | `/_synapse/admin/v1/telemetry/metrics` | metrics 汇总统计而不是明细数组 | `TelemetryManager.getServerMetricsSummary()` |
+| `GET` | `/_synapse/admin/v1/telemetry/alerts` | `{ alerts: TelemetryAlert[] }`，支持 `status` / `severity` / `refresh` 查询参数 | `TelemetryManager.getServerAlerts()` |
+| `POST` | `/_synapse/admin/v1/telemetry/alerts/{alert_id}/ack` | 返回被确认后的 alert 对象 | `TelemetryManager.acknowledgeServerAlert()` |
+| `GET` | `/_synapse/admin/v1/telemetry/health` | 综合健康结果，含 `status`、`checks`、`database`、`alerts` | `TelemetryManager.getServerHealth()` |
 
-- `/_synapse/admin/v1/telemetry/*`
+## 真实返回结构
 
-### 1.3 认证要求
-
-- 所有端点需要 `AdminUser`
-
-## 二、端点详情
-
-### 2.1 查询遥测状态
-
-**路径**: `GET /_synapse/admin/v1/telemetry/status`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
+### `GET /telemetry/status`
 
 ```typescript
-interface TelemetryStatus {
+interface ServerTelemetryStatus {
     enabled: boolean;
-    collection_interval_ms: number;
-    last_collection_ts: number;
+    trace_enabled: boolean;
+    metrics_enabled: boolean;
+    service_name: string;
+    service_version: string;
+    sampling_ratio: number;
+    export_config: {
+        otlp_endpoint?: string | null;
+        prometheus_port?: number | null;
+        prometheus_path?: string | null;
+        batch_export: boolean;
+    };
 }
 ```
 
-### 2.2 查询遥测属性
-
-**路径**: `GET /_synapse/admin/v1/telemetry/attributes`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
+### `GET /telemetry/attributes`
 
 ```typescript
-interface TelemetryAttributes {
-    server_name: string;
-    server_version: string;
-    python_version: string;
-    database_engine: string;
-    database_version: string;
+interface ServerTelemetryAttributes {
+    attributes: Record<string, string>;
 }
 ```
 
-### 2.3 查询遥测指标
-
-**路径**: `GET /_synapse/admin/v1/telemetry/metrics`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
+### `GET /telemetry/metrics`
 
 ```typescript
-interface TelemetryMetrics {
-    metrics: Array<{
-        name: string;
-        value: number;
-        timestamp: number;
-        labels?: Record<string, string>;
-    }>;
+interface ServerTelemetryMetricsSummary {
+    total_metrics: number;
+    total_counters: number;
+    total_gauges: number;
+    total_histograms: number;
+    rendered_bytes: number;
+    snapshot_ts: number;
 }
 ```
 
-### 2.4 查询告警
-
-**路径**: `GET /_synapse/admin/v1/telemetry/alerts`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
+### `GET /telemetry/alerts`
 
 ```typescript
-interface TelemetryAlerts {
-    alerts: Array<{
-        id: string;
-        severity: string;
-        message: string;
-        created_ts: number;
-        acknowledged: boolean;
-    }>;
+interface ServerTelemetryAlert {
+    alert_id: string;
+    alert_key: string;
+    severity: string;
+    status: string;
+    title?: string;
+    message?: string;
+    created_at_ms?: number;
+    updated_at_ms?: number;
+    acknowledged_by?: string | null;
+    acknowledged_at_ms?: number | null;
+    metadata?: Record<string, unknown>;
 }
 ```
 
-### 2.5 确认告警
-
-**路径**: `POST /_synapse/admin/v1/telemetry/alerts/{alert_id}/ack`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
-
-```json
-{}
-```
-
-### 2.6 健康检查
-
-**路径**: `GET /_synapse/admin/v1/telemetry/health`  
-**认证**: `AdminUser`
-
-**响应**: `200 OK`
+### `GET /telemetry/health`
 
 ```typescript
-interface HealthStatus {
-    healthy: boolean;
-    checks: Array<{
-        name: string;
-        status: string;
-        message?: string;
-    }>;
+interface ServerTelemetryHealth {
+    status: string;
+    service: string;
+    trace_enabled: boolean;
+    metrics_enabled: boolean;
+    checks: Array<Record<string, unknown>>;
+    database: Record<string, unknown>;
+    alerts: ServerTelemetryAlert[];
 }
 ```
 
-## 三、SDK 对齐状态
+## SDK 说明
 
-### 3.1 封装覆盖率
+- `TelemetryManager` 的原有本地能力仍保留：
+  - `track()`
+  - `trackMessageSent()`
+  - `trackMessageReceived()`
+  - `trackRoomJoined()`
+  - `trackCall()`
+  - `trackMediaUploaded()`
+  - `flush()`
+  - `getUsageStats()`
+- Admin telemetry wrapper 统一通过 `AdminPrefix.V1` 发起请求。
+- `src/telemetry/index.ts` 现已绑定生成的 `TelemetryPathPattern`，避免 admin telemetry 路径再次手写漂移。
 
-- **总端点数**: 6
-- **已封装**: 0
-- **覆盖率**: 0%
+## 测试对齐
 
-## 四、变更历史
+- `spec/unit/telemetry.spec.ts` 已覆盖：
+  - `getServerStatus()`
+  - `getServerAttributes()`
+  - `getServerMetricsSummary()`
+  - `getServerAlerts()` 的查询参数透传
+  - `acknowledgeServerAlert()` 的路径参数编码
+  - `getServerHealth()`
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
-| 2026-04-27 | 初版 | -    |
+## 封装覆盖率
+
+- **后端路由总数**: 6
+- **SDK 主路径覆盖**: 6/6
+- **已绑定生成路由模板**: 6/6
+- **契约覆盖率**: 100%

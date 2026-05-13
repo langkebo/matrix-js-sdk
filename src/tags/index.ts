@@ -25,6 +25,13 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
+import type { TagsPathPattern } from "./__generated__/route-table.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function tp<P extends StripV3<TagsPathPattern>>(path: P): P {
+    return path;
+}
 
 export enum TagEvent {
     TagAdded = "TagAdded",
@@ -72,7 +79,9 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
             }
             const response = await this.client.http.authedRequest<{ tags?: IRoomTags }>(
                 Method.Get,
-                `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags`,
+                tp(
+                    `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags` as StripV3<TagsPathPattern>,
+                ),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -107,7 +116,9 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
             await this.client.http.authedRequest(
                 Method.Put,
-                `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
+                tp(
+                    `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
+                ),
                 undefined,
                 body,
                 { prefix: ClientPrefix.V3 },
@@ -138,7 +149,9 @@ export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> 
 
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
+                tp(
+                    `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
+                ),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },

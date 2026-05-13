@@ -145,6 +145,101 @@ describe("AIConnectionManager", () => {
         });
     });
 
+    describe("cache and lifecycle helpers", () => {
+        it("getCachedConnections returns all cached connections without network access", async () => {
+            authedRequest.mockResolvedValueOnce([
+                {
+                    id: "c1",
+                    user_id: "u",
+                    provider: "openai",
+                    config: null,
+                    is_active: true,
+                    created_ts: 0,
+                    updated_ts: null,
+                },
+                {
+                    id: "c2",
+                    user_id: "u",
+                    provider: "anthropic",
+                    config: { model: "claude" },
+                    is_active: false,
+                    created_ts: 1,
+                    updated_ts: 2,
+                },
+            ]);
+
+            await manager.getConnections();
+            authedRequest.mockClear();
+
+            expect(manager.getCachedConnections()).toEqual([
+                {
+                    id: "c1",
+                    user_id: "u",
+                    provider: "openai",
+                    config: null,
+                    is_active: true,
+                    created_ts: 0,
+                    updated_ts: null,
+                },
+                {
+                    id: "c2",
+                    user_id: "u",
+                    provider: "anthropic",
+                    config: { model: "claude" },
+                    is_active: false,
+                    created_ts: 1,
+                    updated_ts: 2,
+                },
+            ]);
+            expect(authedRequest).not.toHaveBeenCalled();
+        });
+
+        it("clearCache empties cached connections without network access", async () => {
+            authedRequest.mockResolvedValueOnce([
+                {
+                    id: "c1",
+                    user_id: "u",
+                    provider: "openai",
+                    config: null,
+                    is_active: true,
+                    created_ts: 0,
+                    updated_ts: null,
+                },
+            ]);
+
+            await manager.getConnections();
+            authedRequest.mockClear();
+
+            manager.clearCache();
+
+            expect(manager.getCachedConnections()).toEqual([]);
+            expect(manager.getCachedConnection("c1")).toBeUndefined();
+            expect(authedRequest).not.toHaveBeenCalled();
+        });
+
+        it("stop clears cached connections without network access", async () => {
+            authedRequest.mockResolvedValueOnce([
+                {
+                    id: "c1",
+                    user_id: "u",
+                    provider: "openai",
+                    config: null,
+                    is_active: true,
+                    created_ts: 0,
+                    updated_ts: null,
+                },
+            ]);
+
+            await manager.getConnections();
+            authedRequest.mockClear();
+
+            manager.stop();
+
+            expect(manager.getCachedConnections()).toEqual([]);
+            expect(authedRequest).not.toHaveBeenCalled();
+        });
+    });
+
     describe("listMcpTools", () => {
         it("rejects empty provider", async () => {
             await expect(manager.listMcpTools("")).rejects.toBeInstanceOf(InvalidParamError);

@@ -17,7 +17,7 @@ limitations under the License.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { type MatrixClient } from "../../src/client";
-import { FriendManager, FriendEvent, type Friend, type FriendRequest } from "../../src/friend/index.ts";
+import { FriendManager, FriendEvent, type Friend, type FriendRequest, type FriendSearchResult } from "../../src/friend/index.ts";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { Method } from "../../src/http-api/method.ts";
 import { ClientPrefix } from "../../src/http-api/prefix.ts";
@@ -93,6 +93,13 @@ describe("FriendManager", () => {
             mockAuthedRequest.mockResolvedValue({ request_id: "req-123", status: "pending" });
             const result = await friendManager.sendFriendRequest("@bob:example.com");
             expect(result).toEqual({ request_id: "req-123", status: "pending" });
+        });
+
+        it("should reject request messages longer than the backend limit", async () => {
+            await expect(friendManager.sendFriendRequest("@bob:example.com", "a".repeat(501))).rejects.toThrow(
+                InvalidParamError,
+            );
+            expect(mockAuthedRequest).not.toHaveBeenCalled();
         });
     });
 
@@ -228,6 +235,22 @@ describe("FriendManager", () => {
             expect(friendManager.getFriendListRoomId()).toBe("!friends:example.com");
         });
 
+        it("should map backend displayname into display_name", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                friends: [{ user_id: "@bob:example.com", status: "normal", displayname: "Bob" }],
+            });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends[0]).toEqual(
+                expect.objectContaining({
+                    user_id: "@bob:example.com",
+                    displayname: "Bob",
+                    display_name: "Bob",
+                }),
+            );
+        });
+
         it("should normalize friend status", async () => {
             mockAuthedRequest.mockResolvedValue({
                 friends: [{ user_id: "@bob:example.com", status: "invalid_status" }],
@@ -293,6 +316,31 @@ describe("FriendManager", () => {
             );
 
             expect(requests).toEqual(mockRequests);
+        });
+
+        it("should normalize request message into reason and display_name", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                requests: [
+                    {
+                        user_id: "@bob:example.com",
+                        status: "pending",
+                        message: "hi",
+                        displayname: "Bob",
+                    },
+                ],
+            });
+
+            const requests = await friendManager.getIncomingRequests();
+
+            expect(requests[0]).toEqual(
+                expect.objectContaining({
+                    user_id: "@bob:example.com",
+                    message: "hi",
+                    reason: "hi",
+                    displayname: "Bob",
+                    display_name: "Bob",
+                }),
+            );
         });
 
         it("should fall back to the legacy incoming alias when canonical path is unavailable", async () => {
@@ -636,6 +684,195 @@ describe("FriendManager", () => {
             const friend = await friendManager.getFriendInfo("@bob:example.com");
 
             expect(friend).toEqual(mockFriend);
+        });
+
+        it("should return the full friend status object via getFriendStatusInfo", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                user_id: "@bob:example.com",
+                status: "none",
+                is_friend: false,
+            });
+
+            const status = await friendManager.getFriendStatusInfo("@bob:example.com");
+
+            expect(status).toEqual({
+                user_id: "@bob:example.com",
+                status: "none",
+                is_friend: false,
+            });
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/%40bob%3Aexample.com/status",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("should preserve getFriendStatus as the status-string helper", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                user_id: "@bob:example.com",
+                status: "favorite",
+                is_friend: true,
+            });
+
+            await expect(friendManager.getFriendStatus("@bob:example.com")).resolves.toBe("favorite");
+        });
+
+        it("should search users with fuzzy match (default)", async () => {
+            const mockResults: FriendSearchResult[] = [
+                {
+                    user_id: "@bob:example.com",
+                    username: "bob",
+                    displayname: "Bob Smith",
+                    avatar_url: "mxc://example.com/avatar",
+                    presence: "online",
+                    online: true,
+                    last_active_ts: 1700000000000,
+                    match_score: 0.95,
+                    match_type: "fuzzy",
+                },
+                {
+                    user_id: "@charlie:example.com",
+                    username: "charlie",
+                    displayname: "Charlie",
+                    presence: "offline",
+                    online: false,
+                    match_score: 0.6,
+                    match_type: "fuzzy",
+                },
+            ];
+
+            mockAuthedRequest.mockResolvedValue({
+                results: mockResults,
+                count: 2,
+                mode: "fuzzy",
+                limited: false,
+                retry_after_seconds: 0,
+            });
+
+            const response = await friendManager.searchUsers("bob");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/search",
+                { q: "bob" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+
+            expect(response.results).toHaveLength(2);
+            expect(response.results![0].user_id).toBe("@bob:example.com");
+            expect(response.results![0].presence).toBe("online");
+            expect(response.results![0].online).toBe(true);
+            expect(response.results![0].match_score).toBe(0.95);
+            expect(response.count).toBe(2);
+            expect(response.mode).toBe("fuzzy");
+            expect(response.limited).toBe(false);
+        });
+
+        it("should search users with exact match mode", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                results: [{ user_id: "@bob:example.com", match_type: "exact" }],
+                count: 1,
+                mode: "exact",
+                limited: false,
+                retry_after_seconds: 0,
+            });
+
+            const response = await friendManager.searchUsers("@bob:example.com", "exact");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/search",
+                { q: "@bob:example.com", mode: "exact" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+
+            expect(response.mode).toBe("exact");
+        });
+
+        it("should pass custom limit to search", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                results: [],
+                count: 0,
+                mode: "fuzzy",
+                limited: false,
+                retry_after_seconds: 0,
+            });
+
+            await friendManager.searchUsers("test", undefined, 5);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/search",
+                { q: "test", limit: 5 },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should throw InvalidParamError for empty search term", async () => {
+            await expect(friendManager.searchUsers("")).rejects.toThrow(InvalidParamError);
+            await expect(friendManager.searchUsers("   ")).rejects.toThrow(InvalidParamError);
+        });
+
+        it("should handle empty results", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                results: [],
+                count: 0,
+                mode: "fuzzy",
+                limited: false,
+                retry_after_seconds: 0,
+            });
+
+            const response = await friendManager.searchUsers("nonexistent");
+
+            expect(response.results).toHaveLength(0);
+            expect(response.count).toBe(0);
+        });
+
+        it("should propagate API errors", async () => {
+            const apiError = new Error("Network error");
+            mockAuthedRequest.mockRejectedValue(apiError);
+
+            await expect(friendManager.searchUsers("test")).rejects.toThrow();
+        });
+
+        it("should trim whitespace from search term", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                results: [],
+                count: 0,
+                mode: "fuzzy",
+                limited: false,
+                retry_after_seconds: 0,
+            });
+
+            await friendManager.searchUsers("  alice  ");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/friends/search",
+                { q: "alice" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should expose retry_after_seconds for rate limiting", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                results: [],
+                count: 0,
+                mode: "fuzzy",
+                limited: true,
+                retry_after_seconds: 5,
+            });
+
+            const response = await friendManager.searchUsers("spam");
+
+            expect(response.retry_after_seconds).toBe(5);
+            expect(response.limited).toBe(true);
         });
 
         it("should return null for non-existent friend info when throwOnError is false", async () => {

@@ -28,6 +28,7 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { InvalidParamError } from "../common/errors";
+import type { WidgetPathPattern } from "./__generated__/route-table.ts";
 
 export enum WidgetEvent {
     WidgetAdded = "WidgetAdded",
@@ -249,6 +250,17 @@ interface WidgetManagerEventMap {
     [WidgetEvent.PermissionDenied]: (widgetId: string, permissions: string[]) => void;
 }
 
+type StripWidgetPrefix<P extends string> =
+    P extends `/_matrix/client/v1${infer Rest}`
+        ? Rest
+        : P extends `/_matrix/client/v3${infer Rest}`
+          ? Rest
+          : never;
+
+function wp<P extends StripWidgetPrefix<WidgetPathPattern>>(path: P): P {
+    return path;
+}
+
 export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMap> {
     private widgets: Map<string, Map<string, IWidget>> = new Map();
     private permissions: Map<string, IWidgetPermission> = new Map();
@@ -275,6 +287,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     private emitWidgetRequestError(roomId: string | undefined, widgetId: string | undefined, error: Error): void {
         this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
+    }
+
+    private toCreateWidgetBody(options: CreateWidgetOptions, widgetId?: string): Record<string, unknown> {
+        return {
+            room_id: options.roomId,
+            widget_id: widgetId,
+            widget_type: options.type,
+            url: options.url,
+            name: options.name,
+            data: options.data ?? {},
+        };
     }
 
     private normalizeWidgetMessage(message: WidgetMessage): { type: string; content: Record<string, unknown> } {
@@ -403,16 +426,18 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         try {
             const response = await this.client.http.authedRequest<WidgetApiResponse>(
                 Method.Post,
-                "/widgets",
+                wp("/widgets"),
                 undefined,
-                {
-                    room_id: roomId,
-                    widget_id: widgetId,
-                    widget_type: widget.type,
-                    url: widget.url,
-                    name: widget.name,
-                    data: widget.data ?? {},
-                },
+                this.toCreateWidgetBody(
+                    {
+                        roomId,
+                        type: widget.type,
+                        url: widget.url,
+                        name: widget.name,
+                        data: widget.data,
+                    },
+                    widgetId,
+                ),
                 { prefix: "/_matrix/client/v1" },
             );
 
@@ -429,6 +454,45 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         } catch (e) {
             const error = this.normalizeError(e, "addWidget");
             this.emit(WidgetEvent.WidgetError, roomId, widgetId, error);
+            throw error;
+        }
+    }
+
+    async createWidget(options: CreateWidgetOptions): Promise<IWidget> {
+        if (!options.type) {
+            throw new InvalidParamError("Widget type is required");
+        }
+        if (!options.url) {
+            throw new InvalidParamError("Widget URL is required");
+        }
+        if (!options.name) {
+            throw new InvalidParamError("Widget name is required");
+        }
+
+        try {
+            const response = await this.client.http.authedRequest<WidgetApiResponse>(
+                Method.Post,
+                wp("/widgets/create"),
+                undefined,
+                this.toCreateWidgetBody(options),
+                { prefix: ClientPrefix.V3 },
+            );
+
+            const widget = this.toIWidget(response.widget, options.roomId);
+            if (options.roomId) {
+                if (!this.widgets.has(options.roomId)) {
+                    this.widgets.set(options.roomId, new Map());
+                }
+                this.widgets.get(options.roomId)!.set(widget.id, widget);
+                this.emit(WidgetEvent.WidgetAdded, options.roomId, widget);
+            } else {
+                this.emit(WidgetEvent.WidgetAdded, widget.roomId ?? "", widget);
+            }
+
+            return widget;
+        } catch (e) {
+            const error = this.normalizeError(e, "createWidget");
+            this.emit(WidgetEvent.WidgetError, options.roomId, undefined, error);
             throw error;
         }
     }

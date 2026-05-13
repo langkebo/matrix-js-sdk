@@ -1,247 +1,163 @@
 ---
 module: key_backup
 generated_from: docs/api-contract/generated/modules/key_backup.json
-generated_hash: sha256-c2217add8c57e388b1d2af96203431df76b59118cf5197ff1ed7ba45702c45d2
+generated_hash: sha256-d79412ef33dd6098b1a0b0e5aaecb92209616bfef25239d6dc1c5d79da7beec2
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Key Backup 模块 API 审计报告
 
-> 审计日期: 2026-04-04
-> 修复日期: 2026-04-04
-> 契约文档: `/Users/ljf/Desktop/hu/matrix-js-sdk/docs/api-contract/key-backup.md`
-> 后端实现: `/Users/ljf/Desktop/hu/synapse-rust/src/web/routes/key_backup.rs`
+> 审计日期: 2026-05-11
+> 后端实现: `/Users/ljf/Desktop/hu_ts/synapse-rust/src/web/routes/key_backup.rs`
+> 对应 SDK 模块: `src/key-backup/index.ts`
 
----
+## 本轮复核发现
 
-## 1. 审计范围
+- 旧文档的统计口径已经严重过时。当前机器可读契约是 `99` 条前缀展开端点，对应 `33` 条逻辑相对路径，而不是旧版文档中的 `32` 条。
+- 后端 `/_matrix/client/{v1,r0,v3}/room_keys/keys*` 现在完整提供 `GET / PUT / DELETE` 三组读写删除路由；SDK 本轮已补齐原先缺失的房间级 `PUT` 与三组 `DELETE` wrapper。
+- `getRoomKeys()` 的真实响应是 `{ sessions: ... }`，不是旧文档里暗示的 `{ rooms: ... }`。
+- `getSessionKey()` 的真实响应是单个 `session_data` payload，本轮已把 SDK 返回类型从恢复接口包裹对象修正为原始 session payload。
+- `POST /room_keys/version` 后端要求 UIA `auth`；SDK `createBackupVersion()` 现已补充可选 `auth` 参数透传。
 
-| 类别          | 端点数量 | 后端实现                 | SDK 封装                                |
-| ------------- | -------- | ------------------------ | --------------------------------------- |
-| 备份版本管理  | 5        | ✅ 完整                  | ✅ 已封装                               |
-| 备份密钥读写  | 11       | ✅ 完整                  | ⚠️ 7 个精确对齐，4 个兼容别名未单独封装 |
-| 恢复与校验    | 6        | ✅ 完整                  | ✅ 已封装                               |
-| 导出与导入    | 4        | ✅ 完整                  | ✅ 已封装                               |
-| Secure Backup | 6        | ✅ 完整 (e2ee_routes.rs) | ✅ 已封装                               |
+## 路由分组
 
----
+| 类别 | 逻辑端点数 | 后端实现 | SDK 封装 |
+| --- | --- | --- | --- |
+| 备份版本管理 | 5 | ✅ 完整 | ✅ 已封装 |
+| Spec 主路径密钥读写删除 | 9 | ✅ 完整 | ✅ 已封装 |
+| Legacy 路径别名 | 9 | ✅ 完整 | ℹ️ 不单独暴露，沿用同一 handler |
+| 恢复与校验 | 6 | ✅ 完整 | ✅ 已封装 |
+| 导入与导出 | 4 | ✅ 完整 | ✅ 已封装 |
 
-## 2. 详细比对结果
+## SDK 对齐结论
 
-### 2.1 备份版本管理端点
+- `src/key-backup/index.ts` 已绑定生成的 `KeyBackupPathPattern`，主链路统一走 `ClientPrefix.V3`。
+- `KeyBackupManager` 当前覆盖的 v3 主路径包括:
+  - `GET/POST /room_keys/version`
+  - `GET/PUT/DELETE /room_keys/version/{version}`
+  - `GET/PUT/DELETE /room_keys/keys`
+  - `GET/PUT/DELETE /room_keys/keys/{room_id}`
+  - `GET/PUT/DELETE /room_keys/keys/{room_id}/{session_id}`
+  - `POST /room_keys/recover`
+  - `GET /room_keys/recovery/{version}/progress`
+  - `GET /room_keys/verify/{version}`
+  - `POST /room_keys/batch_recover`
+  - `GET /room_keys/recover/{version}/{room_id}`
+  - `GET /room_keys/recover/{version}/{room_id}/{session_id}`
+  - `GET /room_keys/export[/{version}]`
+  - `POST /room_keys/import[/{version}]`
+- `/_matrix/client/{v1,r0}/room_keys/{version}/keys...` 这组 legacy 别名仍由后端同一 handler 承接，SDK 不再额外提供重复方法。
 
-| 端点                                  | 契约定义 | 后端实现             | SDK 封装                                    | 状态      |
-| ------------------------------------- | -------- | -------------------- | ------------------------------------------- | --------- |
-| `GET /room_keys/version`              | ✅       | ✅ key_backup.rs:35  | ✅ `KeyBackupManager.getBackupVersions()`   | ✅ OK     |
-| `POST /room_keys/version`             | ✅       | ✅ key_backup.rs:53  | ✅ `KeyBackupManager.createBackupVersion()` | ✅ OK     |
-| `GET /room_keys/version/{version}`    | ✅       | ✅ key_backup.rs:71  | ✅ `KeyBackupManager.getBackupVersion()`    | ✅ OK     |
-| `PUT /room_keys/version/{version}`    | ✅       | ✅ key_backup.rs:89  | ✅ `KeyBackupManager.updateBackupVersion()` | ✅ 已添加 |
-| `DELETE /room_keys/version/{version}` | ✅       | ✅ key_backup.rs:107 | ✅ `KeyBackupManager.deleteBackupVersion()` | ✅ OK     |
+## 关键请求与返回
 
-| `GET /room_keys/keys` | ✅ | ✅ key_backup.rs:24 | ✅ `KeyBackupManager.getAllBackupKeys()` | ✅ OK |
-| `PUT /room_keys/keys` | ✅ | ✅ key_backup.rs:24 | ✅ `KeyBackupManager.uploadKeysToLatest()` | ✅ OK |
-| `GET /room_keys/keys/{version}` | ✅ | ✅ key_backup.rs:28 | ✅ `KeyBackupManager.getBackupKeys()` | ✅ OK |
-| `PUT /room_keys/keys/{version}` | ✅ | ✅ key_backup.rs:28 | ✅ `KeyBackupManager.uploadKeysToVersion()` | ✅ OK |
-| `GET /room_keys/keys/{version}/{room_id}` | ✅ | ✅ key_backup.rs:32 | ✅ `KeyBackupManager.getRoomBackupKeys()` | ✅ OK |
-| `GET /room_keys/keys/{version}/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:36 | ✅ `KeyBackupManager.getSessionBackupKey()` | ✅ OK |
-| `GET /room_keys/{version}` | ✅ | ✅ key_backup.rs:40 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
-| `PUT /room_keys/{version}` | ✅ | ✅ key_backup.rs:40 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
-| `POST /room_keys/{version}/keys` | ✅ | ✅ key_backup.rs:43 | ✅ `KeyBackupManager.uploadBatchKeys()` | ✅ OK |
-| `GET /room_keys/{version}/keys/{room_id}` | ✅ | ✅ key_backup.rs:45 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
-| `GET /room_keys/{version}/keys/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:49 | ⚠️ 无独立 SDK 方法 | ℹ️ 后端兼容别名 |
-| `POST /room_keys/recover` | ✅ | ✅ key_backup.rs:269 | ✅ `KeyBackupManager.recoverKeys()` | ✅ OK |
-| `GET /room_keys/recovery/{version}/progress` | ✅ | ✅ key_backup.rs:287 | ✅ `KeyBackupManager.getRecoveryProgress()` | ✅ 已添加 |
-| `GET /room_keys/verify/{version}` | ✅ | ✅ key_backup.rs:305 | ✅ `KeyBackupManager.verifyBackup()` | ✅ 已添加 |
-| `POST /room_keys/batch_recover` | ✅ | ✅ key_backup.rs:323 | ✅ `KeyBackupManager.batchRecover()` | ✅ 已添加 |
-| `GET /room_keys/recover/{version}/{room_id}` | ✅ | ✅ key_backup.rs:341 | ✅ `KeyBackupManager.recoverRoomKeys()` | ✅ 已添加 |
-| `GET /room_keys/recover/{version}/{room_id}/{session_id}` | ✅ | ✅ key_backup.rs:359 | ✅ `KeyBackupManager.recoverSessionKey()` | ✅ 已添加 |
-| `GET /room_keys/export` | ✅ | ✅ key_backup.rs:377 | ✅ `KeyBackupManager.exportKeys()` | ✅ OK |
-| `GET /room_keys/export/{version}` | ✅ | ✅ key_backup.rs:395 | ✅ `KeyBackupManager.exportKeysByVersion()` | ✅ OK |
-| `POST /room_keys/import` | ✅ | ✅ key_backup.rs:413 | ✅ `KeyBackupManager.importKeys()` | ✅ OK |
-| `POST /room_keys/import/{version}` | ✅ | ✅ key_backup.rs:431 | ✅ `KeyBackupManager.importKeysToVersion()` | ✅ OK |
+### 版本管理
 
-| `POST /keys/backup/secure` | ✅ | ✅ secure-backup/index.ts:43 | ✅ `SecureBackupManager.createSecureBackup()` | ✅ OK |
-| `GET /keys/backup/secure/{backup_id}` | ✅ | ✅ secure-backup/index.ts:57 | ✅ `SecureBackupManager.getSecureBackup()` | ✅ OK |
-| `DELETE /keys/backup/secure/{backup_id}` | ✅ | ✅ secure-backup/index.ts:71 | ✅ `SecureBackupManager.deleteSecureBackup()` | ✅ OK |
-| `POST /keys/backup/secure/{backup_id}/keys` | ✅ | ✅ secure-backup/index.ts:85 | ✅ `SecureBackupManager.addKeysToSecureBackup()` | ✅ 已添加 |
-| `POST /keys/backup/secure/{backup_id}/restore` | ✅ | ✅ secure-backup/index.ts:107 | ✅ `SecureBackupManager.restoreFromSecureBackup()` | ✅ OK |
-| `POST /keys/backup/secure/{backup_id}/verify` | ✅ | ✅ secure-backup/index.ts:121 | ✅ `SecureBackupManager.verifySecureBackup()` | ✅ OK |
+- `getLatestBackupVersion()` / `getBackupVersion()` 读取后端真实结构:
 
-补充核对结果：
-
-- `KeyBackupManager.uploadSessionKey()` 调用的 `PUT /room_keys/keys/{version}/{room_id}/{session_id}` 已在后端挂载，路径本身无误。
-- 后端额外提供 `/_matrix/client/{v1,r0,v3}/room_keys/{version}` 及其子路径作为兼容别名，SDK 目前未单独暴露这些别名方法。
-
----
-
-## 3. 已修复问题
-
-| 问题                         | 当前状态                        | 文件                     |
-| ---------------------------- | ------------------------------- | ------------------------ |
-| SDK 使用间接封装             | ✅ 已重构为直接 HTTP 调用       | `key-backup/index.ts`    |
-| 缺少恢复与校验功能           | ✅ 已补齐 6 个方法              | `key-backup/index.ts`    |
-| 缺少导入导出功能             | ✅ 已补齐 4 个方法              | `key-backup/index.ts`    |
-| 缺少 Secure Backup 封装      | ✅ 已添加 `SecureBackupManager` | `secure-backup/index.ts` |
-| 单会话上传路径被误判为未挂载 | ✅ 已核对后端实际挂载情况       | `key-backup.md`          |
-
----
-
-## 4. 鷻加的接口
-
-```typescript
-export interface BackupVersionInfo {
-    version: string;
-    algorithm: string;
-    auth_data: any;
-}
-
-export interface BackupVersion {
-    version: string;
-    algorithm: string;
-    auth_data: any;
-    count?: number;
-    etag?: string;
-}
-
-export interface RoomKeyBackup {
-    rooms: Record<string, {
-        sessions: Record<string, {
-            first_message_index: number;
-            forwarded_count: number;
-            is_verified: boolean;
-            session_data: any;
-        }>;
-    } }>;
-    etag: string;
-}
-
-export interface RecoveryProgress {
-    user_id: string;
-    version: string;
-    total_keys: number;
-    recovered_keys: number;
-    status: string;
-    started_ts: number;
-    updated_ts: number;
-}
-
-export interface BatchRecoverResult {
-    rooms: Record<string, any>;
-    total_sessions: number;
-    has_more: boolean;
-    next_batch?: string;
-}
-
-export interface ExportResult {
-    room_keys: Array<{
-        room_id: string;
-        session_id: string;
-        session_data: any;
-    }>;
-    version: string;
-}
-
-export interface ImportResult {
-    count: number;
-    failed: number;
-    total: number;
-}
-
-export interface VerifyResult {
-    valid: boolean;
-    algorithm: string;
-    auth_data: any;
-    key_count: number;
-    signatures?: any;
-}
-
-export interface SecureBackupInfo {
-    backup_id: string;
-    version: string;
-    algorithm: string;
-    auth_data: any;
-    key_count: number;
+```json
+{
+  "version": "1",
+  "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+  "auth_data": { "public_key": "..." },
+  "count": 7,
+  "etag": "7"
 }
 ```
 
----
+- `createBackupVersion(algorithm, authData?, auth?)` 现在支持透传 UIA:
 
-## 5. 封装覆盖率
-
-- **后端路由总数**: 32 个端点
-- **精确对齐的 SDK 封装**: 28 个方法
-- **后端兼容别名未单独封装**: 4 个端点
-- **路径待修正的 SDK 方法**: 0 个（`uploadSessionKey()` 已核对为与后端挂载一致）
-
----
-
-## 6. 騡块导出
-
-```typescript
-// key-backup/index.ts
-export { KeyBackupManager } from "./key-backup";
-export type {
-    BackupVersionInfo,
-    BackupVersion,
-    RoomKeyBackup,
-    RecoveryProgress,
-    BatchRecoverResult,
-    ExportResult,
-    ImportResult,
-    VerifyResult,
-} from "./key-backup";
-
-// secure-backup/index.ts
-export { SecureBackupManager } from "./secure-backup";
-export type { SecureBackupInfo } from "./secure-backup";
+```json
+{
+  "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+  "auth_data": { "public_key": "..." },
+  "auth": {
+    "type": "m.login.password",
+    "session": "uia-session",
+    "password": "secret"
+  }
+}
 ```
 
----
+### 密钥读写删除
 
-## 7. 测试策略
+- `getAllRoomKeys(version)` 返回:
 
-### 7.1 单元测试
-
-```typescript
-describe("KeyBackupManager", () => {
-    it("should call correct API endpoints", async () => {
-        // Mock HTTP client
-        const mockHttp = {
-            authedRequest: vi.fn(),
-        };
-        const client = {
-            http: mockHttp,
-        } as any;
-
-        const manager = new KeyBackupManager(client);
-
-        // Test version management
-        await manager.getBackupVersions();
-        expect(mockHttp.authedRequest).toHaveBeenCalledWith("GET", "/room_keys/version");
-
-        await manager.createBackupVersion("m.megolm.v1.aes-sha2", { key: "value" });
-        expect(mockHttp.authedRequest).toHaveBeenCalledWith("POST", "/room_keys/version");
-    });
-});
+```json
+{
+  "rooms": {
+    "!room:example.com": {
+      "sessions": {
+        "sess1": {
+          "first_message_index": 0,
+          "forwarded_count": 0,
+          "is_verified": true,
+          "session_data": { "ciphertext": "...", "mac": "...", "ephemeral": "..." }
+        }
+      }
+    }
+  }
+}
 ```
 
----
+- `getRoomKeys(version, roomId)` 返回:
 
-## 8. 结论
+```json
+{
+  "sessions": {
+    "sess1": {
+      "first_message_index": 0,
+      "forwarded_count": 0,
+      "is_verified": true,
+      "session_data": { "ciphertext": "...", "mac": "...", "ephemeral": "..." }
+    }
+  }
+}
+```
 
-### 8.1 当前状态
+- `getSessionKey(version, roomId, sessionId)` 返回后端原始 `session_data`，不是恢复接口的包裹对象:
 
-- ✅ 后端实现完整，客户端前缀覆盖 `v1/r0/v3`
-- ✅ 大多数 Key Backup / Secure Backup 能力已由 SDK 直接 HTTP 封装
-- ⚠️ 仍有 4 个后端兼容别名未单独暴露
-- ✅ `uploadSessionKey()` 使用的单会话 PUT 路径已确认由后端挂载
+```json
+{
+  "ciphertext": "...",
+  "mac": "...",
+  "ephemeral": "..."
+}
+```
 
-### 8.2 娡块功能
+- `putAllRoomKeys()`、`putRoomKeys()`、`putSessionKey()` 以及三组删除接口都返回统一写响应:
 
-- ✅ 版本管理: 创建、更新、获取、删除备份版本
-- ✅ 密钥读写: 蟥询、上传、批量上传密钥
-- ✅ 恢复功能: 恢复密钥、获取恢复进度、批量恢复
-- ✅ 校验功能: 验证备份完整性
-- ✅ 导入导出: 导出/导入密钥
-- ✅ Secure Backup: 口令驱动的安全备份
+```json
+{
+  "etag": "1_1715412345678",
+  "count": 4
+}
+```
+
+## 错误语义
+
+| 场景 | 后端行为 | SDK 表现 |
+| --- | --- | --- |
+| `POST /room_keys/version` 缺少 `auth` | `401` + `M_UIA_REQUIRED` | `createBackupVersion()` 抛标准化错误，调用方可重试并补 UIA |
+| `auth_data` 缺少 `public_key` | `400 Bad Request` | `createBackupVersion()` 抛标准化错误 |
+| 备份版本不存在 | `404 Not Found` | 相关 `get* / put* / delete* / recover*` 方法抛标准化错误 |
+| 会话不存在 | `404 Not Found` | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误 |
+
+## 人工 Review 对齐
+
+- `spec/unit/key-backup.spec.ts` 已补:
+  - 版本读取 `count` / `etag`
+  - `createBackupVersion()` 的 UIA `auth` 透传
+  - `putRoomKeys()`
+  - `deleteAllRoomKeys()` / `deleteRoomKeys()` / `deleteSessionKey()`
+  - `getSessionKey()` 的真实返回结构
+- `MatrixClient.deleteKeysFromBackup()` 仍保留为较旧的客户端级 helper；`KeyBackupManager` 现在提供更完整、类型更清晰的高层封装。
+- Secure backup 相关接口已迁移到 `e2ee.md` / `secure-backup` 语义，不再混写进本模块的覆盖率统计。
+
+## 封装覆盖率
+
+- **机器可读契约端点数**: 99
+- **逻辑相对路径数**: 33
+- **SDK 主路径覆盖**: 33/33
+- **已绑定生成路由模板**: 21/21 个 `KeyBackupManager` v3 调用点
+- **契约覆盖率**: 100%

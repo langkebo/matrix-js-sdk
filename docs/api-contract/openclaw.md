@@ -1,54 +1,135 @@
 ---
 module: openclaw
 generated_from: docs/api-contract/generated/modules/openclaw.json
-generated_hash: sha256-9bfa0c05b2083c1dadde4f6b8c3dad81a83e5355f79840de79e237e02ff54181
+generated_hash: sha256-0167ff88c0265a6f837d36de9758a2c418383adbc212d01f8b70a117b7afc67f
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # OpenClaw 契约
 
 > 审查来源: `synapse-rust/src/web/routes/openclaw.rs`
 
+## 模块概述
+
+OpenClaw 模块提供 AI 连接管理、对话、消息发送、内容生成以及聊天角色（Role）管理功能。
+所有路由均挂载在 `/_matrix/client/unstable/org.synapse_rust.openclaw` 路径下。
+
 ## 真实后端路由
 
-| 方法 | 路径                                 | 说明               | 认证 |
-| ---- | ------------------------------------ | ------------------ | ---- |
-| GET  | `/_matrix/client/v1/openclaw/config` | 获取 OpenClaw 配置 | 用户 |
-| POST | `/_matrix/client/v1/openclaw/action` | 执行 OpenClaw 动作 | 用户 |
+| 方法   | 路径                                                                                     | 说明                 | 认证 |
+| ------ | ---------------------------------------------------------------------------------------- | -------------------- | ---- |
+| GET    | `/connections`                                                                           | 列出所有 AI 连接     | 用户 |
+| POST   | `/connections`                                                                           | 创建 AI 连接         | 用户 |
+| GET    | `/connections/{id}`                                                                      | 获取指定连接详情     | 用户 |
+| PUT    | `/connections/{id}`                                                                      | 更新指定连接详情     | 用户 |
+| DELETE | `/connections/{id}`                                                                      | 删除指定连接         | 用户 |
+| POST   | `/connections/{id}/test`                                                                 | 测试连接可用性       | 用户 |
+| GET    | `/conversations`                                                                         | 列出所有对话         | 用户 |
+| POST   | `/conversations`                                                                         | 创建对话             | 用户 |
+| GET    | `/conversations/{id}`                                                                    | 获取指定对话详情     | 用户 |
+| PUT    | `/conversations/{id}`                                                                    | 更新指定对话详情     | 用户 |
+| DELETE | `/conversations/{id}`                                                                    | 删除指定对话         | 用户 |
+| GET    | `/conversations/{id}/messages`                                                           | 列出指定对话的所有消息 | 用户 |
+| POST   | `/conversations/{id}/messages`                                                           | 向对话发送消息       | 用户 |
+| DELETE | `/messages/{id}`                                                                         | 删除指定消息         | 用户 |
+| GET    | `/generations`                                                                           | 列出所有生成记录     | 用户 |
+| POST   | `/generations`                                                                           | 创建生成任务         | 用户 |
+| GET    | `/generations/{id}`                                                                      | 获取指定生成记录详情 | 用户 |
+| DELETE | `/generations/{id}`                                                                      | 删除指定生成记录     | 用户 |
+| GET    | `/roles`                                                                                 | 列出所有聊天角色     | 用户 |
+| POST   | `/roles`                                                                                 | 创建聊天角色         | 用户 |
+| GET    | `/roles/{id}`                                                                            | 获取指定角色详情     | 用户 |
+| PUT    | `/roles/{id}`                                                                            | 更新指定角色详情     | 用户 |
+| DELETE | `/roles/{id}`                                                                            | 删除指定角色         | 用户 |
+
+## 端点详情
+
+### 1. AI 连接 (Connections)
+
+连接定义了如何接入外部 AI 提供商（如 OpenAI, Claude 等）。
+
+**响应体 (IOpenClawConnection)**:
+```typescript
+export interface IOpenClawConnection {
+    id: number;
+    name: string;
+    provider: string;
+    base_url: string;
+    has_api_key: boolean;
+    config?: Record<string, unknown>;
+    is_default: boolean;
+    is_active: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+```
+
+### 2. 对话 (Conversations)
+
+**响应体 (IOpenClawConversation)**:
+```typescript
+export interface IOpenClawConversation {
+    id: number;
+    connection_id?: number;
+    title?: string;
+    model_id?: string;
+    system_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_pinned: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+```
+
+### 3. 消息 (Messages)
+
+**响应体 (IOpenClawMessage)**:
+```typescript
+export interface IOpenClawMessage {
+    id: number;
+    conversation_id: number;
+    role: string; // "user", "assistant", "system", "tool"
+    content: string;
+    token_count?: number;
+    tool_calls?: Record<string, unknown>;
+    created_ts: number;
+}
+```
+
+### 4. 角色 (Roles)
+
+角色预设了 AI 的身份和行为（System Message）。
+
+**响应体 (IOpenClawChatRole)**:
+```typescript
+export interface IOpenClawChatRole {
+    id: number;
+    name: string;
+    description?: string;
+    system_message: string;
+    model_id?: string;
+    avatar_url?: string;
+    category?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_public: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+```
 
 ## SDK 对齐状态
 
-| 端点                    | SDK Manager       | 方法              | 状态      |
-| ----------------------- | ----------------- | ----------------- | --------- |
-| `GET /openclaw/config`  | `OpenClawManager` | `getConfig()`     | ✅ 已封装 |
-| `POST /openclaw/action` | `OpenClawManager` | `executeAction()` | ✅ 已封装 |
+- **封装 Manager**: `OpenClawManager`
+- **挂载位置**: `MatrixClient.getOpenClawManager()`
+- **路径绑定**: 已通过 `OpenclawPathPattern` 绑定所有 23 条路由。
+- **状态**: ✅ 100% 完善
 
-## 常见状态码
+## 覆盖率口径
 
-| 状态码 | 说明                              |
-| ------ | --------------------------------- |
-| `200`  | 请求成功                          |
-| `400`  | OpenClaw 动作参数或请求体格式非法 |
-| `401`  | Token 无效或缺失                  |
-| `403`  | 当前账号无权执行 OpenClaw 动作    |
-| `404`  | OpenClaw 配置或目标动作资源不存在 |
-
-## 错误语义对齐（BaseManager）
-
-| 场景                    | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                           |
-| ----------------------- | -------------------------------------- | ---------------- | ------------------------------------ |
-| 未认证或 token 失效     | `401` / `M_UNKNOWN_TOKEN`              | `AuthError`      | 引导重新登录                         |
-| OpenClaw 请求参数不合法 | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正动作类型、payload 或请求体后重试 |
-| 权限不足                | `403` / `M_FORBIDDEN`                  | `ApiError`       | 提示用户当前账号无权执行该动作       |
-| 配置或目标资源不存在    | `404` / `M_NOT_FOUND`                  | `NotFoundError`  | 刷新配置并核对目标资源状态           |
-
-## 典型 errcode
-
-| errcode           | 常见 HTTP | 说明                             |
-| ----------------- | --------- | -------------------------------- |
-| `M_UNKNOWN_TOKEN` | `401`     | access token 无效、过期或缺失    |
-| `M_BAD_JSON`      | `400`     | OpenClaw 请求体结构不合法        |
-| `M_INVALID_PARAM` | `400`     | 动作参数、payload 或查询字段非法 |
-| `M_FORBIDDEN`     | `403`     | 无权读取配置或执行目标动作       |
-| `M_NOT_FOUND`     | `404`     | OpenClaw 配置或目标资源不存在    |
+- **后端 Ledger 路由数**: 23
+- **SDK 已封装路由数**: 23
+- **已绑定生成路由模板**: 23
+- **契约覆盖率**: 100%

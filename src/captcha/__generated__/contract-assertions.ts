@@ -6,58 +6,28 @@
 
 import { CAPTCHA_ROUTES } from "./route-table";
 
-export const CAPTCHA_ROUTES_ENTRY_COUNT = 4 as const;
+export const CAPTCHA_ROUTES_ENTRY_COUNT = 7 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _CaptchaEntryCountAssertion: 4 = CAPTCHA_ROUTES.length;
+const _CaptchaEntryCountAssertion: 7 = CAPTCHA_ROUTES.length;
 void _CaptchaEntryCountAssertion;
 
 export const CAPTCHA_ROUTES_STATUS_SCENARIOS = [
-    { status: 200, note: "请求成功" },
-    { status: 400, note: "session、验证码响应或请求体格式非法" },
-    { status: 403, note: "管理清理接口权限不足，或验证码校验失败" },
-    { status: 404, note: "指定验证码会话不存在或已过期" },
-    { status: 429, note: "验证码发送或校验频率过高" },
-    { status: 202, note: "初版 | -" },
+    { status: 200, note: "发送、查询或验证成功" },
+    { status: 400, note: "参数缺失或验证码格式不合法" },
+    { status: 401, note: "管理清理接口缺少管理员身份" },
+    { status: 404, note: "指定 captcha_id 不存在" },
+    { status: 429, note: "验证码请求或校验触发限流" },
 ] as const;
 
 export type CaptchaStatusScenario = (typeof CAPTCHA_ROUTES_STATUS_SCENARIOS)[number];
 
 export const CAPTCHA_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "验证码参数不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正 session、response 或请求体后重试",
-    },
-    {
-        scenario: "校验失败或管理权限不足",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "提示用户重试验证码，管理员接口则检查权限",
-    },
-    {
-        scenario: "验证码会话不存在或已过期",
-        httpOrErrcode: "404 / M_NOT_FOUND",
-        sdkErrorType: "NotFoundError",
-        handling: "重新申请新的验证码会话",
-    },
-    {
-        scenario: "频率限制触发",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "延迟后重试",
-    },
 ] as const;
 
 export type CaptchaErrorScenario = (typeof CAPTCHA_ROUTES_ERROR_SCENARIOS)[number];
 
 export const CAPTCHA_ROUTES_ERRCODES = [
-    { errcode: "M_BAD_JSON", httpStatus: "400", note: "验证码请求体结构不符合接口要求" },
-    { errcode: "M_INVALID_PARAM", httpStatus: "400", note: "session 或验证码响应字段非法" },
-    { errcode: "M_FORBIDDEN", httpStatus: "403", note: "验证码校验失败或管理权限不足" },
-    { errcode: "M_NOT_FOUND", httpStatus: "404", note: "验证码会话不存在、已过期或已被清理" },
-    { errcode: "M_LIMIT_EXCEEDED", httpStatus: "429", note: "验证码发送或校验请求过于频繁" },
 ] as const;
 
 export type CaptchaErrcode = (typeof CAPTCHA_ROUTES_ERRCODES)[number];

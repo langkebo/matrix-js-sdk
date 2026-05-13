@@ -307,7 +307,7 @@ function renderRouteTable(module, manifest) {
     lines.push(` * type. Used by manager code that binds call sites to the ledger while`);
     lines.push(` * still interpolating path parameters.`);
     lines.push(` */`);
-    lines.push(`type ${module.typePrefix}ReplaceBraces<P extends string> =`);
+    lines.push(`export type ${module.typePrefix}ReplaceBraces<P extends string> =`);
     lines.push(
         `    P extends \`\${infer A}{\${infer ParamSegment}}\${infer B}\` ? ParamSegment extends string ? \`\${A}\${string}\${${module.typePrefix}ReplaceBraces<B>}\` : never : P;`,
     );

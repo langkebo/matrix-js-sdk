@@ -10,6 +10,9 @@ describe("KeyVerificationManager", () => {
 
     beforeEach(() => {
         client = {
+            http: {
+                authedRequest: vi.fn().mockResolvedValue({ transaction_id: "txn-qr", verified: true }),
+            },
             getDeviceId: vi.fn().mockReturnValue("DEVICE"),
             startDeviceSigningVerification: vi.fn().mockResolvedValue({ transaction_id: "txn-start" }),
             acceptDeviceSigningVerification: vi.fn().mockResolvedValue({ transaction_id: "txn-accept" }),
@@ -98,6 +101,81 @@ describe("KeyVerificationManager", () => {
         );
         expect(client.getVerificationRequests).toHaveBeenNthCalledWith(1, "r0");
         expect(client.getVerificationRequests).toHaveBeenNthCalledWith(2, "v1");
+    });
+
+    it("routes verification handshake steps to the typed client helpers", async () => {
+        await manager.acceptKeyVerification(
+            {
+                transaction_id: "txn-accept",
+                key_agreement_protocol: "curve25519-hkdf-sha256",
+                hash: "sha256",
+            },
+            "r0",
+        );
+        await manager.sendKeyAgreement(
+            {
+                transaction_id: "txn-key",
+                pubkey: "curve25519:key",
+            },
+            "v1",
+        );
+        await manager.confirmVerificationMac(
+            {
+                transaction_id: "txn-mac",
+                mac: "mac-value",
+            },
+            "r0",
+        );
+        await manager.completeKeyVerification("txn-done");
+
+        expect(client.acceptDeviceSigningVerification).toHaveBeenCalledWith(
+            {
+                transaction_id: "txn-accept",
+                key_agreement_protocol: "curve25519-hkdf-sha256",
+                hash: "sha256",
+            },
+            "r0",
+        );
+        expect(client.sendDeviceSigningVerificationKeyAgreement).toHaveBeenCalledWith(
+            {
+                transaction_id: "txn-key",
+                pubkey: "curve25519:key",
+            },
+            "v1",
+        );
+        expect(client.confirmDeviceSigningVerificationMac).toHaveBeenCalledWith(
+            {
+                transaction_id: "txn-mac",
+                mac: "mac-value",
+            },
+            "r0",
+        );
+        expect(client.completeDeviceSigningVerification).toHaveBeenCalledWith(
+            { transaction_id: "txn-done" },
+            "v1",
+        );
+    });
+
+    it("routes QR helpers through the verification contract paths", async () => {
+        await manager.showQrCode("txn-qr");
+        await manager.scanQrCode("encoded-qr", "txn-qr", "r0");
+
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            1,
+            "GET",
+            "/keys/qr_code/show",
+            { transaction_id: "txn-qr" },
+            undefined,
+            { prefix: "/_matrix/client/v1" },
+        );
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            2,
+            "POST",
+            "/keys/qr_code/scan",
+            undefined,
+            { qr_code_data: "encoded-qr", transaction_id: "txn-qr" },
+            { prefix: "/_matrix/client/r0" },
+        );
     });
 
     it("registers key verification and room key sharing managers through unified extensions", async () => {

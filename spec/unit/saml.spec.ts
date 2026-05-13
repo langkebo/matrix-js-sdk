@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { SamlAuthManager } from "../../src/saml/index";
+import { Method } from "../../src/http-api/method";
+import { AdminPrefix, ClientPrefix } from "../../src/http-api/prefix";
 
 describe("SamlAuthManager", () => {
     let mockClient: any;
@@ -32,9 +34,12 @@ describe("SamlAuthManager", () => {
     });
 
     it("logout calls backend", async () => {
-        authedRequest.mockResolvedValue({ logged_out: true });
+        request.mockResolvedValue({ logged_out: true });
         const res = await manager.logout();
         expect(res).toBeTypeOf("object");
+        expect(request).toHaveBeenCalledWith(Method.Get, "/logout/saml", undefined, undefined, {
+            prefix: ClientPrefix.R0,
+        });
     });
 
     it("getIdpMetadata fetches metadata", async () => {
@@ -42,5 +47,33 @@ describe("SamlAuthManager", () => {
         authedRequest.mockResolvedValue({ entityID: "urn:saml:idp" });
         const res = await manager.getIdpMetadata();
         expect(res).toBeTypeOf("object");
+    });
+
+    it("handleLogoutCallback uses the public r0 route", async () => {
+        await manager.handleLogoutCallback("<logout />");
+
+        expect(request).toHaveBeenCalledWith(Method.Get, "/logout/saml/callback", { saml_response: "<logout />" }, undefined, {
+            prefix: ClientPrefix.R0,
+        });
+    });
+
+    it("refreshMetadata uses the admin v1 route", async () => {
+        await manager.refreshMetadata();
+
+        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/saml/metadata/refresh", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
+    });
+
+    it("adminLogout uses the admin v1 route", async () => {
+        await manager.adminLogout({ user_id: "@alice:example.com" });
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/saml/logout",
+            undefined,
+            { user_id: "@alice:example.com" },
+            { prefix: AdminPrefix.V1 },
+        );
     });
 });

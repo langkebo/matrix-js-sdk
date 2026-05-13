@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "sync",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
-  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
+  "generated_at": "2026-05-11T14:36:56Z",
   "source_profile": "all",
-  "entry_count": 8,
+  "entry_count": 7,
   "entries": [
     {
       "method": "GET",
@@ -22,12 +22,6 @@
     {
       "method": "GET",
       "path": "/_matrix/client/r0/sync",
-      "registered_by": "sync",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/sync",
       "registered_by": "sync",
       "path_params": []
     },

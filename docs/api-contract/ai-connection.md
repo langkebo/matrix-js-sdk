@@ -1,159 +1,98 @@
 ---
 module: ai_connection
 generated_from: docs/api-contract/generated/modules/ai_connection.json
-generated_hash: sha256-850a222edd3d17b69beabcb840c1be1ce8dd8b50c84e8bf5ad57f969c898d244
+generated_hash: sha256-223a50b178917c111e3cc75cb1271bfead1311874026dc4daff402c1f9785d4c
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # AI Connection API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/ai_connection.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
-> 更新日期: 2026-04-27  
+> SDK 入口: `src/ai-connection/index.ts`  
+> 更新日期: 2026-05-11  
 > 挂载版本: `v1` (实验性)
 
-## 一、模块概述
+## 一、当前审计结论
 
-### 1.1 功能描述
+- `generated/modules/ai_connection.json` 记录 **6** 条路由，且这些路径是直接 merge 到主路由的相对路径，不带 `/_matrix/client/v1/ai` 前缀。
+- SDK 已有 `AIConnectionManager`，本轮补上生成的 `AiConnectionPathPattern` 路径绑定，运行时路径仍保持根路径透传。
+- 旧文档中的 `name` / `type` / `status` 结构与后端真实存储结构不符；真实字段是 `provider`、`config`、`is_active`、`created_ts`、`updated_ts`。
+- MCP 工具查询与调用在后端都透传 `serde_json::Value`，不应在文档里写死为固定 `tools[]` / `{ result: {} }` 结构。
 
-AI Connection API 提供 AI 服务集成功能，支持 MCP (Model Context Protocol) 工具调用。
-
-### 1.2 路由前缀
-
-- `/_matrix/client/v1/ai/connections`
-- `/_matrix/client/v1/mcp/tools`
-
-### 1.3 认证要求
+## 二、认证与路由前缀
 
 - 所有端点需要 `AuthenticatedUser`
+- 路由直接挂在主路由树上，SDK 通过 `authedRequest(..., { prefix: "" })` 访问
+- 真实路径:
+  - `/connections`
+  - `/connections/{id}`
+  - `/mcp/tools`
+  - `/mcp/tools/call`
 
-## 二、端点详情
-
-### 2.1 查询 AI 连接
-
-**路径**: `GET /_matrix/client/v1/ai/connections`  
-**认证**: `AuthenticatedUser`
-
-**响应**: `200 OK`
-
-```typescript
-interface AIConnectionsResponse {
-    connections: Array<{
-        id: string;
-        name: string;
-        type: string;
-        status: string;
-    }>;
-}
-```
-
-### 2.2 创建 AI 连接
-
-**路径**: `POST /_matrix/client/v1/ai/connections`  
-**认证**: `AuthenticatedUser`
-
-**请求体**:
-
-```json
-{
-    "name": "My AI Assistant",
-    "type": "openai",
-    "config": {
-        "api_key": "...",
-        "model": "gpt-4"
-    }
-}
-```
-
-**响应**: `201 Created`
-
-```json
-{
-    "id": "conn_abc123"
-}
-```
-
-### 2.3 查询单个 AI 连接
-
-**路径**: `GET /_matrix/client/v1/ai/connections/{id}`  
-**认证**: `AuthenticatedUser`
-
-**响应**: `200 OK`
+## 三、核心请求与响应形状
 
 ```typescript
 interface AIConnection {
     id: string;
-    name: string;
-    type: string;
-    status: string;
-    config: Record<string, unknown>;
+    user_id: string;
+    provider: string;
+    config: Record<string, unknown> | null;
+    is_active: boolean;
+    created_ts: number;
+    updated_ts: number | null;
 }
 ```
-
-### 2.4 删除 AI 连接
-
-**路径**: `DELETE /_matrix/client/v1/ai/connections/{id}`  
-**认证**: `AuthenticatedUser`
-
-**响应**: `200 OK`
-
-### 2.5 查询 MCP 工具
-
-**路径**: `GET /_matrix/client/v1/mcp/tools`  
-**认证**: `AuthenticatedUser`
-
-**响应**: `200 OK`
 
 ```typescript
-interface MCPToolsResponse {
-    tools: Array<{
-        name: string;
-        description: string;
-        parameters: object;
-    }>;
+interface CreateConnectionOptions {
+    provider: string;
+    config?: Record<string, unknown>;
 }
 ```
 
-### 2.6 调用 MCP 工具
-
-**路径**: `POST /_matrix/client/v1/mcp/tools/call`  
-**认证**: `AuthenticatedUser`
-
-**请求体**:
-
-```json
-{
-    "tool": "search",
-    "parameters": {
-        "query": "..."
-    }
+```typescript
+interface McpToolCallRequest {
+    provider: string;
+    tool_name: string;
+    arguments: Record<string, unknown>;
 }
 ```
 
-**响应**: `200 OK`
+补充说明:
 
-```json
-{
-    "result": {}
-}
-```
+- `GET /connections` 直接返回 `AIConnection[]`，不是 `{ connections: [...] }` 包装对象。
+- `POST /connections` 直接返回新建后的完整 `AIConnection`。
+- `GET /connections/{id}` 直接返回完整 `AIConnection`。
+- `DELETE /connections/{id}` 后端返回空 JSON 值，SDK 方法 `deleteConnection()` 约定为 `Promise<void>`。
+- `GET /mcp/tools?provider=...` 返回的是代理层透传的任意 JSON 值，SDK 当前保持 `unknown`。
+- `POST /mcp/tools/call` 请求体使用 `{ provider, tool_name, arguments }`，不是旧文档中的 `{ tool, parameters }`。
+- `POST /mcp/tools/call` 的响应同样是代理透传 JSON，SDK 当前保持 `unknown`。
 
-## 三、SDK 对齐状态
+## 四、路由与 SDK 对齐表
 
-### 3.1 封装覆盖率
+| 方法 | 路径 | SDK 方法 |
+| ---- | ---- | -------- |
+| GET | `/connections` | `getConnections()` |
+| POST | `/connections` | `createConnection()` |
+| GET | `/connections/{id}` | `getConnection()` |
+| DELETE | `/connections/{id}` | `deleteConnection()` |
+| GET | `/mcp/tools` | `listMcpTools()` |
+| POST | `/mcp/tools/call` | `callMcpTool()` |
+
+## 五、SDK 对齐状态
 
 - **总端点数**: 6
-- **已封装**: 0
-- **覆盖率**: 0%
+- **已封装**: 6
+- **覆盖率**: 100%
+- **路径绑定**: `src/ai-connection/index.ts` 使用 `AiConnectionPathPattern`
+- **验证状态**: `spec/unit/ai-connection.spec.ts`
+- **实验性质**: MCP 返回体透传上游 JSON，调用方不应依赖固定 schema
 
-### 3.2 已知差异
-
-- 这是实验性 API，可能会有变更
-- 建议在生产环境使用前确认稳定性
-
-## 四、变更历史
+## 六、变更历史
 
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
+| 2026-05-11 | 修正文档中错误的路径前缀、字段命名与 MCP 请求/响应口径，并补充 SDK 生成路由绑定说明 | 修复长期文档漂移 |
 | 2026-04-27 | 初版 | -    |

@@ -192,6 +192,15 @@ function resolveStringVariants(node, sourceFile, fromNode, seen = new Set()) {
         if (expressionText.endsWith(".getUrl")) {
             return resolveStringVariants(node.arguments[0], sourceFile, fromNode, seen);
         }
+
+        // Many managers bind generated route-table path unions via tiny
+        // identity helpers such as `sp("/joined_rooms")`, `mp(...)`, `fr(...)`.
+        // They preserve runtime values while tightening compile-time types, so
+        // the audit should treat them like transparent wrappers around the
+        // first argument.
+        if (node.arguments.length >= 1 && calleeName && /^[a-z][a-z0-9_]*$/i.test(calleeName)) {
+            return resolveStringVariants(node.arguments[0], sourceFile, fromNode, seen);
+        }
     }
 
     return undefined;

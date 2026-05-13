@@ -13,53 +13,18 @@ const _ModuleEntryCountAssertion: 27 = MODULE_ROUTES.length;
 void _ModuleEntryCountAssertion;
 
 export const MODULE_ROUTES_STATUS_SCENARIOS = [
-    { status: 200, note: "请求成功" },
-    { status: 201, note: "模块创建成功" },
-    { status: 400, note: "参数不合法或配置格式错误" },
-    { status: 401, note: "管理员凭据无效或缺失" },
-    { status: 403, note: "当前账号无权访问管理员模块接口" },
-    { status: 404, note: "指定模块不存在" },
+    { status: 202, note: "按后端 ledger 重写为 27 条 admin 路由口径，补充 AdminManager 实际封装映射，并修正配置更新/启用请求体语义 | 修复长期文档与 SDK 漂移" },
     { status: 202, note: "初版 | -" },
-    { status: 202, note: "补齐错误语义与 SDK 映射 | 交付验收通过" },
 ] as const;
 
 export type ModuleStatusScenario = (typeof MODULE_ROUTES_STATUS_SCENARIOS)[number];
 
 export const MODULE_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "管理员凭据无效或缺失",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "重新获取管理员登录态",
-    },
-    {
-        scenario: "模块参数不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正模块名称或配置结构",
-    },
-    {
-        scenario: "管理权限不足",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "仅允许管理员账号访问",
-    },
-    {
-        scenario: "模块不存在",
-        httpOrErrcode: "404 / M_NOT_FOUND",
-        sdkErrorType: "NotFoundError",
-        handling: "提示目标模块已被卸载或不存在",
-    },
 ] as const;
 
 export type ModuleErrorScenario = (typeof MODULE_ROUTES_ERROR_SCENARIOS)[number];
 
 export const MODULE_ROUTES_ERRCODES = [
-    { errcode: "M_UNKNOWN_TOKEN", httpStatus: "401", note: "管理员凭据无效、过期或缺失" },
-    { errcode: "M_BAD_JSON", httpStatus: "400", note: "模块请求参数结构不合法" },
-    { errcode: "M_INVALID_PARAM", httpStatus: "400", note: "module_name 或查询参数非法" },
-    { errcode: "M_FORBIDDEN", httpStatus: "403", note: "当前账号无权访问管理员模块接口" },
-    { errcode: "M_NOT_FOUND", httpStatus: "404", note: "目标模块不存在" },
 ] as const;
 
 export type ModuleErrcode = (typeof MODULE_ROUTES_ERRCODES)[number];

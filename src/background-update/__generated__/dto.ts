@@ -9,50 +9,63 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface BackgroundUpdatesResponse {
-    updates: Array<{
-        name: string;
-        status: string;
-        progress: number;
-        started_ts?: number;
-    }>;
+export interface CreateBackgroundUpdateBody {
+    job_name: string;
+    job_type: string;
+    description?: string;
+    table_name?: string;
+    column_name?: string;
+    total_items?: number;
+    batch_size?: number;
+    sleep_ms?: number;
+    depends_on?: string[];
+    metadata?: Record<string, unknown>;
 }
 
-export interface PendingUpdates {
-    pending: string[];
-}
-
-export interface RunningUpdates {
-    running: Array<{
-        name: string;
-        progress: number;
-        started_ts: number;
-    }>;
-}
-
-export interface UpdateStatus {
-    enabled: boolean;
-    current_updates: number;
-    total_duration_ms: number;
-}
-
-export interface JobDetail {
-    name: string;
+export interface BackgroundUpdateRecord {
+    job_name: string;
+    job_type: string;
+    description?: string | null;
+    table_name?: string | null;
     status: string;
-    progress: number;
-    started_ts?: number;
-    completed_ts?: number;
-    error?: string;
+    progress: Record<string, unknown> | number | null;
+    total_items: number;
+    processed_items: number;
+    created_ts: number;
+    started_ts?: number | null;
+    completed_ts?: number | null;
+    error_message?: string | null;
+    retry_count: number;
 }
 
-export interface UpdateStats {
+export interface BackgroundUpdateHistoryRecord {
+    id: number;
+    job_name: string;
+    execution_start_ts: number;
+    execution_end_ts?: number | null;
+    status: string;
+    items_processed: number;
+    error_message?: string | null;
+}
+
+export interface BackgroundUpdateStatsRecord {
+    id: number;
+    job_name: string;
     total_updates: number;
-    completed: number;
-    failed: number;
-    running: number;
-    pending: number;
+    completed_updates: number;
+    failed_updates: number;
+    last_run_ts?: number | null;
+    next_run_ts?: number | null;
+    average_duration_ms: number;
+    created_ts: number;
+    updated_ts: number;
 }
 
-export interface BackgroundUpdateResponseDto {
-    count: number;
+export interface BackgroundUpdateStatusResponse {
+    pending_count: number;
+    running_count: number;
+    completed_count: number;
+    failed_count: number;
+    total_count: number;
+    current_update?: BackgroundUpdateRecord | null;
 }

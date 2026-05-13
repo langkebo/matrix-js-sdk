@@ -475,7 +475,7 @@ machine layer:
 ---
 module: key_backup
 generated_from: docs/api-contract/generated/modules/key_backup.json
-generated_hash: sha256-<hex>
+generated_hash: sha256-d79412ef33dd6098b1a0b0e5aaecb92209616bfef25239d6dc1c5d79da7beec2
 ledger_schema: 1
 sdk_manager: KeyBackupManager
 sdk_path: src/rust-crypto/backup.ts

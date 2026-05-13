@@ -322,7 +322,7 @@ describe("AdminManager - Extended Tests", () => {
         it("should unblock room successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValue({});
 
-            await adminManager.unblockRoom("!room:example.com");
+            await adminManager.blockRoom("!room:example.com", false);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
         });
@@ -498,14 +498,14 @@ describe("AdminManager - Extended Tests", () => {
             });
 
             await adminManager.getServerStats();
-            const cached = adminManager.getCachedServerStats();
+            const cached = adminManager.getServerStatsCached();
 
             expect(cached?.total_users).toBe(100);
             expect(cached?.total_rooms).toBe(50);
         });
 
         it("should return null when no cached stats", () => {
-            const cached = adminManager.getCachedServerStats();
+            const cached = adminManager.getServerStatsCached();
 
             expect(cached).toBeNull();
         });

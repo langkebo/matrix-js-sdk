@@ -170,6 +170,50 @@ describe("ExternalServiceManager", () => {
         });
     });
 
+    describe("typed helper registration APIs", () => {
+        it("registerTrendRadarService delegates with the trendradar service type", async () => {
+            const registerServiceSpy = vi.spyOn(manager, "registerService").mockResolvedValue({} as any);
+
+            await manager.registerTrendRadarService("news-bot", "News Bot", "https://example.com/trend", "secret");
+
+            expect(registerServiceSpy).toHaveBeenCalledWith({
+                serviceType: "trendradar",
+                serviceId: "news-bot",
+                displayName: "News Bot",
+                webhookUrl: "https://example.com/trend",
+                apiKey: "secret",
+            });
+        });
+
+        it("registerOpenClawService delegates with the openclaw service type", async () => {
+            const registerServiceSpy = vi.spyOn(manager, "registerService").mockResolvedValue({} as any);
+
+            await manager.registerOpenClawService("ops-bot", "Ops Bot", "https://example.com/openclaw", "token");
+
+            expect(registerServiceSpy).toHaveBeenCalledWith({
+                serviceType: "openclaw",
+                serviceId: "ops-bot",
+                displayName: "Ops Bot",
+                webhookUrl: "https://example.com/openclaw",
+                apiKey: "token",
+            });
+        });
+
+        it("registerWebhookService delegates with the generic webhook service type", async () => {
+            const registerServiceSpy = vi.spyOn(manager, "registerService").mockResolvedValue({} as any);
+
+            await manager.registerWebhookService("alerts", "Alerts", "https://example.com/webhook", "hook-key");
+
+            expect(registerServiceSpy).toHaveBeenCalledWith({
+                serviceType: "generic_webhook",
+                serviceId: "alerts",
+                displayName: "Alerts",
+                webhookUrl: "https://example.com/webhook",
+                apiKey: "hook-key",
+            });
+        });
+    });
+
     describe("listServices", () => {
         it("forwards service_type as a query parameter and caches results", async () => {
             authedRequest.mockResolvedValueOnce([

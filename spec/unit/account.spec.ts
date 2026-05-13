@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { AccountManager } from "../../src/account/index";
+import { SSOAction } from "../../src/@types/auth";
 
 describe("AccountManager", () => {
     let mockClient: any;
@@ -88,11 +89,22 @@ describe("AccountManager", () => {
 
             expect(flows.flows).toHaveLength(1);
         });
+
+        it("should keep getLoginFlows as a compatibility alias", async () => {
+            mockClient.http.request.mockResolvedValueOnce({
+                flows: [{ type: "m.login.password" }],
+            });
+
+            const flows = await accountManager.getLoginFlows();
+
+            expect(flows.flows).toHaveLength(1);
+            expect(mockClient.http.request).toHaveBeenCalledWith("GET", "/login");
+        });
     });
 
     describe("login", () => {
         it("should login with password", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
+            mockClient.http.request.mockResolvedValueOnce({
                 access_token: "new_token",
                 user_id: "@user:example.com",
             });
@@ -106,7 +118,7 @@ describe("AccountManager", () => {
         });
 
         it("should update client credentials on login", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
+            mockClient.http.request.mockResolvedValueOnce({
                 access_token: "new_token",
                 user_id: "@user:example.com",
             });
@@ -123,7 +135,7 @@ describe("AccountManager", () => {
 
     describe("loginWithPassword", () => {
         it("should login with password", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
+            mockClient.http.request.mockResolvedValueOnce({
                 access_token: "token",
                 user_id: "@user:example.com",
             });
@@ -165,14 +177,19 @@ describe("AccountManager", () => {
             mockClient.http.getUrl.mockReturnValue({
                 href: "https://example.com/login/sso/redirect?redirectUrl=abc&action=login",
             });
-            const url = accountManager.getSsoLoginUrl("https://example.com/callback", "sso", undefined, "login");
+            const url = accountManager.getSsoLoginUrl(
+                "https://example.com/callback",
+                "sso",
+                undefined,
+                SSOAction.LOGIN,
+            );
             expect(url).toContain("action=login");
         });
     });
 
     describe("loginWithToken", () => {
         it("should login with token", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
+            mockClient.http.request.mockResolvedValueOnce({
                 access_token: "token",
                 user_id: "@user:example.com",
             });
@@ -185,7 +202,7 @@ describe("AccountManager", () => {
 
     describe("loginRequest", () => {
         it("should send login request", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
+            mockClient.http.request.mockResolvedValueOnce({
                 access_token: "token",
                 user_id: "@user:example.com",
             });
@@ -197,6 +214,11 @@ describe("AccountManager", () => {
             });
 
             expect(response.access_token).toBe("token");
+            expect(mockClient.http.request).toHaveBeenCalledWith("POST", "/login", undefined, {
+                type: "m.login.password",
+                user: "@user:example.com",
+                password: "password",
+            });
         });
     });
 
@@ -216,6 +238,53 @@ describe("AccountManager", () => {
 
             expect(mockClient.stopClient).toHaveBeenCalled();
             expect(mockClient.http.abort).toHaveBeenCalled();
+        });
+    });
+
+    describe("logoutAll", () => {
+        it("should logout all devices successfully", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await accountManager.logoutAll();
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/logout/all");
+        });
+
+        it("should stop client when logoutAll is called with stopClient=true", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await accountManager.logoutAll(true);
+
+            expect(mockClient.stopClient).toHaveBeenCalled();
+            expect(mockClient.http.abort).toHaveBeenCalled();
+        });
+    });
+
+    describe("submitEmailToken", () => {
+        it("should submit the registration email token payload", async () => {
+            mockClient.http.request.mockResolvedValueOnce({ success: true });
+
+            await expect(accountManager.submitEmailToken("sid123", "secret456", "token789")).resolves.toEqual({
+                success: true,
+            });
+
+            expect(mockClient.http.request).toHaveBeenCalledWith("POST", "/register/email/submitToken", undefined, {
+                sid: "sid123",
+                client_secret: "secret456",
+                token: "token789",
+            });
+        });
+    });
+
+    describe("deactivateAccount", () => {
+        it("should use the canonical auth contract path", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ id_server_unbind_result: "success" });
+
+            await accountManager.deactivateAccount(undefined, true);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("POST", "/account/deactivate", undefined, {
+                erase: true,
+            });
         });
     });
 
@@ -275,11 +344,13 @@ describe("AccountManager", () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({});
 
             await accountManager.setGuestAccess("!room:example.com", {
-                allow_guest_access: true,
+                allowJoin: true,
+                allowRead: false,
             });
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith("PUT", expect.any(String), undefined, {
-                allow_guest_access: true,
+                allowJoin: true,
+                allowRead: false,
             });
         });
     });

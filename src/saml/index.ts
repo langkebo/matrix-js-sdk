@@ -26,6 +26,18 @@ import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
 import { Method } from "../http-api/method.ts";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
+import type { SamlPathPattern } from "./__generated__/route-table.ts";
+
+type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
+type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+
+function rp<P extends StripClientR0<SamlPathPattern>>(path: P): P {
+    return path;
+}
+
+function ap<P extends StripAdminV1<SamlPathPattern>>(path: P): P {
+    return path;
+}
 
 export enum SamlEvent {
     LoginInitiated = "LoginInitiated",
@@ -50,6 +62,10 @@ export interface SamlCallbackResponse {
 export interface SamlLogoutResponse {
     redirect_url?: string;
     message?: string;
+}
+
+export interface SamlAdminLogoutRequest {
+    user_id: string;
 }
 
 export interface SamlMetadataResponse {
@@ -119,7 +135,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.request<SamlLoginResponse>(
                 Method.Post,
-                "/login/sso/redirect/saml",
+                rp("/login/sso/redirect/saml"),
                 redirectUrl ? { redirect_url: redirectUrl } : undefined,
                 undefined,
                 { prefix: ClientPrefix.R0 },
@@ -138,7 +154,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.request<SamlCallbackResponse>(
                 Method.Post,
-                "/login/saml/callback",
+                rp("/login/saml/callback"),
                 undefined,
                 {
                     saml_response: samlResponse,
@@ -158,9 +174,9 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     async logout(): Promise<SamlLogoutResponse> {
         try {
-            const response = await this.client.http.authedRequest<SamlLogoutResponse>(
+            const response = await this.client.http.request<SamlLogoutResponse>(
                 Method.Get,
-                "/logout/saml",
+                rp("/logout/saml"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.R0 },
@@ -177,9 +193,9 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     async handleLogoutCallback(samlResponse: string): Promise<void> {
         try {
-            await this.client.http.authedRequest(
+            await this.client.http.request(
                 Method.Get,
-                "/logout/saml/callback",
+                rp("/logout/saml/callback"),
                 { saml_response: samlResponse },
                 undefined,
                 { prefix: ClientPrefix.R0 },
@@ -194,7 +210,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             return await this.client.http.request<SamlMetadataResponse>(
                 Method.Get,
-                "/saml/metadata",
+                rp("/saml/metadata"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.R0 },
@@ -209,7 +225,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.request<string>(
                 Method.Get,
-                "/saml/sp_metadata",
+                rp("/saml/sp_metadata"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.R0 },
@@ -228,7 +244,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         }
 
         try {
-            const response = await this.client.http.authedRequest(Method.Get, "/saml/config", undefined, undefined, {
+            const response = await this.client.http.authedRequest(Method.Get, ap("/saml/config"), undefined, undefined, {
                 prefix: AdminPrefix.V1,
             });
 
@@ -242,7 +258,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     async updateConfig(config: Partial<SamlConfig>): Promise<void> {
         try {
-            await this.client.http.authedRequest(Method.Put, "/saml/config", undefined, config, {
+            await this.client.http.authedRequest(Method.Put, ap("/saml/config"), undefined, config, {
                 prefix: AdminPrefix.V1,
             });
 
@@ -261,7 +277,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.authedRequest(
                 Method.Get,
-                `/saml/mapping/${encodeURIComponent(nameId)}`,
+                ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
@@ -281,7 +297,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             const response = await this.client.http.authedRequest<{ mappings?: SamlUserMapping[] }>(
                 Method.Get,
-                "/saml/mappings",
+                ap("/saml/mappings"),
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
@@ -302,7 +318,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             await this.client.http.authedRequest(
                 Method.Put,
-                `/saml/mapping/${encodeURIComponent(nameId)}`,
+                ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
                 undefined,
                 mapping,
                 { prefix: AdminPrefix.V1 },
@@ -321,7 +337,7 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `/saml/mapping/${encodeURIComponent(nameId)}`,
+                ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
@@ -336,6 +352,29 @@ export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManage
 
     getCachedMapping(nameId: string): SamlUserMapping | null {
         return this.userMappings.get(nameId) || null;
+    }
+
+    async refreshMetadata(): Promise<void> {
+        try {
+            await this.client.http.authedRequest(Method.Post, ap("/saml/metadata/refresh"), undefined, undefined, {
+                prefix: AdminPrefix.V1,
+            });
+            this.config = null;
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
+    }
+
+    async adminLogout(request: SamlAdminLogoutRequest): Promise<void> {
+        try {
+            await this.client.http.authedRequest(Method.Post, ap("/saml/logout"), undefined, request, {
+                prefix: AdminPrefix.V1,
+            });
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, error as Error);
+            throw error;
+        }
     }
 
     getCachedMappings(): SamlUserMapping[] {

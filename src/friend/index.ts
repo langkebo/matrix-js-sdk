@@ -26,11 +26,12 @@ import { ClientPrefix } from "../http-api/prefix.ts";
 import { InvalidParamError } from "../common/errors.ts";
 import { logger } from "../logger.ts";
 import { MatrixClient } from "../client";
-import { NotFoundError, ValidationError } from "../errors";
+import { NotFoundError } from "../errors";
 import { BaseManager } from "../managers/base-manager.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { AdminValidators } from "../admin/validators";
+import type { FriendPathPattern } from "./__generated__/route-table.ts";
 
 export enum FriendEvent {
     Invited = "Invited",
@@ -48,6 +49,7 @@ export enum FriendEvent {
     RequestAccepted = "RequestAccepted",
     RequestRejected = "RequestRejected",
     RequestCancelled = "RequestCancelled",
+    NotificationReceived = "NotificationReceived",
 }
 
 export interface Friend {
@@ -55,10 +57,23 @@ export interface Friend {
     reason?: string;
     since?: number;
     display_name?: string;
+    displayname?: string;
+    username?: string;
     avatar_url?: string;
     note?: string;
+    presence?: string;
+    online?: boolean;
+    last_active_ts?: number;
+    last_seen_ts?: number;
+    added_ts?: number;
     status?: "favorite" | "normal" | "blocked" | "hidden" | string;
     dm_room_id?: string;
+    dm_room_active?: boolean;
+    dm_room_state?: string;
+    dm_room_updated_ts?: number;
+    dm_room_affected_user_id?: string;
+    dm_room_changed_by?: string;
+    dm_room_reason?: string;
 }
 
 export interface FriendRequest {
@@ -67,10 +82,39 @@ export interface FriendRequest {
     status: "pending" | "accepted" | "rejected" | "cancelled";
     timestamp?: number;
     display_name?: string;
+    displayname?: string;
     avatar_url?: string;
     message?: string;
     direction?: "incoming" | "outgoing";
     request_id?: string;
+}
+
+export interface FriendStatusInfo {
+    user_id: string;
+    status: string;
+    is_friend?: boolean;
+}
+
+export interface FriendSearchResult {
+    user_id: string;
+    username?: string;
+    displayname?: string;
+    avatar_url?: string;
+    presence?: string;
+    online?: boolean;
+    last_active_ts?: number;
+    last_seen_ts?: number;
+    created_ts?: number;
+    match_score?: number;
+    match_type?: string;
+}
+
+export interface FriendSearchResponse {
+    results?: FriendSearchResult[];
+    count?: number;
+    mode?: string;
+    limited?: boolean;
+    retry_after_seconds?: number;
 }
 
 export enum FriendRelationshipStatus {
@@ -134,6 +178,7 @@ interface FriendManagerEventMap {
     [FriendEvent.RequestAccepted]: (userId: string) => void;
     [FriendEvent.RequestRejected]: (userId: string) => void;
     [FriendEvent.RequestCancelled]: (userId: string) => void;
+    [FriendEvent.NotificationReceived]: (notification: { type: string; user_id?: string; data?: Record<string, unknown> }) => void;
 }
 
 interface IFriendListResponse {
@@ -161,6 +206,19 @@ interface IFriendSuggestionsResponse {
     total?: number;
 }
 
+type StripClientPrefix<P extends string> =
+    P extends `/_matrix/client/r0${infer Rest}`
+        ? Rest
+        : P extends `/_matrix/client/v1${infer Rest}`
+          ? Rest
+          : P extends `/_matrix/client/v3${infer Rest}`
+            ? Rest
+            : never;
+
+function fr<P extends StripClientPrefix<FriendPathPattern>>(path: P): P {
+    return path;
+}
+
 const FRIEND_RELATIONSHIP_STATUSES = new Set<string>(Object.values(FriendRelationshipStatus));
 const FRIEND_REQUEST_STATUSES = new Set<string>(Object.values(FriendRequestStatus));
 
@@ -168,6 +226,7 @@ function normalizeFriend(friend: Friend): Friend {
     const status = friend.status;
     return {
         ...friend,
+        display_name: friend.display_name ?? friend.displayname,
         status: status && FRIEND_RELATIONSHIP_STATUSES.has(status) ? status : FriendRelationshipStatus.Normal,
     };
 }
@@ -175,6 +234,8 @@ function normalizeFriend(friend: Friend): Friend {
 function normalizeFriendRequest(request: FriendRequest): FriendRequest {
     return {
         ...request,
+        reason: request.reason ?? request.message,
+        display_name: request.display_name ?? request.displayname,
         status: FRIEND_REQUEST_STATUSES.has(request.status) ? request.status : FriendRequestStatus.Pending,
     };
 }
@@ -245,6 +306,10 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
 
         if (userId === this.client.getUserId()) {
             throw new InvalidParamError("Cannot send friend request to yourself");
+        }
+
+        if (reason !== undefined && reason.length > 500) {
+            throw new InvalidParamError("Friend request message too long (max 500 characters)");
         }
 
         const response = await this.client.http.authedRequest<{
@@ -575,6 +640,67 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 
     /**
+     * 搜索用户目录
+     *
+     * 通过后端 pg_trgm 相似度 + 在线状态集成进行全局用户搜索。
+     * 支持精确匹配（mode=exact）和模糊匹配（默认 fuzzy）。
+     * 结果按 match_score 降序排列，过滤自身、过滤隐私受限用户。
+     *
+     * @param q - 搜索关键词（必填，不可为空）
+     * @param mode - 匹配模式："fuzzy"（默认）| "exact"
+     * @param limit - 返回数量限制（默认 20，后端上限由 rate_limit_token_bucket 控制）
+     * @returns 搜索结果，包含用户信息 + 匹配度评分 + 在线状态
+     *
+     * @example
+     * ```typescript
+     * // 模糊搜索
+     * const results = await friendManager.searchUsers("alice");
+     * results.forEach(user => {
+     *     console.log(`${user.displayname} (${user.user_id}) - score: ${user.match_score}`);
+     * });
+     *
+     * // 精确搜索
+     * const exact = await friendManager.searchUsers("@bob:example.com", "exact");
+     *
+     * // 检查限流状态
+     * const { results, retry_after_seconds } = await friendManager.searchUsers("test");
+     * if (retry_after_seconds > 0) {
+     *     console.log(`Rate limited, retry after ${retry_after_seconds}s`);
+     * }
+     * ```
+     *
+     * @throws {InvalidParamError} 如果搜索关键词为空
+     * @throws {ApiError} 如果 API 调用失败或被限流
+     */
+    async searchUsers(
+        q: string,
+        mode?: "fuzzy" | "exact",
+        limit?: number,
+    ): Promise<FriendSearchResponse> {
+        if (!q || q.trim().length === 0) {
+            throw new InvalidParamError("Search term cannot be empty");
+        }
+
+        const params: Record<string, string | number> = { q: q.trim() };
+        if (mode) params.mode = mode;
+        if (limit !== undefined) params.limit = limit;
+
+        try {
+            const response = await this.client.http.authedRequest<FriendSearchResponse>(
+                Method.Get,
+                fr("/friends/search"),
+                params,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+
+            return response;
+        } catch (e) {
+            throw this.normalizeError(e, "searchUsers");
+        }
+    }
+
+    /**
      * 检查是否为好友
      *
      * @param userId - 用户 ID（格式：@localpart:homeserver）
@@ -788,19 +914,22 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         }
     }
 
-    async getFriendStatus(userId: string): Promise<string> {
+    async getFriendStatusInfo(userId: string): Promise<FriendStatusInfo> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
 
-        const response = await this.client.http.authedRequest<{ status: string }>(
+        return this.client.http.authedRequest<FriendStatusInfo>(
             Method.Get,
             `/friends/${encodeURIComponent(userId)}/status`,
             undefined,
             undefined,
             { prefix: ClientPrefix.V1 },
         );
+    }
 
+    async getFriendStatus(userId: string): Promise<string> {
+        const response = await this.getFriendStatusInfo(userId);
         return response.status;
     }
 

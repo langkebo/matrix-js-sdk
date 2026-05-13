@@ -13,6 +13,15 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
+import type { VerificationPathPattern } from "./__generated__/route-table.ts";
+
+type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
+type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
+type VerificationManagerPathPattern = StripR0<VerificationPathPattern> | StripV1<VerificationPathPattern>;
+
+function vp<P extends VerificationManagerPathPattern>(path: P): P {
+    return path;
+}
 
 /**
  * VerificationManager — 设备/交叉签名互认证
@@ -157,7 +166,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<VerificationStartResponse>(
                 Method.Post,
-                "/keys/device_signing/verify_start",
+                vp("/keys/device_signing/verify_start"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
@@ -174,7 +183,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<VerificationAcceptResponse>(
                 Method.Put,
-                "/keys/device_signing/verify_accept",
+                vp("/keys/device_signing/verify_accept"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
@@ -192,7 +201,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<VerificationKeyAgreementResponse>(
                 Method.Post,
-                "/keys/device_signing/verify_key_agreement",
+                vp("/keys/device_signing/verify_key_agreement"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
@@ -208,7 +217,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<VerificationMacResponse>(
                 Method.Post,
-                "/keys/device_signing/verify_mac",
+                vp("/keys/device_signing/verify_mac"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
@@ -224,7 +233,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<{ transaction_id: string }>(
                 Method.Post,
-                "/keys/device_signing/verify_done",
+                vp("/keys/device_signing/verify_done"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
@@ -241,7 +250,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<VerificationCancelResponse>(
                 Method.Post,
-                "/keys/device_signing/verify_cancel",
+                vp("/keys/device_signing/verify_cancel"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
@@ -255,7 +264,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<ListVerificationRequestsResponse>(
                 Method.Get,
-                "/keys/device_signing/requests",
+                vp("/keys/device_signing/requests"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V1 },
@@ -270,7 +279,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<QrCodeShowResponse>(
                 Method.Get,
-                "/keys/qr_code/show",
+                vp("/keys/qr_code/show"),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V1 },
@@ -290,7 +299,7 @@ export class VerificationManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<ScanQrCodeResponse>(
                 Method.Post,
-                "/keys/qr_code/scan",
+                vp("/keys/qr_code/scan"),
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },

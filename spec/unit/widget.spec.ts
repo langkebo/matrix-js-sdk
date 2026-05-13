@@ -137,6 +137,76 @@ describe("WidgetManager", () => {
         });
     });
 
+    describe("createWidget", () => {
+        it("should create a widget through the v3 create endpoint", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                widget: {
+                    widget_id: "widget-v3",
+                    widget_type: "customwidget",
+                    name: "V3 Widget",
+                    url: "https://example.com/widget",
+                    user_id: "@user:example.com",
+                    room_id: "!room:example.com",
+                    data: { theme: "dark" },
+                    is_active: true,
+                },
+            });
+
+            const result = await widgetManager.createWidget({
+                roomId: "!room:example.com",
+                type: "customwidget",
+                url: "https://example.com/widget",
+                name: "V3 Widget",
+                data: { theme: "dark" },
+            });
+
+            expect(result.id).toBe("widget-v3");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/widgets/create",
+                undefined,
+                {
+                    room_id: "!room:example.com",
+                    widget_id: undefined,
+                    widget_type: "customwidget",
+                    url: "https://example.com/widget",
+                    name: "V3 Widget",
+                    data: { theme: "dark" },
+                },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should validate required fields for v3 createWidget", async () => {
+            await expect(
+                widgetManager.createWidget({
+                    roomId: "!room:example.com",
+                    type: "",
+                    url: "https://example.com/widget",
+                    name: "Bad Widget",
+                }),
+            ).rejects.toThrow("Widget type is required");
+
+            await expect(
+                widgetManager.createWidget({
+                    roomId: "!room:example.com",
+                    type: "customwidget",
+                    url: "",
+                    name: "Bad Widget",
+                }),
+            ).rejects.toThrow("Widget URL is required");
+
+            await expect(
+                widgetManager.createWidget({
+                    roomId: "!room:example.com",
+                    type: "customwidget",
+                    url: "https://example.com/widget",
+                    name: "",
+                }),
+            ).rejects.toThrow("Widget name is required");
+        });
+    });
+
     describe("getWidgetConfig", () => {
         it("should return widget config successfully", async () => {
             const mockResponse = {

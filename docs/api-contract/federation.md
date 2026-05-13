@@ -1,7 +1,7 @@
 ---
 module: federation
 generated_from: docs/api-contract/generated/modules/federation.json
-generated_hash: sha256-bff0dc1145f23af6d9ea3bcb6ca35cf25dfb0b75ab93f4521454eaf8875ddb57
+generated_hash: sha256-2f8e8e09923f6b1b6c77572874b079fbd6f664b95128e704f3457c5b61150c98
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -77,20 +77,31 @@ last_reviewed: 2026-05-03
 | PUT  | `/_matrix/federation/v1/exchange_third_party_invite/{room_id}`    | 交换第三方邀请          |
 | GET  | `/_matrix/federation/v1/groups/{group_id}`                        | 兼容 communities/groups |
 
-## 代码中可见稳定响应
+## SDK 契约对齐
 
-- `version` 与发现端点返回版本、服务名、能力说明
-- key/server 端点返回服务端签名 key 结构
-- 大多数 protected 端点返回房间状态、事件、事务处理结果或密钥对象
+- **后端 Ledger 路由总数**: 52
+- **SDK 已封装路由数**: 18
+- **契约覆盖率**: 35%
+- **说明**: `FederationManager` 已补齐联邦发现、目的地查询、跨服事件与跨服媒体读接口，手写路径漂移面继续收敛；大量 Protected Federation 路由、Key 相关的 V2 路由主要用于服务器间交互，SDK 仅保留最核心的客户端可见面。
 
-## 常见状态码
+### 已封装方法
 
-| 状态码        | 说明                         |
-| ------------- | ---------------------------- |
-| `200`         | 请求成功                     |
-| `401` / `403` | 联邦签名认证失败             |
-| `404`         | 房间、事件、媒体或资源不存在 |
-
-## 代码定位
-
-- 路由与处理器: `synapse-rust/src/web/routes/federation.rs`
+| SDK 方法                    | 路径                                            | 认证       |
+| --------------------------- | ----------------------------------------------- | ---------- |
+| `getBlacklist()`            | `GET /_synapse/admin/v1/federation/blacklist`   | 管理员 token |
+| `addToBlacklist()`          | `POST /_synapse/admin/v1/federation/blacklist/add` | 管理员 token |
+| `removeFromBlacklist()`     | `POST /_synapse/admin/v1/federation/blacklist/remove` | 管理员 token |
+| `getServerStatus()`         | `GET /_synapse/admin/v1/federation/status/{serverName}` | 管理员 token |
+| `getFederationDestinations()` | `GET /_synapse/admin/v1/federation/destinations` | 管理员 token |
+| `disconnectServer()`        | `POST /_synapse/admin/v1/federation/disconnect/{serverName}` | 管理员 token |
+| `reconnectServer()`         | `POST /_synapse/admin/v1/federation/reconnect/{serverName}` | 管理员 token |
+| `getServerVersion()`        | `GET /_matrix/federation/v1/version`            | 无         |
+| `getPublicRoomsOnServer()`  | `GET /_matrix/federation/v1/publicRooms`        | 无         |
+| `queryProfile()`            | `GET /_matrix/federation/v1/query/profile/{userId}` | 无         |
+| `queryDirectory()`          | `GET /_matrix/federation/v1/query/directory`    | 无         |
+| `getHierarchy()`            | `GET /_matrix/federation/v1/hierarchy/{roomId}` | 无         |
+| `getFederationInfo()`       | `GET /_matrix/federation/v1`                    | 无         |
+| `queryDestination()`        | `GET /_matrix/federation/v1/query/destination`  | 无         |
+| `getRoomEvent()`            | `GET /_matrix/federation/v1/room/{roomId}/{eventId}` | 无     |
+| `downloadMedia()`           | `GET /_matrix/federation/v1/media/download/{serverName}/{mediaId}` | 无 |
+| `getMediaThumbnail()`       | `GET /_matrix/federation/v1/media/thumbnail/{serverName}/{mediaId}` | 无 |

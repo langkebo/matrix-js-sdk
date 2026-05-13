@@ -26,6 +26,20 @@ import { MediaPrefix } from "../http-api/prefix.ts";
 import type { UploadResponse } from "../http-api/interface.ts";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
+import type { MediaPathPattern } from "./__generated__/route-table.ts";
+
+type StripMediaPrefix<P extends string> =
+    P extends `/_matrix/media/v1${infer Rest}` ? Rest :
+    P extends `/_matrix/media/v3${infer Rest}` ? Rest :
+    P extends `/_matrix/media/r0${infer Rest}` ? Rest :
+    P extends `/_matrix/media/r1${infer Rest}` ? Rest :
+    never;
+
+type MediaRelativePathPattern = StripMediaPrefix<MediaPathPattern>;
+
+function mp<P extends MediaRelativePathPattern>(path: P): P {
+    return path;
+}
 
 export interface UrlPreview {
     "url"?: string;
@@ -35,6 +49,40 @@ export interface UrlPreview {
     "image"?: string;
     "og_image"?: string;
     "matrix:image"?: string;
+}
+
+export interface MediaDownloadUrlOptions {
+    filename?: string;
+    allowDirectLinks?: boolean;
+    allowRedirects?: boolean;
+    useAuthentication?: boolean;
+    version?: "v1" | "v3" | "r1";
+}
+
+export interface MediaThumbnailUrlOptions {
+    width?: number;
+    height?: number;
+    method?: "crop" | "scale";
+    allowDirectLinks?: boolean;
+    allowRedirects?: boolean;
+    useAuthentication?: boolean;
+    animated?: boolean;
+}
+
+function parseMxcUri(mxc?: string): { serverName: string; mediaId: string } | null {
+    if (typeof mxc !== "string" || !mxc) {
+        return null;
+    }
+    if (!mxc.startsWith("mxc://")) {
+        return null;
+    }
+
+    const [serverName, mediaId, ...rest] = mxc.slice(6).split("/");
+    if (!serverName || !mediaId || rest.length > 0) {
+        return null;
+    }
+
+    return { serverName, mediaId };
 }
 
 export class MediaManager extends BaseManager {
@@ -99,7 +147,7 @@ export class MediaManager extends BaseManager {
     ): Promise<{ content_uri: string }> {
         const response = await this.client.http.authedRequest<{ content_uri: string }>(
             Method.Put,
-            `/upload/${serverName}/${mediaId}`,
+            mp(`/upload/${serverName}/${mediaId}` as MediaRelativePathPattern),
             undefined,
             content,
             {
@@ -140,9 +188,15 @@ export class MediaManager extends BaseManager {
      * POST /_matrix/media/v1/delete/{server_name}/{media_id}
      */
     public async deleteMedia(serverName: string, mediaId: string): Promise<void> {
-        await this.client.http.authedRequest(Method.Post, `/delete/${serverName}/${mediaId}`, undefined, undefined, {
-            prefix: MediaPrefix.V1,
-        });
+        await this.client.http.authedRequest(
+            Method.Post,
+            mp(`/delete/${serverName}/${mediaId}` as MediaRelativePathPattern),
+            undefined,
+            undefined,
+            {
+                prefix: MediaPrefix.V1,
+            },
+        );
     }
 
     /**
@@ -187,9 +241,72 @@ export class MediaManager extends BaseManager {
             params.ts = ts;
         }
 
-        return this.client.http.authedRequest<UrlPreview>(Method.Get, "/preview_url", params, undefined, {
+        return this.client.http.authedRequest<UrlPreview>(Method.Get, mp("/preview_url"), params, undefined, {
             prefix: MediaPrefix.V3,
         });
+    }
+
+    public getDownloadUrl(mxcUrl: string, options: MediaDownloadUrlOptions = {}): string {
+        if (!mxcUrl.startsWith("mxc://")) {
+            return options.allowDirectLinks ? mxcUrl : "";
+        }
+
+        const parsed = parseMxcUri(mxcUrl);
+        if (!parsed) {
+            return "";
+        }
+
+        const { serverName, mediaId } = parsed;
+        const version = options.version ?? "v3";
+        const prefix = options.useAuthentication ? "/_matrix/client/v1/media/download" : `/_matrix/media/${version}/download`;
+        const encodedServer = encodeURIComponent(serverName);
+        const encodedMediaId = encodeURIComponent(mediaId);
+        const encodedFilename = options.filename ? `/${encodeURIComponent(options.filename)}` : "";
+        const url = new URL(`${prefix}/${encodedServer}/${encodedMediaId}${encodedFilename}`, this.client.baseUrl);
+
+        if (typeof options.allowRedirects === "boolean") {
+            url.searchParams.set("allow_redirect", JSON.stringify(options.allowRedirects));
+        }
+
+        return url.href;
+    }
+
+    public getThumbnailUrl(mxcUrl: string, options: MediaThumbnailUrlOptions = {}): string {
+        if (!mxcUrl.startsWith("mxc://")) {
+            return options.allowDirectLinks ? mxcUrl : "";
+        }
+
+        const parsed = parseMxcUri(mxcUrl);
+        if (!parsed) {
+            return "";
+        }
+
+        const { serverName, mediaId } = parsed;
+        const prefix = options.useAuthentication
+            ? "/_matrix/client/v1/media/thumbnail"
+            : "/_matrix/media/v3/thumbnail";
+        const url = new URL(
+            `${prefix}/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            this.client.baseUrl,
+        );
+
+        if (options.width !== undefined) {
+            url.searchParams.set("width", Math.round(options.width).toString());
+        }
+        if (options.height !== undefined) {
+            url.searchParams.set("height", Math.round(options.height).toString());
+        }
+        if (options.method) {
+            url.searchParams.set("method", options.method);
+        }
+        if (options.animated !== undefined) {
+            url.searchParams.set("animated", String(options.animated));
+        }
+        if (typeof options.allowRedirects === "boolean") {
+            url.searchParams.set("allow_redirect", JSON.stringify(options.allowRedirects));
+        }
+
+        return url.href;
     }
 }
 

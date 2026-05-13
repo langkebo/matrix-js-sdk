@@ -1,35 +1,35 @@
 ---
 module: ephemeral
 generated_from: docs/api-contract/generated/modules/ephemeral.json
-generated_hash: sha256-3d9089ffd1f66bc1aec7e0c84b9f0adfdf19408ce8078281c4ea0d7533a51472
+generated_hash: sha256-0ba850cc826f06fd8604552e7ec550eb253ff5f9af785ec6882ce737bbfdfd8d
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Ephemeral Events API 契约文档
 
 > 后端代码: `synapse-rust/src/web/routes/ephemeral.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
-> 更新日期: 2026-04-27  
+> SDK 入口: `src/ephemeral/index.ts`  
+> 更新日期: 2026-05-11  
 > 挂载版本: `v3`
 
-## 一、模块概述
+## 一、当前审计结论
 
-### 1.1 功能描述
+- `generated/modules/ephemeral.json` 当前记录 **1** 条后端路由。
+- SDK 已有 `EphemeralManager.getEphemeralEventsFromServer()`，本轮补上生成的 `EphemeralPathPattern` 路径绑定。
+- 旧文档把响应体写成 `events[]`，但后端真实 JSON 键是 `chunk`。
+- 后端单条临时事件还会返回 `origin_server_ts`、`stream_id` 和合成的 `event_id`，旧文档遗漏了这些字段。
+- SDK 现在优先使用后端 `origin_server_ts` 作为事件时间戳，而不是本地 `Date.now()`。
 
-Ephemeral Events API 提供临时事件查询功能，用于获取不持久化的房间事件（如输入状态、已读回执）。
-
-### 1.2 路由前缀
+## 二、路由前缀
 
 - `/_matrix/client/v3/rooms/{room_id}/ephemeral`
-
-### 1.3 认证要求
-
 - 需要 `AuthenticatedUser` + 房间成员权限
 
-## 二、端点详情
+## 三、端点详情
 
-### 2.1 查询房间临时事件
+### 3.1 查询房间临时事件
 
 **路径**: `GET /_matrix/client/v3/rooms/{room_id}/ephemeral`  
 **认证**: `AuthenticatedUser` + 房间成员  
@@ -39,28 +39,37 @@ Ephemeral Events API 提供临时事件查询功能，用于获取不持久化�
 
 ```typescript
 interface EphemeralEventsResponse {
-    events: Array<{
+    chunk: Array<{
         type: string;
+        sender: string;
         content: Record<string, unknown>;
+        origin_server_ts: number;
+        stream_id: number;
+        event_id: string;
     }>;
+    start?: string;
+    end?: string;
 }
 ```
 
-## 三、SDK 对齐状态
+补充说明:
 
-### 3.1 封装覆盖率
+- `event_id` 不是数据库原生字段，后端按 `$ephemeral_{stream_id}` 合成，供客户端去重。
+- `limit` 查询参数默认值为 `100`。
+- SDK `getEphemeralEventsFromServer()` 返回的是映射后的 `IEphemeralEventInfo[]`，其中 `timestamp` 取自 `origin_server_ts`。
+- `getTypingEvents()`、`getReceiptEvents()`、缓存与清理方法属于在这 1 条后端契约之上的增强能力。
+
+## 四、SDK 对齐状态
 
 - **总端点数**: 1
-- **已封装**: 0
-- **覆盖率**: 0%
+- **已封装**: 1
+- **覆盖率**: 100%
+- **路径绑定**: `src/ephemeral/index.ts` 使用 `EphemeralPathPattern`
+- **验证状态**: `spec/unit/ephemeral.spec.ts`
 
-### 3.2 已知差异
-
-- SDK 通过 `/sync` 的 ephemeral 字段获取临时事件
-- 无直接查询临时事件的方法
-
-## 四、变更历史
+## 五、变更历史
 
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
+| 2026-05-11 | 修正 `chunk` 返回体、事件字段、SDK 覆盖率与路径绑定说明，并同步时间戳语义 | 修复文档与实现漂移 |
 | 2026-04-27 | 初版 | -    |

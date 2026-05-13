@@ -74,6 +74,7 @@ export interface ManagerExtensionsOptions {
     includeUserReport?: boolean;
     includeVoice?: boolean;
     includeAiConnection?: boolean;
+    includeOpenClaw?: boolean;
     includeWidget?: boolean;
     includeThreePids?: boolean;
     includeIdentityServer?: boolean;
@@ -91,6 +92,7 @@ export interface ManagerExtensionsOptions {
     includeVerification?: boolean;
     includeCas?: boolean;
     includeE2EE?: boolean;
+    includeWorkerBody?: boolean;
     includeAll?: boolean;
 }
 
@@ -150,6 +152,7 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeUserReport: true,
     includeVoice: true,
     includeAiConnection: true,
+    includeOpenClaw: true,
     includeWidget: true,
     includeThreePids: true,
     includeIdentityServer: true,
@@ -167,6 +170,7 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeVerification: true,
     includeCas: true,
     includeE2EE: true,
+    includeWorkerBody: true,
 };
 
 let isInitialized = false;
@@ -221,6 +225,7 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeUserReport", module: "user-report" },
     { option: "includeVoice", module: "voice" },
     { option: "includeAiConnection", module: "ai-connection" },
+    { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeWidget", module: "widget" },
     { option: "includeThreePids", module: "threepids" },
     { option: "includeIdentityServer", module: "identity-server" },
@@ -238,6 +243,7 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeVerification", module: "verification" },
     { option: "includeCas", module: "cas" },
     { option: "includeE2EE", module: "e2ee" },
+    { option: "includeWorkerBody", module: "worker-body" },
 ];
 
 function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {
@@ -286,7 +292,9 @@ export async function extendMatrixClientWithManagers(
         try {
             if (currentOptions.includeAdmin || all) {
                 promises.push(import("../admin/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(import("../background-update/index.js").then((m) => m.extendMatrixClient()));
                 promises.push(import("../worker-admin/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(import("../worker-body/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeAccount || all) {
@@ -455,6 +463,10 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeAiConnection || all) {
                 promises.push(import("../ai-connection/index.js").then((m) => m.extendMatrixClient()));
+            }
+
+            if (currentOptions.includeOpenClaw || all) {
+                promises.push(import("../openclaw/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeWidget || all) {

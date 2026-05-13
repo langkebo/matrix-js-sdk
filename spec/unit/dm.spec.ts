@@ -474,6 +474,25 @@ describe("DirectMessageManager", () => {
 
     describe("专用 API 封装", () => {
         describe("createDmRoom", () => {
+            it("should expose the raw create_dm response via createDmRoomDetailed", async () => {
+                const rawResponse = { room_id: "!newdm:example.com" };
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue(rawResponse),
+                };
+
+                await expect(dmManager.createDmRoomDetailed("@alice:example.com")).resolves.toEqual(rawResponse);
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    expect.anything(),
+                    "/create_dm",
+                    undefined,
+                    expect.objectContaining({
+                        user_id: "@alice:example.com",
+                        is_direct: true,
+                    }),
+                    expect.anything(),
+                );
+            });
+
             it("should call POST /create_dm API", async () => {
                 mockClient.http = {
                     authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
@@ -502,6 +521,8 @@ describe("DirectMessageManager", () => {
                 await dmManager.createDmRoom("@alice:example.com", {
                     name: "Test DM",
                     topic: "Test Topic",
+                    visibility: "private",
+                    invite: ["@bob:example.com"],
                 });
 
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -510,9 +531,11 @@ describe("DirectMessageManager", () => {
                     undefined,
                     expect.objectContaining({
                         user_id: "@alice:example.com",
+                        invite: ["@alice:example.com", "@bob:example.com"],
                         is_direct: true,
                         name: "Test DM",
                         topic: "Test Topic",
+                        visibility: "private",
                     }),
                     expect.anything(),
                 );
@@ -520,6 +543,14 @@ describe("DirectMessageManager", () => {
 
             it("should throw error for empty userId", async () => {
                 await expect(dmManager.createDmRoom("")).rejects.toThrow();
+            });
+
+            it("should validate invite user ids", async () => {
+                await expect(
+                    dmManager.createDmRoomDetailed("@alice:example.com", {
+                        invite: ["not-a-matrix-id"],
+                    }),
+                ).rejects.toThrow();
             });
 
             it("should emit DMCreated event", async () => {
@@ -568,11 +599,19 @@ describe("DirectMessageManager", () => {
 
         describe("updateDirectRoom", () => {
             it("should call PUT /direct/{room_id} API", async () => {
+                const updateResponse = {
+                    room_id: "!dm:example.com",
+                    users: ["@alice:example.com"],
+                    direct_map: { "@alice:example.com": ["!dm:example.com"] },
+                    updated_ts: 123,
+                };
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({}),
+                    authedRequest: vi.fn().mockResolvedValue(updateResponse),
                 };
 
-                await dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"]);
+                await expect(dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"])).resolves.toEqual(
+                    updateResponse,
+                );
 
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                     "PUT",
@@ -583,13 +622,50 @@ describe("DirectMessageManager", () => {
                 );
             });
 
+            it("should support backend content updates and return the full response", async () => {
+                const updateResponse = {
+                    room_id: "!dm:example.com",
+                    users: ["@alice:example.com", "@bob:example.com"],
+                    direct_map: {
+                        "@alice:example.com": ["!dm:example.com"],
+                        "@bob:example.com": ["!dm:example.com"],
+                    },
+                    updated_ts: 456,
+                };
+                mockClient.http = {
+                    authedRequest: vi.fn().mockResolvedValue(updateResponse),
+                };
+
+                const result = await dmManager.updateDirectRoom("!dm:example.com", {
+                    content: { users: ["@alice:example.com", "@bob:example.com"] },
+                });
+
+                expect(result).toEqual(updateResponse);
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    "PUT",
+                    "/direct/!dm%3Aexample.com",
+                    undefined,
+                    { content: { users: ["@alice:example.com", "@bob:example.com"] } },
+                    { prefix: "/_matrix/client/v3" },
+                );
+            });
+
             it("should throw error for empty roomId", async () => {
                 await expect(dmManager.updateDirectRoom("", ["@alice:example.com"])).rejects.toThrow();
             });
 
+            it("should validate user ids when updating direct room users", async () => {
+                await expect(dmManager.updateDirectRoom("!dm:example.com", ["not-a-matrix-id"])).rejects.toThrow();
+            });
+
             it("should emit ListUpdated event", async () => {
                 mockClient.http = {
-                    authedRequest: vi.fn().mockResolvedValue({}),
+                    authedRequest: vi.fn().mockResolvedValue({
+                        room_id: "!dm:example.com",
+                        users: ["@alice:example.com"],
+                        direct_map: { "@alice:example.com": ["!dm:example.com"] },
+                        updated_ts: 123,
+                    }),
                 };
 
                 const emitSpy = vi.spyOn(dmManager, "emit");

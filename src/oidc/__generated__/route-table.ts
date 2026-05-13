@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/oidc.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `oidc` module. */
@@ -46,11 +47,8 @@ export type OidcPath = OidcRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type OidcReplaceBraces<P extends string> = P extends `${infer A}{${infer ParamSegment}}${infer B}`
-    ? ParamSegment extends string
-        ? `${A}${string}${OidcReplaceBraces<B>}`
-        : never
-    : P;
+export type OidcReplaceBraces<P extends string> =
+    P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${OidcReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */
 export type OidcPathPattern = OidcReplaceBraces<OidcPath>;

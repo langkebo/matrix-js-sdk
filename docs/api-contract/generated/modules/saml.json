@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "saml",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
-  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
+  "generated_at": "2026-05-11T14:36:56Z",
   "source_profile": "all",
-  "entry_count": 9,
+  "entry_count": 16,
   "entries": [
     {
       "method": "GET",
@@ -52,6 +52,54 @@
     {
       "method": "GET",
       "path": "/_matrix/client/r0/saml/sp_metadata",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/saml/config",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/saml/config",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/saml/logout",
+      "registered_by": "saml",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/saml/mapping/{name_id}",
+      "registered_by": "saml",
+      "path_params": [
+        "name_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/saml/mapping/{name_id}",
+      "registered_by": "saml",
+      "path_params": [
+        "name_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/saml/mapping/{name_id}",
+      "registered_by": "saml",
+      "path_params": [
+        "name_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/saml/mappings",
       "registered_by": "saml",
       "path_params": []
     },

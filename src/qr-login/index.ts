@@ -29,7 +29,17 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { encodeUri } from "../utils";
+import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+
+type StripAuthPrefix<P extends string> =
+    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
+    P extends `/_matrix/client/r0${infer Rest}` ? Rest :
+    P extends `/_matrix/client/v1${infer Rest}` ? Rest :
+    P;
+
+function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface QrCodeResponse {
     transaction_id: string;
@@ -82,13 +92,19 @@ export class QrLoginManager {
     constructor(private client: MatrixClient) {}
 
     public async getQrCode(): Promise<QrCodeResponse> {
-        return this.client.http.authedRequest<QrCodeResponse>(Method.Get, "/login/get_qr_code", undefined, undefined, {
-            prefix: ClientPrefix.V1,
-        });
+        return this.client.http.request<QrCodeResponse>(
+            Method.Get,
+            ap("/login/get_qr_code"),
+            undefined,
+            undefined,
+            {
+                prefix: ClientPrefix.V1,
+            },
+        );
     }
 
     public async startQrLogin(request: QrLoginStartRequest): Promise<QrLoginStartResponse> {
-        return this.client.http.request<QrLoginStartResponse>(Method.Post, "/login/qr/start", undefined, request, {
+        return this.client.http.request<QrLoginStartResponse>(Method.Post, ap("/login/qr/start"), undefined, request, {
             prefix: ClientPrefix.V1,
         });
     }
@@ -96,7 +112,7 @@ export class QrLoginManager {
     public async confirmQrLogin(request: QrLoginConfirmRequest): Promise<QrLoginConfirmResponse> {
         return this.client.http.authedRequest<QrLoginConfirmResponse>(
             Method.Post,
-            "/login/qr/confirm",
+            ap("/login/qr/confirm"),
             undefined,
             request,
             { prefix: ClientPrefix.V1 },
@@ -104,16 +120,16 @@ export class QrLoginManager {
     }
 
     public async getQrStatus(transactionId: string): Promise<QrLoginStatusResponse> {
-        const path = encodeUri("/login/qr/$txnId/status", { $txnId: transactionId });
+        const path = ap(`/login/qr/${encodeURIComponent(transactionId)}/status` as StripAuthPrefix<AuthPathPattern>);
         return this.client.http.request<QrLoginStatusResponse>(Method.Get, path, undefined, undefined, {
             prefix: ClientPrefix.V1,
         });
     }
 
     public async invalidateQrLogin(request: QrLoginInvalidateRequest): Promise<QrLoginInvalidateResponse> {
-        return this.client.http.authedRequest<QrLoginInvalidateResponse>(
+        return this.client.http.request<QrLoginInvalidateResponse>(
             Method.Post,
-            "/login/qr/invalidate",
+            ap("/login/qr/invalidate"),
             undefined,
             request,
             { prefix: ClientPrefix.V1 },

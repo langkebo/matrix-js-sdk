@@ -33,6 +33,7 @@ import * as utils from "../utils";
 import { QueryDict } from "../utils";
 import { IRelationsRequestOpts, IRelationsResponse } from "../@types/requests";
 import { logger } from "../logger";
+import type { RelationsPathPattern } from "./__generated__/route-table";
 
 export type RelationType = "m.reference" | "m.annotation" | "m.replace" | "m.thread" | string;
 export type RelationEventType = "m.room.message" | "m.room.encrypted" | string;
@@ -44,13 +45,31 @@ export interface RelationResult {
     total?: number;
 }
 
-export interface ISendRelationContent {
-    "msgtype"?: string;
-    "body"?: string;
-    "m.relates_to": {
-        rel_type: RelationType;
+export interface RelationAggregationChunk {
+    type: string;
+    key: string;
+    count: number;
+}
+
+export interface RelationAggregationResponse {
+    chunk: RelationAggregationChunk[];
+    next_batch?: string;
+    prev_batch?: string;
+}
+
+export interface SendRelationRequestBody {
+    content?: Record<string, unknown>;
+    "m.new_content"?: Record<string, unknown>;
+    key?: string;
+    type?: string;
+}
+
+export interface SendRelationResponse {
+    event_id: string;
+    room_id?: string;
+    relates_to?: {
         event_id: string;
-        [key: string]: unknown;
+        rel_type: RelationType;
     };
     [key: string]: unknown;
 }
@@ -73,6 +92,19 @@ function replaceParam(oldKey: string, newKey: string, params: QueryDict): QueryD
         return newParams;
     }
     return params;
+}
+
+type StripClientPrefix<P extends string> =
+    P extends `/_matrix/client/r0${infer Rest}`
+        ? Rest
+        : P extends `/_matrix/client/v1${infer Rest}`
+          ? Rest
+          : P extends `/_matrix/client/v3${infer Rest}`
+            ? Rest
+            : never;
+
+function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
+    return path;
 }
 
 export class RelationsManager extends BaseManager<RelationsEvent, RelationsManagerEventMap> {
@@ -106,23 +138,25 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
         const queryString = utils.encodeParams(params);
 
-        let templatedUrl = "/rooms/$roomId/relations/$eventId";
-        if (relationType !== null) {
-            templatedUrl += "/$relationType";
-            if (eventType !== null && eventType !== undefined) {
-                templatedUrl += "/$eventType";
-            }
-        } else if (eventType !== null && eventType !== undefined) {
+        const templatedUrl: StripClientPrefix<RelationsPathPattern> = relationType !== null && eventType !== null && eventType !== undefined
+            ? rr("/rooms/$roomId/relations/$eventId/$relationType/$eventType")
+            : relationType !== null
+            ? rr("/rooms/$roomId/relations/$eventId/$relationType")
+            : rr("/rooms/$roomId/relations/$eventId");
+
+        if (relationType === null && eventType !== null && eventType !== undefined) {
             logger.warn(`eventType: ${eventType} ignored when fetching relations as relationType is null`);
             eventType = null;
         }
 
-        const path = utils.encodeUri(templatedUrl + (queryString ? "?" + queryString : ""), {
+        const pathTemplate = utils.encodeUri(templatedUrl, {
             $roomId: roomId,
             $eventId: eventId,
             $relationType: relationType!,
             $eventType: eventType!,
         });
+
+        const path = queryString ? `${pathTemplate}?${queryString}` : pathTemplate;
 
         try {
             return await this.client.http.authedRequest<IRelationsResponse>(Method.Get, path, undefined, undefined, {
@@ -217,6 +251,53 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
 
         return types;
+    }
+
+    public async getAggregations(
+        roomId: string,
+        eventId: string,
+        relationType: RelationType,
+    ): Promise<RelationAggregationResponse> {
+        const path = utils.encodeUri(rr("/rooms/$roomId/aggregations/$eventId/$relType"), {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relType: relationType,
+        });
+
+        try {
+            return await this.client.http.authedRequest<RelationAggregationResponse>(Method.Get, path, undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
+        } catch (e) {
+            throw this.normalizeError(e, "getAggregations");
+        }
+    }
+
+    public async sendRelation(
+        roomId: string,
+        eventId: string,
+        relationType: RelationType,
+        targetEventId: string,
+        body: SendRelationRequestBody = {},
+    ): Promise<SendRelationResponse> {
+        const path = utils.encodeUri(rr("/rooms/$roomId/relations/$eventId/$relationType/$targetEventId"), {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relationType: relationType,
+            $targetEventId: targetEventId,
+        });
+
+        try {
+            const response = await this.client.http.authedRequest<SendRelationResponse>(Method.Put, path, undefined, body, {
+                prefix: ClientPrefix.V1,
+            });
+            this.emit(RelationsEvent.Updated, roomId, eventId);
+            return response;
+        } catch (e) {
+            const error = this.normalizeError(e, "sendRelation");
+            this.emit(RelationsEvent.Error, error);
+            throw error;
+        }
     }
 
     async start(): Promise<void> {}

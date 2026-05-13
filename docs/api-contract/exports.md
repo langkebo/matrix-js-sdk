@@ -10,6 +10,7 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./core`                   | Core 白名单：基础客户端能力 + HTTP/API 类型 + 核心模型类型      | `createClient`, `MatrixClient`, `ClientEvent`                                              |
 | `./advanced`               | Advanced 白名单：manager 扩展能力（admin/dm/friend/push/space） | `AdminManager`, `DirectMessageManager`, `SpaceManager`                                     |
 | `./legacy`                 | Legacy 白名单：filter 历史兼容类型与别名                        | `LegacyFilterManager`, `LegacyFilterEvent`, `IFilterManagerDefinition`                     |
+| `./manager-extensions`     | Manager Extensions 白名单：管理器扩展生命周期                   | `extendMatrixClientWithManagers`                                                            |
 | `./admin`                  | Admin 白名单：管理端 manager 与领域类型                         | `AdminManager`, `UserInfo`, `RoomInfo`                                                     |
 | `./beacon`                 | Beacon 白名单：beacon manager 能力                              | `BeaconManager`, `extendMatrixClient`                                                      |
 | `./cache`                  | Cache 白名单：缓存工具入口（当前仅校验子路径存在）              | `-`                                                                                        |
@@ -24,11 +25,15 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./models`                 | Models 白名单：模型聚合入口（当前仅校验子路径存在）             | `-`                                                                                        |
 | `./models/event`           | Event 模型白名单：事件实体与状态相关类型                        | `EventStatus`, `IEvent`, `IContent`                                                        |
 | `./models/room`            | Room 模型白名单：房间实体与状态/计数相关类型                    | `RoomEvent`, `NotificationCountType`, `KNOWN_SAFE_ROOM_VERSION`                            |
+| `./models/room-state`      | Room State 模型白名单：房间状态相关类型                         | `RoomStateEvent`                                                                            |
 | `./notification`           | Notification 白名单：通知入口（当前仅校验子路径存在）           | `-`                                                                                        |
 | `./push`                   | Push 白名单：推送 manager 与规则/通知类型                       | `PushManager`, `PushEvent`, `IPushRules`                                                   |
 | `./runtime-schemas`        | Runtime Schemas 白名单：运行时 zod schema 与快照解析能力        | `matrixEventWireSchema`, `parseMatrixEventWire`, `createMatrixClientSnapshot`              |
 | `./space`                  | Space 白名单：空间 manager 与空间层级类型                       | `SpaceManager`, `SpaceEvent`, `SpaceHierarchy`                                             |
 | `./store`                  | Store 白名单：存储接口能力                                      | `IStore`, `ISavedSync`, `UserCreator`                                                      |
+| `./store/worker`           | Store Worker 白名单：IndexedDB Worker 存储                      | `IndexedDBStoreWorker`                                                                      |
+| `./sync`                   | Sync 白名单：同步入口                                           | `SyncApi`                                                                                   |
+| `./telemetry`              | Telemetry 白名单：遥测管理入口                                  | `TelemetryManager`                                                                          |
 | `./timeline-window`        | Timeline 白名单：timeline 窗口能力                              | `TimelineWindow`, `TimelineIndex`                                                          |
 | `./voice`                  | Voice 白名单：语音消息 manager 与语音领域类型                   | `VoiceMessageManager`, `VoiceEvent`, `VoiceMessage`                                        |
 | `./webrtc`                 | WebRTC 白名单：通话入口（当前仅校验子路径存在）                 | `-`                                                                                        |

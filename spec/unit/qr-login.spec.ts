@@ -16,11 +16,11 @@ describe("QrLoginManager", () => {
     });
 
     it("getQrCode GETs /login/get_qr_code", async () => {
-        authedRequest.mockResolvedValue({ transaction_id: "tx-1", mode: "login", challenge: "abc", expires_in: 300 });
+        request.mockResolvedValue({ transaction_id: "tx-1", mode: "login", challenge: "abc", expires_in: 300 });
         const res = await manager.getQrCode();
         expect(res.transaction_id).toBeDefined();
-        expect(authedRequest.mock.calls[0][0]).toBe("GET");
-        expect(authedRequest.mock.calls[0][1]).toBe("/login/get_qr_code");
+        expect(request.mock.calls[0][0]).toBe("GET");
+        expect(request.mock.calls[0][1]).toBe("/login/get_qr_code");
     });
 
     it("startQrLogin POSTs to /login/qr/start (unauthenticated)", async () => {
@@ -43,8 +43,8 @@ describe("QrLoginManager", () => {
         expect(request.mock.calls[0][1]).toContain("tx-42");
     });
 
-    it("invalidateQrLogin uses authedRequest", async () => {
+    it("invalidateQrLogin uses request", async () => {
         await manager.invalidateQrLogin({ transaction_id: "tx-1" } as any);
-        expect(authedRequest).toHaveBeenCalled();
+        expect(request).toHaveBeenCalled();
     });
 });

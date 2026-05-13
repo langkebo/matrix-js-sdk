@@ -36,6 +36,13 @@ import { type IdServerUnbindResult } from "../@types/partials";
 import { ClientPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
+import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+
+type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+    return path;
+}
 
 type Body = Record<string, unknown>;
 type UIARequest<T> = T & {
@@ -91,7 +98,15 @@ export class AccountManager extends BaseManager {
      * Get login flows supported by the server
      */
     public loginFlows(): Promise<ILoginFlowsResponse> {
-        return this.client.http.request(Method.Get, "/login");
+        return this.client.http.request(Method.Get, ap("/login"));
+    }
+
+    /**
+     * Get login flows supported by the server
+     * @deprecated Use {@link loginFlows} instead.
+     */
+    public getLoginFlows(): Promise<ILoginFlowsResponse> {
+        return this.loginFlows();
     }
 
     /**
@@ -163,7 +178,7 @@ export class AccountManager extends BaseManager {
      * Send a login request
      */
     public async loginRequest(data: LoginRequest): Promise<LoginResponse> {
-        return await this.client.http.authedRequest<LoginResponse>(Method.Post, "/login", undefined, data);
+        return await this.client.http.request<LoginResponse>(Method.Post, ap("/login"), undefined, data);
     }
 
     /**
@@ -175,7 +190,7 @@ export class AccountManager extends BaseManager {
             this.client.http.abort();
         }
 
-        return this.client.http.authedRequest(Method.Post, "/logout");
+        return this.client.http.authedRequest(Method.Post, ap("/logout"));
     }
 
     /**
@@ -187,14 +202,14 @@ export class AccountManager extends BaseManager {
             this.client.http.abort();
         }
 
-        return this.client.http.authedRequest(Method.Post, "/logout/all");
+        return this.client.http.authedRequest(Method.Post, ap("/logout/all"));
     }
 
     /**
      * Submit email verification token for registration
      */
     public async submitEmailToken(sid: string, clientSecret: string, token: string): Promise<{ success: boolean }> {
-        return this.client.http.request(Method.Post, "/register/email/submitToken", undefined, {
+        return this.client.http.request(Method.Post, ap("/register/email/submitToken"), undefined, {
             sid,
             client_secret: clientSecret,
             token,
@@ -216,7 +231,7 @@ export class AccountManager extends BaseManager {
             body.erase = erase;
         }
 
-        return this.client.http.authedRequest(Method.Post, "/account/deactivate", undefined, body);
+        return this.client.http.authedRequest(Method.Post, ap("/account/deactivate"), undefined, body);
     }
 
     /**

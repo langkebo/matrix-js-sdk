@@ -1,7 +1,7 @@
 ---
 module: presence
 generated_from: docs/api-contract/generated/modules/presence.json
-generated_hash: sha256-96e78c5b92a1b3da6216a65b6e68457fbc21701ac40639ecfc9d05595dd5efc7
+generated_hash: sha256-44eb12e5c657c422c43ced87e88697cc52d9bbcb707a84c25092b3b5e6dd8a57
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -77,9 +77,21 @@ last_reviewed: 2026-05-03
 - `GET /presence/list/{user_id}` 已纳入当前契约，并由 `PresenceManager.getPresenceList()` 直接封装。
 - `getPresence()`、`getSubscribedPresence()`、`getPresenceList()` 均按统一错误模型走 `normalizeError()`，不再以静默默认值掩盖请求失败。
 - 当前文档仅保留可直接验证的现状，不再重复保留已关闭的历史审计项。
+- `PresenceManager` 额外提供 `getPresences()`、`getPresenceListByIds()`、`unsubscribeFromPresence()`、
+  `setOnline()`、`setOffline()`、`setUnavailable()`、`setBusy()`、`clearStatusMessage()` 等高层封装，
+  这些能力仍全部落在 4 个已注册后端端点之上。
+- `src/presence/index.ts` 已绑定生成的 `route-table` 路径模板，避免 `v3` presence 路径再次手写漂移。
 
 ## 封装覆盖率
 
-- **后端路由总数**: 5 个端点
-- **SDK 已封装**: 4 个方法
-- **完全正确封装**: 4/5 (80%)
+- **后端语义端点数**: 4 个
+- **SDK 已封装**: 4 个主端点 + 多个高层辅助方法
+- **完全正确封装**: 4/4 (100%)
+
+## 人工 Review 对齐
+
+- `setPresence()` / `getPresence()` 统一走 `GET|PUT /presence/{user_id}/status`。
+- `subscribeToPresence()` / `unsubscribeFromPresence()` / `getSubscribedPresence()` 统一走 `POST /presence/list`，
+  通过请求体区分 `subscribe`、`unsubscribe` 和空载荷查询。
+- `getPresenceList(targetUserId)` 直连 `GET /presence/list/{user_id}`。
+- 当前 `r0` / `v1` presence 状态路由被视为兼容别名，SDK 默认使用 `v3` 主路径。

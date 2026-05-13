@@ -52,6 +52,69 @@ describe("VoiceMessageManager", () => {
         });
     });
 
+    describe("uploadVoiceMessageDirect", () => {
+        it("POSTs base64 payloads to /voice/upload on ClientPrefix.R0", async () => {
+            const waveformSpy = vi.spyOn(manager as any, "generateWaveform").mockResolvedValue([0, 0.5, 1]);
+            const file = new Blob([new Uint8Array([1, 2, 3, 4])], { type: "audio/ogg" });
+            authedRequest.mockResolvedValueOnce({
+                content_uri: "mxc://example.org/voice",
+                content: { body: "Voice message" },
+                content_type: "audio/ogg",
+                duration_ms: 1234,
+                size: 4,
+            });
+
+            await expect(
+                manager.uploadVoiceMessageDirect({
+                    roomId: "!room:example.org",
+                    file,
+                    duration: 1234,
+                }),
+            ).resolves.toEqual({
+                content_uri: "mxc://example.org/voice",
+                content: { body: "Voice message" },
+                content_type: "audio/ogg",
+                duration_ms: 1234,
+                size: 4,
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/voice/upload",
+                undefined,
+                {
+                    room_id: "!room:example.org",
+                    content: "AQIDBA==",
+                    content_type: "audio/ogg",
+                    duration_ms: 1234,
+                    waveform: [0, 32768, 65535],
+                },
+                { prefix: "/_matrix/client/r0" },
+            );
+            waveformSpy.mockRestore();
+        });
+
+        it("validates room, file and duration", async () => {
+            const file = new Blob([new Uint8Array([1])], { type: "audio/ogg" });
+
+            await expect(
+                manager.uploadVoiceMessageDirect({
+                    roomId: "",
+                    file,
+                    duration: 1000,
+                }),
+            ).rejects.toThrow("Room ID is required");
+
+            await expect(
+                manager.uploadVoiceMessageDirect({
+                    roomId: "!room:example.org",
+                    file,
+                    duration: 0,
+                }),
+            ).rejects.toThrow("Duration is required");
+        });
+    });
+
     describe("local session helpers", () => {
         it("createRecordingSession emits SessionCreated and tracks session", () => {
             const emitted: unknown[] = [];

@@ -1,6 +1,9 @@
 import { logger } from "../logger";
 import { MatrixClient, type IProtocol } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api";
+import { ClientPrefix } from "../http-api/prefix";
+import type { ThirdpartyPathPattern } from "./__generated__/route-table.ts";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -36,6 +39,12 @@ export interface ThirdPartySearchParams {
     [key: string]: string;
 }
 
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function tp<P extends StripV3<ThirdpartyPathPattern>>(path: P): P {
+    return path;
+}
+
 export class ThirdPartyManager extends BaseManager {
     constructor(client: MatrixClient) {
         super(client);
@@ -63,8 +72,17 @@ export class ThirdPartyManager extends BaseManager {
 
     async getProtocol(protocol: string, throwOnError = true): Promise<ThirdPartyProtocol | null> {
         try {
-            const protocols = await this.getProtocols(throwOnError);
-            return protocols.find((p) => p.protocol === protocol) || null;
+            const data = await this.client.http.authedRequest<IProtocol>(
+                Method.Get,
+                tp(`/thirdparty/protocol/${encodeURIComponent(protocol)}`),
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            return {
+                ...data,
+                protocol,
+            };
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -105,6 +123,44 @@ export class ThirdPartyManager extends BaseManager {
                 throw this.normalizeError(e, "searchUsers");
             }
             logger.warn("ThirdPartyManager.searchUsers failed:", e);
+            return [];
+        }
+    }
+
+    async searchAllLocations(params: ThirdPartySearchParams = {}, throwOnError = true): Promise<ThirdPartyLocation[]> {
+        try {
+            return await this.client.http.authedRequest<ThirdPartyLocation[]>(
+                Method.Get,
+                tp("/thirdparty/location"),
+                params,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw this.normalizeError(e, "searchAllLocations");
+            }
+            logger.warn("ThirdPartyManager.searchAllLocations failed:", e);
+            return [];
+        }
+    }
+
+    async searchAllUsers(params: ThirdPartySearchParams = {}, throwOnError = true): Promise<ThirdPartyUser[]> {
+        try {
+            return await this.client.http.authedRequest<ThirdPartyUser[]>(
+                Method.Get,
+                tp("/thirdparty/user"),
+                params,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
+        } catch (e) {
+            if (throwOnError) {
+                throw this.normalizeError(e, "searchAllUsers");
+            }
+            logger.warn("ThirdPartyManager.searchAllUsers failed:", e);
             return [];
         }
     }

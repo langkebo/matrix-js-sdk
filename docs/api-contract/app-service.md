@@ -1,7 +1,7 @@
 ---
 module: app_service
 generated_from: docs/api-contract/generated/modules/app_service.json
-generated_hash: sha256-c76a1a214dfce99ecf80c860326515012934e57c886c65a5e82c929ad074b363
+generated_hash: sha256-04ce0cac52edd81e426e5c0363301fad56dad2fe60758ceef7b3bf67707c0c13
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---

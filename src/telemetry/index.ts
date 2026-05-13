@@ -17,6 +17,15 @@ limitations under the License.
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method.ts";
+import { AdminPrefix } from "../http-api/prefix.ts";
+import type { TelemetryPathPattern } from "./__generated__/route-table.ts";
+
+type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+
+function tp<P extends StripAdminV1<TelemetryPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface TelemetryEvent {
     event: string;
@@ -44,6 +53,68 @@ export interface ClientMetrics {
     platform: string;
     runtime: string;
     features: string[];
+}
+
+export interface ServerTelemetryStatus {
+    enabled: boolean;
+    trace_enabled: boolean;
+    metrics_enabled: boolean;
+    service_name: string;
+    service_version: string;
+    sampling_ratio: number;
+    export_config: {
+        otlp_endpoint?: string | null;
+        prometheus_port?: number | null;
+        prometheus_path?: string | null;
+        batch_export: boolean;
+    };
+}
+
+export interface ServerTelemetryAttributes {
+    attributes: Record<string, string>;
+}
+
+export interface ServerTelemetryMetricsSummary {
+    total_metrics: number;
+    total_counters: number;
+    total_gauges: number;
+    total_histograms: number;
+    rendered_bytes: number;
+    snapshot_ts: number;
+}
+
+export interface ServerTelemetryAlert {
+    alert_id: string;
+    alert_key: string;
+    severity: string;
+    status: string;
+    title?: string;
+    message?: string;
+    created_at_ms?: number;
+    updated_at_ms?: number;
+    acknowledged_by?: string | null;
+    acknowledged_at_ms?: number | null;
+    metadata?: Record<string, unknown>;
+}
+
+export interface ServerTelemetryAlertsResponse {
+    alerts: ServerTelemetryAlert[];
+}
+
+export interface ServerTelemetryHealth {
+    status: string;
+    service: string;
+    trace_enabled: boolean;
+    metrics_enabled: boolean;
+    checks: Array<Record<string, unknown>>;
+    database: Record<string, unknown>;
+    alerts: ServerTelemetryAlert[];
+}
+
+export interface ServerTelemetryAlertQuery {
+    status?: string;
+    severity?: string;
+    refresh?: boolean;
 }
 
 export interface TelemetryManagerEvents {
@@ -207,6 +278,41 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         return [...this.eventQueue];
     }
 
+    public async getServerStatus(): Promise<ServerTelemetryStatus> {
+        return this.adminRequest(Method.Get, tp("/telemetry/status"));
+    }
+
+    public async getServerAttributes(): Promise<ServerTelemetryAttributes> {
+        return this.adminRequest(Method.Get, tp("/telemetry/attributes"));
+    }
+
+    public async getServerMetricsSummary(): Promise<ServerTelemetryMetricsSummary> {
+        return this.adminRequest(Method.Get, tp("/telemetry/metrics"));
+    }
+
+    public async getServerAlerts(query?: ServerTelemetryAlertQuery): Promise<ServerTelemetryAlertsResponse> {
+        const queryParams: Record<string, string> = {};
+        if (query?.status) queryParams.status = query.status;
+        if (query?.severity) queryParams.severity = query.severity;
+        if (typeof query?.refresh === "boolean") queryParams.refresh = String(query.refresh);
+        return this.adminRequest(
+            Method.Get,
+            tp("/telemetry/alerts"),
+            Object.keys(queryParams).length > 0 ? queryParams : undefined,
+        );
+    }
+
+    public async acknowledgeServerAlert(alertId: string): Promise<ServerTelemetryAlert> {
+        if (!alertId) {
+            throw new Error("Alert ID is required");
+        }
+        return this.adminRequest(Method.Post, tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack` as StripAdminV1<TelemetryPathPattern>));
+    }
+
+    public async getServerHealth(): Promise<ServerTelemetryHealth> {
+        return this.adminRequest(Method.Get, tp("/telemetry/health"));
+    }
+
     public flush(): void {
         if (this.eventQueue.length === 0) return;
 
@@ -235,6 +341,12 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
             logger.warn("TelemetryManager.sendToServer failed:", e);
             this.eventQueue.push(...events);
         }
+    }
+
+    private async adminRequest<T>(method: Method, path: string, queryParams?: Record<string, string>): Promise<T> {
+        return await this.client.http.authedRequest<T>(method, path, queryParams, undefined, {
+            prefix: AdminPrefix.V1,
+        });
     }
 
     public resetStats(): void {

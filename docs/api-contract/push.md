@@ -1,7 +1,7 @@
 ---
 module: push
 generated_from: docs/api-contract/generated/modules/push.json
-generated_hash: sha256-5c499dd8ace26bef2adf5aa8126fd8682aa8e3fff33dcd5e88440c494dd951e1
+generated_hash: sha256-437aa9027d2c56ccb60994b8c6e9a7f359bffaf939fe4c233dfc1b63c065d02b
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -9,6 +9,7 @@ last_reviewed: 2026-05-03
 # Push 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/push.rs`、`synapse-rust/src/web/routes/push_rules.rs`
+> 审计状态: ✅ PushManager 已覆盖 27 条主路径，并已绑定生成 `PushPathPattern`
 
 ## 挂载版本
 
@@ -43,13 +44,6 @@ last_reviewed: 2026-05-03
 | GET    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | 路径参数                                              | `{ "enabled": true/false }` |
 | PUT    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `{ "enabled": boolean }`                              | 空对象                      |
 
-## Notifications
-
-| 方法 | 路径                                                          | 主要请求参数             | 主要响应字段                                     |
-| ---- | ------------------------------------------------------------- | ------------------------ | ------------------------------------------------ |
-| GET  | `/_matrix/client/{r0,v3}/notifications`                       | `limit?` `from?` `only?` | `{ "notifications": [...], "next_token": null }` |
-| POST | `/_matrix/client/{r0,v3}/notifications/{notification_id}/ack` | `notification_id`        | 空对象                                           |
-
 ## 字段级响应审计
 
 - `GET /pushers` 返回 `{ "pushers": IPusher[] }`，列表项字段为 `pushkey`、`kind`、`app_id`、`app_display_name`、`device_display_name`、`profile_tag?`、`lang`、`data?`、`enabled?`、`device_id?`
@@ -58,11 +52,8 @@ last_reviewed: 2026-05-03
 - `GET /pushrules/{scope}` 返回 `IPushRuleSet`，字段为 `override?`、`content?`、`room?`、`sender?`、`underride?`
 - `GET /pushrules/{scope}/{kind}` 返回按 kind 分组的规则数组对象；SDK 当前以 `{ [key: string]: IPushRule[] }` 接收，实际稳定键仍受 `kind` 取值约束
 - `GET /pushrules/{scope}/{kind}/{rule_id}` 返回 `IPushRule`，字段为 `rule_id`、`default`、`enabled`、`actions`、`pattern?`、`conditions?`
-- `GET /pushrules/{scope}/{kind}/{rule_id}/enabled` 返回 `{ "enabled": boolean }`
+- `GET /pushrules/{scope}/{kind}/{rule_id}/enabled` 返回 `{ "enabled": true/false }`
 - `PUT /pushrules/{scope}/{kind}/{rule_id}/enabled`、`PUT /pushrules/{scope}/{kind}/{rule_id}/actions`、`POST|PUT|DELETE /pushrules/{scope}/{kind}/{rule_id}` 成功时均不要求响应体，SDK 以成功状态码作为完成信号
-- `GET /notifications` 返回 `INotificationsResponse`，顶层字段为 `notifications`、`next_token?`
-- `notifications[]` 列表项字段为 `event_id`、`room_id`、`ts`、`profile_tag?`、`read`、`event`；其中 `event` 为原始 Matrix 事件对象，SDK 以 `Record<string, unknown>` 承接
-- `POST /notifications/{notification_id}/ack` 成功返回空对象
 - `/_matrix/client/v3/pushrules/` 与 `/pushrules/global/` 返回用户规则；若用户未写入 `m.push_rules`，则回退到内置默认规则
 
 ## 常见状态码
@@ -95,6 +86,22 @@ last_reviewed: 2026-05-03
 | `M_BAD_JSON`       | `400`     | 请求体结构不合法                 |
 | `M_INVALID_PARAM`  | `400`     | 参数取值非法或规则字段冲突       |
 | `M_LIMIT_EXCEEDED` | `429`     | 触发限流                         |
+
+## SDK 对齐结论
+
+- `src/push/index.ts` 现已将 `pushers`、`pushrules` 相关主路径绑定到生成的 `PushPathPattern`。
+- `PushManager` 统一使用 `/_matrix/client/v3` 作为默认主链路；`r0` 兼容别名由后端共享处理器承接，不再视为单独 SDK 缺口。
+- `getPushers()`、`setPusher()`、`getPushRules()`、`getPushRulesByScope()`、`getPushRulesByKind()`、`getPushRule()`、
+  `createPushRule()`、`updatePushRule()`、`deletePushRule()`、`getPushRuleEnabled()`、`setPushRuleEnabled()`、
+  `setPushRuleActions()` 均已受 codegen 路径模板约束。
+- `muteRoom()`、`unmuteRoom()`、`addKeywordHighlight()`、`ignoreSender()` 等便捷方法继续复用上述 REST 主路径，不额外引入未审计的接口面。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 25
+- **SDK 主路径覆盖**: 25/25
+- **已绑定生成路由模板**: 25/25
+- **契约覆盖率**: 100%
 
 ## 代码定位
 

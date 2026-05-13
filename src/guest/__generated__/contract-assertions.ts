@@ -13,42 +13,29 @@ const _GuestEntryCountAssertion: 3 = GUEST_ROUTES.length;
 void _GuestEntryCountAssertion;
 
 export const GUEST_ROUTES_STATUS_SCENARIOS = [
-    { status: 200, note: "访客注册成功" },
-    { status: 400, note: "注册参数、请求体或 kind 查询参数非法" },
-    { status: 403, note: "服务器禁用访客注册" },
-    { status: 429, note: "访客注册被限流" },
+    { status: 200, note: "请求成功" },
+    { status: 400, note: "升级请求参数不合法，例如用户名或密码长度校验失败" },
+    { status: 403, note: "服务器禁用注册，或当前用户不是 guest" },
+    { status: 409, note: "升级为正式账号时用户名已存在" },
+    { status: 500, note: "创建 guest 用户、设备或 token 失败" },
 ] as const;
 
 export type GuestStatusScenario = (typeof GUEST_ROUTES_STATUS_SCENARIOS)[number];
 
 export const GUEST_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "访客注册参数不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正注册请求体或确保 kind=guest 后重试",
-    },
-    {
-        scenario: "服务器禁用访客注册",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "改走普通注册或联系服务器管理员开启 guest 模式",
-    },
-    {
-        scenario: "访客注册触发限流",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "按 retry_after_ms 退避后重试",
-    },
+    { scenario: "服务器禁用注册", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "改走普通注册或联系管理员开启注册" },
+    { scenario: "当前用户不是 guest", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "不要对正式账号调用 guest 升级接口" },
+    { scenario: "升级参数校验失败", httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "修正 username / password 后重试" },
+    { scenario: "升级用户名冲突", httpOrErrcode: "409 / M_CONFLICT", sdkErrorType: "ApiError", handling: "更换用户名" },
 ] as const;
 
 export type GuestErrorScenario = (typeof GUEST_ROUTES_ERROR_SCENARIOS)[number];
 
 export const GUEST_ROUTES_ERRCODES = [
-    { errcode: "M_BAD_JSON", httpStatus: "400", note: "访客注册请求体结构不合法" },
-    { errcode: "M_INVALID_PARAM", httpStatus: "400", note: "注册参数或 kind 查询参数非法" },
-    { errcode: "M_FORBIDDEN", httpStatus: "403", note: "服务器禁用访客注册" },
-    { errcode: "M_LIMIT_EXCEEDED", httpStatus: "429", note: "访客注册被限流" },
+    { errcode: "M_BAD_JSON", httpStatus: "400", note: "升级请求体结构不合法或校验失败" },
+    { errcode: "M_INVALID_PARAM", httpStatus: "400", note: "用户名或密码不符合要求" },
+    { errcode: "M_FORBIDDEN", httpStatus: "403", note: "服务器禁用注册或当前用户不是 guest" },
+    { errcode: "M_CONFLICT", httpStatus: "409", note: "用户名已存在" },
 ] as const;
 
 export type GuestErrcode = (typeof GUEST_ROUTES_ERRCODES)[number];

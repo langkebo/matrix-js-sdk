@@ -139,6 +139,17 @@ try {
         "./@types/auth",
         "./@types/requests",
         "./@types/read_receipts",
+        "./client-config-types",
+        "./models/room-member",
+        "./@types/PushRules",
+        "./@types/membership",
+        "./@types/search",
+        "./@types/topic",
+        "./@types/threepids",
+        "./@types/partials",
+        "./models/event-timeline",
+        "./telemetry/index",
+        "./manager-extensions/index",
     ]);
 
     const advancedAllowed = new Set([

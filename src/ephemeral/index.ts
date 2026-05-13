@@ -34,6 +34,13 @@ import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { BaseManager } from "../managers/base-manager.ts";
 import { SdkError } from "../errors.ts";
+import type { EphemeralPathPattern } from "./__generated__/route-table.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function ep<P extends StripV3<EphemeralPathPattern>>(path: P): P {
+    return path;
+}
 
 export enum EphemeralEvent {
     EphemeralReceived = "EphemeralReceived",
@@ -59,6 +66,9 @@ export interface IServerEphemeralEvent {
     type: string;
     sender: string;
     content: Record<string, unknown>;
+    origin_server_ts?: number;
+    stream_id?: number;
+    event_id?: string;
 }
 
 export interface IServerEphemeralEventsResponse {
@@ -145,7 +155,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
             async () => {
                 const response = await this.client.http.authedRequest<IServerEphemeralEventsResponse>(
                     Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/ephemeral`,
+                    ep(`/rooms/${encodeURIComponent(roomId)}/ephemeral` as StripV3<EphemeralPathPattern>),
                     { limit: limit ?? this.defaultLimit },
                     undefined,
                     { prefix: ClientPrefix.V3 },
@@ -156,7 +166,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
                     type: e.type,
                     sender: e.sender,
                     content: e.content,
-                    timestamp: Date.now(),
+                    timestamp: e.origin_server_ts ?? Date.now(),
                 }));
                 this.ephemeralEventsCache.set(roomId, events);
                 this.emit(EphemeralEvent.EphemeralReceived, roomId, events);

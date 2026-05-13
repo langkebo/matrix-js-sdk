@@ -31,6 +31,13 @@ import { Method } from "../http-api/method.ts";
 import { ClientPrefix } from "../http-api/prefix.ts";
 import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
+import type { GuestPathPattern } from "./__generated__/route-table.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function gp<P extends StripV3<GuestPathPattern>>(path: P): P {
+    return path;
+}
 
 export enum GuestEvent {
     GuestRegistered = "GuestRegistered",
@@ -74,9 +81,7 @@ export interface IServerGuestInfo {
     created_at?: number;
 }
 
-export interface IServerGuestInfoResponse {
-    guest: IServerGuestInfo;
-}
+export type IServerGuestInfoResponse = IServerGuestInfo | { guest: IServerGuestInfo };
 
 export interface IAuthDict {
     type?: string;
@@ -85,14 +90,15 @@ export interface IAuthDict {
 }
 
 export interface IUpgradeGuestRequest {
-    username?: string;
+    username: string;
     password: string;
     auth?: IAuthDict;
 }
 
 export interface IUpgradeGuestResponse {
+    success: boolean;
     user_id: string;
-    access_token?: string;
+    access_token: string;
     device_id?: string;
 }
 
@@ -343,11 +349,17 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
     public async getGuestInfoFromServer(): Promise<IServerGuestInfo> {
         try {
-            const response = (await this.client.http.authedRequest(Method.Get, "/account/guest", undefined, undefined, {
-                prefix: ClientPrefix.V3,
-            })) as IServerGuestInfoResponse;
+            const response = (await this.client.http.authedRequest(
+                Method.Get,
+                gp("/account/guest"),
+                undefined,
+                undefined,
+                {
+                    prefix: ClientPrefix.V3,
+                },
+            )) as IServerGuestInfoResponse;
 
-            const guestInfo = response.guest;
+            const guestInfo = "guest" in response ? response.guest : response;
             this.emit(GuestEvent.GuestInfoReceived, guestInfo);
 
             return guestInfo;
@@ -361,15 +373,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         if (!this.guestInfo && !this.client.getUserId()) {
             throw new Error("No guest account to upgrade");
         }
+        if (!request.username) {
+            throw new Error("username is required");
+        }
 
         try {
             const body: Record<string, unknown> = {
+                username: request.username,
                 password: request.password,
             };
-
-            if (request.username) {
-                body.username = request.username;
-            }
 
             if (request.auth) {
                 body.auth = request.auth;
@@ -377,7 +389,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
             const response = (await this.client.http.authedRequest(
                 Method.Post,
-                "/account/guest/upgrade",
+                gp("/account/guest/upgrade"),
                 undefined,
                 body,
                 { prefix: ClientPrefix.V3 },
@@ -408,7 +420,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = (await this.client.http.request(Method.Post, "/register/guest", undefined, body, {
+            const response = (await this.client.http.request(Method.Post, gp("/register/guest"), undefined, body, {
                 prefix: ClientPrefix.V3,
             })) as IGuestRegisterResponse;
 

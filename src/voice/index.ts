@@ -30,8 +30,15 @@ import { Method } from "../http-api/method.ts";
 import { MatrixClient } from "../client";
 import { getHttpUriForMxc } from "../content-repo.ts";
 import type { RoomMessageEventContent } from "../@types/events.ts";
+import type { VoicePathPattern } from "./__generated__/route-table.ts";
 
 const VOICE_R0_PREFIX = "/_matrix/client/r0";
+
+type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
+
+function vp<P extends StripR0<VoicePathPattern>>(path: P): P {
+    return path;
+}
 
 export enum VoiceEvent {
     StateChanged = "StateChanged",
@@ -68,6 +75,14 @@ export interface VoiceMessageUploadResult {
     eventId: string;
     url: string;
     duration: number;
+    size: number;
+}
+
+export interface DirectVoiceUploadResult {
+    content_uri: string;
+    content: Record<string, unknown>;
+    content_type: string;
+    duration_ms: number;
     size: number;
 }
 
@@ -130,6 +145,20 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
         };
     }
 
+    private async toBase64(file: File | Blob | ArrayBuffer): Promise<string> {
+        const bytes = file instanceof ArrayBuffer ? new Uint8Array(file) : new Uint8Array(await file.arrayBuffer());
+
+        if (typeof Buffer !== "undefined") {
+            return Buffer.from(bytes).toString("base64");
+        }
+
+        let binary = "";
+        for (const byte of bytes) {
+            binary += String.fromCharCode(byte);
+        }
+        return btoa(binary);
+    }
+
     async getServerConfig(): Promise<VoiceConfig> {
         try {
             const response = await this.client.http.authedRequest<{
@@ -137,7 +166,7 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
                 max_duration_ms?: number;
                 max_size_bytes?: number;
                 supported_formats?: string[];
-            }>(Method.Get, "/voice/config", undefined, undefined, { prefix: VOICE_R0_PREFIX });
+            }>(Method.Get, vp("/voice/config"), undefined, undefined, { prefix: VOICE_R0_PREFIX });
 
             return {
                 enabled: response.enabled ?? true,
@@ -150,6 +179,42 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
             logger.warn("VoiceMessageManager.getServerConfig failed:", error);
             return { enabled: true };
         }
+    }
+
+    async uploadVoiceMessageDirect(params: VoiceMessageUploadParams): Promise<DirectVoiceUploadResult> {
+        const { roomId, file, duration, mimeType } = params;
+
+        if (!roomId) {
+            throw new Error("Room ID is required");
+        }
+        if (!file) {
+            throw new Error("File is required");
+        }
+
+        const actualMimeType = mimeType || (file instanceof Blob ? file.type : "audio/ogg");
+        const actualDuration = duration ?? 0;
+        if (actualDuration <= 0) {
+            throw new Error("Duration is required");
+        }
+
+        const waveform = await this.generateWaveform(file);
+        const body = {
+            room_id: roomId,
+            content: await this.toBase64(file),
+            content_type: actualMimeType,
+            duration_ms: actualDuration,
+            waveform: waveform.map((sample) => Math.max(0, Math.min(65535, Math.round(sample * 65535)))),
+        };
+
+        return await this.withRetry(async () => {
+            return await this.client.http.authedRequest<DirectVoiceUploadResult>(
+                Method.Post,
+                vp("/voice/upload"),
+                undefined,
+                body,
+                { prefix: VOICE_R0_PREFIX },
+            );
+        }, "uploadVoiceMessageDirect");
     }
 
     async uploadVoiceMessage(params: VoiceMessageUploadParams): Promise<VoiceMessageUploadResult> {

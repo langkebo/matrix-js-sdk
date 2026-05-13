@@ -42,6 +42,7 @@ export { InviteBlocklistManager } from "./invite-blocklist";
 export { KeyVerificationManager } from "./key-verification";
 export { MediaManager } from "./media";
 export { MessageManager } from "./message";
+export { ModuleManager } from "./module";
 export { RoomSummaryManager } from "./room-summary";
 export { StickyEventManager } from "./sticky-event";
 export { ThirdPartyManager } from "./thirdparty";
@@ -61,7 +62,7 @@ export type {
 } from "./room-summary";
 export { RoomKeySharingManager } from "./room-key-sharing";
 export { PresenceManager } from "./presence";
-export { FederationManager, FederationBlacklistManager } from "./federation";
+export { FederationManager } from "./federation";
 export { DeviceManager } from "./device";
 export type {
     IDevice,

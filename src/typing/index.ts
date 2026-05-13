@@ -3,7 +3,8 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import { Method } from "../http-api";
-import * as utils from "../utils";
+import { ClientPrefix } from "../http-api/prefix";
+import type { TypingPathPattern } from "./__generated__/route-table.ts";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -21,6 +22,22 @@ export interface TypingUser {
 
 export interface TypingOptions {
     timeout?: number; // 毫秒
+}
+
+interface TypingResponseBody {
+    user_ids?: string[];
+    typing?: string[];
+    timeout?: number;
+}
+
+interface BatchTypingResponseBody {
+    rooms?: Record<string, TypingResponseBody>;
+}
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function tp<P extends StripV3<TypingPathPattern>>(path: P): P {
+    return path;
 }
 
 export class TypingManager extends BaseManager {
@@ -177,15 +194,17 @@ export class TypingManager extends BaseManager {
      */
     async fetchTypingUsers(roomId: string): Promise<TypingUser[]> {
         AdminValidators.validateRoomId(roomId);
-        const path = utils.encodeUri("/rooms/$roomId/typing", { $roomId: roomId });
-        const response = await this.client.http.authedRequest<{ typing?: string[] }>(
+        const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing`);
+        const response = await this.client.http.authedRequest<TypingResponseBody>(
             Method.Get,
             path,
             undefined,
             undefined,
+            { prefix: ClientPrefix.V3 },
         );
-        const users = Array.isArray(response?.typing) ? response.typing : [];
-        return users.map((userId) => ({ userId, timeout: 30000 }));
+        const users = Array.isArray(response?.user_ids) ? response.user_ids : Array.isArray(response?.typing) ? response.typing : [];
+        const timeout = response?.timeout ?? 30000;
+        return users.map((userId: string) => ({ userId, timeout }));
     }
 
     /**
@@ -194,15 +213,13 @@ export class TypingManager extends BaseManager {
     async fetchUserTyping(roomId: string, userId: string): Promise<boolean> {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
-        const path = utils.encodeUri("/rooms/$roomId/typing/$userId", {
-            $roomId: roomId,
-            $userId: userId,
-        });
+        const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
         const response = await this.client.http.authedRequest<{ typing?: boolean }>(
             Method.Get,
             path,
             undefined,
             undefined,
+            { prefix: ClientPrefix.V3 },
         );
         return response?.typing === true;
     }
@@ -216,19 +233,25 @@ export class TypingManager extends BaseManager {
         for (const roomId of rooms) {
             AdminValidators.validateRoomId(roomId);
         }
-        const response = await this.client.http.authedRequest<Record<string, { typing?: string[] }>>(
+        const response = await this.client.http.authedRequest<BatchTypingResponseBody | Record<string, TypingResponseBody>>(
             Method.Post,
-            "/rooms/typing",
+            tp("/rooms/typing"),
             undefined,
-            { rooms },
+            { room_ids: rooms },
+            { prefix: ClientPrefix.V3 },
         );
 
         const result = new Map<string, TypingUser[]>();
-        for (const [roomId, entry] of Object.entries(response ?? {})) {
-            const users = Array.isArray(entry?.typing) ? entry.typing : [];
+        const roomEntries = (response && "rooms" in response && response.rooms ? response.rooms : response ?? {}) as Record<
+            string,
+            TypingResponseBody
+        >;
+        for (const [roomId, entry] of Object.entries(roomEntries)) {
+            const users = Array.isArray(entry?.user_ids) ? entry.user_ids : Array.isArray(entry?.typing) ? entry.typing : [];
+            const timeout = entry?.timeout ?? 30000;
             result.set(
                 roomId,
-                users.map((userId) => ({ userId, timeout: 30000 })),
+                users.map((typingUserId: string) => ({ userId: typingUserId, timeout })),
             );
         }
         return result;

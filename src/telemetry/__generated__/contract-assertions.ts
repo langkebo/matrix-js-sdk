@@ -13,7 +13,6 @@ const _TelemetryEntryCountAssertion: 6 = TELEMETRY_ROUTES.length;
 void _TelemetryEntryCountAssertion;
 
 export const TELEMETRY_ROUTES_STATUS_SCENARIOS = [
-    { status: 202, note: "初版 | -" },
 ] as const;
 
 export type TelemetryStatusScenario = (typeof TELEMETRY_ROUTES_STATUS_SCENARIOS)[number];

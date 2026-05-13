@@ -71,6 +71,12 @@ describe("BurnAfterReadManager", () => {
             manager.setConfig({ default_expire_time: 30000 });
             expect(manager.getConfig().default_expire_time).toBe(30000);
         });
+
+        it("getBurnConfig returns the same configuration shape as getConfig", () => {
+            manager.setConfig({ enabled: false, default_expire_time: 30000 });
+
+            expect(manager.getBurnConfig()).toEqual(manager.getConfig());
+        });
     });
 
     describe("enableBurn", () => {
@@ -574,6 +580,39 @@ describe("BurnAfterReadManager", () => {
         });
     });
 
+    describe("local cache accessors", () => {
+        it("getBurnAfterReadMessage returns a cached message by id", async () => {
+            authedRequest.mockResolvedValue({ event_id: "$msg1" });
+
+            await manager.sendMessage({
+                room_id: "!room:test",
+                content: { body: "secret" },
+            });
+
+            await expect(manager.getBurnAfterReadMessage("$msg1")).resolves.toEqual(
+                expect.objectContaining({
+                    event_id: "$msg1",
+                    room_id: "!room:test",
+                }),
+            );
+        });
+
+        it("getPendingLocalBurns proxies to filtered local messages", async () => {
+            authedRequest.mockResolvedValueOnce({ event_id: "$room1" });
+            authedRequest.mockResolvedValueOnce({ event_id: "$room2" });
+
+            await manager.sendMessage({ room_id: "!room1:test", content: { body: "a" } });
+            await manager.sendMessage({ room_id: "!room2:test", content: { body: "b" } });
+
+            await expect(manager.getPendingLocalBurns("!room1:test")).resolves.toEqual([
+                expect.objectContaining({
+                    event_id: "$room1",
+                    room_id: "!room1:test",
+                }),
+            ]);
+        });
+    });
+
     describe("cancelLocalBurn", () => {
         it("clears timer and resets expires for cached message", async () => {
             authedRequest.mockResolvedValue({ event_id: "$msg1" });
@@ -656,6 +695,33 @@ describe("BurnAfterReadManager", () => {
             const result = await manager.isBurnEnabled("!room:test");
 
             expect(result).toBe(true);
+        });
+    });
+
+    describe("compatibility aliases", () => {
+        it("enableBurnAfterRead enables the feature and delegates to enableBurn", async () => {
+            const enableBurnSpy = vi.spyOn(manager, "enableBurn").mockResolvedValue({
+                enabled: true,
+                burn_after_ms: 45000,
+            });
+
+            await manager.enableBurnAfterRead("!room:test", 45000);
+
+            expect(manager.getConfig().enabled).toBe(true);
+            expect(manager.getConfig().default_expire_time).toBe(45000);
+            expect(enableBurnSpy).toHaveBeenCalledWith("!room:test", 45000);
+        });
+
+        it("disableBurnAfterRead disables the feature and delegates to disableBurn", async () => {
+            const disableBurnSpy = vi.spyOn(manager, "disableBurn").mockResolvedValue({
+                enabled: false,
+                burn_after_ms: 60000,
+            });
+
+            await manager.disableBurnAfterRead("!room:test");
+
+            expect(manager.getConfig().enabled).toBe(false);
+            expect(disableBurnSpy).toHaveBeenCalledWith("!room:test");
         });
     });
 

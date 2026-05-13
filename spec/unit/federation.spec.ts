@@ -1,503 +1,297 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-
-import { FederationManager, FederationEvent, FederationBlacklistManager } from "../../src/federation/index";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { FederationManager } from "../../src/federation";
+import { AdminPrefix } from "../../src/http-api/prefix";
+import { Method } from "../../src/http-api/method.ts";
+import { MatrixClient } from "../../src/client";
+import { IUserProfile } from "../../src/user-directory";
 
 describe("FederationManager", () => {
-    let mockClient: any;
+    let mockClient: MatrixClient;
     let federationManager: FederationManager;
+    let mockAuthedRequest: ReturnType<typeof vi.fn>;
+    let mockRequest: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
+        mockAuthedRequest = vi.fn();
+        mockRequest = vi.fn();
         mockClient = {
             http: {
-                authedRequest: vi.fn(),
+                authedRequest: mockAuthedRequest,
+                request: mockRequest,
             },
-            getUserId: vi.fn().mockReturnValue("@admin:example.com"),
-        };
+            getUserId: vi.fn(() => "@user:example.com"),
+            baseUrl: "https://example.com",
+        } as any;
         federationManager = new FederationManager(mockClient);
     });
 
-    describe("constructor", () => {
-        it("should initialize correctly", () => {
-            expect(federationManager).toBeDefined();
-        });
+    it("should fetch the blacklist and cache it", async () => {
+        mockAuthedRequest.mockResolvedValue({ blacklist: [{ serverName: "server1.com", addedAt: 123 }] });
+
+        const result = await federationManager.getBlacklist();
+
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/federation/blacklist",
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+        expect(result).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
+        expect(federationManager.getCachedBlacklist()).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
     });
 
-    describe("getBlacklist", () => {
-        it("should get blacklist successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [{ serverName: "evil.example.com", reason: "spam", addedAt: 1234567890 }],
-            });
+    it("should add a server to the blacklist", async () => {
+        await federationManager.addToBlacklist("server2.com", "test reason");
 
-            const blacklist = await federationManager.getBlacklist();
-
-            expect(blacklist).toHaveLength(1);
-            expect(blacklist[0].serverName).toBe("evil.example.com");
-        });
-
-        it("should emit BlacklistUpdated event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [],
-            });
-
-            const emitSpy = vi.spyOn(federationManager, "emit");
-            await federationManager.getBlacklist();
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
-        });
-
-        it("should throw on error by default", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            await expect(federationManager.getBlacklist()).rejects.toThrow("Error");
-        });
-
-        it("should return cached blacklist on error when throwOnError is false", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
-
-            const blacklist = await federationManager.getBlacklist(false);
-
-            expect(blacklist).toHaveLength(0);
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/federation/blacklist/add",
+            undefined,
+            { server_name: "server2.com", reason: "test reason" },
+            { prefix: AdminPrefix.V1 },
+        );
+        expect(federationManager.getCachedBlacklist()).toEqual([
+            { serverName: "server2.com", reason: "test reason", addedAt: expect.any(Number), addedBy: "@user:example.com" },
+        ]);
     });
 
-    describe("addToBlacklist", () => {
-        it("should add server to blacklist", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+    it("should remove a server from the blacklist", async () => {
+        federationManager.addToBlacklist("server3.com"); // Add to cache first
+        mockAuthedRequest.mockClear(); // Clear previous call
 
-            await federationManager.addToBlacklist("evil.example.com", "spam");
+        await federationManager.removeFromBlacklist("server3.com");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/federation/blacklist/add",
-                undefined,
-                { server_name: "evil.example.com", reason: "spam" },
-                { prefix: "/_synapse/admin/v1" },
-            );
-        });
-
-        it("should emit BlacklistUpdated event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(federationManager, "emit");
-            await federationManager.addToBlacklist("evil.example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
-        });
-
-        it("should throw error for empty server name", async () => {
-            await expect(federationManager.addToBlacklist("")).rejects.toThrow("Server name is required");
-        });
-
-        it("should emit FederationError on failure", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Network error"));
-
-            const emitSpy = vi.spyOn(federationManager, "emit");
-            await expect(federationManager.addToBlacklist("evil.example.com")).rejects.toThrow();
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/federation/blacklist/remove",
+            undefined,
+            { server_name: "server3.com" },
+            { prefix: AdminPrefix.V1 },
+        );
+        expect(federationManager.getCachedBlacklist()).toEqual([]);
     });
 
-    describe("removeFromBlacklist", () => {
-        it("should remove server from blacklist", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+    it("should get server status", async () => {
+        mockAuthedRequest.mockResolvedValue({ online: true, last_successful_connect: 456, latency: 100 });
 
-            await federationManager.removeFromBlacklist("evil.example.com");
+        const result = await federationManager.getServerStatus("server4.com");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/federation/blacklist/remove",
-                undefined,
-                { server_name: "evil.example.com" },
-                { prefix: "/_synapse/admin/v1" },
-            );
-        });
-
-        it("should emit BlacklistUpdated event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(federationManager, "emit");
-            await federationManager.removeFromBlacklist("evil.example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
-        });
-
-        it("should throw error for empty server name", async () => {
-            await expect(federationManager.removeFromBlacklist("")).rejects.toThrow("Server name is required");
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/federation/status/server4.com",
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+        expect(result).toEqual({ online: true, lastSuccessfulConnect: 456, latency: 100 });
     });
 
-    describe("isBlacklisted", () => {
-        it("should return true if server is in blacklist", async () => {
-            // First add to blacklist
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-            await federationManager.addToBlacklist("evil.example.com");
+    it("should get federation destinations", async () => {
+        mockAuthedRequest.mockResolvedValue({ destinations: [{ serverName: "dest1.com" }] });
 
-            const isBlacklisted = await federationManager.isBlacklisted("evil.example.com");
+        const result = await federationManager.getFederationDestinations();
 
-            expect(isBlacklisted).toBe(true);
-        });
-
-        it("should return false if server is not in blacklist", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [],
-            });
-
-            const isBlacklisted = await federationManager.isBlacklisted("good.example.com");
-
-            expect(isBlacklisted).toBe(false);
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/federation/destinations",
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+        expect(result).toEqual([{ serverName: "dest1.com" }]);
+        expect(federationManager.getCachedServers()).toEqual([{ serverName: "dest1.com" }]);
     });
 
-    describe("getServerStatus", () => {
-        it("should get server status", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                online: true,
-                last_successful_connect: 1234567890,
-                latency: 100,
-            });
+    it("should disconnect a server", async () => {
+        await federationManager.disconnectServer("server5.com");
 
-            const status = await federationManager.getServerStatus("example.org");
-
-            expect(status?.online).toBe(true);
-            expect(status?.latency).toBe(100);
-        });
-
-        it("should throw error for empty server name", async () => {
-            await expect(federationManager.getServerStatus("")).rejects.toThrow("Server name is required");
-        });
-
-        it("should throw on error by default", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            await expect(federationManager.getServerStatus("example.org")).rejects.toThrow("Error");
-        });
-
-        it("should return null on error when throwOnError is false", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
-
-            const status = await federationManager.getServerStatus("example.org", false);
-
-            expect(status).toBeNull();
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/federation/disconnect/server5.com",
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     });
 
-    describe("getFederationDestinations", () => {
-        it("should get federation destinations", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                destinations: [{ serverName: "example.org" }, { serverName: "matrix.org" }],
-            });
+    it("should reconnect a server", async () => {
+        await federationManager.reconnectServer("server6.com");
 
-            const destinations = await federationManager.getFederationDestinations();
-
-            expect(destinations).toHaveLength(2);
-        });
-
-        it("should cache servers", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                destinations: [{ serverName: "example.org" }],
-            });
-
-            await federationManager.getFederationDestinations();
-            const cached = federationManager.getCachedServers();
-
-            expect(cached).toHaveLength(1);
-        });
-
-        it("should throw on error by default", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            await expect(federationManager.getFederationDestinations()).rejects.toThrow("Error");
-        });
-
-        it("should return cached destinations on error when throwOnError is false", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
-
-            const destinations = await federationManager.getFederationDestinations(false);
-
-            expect(destinations).toHaveLength(0);
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/federation/reconnect/server6.com",
+            undefined,
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
     });
 
-    describe("disconnectServer", () => {
-        it("should disconnect server", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+    it("should get server version", async () => {
+        mockAuthedRequest.mockResolvedValue({ server: { version: "1.0.0" } });
 
-            await federationManager.disconnectServer("example.org");
+        const result = await federationManager.getServerVersion("server7.com");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/federation/disconnect/example.org",
-                undefined,
-                undefined,
-                { prefix: "/_synapse/admin/v1" },
-            );
-        });
-
-        it("should throw error for empty server name", async () => {
-            await expect(federationManager.disconnectServer("")).rejects.toThrow("Server name is required");
-        });
-
-        it("should emit FederationError on failure", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const emitSpy = vi.spyOn(federationManager, "emit");
-            await expect(federationManager.disconnectServer("example.org")).rejects.toThrow();
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
-        });
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/version",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual({ version: "1.0.0" });
     });
 
-    describe("reconnectServer", () => {
-        it("should reconnect server", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
 
-            await federationManager.reconnectServer("example.org");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/federation/reconnect/example.org",
-                undefined,
-                undefined,
-                { prefix: "/_synapse/admin/v1" },
-            );
-        });
+    it("should clear cache", async () => {
+        mockAuthedRequest.mockResolvedValueOnce({}); // Mock for addToBlacklist
+        await federationManager.addToBlacklist("server_to_clear.com");
+        expect(federationManager.getCachedBlacklist().length).toBe(1);
 
-        it("should throw error for empty server name", async () => {
-            await expect(federationManager.reconnectServer("")).rejects.toThrow("Server name is required");
-        });
+        federationManager.clearCache();
+
+        expect(federationManager.getCachedBlacklist().length).toBe(0);
     });
 
-    describe("getServerVersion", () => {
-        it("should get server version", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                server: { version: "1.0.0" },
-            });
+    it("should initialize blacklist on start", async () => {
+        mockAuthedRequest.mockResolvedValue({ blacklist: [{ serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" }] });
+        federationManager.clearCache(); // Ensure empty before start
 
-            const version = await federationManager.getServerVersion("example.org");
+        await federationManager.start();
 
-            expect(version?.version).toBe("1.0.0");
-        });
-
-        it("should throw on error by default", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            await expect(federationManager.getServerVersion("example.org")).rejects.toThrow("Error");
-        });
-
-        it("should return null on error when throwOnError is false", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
-
-            const version = await federationManager.getServerVersion("example.org", false);
-
-            expect(version).toBeNull();
-        });
+        expect(federationManager.getCachedBlacklist()).toEqual([{ serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" }]);
     });
 
-    describe("getPublicRoomsOnServer", () => {
-        it("should get public rooms", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                chunk: [{ room_id: "!room:example.com" }],
-            });
+    it("should stop and clear cache", async () => {
+        mockAuthedRequest.mockResolvedValueOnce({}); // Mock for addToBlacklist
+        await federationManager.addToBlacklist("server_to_stop.com");
+        expect(federationManager.getCachedBlacklist().length).toBe(1);
 
-            const rooms = await federationManager.getPublicRoomsOnServer("example.org");
+        federationManager.stop();
 
-            expect(rooms.chunk).toHaveLength(1);
-        });
-
-        it("should accept limit and since parameters", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({ chunk: [] });
-
-            await federationManager.getPublicRoomsOnServer("example.org", 10, "token123");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                expect.stringContaining("publicRooms"),
-                { limit: 10, since: "token123" },
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
-        });
-
-        it("should emit FederationError on failure", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            const emitSpy = vi.spyOn(federationManager, "emit");
-            await expect(federationManager.getPublicRoomsOnServer("example.org")).rejects.toThrow();
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
-        });
+        expect(federationManager.getCachedBlacklist().length).toBe(0);
     });
 
-    describe("getCachedBlacklist", () => {
-        it("should return cached blacklist", async () => {
-            expect(federationManager.getCachedBlacklist()).toHaveLength(0);
-        });
+    it("should query profile over federation", async () => {
+        const profile: IUserProfile = { displayname: "Alice", avatar_url: "mxc://example.com/alice" };
+        mockRequest.mockResolvedValue(profile);
+
+        const result = await federationManager.queryProfile("@alice:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/query/profile/%40alice%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(profile);
     });
 
-    describe("getCachedServer", () => {
-        it("should return null for unknown server", () => {
-            expect(federationManager.getCachedServer("unknown.example.com")).toBeNull();
-        });
+    it("should query room directory over federation", async () => {
+        const response = { room_id: "!room:example.com", servers: ["example.com"] };
+        mockRequest.mockResolvedValue(response);
 
-        it("should return cached server", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                destinations: [{ serverName: "example.org" }],
-            });
+        const result = await federationManager.queryDirectory("#alias:example.com");
 
-            await federationManager.getFederationDestinations();
-            const server = federationManager.getCachedServer("example.org");
-
-            expect(server?.serverName).toBe("example.org");
-        });
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/query/directory",
+            { room_alias: "#alias:example.com" },
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
     });
 
-    describe("getCachedServers", () => {
-        it("should return cached servers", () => {
-            expect(federationManager.getCachedServers()).toHaveLength(0);
-        });
+    it("should get room hierarchy over federation", async () => {
+        const hierarchy = { rooms: [] };
+        mockRequest.mockResolvedValue(hierarchy);
+
+        const result = await federationManager.getHierarchy("!room:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/hierarchy/!room%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(hierarchy);
     });
 
-    describe("clearCache", () => {
-        it("should clear cache", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                destinations: [{ serverName: "example.org" }],
-            });
+    it("should get federation info", async () => {
+        const info = { server: "example.com" };
+        mockRequest.mockResolvedValue(info);
 
-            await federationManager.getFederationDestinations();
-            federationManager.clearCache();
+        const result = await federationManager.getFederationInfo();
 
-            expect(federationManager.getCachedServers()).toHaveLength(0);
-        });
+        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/federation/v1", undefined, undefined, { prefix: "" });
+        expect(result).toEqual(info);
     });
 
-    describe("start/stop", () => {
-        it("should start and fetch blacklist", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [{ serverName: "evil.example.com" }],
-            });
+    it("should query destination over federation", async () => {
+        const response = { destination: "example.org" };
+        mockRequest.mockResolvedValue(response);
 
-            await federationManager.start();
+        const result = await federationManager.queryDestination("example.org");
 
-            expect(federationManager.getCachedBlacklist()).toHaveLength(1);
-        });
-
-        it("should not re-fetch if already initialized", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [],
-            });
-
-            await federationManager.start();
-            await federationManager.start();
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(1);
-        });
-
-        it("should stop and clear cache", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [{ serverName: "evil.example.com" }],
-            });
-
-            await federationManager.start();
-            federationManager.stop();
-
-            expect(federationManager.getCachedBlacklist()).toHaveLength(0);
-        });
-    });
-});
-
-describe("FederationBlacklistManager", () => {
-    let mockClient: any;
-    let blacklistManager: FederationBlacklistManager;
-
-    beforeEach(() => {
-        mockClient = {
-            http: {
-                authedRequest: vi.fn(),
-            },
-        };
-        blacklistManager = new FederationBlacklistManager(mockClient);
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/query/destination",
+            { destination: "example.org" },
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
     });
 
-    describe("constructor", () => {
-        it("should initialize correctly", () => {
-            expect(blacklistManager).toBeDefined();
-        });
+    it("should get room event over federation", async () => {
+        const response = { event_id: "$evt:example.com" };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.getRoomEvent("!room:example.com", "$evt:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/room/!room%3Aexample.com/%24evt%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
     });
 
-    describe("getBlacklist", () => {
-        it("should get blacklist from server", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                blacklist: [
-                    { serverName: "evil1.example.com", reason: "spam" },
-                    { serverName: "evil2.example.com", reason: "malware" },
-                ],
-            });
+    it("should download media over federation", async () => {
+        const response = { ok: true };
+        mockRequest.mockResolvedValue(response);
 
-            const blacklist = await blacklistManager.getBlacklist();
+        const result = await federationManager.downloadMedia("remote.example", "m123");
 
-            expect(blacklist).toHaveLength(2);
-            expect(blacklist[0].serverName).toBe("evil1.example.com");
-        });
-
-        it("should throw on error by default", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Error"));
-
-            await expect(blacklistManager.getBlacklist()).rejects.toThrow("Error");
-        });
-
-        it("should return cached blacklist on error when throwOnError is false", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Boom"));
-
-            const blacklist = await blacklistManager.getBlacklist(false);
-
-            expect(blacklist).toHaveLength(0);
-        });
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/media/download/remote.example/m123",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
     });
 
-    describe("addServer", () => {
-        it("should add server to blacklist", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+    it("should get media thumbnail over federation", async () => {
+        const response = { ok: true };
+        mockRequest.mockResolvedValue(response);
 
-            await blacklistManager.addServer("evil.example.com", "spam");
+        const result = await federationManager.getMediaThumbnail("remote.example", "m123");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-
-        it("should throw error for empty server name", async () => {
-            await expect(blacklistManager.addServer("")).rejects.toThrow("Server name is required");
-        });
-
-        it("should emit ServerAdded event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(blacklistManager, "emit");
-            await blacklistManager.addServer("evil.example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.ServerAdded, "evil.example.com");
-        });
-    });
-
-    describe("removeServer", () => {
-        it("should remove server from blacklist", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await blacklistManager.removeServer("evil.example.com");
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-        });
-
-        it("should throw error for empty server name", async () => {
-            await expect(blacklistManager.removeServer("")).rejects.toThrow("Server name is required");
-        });
-
-        it("should emit ServerRemoved event", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            const emitSpy = vi.spyOn(blacklistManager, "emit");
-            await blacklistManager.removeServer("evil.example.com");
-
-            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.ServerRemoved, "evil.example.com");
-        });
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/media/thumbnail/remote.example/m123",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
     });
 });

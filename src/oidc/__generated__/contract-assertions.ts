@@ -24,36 +24,11 @@ export const OIDC_ROUTES_STATUS_SCENARIOS = [
 export type OidcStatusScenario = (typeof OIDC_ROUTES_STATUS_SCENARIOS)[number];
 
 export const OIDC_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "OIDC 状态失效或会话过期",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "重新发起授权流程，不复用旧 state",
-    },
-    {
-        scenario: "请求参数缺失或 OIDC 未启用",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "检查 redirectUrl、code、state 与服务端开关",
-    },
-    {
-        scenario: "授权被拒绝或回调校验失败",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "提示用户重新授权，必要时更换账号",
-    },
-    {
-        scenario: "限流或短暂服务异常",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "使用退避重试",
-    },
-    {
-        scenario: "其他 API 错误",
-        httpOrErrcode: "其他 4xx/5xx",
-        sdkErrorType: "ApiError",
-        handling: "按 code 与 statusCode 做兜底处理",
-    },
+    { scenario: "OIDC 状态失效或会话过期", httpOrErrcode: "401 / M_UNKNOWN_TOKEN", sdkErrorType: "AuthError", handling: "重新发起授权流程，不复用旧 state" },
+    { scenario: "请求参数缺失或 OIDC 未启用", httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "检查 redirectUrl、code、state 与服务端开关" },
+    { scenario: "授权被拒绝或回调校验失败", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "提示用户重新授权，必要时更换账号" },
+    { scenario: "限流或短暂服务异常", httpOrErrcode: "429 / M_LIMIT_EXCEEDED", sdkErrorType: "RetryableError", handling: "使用退避重试" },
+    { scenario: "其他 API 错误", httpOrErrcode: "其他 4xx/5xx", sdkErrorType: "ApiError", handling: "按 code 与 statusCode 做兜底处理" },
 ] as const;
 
 export type OidcErrorScenario = (typeof OIDC_ROUTES_ERROR_SCENARIOS)[number];

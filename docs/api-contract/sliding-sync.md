@@ -1,7 +1,7 @@
 ---
 module: sliding_sync
 generated_from: docs/api-contract/generated/modules/sliding_sync.json
-generated_hash: sha256-ea7c8f2314d7858ae6cc3789346ecef71ded670891b6194cce31e13acd5e67b3
+generated_hash: sha256-8047287935a9d3c975c5f16365289af0a0c6bce33bcbc4f94787a359b2f2a593
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -9,6 +9,7 @@ last_reviewed: 2026-05-03
 # Sliding Sync 契约
 
 > 审查来源: `synapse-rust/src/web/routes/sliding_sync.rs`
+> 审计状态: ✅ `MatrixClient.slidingSync()` 已绑定生成 `SlidingSyncPathPattern`
 
 ## 真实后端路由
 
@@ -21,6 +22,12 @@ last_reviewed: 2026-05-03
 | 端点                 | SDK Manager      | 方法     | 状态      |
 | -------------------- | ---------------- | -------- | --------- |
 | `POST /sync/sliding` | `SlidingSyncSdk` | `sync()` | ✅ 已封装 |
+
+## 本轮收口
+
+- `src/client.ts` 中的 `MatrixClient.slidingSync()` 现已将 `"/sync"` 绑定到生成的 `SlidingSyncPathPattern`。
+- SDK 继续默认走 `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` 前缀，并保留 `pos` / `timeout` 走查询参数、`clientTimeout` 只映射到 `localTimeoutMs` 的现有语义。
+- 当前契约主入口与单测断言已对齐，不再依赖裸字符串路径。
 
 ## 常见状态码
 

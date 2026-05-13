@@ -19,47 +19,18 @@ export const SEARCH_ROUTES_STATUS_SCENARIOS = [
     { status: 403, note: "无权搜索目标房间或查看用户资料" },
     { status: 404, note: "房间或事件不存在" },
     { status: 429, note: "触发限流" },
+    { status: 202, note: "按后端 ledger 扩展为 11 条路由口径，新增 search_recipients SDK 入口，并补充多入口映射与路径绑定说明 | 修复文档与 SDK 漂移" },
 ] as const;
 
 export type SearchStatusScenario = (typeof SEARCH_ROUTES_STATUS_SCENARIOS)[number];
 
 export const SEARCH_ROUTES_ERROR_SCENARIOS = [
-    {
-        scenario: "未认证或 token 失效",
-        httpOrErrcode: "401 / M_UNKNOWN_TOKEN",
-        sdkErrorType: "AuthError",
-        handling: "引导重新登录或刷新凭据",
-    },
-    {
-        scenario: "搜索条件不合法",
-        httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM",
-        sdkErrorType: "ApiError",
-        handling: "修正 term、limit、filter 后重试",
-    },
-    {
-        scenario: "无权访问目标房间或资料",
-        httpOrErrcode: "403 / M_FORBIDDEN",
-        sdkErrorType: "ApiError",
-        handling: "提示用户缺少对应房间成员资格或资料可见性",
-    },
-    {
-        scenario: "上下文房间/事件不存在",
-        httpOrErrcode: "404 / M_NOT_FOUND",
-        sdkErrorType: "NotFoundError",
-        handling: "提示目标房间或事件已不存在",
-    },
-    {
-        scenario: "限流或短暂服务异常",
-        httpOrErrcode: "429 / M_LIMIT_EXCEEDED",
-        sdkErrorType: "RetryableError",
-        handling: "使用退避重试",
-    },
-    {
-        scenario: "其他 API 错误",
-        httpOrErrcode: "其他 4xx/5xx",
-        sdkErrorType: "ApiError",
-        handling: "按 code 与 statusCode 做兜底处理",
-    },
+    { scenario: "未认证或 token 失效", httpOrErrcode: "401 / M_UNKNOWN_TOKEN", sdkErrorType: "AuthError", handling: "引导重新登录或刷新凭据" },
+    { scenario: "搜索条件不合法", httpOrErrcode: "400 / M_BAD_JSON M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "修正 term、limit、filter 后重试" },
+    { scenario: "无权访问目标房间或资料", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "提示用户缺少对应房间成员资格或资料可见性" },
+    { scenario: "上下文房间/事件不存在", httpOrErrcode: "404 / M_NOT_FOUND", sdkErrorType: "NotFoundError", handling: "提示目标房间或事件已不存在" },
+    { scenario: "限流或短暂服务异常", httpOrErrcode: "429 / M_LIMIT_EXCEEDED", sdkErrorType: "RetryableError", handling: "使用退避重试" },
+    { scenario: "其他 API 错误", httpOrErrcode: "其他 4xx/5xx", sdkErrorType: "ApiError", handling: "按 code 与 statusCode 做兜底处理" },
 ] as const;
 
 export type SearchErrorScenario = (typeof SEARCH_ROUTES_ERROR_SCENARIOS)[number];

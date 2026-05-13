@@ -46,6 +46,13 @@ import { BaseManager, type RequestStats } from "../managers/base-manager.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { NotFoundError, ValidationError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
+import type { BurnAfterReadPathPattern } from "./__generated__/route-table.ts";
+
+type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
+
+function bp<P extends StripV1<BurnAfterReadPathPattern>>(path: P): P {
+    return path;
+}
 
 const DEFAULT_BURN_AFTER_MS = 60000;
 const MAX_BURN_AFTER_MS = 86400000;
@@ -175,7 +182,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<IBurnSettings>(
                         Method.Put,
-                        `/rooms/${encodeURIComponent(roomId)}/burn`,
+                        bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         { enabled: true, burn_after_ms: burnMs },
                         { prefix: ClientPrefix.V1 },
@@ -207,7 +214,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<IBurnSettings>(
                         Method.Put,
-                        `/rooms/${encodeURIComponent(roomId)}/burn`,
+                        bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         { enabled: false },
                         { prefix: ClientPrefix.V1 },
@@ -239,7 +246,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<IBurnSettings>(
                         Method.Get,
-                        `/rooms/${encodeURIComponent(roomId)}/burn`,
+                        bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         undefined,
                         { prefix: ClientPrefix.V1 },
@@ -270,7 +277,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<{ events?: IBurnPendingEvent[] }>(
                         Method.Get,
-                        `/rooms/${encodeURIComponent(roomId)}/burn/pending`,
+                        bp(`/rooms/${encodeURIComponent(roomId)}/burn/pending` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         undefined,
                         { prefix: ClientPrefix.V1 },
@@ -297,7 +304,9 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<IMarkBurnReadResponse>(
                         Method.Post,
-                        `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
+                        bp(
+                            `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
+                        ),
                         undefined,
                         undefined,
                         { prefix: ClientPrefix.V1 },
@@ -342,7 +351,9 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<ICancelBurnResponse>(
                         Method.Delete,
-                        `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`,
+                        bp(
+                            `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
+                        ),
                         undefined,
                         undefined,
                         { prefix: ClientPrefix.V1 },
@@ -370,7 +381,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.client.http.authedRequest<ISetBurnConfigResponse>(
                         Method.Put,
-                        "/user/burn/config",
+                        bp("/user/burn/config"),
                         undefined,
                         { default_burn_ms: defaultBurnMs },
                         { prefix: ClientPrefix.V1 },
@@ -393,9 +404,15 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         try {
             const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest<IBurnStats>(Method.Get, "/user/burn/stats", undefined, undefined, {
-                        prefix: ClientPrefix.V1,
-                    }),
+                    this.client.http.authedRequest<IBurnStats>(
+                        Method.Get,
+                        bp("/user/burn/stats"),
+                        undefined,
+                        undefined,
+                        {
+                            prefix: ClientPrefix.V1,
+                        },
+                    ),
                 "getBurnStats",
             );
 
@@ -543,7 +560,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async markAsRead(roomId: string, eventId: string): Promise<void> {
+    public async markAsRead(_roomId: string, eventId: string): Promise<void> {
         const message = this.messages.get(eventId);
         if (!message) {
             return;

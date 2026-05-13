@@ -1,7 +1,7 @@
 ---
 module: space
 generated_from: docs/api-contract/generated/modules/space.json
-generated_hash: sha256-8a7226884b02bcaaa63b9a36885da8d27e61fcc96ef1b0b6268c97031e57cab5
+generated_hash: sha256-30c769630a31c89fc72d366d701eb324aa78e8c87b6dee89d49efb754f214b45
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -10,6 +10,7 @@ last_reviewed: 2026-05-03
 
 > 审查来源: `synapse-rust/src/web/routes/space.rs`、`space/lifecycle_query.rs`、`space/children_hierarchy.rs`、`space/membership_state.rs`、`space/summary.rs`、`space/types.rs`
 > 更新日期: 2026-04-27
+> 审计状态: ✅ 核心 `spaces/*` 路由族已与 SDK 对齐，SDK 默认收敛到 `v3` 主路径
 
 ## 挂载版本
 
@@ -150,6 +151,25 @@ last_reviewed: 2026-05-03
 - 文档只声明 `space/types.rs` 中显式可见的稳定 DTO 字段。
 - `GET /summary`、`GET /summary/with_children`、`GET /state`、`GET /statistics`、`GET /hierarchy/v1` 的具体深层字段由 service 直接序列化，当前文档不虚构未在路由层稳定暴露的子字段。
 - SDK 侧 `SpaceManager.getSpaceByRoom()` 对应后端 `GET /spaces/room/{room_id}`；若存在 `getRoomSpace()` 等别名，应视为 SDK 兼容封装，不影响后端契约。
+
+## SDK 对齐结论
+
+- `src/space/index.ts` 现已将核心 `/_matrix/client/v3/spaces/*` 路由绑定到生成的 `SpacePathPattern`。
+- `createSpace()`、`getSpace()`、`updateSpace()`、`deleteSpace()`、`getPublicSpaces()`、`searchSpaces()`、
+  `getSpaceStatistics()`、`getUserSpaces()`、`getSpaceChildren()`、`addChild()`、`removeChild()`、
+  `getSpaceMembers()`、`getSpaceRooms()`、`getSpaceState()`、`inviteToSpace()`、`joinSpace()`、
+  `leaveSpace()`、`getSpaceHierarchyPage()`、`getSpaceHierarchyV1()`、`getSpaceSummary()`、
+  `getSpaceSummaryWithChildren()`、`getSpaceTreePath()`、`getSpaceByRoom()`、`getRoomParentSpaces()`
+  已全部走 `v3` 主路径。
+- `r0` 与 `v1` 前缀在后端共享同一组处理器，SDK 默认选择 `v3` 作为主链路，因此 72 条展开路由在语义上已收敛为同一套封装。
+- `getRoomSpace()` 继续保留为 `getSpaceByRoom()` 的兼容别名，不影响契约覆盖率。
+
+## 覆盖率口径
+
+- **Ledger 展开路由数**: 72
+- **语义端点组数**: 24
+- **SDK 主路径覆盖**: 24/24
+- **契约覆盖率**: 100%
 
 ## 代码定位
 

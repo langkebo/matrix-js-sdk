@@ -1,7 +1,7 @@
 ---
 module: thirdparty
 generated_from: docs/api-contract/generated/modules/thirdparty.json
-generated_hash: sha256-b7bd440dde8b489b98506efe0c87e56384d5827698a877eadadd05314be63728
+generated_hash: sha256-38cc95cd56824e893c37dc6f3ef56046f9086af52bb1cf57a5050b0db7efd34a
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -149,24 +149,31 @@ interface UserResponse {
 
 | 后端端点                   | SDK 方法                              | 状态                                                    |
 | -------------------------- | ------------------------------------- | ------------------------------------------------------- |
-| `GET /protocols`           | `ThirdPartyManager.getProtocols()`    | ✅ 已封装                                               |
-| `GET /protocol/{protocol}` | `ThirdPartyManager.getProtocol()`     | ⚠️ 间接实现（复用 `getProtocols()` 全量查询后本地筛选） |
-| `GET /location/{protocol}` | `ThirdPartyManager.searchLocations()` | ✅ 已封装                                               |
-| `GET /user/{protocol}`     | `ThirdPartyManager.searchUsers()`     | ✅ 已封装                                               |
-| `GET /location`            | -                                     | ❌ 未封装                                               |
-| `GET /user`                | -                                     | ❌ 未封装                                               |
+| `GET /protocols`           | `ThirdPartyManager.getProtocols()`       | ✅ 已封装 |
+| `GET /protocol/{protocol}` | `ThirdPartyManager.getProtocol()`        | ✅ 已封装 |
+| `GET /location/{protocol}` | `ThirdPartyManager.searchLocations()`    | ✅ 已封装 |
+| `GET /user/{protocol}`     | `ThirdPartyManager.searchUsers()`        | ✅ 已封装 |
+| `GET /location`            | `ThirdPartyManager.searchAllLocations()` | ✅ 已封装 |
+| `GET /user`                | `ThirdPartyManager.searchAllUsers()`     | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 6
-- **直连已封装**: 3
-- **间接实现**: 1
-- **直连覆盖率**: 50%
+- **直连已封装**: 6
+- **间接实现**: 0
+- **直连覆盖率**: 100%
 
 ### 3.3 已知差异
 
-- `ThirdPartyManager.getProtocol()` 当前不会调用 `GET /thirdparty/protocol/{protocol}`，而是复用 `getProtocols()` 拉取全量协议后在本地筛选
-- 缺少 v3 的通用位置和用户查询方法
+- `src/thirdparty/index.ts` 现已绑定生成 `route-table` 的 `v3` 路径模式，避免手写 thirdparty 路由漂移。
+- `getProtocol()` 现已直连 `GET /thirdparty/protocol/{protocol}`。
+- `searchAllLocations()` / `searchAllUsers()` 补齐了 `v3` 通用位置与用户查询。
+
+### 3.4 人工 Review 对齐
+
+- 仍保留 `searchLocations(protocol, params)` 与 `searchUsers(protocol, params)` 作为按协议精确查询入口。
+- 新增 `searchAllLocations(params)` 与 `searchAllUsers(params)` 作为 `v3` 通用查询入口。
+- 单测已覆盖单协议直连、通用位置查询、通用用户查询和 fallback 行为。
 
 ## 四、常见错误码
 
@@ -181,3 +188,4 @@ interface UserResponse {
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
 | 2026-04-27 | 初版 | -    |
+| 2026-05-11 | 补齐 thirdparty 直连协议查询与 v3 通用查询封装 | 覆盖率更新为 100% |

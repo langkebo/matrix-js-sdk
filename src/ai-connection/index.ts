@@ -34,9 +34,11 @@ import { BaseManager } from "../managers/base-manager.js";
 import { Method } from "../http-api/method.js";
 import { MatrixClient } from "../client.js";
 import { InvalidParamError } from "../common/errors";
+import type { AiConnectionPathPattern } from "./__generated__/route-table.ts";
 
-/** 根路径前缀: ai_connection router 直接 merge 到主路由, 无 Matrix prefix */
-const AI_CONNECTION_PREFIX = "";
+function ap<P extends AiConnectionPathPattern>(path: P): P {
+    return path;
+}
 
 export enum AIConnectionEvent {
     ConnectionCreated = "ConnectionCreated",
@@ -111,7 +113,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         try {
             const connections = await this.client.http.authedRequest<AIConnection[]>(
                 Method.Get,
-                `${AI_CONNECTION_PREFIX}/connections`,
+                ap("/connections"),
                 undefined,
                 undefined,
                 { prefix: "" },
@@ -140,7 +142,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         try {
             const connection = await this.client.http.authedRequest<AIConnection>(
                 Method.Post,
-                `${AI_CONNECTION_PREFIX}/connections`,
+                ap("/connections"),
                 undefined,
                 {
                     provider: options.provider,
@@ -171,7 +173,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         try {
             const connection = await this.client.http.authedRequest<AIConnection>(
                 Method.Get,
-                `${AI_CONNECTION_PREFIX}/connections/${encodeURIComponent(connectionId)}`,
+                ap(`/connections/${encodeURIComponent(connectionId)}` as AiConnectionPathPattern),
                 undefined,
                 undefined,
                 { prefix: "" },
@@ -198,7 +200,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         try {
             await this.client.http.authedRequest(
                 Method.Delete,
-                `${AI_CONNECTION_PREFIX}/connections/${encodeURIComponent(connectionId)}`,
+                ap(`/connections/${encodeURIComponent(connectionId)}` as AiConnectionPathPattern),
                 undefined,
                 undefined,
                 { prefix: "" },
@@ -224,7 +226,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         try {
             const result = await this.client.http.authedRequest<unknown>(
                 Method.Get,
-                `${AI_CONNECTION_PREFIX}/mcp/tools`,
+                ap("/mcp/tools"),
                 { provider },
                 undefined,
                 { prefix: "" },
@@ -251,7 +253,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         try {
             const result = await this.client.http.authedRequest<unknown>(
                 Method.Post,
-                `${AI_CONNECTION_PREFIX}/mcp/tools/call`,
+                ap("/mcp/tools/call"),
                 undefined,
                 {
                     provider: options.provider,

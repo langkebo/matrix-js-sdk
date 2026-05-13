@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/key_backup.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `key_backup` module. */
@@ -126,7 +127,7 @@ export type KeyBackupPath = KeyBackupRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type KeyBackupReplaceBraces<P extends string> =
+export type KeyBackupReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${KeyBackupReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

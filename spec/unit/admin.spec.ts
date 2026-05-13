@@ -408,14 +408,14 @@ describe("AdminManager", () => {
 
         it("getUser should throw for 404 by default", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
-            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
             await expect(adminManager.getUser("@nonexistent:example.com")).rejects.toThrow(NotFoundError);
         });
 
         it("getUser should return null for 404 when throwOnError is false", async () => {
             const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "User not found" }, 404, undefined);
-            mockClient.http.authedRequest.mockRejectedValueOnce(matrixError);
+            mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
             const result = await adminManager.getUser("@nonexistent:example.com", false);
             expect(result).toBeNull();
@@ -622,7 +622,7 @@ describe("AdminManager", () => {
             const stats = await adminManager.getServerStats();
 
             expect(stats.total_users).toBe(100);
-            expect(adminManager.getCachedServerStats()?.total_users).toBe(100);
+            expect(adminManager.getServerStatsCached()?.total_users).toBe(100);
         });
 
         it("should get server version", async () => {

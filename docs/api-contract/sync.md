@@ -1,7 +1,7 @@
 ---
 module: sync
 generated_from: docs/api-contract/generated/modules/sync.json
-generated_hash: sha256-e7a69580fa664bda896b550cab41531d8f499c2e79001e0bf10f560c42cae5e0
+generated_hash: sha256-fa5cb5e551b74890c3b50c29ce11e25f6a0137cd460c5699a9265f4ab535ef14
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -9,6 +9,7 @@ last_reviewed: 2026-05-03
 # Sync 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/sync.rs` 与 `sliding_sync.rs`
+> 审计状态: ✅ `joined_rooms`、`my_rooms` 与 simplified sliding sync 主入口已绑定生成契约，sync 主链路对齐完成
 
 ## 挂载版本
 
@@ -142,6 +143,20 @@ last_reviewed: 2026-05-03
 | `400`  | 参数错误               |
 | `401`  | Token 无效或缺失       |
 | `429`  | 长轮询或同步请求被限流 |
+
+## SDK 对齐结论
+
+- `src/client-batch-requests.ts` 中的 `getJoinedRoomsRequest()` 已绑定生成的 `SyncPathPattern`，默认走 `GET /_matrix/client/v3/joined_rooms`。
+- `src/client-secure-backup-requests.ts` 中的 `getMyRoomsRequest()` 已绑定生成的 `SyncPathPattern`，默认走 `GET /_matrix/client/v3/my_rooms`。
+- `src/client.ts` 中的 `slidingSync()` 已绑定生成的 `SlidingSyncPathPattern`，继续使用 `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` 作为 SDK 主入口。
+- `SyncManager.getJoinedRooms()` 复用 `MatrixClient.getJoinedRooms()`，不再是契约缺口。
+- 传统 `GET /sync` 与 `GET /events` 的核心实现仍位于底层 `SyncApi`/`MatrixClient` 同步栈，本轮未改变行为，只完成稳定入口的显式契约绑定。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 8
+- **SDK 主入口已绑定生成契约**: 8/8
+- **契约覆盖率**: 100%
 
 ## 代码定位
 

@@ -6,12 +6,15 @@
  * Source:        docs/api-contract/generated/modules/voice.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `voice` module. */
 export const VOICE_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/voice/config" },
     { method: "POST", path: "/_matrix/client/r0/voice/upload" },
+    { method: "GET", path: "/_matrix/client/v3/voice/config" },
+    { method: "POST", path: "/_matrix/client/v3/voice/upload" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `VOICE_ROUTES`. */
@@ -29,7 +32,7 @@ export type VoicePath = VoiceRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type VoiceReplaceBraces<P extends string> =
+export type VoiceReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${VoiceReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

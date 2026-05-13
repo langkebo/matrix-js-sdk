@@ -18,6 +18,7 @@ export const TYPING_ROUTES_STATUS_SCENARIOS = [
     { status: 403, note: "M_FORBIDDEN | 非房间成员或尝试更新他人状态" },
     { status: 404, note: "M_NOT_FOUND | 房间不存在" },
     { status: 202, note: "初版 | -" },
+    { status: 202, note: "补充 TypingManager 人工封装对齐说明与测试口径 | 文档与实际实现同步" },
 ] as const;
 
 export type TypingStatusScenario = (typeof TYPING_ROUTES_STATUS_SCENARIOS)[number];

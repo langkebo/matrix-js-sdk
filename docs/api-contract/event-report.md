@@ -1,7 +1,7 @@
 ---
 module: event_report
 generated_from: docs/api-contract/generated/modules/event_report.json
-generated_hash: sha256-5f214615a29d1a132986610dc81060017476d993e9b80a334a22c9ba091bf4f6
+generated_hash: sha256-c2d29373e0209e9bf7a75c094eddcd7990ca51ec1e4bcbbe32c8d1ca3c4671b8
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -17,7 +17,13 @@ last_reviewed: 2026-05-03
 
 ### 1.1 功能描述
 
-Event Report API 提供管理员查看和管理用户举报的功能。
+Event Report API 提供管理员查看和管理用户举报的功能，覆盖：
+
+- 创建举报
+- 按主列表、事件、房间、举报人、状态查询举报
+- 举报总数与按状态计数
+- 更新、解决、驳回、升级、删除举报
+- 查询举报历史、频率限制状态与封禁/解封举报能力
 
 ### 1.2 路由前缀
 
@@ -95,24 +101,111 @@ interface EventReportDetail {
 {}
 ```
 
+### 2.4 创建举报
+
+**路径**: `POST /_synapse/admin/v1/event_reports`
+
+### 2.5 举报总数
+
+**路径**: `GET /_synapse/admin/v1/event_reports/count`
+
+### 2.6 更新举报
+
+**路径**: `PUT /_synapse/admin/v1/event_reports/{report_id}`
+
+### 2.7 解决举报
+
+**路径**: `POST /_synapse/admin/v1/event_reports/{report_id}/resolve`
+
+### 2.8 驳回举报
+
+**路径**: `POST /_synapse/admin/v1/event_reports/{report_id}/dismiss`
+
+### 2.9 升级举报
+
+**路径**: `POST /_synapse/admin/v1/event_reports/{report_id}/escalate`
+
+### 2.10 举报历史
+
+**路径**: `GET /_synapse/admin/v1/event_reports/{report_id}/history`
+
+### 2.11 按事件查询
+
+**路径**: `GET /_synapse/admin/v1/event_reports/event/{event_id}`
+
+### 2.12 按房间查询
+
+**路径**: `GET /_synapse/admin/v1/event_reports/room/{room_id}`
+
+### 2.13 按举报人查询
+
+**路径**: `GET /_synapse/admin/v1/event_reports/reporter/{reporter_id}`
+
+### 2.14 按状态查询
+
+**路径**: `GET /_synapse/admin/v1/event_reports/status/{status}`
+
+### 2.15 状态计数
+
+**路径**: `GET /_synapse/admin/v1/event_reports/status/{status}/count`
+
+### 2.16 统计信息
+
+**路径**: `GET /_synapse/admin/v1/event_reports/stats`
+
+### 2.17 频率限制查询
+
+**路径**: `GET /_synapse/admin/v1/event_reports/rate_limit/{user_id}`
+
+### 2.18 封禁用户
+
+**路径**: `POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block`
+
+### 2.19 解封用户
+
+**路径**: `POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock`
+
 ## 三、SDK 对齐状态
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点                     | SDK 方法 | 状态      |
-| ---------------------------- | -------- | --------- |
-| `GET /event_reports`         | -        | ❌ 未封装 |
-| `GET /event_reports/{id}`    | -        | ❌ 未封装 |
-| `DELETE /event_reports/{id}` | -        | ❌ 未封装 |
+| 后端端点                                      | SDK 方法                                | 状态      |
+| --------------------------------------------- | --------------------------------------- | --------- |
+| `POST /event_reports`                         | `eventReportManager.createReport()`     | ✅ 已封装 |
+| `GET /event_reports`                          | `eventReportManager.listReports()`      | ✅ 已封装 |
+| `GET /event_reports/count`                    | `eventReportManager.getReportsCount()`  | ✅ 已封装 |
+| `GET /event_reports/{id}`                     | `eventReportManager.getReport()`        | ✅ 已封装 |
+| `PUT /event_reports/{id}`                     | `eventReportManager.updateReport()`     | ✅ 已封装 |
+| `DELETE /event_reports/{id}`                  | `eventReportManager.deleteReport()`     | ✅ 已封装 |
+| `POST /event_reports/{id}/resolve`            | `eventReportManager.resolveReport()`    | ✅ 已封装 |
+| `POST /event_reports/{id}/dismiss`            | `eventReportManager.dismissReport()`    | ✅ 已封装 |
+| `POST /event_reports/{id}/escalate`           | `eventReportManager.escalateReport()`   | ✅ 已封装 |
+| `GET /event_reports/{id}/history`             | `eventReportManager.getReportHistory()` | ✅ 已封装 |
+| `GET /event_reports/event/{event_id}`         | `eventReportManager.getReportsByEvent()`| ✅ 已封装 |
+| `GET /event_reports/room/{room_id}`           | `eventReportManager.getReportsByRoom()` | ✅ 已封装 |
+| `GET /event_reports/reporter/{reporter_id}`   | `eventReportManager.getReportsByReporter()` | ✅ 已封装 |
+| `GET /event_reports/status/{status}`          | `eventReportManager.getReportsByStatus()` | ✅ 已封装 |
+| `GET /event_reports/status/{status}/count`    | `eventReportManager.getStatusCount()`   | ✅ 已封装 |
+| `GET /event_reports/stats`                    | `eventReportManager.getStats()`         | ✅ 已封装 |
+| `GET /event_reports/rate_limit/{user_id}`     | `eventReportManager.checkRateLimit()`   | ✅ 已封装 |
+| `POST /event_reports/rate_limit/{user_id}/block`   | `eventReportManager.blockUser()`    | ✅ 已封装 |
+| `POST /event_reports/rate_limit/{user_id}/unblock` | `eventReportManager.unblockUser()`  | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
-- **总端点数**: 3
-- **已封装**: 0
-- **覆盖率**: 0%
+- **总端点数**: 19
+- **已封装**: 19
+- **覆盖率**: 100%
+
+### 3.3 人工 Review 收口
+
+- 手写 manager 已绑定 [route-table.ts](file:///Users/ljf/Desktop/hu_ts/matrix-js-sdk/src/event-report/__generated__/route-table.ts)，避免 ledger 扩展后路径继续漂移
+- 新增 `count / by-event / by-room / by-reporter / by-status / status-count` 等查询方法
+- 新增定向单测 [event-report.spec.ts](file:///Users/ljf/Desktop/hu_ts/matrix-js-sdk/spec/unit/event-report.spec.ts)，覆盖新增端点与参数校验
 
 ## 四、变更历史
 
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
 | 2026-04-27 | 初版 | -    |
+| 2026-05-10 | 补齐 `EventReportManager` 缺失端点并增加单测 | SDK 覆盖率提升至 100% |

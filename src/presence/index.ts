@@ -30,8 +30,15 @@ import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { AdminValidators } from "../admin/validators";
 import { AuthError, ValidationError } from "../errors";
+import type { PresencePathPattern } from "./__generated__/route-table.ts";
 
 const PRESENCE_PREFIX = "/_matrix/client/v3";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function pp<P extends StripV3<PresencePathPattern>>(path: P): P {
+    return path;
+}
 
 export enum PresenceEvent {
     PresenceUpdated = "PresenceUpdated",
@@ -136,7 +143,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
                 () =>
                     this.client.http.authedRequest(
                         Method.Put,
-                        `/presence/${encodeURIComponent(userId)}/status`,
+                        pp(`/presence/${encodeURIComponent(userId)}/status`),
                         {},
                         {
                             presence: state,
@@ -210,7 +217,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
             () =>
                 this.client.http.authedRequest<IPresenceState>(
                     Method.Get,
-                    `/presence/${encodeURIComponent(userId)}/status`,
+                    pp(`/presence/${encodeURIComponent(userId)}/status`),
                     {},
                     undefined,
                     { prefix: PRESENCE_PREFIX, priority: undefined },
@@ -329,7 +336,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
                   () =>
                       this.client.http.authedRequest<IPresenceList>(
                           Method.Get,
-                          `/presence/list/${encodeURIComponent(targetUserId)}`,
+                          pp(`/presence/list/${encodeURIComponent(targetUserId)}`),
                           {},
                           undefined,
                           { prefix: PRESENCE_PREFIX, priority: undefined },
@@ -340,7 +347,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
                   () =>
                       this.client.http.authedRequest<IPresenceList>(
                           Method.Post,
-                          "/presence/list",
+                          pp("/presence/list"),
                           {},
                           {},
                           {
@@ -444,7 +451,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
                 () =>
                     this.client.http.authedRequest<IPresenceList>(
                         Method.Post,
-                        "/presence/list",
+                        pp("/presence/list"),
                         {},
                         { subscribe: userIds },
                         { prefix: PRESENCE_PREFIX, priority: undefined },
@@ -477,7 +484,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
                 () =>
                     this.client.http.authedRequest<IPresenceList>(
                         Method.Post,
-                        "/presence/list",
+                        pp("/presence/list"),
                         {},
                         { unsubscribe: userIds },
                         { prefix: PRESENCE_PREFIX, priority: undefined },

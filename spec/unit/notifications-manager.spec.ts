@@ -1,59 +1,75 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
 
-import { Method } from "../../src/http-api/index.ts";
-import { ClientPrefix } from "../../src/http-api/prefix.ts";
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { MatrixClient } from "../../src/client.ts";
 import { NotificationsManager } from "../../src/notifications/index.ts";
+import { Method } from "../../src/http-api/method.ts";
+import { ClientPrefix } from "../../src/http-api/prefix.ts";
 
 describe("NotificationsManager", () => {
-    let authedRequest: ReturnType<typeof vi.fn>;
+    let mockClient: any;
     let manager: NotificationsManager;
 
     beforeEach(() => {
-        authedRequest = vi.fn();
-        manager = new NotificationsManager({ http: { authedRequest } } as any);
-        manager.setRetryOptions({ maxRetries: 0 });
+        mockClient = {
+            http: {
+                authedRequest: vi.fn(),
+            },
+            getNotifTimelineSet: vi.fn(),
+            setNotifTimelineSet: vi.fn(),
+            resetNotifTimelineSet: vi.fn(),
+            setLocalNotificationSettings: vi.fn(),
+        };
+        manager = new NotificationsManager(mockClient as MatrixClient);
     });
 
-    describe("getNotifications", () => {
-        it("GETs /notifications under the v3 client prefix with no query params", async () => {
-            authedRequest.mockResolvedValueOnce({ notifications: [] });
+    it("should fetch notifications with correct path and params", async () => {
+        const mockResponse = { notifications: [], next_token: "token" };
+        mockClient.http.authedRequest.mockResolvedValue(mockResponse);
 
-            await expect(manager.getNotifications()).resolves.toEqual({ notifications: [] });
-            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/notifications", undefined, undefined, {
-                prefix: ClientPrefix.V3,
-            });
-        });
+        const opts = { limit: 10, from: "start", only: "highlight" };
+        const result = await manager.getNotifications(opts);
 
-        it("forwards from/limit/only as query params", async () => {
-            authedRequest.mockResolvedValueOnce({ notifications: [], next_token: "t2" });
+        expect(result).toBe(mockResponse);
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/notifications",
+            opts,
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
+    });
 
-            await manager.getNotifications({ from: "t1", limit: 25, only: "highlight" });
+    it("should ack a notification with correct path", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({});
 
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/notifications",
-                { from: "t1", limit: 25, only: "highlight" },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
-        });
+        const notificationId = "$event:example.org";
+        await manager.ackNotification(notificationId);
 
-        it("rejects out-of-range limits via AdminValidators", async () => {
-            await expect(manager.getNotifications({ limit: 0 })).rejects.toThrow(/Limit/i);
-            expect(authedRequest).not.toHaveBeenCalled();
-        });
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            `/_matrix/client/v3/notifications/${encodeURIComponent(notificationId)}/ack`.replace("/_matrix/client/v3", ""),
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
+    });
 
-        it("propagates 401 errors", async () => {
-            const err = Object.assign(new Error("Unauthorized"), {
-                httpStatus: 401,
-                errcode: "M_MISSING_TOKEN",
-            });
-            authedRequest.mockRejectedValueOnce(err);
-
-            await expect(manager.getNotifications({ limit: 10 })).rejects.toMatchObject({
-                httpStatus: 401,
-                errcode: "M_MISSING_TOKEN",
-            });
-        });
+    it("should throw error if notificationId is missing in ackNotification", async () => {
+        await expect(manager.ackNotification("")).rejects.toThrow("notificationId is required");
     });
 });

@@ -19,6 +19,7 @@ export const MODERATION_ROUTES_STATUS_SCENARIOS = [
     { status: 404, note: "M_NOT_FOUND | 事件或房间不存在" },
     { status: 429, note: "M_LIMIT_EXCEEDED | 举报频率过高" },
     { status: 202, note: "初版 | -" },
+    { status: 202, note: "修正文档中遗漏的房间级举报封装状态 | 覆盖率从 75% 更新为 100%" },
 ] as const;
 
 export type ModerationStatusScenario = (typeof MODERATION_ROUTES_STATUS_SCENARIOS)[number];

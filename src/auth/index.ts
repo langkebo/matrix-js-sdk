@@ -36,11 +36,19 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { ClientPrefix } from "../http-api/prefix.ts";
 import { type ILoginFlowsResponse } from "../@types/auth";
 import { type RegisterRequest, type RegisterResponse } from "../@types/registration";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
+import type { AuthPathPattern } from "./__generated__/route-table.ts";
+
+type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+    return path;
+}
 
 // 数据约束常量
 const USERNAME_MAX_LENGTH = 255;
@@ -106,16 +114,6 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     private validatePassword(password: string): void {
         if (password.length > PASSWORD_MAX_LENGTH) {
             throw new ValidationError(`Password too long (max ${PASSWORD_MAX_LENGTH} characters)`);
-        }
-    }
-
-    /**
-     * 验证 device_id 格式
-     * @throws {ValidationError} 当 device_id 格式不正确时
-     */
-    private validateDeviceId(deviceId: string): void {
-        if (deviceId.length !== DEVICE_ID_LENGTH) {
-            throw new ValidationError(`Invalid device_id length (expected ${DEVICE_ID_LENGTH} characters)`);
         }
     }
 
@@ -195,9 +193,9 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
         try {
             const flows = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ILoginFlowsResponse>(
+                return await this.client.http.request<ILoginFlowsResponse>(
                     Method.Get,
-                    "/login",
+                    ap("/login"),
                     undefined,
                     undefined,
                     { prefix: undefined },
@@ -229,9 +227,9 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
         try {
             const flows = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RegisterFlowsResponse>(
+                return await this.client.http.request<RegisterFlowsResponse>(
                     Method.Get,
-                    "/register",
+                    ap("/register"),
                     undefined,
                     undefined,
                     { prefix: undefined },
@@ -407,8 +405,8 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
         return this.withRetry(
             async () =>
-                this.client.http.authedRequest<RegisterResponse>(Method.Post, "/register", undefined, params, {
-                    prefix: undefined,
+                this.client.http.request<RegisterResponse>(Method.Post, ap("/register"), undefined, params, {
+                    prefix: ClientPrefix.V3,
                 }),
             "register",
         );
@@ -423,8 +421,8 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     public async registerGuest(body?: RegisterRequest): Promise<RegisterResponse> {
         return this.withRetry(
             async () =>
-                this.client.http.authedRequest<RegisterResponse>(Method.Post, "/register", undefined, body || {}, {
-                    prefix: undefined,
+                this.client.http.request<RegisterResponse>(Method.Post, ap("/register"), undefined, body || {}, {
+                    prefix: ClientPrefix.V3,
                 }),
             "registerGuest",
         );

@@ -10,8 +10,14 @@
  */
 
 export interface EphemeralEventsResponse {
-    events: Array<{
+    chunk: Array<{
         type: string;
-        content: object;
+        sender: string;
+        content: Record<string, unknown>;
+        origin_server_ts: number;
+        stream_id: number;
+        event_id: string;
     }>;
+    start?: string;
+    end?: string;
 }

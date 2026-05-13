@@ -7,14 +7,18 @@ describe("GuestManager", () => {
     let request: ReturnType<typeof vi.fn>;
     let authedRequest: ReturnType<typeof vi.fn>;
     let getUserId: ReturnType<typeof vi.fn>;
+    let getRooms: ReturnType<typeof vi.fn>;
+    let joinRoom: ReturnType<typeof vi.fn>;
     let manager: GuestManager;
 
     beforeEach(() => {
         request = vi.fn();
         authedRequest = vi.fn();
         getUserId = vi.fn().mockReturnValue("@g:e");
+        getRooms = vi.fn().mockReturnValue([]);
+        joinRoom = vi.fn();
         manager = new GuestManager(
-            { http: { request, authedRequest }, getUserId, getHomeserverUrl: () => "https://h" } as any,
+            { http: { request, authedRequest }, getUserId, getRooms, joinRoom, getHomeserverUrl: () => "https://h" } as any,
             "https://h",
         );
         manager.setRetryOptions({ maxRetries: 0 });
@@ -100,17 +104,21 @@ describe("GuestManager", () => {
     describe("getGuestInfoFromServer", () => {
         it("GETs /account/guest and emits GuestInfoReceived", async () => {
             authedRequest.mockResolvedValueOnce({
-                guest: { user_id: "@g:e", device_id: "D", is_guest: true },
+                user_id: "@g:e",
+                is_guest: true,
             });
             const emitted: unknown[] = [];
             manager.on(GuestEvent.GuestInfoReceived, (g) => emitted.push(g));
 
-            await manager.getGuestInfoFromServer();
+            await expect(manager.getGuestInfoFromServer()).resolves.toEqual({
+                user_id: "@g:e",
+                is_guest: true,
+            });
 
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/account/guest", undefined, undefined, {
                 prefix: "/_matrix/client/v3",
             });
-            expect(emitted).toHaveLength(1);
+            expect(emitted).toEqual([{ user_id: "@g:e", is_guest: true }]);
         });
 
         it("propagates 401 errors", async () => {
@@ -122,8 +130,14 @@ describe("GuestManager", () => {
     });
 
     describe("upgradeGuestAccountOnServer", () => {
+        it("requires username for the backend guest upgrade route", async () => {
+            await expect(manager.upgradeGuestAccountOnServer({ password: "pw" } as any)).rejects.toThrow(
+                "username is required",
+            );
+        });
+
         it("POSTs /account/guest/upgrade and emits GuestUpgraded", async () => {
-            authedRequest.mockResolvedValueOnce({ user_id: "@u:e", access_token: "tok2" });
+            authedRequest.mockResolvedValueOnce({ success: true, user_id: "@u:e", access_token: "tok2" });
             const emitted: unknown[] = [];
             manager.on(GuestEvent.GuestUpgraded, (u) => emitted.push(u));
 
@@ -137,6 +151,16 @@ describe("GuestManager", () => {
                 { prefix: "/_matrix/client/v3" },
             );
             expect(emitted).toEqual(["@u:e"]);
+        });
+
+        it("checks current-user guest state via /account/guest", async () => {
+            authedRequest.mockResolvedValueOnce({
+                user_id: "@g:e",
+                device_id: "D",
+                is_guest: true,
+            });
+
+            await expect(manager.isGuest()).resolves.toBe(true);
         });
     });
 
@@ -159,6 +183,43 @@ describe("GuestManager", () => {
         });
     });
 
+    describe("generated v3 contract paths", () => {
+        it("uses generated-compatible backend guest paths", async () => {
+            request.mockResolvedValueOnce({ user_id: "@g:e", device_id: "D", access_token: "tok" });
+            authedRequest
+                .mockResolvedValueOnce({ user_id: "@g:e", is_guest: true })
+                .mockResolvedValueOnce({ success: true, user_id: "@u:e", access_token: "tok2" });
+
+            await manager.registerGuestOnServer("D");
+            await manager.getGuestInfoFromServer();
+            await manager.upgradeGuestAccountOnServer({ username: "u", password: "pw" });
+
+            expect(request).toHaveBeenCalledWith(
+                Method.Post,
+                "/register/guest",
+                undefined,
+                { device_id: "D" },
+                { prefix: "/_matrix/client/v3" },
+            );
+            expect(authedRequest).toHaveBeenNthCalledWith(
+                1,
+                Method.Get,
+                "/account/guest",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+            expect(authedRequest).toHaveBeenNthCalledWith(
+                2,
+                Method.Post,
+                "/account/guest/upgrade",
+                undefined,
+                { username: "u", password: "pw" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
     describe("canJoinRoom", () => {
         it("returns false for empty input", async () => {
             await expect(manager.canJoinRoom("")).resolves.toBe(false);
@@ -176,6 +237,50 @@ describe("GuestManager", () => {
         it("returns false when alias lookup fails", async () => {
             authedRequest.mockRejectedValueOnce(Object.assign(new Error("nf"), { httpStatus: 404 }));
             await expect(manager.canJoinRoom("#a:e")).resolves.toBe(false);
+        });
+    });
+
+    describe("room and local guest helpers", () => {
+        it("getGuestRooms returns joined room ids for the active guest session", async () => {
+            request.mockResolvedValueOnce({ user_id: "@g:e", device_id: "D", access_token: "tok" });
+            getRooms.mockReturnValue([{ roomId: "!a:e" }, { roomId: "!b:e" }]);
+
+            await manager.registerGuest();
+
+            await expect(manager.getGuestRooms()).resolves.toEqual(["!a:e", "!b:e"]);
+        });
+
+        it("joinRoomAsGuest joins through the client when a guest session exists", async () => {
+            request.mockResolvedValueOnce({ user_id: "@g:e", device_id: "D", access_token: "tok" });
+            joinRoom.mockResolvedValueOnce({ roomId: "!joined:e" });
+
+            await manager.registerGuest();
+
+            await expect(manager.joinRoomAsGuest("#alias:e")).resolves.toEqual({ roomId: "!joined:e" });
+            expect(joinRoom).toHaveBeenCalledWith("#alias:e");
+        });
+
+        it("exposes and clears the guest access token through local helpers", async () => {
+            request.mockResolvedValueOnce({ user_id: "@g:e", device_id: "D", access_token: "tok" });
+
+            await manager.registerGuest();
+
+            await expect(manager.getGuestAccessToken()).resolves.toBe("tok");
+            expect(manager.isGuestTokenValid()).toBe(true);
+
+            manager.clearGuestInfo();
+
+            await expect(manager.getGuestAccessToken()).resolves.toBeNull();
+            expect(manager.isGuestTokenValid()).toBe(false);
+        });
+
+        it("stop clears local guest info", async () => {
+            request.mockResolvedValueOnce({ user_id: "@g:e", device_id: "D", access_token: "tok" });
+
+            await manager.registerGuest();
+            manager.stop();
+
+            expect(manager.getGuestInfo()).toBeNull();
         });
     });
 });

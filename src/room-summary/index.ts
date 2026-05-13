@@ -36,6 +36,23 @@ import { BaseManager } from "../managers/base-manager.ts";
 import { getOrCreateManager } from "../client-infra/manager-registry.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types.ts";
+import type { RoomSummaryPathPattern } from "./__generated__/route-table.ts";
+
+type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
+type StripInternalSummary<P extends string> = P extends `/_synapse/room_summary/v1${infer Rest}` ? Rest : never;
+
+function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+    return path;
+}
+
+function rsr0<P extends StripClientR0<RoomSummaryPathPattern>>(path: P): P {
+    return path;
+}
+
+function rsi<P extends StripInternalSummary<RoomSummaryPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface RoomSummaryHero {
     user_id: string;
@@ -227,6 +244,100 @@ export interface RoomMetadata {
 export interface RetentionPolicy {
     min_lifetime?: number;
     max_lifetime?: number;
+}
+
+export interface RoomPermissionsResult {
+    [key: string]: unknown;
+}
+
+export interface RoomResolveResult {
+    [key: string]: unknown;
+}
+
+export interface RoomMessageQueueResult {
+    events?: unknown[];
+    next_batch?: string | null;
+    [key: string]: unknown;
+}
+
+export interface RoomServiceTypesResult {
+    service_types: string[];
+    [key: string]: unknown;
+}
+
+export interface RoomReducedEventsResult {
+    events: unknown[];
+    total?: number;
+    [key: string]: unknown;
+}
+
+export interface RoomRenderedResult {
+    [key: string]: unknown;
+}
+
+export interface RoomFragmentsResult {
+    [key: string]: unknown;
+}
+
+export interface RoomDeviceResult {
+    [key: string]: unknown;
+}
+
+export interface RoomEventUrlResult {
+    url?: string;
+    [key: string]: unknown;
+}
+
+export interface RoomTranslateResult {
+    [key: string]: unknown;
+}
+
+export interface RoomConvertResult {
+    [key: string]: unknown;
+}
+
+export interface RoomSignResult {
+    [key: string]: unknown;
+}
+
+export interface RoomVerifyResult {
+    [key: string]: unknown;
+}
+
+export interface RoomAccountDataResult {
+    [key: string]: unknown;
+}
+
+export interface RoomInvitesResult {
+    [key: string]: unknown;
+}
+
+export interface RoomKeyClaimResult {
+    [key: string]: unknown;
+}
+
+export interface RoomKeyCountResult {
+    [key: string]: unknown;
+}
+
+export interface RoomKeysVersionResult {
+    [key: string]: unknown;
+}
+
+export interface RoomMembersRecentResult {
+    [key: string]: unknown;
+}
+
+export interface RoomReceiptsResult {
+    [key: string]: unknown;
+}
+
+export interface RoomForwardKeysResult {
+    [key: string]: unknown;
+}
+
+export interface RoomSearchResult {
+    [key: string]: unknown;
 }
 
 export interface ExternalId {
@@ -533,6 +644,40 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
     }
 
+    private summaryReadPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
+    }
+
+    private summaryMembersPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/members`);
+    }
+
+    private summaryStatsPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/stats`);
+    }
+
+    private summaryStateCollectionPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/state`);
+    }
+
+    private summaryMemberPath(roomId: string, userId: string): StripClientV3<RoomSummaryPathPattern> {
+        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/members/${encodeURIComponent(userId)}`);
+    }
+
+    private summaryStatePath(
+        roomId: string,
+        eventType: string,
+        stateKey: string,
+    ): StripClientV3<RoomSummaryPathPattern> {
+        return rsv(
+            `/rooms/${encodeURIComponent(roomId)}/summary/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`,
+        );
+    }
+
+    private internalSummaryPath(path: "/summaries" | "/updates/process"): StripInternalSummary<RoomSummaryPathPattern> {
+        return rsi(path);
+    }
+
     /**
      * 获取房间摘要
      *
@@ -584,10 +729,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                     prefix: ClientPrefix.V3,
                 };
                 try {
-                    const path = utils.encodeUri("/rooms/$roomid/summary", { $roomid: roomIdOrAlias });
                     return await this.client.http.authedRequest(
                         Method.Get,
-                        path,
+                        this.summaryReadPath(roomIdOrAlias),
                         via ? { via } : undefined,
                         undefined,
                         paramOpts,
@@ -596,10 +740,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                     const unstableOpts = {
                         prefix: "/_matrix/client/unstable/im.nheko.summary",
                     };
-                    const path = utils.encodeUri("/summary/$roomid", { $roomid: roomIdOrAlias });
                     return await this.client.http.authedRequest(
                         Method.Get,
-                        path,
+                        `/summary/${encodeURIComponent(roomIdOrAlias)}`,
                         via ? { via } : undefined,
                         undefined,
                         unstableOpts,
@@ -645,10 +788,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         return this.withRetry(async () => {
-            const path = utils.encodeUri("/rooms/$roomid/summary/members", { $roomid: roomId });
-            return await this.client.http.authedRequest<RoomSummaryMember[]>(Method.Get, path, undefined, undefined, {
+            return await this.client.http.authedRequest<RoomSummaryMember[]>(
+                Method.Get,
+                this.summaryMembersPath(roomId),
+                undefined,
+                undefined,
+                {
                 prefix: ClientPrefix.V3,
-            });
+                },
+            );
         }, "getRoomSummaryMembers").then(
             (members) => {
                 this.memberCache.set(roomId, members);
@@ -690,10 +838,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
         try {
             const stats = await this.withRetry(async () => {
-                const path = utils.encodeUri("/rooms/$roomid/summary/stats", { $roomid: roomId });
-                return await this.client.http.authedRequest<RoomStats>(Method.Get, path, undefined, undefined, {
+                return await this.client.http.authedRequest<RoomStats>(
+                    Method.Get,
+                    this.summaryStatsPath(roomId),
+                    undefined,
+                    undefined,
+                    {
                     prefix: ClientPrefix.V3,
-                });
+                    },
+                );
             }, "getRoomSummaryStats");
             if (stats) {
                 this.statsCache.set(roomId, stats);
@@ -720,7 +873,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             const summary = await this.withRetry(async () => {
                 return await this.requestV3<RoomSummary>(
                     Method.Post,
-                    this.roomSummaryPath("/rooms/$roomId/summary", roomId),
+                    this.summaryReadPath(roomId),
                     undefined,
                     body,
                 );
@@ -743,7 +896,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             const summary = await this.withRetry(async () => {
                 return await this.requestV3<RoomSummary>(
                     Method.Put,
-                    this.roomSummaryPath("/rooms/$roomId/summary", roomId),
+                    this.summaryReadPath(roomId),
                     undefined,
                     body,
                 );
@@ -765,7 +918,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            await this.requestV3(Method.Delete, this.roomSummaryPath("/rooms/$roomId/summary", roomId));
+            await this.requestV3(Method.Delete, this.summaryReadPath(roomId));
             this.clearCache(roomId);
         }, "deleteSummary");
     }
@@ -776,7 +929,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             return await this.requestV3<Record<string, unknown>>(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/summary/sync", roomId),
+                rsv(`/rooms/${encodeURIComponent(roomId)}/summary/sync`),
                 undefined,
                 body,
             );
@@ -793,7 +946,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             const response = await this.withRetry(async () => {
                 return await this.requestV3<{ members?: RoomSummaryMember[] } | RoomSummaryMember[]>(
                     Method.Post,
-                    this.roomSummaryPath("/rooms/$roomId/summary/members", roomId),
+                    this.summaryMembersPath(roomId),
                     undefined,
                     { members },
                 );
@@ -819,7 +972,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             const updatedMember = await this.requestV3<Record<string, unknown>>(
                 Method.Put,
-                encodeUri("/rooms/$roomId/summary/members/$userId", { $roomId: roomId, $userId: userId }),
+                this.summaryMemberPath(roomId, userId),
                 undefined,
                 member,
             );
@@ -835,7 +988,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             await this.requestV3(
                 Method.Delete,
-                encodeUri("/rooms/$roomId/summary/members/$userId", { $roomId: roomId, $userId: userId }),
+                this.summaryMemberPath(roomId, userId),
             );
             this.clearCache(roomId);
         }, "deleteSummaryMember");
@@ -847,7 +1000,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             return await this.requestV3<IRoomSummaryState[]>(
                 Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/summary/state`,
+                this.summaryStateCollectionPath(roomId),
             );
         }, "getAllSummaryState");
     }
@@ -863,11 +1016,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             return await this.requestV3<RoomSummaryStateContent>(
                 Method.Get,
-                encodeUri("/rooms/$roomId/summary/state/$eventType/$stateKey", {
-                    $roomId: roomId,
-                    $eventType: eventType,
-                    $stateKey: stateKey,
-                }),
+                this.summaryStatePath(roomId, eventType, stateKey),
             );
         }, "getSummaryState");
     }
@@ -884,11 +1033,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         try {
             return await this.requestV3<RoomSummaryStateContent>(
                 Method.Put,
-                encodeUri("/rooms/$roomId/summary/state/$eventType/$stateKey", {
-                    $roomId: roomId,
-                    $eventType: eventType,
-                    $stateKey: stateKey,
-                }),
+                this.summaryStatePath(roomId, eventType, stateKey),
                 undefined,
                 content,
             );
@@ -907,7 +1052,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             const stats = await this.withRetry(async () => {
                 return await this.requestV3<RoomStats>(
                     Method.Post,
-                    this.roomSummaryPath("/rooms/$roomId/summary/stats/recalculate", roomId),
+                    rsv(`/rooms/${encodeURIComponent(roomId)}/summary/stats/recalculate`),
                     undefined,
                     body,
                 );
@@ -932,7 +1077,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             const result = await this.requestV3<Record<string, unknown>>(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/summary/heroes/recalculate", roomId),
+                rsv(`/rooms/${encodeURIComponent(roomId)}/summary/heroes/recalculate`),
                 undefined,
                 body,
             );
@@ -950,7 +1095,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             const result = await this.requestV3<Record<string, unknown>>(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/summary/unread/clear", roomId),
+                rsv(`/rooms/${encodeURIComponent(roomId)}/summary/unread/clear`),
                 undefined,
                 body,
             );
@@ -963,7 +1108,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             const result = await this.requestInternal<RawRoomSummaryListResponse>(
                 Method.Get,
-                "/summaries",
+                this.internalSummaryPath("/summaries"),
                 queryParams,
             );
             if (Array.isArray(result)) {
@@ -983,7 +1128,12 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         return this.withRetry(async () => {
-            return await this.requestInternal<Record<string, unknown>>(Method.Post, "/summaries", undefined, body);
+            return await this.requestInternal<Record<string, unknown>>(
+                Method.Post,
+                this.internalSummaryPath("/summaries"),
+                undefined,
+                body,
+            );
         }, "createInternalSummary");
     }
 
@@ -991,7 +1141,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             return await this.requestInternal<Record<string, unknown>>(
                 Method.Post,
-                "/updates/process",
+                this.internalSummaryPath("/updates/process"),
                 undefined,
                 body,
             );
@@ -1355,6 +1505,167 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     /**
+     * 获取房间 account data
+     */
+    public async getRoomAccountData(roomId: string, type: string): Promise<RoomAccountDataResult> {
+        this.validateRoomId(roomId);
+        if (!type) throw new InvalidParamError("type is required");
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                encodeUri("/rooms/$roomId/account_data/$type", { $roomId: roomId, $type: type }),
+            );
+        }, "getRoomAccountData");
+    }
+
+    /**
+     * 设置房间 account data
+     */
+    public async setRoomAccountDataV3(
+        roomId: string,
+        type: string,
+        content: Record<string, unknown>,
+    ): Promise<RoomAccountDataResult> {
+        this.validateRoomId(roomId);
+        if (!type) throw new InvalidParamError("type is required");
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Put,
+                encodeUri("/rooms/$roomId/account_data/$type", { $roomId: roomId, $type: type }),
+                undefined,
+                content as Body,
+            );
+        }, "setRoomAccountDataV3");
+    }
+
+    /**
+     * 获取房间邀请列表
+     */
+    public async getRoomInvites(roomId: string): Promise<RoomInvitesResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/invites", roomId));
+        }, "getRoomInvites");
+    }
+
+    /**
+     * 申领房间密钥
+     */
+    public async claimRoomKeys(roomId: string, body: Record<string, unknown>): Promise<RoomKeyClaimResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Post,
+                this.roomSummaryPath("/rooms/$roomId/keys/claim", roomId),
+                undefined,
+                body as Body,
+            );
+        }, "claimRoomKeys");
+    }
+
+    /**
+     * 获取房间密钥计数
+     */
+    public async getRoomKeyCount(roomId: string): Promise<RoomKeyCountResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/keys/count", roomId));
+        }, "getRoomKeyCount");
+    }
+
+    /**
+     * 获取房间密钥版本
+     */
+    public async getRoomKeysVersion(roomId: string): Promise<RoomKeysVersionResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/keys/version", roomId));
+        }, "getRoomKeysVersion");
+    }
+
+    /**
+     * 获取最近成员变更
+     */
+    public async getRoomMembersRecent(
+        roomId: string,
+        options?: { from?: string; limit?: number },
+    ): Promise<RoomMembersRecentResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const query: QueryDict = {};
+            if (options?.from) query.from = options.from;
+            if (options?.limit !== undefined) query.limit = String(options.limit);
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/members/recent", roomId), query);
+        }, "getRoomMembersRecent");
+    }
+
+    /**
+     * 获取房间回执
+     */
+    public async getRoomReceipts(
+        roomId: string,
+        receiptType: string,
+        eventId: string,
+    ): Promise<RoomReceiptsResult> {
+        this.validateRoomId(roomId);
+        if (!receiptType) throw new InvalidParamError("receiptType is required");
+        if (!eventId) throw new InvalidParamError("eventId is required");
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                encodeUri("/rooms/$roomId/receipts/$receiptType/$eventId", {
+                    $roomId: roomId,
+                    $receiptType: receiptType,
+                    $eventId: eventId,
+                }),
+            );
+        }, "getRoomReceipts");
+    }
+
+    /**
+     * 转发房间密钥
+     */
+    public async forwardRoomKeys(roomId: string, body: Record<string, unknown>): Promise<RoomForwardKeysResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Put,
+                this.roomSummaryPath("/rooms/$roomId/room_keys/keys", roomId),
+                undefined,
+                body as Body,
+            );
+        }, "forwardRoomKeys");
+    }
+
+    /**
+     * 搜索房间内容
+     */
+    public async searchRoom(roomId: string, body: Record<string, unknown>): Promise<RoomSearchResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Post,
+                this.roomSummaryPath("/rooms/$roomId/search", roomId),
+                undefined,
+                body as Body,
+            );
+        }, "searchRoom");
+    }
+
+    /**
+     * 获取 m.room.power_levels
+     */
+    public async getRoomPowerLevels(roomId: string): Promise<RoomAccountDataResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/state/m.room.power_levels/", roomId),
+            );
+        }, "getRoomPowerLevels");
+    }
+
+    /**
      * 获取房间时间线
      * @param roomId - 房间 ID
      * @param options - 时间线选项
@@ -1522,6 +1833,271 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 queryParams,
             );
         }, "getEncryptedEvents");
+    }
+
+    /**
+     * 获取房间权限信息
+     * @param roomId - 房间 ID
+     */
+    public async getRoomPermissions(roomId: string): Promise<RoomPermissionsResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/permissions", roomId),
+            );
+        }, "getRoomPermissions");
+    }
+
+    /**
+     * 获取房间解析信息
+     * @param roomId - 房间 ID
+     */
+    public async getRoomResolve(roomId: string): Promise<RoomResolveResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/resolve", roomId),
+            );
+        }, "getRoomResolve");
+    }
+
+    /**
+     * 获取房间消息队列
+     * @param roomId - 房间 ID
+     * @param options - 查询选项
+     */
+    public async getRoomMessageQueue(
+        roomId: string,
+        options?: { from?: string; limit?: number },
+    ): Promise<RoomMessageQueueResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const queryParams: QueryDict = {};
+            if (options?.from) queryParams.from = options.from;
+            if (options?.limit !== undefined) queryParams.limit = String(options.limit);
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/message_queue", roomId),
+                queryParams,
+            );
+        }, "getRoomMessageQueue");
+    }
+
+    /**
+     * 获取房间服务类型
+     * @param roomId - 房间 ID
+     */
+    public async getRoomServiceTypes(roomId: string): Promise<RoomServiceTypesResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/service_types", roomId),
+            );
+        }, "getRoomServiceTypes");
+    }
+
+    /**
+     * 获取房间降采样事件
+     * @param roomId - 房间 ID
+     */
+    public async getRoomReducedEvents(roomId: string): Promise<RoomReducedEventsResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/reduced_events", roomId),
+            );
+        }, "getRoomReducedEvents");
+    }
+
+    /**
+     * 获取房间渲染结果
+     * @param roomId - 房间 ID
+     */
+    public async getRoomRendered(roomId: string): Promise<RoomRenderedResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/rendered/", roomId),
+            );
+        }, "getRoomRendered");
+    }
+
+    /**
+     * 获取指定用户的房间片段
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     */
+    public async getRoomFragments(roomId: string, userId: string): Promise<RoomFragmentsResult> {
+        this.validateRoomId(roomId);
+        this.validateUserId(userId);
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                encodeUri("/rooms/$roomId/fragments/$userId", {
+                    $roomId: roomId,
+                    $userId: userId,
+                }),
+            );
+        }, "getRoomFragments");
+    }
+
+    /**
+     * 获取房间设备视图
+     * @param roomId - 房间 ID
+     * @param deviceId - 设备 ID
+     */
+    public async getRoomDevice(roomId: string, deviceId: string): Promise<RoomDeviceResult> {
+        this.validateRoomId(roomId);
+        if (!deviceId) {
+            throw new InvalidParamError("deviceId is required");
+        }
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                encodeUri("/rooms/$roomId/device/$deviceId", {
+                    $roomId: roomId,
+                    $deviceId: deviceId,
+                }),
+            );
+        }, "getRoomDevice");
+    }
+
+    /**
+     * 获取房间事件的可访问 URL
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     */
+    public async getRoomEventUrl(roomId: string, eventId: string): Promise<RoomEventUrlResult> {
+        this.validateRoomId(roomId);
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Get,
+                encodeUri("/rooms/$roomId/event/$eventId/url", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+            );
+        }, "getRoomEventUrl");
+    }
+
+    /**
+     * 翻译房间事件
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param body - 翻译请求体
+     */
+    public async translateRoomEvent(
+        roomId: string,
+        eventId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<RoomTranslateResult> {
+        this.validateRoomId(roomId);
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Post,
+                encodeUri("/rooms/$roomId/translate/$eventId", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+                undefined,
+                body as Body,
+            );
+        }, "translateRoomEvent");
+    }
+
+    /**
+     * 转换房间事件
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param body - 转换请求体
+     */
+    public async convertRoomEvent(
+        roomId: string,
+        eventId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<RoomConvertResult> {
+        this.validateRoomId(roomId);
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Post,
+                encodeUri("/rooms/$roomId/convert/$eventId", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+                undefined,
+                body as Body,
+            );
+        }, "convertRoomEvent");
+    }
+
+    /**
+     * 签名房间事件
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param body - 签名请求体
+     */
+    public async signRoomEvent(
+        roomId: string,
+        eventId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<RoomSignResult> {
+        this.validateRoomId(roomId);
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Put,
+                encodeUri("/rooms/$roomId/sign/$eventId", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+                undefined,
+                body as Body,
+            );
+        }, "signRoomEvent");
+    }
+
+    /**
+     * 验证房间事件
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param body - 验证请求体
+     */
+    public async verifyRoomEvent(
+        roomId: string,
+        eventId: string,
+        body: Record<string, unknown> = {},
+    ): Promise<RoomVerifyResult> {
+        this.validateRoomId(roomId);
+        if (!eventId) {
+            throw new InvalidParamError("eventId is required");
+        }
+        return await this.withRetry(async () => {
+            return await this.requestV3(
+                Method.Post,
+                encodeUri("/rooms/$roomId/verify/$eventId", {
+                    $roomId: roomId,
+                    $eventId: eventId,
+                }),
+                undefined,
+                body as Body,
+            );
+        }, "verifyRoomEvent");
     }
 
     /**

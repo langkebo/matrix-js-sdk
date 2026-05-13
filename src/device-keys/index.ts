@@ -80,6 +80,9 @@ export interface QueryKeysRequest {
 
 export interface QueryKeysResponse {
     device_keys?: Record<string, Record<string, DeviceKeys>>;
+    master_keys?: Record<string, Record<string, unknown>>;
+    self_signing_keys?: Record<string, Record<string, unknown>>;
+    user_signing_keys?: Record<string, Record<string, unknown>>;
     failures?: Record<string, Record<string, string>>;
 }
 
@@ -97,6 +100,37 @@ export interface ClaimKeysResponse {
 export interface KeyChangesResponse {
     changed?: string[];
     left?: string[];
+}
+
+export interface DeviceListUpdateDeviceData {
+    display_name?: string | null;
+    last_seen_ts?: number | null;
+}
+
+export interface DeviceListUpdateEntry {
+    user_id: string;
+    device_id: string;
+    device_data?: DeviceListUpdateDeviceData;
+}
+
+export interface DeviceListDeletedEntry {
+    user_id: string;
+    device_id: string;
+}
+
+export interface DeviceListUpdateResponse {
+    changed: DeviceListUpdateEntry[];
+    deleted: DeviceListDeletedEntry[];
+    left: string[];
+    stream_id?: number;
+}
+
+export interface DeviceVerificationRequestResponse {
+    request_token?: string;
+    token: string;
+    status?: string;
+    expires_at?: number;
+    methods_available?: string[];
 }
 
 export interface RoomKeyRequest {
@@ -272,7 +306,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     async updateDeviceList(
         users: string[],
         since?: string,
-    ): Promise<{ changed: string[]; left: string[]; stream_id?: number }> {
+    ): Promise<DeviceListUpdateResponse> {
         try {
             const body: Record<string, unknown> = { users };
 
@@ -281,13 +315,15 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
             }
 
             const response = await this.client.http.authedRequest<{
-                changed?: string[];
+                changed?: DeviceListUpdateEntry[];
+                deleted?: DeviceListDeletedEntry[];
                 left?: string[];
                 stream_id?: number;
             }>(Method.Post, "/keys/device_list/update", undefined, body, { prefix: ClientPrefix.V3 });
 
             return {
                 changed: response.changed || [],
+                deleted: response.deleted || [],
                 left: response.left || [],
                 stream_id: response.stream_id,
             };
@@ -484,13 +520,23 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         ).getDevice(deviceId);
     }
 
-    async requestDeviceVerification(targetUserId: string, targetDeviceId: string): Promise<{ token: string }> {
+    async requestDeviceVerification(
+        targetUserId: string,
+        targetDeviceId: string,
+    ): Promise<DeviceVerificationRequestResponse> {
         try {
-            return await this.client.http.authedRequest<{ token: string }>(
+            return await this.client.http.authedRequest<DeviceVerificationRequestResponse>(
                 Method.Post,
                 "/device_verification/request",
                 undefined,
-                { target_user_id: targetUserId, target_device_id: targetDeviceId },
+                {
+                    // Preserve legacy caller parameters while also sending the canonical
+                    // fields the backend currently accepts.
+                    target_user_id: targetUserId,
+                    target_device_id: targetDeviceId,
+                    device_id: targetDeviceId,
+                    new_device_id: targetDeviceId,
+                },
                 { prefix: ClientPrefix.V3 },
             );
         } catch (error) {
@@ -498,13 +544,18 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         }
     }
 
-    async respondDeviceVerification(token: string, action: "accept" | "reject"): Promise<void> {
+    async respondDeviceVerification(token: string, actionOrApproved: "accept" | "reject" | boolean): Promise<void> {
         try {
+            const approved = typeof actionOrApproved === "boolean" ? actionOrApproved : actionOrApproved === "accept";
             await this.client.http.authedRequest(
                 Method.Post,
                 "/device_verification/respond",
                 undefined,
-                { token, action },
+                {
+                    token,
+                    request_token: token,
+                    approved,
+                },
                 { prefix: ClientPrefix.V3 },
             );
         } catch (error) {

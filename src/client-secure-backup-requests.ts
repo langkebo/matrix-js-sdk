@@ -3,6 +3,8 @@ import { ClientPrefix, Method } from "./http-api/index.ts";
 import type { Body, IRequestOpts } from "./http-api/index.ts";
 import type { QueryDict } from "./utils.ts";
 import type { EmptyObject } from "./@types/common.ts";
+import type { SyncPathPattern } from "./sync/__generated__/route-table.ts";
+import type { SearchPathPattern } from "./search/__generated__/route-table.ts";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -11,6 +13,16 @@ type AuthedRequestFn = <T>(
     body?: Body,
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function sp<P extends StripV3<SyncPathPattern>>(path: P): P {
+    return path;
+}
+
+function srp<P extends StripV3<SearchPathPattern>>(path: P): P {
+    return path;
+}
 
 export function buildSecureBackupPath(backupId: string): string {
     return utils.encodeUri("/keys/backup/secure/$backupId", { $backupId: backupId });
@@ -29,7 +41,7 @@ export function buildSecureBackupRestorePath(backupId: string): string {
 }
 
 export function getMyRoomsRequest<T>(authedRequest: AuthedRequestFn): Promise<T> {
-    return authedRequest<T>(Method.Get, "/my_rooms", undefined, undefined, {
+    return authedRequest<T>(Method.Get, sp("/my_rooms"), undefined, undefined, {
         prefix: ClientPrefix.V3,
     });
 }
@@ -38,7 +50,22 @@ export function getMyRoomsRequest<T>(authedRequest: AuthedRequestFn): Promise<T>
 export function searchRoomsRequest<T>(authedRequest: AuthedRequestFn, searchTerm: string, limit?: number): Promise<T> {
     return authedRequest<T>(
         Method.Post,
-        "/search_rooms",
+        srp("/search_rooms"),
+        undefined,
+        { search_term: searchTerm, limit },
+        { prefix: ClientPrefix.V3 },
+    );
+}
+
+/** POST /_matrix/client/v3/search_recipients */
+export function searchRecipientsRequest<T>(
+    authedRequest: AuthedRequestFn,
+    searchTerm: string,
+    limit?: number,
+): Promise<T> {
+    return authedRequest<T>(
+        Method.Post,
+        srp("/search_recipients"),
         undefined,
         { search_term: searchTerm, limit },
         { prefix: ClientPrefix.V3 },

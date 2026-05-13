@@ -2,11 +2,45 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "media",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
-  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
+  "generated_at": "2026-05-11T14:36:56Z",
   "source_profile": "all",
-  "entry_count": 21,
+  "entry_count": 25,
   "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/download/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/download/{server_name}/{media_id}/{filename}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id",
+        "filename"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/preview_url",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/media/thumbnail/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ]
+    },
     {
       "method": "GET",
       "path": "/_matrix/media/r0/config",

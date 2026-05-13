@@ -9,6 +9,4 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface CasAdminResponseDto {
-    services: Array<Record<string, never>>;
-}
+export type CasContractDtoPlaceholder = never;

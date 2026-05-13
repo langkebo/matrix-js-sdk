@@ -9,28 +9,32 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface IBurnSettings {
+export interface BurnSettings {
     enabled: boolean;
     burn_after_ms: number;
 }
 
-export interface IBurnPendingEvent {
+export interface PendingBurnEvent {
     event_id: string;
     created_at: number;
     delete_at: number;
 }
 
-export interface ISetBurnConfigResponse {
+export interface MarkBurnReadResponse {
+    success: boolean;
+    will_delete_at: number;
+}
+
+export interface CancelBurnResponse {
+    success: boolean;
+}
+
+export interface SetBurnConfigResponse {
     default_burn_ms: number;
 }
 
-export interface IBurnStats {
+export interface BurnStats {
     total_burned: number;
     total_pending: number;
     rooms_with_burn_enabled: number;
-}
-
-export interface BurnAfterReadRequestDto {
-    enabled: boolean;
-    timeout_ms: number;
 }

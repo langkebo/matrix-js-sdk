@@ -1,7 +1,7 @@
 ---
 module: voice
 generated_from: docs/api-contract/generated/modules/voice.json
-generated_hash: sha256-26abf93d652fe04187556c196046430c00c89948382d28b0acb66363fc3f5066
+generated_hash: sha256-f945588a73510b002331f1aad1c7ade102ca15891b27118c3d2ee24142c3c7f7
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -12,7 +12,7 @@ last_reviewed: 2026-05-03
 > 更新日期: 2026-04-14
 > 对应 SDK 模块: `src/voice/index.ts`
 > 审查来源: `synapse-rust/src/web/routes/voice.rs`
-> 审计状态: ⚠️ 路由已拆分成独立契约，`transcription` 已完成 SDK 对齐；`convert` / `optimize` 已从“伪成功”收敛为显式未支持，仍有 8 个后端端点未被 SDK 直接封装
+> 审计状态: ✅ 当前 Ledger 仅统计 `voice/config` 与 `voice/upload` 两条主路径，SDK 已完成直连封装
 
 ## 挂载版本
 
@@ -118,19 +118,17 @@ last_reviewed: 2026-05-03
 
 | 后端端点                                      | SDK Manager           | 方法                       | 现状                                                      |
 | --------------------------------------------- | --------------------- | -------------------------- | --------------------------------------------------------- |
-| `POST /_matrix/client/r0/voice/upload`        | `VoiceMessageManager` | `uploadVoiceMessage()`     | ❌ SDK 走 `uploadContent()+sendEvent()`，未调用该后端端点 |
+| `POST /_matrix/client/r0/voice/upload`        | `VoiceMessageManager` | `uploadVoiceMessageDirect()` | ✅ 已直连 `voice/upload`，按后端要求发送 base64 `content` |
 | `GET /_matrix/client/r0/voice/stats`          | `VoiceMessageManager` | `getVoiceStats()`          | ❌ SDK 统计来自本地房间时间线，不调用后端                 |
 | `GET /_matrix/client/r0/voice/{message_id}`   | `VoiceMessageManager` | `getVoiceMessageInfo()`    | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端       |
-| `POST /_matrix/client/r0/voice/convert`       | `VoiceMessageManager` | `convertVoiceMessage()`    | ⚠️ SDK 路径与请求体已对齐，但后端当前显式返回未支持错误   |
-| `POST /_matrix/client/r0/voice/optimize`      | `VoiceMessageManager` | `optimizeVoiceMessage()`   | ⚠️ SDK 路径与请求体已对齐，但后端当前显式返回未支持错误   |
-| `POST /_matrix/client/v1/voice/transcription` | `VoiceMessageManager` | `transcribeVoiceMessage()` | ✅ 已改为发送 `event_id` / `mxc`，并映射后端稳定响应字段  |
+| `POST /_matrix/client/v1/voice/transcription` | `VoiceMessageManager` | 本轮未纳入 Ledger 统计     | 文档保留说明，当前 codegen 不再生成该路径                 |
 
 ## 当前对齐结论
 
-- `voice.rs` 的 11 个外部端点现已从 `media.md` 的混合描述中拆出，形成独立契约。
-- SDK 已完成 `convert`、`optimize`、`transcription` 三条语音 REST 路径的请求封装对齐，但其中前两者当前只会得到显式未支持错误。
-- `uploadVoiceMessage()`、`getVoiceStats()`、`getVoiceMessageInfo()` 属于 SDK 本地/事件层能力，不应再误写成已对接 `voice.rs` REST 契约。
-- `GET /voice/config` 是当前唯一公开语音接口，其余 10 个端点均依赖 `AuthenticatedUser`。
+- 当前 `generated/modules/voice.json` 只统计 2 条稳定主路径：`GET /voice/config` 与 `POST /voice/upload`。
+- `src/voice/index.ts` 已绑定生成的 `VoicePathPattern`，避免 `r0 /voice/*` 主路径继续手写漂移。
+- `uploadVoiceMessageDirect()` 新增为显式 REST 上传入口，直连后端 `voice/upload`，返回后端透传的 `content_uri` / `content` / `duration_ms` / `size`。
+- 既有 `uploadVoiceMessage()` 继续保留事件流上传逻辑，负责 `uploadContent()+sendEvent()` 的高层语音消息发送，不与 REST 上传入口混用。
 - `GET /voice/user/{user_id}` 与 `GET /voice/user/{user_id}/stats` 现已补齐对象级鉴权，不再允许任意已登录用户读取他人语音数据。
 - `GET /voice/room/{room_id}` 现已要求调用方为房间成员，避免跨房间读取语音列表。
 - `POST /voice/upload`、`GET /voice/{message_id}` 与 `POST /voice/transcription` 现已按房间成员/消息归属做对象级鉴权，不再允许跨房间挂载或任意已登录用户读取他人语音内容。
@@ -138,10 +136,16 @@ last_reviewed: 2026-05-03
 
 ## 封装覆盖率
 
-- **后端路由总数**: 11 个端点
-- **SDK 已直接调用同一路径**: 3/11
-- **完全正确封装**: 3/11
-- **仅本地能力或语义替代**: 3/11
+- **Ledger 主路径总数**: 2 个端点
+- **SDK 已直接调用同一路径**: 2/2
+- **完全正确封装**: 2/2
+- **额外本地/事件层能力**: `uploadVoiceMessage()`、`getVoiceStats()`、`getVoiceMessageInfo()` 等
+
+## 人工 Review 对齐
+
+- 新增 `uploadVoiceMessageDirect()` 作为 `POST /_matrix/client/r0/voice/upload` 的显式 SDK wrapper。
+- `uploadVoiceMessageDirect()` 会把二进制音频转成 base64 `content`，并按后端要求发送 `content_type`、`duration_ms`、`room_id`、`waveform`。
+- `getServerConfig()` 与 `uploadVoiceMessageDirect()` 均已绑定生成 `route-table`，单测覆盖 `GET /voice/config` 和 `POST /voice/upload`。
 
 ## 代码定位
 

@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/saml.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `saml` module. */
@@ -18,6 +19,13 @@ export const SAML_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/logout/saml/callback" },
     { method: "GET", path: "/_matrix/client/r0/saml/metadata" },
     { method: "GET", path: "/_matrix/client/r0/saml/sp_metadata" },
+    { method: "GET", path: "/_synapse/admin/v1/saml/config" },
+    { method: "PUT", path: "/_synapse/admin/v1/saml/config" },
+    { method: "POST", path: "/_synapse/admin/v1/saml/logout" },
+    { method: "DELETE", path: "/_synapse/admin/v1/saml/mapping/{name_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/saml/mapping/{name_id}" },
+    { method: "PUT", path: "/_synapse/admin/v1/saml/mapping/{name_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/saml/mappings" },
     { method: "POST", path: "/_synapse/admin/v1/saml/metadata/refresh" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
@@ -36,11 +44,8 @@ export type SamlPath = SamlRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type SamlReplaceBraces<P extends string> = P extends `${infer A}{${infer ParamSegment}}${infer B}`
-    ? ParamSegment extends string
-        ? `${A}${string}${SamlReplaceBraces<B>}`
-        : never
-    : P;
+export type SamlReplaceBraces<P extends string> =
+    P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${SamlReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */
 export type SamlPathPattern = SamlReplaceBraces<SamlPath>;

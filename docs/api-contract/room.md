@@ -1,14 +1,15 @@
 ---
 module: room
 generated_from: docs/api-contract/generated/modules/room.json
-generated_hash: sha256-392fd06a61931eb8a8d95e092ca070a2c43ff4d58805483c2f95813848c6be15
+generated_hash: sha256-c7d569ef3371bb035036b7cbcb5ea5434a239643c5298e6dae1ba0cbc16d2477
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Room 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/room.rs`、`handlers/search.rs`、`moderation.rs`、`typing.rs`
+> 审计状态: ✅ `RoomManager` 已将当前已实现的房间主路径绑定到生成 `RoomPathPattern`
 
 ## 挂载版本
 
@@ -126,26 +127,26 @@ last_reviewed: 2026-05-03
 - `typing` 相关端点现已统一要求调用方具备对应房间访问权，避免通过已知 `room_id` 直接探测他房输入状态
 - `invite_blocklist` / `invite_allowlist` 的 GET 路由现已要求调用方具备对应房间访问权，避免跨房间探测邀请限制名单
 
-## `initialSync` 与私有占位路由整改
+## `initialSync` 与扩展路由现状
 
 - `GET /_matrix/client/{r0,v3}/rooms/{room_id}/initialSync` 现已提供最小兼容实现，要求调用方已加入房间；响应包含 `room_id`、`membership`、`visibility`、`state`、`members`、`messages`、`pagination_chunk`、`presence`、`receipts`、`account_data` 等基础字段。
-- 下列私有扩展接口已从路由树移除，不再以占位形式对外暴露；请求这些路径时应返回 `404 NOT FOUND`。
+- 下列扩展接口在后端 `room` 路由树中仍然挂载，属于当前 Ledger 契约范围；SDK 侧是否封装需以模块实现与单测为准，不应按“已移除/404”口径统计。
 - `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` 与 `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send` 实际由 `widget.rs` 挂载，且当前实现可用，因此不计入“已挂载但未支持”列表。
 
 | 方法 | 路径                                                      | 当前状态                 |
 | ---- | --------------------------------------------------------- | ------------------------ |
 | GET  | `/_matrix/client/{r0,v3}/rooms/{room_id}/initialSync`     | 已实现，返回基础房间快照 |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}`  | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/service_types`        | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/event_perspective`    | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/reduced_events`       | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/rendered/`            | 已移除，返回 404         |
-| POST | `/_matrix/client/v3/rooms/{room_id}/translate/{event_id}` | 已移除，返回 404         |
-| POST | `/_matrix/client/v3/rooms/{room_id}/convert/{event_id}`   | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/vault_data`           | 已移除，返回 404         |
-| PUT  | `/_matrix/client/v3/rooms/{room_id}/vault_data`           | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/external_ids`         | 已移除，返回 404         |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/device/{device_id}`   | 已移除，返回 404         |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}`  | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/service_types`        | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/event_perspective`    | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/reduced_events`       | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/rendered/`            | 后端已挂载，SDK 已封装（RoomSummary） |
+| POST | `/_matrix/client/v3/rooms/{room_id}/translate/{event_id}` | 后端已挂载，SDK 已封装（RoomSummary） |
+| POST | `/_matrix/client/v3/rooms/{room_id}/convert/{event_id}`   | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/vault_data`           | 后端已挂载，SDK 已封装（RoomSummary） |
+| PUT  | `/_matrix/client/v3/rooms/{room_id}/vault_data`           | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/external_ids`         | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/device/{device_id}`   | 后端已挂载，SDK 已封装（RoomSummary） |
 
 ## 典型请求/响应
 
@@ -153,6 +154,23 @@ last_reviewed: 2026-05-03
 - 发送消息: `PUT /rooms/{room_id}/send/{event_type}/{txn_id}`，请求体为事件 `content`，成功返回 `{ "event_id": "..." }`
 - 拉取消息: `GET /rooms/{room_id}/messages`，核心查询参数为 `from` `dir` `limit?`，返回 `chunk/start/end`，并要求调用方为房间成员或管理员
 - 成员管理: `invite` `kick` `ban` `unban` 统一返回空对象
+
+## SDK 对齐结论
+
+- `src/room/RoomManager.ts` 现已将当前 manager 直接封装的房间主路径绑定到生成的 `RoomPathPattern`。
+- 已绑定的核心入口包括 `createRoom()`、`joinRoom()`、`knockRoom()`、`leave()`、`forget()`、`getRoomVersion()`、
+  `getRoomCapabilities()`、`getRoomMetadata()`、`getMembers()`、`getJoinedMembers()`、`getMembership()`、
+  `invite()`、`inviteByThreePid()`、`kick()`、`ban()`、`unban()`、`getEvent()`、`getEventContext()`、
+  `redactEvent()`、`getLocalAliases()`、`getRoomHierarchy()`、`upgradeRoom()`、`reportRoom()`、`roomInitialSync()`。
+- `state`、`messages`、`search`、`receipt`、`tags`、`directory` 等其余房间能力仍由其它 manager / client helper 承担；它们不再构成 `room` 模块主链路的人工封装缺口。
+- 运行时默认前缀策略保持不变，本轮只做路径模板绑定与测试回归，不改变 `RoomManager` 的现有行为语义。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 132（以 `docs/api-contract/generated/modules/room.json` 的 `entry_count` 为准）
+- **覆盖统计口径**: 以“后端已挂载路由 + SDK 已实现并可调用封装 + 单测可回归”计入，不以 route-table 声明或历史人工结论直接视为已覆盖
+- **本轮人工复核结论**: `RoomManager` 主链路稳定；`RoomSummary`/`InviteBlocklist`/`StickyEvent` 等扩展链路与本轮新增 `permissions`、`resolve`、`message_queue`、`service_types`、`reduced_events`、`rendered`、`fragments`、`device`、`event_url`、`account_data`、`invites`、`keys_claim`、`keys_count`、`keys_version`、`members_recent`、`receipts`、`room_keys_forward`、`search`、`power_levels`、`translate`、`convert`、`sign`、`verify` 均已封装并有对应单测回归
+- **契约覆盖率**: 按当前路由清单复核为 **132/132（100%）**
 
 ## 代码定位
 

@@ -48,7 +48,12 @@ describe("DeviceKeysManager", () => {
     it("covers room-key/device-signing/signature and proxy methods", async () => {
         const emitSpy = vi.spyOn(manager, "emit");
         mockClient.http.authedRequest
-            .mockResolvedValueOnce({ changed: ["@a:hs"], left: [], stream_id: 1 })
+            .mockResolvedValueOnce({
+                changed: [{ user_id: "@a:hs", device_id: "D1", device_data: { display_name: "Phone" } }],
+                deleted: [{ user_id: "@b:hs", device_id: "OLD" }],
+                left: [],
+                stream_id: 1,
+            })
             .mockResolvedValueOnce({})
             .mockResolvedValueOnce({})
             .mockResolvedValueOnce({ request_id: "r1" })
@@ -58,7 +63,8 @@ describe("DeviceKeysManager", () => {
             .mockResolvedValueOnce({});
 
         await expect(manager.updateDeviceList(["@a:hs"], "since1")).resolves.toEqual({
-            changed: ["@a:hs"],
+            changed: [{ user_id: "@a:hs", device_id: "D1", device_data: { display_name: "Phone" } }],
+            deleted: [{ user_id: "@b:hs", device_id: "OLD" }],
             left: [],
             stream_id: 1,
         });
@@ -89,5 +95,56 @@ describe("DeviceKeysManager", () => {
         await expect(manager.getUserDevices("@a:hs")).resolves.toHaveProperty("D1");
         expect(manager.hasDevice("D1")).toBe(true);
         expect(manager.getDevice("D1")).toHaveProperty("device_id", "D1");
+    });
+
+    it("sends backend-compatible payloads for device verification helpers", async () => {
+        mockClient.http.authedRequest.mockResolvedValueOnce({ token: "tok-1" }).mockResolvedValueOnce({});
+
+        await expect(manager.requestDeviceVerification("@a:hs", "D1")).resolves.toEqual({ token: "tok-1" });
+        await manager.respondDeviceVerification("tok-1", "accept");
+
+        expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+            1,
+            "POST",
+            "/device_verification/request",
+            undefined,
+            {
+                target_user_id: "@a:hs",
+                target_device_id: "D1",
+                device_id: "D1",
+                new_device_id: "D1",
+            },
+            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+        );
+        expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+            2,
+            "POST",
+            "/device_verification/respond",
+            undefined,
+            {
+                token: "tok-1",
+                request_token: "tok-1",
+                approved: true,
+            },
+            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+        );
+    });
+
+    it("accepts boolean verification responses for direct backend parity", async () => {
+        mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+        await manager.respondDeviceVerification("tok-2", false);
+
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            "POST",
+            "/device_verification/respond",
+            undefined,
+            {
+                token: "tok-2",
+                request_token: "tok-2",
+                approved: false,
+            },
+            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+        );
     });
 });

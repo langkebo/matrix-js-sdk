@@ -9,14 +9,4 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface CaptchaRequestDto {
-    session: string;
-}
-
-export interface CaptchaResponseDto {
-    captcha_url: string;
-}
-
-export interface CaptchaAdminResponseDto {
-    cleaned: number;
-}
+export type CaptchaContractDtoPlaceholder = never;

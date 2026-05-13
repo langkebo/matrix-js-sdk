@@ -72,6 +72,8 @@ export interface BackupVersionInfo {
     version: string;
     algorithm: string;
     auth_data: AuthData | Record<string, unknown>;
+    count?: number;
+    etag?: string;
 }
 
 export interface BackupVersion {
@@ -138,6 +140,10 @@ export interface PutRoomKeysBody {
     rooms: Record<string, RoomSessions>;
 }
 
+export interface PutRoomSessionsBody {
+    sessions: Record<string, SessionData>;
+}
+
 export interface UploadKeysResult {
     count: number;
     etag: string;
@@ -158,6 +164,15 @@ export interface RecoverSessionKeyResult {
     room_id: string;
     session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
+}
+
+export interface KeyBackupAuthData {
+    type: string;
+    session?: string;
+    password?: string;
+    token?: string;
+    user?: string;
+    [key: string]: unknown;
 }
 
 export class KeyBackupManager extends BaseManager {
@@ -218,6 +233,7 @@ export class KeyBackupManager extends BaseManager {
     async createBackupVersion(
         algorithm: string = "m.megolm_backup.v1.curve25519-aes-sha2",
         authData?: AuthData | Record<string, unknown>,
+        auth?: KeyBackupAuthData,
     ): Promise<{ version: string }> {
         if (!algorithm || algorithm.trim().length === 0) {
             throw new ValidationError("Algorithm is required");
@@ -228,7 +244,7 @@ export class KeyBackupManager extends BaseManager {
                     Method.Post,
                     kb("/room_keys/version"),
                     undefined,
-                    { algorithm, auth_data: authData },
+                    { algorithm, auth_data: authData, auth },
                     { prefix: ClientPrefix.V3 },
                 );
             }, "createBackupVersion");
@@ -347,10 +363,10 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
-    async getRoomKeys(version: string, roomId: string): Promise<{ rooms: Record<string, RoomSessions> }> {
+    async getRoomKeys(version: string, roomId: string): Promise<{ sessions: Record<string, SessionData> }> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ rooms: Record<string, RoomSessions> }>(
+                return await this.client.http.authedRequest<{ sessions: Record<string, SessionData> }>(
                     Method.Get,
                     kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
                     { version },
@@ -363,10 +379,58 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
-    async getSessionKey(version: string, roomId: string, sessionId: string): Promise<RecoverSessionKeyResult> {
+    async putRoomKeys(version: string, roomId: string, body: PutRoomSessionsBody): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RecoverSessionKeyResult>(
+                return await this.client.http.authedRequest<UploadKeysResult>(
+                    Method.Put,
+                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
+                    { version },
+                    body,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "putRoomKeys");
+        } catch (error) {
+            throw this.normalizeError(error, "putRoomKeys");
+        }
+    }
+
+    async deleteAllRoomKeys(version: string): Promise<UploadKeysResult> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<UploadKeysResult>(
+                    Method.Delete,
+                    kb("/room_keys/keys"),
+                    { version },
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "deleteAllRoomKeys");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteAllRoomKeys");
+        }
+    }
+
+    async deleteRoomKeys(version: string, roomId: string): Promise<UploadKeysResult> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<UploadKeysResult>(
+                    Method.Delete,
+                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
+                    { version },
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "deleteRoomKeys");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteRoomKeys");
+        }
+    }
+
+    async getSessionKey(version: string, roomId: string, sessionId: string): Promise<EncryptedData | Record<string, unknown>> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<EncryptedData | Record<string, unknown>>(
                     Method.Get,
                     kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
                     { version },
@@ -397,6 +461,22 @@ export class KeyBackupManager extends BaseManager {
             }, "putSessionKey");
         } catch (error) {
             throw this.normalizeError(error, "putSessionKey");
+        }
+    }
+
+    async deleteSessionKey(version: string, roomId: string, sessionId: string): Promise<UploadKeysResult> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<UploadKeysResult>(
+                    Method.Delete,
+                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    { version },
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "deleteSessionKey");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteSessionKey");
         }
     }
 

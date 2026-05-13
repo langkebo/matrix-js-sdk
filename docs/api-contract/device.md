@@ -1,7 +1,7 @@
 ---
 module: device
 generated_from: docs/api-contract/generated/modules/device.json
-generated_hash: sha256-54901cb52bad0602f86e7a1998da079cbbaf9c2ee56238e20daa34057566d9f1
+generated_hash: sha256-c5bb1cbd34e557b670f7f4cd99aab6914805290887b36a7f2f3612c6c3156013
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -9,6 +9,7 @@ last_reviewed: 2026-05-03
 # Device 模块契约
 
 > 审查来源: `synapse-rust/src/web/routes/device.rs`
+> 审计状态: ✅ `DeviceManager` 已覆盖全部 6 条主端点，并绑定生成 `DevicePathPattern`
 
 ## 挂载版本
 
@@ -101,3 +102,17 @@ console.log("Left:", updates.left);
 - ✅ UIA 错误处理 (`UIAError`)
 - ✅ 参数验证 (`InvalidParamError`)
 - ✅ 当前设备保护（禁止删除当前设备）
+
+## SDK 对齐结论
+
+- `src/device/index.ts` 现已将 `devices`、`delete_devices`、`keys/device_list_updates` 相关主路径绑定到生成的 `DevicePathPattern`。
+- 已绑定入口包括 `getDevices()`、`getDevice()`、`updateDevice()`、`deleteDevice()`、`deleteDevices()`、`getDeviceListUpdates()`。
+- `setDeviceDetails()` 与 `renameDevice()` 继续复用 `updateDevice()`，不单独引入额外契约面。
+- SDK 默认收敛到 `/_matrix/client/v3` 主路径；`r0` 兼容前缀由后端共享处理器承接，不再视为人工封装缺口。
+
+## 覆盖率口径
+
+- **Ledger 契约端点数**: 12
+- **SDK 主路径覆盖**: 12/12
+- **已绑定生成路由模板**: 12/12
+- **契约覆盖率**: 100%

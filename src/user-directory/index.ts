@@ -17,8 +17,18 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
+import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+
+type StripAuthPrefix<P extends string> =
+    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
+    P extends `/_matrix/client/r0${infer Rest}` ? Rest :
+    P extends `/_matrix/client/v1${infer Rest}` ? Rest :
+    P;
+
+function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface IUserDirectorySearchResult {
     results: Array<{
@@ -27,6 +37,14 @@ export interface IUserDirectorySearchResult {
         avatar_url?: string;
     }>;
     limited?: boolean;
+}
+
+export interface IUserDirectoryListResult {
+    users: Array<{
+        user_id: string;
+        display_name?: string;
+        avatar_url?: string;
+    }>;
 }
 
 export interface IUserProfile {
@@ -43,17 +61,17 @@ export class UserDirectoryManager extends BaseManager {
         return this.client.searchUserDirectory({ term, limit });
     }
 
+    public async listUserDirectory(): Promise<IUserDirectoryListResult> {
+        const path = ap("/user_directory/list");
+        return this.client.http.request<IUserDirectoryListResult>(Method.Post, path);
+    }
+
     public async getProfile(userId: string): Promise<IUserProfile> {
-        if (this.client.getProfileManager) {
-            return this.client.getProfileManager().getProfileInfo(userId) as Promise<IUserProfile>;
-        }
-        return this.client.http.authedRequest<IUserProfile>(
-            Method.Get,
-            `/profile/${encodeURIComponent(userId)}`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        // Note: this always hits the /user_directory/profiles endpoint,
+        // which returns an IUserProfile with user_id, display_name, and avatar_url.
+        // It's meant for public directory lookup, not for private profile details.
+        const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
+        return this.client.http.request<IUserProfile>(Method.Get, path);
     }
 
     public getUser(userId: string): User | null {

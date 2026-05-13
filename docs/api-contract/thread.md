@@ -1,7 +1,7 @@
 ---
 module: thread
 generated_from: docs/api-contract/generated/modules/thread.json
-generated_hash: sha256-0d9402c9004786e3017aef4516466031db60a92cb8f303fc1734eaf2b4ffc199
+generated_hash: sha256-87ee6dc51c0b1a52500e1316b5ab73efa39a06c0d194bc2e6f335c2ab585c67f
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -12,7 +12,7 @@ last_reviewed: 2026-05-03
 > 更新日期: 2026-04-13
 > 对应 SDK 模块: `src/threading/index.ts`、`src/client-timeline-requests.ts`
 > 审查来源: `synapse-rust/src/web/routes/handlers/thread.rs`
-> 审计状态: ✅ `thread.rs` 的 21 个外部端点已全部具备对应 SDK REST 封装，文档与代码已完成首轮同步
+> 审计状态: ✅ `thread.rs` 的 21 个外部端点已全部具备对应 SDK REST 封装，并已绑定生成 `ThreadPathPattern`
 
 ## 挂载版本
 
@@ -128,6 +128,7 @@ last_reviewed: 2026-05-03
 ## 当前对齐结论
 
 - `ThreadingManager` 已补齐 `thread.rs` 的全量 REST 封装，覆盖全局/房间列表、创建、详情、回复、订阅、未读、统计与撤回路径。
+- `src/threading/index.ts` 现已将 `v1` 与 `v3` 线程 REST 路径绑定到生成的 `ThreadPathPattern`，避免 `/threads*` 路径再次手写漂移。
 - `ThreadingManager` 仍同时保留本地线程对象与 timeline 能力，这部分与 `thread.rs` 的 REST 接口语义不同，不能混用理解。
 - `buildThreadListRequestPath()` 与 `getThreadTimeline()` 仍属于路径构造或本地 timeline 能力，但不再是线程 REST 覆盖缺口。
 - `GET /rooms/{room_id}/threads/{thread_id}` 在后端使用 `OptionalAuthenticatedUser`，是本模块中唯一可选认证接口。
@@ -140,7 +141,7 @@ last_reviewed: 2026-05-03
 
 - **后端路由总数**: 21 个端点
 - **SDK 已提供直接 REST 封装**: 21/21
-- **路径构造或近似能力**: 1/21
+- **已绑定生成路由模板**: 21/21
 - **完全未封装**: 0/21
 
 ## 代码定位

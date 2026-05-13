@@ -2,11 +2,91 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "ai_connection",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
-  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
+  "generated_at": "2026-05-11T14:36:56Z",
   "source_profile": "all",
-  "entry_count": 6,
+  "entry_count": 18,
   "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/ai/mcp/tools",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/ai/mcp/tools/call",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/ai/connections",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/ai/connections/{id}",
+      "registered_by": "ai_connection",
+      "path_params": [
+        "id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/ai/mcp/tools",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/ai/mcp/tools/call",
+      "registered_by": "ai_connection",
+      "path_params": []
+    },
     {
       "method": "GET",
       "path": "/connections",

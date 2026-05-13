@@ -143,6 +143,12 @@ describe("RoomManager", () => {
             mockClient.http.authedRequest.mockResolvedValue({ capabilities: {} });
             const caps = await roomManager.getRoomCapabilities("!room:example.com");
             expect(caps).toBeDefined();
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/rooms/${encodeURIComponent("!room:example.com")}/capabilities`,
+                undefined,
+                undefined,
+            );
         });
     });
 
@@ -163,6 +169,12 @@ describe("RoomManager", () => {
             mockClient.http.authedRequest.mockResolvedValue({ room_id: "!newroom:example.com" });
             const result = await roomManager.createRoom({ name: "Test Room" });
             expect(result.room_id).toBe("!newroom:example.com");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/createRoom",
+                undefined,
+                { name: "Test Room" },
+            );
         });
 
         it("should add identity access token for 3pid invites", async () => {
@@ -176,9 +188,52 @@ describe("RoomManager", () => {
 
     describe("joinRoom", () => {
         it("should join room by ID", async () => {
+            mockClient.store.getRoom
+                .mockReturnValueOnce({
+                    roomId: "!room:example.com",
+                    getMember: vi.fn().mockReturnValue({
+                        membership: KnownMembership.Invite,
+                        events: { member: { getSender: vi.fn().mockReturnValue("@inviter:example.com") } },
+                    }),
+                    hasMembershipState: vi.fn().mockReturnValue(false),
+                })
+                .mockReturnValueOnce({
+                roomId: "!room:example.com",
+                getMember: vi.fn().mockReturnValue({
+                    membership: KnownMembership.Invite,
+                    events: { member: { getSender: vi.fn().mockReturnValue("@inviter:example.com") } },
+                }),
+                hasMembershipState: vi.fn().mockReturnValue(true),
+            });
             mockClient.http.authedRequest.mockResolvedValue({ room_id: "!room:example.com" });
             const result = await roomManager.joinRoom("!room:example.com");
             expect(result).toBeDefined();
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/join/${encodeURIComponent("!room:example.com")}`,
+                {},
+                {},
+            );
+        });
+    });
+
+    describe("knockRoom", () => {
+        it("should knock room by ID", async () => {
+            mockClient.store.getRoom.mockReturnValue(null);
+            mockClient.http.authedRequest.mockResolvedValue({ room_id: "!room:example.com" });
+
+            const result = await roomManager.knockRoom("!room:example.com", {
+                reason: "let me in",
+                viaServers: ["example.com", "backup.example.com"],
+            });
+
+            expect(result).toEqual({ room_id: "!room:example.com" });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/knock/${encodeURIComponent("!room:example.com")}`,
+                { server_name: ["example.com", "backup.example.com"], via: ["example.com", "backup.example.com"] },
+                { reason: "let me in" },
+            );
         });
     });
 
@@ -535,6 +590,12 @@ describe("RoomManager", () => {
             mockClient.http.authedRequest.mockResolvedValue({ tags: {} });
             const result = await roomManager.getRoomTags("!room:example.com");
             expect(result).toBeDefined();
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/user/${encodeURIComponent("@test:example.com")}/rooms/${encodeURIComponent("!room:example.com")}/tags`,
+                undefined,
+                undefined,
+            );
         });
     });
 
@@ -551,6 +612,12 @@ describe("RoomManager", () => {
             mockClient.http.authedRequest.mockResolvedValue({});
             const result = await roomManager.setRoomTag("!room:example.com", "m.favourite", { order: 0.5 });
             expect(result).toEqual({});
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "PUT",
+                `/user/${encodeURIComponent("@test:example.com")}/rooms/${encodeURIComponent("!room:example.com")}/tags/${encodeURIComponent("m.favourite")}`,
+                undefined,
+                { order: 0.5 },
+            );
         });
     });
 
@@ -567,6 +634,12 @@ describe("RoomManager", () => {
             mockClient.http.authedRequest.mockResolvedValue({});
             const result = await roomManager.deleteRoomTag("!room:example.com", "m.favourite");
             expect(result).toEqual({});
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "DELETE",
+                `/user/${encodeURIComponent("@test:example.com")}/rooms/${encodeURIComponent("!room:example.com")}/tags/${encodeURIComponent("m.favourite")}`,
+                undefined,
+                undefined,
+            );
         });
     });
 

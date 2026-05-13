@@ -30,10 +30,23 @@ import { UserEvent } from "../models/user";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
 import { getHttpUriForMxc } from "../content-repo";
-import * as utils from "../utils";
-import { ClientPrefix } from "../http-api/prefix";
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
+import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+
+type StripAuthPrefix<P extends string> =
+    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
+    P extends `/_matrix/client/r0${infer Rest}` ? Rest :
+    P extends `/_matrix/client/v1${infer Rest}` ? Rest :
+    P;
+
+function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+    return path;
+}
+
+function authPath<P extends AuthPathPattern>(path: P): P {
+    return path;
+}
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { AdminValidators } from "../admin/validators";
@@ -125,13 +138,10 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         field: K,
         options: SetProfileFieldCacheOptions = {},
     ): Promise<IProfile[K]> {
-        const path = utils.encodeUri("/profile/$userId/$field", {
-            $userId: userId,
-            $field: field,
-        });
+        const path = ap(`/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}` as StripAuthPrefix<AuthPathPattern>);
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Pick<IProfile, K>>(Method.Get, path);
+            return await this.client.http.request<Pick<IProfile, K>>(Method.Get, path);
         });
 
         const profile = this.setProfileFieldCache(userId, field, response[field], options);
@@ -145,10 +155,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
     public setProfileInfo(info: "displayname", data: { displayname: string }): Promise<EmptyObject>;
     public async setProfileInfo<K extends ProfileField>(info: K, data: Pick<IProfile, K>): Promise<EmptyObject> {
-        const path = utils.encodeUri("/profile/$userId/$info", {
-            $userId: this.client.credentials.userId!,
-            $info: info,
-        });
+        const path = ap(
+            `/profile/${encodeURIComponent(this.client.credentials.userId!)}/${encodeURIComponent(
+                info,
+            )}` as StripAuthPrefix<AuthPathPattern>,
+        );
 
         try {
             const result = await this.withRetry(async () => {
@@ -277,13 +288,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             return cachedEntry.profile;
         }
 
-        const path = utils.encodeUri("/profile/$userId", {
-            $userId: userId,
-        });
+        const path = ap(`/profile/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IProfile>(Method.Get, path);
+                return await this.client.http.request<IProfile>(Method.Get, path);
             });
 
             const profile = this.setCompleteProfileCache(userId, response);
@@ -439,16 +448,16 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * Extended profiles (MSC4133)
      */
     public async getExtendedProfile(userId: string): Promise<IExtendedProfile> {
-        const path = utils.encodeUri("/profile/$userId", {
-            $userId: userId,
-        });
+        const path = authPath(
+            `/_matrix/client/unstable/uk.tcpip.msc4133/profile/${encodeURIComponent(userId)}` as AuthPathPattern,
+        );
 
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IExtendedProfile>(Method.Get, path, undefined, undefined, {
-                    prefix: ClientPrefix.Unstable,
+                    prefix: "",
                 });
-            });
+            }, "getExtendedProfile");
         } catch (e) {
             throw this.normalizeError(e, "getExtendedProfile");
         }

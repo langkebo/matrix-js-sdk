@@ -34,17 +34,84 @@ describe("RelationsManager", () => {
         );
     });
 
-    it.skip("sends relation events through the dedicated relations route", async () => {
-        // RelationsManager does not currently expose a sendRelation helper —
-        // the dedicated PUT /relations/{event_id}/{rel_type}/{target_event_id}
-        // route is documented in docs/api-contract/relations.md but no SDK
-        // wrapper has been added back since the Phase-2 cleanup that removed
-        // the prior in-progress implementation. Skipped pending the manager
-        // method being re-introduced.
+    it("fetches aggregations through the dedicated aggregations route", async () => {
+        const authedRequest = vi.fn().mockResolvedValue({
+            chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
+        });
+
+        const manager = new RelationsManager({
+            http: { authedRequest },
+            canSupport: new Map(),
+        } as any);
+
+        await expect(manager.getAggregations("!room:example.org", "$ctx", "m.annotation")).resolves.toEqual({
+            chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
+        });
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/rooms/!room%3Aexample.org/aggregations/%24ctx/m.annotation",
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V1 },
+        );
     });
 
-    it.skip("normalizes relation send errors", async () => {
-        // Same status as the test above: blocked on the manager method.
+    it("sends relation events through the dedicated relations route", async () => {
+        const authedRequest = vi.fn().mockResolvedValue({
+            event_id: "$new",
+            room_id: "!room:example.org",
+            relates_to: {
+                event_id: "$target",
+                rel_type: "m.replace",
+            },
+        });
+        const emit = vi.fn();
+
+        const manager = new RelationsManager({
+            http: { authedRequest },
+            canSupport: new Map(),
+        } as any);
+        vi.spyOn(manager as any, "emit").mockImplementation(emit);
+
+        await expect(
+            manager.sendRelation("!room:example.org", "$ctx", "m.replace", "$target", {
+                content: { body: "edited", msgtype: "m.text" },
+                "m.new_content": { body: "edited", msgtype: "m.text" },
+            }),
+        ).resolves.toEqual({
+            event_id: "$new",
+            room_id: "!room:example.org",
+            relates_to: {
+                event_id: "$target",
+                rel_type: "m.replace",
+            },
+        });
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Put,
+            "/rooms/!room%3Aexample.org/relations/%24ctx/m.replace/%24target",
+            undefined,
+            {
+                content: { body: "edited", msgtype: "m.text" },
+                "m.new_content": { body: "edited", msgtype: "m.text" },
+            },
+            { prefix: ClientPrefix.V1 },
+        );
+        expect(emit).toHaveBeenCalledWith("RelationsUpdated", "!room:example.org", "$ctx");
+    });
+
+    it("normalizes relation send errors", async () => {
+        const authedRequest = vi.fn().mockRejectedValue(new Error("boom"));
+        const emit = vi.fn();
+        const manager = new RelationsManager({
+            http: { authedRequest },
+            canSupport: new Map(),
+        } as any);
+        vi.spyOn(manager as any, "emit").mockImplementation(emit);
+
+        await expect(manager.sendRelation("!room:example.org", "$ctx", "m.annotation", "$target", { key: "👍" })).rejects.toThrow();
+        expect(emit).toHaveBeenCalledWith("RelationsError", expect.any(Error));
     });
 
     // ---------- Helper aggregations ----------

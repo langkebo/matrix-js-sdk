@@ -40,6 +40,8 @@ import { SyncApi } from "../sync.ts";
 import { LRUCache } from "../utils/lru-cache.ts";
 import { Visibility } from "../@types/partials.ts";
 import * as ContentHelpers from "../content-helpers.ts";
+import type { RoomPathPattern } from "./__generated__/route-table.ts";
+import type { TagsPathPattern } from "../tags/__generated__/route-table.ts";
 
 export enum RoomEvent {
     RoomCreated = "RoomCreated",
@@ -134,6 +136,18 @@ type RoomInfoCacheEntry =
     | IRoomMetadataResponse
     | IJoinedMembersResponse;
 
+type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
+type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+type RoomManagerPathPattern =
+    | StripR0<RoomPathPattern | TagsPathPattern>
+    | StripV1<RoomPathPattern>
+    | StripV3<RoomPathPattern | TagsPathPattern>;
+
+function rp<P extends RoomManagerPathPattern>(path: P): P {
+    return path;
+}
+
 export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     private roomInfoCache: LRUCache<RoomInfoCacheEntry>;
     private membersCache: LRUCache<IStateEvent[]>;
@@ -200,7 +214,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IRoomVersionResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/version", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/version`),
                 undefined,
                 undefined,
             );
@@ -224,7 +238,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IRoomCapabilitiesResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/capabilities", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/capabilities`),
                 undefined,
                 undefined,
             );
@@ -248,7 +262,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IRoomMetadataResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/metadata", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/metadata`),
                 undefined,
                 undefined,
             );
@@ -276,7 +290,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<{ room_id: string }>(
                 Method.Post,
-                "/createRoom",
+                rp("/createRoom"),
                 undefined,
                 options,
             );
@@ -318,7 +332,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             data.third_party_signed = signedInviteObj;
         }
 
-        const path = utils.encodeUri("/join/$roomid", { $roomid: roomIdOrAlias });
+        const path = rp(`/join/${encodeURIComponent(roomIdOrAlias)}`);
         const res = await this.client.http.authedRequest<{ room_id: string }>(Method.Post, path, queryParams, data);
 
         const roomId = res.room_id;
@@ -343,7 +357,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return { room_id: room.roomId };
         }
 
-        const path = utils.encodeUri("/knock/$roomIdOrAlias", { $roomIdOrAlias: roomIdOrAlias });
+        const path = rp(`/knock/${encodeURIComponent(roomIdOrAlias)}`);
 
         const queryParams: QueryDict = {};
         if (opts.viaServers) {
@@ -366,7 +380,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/leave", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/leave`),
                 undefined,
                 {},
             );
@@ -383,7 +397,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/forget", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/forget`),
                 undefined,
                 { delete_room: deleteRoom },
             );
@@ -421,7 +435,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IGetMembersResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/members", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/members`),
                 params as Record<string, string>,
                 undefined,
             );
@@ -447,7 +461,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IJoinedMembersResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/joined_members", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/joined_members`),
                 undefined,
                 undefined,
             );
@@ -473,10 +487,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             const response = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IStateEvent>(
                     Method.Get,
-                    utils.encodeUri("/rooms/$roomId/membership/$userId", {
-                        $roomId: roomId,
-                        $userId: userId,
-                    }),
+                    rp(`/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`),
                     undefined,
                     undefined,
                 );
@@ -517,7 +528,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/invite`),
                 undefined,
                 body,
             );
@@ -541,7 +552,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/invite`),
                 undefined,
                 {
                     id_server: this.client.getIdentityServerUrl(true),
@@ -562,7 +573,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/kick", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/kick`),
                 undefined,
                 { user_id: userId, reason },
             );
@@ -580,7 +591,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/ban", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/ban`),
                 undefined,
                 { user_id: userId, reason },
             );
@@ -597,7 +608,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/unban", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/unban`),
                 undefined,
                 { user_id: userId },
             );
@@ -650,10 +661,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IRoomEvent>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/event/$eventId", {
-                    $roomId: roomId,
-                    $eventId: eventId,
-                }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`),
                 undefined,
                 undefined,
             );
@@ -679,10 +687,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IEventContextResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/context/$eventId", {
-                    $roomId: roomId,
-                    $eventId: eventId,
-                }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`),
                 Object.keys(queryParams).length > 0 ? queryParams : undefined,
                 undefined,
             );
@@ -706,11 +711,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<ISendEventResponse>(
                 Method.Put,
-                utils.encodeUri("/rooms/$roomId/redact/$eventId/$txnId", {
-                    $roomId: roomId,
-                    $eventId: eventId,
-                    $txnId: txn,
-                }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txn)}`),
                 undefined,
                 reason ? { reason } : {},
             );
@@ -727,10 +728,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<ITagsResponse>(
                 Method.Get,
-                utils.encodeUri("/user/$userId/rooms/$roomId/tags", {
-                    $userId: this.client.getUserId()!,
-                    $roomId: roomId,
-                }),
+                rp(
+                    utils.encodeUri("/user/$userId/rooms/$roomId/tags", {
+                        $userId: this.client.getUserId()!,
+                        $roomId: roomId,
+                    }) as StripV3<TagsPathPattern>,
+                ),
                 undefined,
                 undefined,
             );
@@ -748,11 +751,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Put,
-                utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
-                    $userId: this.client.getUserId()!,
-                    $roomId: roomId,
-                    $tag: tagName,
-                }),
+                rp(
+                    utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
+                        $userId: this.client.getUserId()!,
+                        $roomId: roomId,
+                        $tag: tagName,
+                    }) as StripV3<TagsPathPattern>,
+                ),
                 undefined,
                 metadata,
             );
@@ -770,11 +775,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Delete,
-                utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
-                    $userId: this.client.getUserId()!,
-                    $roomId: roomId,
-                    $tag: tagName,
-                }),
+                rp(
+                    utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
+                        $userId: this.client.getUserId()!,
+                        $roomId: roomId,
+                        $tag: tagName,
+                    }) as StripV3<TagsPathPattern>,
+                ),
                 undefined,
                 undefined,
             );
@@ -855,7 +862,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IRoomHierarchy>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/hierarchy", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/hierarchy`),
                 query,
                 undefined,
             );
@@ -908,7 +915,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<{ aliases: string[] }>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/aliases", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/aliases`),
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V3 },
@@ -935,7 +942,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<{ replacement_room: string }>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/upgrade", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/upgrade`),
                 undefined,
                 body,
             );
@@ -948,7 +955,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<EmptyObject>(
                 Method.Post,
-                utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/report`),
                 undefined,
                 { reason },
             );
@@ -961,7 +968,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IRoomInitialSyncResponse>(
                 Method.Get,
-                utils.encodeUri("/rooms/$roomId/initialSync", { $roomId: roomId }),
+                rp(`/rooms/${encodeURIComponent(roomId)}/initialSync`),
                 undefined,
                 undefined,
             );

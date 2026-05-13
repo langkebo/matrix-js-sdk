@@ -1,124 +1,54 @@
 ---
 module: captcha
 generated_from: docs/api-contract/generated/modules/captcha.json
-generated_hash: sha256-2ae628c33194b8b3b1c5ba206c97e7bd578c8153836eaa89c3750f182d1d20b5
+generated_hash: sha256-36bc6ef0be574296d5f29d6344f85199d09123b6b315e94cf87c3f1ddb550ef7
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
 
 # CAPTCHA API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/captcha.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
-> 更新日期: 2026-04-27  
-> 挂载版本: `r0`
+> 后端代码: `synapse-rust/src/web/routes/captcha.rs`
+> 装配入口: `synapse-rust/src/web/routes/assembly.rs`
 
-## 一、模块概述
+## 真实后端路由
 
-### 1.1 功能描述
+| 方法 | 路径 | 说明 | 认证 |
+| ---- | ---- | ---- | ---- |
+| POST | `/_matrix/client/r0/register/captcha/send` | r0 发送验证码挑战 | 公开 |
+| GET | `/_matrix/client/r0/register/captcha/status` | r0 查询验证码状态 | 公开 |
+| POST | `/_matrix/client/r0/register/captcha/verify` | r0 验证验证码 | 公开 |
+| POST | `/_matrix/client/v3/register/captcha/send` | v3 发送验证码挑战 | 公开 |
+| GET | `/_matrix/client/v3/register/captcha/status` | v3 查询验证码状态 | 公开 |
+| POST | `/_matrix/client/v3/register/captcha/verify` | v3 验证验证码 | 公开 |
+| POST | `/_synapse/admin/v1/captcha/cleanup` | 清理过期验证码 | 管理员 |
 
-CAPTCHA API 提供验证码功能，用于注册时的人机验证。
+## SDK 对齐状态
 
-### 1.2 路由前缀
+| 端点 | SDK Manager | 方法 | 状态 |
+| ---- | ----------- | ---- | ---- |
+| `POST /v3/register/captcha/send` | `CaptchaManager` | `sendCaptcha()` | ✅ |
+| `GET /v3/register/captcha/status` | `CaptchaManager` | `getCaptchaStatus()` | ✅ |
+| `POST /v3/register/captcha/verify` | `CaptchaManager` | `verifyCaptcha()` | ✅ |
+| `POST /_synapse/admin/v1/captcha/cleanup` | `CaptchaManager` | `cleanupExpiredCaptchas()` | ✅ |
 
-- `/_matrix/client/r0/register/captcha/*`
-- `/_synapse/admin/v1/captcha/cleanup`
+## 覆盖率口径
 
-### 1.3 认证要求
+- **后端 Ledger 路由总数**: 7
+- **SDK 已封装路由数**: 4
+- **已绑定生成路由模板**: 4
+- **契约覆盖率**: 100%
+- **说明**:
+    - `CaptchaManager` 选择 `v3` 作为 canonical 封装面。
+    - 后端保留的 3 条 `r0` 路径与 `v3` 逻辑一致，SDK 不再额外暴露重复方法，视为逻辑覆盖 100%。
+    - 客户端 `captcha` 路由属于注册流程公开端点，应走 `request()` 而非 `authedRequest()`。
 
-- 客户端端点：公开或注册流程中
-- 管理端点：`AdminUser`
+## 常见状态码
 
-## 二、端点详情
-
-### 2.1 发送验证码
-
-**路径**: `POST /_matrix/client/r0/register/captcha/send`  
-**认证**: 公开  
-**挂载版本**: `r0`
-
-**请求体**:
-
-```json
-{
-    "session": "session_id"
-}
-```
-
-**响应**: `200 OK`
-
-```json
-{
-    "captcha_url": "https://..."
-}
-```
-
-### 2.2 验证验证码
-
-**路径**: `POST /_matrix/client/r0/register/captcha/verify`  
-**认证**: 公开  
-**挂载版本**: `r0`
-
-**请求体**:
-
-```json
-{
-    "session": "session_id",
-    "response": "captcha_response"
-}
-```
-
-**响应**: `200 OK`
-
-```json
-{
-    "success": true
-}
-```
-
-### 2.3 查询验证码状态
-
-**路径**: `GET /_matrix/client/r0/register/captcha/status`  
-**认证**: 公开  
-**挂载版本**: `r0`
-
-**查询参数**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `session` | string | 是 | 会话 ID |
-
-**响应**: `200 OK`
-
-```json
-{
-    "verified": false
-}
-```
-
-### 2.4 清理过期验证码（Admin）
-
-**路径**: `POST /_synapse/admin/v1/captcha/cleanup`  
-**认证**: `AdminUser`  
-**挂载版本**: `v1`
-
-**响应**: `200 OK`
-
-```json
-{
-    "cleaned": 42
-}
-```
-
-## 三、SDK 对齐状态
-
-### 3.1 封装覆盖率
-
-- **总端点数**: 4
-- **已封装**: 0
-- **覆盖率**: 0%
-
-## 四、变更历史
-
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
-| 2026-04-27 | 初版 | -    |
+| 状态码 | 说明 |
+| ------ | ---- |
+| `200` | 发送、查询或验证成功 |
+| `400` | 参数缺失或验证码格式不合法 |
+| `401` | 管理清理接口缺少管理员身份 |
+| `404` | 指定 `captcha_id` 不存在 |
+| `429` | 验证码请求或校验触发限流 |

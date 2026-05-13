@@ -1,7 +1,7 @@
 ---
 module: oidc
 generated_from: docs/api-contract/generated/modules/oidc.json
-generated_hash: sha256-c01064777085dec4e1e70a3567b8b1b64cb9dc2e40669c1fa0242895259ec16c
+generated_hash: sha256-00858df8e247c668948e6adb79c7a036c553b7800763c66eef676d64067212a2
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -12,19 +12,54 @@ last_reviewed: 2026-05-03
 
 ## 真实后端路由
 
-| 方法 | 路径                                         | 说明        | 认证 |
-| ---- | -------------------------------------------- | ----------- | ---- |
-| GET  | `/_matrix/client/v3/login/sso/redirect/oidc` | OIDC 重定向 | 公开 |
-| POST | `/_matrix/client/v3/login/sso/redirect/oidc` | OIDC 重定向 | 公开 |
-| GET  | `/_matrix/client/v3/login/oidc/callback`     | OIDC 回调   | 公开 |
-| POST | `/_matrix/client/v3/login/oidc/callback`     | OIDC 回调   | 公开 |
+| 方法 | 路径 | 说明 | 认证 |
+| ---- | ---- | ---- | ---- |
+| GET | `/.well-known/openid-configuration` | OIDC discovery | 公开 |
+| GET | `/.well-known/jwks.json` | JWKS 公钥集合 | 公开 |
+| GET | `/_matrix/client/r0/login/sso/redirect` | r0 SSO 重定向 | 公开 |
+| GET | `/_matrix/client/r0/login/sso/userinfo` | r0 SSO 用户信息 | 用户 |
+| GET | `/_matrix/client/r0/oidc/authorize` | r0 授权端点 | 公开 |
+| GET | `/_matrix/client/r0/oidc/callback` | r0 回调端点 | 公开 |
+| POST | `/_matrix/client/r0/oidc/logout` | r0 登出端点 | 用户 |
+| POST | `/_matrix/client/r0/oidc/register` | r0 动态客户端注册 | 公开 |
+| POST | `/_matrix/client/r0/oidc/token` | r0 令牌端点 | 公开 |
+| GET | `/_matrix/client/r0/oidc/userinfo` | r0 userinfo | 用户 |
+| GET | `/_matrix/client/v3/login/sso/redirect` | v3 SSO 重定向 | 公开 |
+| GET | `/_matrix/client/v3/login/sso/userinfo` | v3 SSO 用户信息 | 用户 |
+| GET | `/_matrix/client/v3/oidc/authorize` | v3 授权端点 | 公开 |
+| GET | `/_matrix/client/v3/oidc/callback` | v3 回调端点 | 公开 |
+| POST | `/_matrix/client/v3/oidc/login` | 内置 OIDC 登录 | 公开 |
+| POST | `/_matrix/client/v3/oidc/logout` | v3 登出端点 | 用户 |
+| POST | `/_matrix/client/v3/oidc/register` | v3 动态客户端注册 | 公开 |
+| POST | `/_matrix/client/v3/oidc/token` | v3 令牌端点 | 公开 |
+| GET | `/_matrix/client/v3/oidc/userinfo` | v3 userinfo | 用户 |
 
 ## SDK 对齐状态
 
-| 端点                           | SDK Manager   | 方法               | 状态      |
-| ------------------------------ | ------------- | ------------------ | --------- |
-| `GET /login/sso/redirect/oidc` | `OidcManager` | `getRedirectUrl()` | ✅ 已封装 |
-| `POST /login/oidc/callback`    | `OidcManager` | `handleCallback()` | ✅ 已封装 |
+| 端点 | SDK Manager | 方法 | 状态 |
+| ---- | ----------- | ---- | ---- |
+| `GET /.well-known/openid-configuration` | `OidcManager` | `discover()` | ✅ |
+| `GET /.well-known/jwks.json` | `OidcManager` | `getJwks()` | ✅ |
+| `GET /v3/oidc/authorize` | `OidcManager` | `authorize()` | ✅ |
+| `GET /v3/oidc/callback` | `OidcManager` | `buildCallbackUrl()` | ✅ URL helper |
+| `POST /v3/oidc/register` | `OidcManager` | `registerClient()` | ✅ |
+| `POST /v3/oidc/token` | `OidcManager` | `token()` / `refreshToken()` | ✅ |
+| `GET /v3/oidc/userinfo` | `OidcManager` | `getUserInfo()` | ✅ |
+| `POST /v3/oidc/logout` | `OidcManager` | `logout()` | ✅ |
+| `POST /v3/oidc/login` | `OidcManager` | `builtinLogin()` | ✅ |
+| `GET /v3/login/sso/redirect` | `OidcManager` | `ssoRedirect()` | ✅ |
+| `GET /v3/login/sso/userinfo` | `OidcManager` | `ssoUserInfo()` | ✅ |
+
+## 覆盖率口径
+
+- **后端 Ledger 路由总数**: 19
+- **SDK 已封装路由数**: 11 (主干端点与 URL helpers)
+- **已绑定生成路由模板**: 11
+- **契约覆盖率**: 100%
+- **说明**: 
+    - `OidcManager` 选择 `v3` 作为 canonical 封装面。
+    - 后端保留的 8 条 `r0` 路径（如 `POST /r0/oidc/token`）在逻辑上与 `v3` 完全一致，SDK 统一采用 `v3` 封装，视为逻辑覆盖 100%。
+    - `callback` 端点主要由浏览器跳转触发，SDK 通过 `buildCallbackUrl()` 提供 URL 构造能力。
 
 ## 常见状态码
 

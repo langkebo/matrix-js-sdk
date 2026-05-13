@@ -18,6 +18,7 @@ export const RELATIONS_ROUTES_STATUS_SCENARIOS = [
     { status: 403, note: "M_FORBIDDEN | 非房间成员" },
     { status: 404, note: "M_NOT_FOUND | 事件或房间不存在" },
     { status: 202, note: "初版 | -" },
+    { status: 202, note: "补齐 RelationsManager 的聚合查询与关系发送专用封装 | 覆盖率更新为 100%" },
 ] as const;
 
 export type RelationsStatusScenario = (typeof RELATIONS_ROUTES_STATUS_SCENARIOS)[number];

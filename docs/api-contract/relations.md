@@ -1,7 +1,7 @@
 ---
 module: relations
 generated_from: docs/api-contract/generated/modules/relations.json
-generated_hash: sha256-e6ebee03f07c6fa761f13b63c599441fd01a5c4e04a321884a8c396dcb09da0e
+generated_hash: sha256-502ecb092774d9fb4ecaf1e0380d1e97f59cd3c81cd97152251d0653c4df7bd5
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -164,22 +164,29 @@ interface AggregationsResponse {
 
 | 后端端点                                                 | SDK 方法                         | 状态                                                                |
 | -------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
-| `GET /relations/{event_id}`                              | `MatrixClient.relations()`       | ✅ 已封装                                                           |
-| `GET /relations/{event_id}/{rel_type}`                   | `MatrixClient.relations()`       | ✅ 已封装                                                           |
-| `GET /aggregations/{event_id}/{rel_type}`                | `MatrixClient.getAggregations()` | ✅ 已封装                                                           |
-| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `MatrixClient.sendEvent()`       | ⚠️ 间接实现（SDK 走通用事件发送接口，未调用 relations.rs 专用路由） |
+| `GET /relations/{event_id}`                              | `RelationsManager.fetchRelations()` / `MatrixClient.relations()` | ✅ 已封装 |
+| `GET /relations/{event_id}/{rel_type}`                   | `RelationsManager.fetchRelations()` / `MatrixClient.relations()` | ✅ 已封装 |
+| `GET /aggregations/{event_id}/{rel_type}`                | `RelationsManager.getAggregations()` / `MatrixClient.getAggregations()` | ✅ 已封装 |
+| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `RelationsManager.sendRelation()` | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
 - **总端点数**: 5
-- **已封装**: 3
-- **覆盖率**: 60%
+- **已封装**: 5
+- **覆盖率**: 100%
 
 ### 3.3 已知差异
 
 - SDK 的 `relations()` 方法合并了多个后端端点
-- 缺少聚合查询的直接封装
-- 关系事件创建在后端有专用路由，但 SDK 当前仍通过通用 `sendEvent()` 承载 `m.relates_to`
+- `RelationsManager` 现在补齐了 `getAggregations()` 与 `sendRelation()` 两个专用 wrapper；
+  `MatrixClient` 侧的通用入口依然保留，用于兼容旧调用方式。
+
+### 3.4 人工 Review 对齐
+
+- `src/relations/index.ts` 已绑定生成的 `route-table` 路径模板，避免手写关系路由继续漂移。
+- 新增 `RelationsManager.getAggregations()`，直连 `GET /aggregations/{event_id}/{rel_type}`。
+- 新增 `RelationsManager.sendRelation()`，直连专用 `PUT /relations/{event_id}/{rel_type}/{target_event_id}`。
+- 单测已覆盖专用聚合查询、专用关系发送和错误归一化行为。
 
 ## 四、常见错误码
 
@@ -195,3 +202,4 @@ interface AggregationsResponse {
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
 | 2026-04-27 | 初版 | -    |
+| 2026-05-11 | 补齐 RelationsManager 的聚合查询与关系发送专用封装 | 覆盖率更新为 100% |

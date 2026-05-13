@@ -198,6 +198,31 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         );
     }
 
+    public async searchRecipients(opts: {
+        term: string;
+        limit?: number;
+    }): Promise<{ results: unknown[]; count: number; next_batch: string | null }> {
+        if (!opts.term || opts.term.trim().length === 0) {
+            throw new ValidationError("Search term is required");
+        }
+        if (opts.limit !== undefined) {
+            AdminValidators.validateLimit(opts.limit);
+        }
+        return this.withRetry(
+            () =>
+                (
+                    this.client as unknown as {
+                        searchRecipients: (searchTerm: string, limit?: number) => Promise<{
+                            results: unknown[];
+                            count: number;
+                            next_batch: string | null;
+                        }>;
+                    }
+                ).searchRecipients(opts.term, opts.limit),
+            "searchRecipients",
+        );
+    }
+
     public async search(opts: { room_events?: ISearchOptions }): Promise<ISearchResponse> {
         return this.withRetry(
             () =>

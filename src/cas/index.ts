@@ -13,6 +13,17 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
+import type { CasPathPattern } from "./__generated__/route-table.ts";
+
+type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+
+function cp<P extends StripAdminV1<CasPathPattern>>(path: P): P {
+    return path;
+}
+
+function publicPath<P extends CasPathPattern>(path: P): P {
+    return path;
+}
 
 /**
  * CasManager — CAS（Central Authentication Service）admin CRUD
@@ -77,7 +88,7 @@ export class CasManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<CasService>(
                 Method.Post,
-                "/v1/cas/services",
+                cp("/cas/services"),
                 undefined,
                 request,
                 { prefix: AdminPrefix.V1 },
@@ -91,7 +102,7 @@ export class CasManager extends BaseManager {
         try {
             const response = await this.client.http.authedRequest<CasService[]>(
                 Method.Get,
-                "/v1/cas/services",
+                cp("/cas/services"),
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
@@ -108,7 +119,7 @@ export class CasManager extends BaseManager {
         try {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
-                `/v1/cas/services/${encodeURIComponent(serviceId)}`,
+                cp(`/cas/services/${encodeURIComponent(serviceId)}` as StripAdminV1<CasPathPattern>),
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
@@ -124,7 +135,7 @@ export class CasManager extends BaseManager {
         try {
             return await this.client.http.authedRequest<SetCasAttributeResponse>(
                 Method.Post,
-                `/v1/cas/users/${encodeURIComponent(userId)}/attributes`,
+                cp(`/cas/users/${encodeURIComponent(userId)}/attributes` as StripAdminV1<CasPathPattern>),
                 undefined,
                 request,
                 { prefix: AdminPrefix.V1 },
@@ -139,7 +150,7 @@ export class CasManager extends BaseManager {
         try {
             const response = await this.client.http.authedRequest<CasUserAttribute[]>(
                 Method.Get,
-                `/v1/cas/users/${encodeURIComponent(userId)}/attributes`,
+                cp(`/cas/users/${encodeURIComponent(userId)}/attributes` as StripAdminV1<CasPathPattern>),
                 undefined,
                 undefined,
                 { prefix: AdminPrefix.V1 },
@@ -158,7 +169,8 @@ export class CasManager extends BaseManager {
     public buildLoginUrl(serviceUrl: string): string {
         this.requireNonEmpty(serviceUrl, "serviceUrl");
         const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
-        return `${baseUrl}/login?service=${encodeURIComponent(serviceUrl)}`;
+        const path = publicPath("/login");
+        return `${baseUrl}${path}?service=${encodeURIComponent(serviceUrl)}`;
     }
 
     /**
@@ -166,10 +178,29 @@ export class CasManager extends BaseManager {
      */
     public buildLogoutUrl(serviceUrl?: string): string {
         const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
+        const path = publicPath("/logout");
         if (serviceUrl) {
-            return `${baseUrl}/logout?service=${encodeURIComponent(serviceUrl)}`;
+            return `${baseUrl}${path}?service=${encodeURIComponent(serviceUrl)}`;
         }
-        return `${baseUrl}/logout`;
+        return `${baseUrl}${path}`;
+    }
+
+    /**
+     * 构造 CAS 票据验证 URL（供浏览器或后端直连消费，返回 XML）。
+     * @param type - 验证协议类型
+     * @param ticket - 待验证票据
+     * @param serviceUrl - 服务 URL
+     */
+    public buildValidateUrl(
+        type: "serviceValidate" | "proxyValidate" | "p3/serviceValidate" | "proxy",
+        ticket: string,
+        serviceUrl: string,
+    ): string {
+        this.requireNonEmpty(ticket, "ticket");
+        this.requireNonEmpty(serviceUrl, "serviceUrl");
+        const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
+        const path = publicPath(`/${type}` as CasPathPattern);
+        return `${baseUrl}${path}?ticket=${encodeURIComponent(ticket)}&service=${encodeURIComponent(serviceUrl)}`;
     }
 
     private requireNonEmpty(value: string | undefined, field: string): void {

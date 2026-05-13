@@ -6,10 +6,10 @@
 
 import { THIRDPARTY_ROUTES } from "./route-table";
 
-export const THIRDPARTY_ROUTES_ENTRY_COUNT = 10 as const;
+export const THIRDPARTY_ROUTES_ENTRY_COUNT = 12 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _ThirdpartyEntryCountAssertion: 10 = THIRDPARTY_ROUTES.length;
+const _ThirdpartyEntryCountAssertion: 12 = THIRDPARTY_ROUTES.length;
 void _ThirdpartyEntryCountAssertion;
 
 export const THIRDPARTY_ROUTES_STATUS_SCENARIOS = [
@@ -17,6 +17,7 @@ export const THIRDPARTY_ROUTES_STATUS_SCENARIOS = [
     { status: 401, note: "M_UNAUTHORIZED | 未认证" },
     { status: 404, note: "M_NOT_FOUND | 协议不存在" },
     { status: 202, note: "初版 | -" },
+    { status: 202, note: "补齐 thirdparty 直连协议查询与 v3 通用查询封装 | 覆盖率更新为 100%" },
 ] as const;
 
 export type ThirdpartyStatusScenario = (typeof THIRDPARTY_ROUTES_STATUS_SCENARIOS)[number];

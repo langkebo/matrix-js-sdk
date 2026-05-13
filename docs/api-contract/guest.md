@@ -1,53 +1,107 @@
 ---
 module: guest
 generated_from: docs/api-contract/generated/modules/guest.json
-generated_hash: sha256-9b0fed107abcf054d429137ac81d5046ecbbeb3e275f45da3d3559e9b90795c2
+generated_hash: sha256-4797dad56cb80c9c7b5a251e6809d3c5022c425112f745ee4196c30f9fb573c2
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # 访客契约
 
 > 审查来源: `synapse-rust/src/web/routes/guest.rs`
+> SDK 入口: `src/guest/index.ts`
+
+## 当前审计结论
+
+- `generated/modules/guest.json` 当前记录 **3** 条后端路由，全部是 `/_matrix/client/v3/*` 路径。
+- 旧文档中的 `POST /_matrix/client/r0/register?kind=guest` 和 `POST /_matrix/client/v3/register?kind=guest` 不属于当前 `synapse-rust` 后端实现。
+- SDK 已有 `GuestManager`，本轮补上了 `GuestPathPattern` 路径绑定，并修正 `getGuestInfoFromServer()` 的响应解析。
+- `getGuestInfoFromServer()` 对应的真实后端响应是扁平对象 `{ user_id, is_guest }`，不是 `{ guest: ... }` 包装。
+- `upgradeGuestAccountOnServer()` 对应的后端请求体里 `username` 与 `password` 都是必填，返回体包含 `success`。
 
 ## 真实后端路由
 
 | 方法 | 路径                                     | 说明     | 认证 |
 | ---- | ---------------------------------------- | -------- | ---- |
-| POST | `/_matrix/client/r0/register?kind=guest` | 注册访客 | 公开 |
-| POST | `/_matrix/client/v3/register?kind=guest` | 注册访客 | 公开 |
+| POST | `/_matrix/client/v3/register/guest`      | 注册访客 | 公开 |
+| GET  | `/_matrix/client/v3/account/guest`       | 查询当前登录用户是否为 guest | 访问令牌 |
+| POST | `/_matrix/client/v3/account/guest/upgrade` | 将 guest 账号升级为正式账号 | 访问令牌 |
+
+## 核心请求与响应形状
+
+```typescript
+interface GuestRegisterResponse {
+    user_id: string;
+    device_id: string;
+    access_token: string;
+    expires_in: number;
+}
+```
+
+```typescript
+interface ServerGuestInfo {
+    user_id: string;
+    is_guest: boolean;
+}
+```
+
+```typescript
+interface UpgradeGuestRequest {
+    username: string;
+    password: string;
+}
+```
+
+```typescript
+interface UpgradeGuestResponse {
+    success: boolean;
+    user_id: string;
+    access_token: string;
+}
+```
 
 ## SDK 对齐状态
 
-| 端点                        | SDK Manager    | 方法              | 状态      |
-| --------------------------- | -------------- | ----------------- | --------- |
-| `POST /register?kind=guest` | `MatrixClient` | `registerGuest()` | ✅ 已封装 |
+| 端点 | SDK Manager | 方法 | 状态 |
+| ---- | ----------- | ---- | ---- |
+| `POST /register/guest` | `GuestManager` | `registerGuestOnServer()` | ✅ 已封装 |
+| `GET /account/guest` | `GuestManager` | `getGuestInfoFromServer()` | ✅ 已封装 |
+| `POST /account/guest/upgrade` | `GuestManager` | `upgradeGuestAccountOnServer()` | ✅ 已封装 |
+
+- **总端点数**: 3
+- **已封装**: 3
+- **覆盖率**: 100%
+- **路径绑定**: `src/guest/index.ts` 使用 `GuestPathPattern`
+- **验证状态**: `spec/unit/guest.spec.ts`
+- **兼容 helper**: `registerGuest()`、`loginGuest()`、`upgradeGuestAccount()` 属于更高层或兼容路径封装，不计入这 3 条后端契约统计
 
 ## 常见状态码
 
 | 状态码 | 说明                                   |
 | ------ | -------------------------------------- |
-| `200`  | 访客注册成功                           |
-| `400`  | 注册参数、请求体或 `kind` 查询参数非法 |
-| `403`  | 服务器禁用访客注册                     |
-| `429`  | 访客注册被限流                         |
+| `200`  | 请求成功 |
+| `400`  | 升级请求参数不合法，例如用户名或密码长度校验失败 |
+| `403`  | 服务器禁用注册，或当前用户不是 guest |
+| `409`  | 升级为正式账号时用户名已存在 |
+| `500`  | 创建 guest 用户、设备或 token 失败 |
 
 ## 错误语义对齐（BaseManager）
 
-| 场景               | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                                    |
-| ------------------ | -------------------------------------- | ---------------- | --------------------------------------------- |
-| 访客注册参数不合法 | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正注册请求体或确保 `kind=guest` 后重试      |
-| 服务器禁用访客注册 | `403` / `M_FORBIDDEN`                  | `ApiError`       | 改走普通注册或联系服务器管理员开启 guest 模式 |
-| 访客注册触发限流   | `429` / `M_LIMIT_EXCEEDED`             | `RetryableError` | 按 `retry_after_ms` 退避后重试                |
+| 场景 | HTTP / errcode | SDK 统一错误类型 | 调用方建议 |
+| ---- | -------------- | ---------------- | ---------- |
+| 服务器禁用注册 | `403` / `M_FORBIDDEN` | `ApiError` | 改走普通注册或联系管理员开启注册 |
+| 当前用户不是 guest | `403` / `M_FORBIDDEN` | `ApiError` | 不要对正式账号调用 guest 升级接口 |
+| 升级参数校验失败 | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError` | 修正 `username` / `password` 后重试 |
+| 升级用户名冲突 | `409` / `M_CONFLICT` | `ApiError` | 更换用户名 |
 
 ## 典型 errcode
 
 | errcode            | 常见 HTTP | 说明                           |
 | ------------------ | --------- | ------------------------------ |
-| `M_BAD_JSON`       | `400`     | 访客注册请求体结构不合法       |
-| `M_INVALID_PARAM`  | `400`     | 注册参数或 `kind` 查询参数非法 |
-| `M_FORBIDDEN`      | `403`     | 服务器禁用访客注册             |
-| `M_LIMIT_EXCEEDED` | `429`     | 访客注册被限流                 |
+| `M_BAD_JSON`       | `400`     | 升级请求体结构不合法或校验失败 |
+| `M_INVALID_PARAM`  | `400`     | 用户名或密码不符合要求 |
+| `M_FORBIDDEN`      | `403`     | 服务器禁用注册或当前用户不是 guest |
+| `M_CONFLICT`       | `409`     | 用户名已存在 |
 
 ## 代码生成产物
 

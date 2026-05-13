@@ -61,6 +61,18 @@ describe("RoomSummaryManager", () => {
             expect(summary?.room_id).toBe("!room:example.com");
         });
 
+        it("should call the v3 room summary endpoint", async () => {
+            await summaryManager.getRoomSummary("!room:example.com", undefined, true);
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/summary`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
         it("should return null on error by default", async () => {
             authedRequest.mockRejectedValue(new Error("Not found"));
             const summary = await summaryManager.getRoomSummary("!unknown1:example.com", undefined, true);
@@ -444,6 +456,453 @@ describe("RoomSummaryManager", () => {
             expect(result.notifications[0].highlight).toBe(false);
         });
 
+        it("should get room permissions via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                can_invite: true,
+                can_kick: false,
+            });
+
+            const result = await summaryManager.getRoomPermissions("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/permissions`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.can_invite).toBe(true);
+            expect(result.can_kick).toBe(false);
+        });
+
+        it("should get room resolve info via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                room_id: "!room:example.com",
+                resolved: true,
+            });
+
+            const result = await summaryManager.getRoomResolve("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/resolve`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.room_id).toBe("!room:example.com");
+            expect(result.resolved).toBe(true);
+        });
+
+        it("should get room message queue via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                events: [{ event_id: "$e1" }],
+                next_batch: "n1",
+            });
+
+            const result = await summaryManager.getRoomMessageQueue("!room:example.com", {
+                from: "n0",
+                limit: 20,
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/message_queue`,
+                { from: "n0", limit: "20" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.events?.[0]).toMatchObject({ event_id: "$e1" });
+            expect(result.next_batch).toBe("n1");
+        });
+
+        it("should get room service types via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                service_types: ["messaging", "encryption"],
+            });
+
+            const result = await summaryManager.getRoomServiceTypes("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/service_types`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.service_types).toEqual(["messaging", "encryption"]);
+        });
+
+        it("should get room reduced events via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                events: [{ event_id: "$e1" }],
+                total: 1,
+            });
+
+            const result = await summaryManager.getRoomReducedEvents("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/reduced_events`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.events).toHaveLength(1);
+            expect(result.total).toBe(1);
+        });
+
+        it("should get room rendered payload via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                rendered: true,
+                html: "<p>hello</p>",
+            });
+
+            const result = await summaryManager.getRoomRendered("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/rendered/`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.rendered).toBe(true);
+        });
+
+        it("should get room fragments via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                fragments: [{ id: "f1" }],
+            });
+
+            const result = await summaryManager.getRoomFragments("!room:example.com", "@alice:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/fragments/${encodeURIComponent("@alice:example.com")}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.fragments).toHaveLength(1);
+        });
+
+        it("should get room device view via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                device_id: "DEV1",
+                room_id: "!room:example.com",
+            });
+
+            const result = await summaryManager.getRoomDevice("!room:example.com", "DEV1");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/device/${encodeURIComponent("DEV1")}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.device_id).toBe("DEV1");
+        });
+
+        it("should get room vault data via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                encrypted: true,
+                key_id: "vault-key",
+            });
+
+            const result = await summaryManager.getRoomVaultData("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/vault_data`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result).toEqual({ encrypted: true, key_id: "vault-key" });
+        });
+
+        it("should set room vault data via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce(undefined);
+
+            await summaryManager.setRoomVaultData("!room:example.com", {
+                encrypted: true,
+                key_id: "vault-key",
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                `/rooms/${encodeURIComponent("!room:example.com")}/vault_data`,
+                undefined,
+                { encrypted: true, key_id: "vault-key" },
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should get room external ids via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce([
+                { provider: "slack", external_id: "room-123" },
+            ]);
+
+            const result = await summaryManager.getRoomExternalIds("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/external_ids`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result).toEqual([{ provider: "slack", external_id: "room-123" }]);
+        });
+
+        it("should get room event url via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                url: "https://example.com/event/$evt",
+            });
+
+            const result = await summaryManager.getRoomEventUrl("!room:example.com", "$evt");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/event/${encodeURIComponent("$evt")}/url`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.url).toContain("/event/");
+        });
+
+        it("should translate room event via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                translated: true,
+                language: "en",
+            });
+
+            const result = await summaryManager.translateRoomEvent("!room:example.com", "$evt", {
+                target_lang: "en",
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                `/rooms/${encodeURIComponent("!room:example.com")}/translate/${encodeURIComponent("$evt")}`,
+                undefined,
+                { target_lang: "en" },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.translated).toBe(true);
+        });
+
+        it("should convert room event via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                converted: true,
+                format: "markdown",
+            });
+
+            const result = await summaryManager.convertRoomEvent("!room:example.com", "$evt", {
+                format: "markdown",
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                `/rooms/${encodeURIComponent("!room:example.com")}/convert/${encodeURIComponent("$evt")}`,
+                undefined,
+                { format: "markdown" },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.converted).toBe(true);
+        });
+
+        it("should sign room event via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                signed: true,
+            });
+
+            const result = await summaryManager.signRoomEvent("!room:example.com", "$evt", {
+                signature: "abc",
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                `/rooms/${encodeURIComponent("!room:example.com")}/sign/${encodeURIComponent("$evt")}`,
+                undefined,
+                { signature: "abc" },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.signed).toBe(true);
+        });
+
+        it("should verify room event via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({
+                verified: true,
+            });
+
+            const result = await summaryManager.verifyRoomEvent("!room:example.com", "$evt", {
+                verifier: "@alice:example.com",
+            });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                `/rooms/${encodeURIComponent("!room:example.com")}/verify/${encodeURIComponent("$evt")}`,
+                undefined,
+                { verifier: "@alice:example.com" },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.verified).toBe(true);
+        });
+
+        it("should get room account data via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ enabled: true });
+
+            const result = await summaryManager.getRoomAccountData("!room:example.com", "m.test");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/account_data/${encodeURIComponent("m.test")}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.enabled).toBe(true);
+        });
+
+        it("should set room account data via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ ok: true });
+
+            const result = await summaryManager.setRoomAccountDataV3("!room:example.com", "m.test", { enabled: true });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                `/rooms/${encodeURIComponent("!room:example.com")}/account_data/${encodeURIComponent("m.test")}`,
+                undefined,
+                { enabled: true },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.ok).toBe(true);
+        });
+
+        it("should get room invites via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ invites: [] });
+
+            const result = await summaryManager.getRoomInvites("!room:example.com");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/invites`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.invites).toEqual([]);
+        });
+
+        it("should claim room keys via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ one_time_keys: {} });
+
+            const result = await summaryManager.claimRoomKeys("!room:example.com", { timeout: 1000 });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                `/rooms/${encodeURIComponent("!room:example.com")}/keys/claim`,
+                undefined,
+                { timeout: 1000 },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.one_time_keys).toEqual({});
+        });
+
+        it("should get room key count via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ count: 3 });
+            const result = await summaryManager.getRoomKeyCount("!room:example.com");
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/keys/count`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.count).toBe(3);
+        });
+
+        it("should get room keys version via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ version: "v1" });
+            const result = await summaryManager.getRoomKeysVersion("!room:example.com");
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/keys/version`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.version).toBe("v1");
+        });
+
+        it("should get room members recent via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ chunk: [] });
+            const result = await summaryManager.getRoomMembersRecent("!room:example.com", { from: "s1", limit: 10 });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/members/recent`,
+                { from: "s1", limit: "10" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.chunk).toEqual([]);
+        });
+
+        it("should get room receipts via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ receipts: [] });
+            const result = await summaryManager.getRoomReceipts("!room:example.com", "m.read", "$evt");
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/receipts/${encodeURIComponent("m.read")}/${encodeURIComponent("$evt")}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.receipts).toEqual([]);
+        });
+
+        it("should forward room keys via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ count: 1 });
+            const result = await summaryManager.forwardRoomKeys("!room:example.com", { room_keys: [] });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                `/rooms/${encodeURIComponent("!room:example.com")}/room_keys/keys`,
+                undefined,
+                { room_keys: [] },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.count).toBe(1);
+        });
+
+        it("should search room via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ results: [] });
+            const result = await summaryManager.searchRoom("!room:example.com", { search_term: "hi" });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                `/rooms/${encodeURIComponent("!room:example.com")}/search`,
+                undefined,
+                { search_term: "hi" },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.results).toEqual([]);
+        });
+
+        it("should get room power levels via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ users_default: 0 });
+            const result = await summaryManager.getRoomPowerLevels("!room:example.com");
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/state/m.room.power_levels/`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.users_default).toBe(0);
+        });
+
         it("should sync room summary via v3 endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ ok: true });
 
@@ -734,6 +1193,20 @@ describe("RoomSummaryManager", () => {
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 `/rooms/${encodeURIComponent("!room:example.com")}/encrypted_events`,
+                { limit: "0" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should preserve zero-valued room message-queue limits", async () => {
+            authedRequest.mockResolvedValueOnce({ events: [], next_batch: "n1" });
+
+            await summaryManager.getRoomMessageQueue("!room:example.com", { limit: 0 });
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/message_queue`,
                 { limit: "0" },
                 undefined,
                 { prefix: ClientPrefix.V3 },

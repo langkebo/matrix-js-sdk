@@ -1,7 +1,7 @@
 ---
 module: widget
 generated_from: docs/api-contract/generated/modules/widget.json
-generated_hash: sha256-3a81f51dc367bd02c0c2f46959162351fed582d953a37d4d074ebf0b418d0329
+generated_hash: sha256-a2bda3ffe7db1aaf65bd5238ad26f455992a2c0494a3efaeb5d74ab4e3aa2c72
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
@@ -12,7 +12,7 @@ last_reviewed: 2026-05-03
 > 更新日期: 2026-04-13
 > 对应 SDK 模块: `src/widget/index.ts`
 > 审查来源: `synapse-rust/src/web/routes/widget.rs`
-> 审计状态: ⚠️ 已拆分独立契约，后端 `v1/v3` widget 鉴权与 session 路径语义已对齐，剩余差距主要是少量 SDK 未封装端点
+> 审计状态: ✅ 已拆分独立契约，后端 `v1/v3` widget 鉴权与 session 路径语义已对齐，SDK 直连端点已补齐
 
 ## 挂载版本
 
@@ -118,6 +118,7 @@ last_reviewed: 2026-05-03
 | 后端端点                                                                  | SDK Manager     | 方法                       | 现状                                                       |
 | ------------------------------------------------------------------------- | --------------- | -------------------------- | ---------------------------------------------------------- |
 | `POST /_matrix/client/v1/widgets`                                         | `WidgetManager` | `addWidget()`              | ✅ 请求路径与主要字段一致                                  |
+| `POST /_matrix/client/v3/widgets/create`                                  | `WidgetManager` | `createWidget()`           | ✅ 已新增直连 `v3` 创建入口                                |
 | `GET /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `getWidget()`              | ✅ 已封装                                                  |
 | `PUT /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `updateWidget()`           | ✅ 已封装                                                  |
 | `DELETE /_matrix/client/v1/widgets/{widget_id}`                           | `WidgetManager` | `removeWidget()`           | ✅ 已封装                                                  |
@@ -137,17 +138,25 @@ last_reviewed: 2026-05-03
 
 ## 当前对齐结论
 
-- `widget.rs` 的 17 个端点已独立建档，不再依赖总表中的路径族摘要。
-- SDK 已覆盖大多数 `v1` widget CRUD、权限与会话接口，`v3` 房间级 `capabilities` / `send` 也已完成对齐。
+- `widget.rs` 的 18 个端点已独立建档，不再依赖总表中的路径族摘要。
+- SDK 已覆盖 `v1` widget CRUD、权限与会话接口，以及 `v3` 的 `create`、房间级 `capabilities` / `send` 路径。
 - `createWidgetSession()` 仍可兼容携带 body 中的 `widget_id`，但后端现在以路径参数为单一真实来源；若两处不一致则返回 `400`。
 - `v1` widget CRUD、权限与 session 查询/终止接口现已显式要求认证，不再是公开接口；对象级访问也已收敛为创建者、房间成员、管理员或显式授权用户。
+- `WidgetManager.createWidget()` 与 `WidgetManager.addWidget()` 现分别对应 `v3 /widgets/create` 与 `v1 /widgets` 两条创建链路。
 
 ## 封装覆盖率
 
-- **后端路由总数**: 17 个端点
-- **SDK 已封装**: 16/17
-- **完全正确封装**: 16/17
-- **路径前缀或契约细节不一致**: 0/17
+- **后端路由总数**: 18 个端点
+- **SDK 已封装**: 18/18
+- **完全正确封装**: 18/18
+- **路径前缀或契约细节不一致**: 0/18
+
+## 人工 Review 对齐
+
+- `src/widget/index.ts` 已补齐 `POST /_matrix/client/v3/widgets/create` 的公开封装 `createWidget()`。
+- `addWidget()` 保持兼容既有 `v1 /widgets` 行为，不改变老调用方默认路径。
+- `createWidget()` 与 `addWidget()` 共享请求体映射逻辑，避免 `widget_type` / `room_id` / `data` 字段再次分叉。
+- 单测已补充 `v3 createWidget` 成功路径和参数校验覆盖。
 
 ## 代码定位
 

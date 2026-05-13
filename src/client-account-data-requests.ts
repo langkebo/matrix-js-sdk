@@ -4,26 +4,39 @@ import type { Body, IRequestOpts } from "./http-api/index.ts";
 import { ServerSupport } from "./feature.ts";
 import type { QueryDict } from "./utils.ts";
 import type { EmptyObject } from "./@types/common.ts";
+import type { AccountDataPathPattern } from "./account-data/__generated__/route-table.ts";
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function adp<P extends StripV3<AccountDataPathPattern>>(path: P): P {
+    return path;
+}
 
 export function buildUserAccountDataPath(userId: string | null, eventType: string): string {
-    return utils.encodeUri("/user/$userId/account_data/$type", {
-        $userId: userId,
-        $type: eventType,
-    });
+    return adp(
+        utils.encodeUri("/user/$userId/account_data/$type", {
+            $userId: userId,
+            $type: eventType,
+        }) as StripV3<AccountDataPathPattern>,
+    );
 }
 
 export function buildUserAccountDataListPath(userId: string | null): string {
-    return utils.encodeUri("/user/$userId/account_data/", {
-        $userId: userId,
-    });
+    return adp(
+        utils.encodeUri("/user/$userId/account_data/", {
+            $userId: userId,
+        }) as StripV3<AccountDataPathPattern>,
+    );
 }
 
 export function buildRoomAccountDataPath(userId: string | null, roomId: string, eventType: string): string {
-    return utils.encodeUri("/user/$userId/rooms/$roomId/account_data/$type", {
-        $userId: userId,
-        $roomId: roomId,
-        $type: eventType,
-    });
+    return adp(
+        utils.encodeUri("/user/$userId/rooms/$roomId/account_data/$type", {
+            $userId: userId,
+            $roomId: roomId,
+            $type: eventType,
+        }) as StripV3<AccountDataPathPattern>,
+    );
 }
 
 export function buildRoomTagsPath(userId: string | null, roomId: string): string {
@@ -42,16 +55,16 @@ export function buildRoomTagPath(userId: string | null, roomId: string, tagName:
 }
 
 export function buildCreateFilterPath(userId: string | null): string {
-    return utils.encodeUri("/user/$userId/filter", {
-        $userId: userId,
-    });
+    return adp(utils.encodeUri("/user/$userId/filter", { $userId: userId }) as StripV3<AccountDataPathPattern>);
 }
 
 export function buildFilterPath(userId: string | null, filterId: string): string {
-    return utils.encodeUri("/user/$userId/filter/$filterId", {
-        $userId: userId,
-        $filterId: filterId,
-    });
+    return adp(
+        utils.encodeUri("/user/$userId/filter/$filterId", {
+            $userId: userId,
+            $filterId: filterId,
+        }) as StripV3<AccountDataPathPattern>,
+    );
 }
 
 type AuthedRequestFn = <T>(

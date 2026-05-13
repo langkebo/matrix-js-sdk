@@ -1,15 +1,15 @@
 ---
 module: rendezvous
 generated_from: docs/api-contract/generated/modules/rendezvous.json
-generated_hash: sha256-50e8212dabf234fb0d27669c2e1cd3ed8f5a193533108c5d2d91b54d9124ff78
+generated_hash: sha256-21d2098bfa03369ed6ef0c0da5acba0259d4bf676dc624e3091aa4a696a10795
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-11
 ---
 
 # Rendezvous API 契约 (二维码登录)
 
 > 版本: v1.0.0
-> 更新日期: 2026-04-14
+> 更新日期: 2026-05-11
 > 对应 SDK 模块: `src/rendezvous/RendezvousManager.ts`
 > 审查来源: `synapse-rust/src/web/routes/rendezvous.rs`
 
@@ -24,7 +24,7 @@ Rendezvous API 提供 MSC4108 二维码登录功能，允许用户通过扫描�
 - `POST /_matrix/client/v1/rendezvous` 允许匿名创建会话。
 - 其余 `/{session_id}` 与 `/{session_id}/messages` 路由必须满足以下任一条件：
     - 请求头携带 `X-Matrix-Rendezvous-Key: <key>`，且值与创建会话返回的 `key` 一致。
-    - 会话已在 `status = connected` 阶段绑定用户，且调用方就是该绑定用户或服务器管理员。
+    - 会话已在 `status = connected` 阶段绑定用户，且调用方就是该绑定用户。
 - 将会话更新为 `connected` 时，除了有效的会话 key，还必须带有效的 Matrix 访问令牌以完成用户绑定。
 
 ---
@@ -54,7 +54,7 @@ POST /_matrix/client/v1/rendezvous
 
 ```json
 {
-    "url": "matrix:rendezvous/xxx",
+    "url": "matrix://rendezvous/example.com/session_id",
     "session_id": "session_id",
     "key": "base64_encoded_key"
 }
@@ -292,6 +292,16 @@ created → connected → completed
 | M_NOT_FOUND            | 404         | 会话不存在或已过期                |
 | M_RENDEZVOUS_EXPIRED   | 410         | 会话已过期                        |
 | M_RENDEZVOUS_CANCELLED | 410         | 会话已取消                        |
+
+---
+
+## SDK 对齐状态
+
+- **总端点数**: 6
+- **已封装**: 6
+- **覆盖率**: 100%
+- **路径绑定**: `src/rendezvous/RendezvousManager.ts` 现已绑定生成的 `RendezvousPathPattern`
+- **验证状态**: `spec/unit/rendezvous-manager.spec.ts`
 
 ---
 

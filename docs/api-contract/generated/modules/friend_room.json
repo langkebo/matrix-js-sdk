@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "friend_room",
-  "synapse_rust_commit": "0000000000000000000000000000000000000000",
-  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
+  "generated_at": "2026-05-11T14:36:56Z",
   "source_profile": "all",
-  "entry_count": 54,
+  "entry_count": 57,
   "entries": [
     {
       "method": "GET",
@@ -114,6 +114,12 @@
     {
       "method": "GET",
       "path": "/_matrix/client/r0/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/r0/friends/search",
       "registered_by": "friend_room",
       "path_params": []
     },
@@ -315,6 +321,12 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/v1/friends/search",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/v1/friends/suggestions",
       "registered_by": "friend_room",
       "path_params": []
@@ -396,6 +408,12 @@
     {
       "method": "GET",
       "path": "/_matrix/client/v3/friends/requests/outgoing",
+      "registered_by": "friend_room",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/friends/search",
       "registered_by": "friend_room",
       "path_params": []
     }

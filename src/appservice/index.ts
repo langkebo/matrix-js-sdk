@@ -96,6 +96,18 @@ export interface ApplicationServiceProtocolInstance {
     field?: string;
 }
 
+export interface UserAppservicesResponse {
+    user_id: string;
+    appservices: Array<{
+        id?: string;
+        as_id?: string;
+        url?: string;
+        sender_localpart?: string;
+        namespaces?: object;
+        [key: string]: unknown;
+    }>;
+}
+
 export interface PingResult {
     duration: number;
 }
@@ -328,6 +340,21 @@ export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent
         } catch (e) {
             logger.debug("AppServiceManager.checkAlias failed", e);
             return false;
+        }
+    }
+
+    async getUserAppservices(userId: string): Promise<UserAppservicesResponse | null> {
+        try {
+            return await this.client.http.authedRequest<UserAppservicesResponse>(
+                Method.Get,
+                `/user/${encodeURIComponent(userId)}/appservice`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        } catch (e) {
+            logger.debug("AppServiceManager.getUserAppservices failed", e);
+            return null;
         }
     }
 

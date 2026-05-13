@@ -31,6 +31,18 @@ import { ServerSupport, Feature } from "../feature";
 import { BaseManager } from "../managers/base-manager";
 import { ClientPrefix, Method } from "../http-api";
 import type { Body } from "../http-api/interface";
+import type { ThreadPathPattern } from "../thread/__generated__/route-table.ts";
+
+type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function tv1<P extends StripV1<ThreadPathPattern>>(path: P): P {
+    return path;
+}
+
+function tv3<P extends StripV3<ThreadPathPattern>>(path: P): P {
+    return path;
+}
 
 export interface ThreadingManagerEvents {
     threadTimelineFetched: (data: { threadId: string; eventId: string }) => void;
@@ -245,7 +257,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     private async requestThreadV1<T>(
         methodName: string,
         method: Method,
-        path: string,
+        path: StripV1<ThreadPathPattern>,
         queryParams?: Record<string, string | number | boolean>,
         body?: Body,
     ): Promise<T> {
@@ -260,7 +272,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
 
     private async requestThreadV3<T>(
         methodName: string,
-        path: string,
+        path: StripV3<ThreadPathPattern>,
         queryParams?: Record<string, string | number | boolean>,
     ): Promise<T> {
         try {
@@ -303,24 +315,24 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "getGlobalThreadList",
             Method.Get,
-            "/threads",
+            tv1("/threads"),
             this.buildQuery({ limit: query.limit, from: query.from }),
         );
     }
 
     public async getSubscribedThreads(): Promise<SubscribedThreadsResponse> {
-        return await this.requestThreadV1("getSubscribedThreads", Method.Get, "/threads/subscribed");
+        return await this.requestThreadV1("getSubscribedThreads", Method.Get, tv1("/threads/subscribed"));
     }
 
     public async getGlobalUnreadThreads(): Promise<ThreadUnreadResponse> {
-        return await this.requestThreadV1("getGlobalUnreadThreads", Method.Get, "/threads/unread");
+        return await this.requestThreadV1("getGlobalUnreadThreads", Method.Get, tv1("/threads/unread"));
     }
 
     public async getRoomThreadList(roomId: string, query: ThreadListQuery = {}): Promise<ThreadListResponse> {
         return await this.requestThreadV1(
             "getRoomThreadList",
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/threads`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads`),
             this.buildQuery({ limit: query.limit, from: query.from, include_all: query.includeAll }),
         );
     }
@@ -329,7 +341,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "searchRoomThreads",
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/threads/search`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/search`),
             this.buildQuery({ q: query.q, limit: query.limit }),
         );
     }
@@ -341,7 +353,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     ): Promise<ThreadLegacySearchResponse> {
         return await this.requestThreadV3(
             "getLegacyRoomThreadList",
-            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`,
+            tv3(`/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`),
             this.buildQuery({ limit: query.limit, from: query.from, include_all: query.includeAll }),
         );
     }
@@ -350,7 +362,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "getRoomUnreadThreads",
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/threads/unread`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/unread`),
         );
     }
 
@@ -362,13 +374,13 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "getRoomThread",
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`),
             this.buildQuery({ include_replies: query.includeReplies, reply_limit: query.replyLimit }),
         );
     }
 
     public async createGlobalThread(params: ThreadCreateParams): Promise<ThreadCreateResponse> {
-        return await this.requestThreadV1("createGlobalThread", Method.Post, "/threads", undefined, {
+        return await this.requestThreadV1("createGlobalThread", Method.Post, tv1("/threads"), undefined, {
             room_id: params.roomId,
             root_event_id: params.rootEventId,
             content: params.content ?? {},
@@ -384,7 +396,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "createRoomThread",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads`),
             undefined,
             {
                 root_event_id: rootEventId,
@@ -398,7 +410,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         await this.requestThreadV1(
             "deleteRoomThread",
             Method.Delete,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`),
         );
     }
 
@@ -406,7 +418,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         await this.requestThreadV1(
             "freezeThread",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`),
         );
     }
 
@@ -414,7 +426,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         await this.requestThreadV1(
             "unfreezeThread",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`),
         );
     }
 
@@ -426,7 +438,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "addThreadReply",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`),
             undefined,
             {
                 event_id: params.eventId,
@@ -446,7 +458,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "getThreadReplies",
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`),
             this.buildQuery({ limit: query.limit, from: query.from }),
         );
     }
@@ -459,7 +471,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "subscribeToThread",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/subscribe`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/subscribe`),
             undefined,
             { notification_level: notificationLevel },
         );
@@ -469,7 +481,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         await this.requestThreadV1(
             "unsubscribeFromThread",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unsubscribe`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unsubscribe`),
         );
     }
 
@@ -477,7 +489,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "muteThread",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`),
         );
     }
 
@@ -490,7 +502,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "markThreadRead",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`),
             undefined,
             { event_id: eventId, origin_server_ts: originServerTs },
         );
@@ -500,7 +512,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return await this.requestThreadV1(
             "getThreadStats",
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`),
         );
     }
 
@@ -508,7 +520,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         await this.requestThreadV1(
             "redactThreadReply",
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/replies/${encodeURIComponent(eventId)}/redact`,
+            tv1(`/rooms/${encodeURIComponent(roomId)}/replies/${encodeURIComponent(eventId)}/redact`),
         );
     }
 

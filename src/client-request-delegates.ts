@@ -86,6 +86,7 @@ export {
     getSSOUserInfoRequest,
     getSecureBackupRequest,
     restoreSecureBackupRequest,
+    searchRecipientsRequest,
     searchRoomsRequest,
     storeSecureBackupKeysRequest,
     verifySecureBackupPassphraseRequest,

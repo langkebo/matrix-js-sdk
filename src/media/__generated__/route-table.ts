@@ -6,10 +6,15 @@
  * Source:        docs/api-contract/generated/modules/media.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `media` module. */
 export const MEDIA_ROUTES = [
+    { method: "GET", path: "/_matrix/client/v1/media/download/{server_name}/{media_id}" },
+    { method: "GET", path: "/_matrix/client/v1/media/download/{server_name}/{media_id}/{filename}" },
+    { method: "GET", path: "/_matrix/client/v1/media/preview_url" },
+    { method: "GET", path: "/_matrix/client/v1/media/thumbnail/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/r0/config" },
     { method: "POST", path: "/_matrix/media/r0/upload" },
     { method: "GET", path: "/_matrix/media/r1/download/{server_name}/{media_id}" },
@@ -48,7 +53,7 @@ export type MediaPath = MediaRoute["path"];
  * type. Used by manager code that binds call sites to the ledger while
  * still interpolating path parameters.
  */
-type MediaReplaceBraces<P extends string> =
+export type MediaReplaceBraces<P extends string> =
     P extends `${infer A}{${infer ParamSegment}}${infer B}` ? ParamSegment extends string ? `${A}${string}${MediaReplaceBraces<B>}` : never : P;
 
 /** Broader path type that also accepts parametrised template literals. */

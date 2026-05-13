@@ -2,6 +2,7 @@ import * as utils from "./utils.ts";
 import { Method, type Body, type IRequestOpts } from "./http-api/index.ts";
 import { ClientPrefix } from "./http-api/prefix.ts";
 import type { QueryDict } from "./utils.ts";
+import type { SearchPathPattern } from "./search/__generated__/route-table.ts";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -10,6 +11,12 @@ type AuthedRequestFn = <T>(
     body?: Body,
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
+
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+function srp<P extends StripV3<SearchPathPattern>>(path: P): P {
+    return path;
+}
 
 export function performSearchRequest<T>(
     body: Body,
@@ -21,7 +28,7 @@ export function performSearchRequest<T>(
     if (nextBatch) {
         queryParams.next_batch = nextBatch;
     }
-    return authedRequest<T>(Method.Post, "/search", queryParams, body, { abortSignal });
+    return authedRequest<T>(Method.Post, srp("/search"), queryParams, body, { abortSignal });
 }
 
 export function uploadKeysHttpRequest<T>(content: Body, authedRequest: AuthedRequestFn): Promise<T> {

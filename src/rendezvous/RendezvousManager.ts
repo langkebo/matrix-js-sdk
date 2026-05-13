@@ -36,9 +36,16 @@ import { Body, type IRequestOpts } from "../http-api/interface.ts";
 import { MatrixError } from "../http-api/errors.ts";
 import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
 import { logger } from "../logger.ts";
+import type { RendezvousPathPattern } from "./__generated__/route-table.ts";
 
 const RENDEZVOUS_PREFIX = "/_matrix/client/v1";
 const RENDEZVOUS_KEY_HEADER = "X-Matrix-Rendezvous-Key";
+
+type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
+
+function rp<P extends StripV1<RendezvousPathPattern>>(path: P): P {
+    return path;
+}
 
 export type RendezvousSessionIntent = "login.start" | "login.reciprocate";
 
@@ -181,7 +188,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     }): Promise<CreateSessionResponse> {
         const response = await this.rendezvousRequest<CreateSessionResponse>(
             Method.Post,
-            "/rendezvous",
+            rp("/rendezvous"),
             undefined,
             options,
         );
@@ -199,7 +206,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
         try {
             return await this.rendezvousRequest<RendezvousSession>(
                 Method.Get,
-                `/rendezvous/${encodeURIComponent(sessionId)}`,
+                rp(`/rendezvous/${encodeURIComponent(sessionId)}` as StripV1<RendezvousPathPattern>),
                 undefined,
                 undefined,
                 sessionKey,
@@ -224,7 +231,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     ): Promise<UpdateSessionResponse> {
         const response = await this.rendezvousRequest<UpdateSessionResponse>(
             Method.Put,
-            `/rendezvous/${encodeURIComponent(sessionId)}`,
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}` as StripV1<RendezvousPathPattern>),
             undefined,
             { status },
             sessionKey,
@@ -246,7 +253,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     async deleteSession(sessionId: string, sessionKey?: string): Promise<void> {
         await this.rendezvousRequest<void>(
             Method.Delete,
-            `/rendezvous/${encodeURIComponent(sessionId)}`,
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}` as StripV1<RendezvousPathPattern>),
             undefined,
             undefined,
             sessionKey,
@@ -267,7 +274,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     ): Promise<SendMessageResponse> {
         const response = await this.rendezvousRequest<SendMessageResponse>(
             Method.Post,
-            `/rendezvous/${encodeURIComponent(sessionId)}/messages`,
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}/messages` as StripV1<RendezvousPathPattern>),
             undefined,
             message,
             sessionKey,
@@ -284,7 +291,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
     async getMessages(sessionId: string, sessionKey?: string): Promise<GetMessagesResponse> {
         const response = await this.rendezvousRequest<GetMessagesResponse>(
             Method.Get,
-            `/rendezvous/${encodeURIComponent(sessionId)}/messages`,
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}/messages` as StripV1<RendezvousPathPattern>),
             undefined,
             undefined,
             sessionKey,
