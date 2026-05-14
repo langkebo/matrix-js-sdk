@@ -30,7 +30,6 @@ limitations under the License.
  *                 ...
  */
 
-import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 const ADMIN_PREFIX = "/_synapse/admin";

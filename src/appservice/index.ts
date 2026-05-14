@@ -176,23 +176,25 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
 
         try {
-            const response = await this.client.http.authedRequest<ApplicationServiceResponse>(
-                Method.Post,
-                "/application_services",
-                undefined,
-                {
-                    id: request.id,
-                    url: request.url,
-                    as_token: request.as_token,
-                    hs_token: request.hs_token,
-                    sender_localpart: request.sender_localpart,
-                    description: request.description,
-                    rate_limited: request.rate_limited,
-                    protocols: request.protocols,
-                    namespaces: request.namespaces,
-                },
-                { prefix: AdminPrefix.V1 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ApplicationServiceResponse>(
+                    Method.Post,
+                    "/application_services",
+                    undefined,
+                    {
+                        id: request.id,
+                        url: request.url,
+                        as_token: request.as_token,
+                        hs_token: request.hs_token,
+                        sender_localpart: request.sender_localpart,
+                        description: request.description,
+                        rate_limited: request.rate_limited,
+                        protocols: request.protocols,
+                        namespaces: request.namespaces,
+                    },
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "registerAppService");
 
             const service = this.fromResponse(response, request);
             this.services.set(service.as_id, service);
@@ -200,7 +202,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
 
             return service;
         } catch (error) {
-            this.emit(AppServiceEvent.ServiceError, error as Error);
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "registerAppService"));
             throw error;
         }
     }
@@ -211,21 +213,23 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
 
         try {
-            const response = await this.client.http.authedRequest<ApplicationServiceResponse>(
-                Method.Get,
-                `/application_services/${encodeURIComponent(asId)}`,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ApplicationServiceResponse>(
+                    Method.Get,
+                    `/application_services/${encodeURIComponent(asId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "getApplicationService");
 
             const service = this.fromResponse(response);
             this.services.set(service.as_id, service);
 
             return service;
             // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.getApplicationService failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "getApplicationService"));
             return null;
         }
     }
@@ -235,13 +239,15 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         request: UpdateApplicationServiceRequest,
     ): Promise<ApplicationService> {
         try {
-            const response = await this.client.http.authedRequest<ApplicationServiceResponse>(
-                Method.Put,
-                `/application_services/${encodeURIComponent(asId)}`,
-                undefined,
-                request,
-                { prefix: AdminPrefix.V1 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ApplicationServiceResponse>(
+                    Method.Put,
+                    `/application_services/${encodeURIComponent(asId)}`,
+                    undefined,
+                    request,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "updateApplicationService");
 
             const existing = this.services.get(asId);
             const fresh = this.fromResponse(response);
@@ -256,44 +262,46 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
 
             return updated;
         } catch (error) {
-            this.emit(AppServiceEvent.ServiceError, error as Error);
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "updateApplicationService"));
             throw error;
         }
     }
 
     async unregisterApplicationService(asId: string): Promise<void> {
         try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/application_services/${encodeURIComponent(asId)}`,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Delete,
+                    `/application_services/${encodeURIComponent(asId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "unregisterApplicationService");
 
             this.services.delete(asId);
             this.emit(AppServiceEvent.ServiceUnregistered, asId);
         } catch (error) {
-            this.emit(AppServiceEvent.ServiceError, error as Error);
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "unregisterApplicationService"));
             throw error;
         }
     }
 
     async listApplicationServices(): Promise<ApplicationService[]> {
         try {
-            // 后端 list_app_services 通过 json_vec_from 直接返回裸数组（app_service.rs:220-227）。
-            // 兼容 {application_services: [...]} 包络以防未来变更。
-            const response = await this.client.http.authedRequest<
-                ApplicationServiceResponse[] | { application_services?: ApplicationServiceResponse[] }
-            >(Method.Get, "/application_services", undefined, undefined, { prefix: AdminPrefix.V1 });
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<
+                    ApplicationServiceResponse[] | { application_services?: ApplicationServiceResponse[] }
+                >(Method.Get, "/application_services", undefined, undefined, { prefix: AdminPrefix.V1 });
+            }, "listApplicationServices");
 
             const rawList = Array.isArray(response) ? response : (response?.application_services ?? []);
             const services = rawList.map((r) => this.fromResponse(r));
             services.forEach((s) => this.services.set(s.as_id, s));
 
             return services;
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.listApplicationServices failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "listApplicationServices"));
             return Array.from(this.services.values());
         }
     }
@@ -308,15 +316,17 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
      */
     async checkUserId(userId: string): Promise<boolean> {
         try {
-            const response = await this.client.http.authedRequest<{
-                exists?: boolean;
-                application_service?: string | null;
-            }>(Method.Get, "/appservice/user", { user_id: userId }, undefined, { prefix: ClientPrefix.V3 });
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{
+                    exists?: boolean;
+                    application_service?: string | null;
+                }>(Method.Get, "/appservice/user", { user_id: userId }, undefined, { prefix: ClientPrefix.V3 });
+            }, "checkUserId");
 
             if (typeof response?.exists === "boolean") return response.exists;
             return response?.application_service != null;
-        } catch (e) {
-            logger.debug("AppServiceManager.checkUser failed", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "checkUserId"));
             return false;
         }
     }
@@ -329,30 +339,34 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
      */
     async checkAlias(alias: string): Promise<boolean> {
         try {
-            const response = await this.client.http.authedRequest<{
-                exists?: boolean;
-                application_service?: string | null;
-            }>(Method.Get, "/appservice/alias", { alias }, undefined, { prefix: ClientPrefix.V3 });
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{
+                    exists?: boolean;
+                    application_service?: string | null;
+                }>(Method.Get, "/appservice/alias", { alias }, undefined, { prefix: ClientPrefix.V3 });
+            }, "checkAlias");
 
             if (typeof response?.exists === "boolean") return response.exists;
             return response?.application_service != null;
-        } catch (e) {
-            logger.debug("AppServiceManager.checkAlias failed", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "checkAlias"));
             return false;
         }
     }
 
     async getUserAppservices(userId: string): Promise<UserAppservicesResponse | null> {
         try {
-            return await this.client.http.authedRequest<UserAppservicesResponse>(
-                Method.Get,
-                `/user/${encodeURIComponent(userId)}/appservice`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-        } catch (e) {
-            logger.debug("AppServiceManager.getUserAppservices failed", e);
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<UserAppservicesResponse>(
+                    Method.Get,
+                    `/user/${encodeURIComponent(userId)}/appservice`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V1 },
+                );
+            }, "getUserAppservices");
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "getUserAppservices"));
             return null;
         }
     }
@@ -361,89 +375,99 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         try {
             const startTime = Date.now();
 
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/application_services/${encodeURIComponent(serviceId)}/ping`,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Post,
+                    `/application_services/${encodeURIComponent(serviceId)}/ping`,
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "pingApplicationService");
 
             return { duration: Date.now() - startTime };
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.pingApplicationService failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "pingApplicationService"));
             return { duration: -1 };
         }
     }
 
     async getProtocol(protocol: string): Promise<ApplicationServiceProtocol | null> {
         try {
-            const response = await this.client.http.authedRequest<ApplicationServiceProtocol>(
-                Method.Get,
-                `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ApplicationServiceProtocol>(
+                    Method.Get,
+                    `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "getProtocol");
 
             return response;
             // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.getProtocol failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "getProtocol"));
             return null;
         }
     }
 
     async getProtocols(): Promise<string[]> {
         try {
-            const response = await this.client.http.authedRequest<Record<string, unknown>>(
-                Method.Get,
-                "/thirdparty/protocols",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<Record<string, unknown>>(
+                    Method.Get,
+                    "/thirdparty/protocols",
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "getProtocols");
 
             return Object.keys(response || {});
             // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.getProtocols failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "getProtocols"));
             return [];
         }
     }
 
     async queryUsers(protocol: string, fields: Record<string, string>): Promise<ApplicationServiceUser[]> {
         try {
-            const response = await this.client.http.authedRequest<ApplicationServiceUser[]>(
-                Method.Get,
-                `/thirdparty/user/${encodeURIComponent(protocol)}`,
-                fields,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ApplicationServiceUser[]>(
+                    Method.Get,
+                    `/thirdparty/user/${encodeURIComponent(protocol)}`,
+                    fields,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "queryUsers");
 
             return response;
             // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.queryUsers failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "queryUsers"));
             return [];
         }
     }
 
     async queryLocations(protocol: string, fields: Record<string, string>): Promise<unknown[]> {
         try {
-            const response = await this.client.http.authedRequest<unknown[]>(
-                Method.Get,
-                `/thirdparty/location/${encodeURIComponent(protocol)}`,
-                fields,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<unknown[]>(
+                    Method.Get,
+                    `/thirdparty/location/${encodeURIComponent(protocol)}`,
+                    fields,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "queryLocations");
 
             return response;
             // @swallow-error { owner: "integration-team", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("ApplicationServiceManager.queryLocations failed:", e);
+        } catch (error) {
+            this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "queryLocations"));
             return [];
         }
     }
@@ -459,43 +483,51 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     // from the SDK.
 
     async getApplicationServiceState(asId: string): Promise<Record<string, unknown>> {
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/state`,
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/state`,
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "getApplicationServiceState");
     }
 
     async setApplicationServiceState(asId: string, stateKey: string, value: unknown): Promise<void> {
-        await this.client.http.authedRequest(
-            Method.Put,
-            `/application_services/${encodeURIComponent(asId)}/state/${encodeURIComponent(stateKey)}`,
-            undefined,
-            { value },
-            { prefix: AdminPrefix.V1 },
-        );
+        await this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Put,
+                `/application_services/${encodeURIComponent(asId)}/state/${encodeURIComponent(stateKey)}`,
+                undefined,
+                { value },
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "setApplicationServiceState");
     }
 
     async listApplicationServiceUsers(asId: string): Promise<{ users: ApplicationServiceUser[] }> {
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/users`,
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/users`,
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "listApplicationServiceUsers");
     }
 
     async getApplicationServiceNamespaces(asId: string): Promise<Record<string, unknown>> {
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/namespaces`,
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/namespaces`,
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "getApplicationServiceNamespaces");
     }
 
     async listApplicationServiceEvents(
@@ -505,43 +537,51 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         const q: Record<string, string> = {};
         if (params.limit !== undefined) q.limit = String(params.limit);
         if (params.from !== undefined) q.from = params.from;
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/events`,
-            q,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/events`,
+                q,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "listApplicationServiceEvents");
     }
 
     async getApplicationServiceStatistics(asId: string): Promise<Record<string, unknown>> {
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/statistics`,
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/statistics`,
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "getApplicationServiceStatistics");
     }
 
     async queryApplicationServiceUser(asId: string, userId: string): Promise<Record<string, unknown>> {
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/query/user/${encodeURIComponent(userId)}`,
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/query/user/${encodeURIComponent(userId)}`,
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "queryApplicationServiceUser");
     }
 
     async queryApplicationServiceAlias(asId: string, alias: string): Promise<Record<string, unknown>> {
-        return this.client.http.authedRequest(
-            Method.Get,
-            `/application_services/${encodeURIComponent(asId)}/query/alias/${encodeURIComponent(alias)}`,
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(
+                Method.Get,
+                `/application_services/${encodeURIComponent(asId)}/query/alias/${encodeURIComponent(alias)}`,
+                undefined,
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, "queryApplicationServiceAlias");
     }
 
     getCachedServices(): ApplicationService[] {

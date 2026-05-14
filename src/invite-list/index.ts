@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { Direction } from "../models/event-timeline";
@@ -34,14 +34,12 @@ interface InviteListManagerEventMap {
     [InviteListEvent.InviteError]: (error: Error) => void;
 }
 
-export class InviteListManager extends TypedEventEmitter<InviteListEvent, InviteListManagerEventMap> {
-    private client: MatrixClient;
+export class InviteListManager extends BaseManager<InviteListEvent, InviteListManagerEventMap> {
     private invites: Map<string, IInviteInfo> = new Map();
     private initialized: boolean = false;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     async getInvites(): Promise<IInviteInfo[]> {

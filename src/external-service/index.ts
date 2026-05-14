@@ -118,9 +118,10 @@ export class ExternalServiceManager extends BaseManager<ExternalServiceEvent, Ex
         queryParams?: Record<string, string>,
         body?: Body,
     ): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
-            prefix: AdminPrefix.V1,
-        });
+        return await this.withRetry(
+            async () => await this.client.http.authedRequest<T>(method, path, queryParams, body, { prefix: AdminPrefix.V1 }),
+            "adminRequest",
+        );
     }
 
     /**
@@ -162,7 +163,7 @@ export class ExternalServiceManager extends BaseManager<ExternalServiceEvent, Ex
             return service;
         } catch (error) {
             logger.error("ExternalServiceManager.registerService failed:", error);
-            this.emit(ExternalServiceEvent.Error, error as Error);
+            this.emit(ExternalServiceEvent.Error, this.normalizeError(error, "registerService"));
             throw error;
         }
     }
@@ -324,7 +325,7 @@ export class ExternalServiceManager extends BaseManager<ExternalServiceEvent, Ex
             this.emit(ExternalServiceEvent.ServiceUnregistered, asId);
         } catch (error) {
             logger.error(`ExternalServiceManager.unregisterService failed for ${asId}:`, error);
-            this.emit(ExternalServiceEvent.Error, error as Error);
+            this.emit(ExternalServiceEvent.Error, this.normalizeError(error, "unregisterService"));
             throw error;
         }
     }

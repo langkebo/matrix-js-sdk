@@ -25,7 +25,7 @@ limitations under the License.
  * - POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 设置邀请白名单
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
@@ -63,14 +63,12 @@ interface InviteBlocklistManagerEventMap {
     [InviteBlocklistEvent.Error]: (error: Error) => void;
 }
 
-export class InviteBlocklistManager extends TypedEventEmitter<InviteBlocklistEvent, InviteBlocklistManagerEventMap> {
-    private client: MatrixClient;
+export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, InviteBlocklistManagerEventMap> {
     private blocklistCache: Map<string, string[]> = new Map();
     private allowlistCache: Map<string, string[]> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     /**

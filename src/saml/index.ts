@@ -132,107 +132,119 @@ export class SamlAuthManager extends BaseManager<SamlEvent, SamlAuthManagerEvent
 
     async initiateLogin(redirectUrl?: string): Promise<SamlLoginResponse> {
         try {
-            const response = await this.client.http.request<SamlLoginResponse>(
-                Method.Post,
-                rp("/login/sso/redirect/saml"),
-                redirectUrl ? { redirect_url: redirectUrl } : undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<SamlLoginResponse>(
+                    Method.Post,
+                    rp("/login/sso/redirect/saml"),
+                    redirectUrl ? { redirect_url: redirectUrl } : undefined,
+                    undefined,
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "initiateLogin");
 
             this.emit(SamlEvent.LoginInitiated, response.redirect_url);
 
             return response;
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "initiateLogin"));
             throw error;
         }
     }
 
     async handleCallback(samlResponse: string, relayState?: string): Promise<SamlCallbackResponse> {
         try {
-            const response = await this.client.http.request<SamlCallbackResponse>(
-                Method.Post,
-                rp("/login/saml/callback"),
-                undefined,
-                {
-                    saml_response: samlResponse,
-                    relay_state: relayState,
-                },
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<SamlCallbackResponse>(
+                    Method.Post,
+                    rp("/login/saml/callback"),
+                    undefined,
+                    {
+                        saml_response: samlResponse,
+                        relay_state: relayState,
+                    },
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "handleCallback");
 
             this.emit(SamlEvent.LoginCompleted, response.user_id, response);
 
             return response;
         } catch (error) {
-            this.emit(SamlEvent.LoginFailed, error as Error);
+            this.emit(SamlEvent.LoginFailed, this.normalizeError(error, "handleCallback"));
             throw error;
         }
     }
 
     async logout(): Promise<SamlLogoutResponse> {
         try {
-            const response = await this.client.http.request<SamlLogoutResponse>(
-                Method.Get,
-                rp("/logout/saml"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<SamlLogoutResponse>(
+                    Method.Get,
+                    rp("/logout/saml"),
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "logout");
 
             this.emit(SamlEvent.LogoutCompleted);
 
             return response;
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "logout"));
             throw error;
         }
     }
 
     async handleLogoutCallback(samlResponse: string): Promise<void> {
         try {
-            await this.client.http.request(
-                Method.Get,
-                rp("/logout/saml/callback"),
-                { saml_response: samlResponse },
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            await this.withRetry(async () => {
+                return await this.client.http.request(
+                    Method.Get,
+                    rp("/logout/saml/callback"),
+                    { saml_response: samlResponse },
+                    undefined,
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "handleLogoutCallback");
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "handleLogoutCallback"));
             throw error;
         }
     }
 
     async getIdpMetadata(): Promise<SamlMetadataResponse> {
         try {
-            return await this.client.http.request<SamlMetadataResponse>(
-                Method.Get,
-                rp("/saml/metadata"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            return await this.withRetry(async () => {
+                return await this.client.http.request<SamlMetadataResponse>(
+                    Method.Get,
+                    rp("/saml/metadata"),
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "getIdpMetadata");
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "getIdpMetadata"));
             throw error;
         }
     }
 
     async getSpMetadata(): Promise<string> {
         try {
-            const response = await this.client.http.request<string>(
-                Method.Get,
-                rp("/saml/sp_metadata"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<string>(
+                    Method.Get,
+                    rp("/saml/sp_metadata"),
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "getSpMetadata");
 
             return typeof response === "string" ? response : JSON.stringify(response);
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "getSpMetadata"));
             throw error;
         }
     }
@@ -243,27 +255,31 @@ export class SamlAuthManager extends BaseManager<SamlEvent, SamlAuthManagerEvent
         }
 
         try {
-            const response = await this.client.http.authedRequest(Method.Get, ap("/saml/config"), undefined, undefined, {
-                prefix: AdminPrefix.V1,
-            });
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest(Method.Get, ap("/saml/config"), undefined, undefined, {
+                    prefix: AdminPrefix.V1,
+                });
+            }, "getConfig");
 
             this.config = response as SamlConfig;
             return this.config;
-        } catch (e) {
-            logger.warn("SamlAuthManager.getConfig failed:", e);
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "getConfig"));
             return null;
         }
     }
 
     async updateConfig(config: Partial<SamlConfig>): Promise<void> {
         try {
-            await this.client.http.authedRequest(Method.Put, ap("/saml/config"), undefined, config, {
-                prefix: AdminPrefix.V1,
-            });
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(Method.Put, ap("/saml/config"), undefined, config, {
+                    prefix: AdminPrefix.V1,
+                });
+            }, "updateConfig");
 
             this.config = { ...this.config, ...config } as SamlConfig;
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "updateConfig"));
             throw error;
         }
     }
@@ -274,77 +290,85 @@ export class SamlAuthManager extends BaseManager<SamlEvent, SamlAuthManagerEvent
         }
 
         try {
-            const response = await this.client.http.authedRequest(
-                Method.Get,
-                ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Get,
+                    ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "getUserMapping");
 
             const mapping = response as SamlUserMapping;
             this.userMappings.set(nameId, mapping);
 
             return mapping;
-        } catch (e) {
-            logger.warn("SamlAuthManager.getUserMapping failed:", e);
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "getUserMapping"));
             return null;
         }
     }
 
     async getUserMappings(): Promise<SamlUserMapping[]> {
         try {
-            const response = await this.client.http.authedRequest<{ mappings?: SamlUserMapping[] }>(
-                Method.Get,
-                ap("/saml/mappings"),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ mappings?: SamlUserMapping[] }>(
+                    Method.Get,
+                    ap("/saml/mappings"),
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "getUserMappings");
 
             const mappings = response.mappings || [];
             this.userMappings.clear();
             mappings.forEach((m) => this.userMappings.set(m.name_id, m));
 
             return mappings;
-        } catch (e) {
-            logger.warn("SamlAuthManager.getUserMappings failed:", e);
+        } catch (error) {
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "getUserMappings"));
             return Array.from(this.userMappings.values());
         }
     }
 
     async updateUserMapping(nameId: string, mapping: Partial<SamlUserMapping>): Promise<void> {
         try {
-            await this.client.http.authedRequest(
-                Method.Put,
-                ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
-                undefined,
-                mapping,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Put,
+                    ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
+                    undefined,
+                    mapping,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "updateUserMapping");
 
             const existing = this.userMappings.get(nameId);
             const updated = { ...existing, ...mapping, name_id: nameId } as SamlUserMapping;
             this.userMappings.set(nameId, updated);
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "updateUserMapping"));
             throw error;
         }
     }
 
     async removeUserMapping(nameId: string): Promise<void> {
         try {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Delete,
+                    ap(`/saml/mapping/${encodeURIComponent(nameId)}` as StripAdminV1<SamlPathPattern>),
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "removeUserMapping");
 
             this.userMappings.delete(nameId);
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "removeUserMapping"));
             throw error;
         }
     }
@@ -355,23 +379,27 @@ export class SamlAuthManager extends BaseManager<SamlEvent, SamlAuthManagerEvent
 
     async refreshMetadata(): Promise<void> {
         try {
-            await this.client.http.authedRequest(Method.Post, ap("/saml/metadata/refresh"), undefined, undefined, {
-                prefix: AdminPrefix.V1,
-            });
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(Method.Post, ap("/saml/metadata/refresh"), undefined, undefined, {
+                    prefix: AdminPrefix.V1,
+                });
+            }, "refreshMetadata");
             this.config = null;
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "refreshMetadata"));
             throw error;
         }
     }
 
     async adminLogout(request: SamlAdminLogoutRequest): Promise<void> {
         try {
-            await this.client.http.authedRequest(Method.Post, ap("/saml/logout"), undefined, request, {
-                prefix: AdminPrefix.V1,
-            });
+            await this.withRetry(async () => {
+                return await this.client.http.authedRequest(Method.Post, ap("/saml/logout"), undefined, request, {
+                    prefix: AdminPrefix.V1,
+                });
+            }, "adminLogout");
         } catch (error) {
-            this.emit(SamlEvent.SamlError, error as Error);
+            this.emit(SamlEvent.SamlError, this.normalizeError(error, "adminLogout"));
             throw error;
         }
     }

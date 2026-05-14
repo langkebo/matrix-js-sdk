@@ -165,7 +165,8 @@ describe("ExternalServiceManager", () => {
                 }),
             ).rejects.toMatchObject({ httpStatus: 403, errcode: "M_FORBIDDEN" });
 
-            expect(errors).toEqual([httpError]);
+            expect(errors).toHaveLength(1);
+            expect(errors[0]).toMatchObject({ httpStatus: 403, errcode: "M_FORBIDDEN" });
             expect(manager.getCachedServices()).toEqual([]);
         });
     });
@@ -301,7 +302,7 @@ describe("ExternalServiceManager", () => {
     describe("checkServiceHealth", () => {
         it("propagates errors instead of swallowing them", async () => {
             const httpError = Object.assign(new Error("Bad Gateway"), { httpStatus: 502 });
-            authedRequest.mockRejectedValueOnce(httpError);
+            authedRequest.mockRejectedValue(httpError);
 
             await expect(manager.checkServiceHealth("trendradar_news-bot")).rejects.toMatchObject({
                 httpStatus: 502,

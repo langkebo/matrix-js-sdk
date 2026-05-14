@@ -21,7 +21,7 @@ limitations under the License.
  * 提供房间别名的创建、删除、查询功能
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -56,14 +56,12 @@ interface RoomAliasManagerEventMap {
     [RoomAliasEvent.AliasError]: (roomId: string, error: Error) => void;
 }
 
-export class RoomAliasManager extends TypedEventEmitter<RoomAliasEvent, RoomAliasManagerEventMap> {
-    private client: MatrixClient;
+export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManagerEventMap> {
     private aliasCache: Map<string, IRoomAliasInfo> = new Map();
     private roomAliasesCache: Map<string, string[]> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     /**

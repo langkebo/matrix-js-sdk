@@ -76,14 +76,18 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
             if (!userId) {
                 throw new ValidationError("User ID is required");
             }
-            const response = await this.client.http.authedRequest<{ tags?: IRoomTags }>(
-                Method.Get,
-                tp(
-                    `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags` as StripV3<TagsPathPattern>,
-                ),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
+            const response = await this.withRetry(
+                async () =>
+                    await this.client.http.authedRequest<{ tags?: IRoomTags }>(
+                        Method.Get,
+                        tp(
+                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags` as StripV3<TagsPathPattern>,
+                        ),
+                        undefined,
+                        undefined,
+                        { prefix: ClientPrefix.V3 },
+                    ),
+                "getRoomTags",
             );
 
             const tags = response.tags || {};
@@ -113,14 +117,18 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
                 body.order = order;
             }
 
-            await this.client.http.authedRequest(
-                Method.Put,
-                tp(
-                    `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
-                ),
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 },
+            await this.withRetry(
+                async () =>
+                    await this.client.http.authedRequest(
+                        Method.Put,
+                        tp(
+                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
+                        ),
+                        undefined,
+                        body,
+                        { prefix: ClientPrefix.V3 },
+                    ),
+                "addRoomTag",
             );
 
             const tags = this.roomTags.get(roomId) || {};
@@ -130,7 +138,7 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
             this.emit(TagEvent.TagAdded, roomId, tag);
             this.emit(TagEvent.TagsUpdated, roomId, tags);
         } catch (error) {
-            this.emit(TagEvent.TagError, roomId, error as Error);
+            this.emit(TagEvent.TagError, roomId, this.normalizeError(error, "addRoomTag"));
             throw error;
         }
     }
@@ -146,14 +154,18 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
                 throw new ValidationError("User ID is required");
             }
 
-            await this.client.http.authedRequest(
-                Method.Delete,
-                tp(
-                    `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
-                ),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
+            await this.withRetry(
+                async () =>
+                    await this.client.http.authedRequest(
+                        Method.Delete,
+                        tp(
+                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
+                        ),
+                        undefined,
+                        undefined,
+                        { prefix: ClientPrefix.V3 },
+                    ),
+                "removeRoomTag",
             );
 
             const tags = this.roomTags.get(roomId) || {};
@@ -163,7 +175,7 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
             this.emit(TagEvent.TagRemoved, roomId, tag);
             this.emit(TagEvent.TagsUpdated, roomId, tags);
         } catch (error) {
-            this.emit(TagEvent.TagError, roomId, error as Error);
+            this.emit(TagEvent.TagError, roomId, this.normalizeError(error, "removeRoomTag"));
             throw error;
         }
     }

@@ -114,12 +114,16 @@ export class QrLoginManager extends BaseManager {
     }
 
     public async confirmQrLogin(request: QrLoginConfirmRequest): Promise<QrLoginConfirmResponse> {
-        return this.client.http.authedRequest<QrLoginConfirmResponse>(
-            Method.Post,
-            ap("/login/qr/confirm"),
-            undefined,
-            request,
-            { prefix: ClientPrefix.V1 },
+        return this.withRetry(
+            async () =>
+                await this.client.http.authedRequest<QrLoginConfirmResponse>(
+                    Method.Post,
+                    ap("/login/qr/confirm"),
+                    undefined,
+                    request,
+                    { prefix: ClientPrefix.V1 },
+                ),
+            "confirmQrLogin",
         );
     }
 

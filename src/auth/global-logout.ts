@@ -36,7 +36,10 @@ export class GlobalLogoutManager extends BaseManager {
      * 对应 API: POST /_matrix/client/v3/logout/all
      */
     public async logoutAll(): Promise<void> {
-        await this.client.http.authedRequest(Method.Post, "/logout/all");
+        await this.withRetry(
+            async () => await this.client.http.authedRequest(Method.Post, "/logout/all"),
+            "logoutAll",
+        );
     }
 
     /**
@@ -57,7 +60,10 @@ export class GlobalLogoutManager extends BaseManager {
      * 对应 API: DELETE /_matrix/client/v3/devices/{device_id}
      */
     public async logoutDevice(deviceId: string): Promise<void> {
-        await this.client.http.authedRequest(Method.Delete, `/devices/${deviceId}`);
+        await this.withRetry(
+            async () => await this.client.http.authedRequest(Method.Delete, `/devices/${deviceId}`),
+            "logoutDevice",
+        );
     }
 
     /**

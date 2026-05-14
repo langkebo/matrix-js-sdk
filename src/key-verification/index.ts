@@ -68,7 +68,7 @@ export class KeyVerificationManager extends BaseManager {
      * Request room key verification
      */
     public async requestRoomKeyVerification(
-        roomId: string,
+        _roomId: string,
         userId: string,
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationStartResponse> {
@@ -77,7 +77,6 @@ export class KeyVerificationManager extends BaseManager {
             to_user: userId,
             method: "sas",
         };
-        void roomId;
         return this.client.startDeviceSigningVerification(request, version);
     }
 
@@ -163,14 +162,13 @@ export class KeyVerificationManager extends BaseManager {
      * Get verification requests
      */
     public getVerificationRequests(
-        userIdOrVersion?: string,
+        _userIdOrVersion?: string,
         version: VerificationApiVersion = "v1",
     ): Promise<IVerificationRequestsResponse> {
-        if (userIdOrVersion === "v1" || userIdOrVersion === "r0") {
-            return this.client.getVerificationRequests(userIdOrVersion);
+        if (_userIdOrVersion === "v1" || _userIdOrVersion === "r0") {
+            return this.client.getVerificationRequests(_userIdOrVersion);
         }
 
-        void userIdOrVersion;
         return this.client.getVerificationRequests(version);
     }
 
@@ -179,12 +177,16 @@ export class KeyVerificationManager extends BaseManager {
         version: VerificationApiVersion = "v1",
     ): Promise<{ qr_code_data: string; transaction_id: string }> {
         const prefix = version === "r0" ? "/_matrix/client/r0" : "/_matrix/client/v1";
-        return this.client.http.authedRequest(
-            "GET" as any,
-            `/keys/qr_code/show`,
-            { transaction_id: transactionId },
-            undefined,
-            { prefix },
+        return this.withRetry(
+            async () =>
+                await this.client.http.authedRequest(
+                    "GET" as any,
+                    `/keys/qr_code/show`,
+                    { transaction_id: transactionId },
+                    undefined,
+                    { prefix },
+                ),
+            "showQrCode",
         );
     }
 
@@ -194,12 +196,16 @@ export class KeyVerificationManager extends BaseManager {
         version: VerificationApiVersion = "v1",
     ): Promise<{ transaction_id: string; verified: boolean }> {
         const prefix = version === "r0" ? "/_matrix/client/r0" : "/_matrix/client/v1";
-        return this.client.http.authedRequest(
-            "POST" as any,
-            `/keys/qr_code/scan`,
-            undefined,
-            { qr_code_data: qrCodeData, transaction_id: transactionId },
-            { prefix },
+        return this.withRetry(
+            async () =>
+                await this.client.http.authedRequest(
+                    "POST" as any,
+                    `/keys/qr_code/scan`,
+                    undefined,
+                    { qr_code_data: qrCodeData, transaction_id: transactionId },
+                    { prefix },
+                ),
+            "scanQrCode",
         );
     }
 }
