@@ -1031,12 +1031,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         this.validateEventType(eventType);
 
         try {
-            return await this.requestV3<RoomSummaryStateContent>(
-                Method.Put,
-                this.summaryStatePath(roomId, eventType, stateKey),
-                undefined,
-                content,
-            );
+            return await this.withRetry(async () => {
+                return await this.requestV3<RoomSummaryStateContent>(
+                    Method.Put,
+                    this.summaryStatePath(roomId, eventType, stateKey),
+                    undefined,
+                    content,
+                );
+            }, "updateSummaryState");
         } catch (e) {
             throw this.normalizeError(e, "updateSummaryState");
         }
@@ -2241,13 +2243,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         try {
-            return await this.requestV3<EventKeysResult>(
-                Method.Get,
-                encodeUri("/rooms/$roomId/keys/$eventId", {
-                    $roomId: roomId,
-                    $eventId: eventId,
-                }),
-            );
+            return await this.withRetry(async () => {
+                return await this.requestV3<EventKeysResult>(
+                    Method.Get,
+                    encodeUri("/rooms/$roomId/keys/$eventId", {
+                        $roomId: roomId,
+                        $eventId: eventId,
+                    }),
+                );
+            }, "getEventKeys");
         } catch (error) {
             logger.warn(`RoomSummaryManager.getEventKeys failed for ${eventId}:`, error);
             throw this.normalizeError(error, "getEventKeys");
@@ -2271,13 +2275,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         try {
-            return await this.requestV3<RoomThreadResult>(
-                Method.Get,
-                encodeUri("/rooms/$roomId/thread/$eventId", {
-                    $roomId: roomId,
-                    $eventId: eventId,
-                }),
-            );
+            return await this.withRetry(async () => {
+                return await this.requestV3<RoomThreadResult>(
+                    Method.Get,
+                    encodeUri("/rooms/$roomId/thread/$eventId", {
+                        $roomId: roomId,
+                        $eventId: eventId,
+                    }),
+                );
+            }, "getRoomThread");
         } catch (error) {
             logger.warn(`RoomSummaryManager.getRoomThread failed for ${eventId}:`, error);
             throw this.normalizeError(error, "getRoomThread");
@@ -2303,13 +2309,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         try {
-            return await this.requestV3<RoomThreadDetailResult>(
-                Method.Get,
-                encodeUri("/rooms/$roomId/threads/$threadId", {
-                    $roomId: roomId,
-                    $threadId: threadId,
-                }),
-            );
+            return await this.withRetry(async () => {
+                return await this.requestV3<RoomThreadDetailResult>(
+                    Method.Get,
+                    encodeUri("/rooms/$roomId/threads/$threadId", {
+                        $roomId: roomId,
+                        $threadId: threadId,
+                    }),
+                );
+            }, "getRoomThreadById");
         } catch (error) {
             logger.warn(`RoomSummaryManager.getRoomThreadById failed for ${threadId}:`, error);
             throw this.normalizeError(error, "getRoomThreadById");

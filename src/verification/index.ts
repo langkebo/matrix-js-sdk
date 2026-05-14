@@ -250,13 +250,15 @@ export class VerificationManager extends BaseManager {
 
     public async listPendingVerifications(): Promise<ListVerificationRequestsResponse> {
         try {
-            return await this.client.http.authedRequest<ListVerificationRequestsResponse>(
-                Method.Get,
-                vp("/keys/device_signing/requests"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ListVerificationRequestsResponse>(
+                    Method.Get,
+                    vp("/keys/device_signing/requests"),
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V1 },
+                );
+            }, "listPendingVerifications");
         } catch (e) {
             logger.warn("VerificationManager.listPendingVerifications failed", e);
             return { requests: [] };
@@ -293,8 +295,6 @@ export class VerificationManager extends BaseManager {
         }, "scanQrCode");
     }
 
-    public start(): void {}
-    public stop(): void {}
 }
 
 declare module "../client.ts" {

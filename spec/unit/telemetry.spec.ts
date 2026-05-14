@@ -180,15 +180,6 @@ describe("TelemetryManager", () => {
     });
 
     describe("lifecycle", () => {
-        it("start is a no-op and preserves pending events", () => {
-            telemetryManager.enable();
-            telemetryManager.track("event1");
-
-            telemetryManager.start();
-
-            expect(telemetryManager.getPendingEvents()).toHaveLength(1);
-        });
-
         it("stop flushes the pending queue", () => {
             telemetryManager.enable();
             telemetryManager.track("event1");

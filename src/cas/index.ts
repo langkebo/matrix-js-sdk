@@ -197,8 +197,6 @@ export class CasManager extends BaseManager {
         return `${baseUrl}${path}?ticket=${encodeURIComponent(ticket)}&service=${encodeURIComponent(serviceUrl)}`;
     }
 
-    public start(): void {}
-    public stop(): void {}
 }
 
 declare module "../client.ts" {

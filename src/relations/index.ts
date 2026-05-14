@@ -300,8 +300,6 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
     }
 
-    async start(): Promise<void> {}
-    stop(): void {}
 }
 
 // Declare prototype extension

@@ -355,8 +355,6 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         };
     }
 
-    public start(): void {}
-
     public stop(): void {
         this.flush();
     }

@@ -73,13 +73,15 @@ export class ThirdPartyManager extends BaseManager {
 
     async getProtocol(protocol: string, throwOnError = true): Promise<ThirdPartyProtocol | null> {
         try {
-            const data = await this.client.http.authedRequest<IProtocol>(
-                Method.Get,
-                tp(`/thirdparty/protocol/${encodeURIComponent(protocol)}`),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const data = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IProtocol>(
+                    Method.Get,
+                    tp(`/thirdparty/protocol/${encodeURIComponent(protocol)}`),
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "getProtocol");
             return {
                 ...data,
                 protocol,
@@ -130,13 +132,15 @@ export class ThirdPartyManager extends BaseManager {
 
     async searchAllLocations(params: ThirdPartySearchParams = {}, throwOnError = true): Promise<ThirdPartyLocation[]> {
         try {
-            return await this.client.http.authedRequest<ThirdPartyLocation[]>(
-                Method.Get,
-                tp("/thirdparty/location"),
-                params,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ThirdPartyLocation[]>(
+                    Method.Get,
+                    tp("/thirdparty/location"),
+                    params,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "searchAllLocations");
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -149,13 +153,15 @@ export class ThirdPartyManager extends BaseManager {
 
     async searchAllUsers(params: ThirdPartySearchParams = {}, throwOnError = true): Promise<ThirdPartyUser[]> {
         try {
-            return await this.client.http.authedRequest<ThirdPartyUser[]>(
-                Method.Get,
-                tp("/thirdparty/user"),
-                params,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<ThirdPartyUser[]>(
+                    Method.Get,
+                    tp("/thirdparty/user"),
+                    params,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "searchAllUsers");
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -281,8 +287,6 @@ export class ThirdPartyManager extends BaseManager {
         return uri;
     }
 
-    start(): void {}
-    stop(): void {}
 }
 
 declare module "../client.ts" {

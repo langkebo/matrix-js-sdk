@@ -64,15 +64,16 @@ export class UserDirectoryManager extends BaseManager {
 
     public async listUserDirectory(): Promise<IUserDirectoryListResult> {
         const path = ap("/user_directory/list");
-        return this.client.http.request<IUserDirectoryListResult>(Method.Post, path);
+        return this.withRetry(async () => {
+            return await this.client.http.request<IUserDirectoryListResult>(Method.Post, path);
+        }, "listUserDirectory");
     }
 
     public async getProfile(userId: string): Promise<IUserProfile> {
-        // Note: this always hits the /user_directory/profiles endpoint,
-        // which returns an IUserProfile with user_id, display_name, and avatar_url.
-        // It's meant for public directory lookup, not for private profile details.
         const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
-        return this.client.http.request<IUserProfile>(Method.Get, path);
+        return this.withRetry(async () => {
+            return await this.client.http.request<IUserProfile>(Method.Get, path);
+        }, "getProfile");
     }
 
     public getUser(userId: string): User | null {

@@ -163,12 +163,14 @@ export class VoiceMessageManager extends BaseManager<VoiceEvent, VoiceMessageMan
 
     async getServerConfig(): Promise<VoiceConfig> {
         try {
-            const response = await this.client.http.authedRequest<{
-                enabled: boolean;
-                max_duration_ms?: number;
-                max_size_bytes?: number;
-                supported_formats?: string[];
-            }>(Method.Get, vp("/voice/config"), undefined, undefined, { prefix: VOICE_R0_PREFIX });
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{
+                    enabled: boolean;
+                    max_duration_ms?: number;
+                    max_size_bytes?: number;
+                    supported_formats?: string[];
+                }>(Method.Get, vp("/voice/config"), undefined, undefined, { prefix: VOICE_R0_PREFIX });
+            }, "getServerConfig");
 
             return {
                 enabled: response.enabled ?? true,

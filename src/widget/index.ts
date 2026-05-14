@@ -347,13 +347,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<WidgetListApiResponse>(
-                Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/widgets`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetListApiResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getRoomWidgets");
 
             const widgets: IWidget[] = (response.widgets ?? []).map((w) => this.toIWidget(w, roomId));
 
@@ -387,13 +389,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<WidgetApiResponse>(
-                Method.Get,
-                `/widgets/${encodeURIComponent(widgetId)}`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetApiResponse>(
+                    Method.Get,
+                    `/widgets/${encodeURIComponent(widgetId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getWidget");
 
             return this.toIWidget(response.widget);
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -424,22 +428,24 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const widgetId = widget.id || `widget_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
         try {
-            const response = await this.client.http.authedRequest<WidgetApiResponse>(
-                Method.Post,
-                wp("/widgets"),
-                undefined,
-                this.toCreateWidgetBody(
-                    {
-                        roomId,
-                        type: widget.type,
-                        url: widget.url,
-                        name: widget.name,
-                        data: widget.data,
-                    },
-                    widgetId,
-                ),
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetApiResponse>(
+                    Method.Post,
+                    wp("/widgets"),
+                    undefined,
+                    this.toCreateWidgetBody(
+                        {
+                            roomId,
+                            type: widget.type,
+                            url: widget.url,
+                            name: widget.name,
+                            data: widget.data,
+                        },
+                        widgetId,
+                    ),
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "addWidget");
 
             const newWidget = this.toIWidget(response.widget, roomId);
 
@@ -470,13 +476,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<WidgetApiResponse>(
-                Method.Post,
-                wp("/widgets/create"),
-                undefined,
-                this.toCreateWidgetBody(options),
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetApiResponse>(
+                    Method.Post,
+                    wp("/widgets/create"),
+                    undefined,
+                    this.toCreateWidgetBody(options),
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "createWidget");
 
             const widget = this.toIWidget(response.widget, options.roomId);
             if (options.roomId) {
@@ -504,13 +512,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
         try {
             // DELETE /_matrix/client/v1/widgets/{widget_id}
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/widgets/${encodeURIComponent(widgetId)}`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            await this.withRetry(async () => {
+                await this.client.http.authedRequest(
+                    Method.Delete,
+                    `/widgets/${encodeURIComponent(widgetId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "removeWidget");
 
             if (this.widgets.has(roomId)) {
                 this.widgets.get(roomId)!.delete(widgetId);
@@ -543,17 +553,19 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         };
 
         try {
-            const response = await this.client.http.authedRequest<WidgetApiResponse>(
-                Method.Put,
-                `/widgets/${encodeURIComponent(widgetId)}`,
-                undefined,
-                {
-                    url: updatedWidget.url,
-                    name: updatedWidget.name,
-                    data: updatedWidget.data,
-                },
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetApiResponse>(
+                    Method.Put,
+                    `/widgets/${encodeURIComponent(widgetId)}`,
+                    undefined,
+                    {
+                        url: updatedWidget.url,
+                        name: updatedWidget.name,
+                        data: updatedWidget.data,
+                    },
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "updateWidget");
 
             const finalWidget = this.toIWidget(response.widget, roomId);
 
@@ -631,13 +643,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
         try {
-            const response = await this.client.http.authedRequest<{ capabilities?: string[] }>(
-                Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ capabilities?: string[] }>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "getWidgetCapabilities");
 
             return {
                 capabilities: response.capabilities || [],
@@ -655,13 +669,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         capabilities: string[],
     ): Promise<IWidgetCapabilities> {
         try {
-            const response = await this.client.http.authedRequest<{ capabilities?: string[] }>(
-                Method.Put,
-                `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
-                undefined,
-                { capabilities },
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ capabilities?: string[] }>(
+                    Method.Put,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
+                    undefined,
+                    { capabilities },
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "setWidgetCapabilities");
 
             return {
                 capabilities: response.capabilities || [],
@@ -678,19 +694,21 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const normalizedMessage = this.normalizeWidgetMessage(message);
 
         try {
-            const response = await this.client.http.authedRequest<{
-                event_id?: string;
-                widget_id?: string;
-                room_id?: string;
-                type?: string;
-                content?: Record<string, unknown>;
-            }>(
-                Method.Post,
-                `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
-                undefined,
-                normalizedMessage,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{
+                    event_id?: string;
+                    widget_id?: string;
+                    room_id?: string;
+                    type?: string;
+                    content?: Record<string, unknown>;
+                }>(
+                    Method.Post,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
+                    undefined,
+                    normalizedMessage,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "sendWidgetMessage");
 
             return {
                 requestId,
@@ -747,13 +765,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<WidgetConfigResponse>(
-                Method.Get,
-                `/widgets/${encodeURIComponent(widgetId)}/config`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetConfigResponse>(
+                    Method.Get,
+                    `/widgets/${encodeURIComponent(widgetId)}/config`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getWidgetConfig");
 
             return response;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -782,13 +802,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<JitsiConfigResponse>(
-                Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<JitsiConfigResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getJitsiConfig");
 
             return response;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -817,13 +839,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<WidgetPermissionsResponse>(
-                Method.Get,
-                `/widgets/${encodeURIComponent(widgetId)}/permissions`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<WidgetPermissionsResponse>(
+                    Method.Get,
+                    `/widgets/${encodeURIComponent(widgetId)}/permissions`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getWidgetPermissions");
 
             return response;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -863,16 +887,18 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<SetPermissionResponse>(
-                Method.Post,
-                `/widgets/${encodeURIComponent(widgetId)}/permissions`,
-                undefined,
-                {
-                    user_id: userId,
-                    permissions,
-                },
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SetPermissionResponse>(
+                    Method.Post,
+                    `/widgets/${encodeURIComponent(widgetId)}/permissions`,
+                    undefined,
+                    {
+                        user_id: userId,
+                        permissions,
+                    },
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "setWidgetPermission");
 
             return response;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -906,13 +932,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<{ deleted: boolean }>(
-                Method.Delete,
-                `/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ deleted: boolean }>(
+                    Method.Delete,
+                    `/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "deleteWidgetPermission");
 
             return response.deleted ?? false;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -960,13 +988,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
                 body.expires_in_ms = options.expiresInMs;
             }
 
-            const response = await this.client.http.authedRequest<SessionResponse>(
-                Method.Post,
-                `/widgets/${encodeURIComponent(widgetId)}/sessions`,
-                undefined,
-                body,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SessionResponse>(
+                    Method.Post,
+                    `/widgets/${encodeURIComponent(widgetId)}/sessions`,
+                    undefined,
+                    body,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "createWidgetSession");
 
             return response.session;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -995,13 +1025,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<SessionListResponse>(
-                Method.Get,
-                `/widgets/${encodeURIComponent(widgetId)}/sessions`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SessionListResponse>(
+                    Method.Get,
+                    `/widgets/${encodeURIComponent(widgetId)}/sessions`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getWidgetSessions");
 
             return response.sessions ?? [];
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -1030,13 +1062,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<SessionResponse>(
-                Method.Get,
-                `/widgets/sessions/${encodeURIComponent(sessionId)}`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<SessionResponse>(
+                    Method.Get,
+                    `/widgets/sessions/${encodeURIComponent(sessionId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "getWidgetSession");
 
             return response.session;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }
@@ -1065,13 +1099,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         }
 
         try {
-            const response = await this.client.http.authedRequest<{ terminated: boolean }>(
-                Method.Delete,
-                `/widgets/sessions/${encodeURIComponent(sessionId)}`,
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ terminated: boolean }>(
+                    Method.Delete,
+                    `/widgets/sessions/${encodeURIComponent(sessionId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: "/_matrix/client/v1" },
+                );
+            }, "terminateWidgetSession");
 
             return response.terminated ?? false;
             // @swallow-error { owner: "widget", expires: "2026-12-31" }

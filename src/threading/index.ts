@@ -263,9 +263,11 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         body?: Body,
     ): Promise<T> {
         try {
-            return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
-                prefix: ClientPrefix.V1,
-            });
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+                    prefix: ClientPrefix.V1,
+                });
+            }, "requestThreadV1");
         } catch (e) {
             throw this.normalizeError(e, methodName);
         }
@@ -277,9 +279,11 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         queryParams?: Record<string, string | number | boolean>,
     ): Promise<T> {
         try {
-            return await this.client.http.authedRequest<T>(Method.Get, path, queryParams, undefined, {
-                prefix: ClientPrefix.V3,
-            });
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<T>(Method.Get, path, queryParams, undefined, {
+                    prefix: ClientPrefix.V3,
+                });
+            }, "requestThreadV3");
         } catch (e) {
             throw this.normalizeError(e, methodName);
         }

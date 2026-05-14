@@ -371,7 +371,9 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             body.reason = opts.reason;
         }
 
-        return this.client.http.authedRequest(Method.Post, path, queryParams, body);
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(Method.Post, path, queryParams, body);
+        }, "knockRoom");
     }
 
     public async leave(roomId: string): Promise<EmptyObject> {

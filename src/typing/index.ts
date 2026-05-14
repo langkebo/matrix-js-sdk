@@ -197,13 +197,15 @@ export class TypingManager extends BaseManager {
     async fetchTypingUsers(roomId: string): Promise<TypingUser[]> {
         AdminValidators.validateRoomId(roomId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing`);
-        const response = await this.client.http.authedRequest<TypingResponseBody>(
-            Method.Get,
-            path,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        const response = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<TypingResponseBody>(
+                Method.Get,
+                path,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "fetchTypingUsers");
         const users = Array.isArray(response?.user_ids) ? response.user_ids : Array.isArray(response?.typing) ? response.typing : [];
         const timeout = response?.timeout ?? 30000;
         return users.map((userId: string) => ({ userId, timeout }));
@@ -216,13 +218,15 @@ export class TypingManager extends BaseManager {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
-        const response = await this.client.http.authedRequest<{ typing?: boolean }>(
-            Method.Get,
-            path,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        const response = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<{ typing?: boolean }>(
+                Method.Get,
+                path,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "fetchUserTyping");
         return response?.typing === true;
     }
 
@@ -235,13 +239,15 @@ export class TypingManager extends BaseManager {
         for (const roomId of rooms) {
             AdminValidators.validateRoomId(roomId);
         }
-        const response = await this.client.http.authedRequest<BatchTypingResponseBody | Record<string, TypingResponseBody>>(
-            Method.Post,
-            tp("/rooms/typing"),
-            undefined,
-            { room_ids: rooms },
-            { prefix: ClientPrefix.V3 },
-        );
+        const response = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<BatchTypingResponseBody | Record<string, TypingResponseBody>>(
+                Method.Post,
+                tp("/rooms/typing"),
+                undefined,
+                { room_ids: rooms },
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "fetchRoomsTyping");
 
         const result = new Map<string, TypingUser[]>();
         const roomEntries = (response && "rooms" in response && response.rooms ? response.rooms : response ?? {}) as Record<

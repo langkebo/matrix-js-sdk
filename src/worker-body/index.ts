@@ -50,9 +50,11 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 
     private request<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {
-        return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
-            prefix: WORKER_PREFIX,
-        }) as Promise<T>;
+        return this.withRetry(async () => {
+            return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
+                prefix: WORKER_PREFIX,
+            }) as Promise<T>;
+        }, "request");
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/heartbeat */

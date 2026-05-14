@@ -394,8 +394,6 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         return this.discoveryCache;
     }
 
-    start(): void {}
-
     stop(): void {
         this.discoveryCache = null;
         this.currentProvider = null;

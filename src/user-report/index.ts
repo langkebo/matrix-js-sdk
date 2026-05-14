@@ -55,7 +55,9 @@ export class UserReportManager extends BaseManager {
         if (roomId) {
             body.room_id = roomId;
         }
-        await this.client.http.authedRequest(Method.Post, path, undefined, body);
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Post, path, undefined, body);
+        }, "reportUser");
     }
 }
 

@@ -96,21 +96,23 @@ export class QrLoginManager extends BaseManager {
     }
 
     public async getQrCode(): Promise<QrCodeResponse> {
-        return this.client.http.request<QrCodeResponse>(
-            Method.Get,
-            ap("/login/get_qr_code"),
-            undefined,
-            undefined,
-            {
-                prefix: ClientPrefix.V1,
-            },
+        return this.withRetry(
+            async () =>
+                await this.client.http.request<QrCodeResponse>(Method.Get, ap("/login/get_qr_code"), undefined, undefined, {
+                    prefix: ClientPrefix.V1,
+                }),
+            "getQrCode",
         );
     }
 
     public async startQrLogin(request: QrLoginStartRequest): Promise<QrLoginStartResponse> {
-        return this.client.http.request<QrLoginStartResponse>(Method.Post, ap("/login/qr/start"), undefined, request, {
-            prefix: ClientPrefix.V1,
-        });
+        return this.withRetry(
+            async () =>
+                await this.client.http.request<QrLoginStartResponse>(Method.Post, ap("/login/qr/start"), undefined, request, {
+                    prefix: ClientPrefix.V1,
+                }),
+            "startQrLogin",
+        );
     }
 
     public async confirmQrLogin(request: QrLoginConfirmRequest): Promise<QrLoginConfirmResponse> {
@@ -129,18 +131,26 @@ export class QrLoginManager extends BaseManager {
 
     public async getQrStatus(transactionId: string): Promise<QrLoginStatusResponse> {
         const path = ap(`/login/qr/${encodeURIComponent(transactionId)}/status` as StripAuthPrefix<AuthPathPattern>);
-        return this.client.http.request<QrLoginStatusResponse>(Method.Get, path, undefined, undefined, {
-            prefix: ClientPrefix.V1,
-        });
+        return this.withRetry(
+            async () =>
+                await this.client.http.request<QrLoginStatusResponse>(Method.Get, path, undefined, undefined, {
+                    prefix: ClientPrefix.V1,
+                }),
+            "getQrStatus",
+        );
     }
 
     public async invalidateQrLogin(request: QrLoginInvalidateRequest): Promise<QrLoginInvalidateResponse> {
-        return this.client.http.request<QrLoginInvalidateResponse>(
-            Method.Post,
-            ap("/login/qr/invalidate"),
-            undefined,
-            request,
-            { prefix: ClientPrefix.V1 },
+        return this.withRetry(
+            async () =>
+                await this.client.http.request<QrLoginInvalidateResponse>(
+                    Method.Post,
+                    ap("/login/qr/invalidate"),
+                    undefined,
+                    request,
+                    { prefix: ClientPrefix.V1 },
+                ),
+            "invalidateQrLogin",
         );
     }
 

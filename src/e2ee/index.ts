@@ -340,8 +340,6 @@ export class E2EEManager extends BaseManager {
         }, label);
     }
 
-    public start(): void {}
-    public stop(): void {}
 }
 
 declare module "../client.ts" {
