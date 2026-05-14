@@ -21,16 +21,16 @@ limitations under the License.
  * 对应后端: synapse-rust/src/web/routes/presence.rs
  */
 
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
-import { InvalidParamError } from "../common/errors.ts";
-import { logger } from "../logger.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { LRUCache } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
 import { AuthError, ValidationError } from "../errors";
-import type { PresencePathPattern } from "./__generated__/route-table.ts";
+import type { PresencePathPattern } from "./__generated__/route-table";
 
 const PRESENCE_PREFIX = "/_matrix/client/v3";
 

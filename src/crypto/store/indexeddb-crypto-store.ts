@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { logger, type Logger } from "../../logger.ts";
-import { LocalStorageCryptoStore } from "./localStorage-crypto-store.ts";
-import { MemoryCryptoStore } from "./memory-crypto-store.ts";
-import * as IndexedDBCryptoStoreBackend from "./indexeddb-crypto-store-backend.ts";
-import { InvalidCryptoStoreError, InvalidCryptoStoreState } from "../../errors.ts";
-import * as IndexedDBHelpers from "../../indexeddb-helpers.ts";
+import { logger, type Logger } from "../../logger";
+import { LocalStorageCryptoStore } from "./localStorage-crypto-store";
+import { MemoryCryptoStore } from "./memory-crypto-store";
+import * as IndexedDBCryptoStoreBackend from "./indexeddb-crypto-store-backend";
+import { InvalidCryptoStoreError, InvalidCryptoStoreState } from "../../errors";
+import * as IndexedDBHelpers from "../../indexeddb-helpers";
 import {
     type CryptoStore,
     type ISession,
@@ -32,8 +32,8 @@ import {
     ACCOUNT_OBJECT_KEY_MIGRATION_STATE,
     type InboundGroupSessionData,
     type IRoomEncryption,
-} from "./base.ts";
-import { type CrossSigningKeyInfo } from "../../crypto-api/index.ts";
+} from "./base";
+import { type CrossSigningKeyInfo } from "../../crypto-api/index";
 
 /*
  * Internal module. indexeddb storage for e2e.

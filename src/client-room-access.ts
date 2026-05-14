@@ -5,12 +5,12 @@ import {
     UNSTABLE_MSC3088_ENABLED,
     UNSTABLE_MSC3088_PURPOSE,
     UNSTABLE_MSC3089_TREE_SUBTYPE,
-} from "./@types/event.ts";
-import { KnownMembership } from "./@types/membership.ts";
-import { Preset } from "./@types/partials.ts";
-import type { ICreateRoomOpts, IGuestAccessOpts } from "./@types/requests.ts";
-import { DEFAULT_TREE_POWER_LEVELS_TEMPLATE, MSC3089TreeSpace } from "./models/MSC3089TreeSpace.ts";
-import type { Room } from "./models/room.ts";
+} from "./@types/event";
+import { KnownMembership } from "./@types/membership";
+import { Preset } from "./@types/partials";
+import type { ICreateRoomOpts, IGuestAccessOpts } from "./@types/requests";
+import { DEFAULT_TREE_POWER_LEVELS_TEMPLATE, MSC3089TreeSpace } from "./models/MSC3089TreeSpace";
+import type { Room } from "./models/room";
 
 export function setGuestAccessRequest(
     roomId: string,

@@ -13,10 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { type TrackID } from "../statsReport.ts";
-import { MediaTrackStats } from "./mediaTrackStats.ts";
-import { type MediaTrackHandler, type TrackId } from "./mediaTrackHandler.ts";
-import { type MediaSsrcHandler } from "./mediaSsrcHandler.ts";
+import { type TrackID } from "../statsReport";
+import { MediaTrackStats } from "./mediaTrackStats";
+import { type MediaTrackHandler, type TrackId } from "./mediaTrackHandler";
+import { type MediaSsrcHandler } from "./mediaSsrcHandler";
 
 interface RTCStatsReportItem {
     trackIdentifier?: string;

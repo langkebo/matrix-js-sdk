@@ -25,12 +25,12 @@ limitations under the License.
  * 语音消息使用 m.audio + org.matrix.msc3245.voice 事件格式
  */
 
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
-import { getHttpUriForMxc } from "../content-repo.ts";
-import type { RoomMessageEventContent } from "../@types/events.ts";
-import type { VoicePathPattern } from "./__generated__/route-table.ts";
+import { getHttpUriForMxc } from "../content-repo";
+import type { RoomMessageEventContent } from "../@types/events";
+import type { VoicePathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 

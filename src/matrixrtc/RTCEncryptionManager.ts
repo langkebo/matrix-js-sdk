@@ -18,21 +18,21 @@ import {
     type CallMembershipIdentityParts,
     getEncryptionKeyMapKey,
     type IEncryptionManager,
-} from "./EncryptionManager.ts";
-import { type EncryptionConfig, type MembershipConfig } from "./MatrixRTCSession.ts";
-import { CallMembership } from "./CallMembership.ts";
-import { decodeBase64, encodeBase64 } from "../base64.ts";
-import { type IKeyTransport, type KeyTransportEventListener, KeyTransportEvents } from "./IKeyTransport.ts";
-import { type Logger } from "../logger.ts";
-import { sleep } from "../utils.ts";
+} from "./EncryptionManager";
+import { type EncryptionConfig, type MembershipConfig } from "./MatrixRTCSession";
+import { CallMembership } from "./CallMembership";
+import { decodeBase64, encodeBase64 } from "../base64";
+import { type IKeyTransport, type KeyTransportEventListener, KeyTransportEvents } from "./IKeyTransport";
+import { type Logger } from "../logger";
+import { sleep } from "../utils";
 import {
     type EncryptionKeyMapKey,
     type InboundEncryptionSession,
     type OutboundEncryptionSession,
     type ParticipantDeviceInfo,
     type Statistics,
-} from "./types.ts";
-import { OutdatedKeyFilter } from "./utils.ts";
+} from "./types";
+import { OutdatedKeyFilter } from "./utils";
 
 /**
  * RTCEncryptionManager is used to manage the encryption keys for a call.

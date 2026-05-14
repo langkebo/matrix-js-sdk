@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { Direction } from "../models/event-timeline";

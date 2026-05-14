@@ -15,22 +15,22 @@ limitations under the License.
 */
 
 import type { SecretsBundle } from "@matrix-org/matrix-sdk-crypto-wasm";
-import type { IMegolmSessionData } from "../@types/crypto.ts";
-import type { ToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage.ts";
-import { type Room } from "../models/room.ts";
-import { type DeviceMap } from "../models/device.ts";
-import { type UIAuthCallback } from "../interactive-auth.ts";
-import { type PassphraseInfo, type SecretStorageKey, type SecretStorageKeyDescription } from "../secret-storage.ts";
-import { type VerificationRequest } from "./verification.ts";
+import type { IMegolmSessionData } from "../@types/crypto";
+import type { ToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
+import { type Room } from "../models/room";
+import { type DeviceMap } from "../models/device";
+import { type UIAuthCallback } from "../interactive-auth";
+import { type PassphraseInfo, type SecretStorageKey, type SecretStorageKeyDescription } from "../secret-storage";
+import { type VerificationRequest } from "./verification";
 import {
     type BackupTrustInfo,
     type KeyBackupCheck,
     type KeyBackupInfo,
     type KeyBackupRestoreOpts,
     type KeyBackupRestoreResult,
-} from "./keybackup.ts";
-import { type ISignatures } from "../@types/signed.ts";
-import { type MatrixEvent } from "../models/event.ts";
+} from "./keybackup";
+import { type ISignatures } from "../@types/signed";
+import { type MatrixEvent } from "../models/event";
 
 /**
  * `matrix-js-sdk/lib/crypto-api`: End-to-end encryption support.
@@ -1339,9 +1339,9 @@ export interface OlmEncryptionInfo {
     senderVerified: boolean;
 }
 
-export * from "./verification.ts";
-export type * from "./keybackup.ts";
-export * from "./recovery-key.ts";
-export * from "./key-passphrase.ts";
-export * from "./CryptoEvent.ts";
-export type * from "./CryptoEventHandlerMap.ts";
+export * from "./verification";
+export type * from "./keybackup";
+export * from "./recovery-key";
+export * from "./key-passphrase";
+export * from "./CryptoEvent";
+export type * from "./CryptoEventHandlerMap";

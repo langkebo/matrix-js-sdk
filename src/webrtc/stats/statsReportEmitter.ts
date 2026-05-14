@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { TypedEventEmitter } from "../../models/typed-event-emitter.ts";
+import { TypedEventEmitter } from "../../models/typed-event-emitter";
 import {
     type ByteSentStatsReport,
     type CallFeedReport,
     type ConnectionStatsReport,
     StatsReport,
     type SummaryStatsReport,
-} from "./statsReport.ts";
+} from "./statsReport";
 
 export type StatsReportHandlerMap = {
     [StatsReport.BYTE_SENT_STATS]: (report: ByteSentStatsReport) => void;

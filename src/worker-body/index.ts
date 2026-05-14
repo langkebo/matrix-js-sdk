@@ -15,12 +15,12 @@ you may not use this file except in compliance with the License.
  * prefix 固定为 `/_synapse/worker`，path 以 `/v1/...` 起始。
  */
 
-import { Method } from "../http-api/method.ts";
-import { type Body } from "../http-api/interface.ts";
-import { MatrixClient } from "../client.ts";
-import { ValidationError } from "../errors.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import type { WorkerBodyPathPattern } from "./__generated__/route-table.ts";
+import { Method } from "../http-api/method";
+import { type Body } from "../http-api/interface";
+import { MatrixClient } from "../client";
+import { ValidationError } from "../errors";
+import { BaseManager } from "../managers/base-manager";
+import type { WorkerBodyPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 const WORKER_PREFIX = "/_synapse/worker";

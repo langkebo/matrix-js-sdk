@@ -1,9 +1,9 @@
 // allow non-camelcase as these are events type that go onto the wire
 /* eslint-disable camelcase */
 
-import { type CallErrorCode } from "./call.ts";
-import { NamespacedValue } from "../NamespacedValue.ts";
-import { type IContent } from "../models/event.ts";
+import { type CallErrorCode } from "./call";
+import { NamespacedValue } from "../NamespacedValue";
+import { type IContent } from "../models/event";
 
 export const SDPStreamMetadataKey = new NamespacedValue(
     "sdp_stream_metadata",

@@ -22,11 +22,11 @@ limitations under the License.
  */
 
 import { logger } from "../logger";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import type { SamlPathPattern } from "./__generated__/route-table.ts";
+import type { SamlPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
@@ -122,14 +122,12 @@ interface SamlAuthManagerEventMap {
     [SamlEvent.SamlError]: (error: Error) => void;
 }
 
-export class SamlAuthManager extends TypedEventEmitter<SamlEvent, SamlAuthManagerEventMap> {
-    private client: MatrixClient;
+export class SamlAuthManager extends BaseManager<SamlEvent, SamlAuthManagerEventMap> {
     private config: SamlConfig | null = null;
     private userMappings: Map<string, SamlUserMapping> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     async initiateLogin(redirectUrl?: string): Promise<SamlLoginResponse> {

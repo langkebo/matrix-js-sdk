@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { THREAD_RELATION_TYPE } from "./models/thread.ts";
-import { type IEvent } from "./models/event.ts";
+import { THREAD_RELATION_TYPE } from "./models/thread";
+import { type IEvent } from "./models/event";
 
 /**
  * Returns a filter function for the /relations endpoint to filter out relations directly

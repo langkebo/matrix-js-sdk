@@ -25,18 +25,18 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { logger } from "../logger.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { Body } from "../http-api/interface.ts";
-import { InvalidParamError } from "../common/errors.ts";
-import { encodeUri, type QueryDict } from "../utils.ts";
-import * as utils from "../utils.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types.ts";
-import type { RoomSummaryPathPattern } from "./__generated__/route-table.ts";
+import { logger } from "../logger";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { Body } from "../http-api/interface";
+import { InvalidParamError } from "../common/errors";
+import { encodeUri, type QueryDict } from "../utils";
+import * as utils from "../utils";
+import { BaseManager } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { LRUCache } from "../utils/lru-cache";
+import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types";
+import type { RoomSummaryPathPattern } from "./__generated__/route-table";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;

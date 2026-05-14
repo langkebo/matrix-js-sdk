@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type { SyncCryptoCallbacks } from "./common-crypto/CryptoBackend.ts";
-import { NotificationCountType, Room, RoomEvent } from "./models/room.ts";
-import { logger } from "./logger.ts";
-import { promiseMapSeries } from "./utils.ts";
-import { EventTimeline } from "./models/event-timeline.ts";
-import { ClientEvent, type IStoredClientOpts, type MatrixClient } from "./client.ts";
-import { ProfileManager } from "./profile/index.ts";
+import type { SyncCryptoCallbacks } from "./common-crypto/CryptoBackend";
+import { NotificationCountType, Room, RoomEvent } from "./models/room";
+import { logger } from "./logger";
+import { promiseMapSeries } from "./utils";
+import { EventTimeline } from "./models/event-timeline";
+import { ClientEvent, type IStoredClientOpts, type MatrixClient } from "./client";
+import { ProfileManager } from "./profile/index";
 import {
     type ISyncStateData,
     SyncState,
@@ -30,8 +30,8 @@ import {
     defaultSyncApiOpts,
     type SetPresence,
     processToDeviceMessages,
-} from "./sync.ts";
-import { type MatrixEvent } from "./models/event.ts";
+} from "./sync";
+import { type MatrixEvent } from "./models/event";
 import {
     type IMinimalEvent,
     type IRoomEvent,
@@ -39,8 +39,8 @@ import {
     type IStrippedState,
     type ISyncResponse,
     type ReceivedToDeviceMessage,
-} from "./sync-accumulator.ts";
-import { MatrixError, Method } from "./http-api/index.ts";
+} from "./sync-accumulator";
+import { MatrixError, Method } from "./http-api/index";
 import {
     type Extension,
     ExtensionState,
@@ -49,12 +49,12 @@ import {
     type SlidingSync,
     SlidingSyncEvent,
     SlidingSyncState,
-} from "./sliding-sync.ts";
-import { EventType } from "./@types/event.ts";
-import { type IPushRules } from "./@types/PushRules.ts";
-import { RoomStateEvent } from "./models/room-state.ts";
-import { RoomMemberEvent } from "./models/room-member.ts";
-import { KnownMembership } from "./@types/membership.ts";
+} from "./sliding-sync";
+import { EventType } from "./@types/event";
+import { type IPushRules } from "./@types/PushRules";
+import { RoomStateEvent } from "./models/room-state";
+import { RoomMemberEvent } from "./models/room-member";
+import { KnownMembership } from "./@types/membership";
 
 // Number of consecutive failed syncs that will lead to a syncState of ERROR as opposed
 // to RECONNECTING. This is needed to inform the client of server issues when the

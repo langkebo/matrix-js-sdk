@@ -18,16 +18,16 @@ import {
     type ReceiptCache,
     ReceiptType,
     type WrappedReceipt,
-} from "../@types/read_receipts.ts";
-import { type ListenerMap, TypedEventEmitter } from "./typed-event-emitter.ts";
-import { isSupportedReceiptType } from "../utils.ts";
-import { MatrixEvent } from "./event.ts";
-import { EventType } from "../@types/event.ts";
-import { type EventTimelineSet } from "./event-timeline-set.ts";
-import { MapWithDefault } from "../utils.ts";
-import { NotificationCountType } from "./room.ts";
-import { logger } from "../logger.ts";
-import { inMainTimelineForReceipt, threadIdForReceipt } from "../client.ts";
+} from "../@types/read_receipts";
+import { type ListenerMap, TypedEventEmitter } from "./typed-event-emitter";
+import { isSupportedReceiptType } from "../utils";
+import { MatrixEvent } from "./event";
+import { EventType } from "../@types/event";
+import { type EventTimelineSet } from "./event-timeline-set";
+import { MapWithDefault } from "../utils";
+import { NotificationCountType } from "./room";
+import { logger } from "../logger";
+import { inMainTimelineForReceipt, threadIdForReceipt } from "../client";
 
 /**
  * Create a synthetic receipt for the given event

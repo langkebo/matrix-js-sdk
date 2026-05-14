@@ -1,10 +1,10 @@
-import { type Body, ClientPrefix, type IRequestOpts, MatrixError, Method } from "./http-api/index.ts";
-import { type QueryDict } from "./utils.ts";
+import { type Body, ClientPrefix, type IRequestOpts, MatrixError, Method } from "./http-api/index";
+import { type QueryDict } from "./utils";
 import {
     discoverAndValidateOIDCIssuerWellKnown,
     type OidcClientConfig,
     validateAuthMetadataAndKeys,
-} from "./oidc/index.ts";
+} from "./oidc/index";
 
 export function buildEmailTokenRequestParams(
     email: string,

@@ -5,11 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import { MsgType } from "./@types/event.ts";
-import type { RoomMessageEventContent, StickerEventContent } from "./@types/events.ts";
-import type { ImageInfo } from "./@types/media.ts";
-import * as ContentHelpers from "./content-helpers.ts";
-import { normalizeThreadBodyTxnArgs, normalizeThreadHtmlArgs, normalizeThreadMediaArgs } from "./client-send-args.ts";
+import { MsgType } from "./@types/event";
+import type { RoomMessageEventContent, StickerEventContent } from "./@types/events";
+import type { ImageInfo } from "./@types/media";
+import * as ContentHelpers from "./content-helpers";
+import { normalizeThreadBodyTxnArgs, normalizeThreadHtmlArgs, normalizeThreadMediaArgs } from "./client-send-args";
 
 export interface NormalizedSendMessageArgs {
     threadId: string | null;

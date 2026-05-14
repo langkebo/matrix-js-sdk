@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { logger } from "../../logger.ts";
-import { MemoryCryptoStore } from "./memory-crypto-store.ts";
+import { logger } from "../../logger";
+import { MemoryCryptoStore } from "./memory-crypto-store";
 import {
     type CryptoStore,
     type ISession,
@@ -28,8 +28,8 @@ import {
     SESSION_BATCH_SIZE,
     type InboundGroupSessionData,
     type IRoomEncryption,
-} from "./base.ts";
-import { type CrossSigningKeyInfo } from "../../crypto-api/index.ts";
+} from "./base";
+import { type CrossSigningKeyInfo } from "../../crypto-api/index";
 
 /**
  * Internal module. Partial localStorage backed storage for e2e.

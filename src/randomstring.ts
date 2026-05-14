@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { encodeUnpaddedBase64Url } from "./base64.ts";
+import { encodeUnpaddedBase64Url } from "./base64";
 
 /**
  * String representing the lowercase latin alphabet for use in {@link secureRandomStringFrom}

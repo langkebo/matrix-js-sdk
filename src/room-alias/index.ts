@@ -21,10 +21,10 @@ limitations under the License.
  * 提供房间别名的创建、删除、查询功能
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client.ts";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 
 export enum RoomAliasEvent {

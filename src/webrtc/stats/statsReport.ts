@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type ConnectionStatsBandwidth, type ConnectionStatsBitrate, type PacketLoss } from "./connectionStats.ts";
-import { type TransportStats } from "./transportStats.ts";
-import { type Resolution } from "./media/mediaTrackStats.ts";
+import { type ConnectionStatsBandwidth, type ConnectionStatsBitrate, type PacketLoss } from "./connectionStats";
+import { type TransportStats } from "./transportStats";
+import { type Resolution } from "./media/mediaTrackStats";
 
 export enum StatsReport {
     CONNECTION_STATS = "StatsReport.connection_stats",

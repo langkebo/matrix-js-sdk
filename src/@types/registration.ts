@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type AuthDict } from "../interactive-auth.ts";
-import { type IClientWellKnown } from "../client.ts";
+import { type AuthDict } from "../interactive-auth";
+import { type IClientWellKnown } from "../client";
 
 /**
  * The request body of a call to `POST /_matrix/client/v3/register`.

@@ -1,5 +1,5 @@
-import type { SyncApi } from "./sync.ts";
-import type { Room } from "./models/room.ts";
+import type { SyncApi } from "./sync";
+import type { Room } from "./models/room";
 
 export function beginRoomPeek(
     roomId: string,

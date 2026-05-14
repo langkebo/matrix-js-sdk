@@ -5,14 +5,14 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import { MatrixError, Method, type IRequestOpts } from "./http-api/index.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { UpdateDelayedEventAction } from "./@types/requests.ts";
+import { MatrixError, Method, type IRequestOpts } from "./http-api/index";
+import type { EmptyObject } from "./@types/common";
+import type { UpdateDelayedEventAction } from "./@types/requests";
 import {
     buildDelayedEventsActionPath,
     buildDelayedEventsPath,
     buildUnstableFeaturePrefix,
-} from "./client-delayed-events.ts";
+} from "./client-delayed-events";
 
 export interface DelayedEventsHttpClient {
     request<T>(

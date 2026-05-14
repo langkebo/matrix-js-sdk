@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { EventContext } from "./event-context.ts";
-import { type EventMapper } from "../event-mapper.ts";
-import { type IResultContext, type ISearchResult } from "../@types/search.ts";
+import { EventContext } from "./event-context";
+import { type EventMapper } from "../event-mapper";
+import { type IResultContext, type ISearchResult } from "../@types/search";
 
 export class SearchResult {
     /**

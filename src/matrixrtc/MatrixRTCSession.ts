@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type Logger, logger as rootLogger } from "../logger.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { EventTimeline } from "../models/event-timeline.ts";
-import { type Room } from "../models/room.ts";
-import { type MatrixClient } from "../client.ts";
-import { EventType, RelationType } from "../@types/event.ts";
-import { KnownMembership } from "../@types/membership.ts";
-import { type ISendEventResponse } from "../@types/requests.ts";
-import { CallMembership } from "./CallMembership.ts";
-import { RoomStateEvent } from "../models/room-state.ts";
-import { MembershipManager, StickyEventMembershipManager } from "./MembershipManager.ts";
-import { type CallMembershipIdentityParts, EncryptionManager, type IEncryptionManager } from "./EncryptionManager.ts";
-import { logDurationSync } from "../utils.ts";
+import { type Logger, logger as rootLogger } from "../logger";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { EventTimeline } from "../models/event-timeline";
+import { type Room } from "../models/room";
+import { type MatrixClient } from "../client";
+import { EventType, RelationType } from "../@types/event";
+import { KnownMembership } from "../@types/membership";
+import { type ISendEventResponse } from "../@types/requests";
+import { CallMembership } from "./CallMembership";
+import { RoomStateEvent } from "../models/room-state";
+import { MembershipManager, StickyEventMembershipManager } from "./MembershipManager";
+import { type CallMembershipIdentityParts, EncryptionManager, type IEncryptionManager } from "./EncryptionManager";
+import { logDurationSync } from "../utils";
 import type {
     Statistics,
     RTCNotificationType,
@@ -34,18 +34,18 @@ import type {
     IRTCNotificationContent,
     RTCCallIntent,
     Transport,
-} from "./types.ts";
+} from "./types";
 import {
     MembershipManagerEvent,
     type MembershipManagerEventHandlerMap,
     type IMembershipManager,
-} from "./IMembershipManager.ts";
-import { RTCEncryptionManager } from "./RTCEncryptionManager.ts";
-import { ToDeviceKeyTransport } from "./ToDeviceKeyTransport.ts";
-import { TypedReEmitter } from "../ReEmitter.ts";
-import { type IContent, type MatrixEvent } from "../models/event.ts";
-import { RoomStickyEventsEvent, type RoomStickyEventsMap } from "../models/room-sticky-events.ts";
-import { RoomKeyTransport } from "./RoomKeyTransport.ts";
+} from "./IMembershipManager";
+import { RTCEncryptionManager } from "./RTCEncryptionManager";
+import { ToDeviceKeyTransport } from "./ToDeviceKeyTransport";
+import { TypedReEmitter } from "../ReEmitter";
+import { type IContent, type MatrixEvent } from "../models/event";
+import { RoomStickyEventsEvent, type RoomStickyEventsMap } from "../models/room-sticky-events";
+import { RoomKeyTransport } from "./RoomKeyTransport";
 
 /**
  * Events emitted by MatrixRTCSession

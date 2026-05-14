@@ -29,10 +29,10 @@ limitations under the License.
  * - 继承 BaseManager 支持统一重试与错误处理
  */
 
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { LRUCache } from "../utils/lru-cache.ts";
+import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 

@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixClient, ClientEvent } from "../client.ts";
-import { Room } from "../models/room.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { type EmptyObject } from "../@types/common.ts";
+import { MatrixClient, ClientEvent } from "../client";
+import { Room } from "../models/room";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { type EmptyObject } from "../@types/common";
 import {
     type ICreateRoomOpts,
     type IJoinRoomOpts,
@@ -26,22 +26,22 @@ import {
     type InviteOpts,
     type ITagsResponse,
     type IGuestAccessOpts,
-} from "../@types/requests.ts";
-import { type RoomAccountDataEvents, EventType } from "../@types/event.ts";
-import { InvalidParamError } from "../common/errors.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import * as utils from "../utils.ts";
-import { logger } from "../logger.ts";
-import { KnownMembership } from "../@types/membership.ts";
-import { IThirdPartySigned, IJoinRequestBody, ITagMetadata, IRoomHierarchy } from "../client-internal-types.ts";
-import { IRoomInitialSyncResponse } from "../client-api-types.ts";
-import { QueryDict } from "../utils.ts";
-import { SyncApi } from "../sync.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import { Visibility } from "../@types/partials.ts";
-import * as ContentHelpers from "../content-helpers.ts";
-import type { RoomPathPattern } from "./__generated__/route-table.ts";
-import type { TagsPathPattern } from "../tags/__generated__/route-table.ts";
+} from "../@types/requests";
+import { type RoomAccountDataEvents, EventType } from "../@types/event";
+import { InvalidParamError } from "../common/errors";
+import { BaseManager } from "../managers/base-manager";
+import * as utils from "../utils";
+import { logger } from "../logger";
+import { KnownMembership } from "../@types/membership";
+import { IThirdPartySigned, IJoinRequestBody, ITagMetadata, IRoomHierarchy } from "../client-internal-types";
+import { IRoomInitialSyncResponse } from "../client-api-types";
+import { QueryDict } from "../utils";
+import { SyncApi } from "../sync";
+import { LRUCache } from "../utils/lru-cache";
+import { Visibility } from "../@types/partials";
+import * as ContentHelpers from "../content-helpers";
+import type { RoomPathPattern } from "./__generated__/route-table";
+import type { TagsPathPattern } from "../tags/__generated__/route-table";
 
 export enum RoomEvent {
     RoomCreated = "RoomCreated",

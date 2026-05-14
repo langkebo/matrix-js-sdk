@@ -28,14 +28,14 @@ import {
     type Verifier,
     VerifierEvent,
     type VerifierEventHandlerMap,
-} from "../crypto-api/verification.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { TypedReEmitter } from "../ReEmitter.ts";
-import { type MatrixEvent } from "../models/event.ts";
-import { EventType, MsgType } from "../@types/event.ts";
-import { VerificationMethod } from "../types.ts";
-import type { Logger } from "../logger.ts";
+} from "../crypto-api/verification";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { TypedReEmitter } from "../ReEmitter";
+import { type MatrixEvent } from "../models/event";
+import { EventType, MsgType } from "../@types/event";
+import { VerificationMethod } from "../types";
+import type { Logger } from "../logger";
 
 /**
  * An incoming, or outgoing, request to verify a user or a device via cross-signing.

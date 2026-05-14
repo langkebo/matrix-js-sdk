@@ -1,4 +1,4 @@
-import { ServerSupport } from "./feature.ts";
+import { ServerSupport } from "./feature";
 
 export interface AccountDataEventLike {
     getContent(): unknown;

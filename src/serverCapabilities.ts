@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type IHttpOpts, type MatrixHttpApi, Method } from "./http-api/index.ts";
-import { type Logger } from "./logger.ts";
+import { type IHttpOpts, type MatrixHttpApi, Method } from "./http-api/index";
+import { type Logger } from "./logger";
 
 // How often we update the server capabilities.
 // 6 hours - an arbitrary value, but they should change very infrequently.

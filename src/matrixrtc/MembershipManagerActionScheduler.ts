@@ -1,7 +1,7 @@
-import { type Logger, logger as rootLogger } from "../logger.ts";
-import { type EmptyObject } from "../matrix.ts";
-import { sleep } from "../utils.ts";
-import { MembershipActionType } from "./MembershipManager.ts";
+import { type Logger, logger as rootLogger } from "../logger";
+import { type EmptyObject } from "../matrix";
+import { sleep } from "../utils";
+import { MembershipActionType } from "./MembershipManager";
 
 /** @internal */
 export interface Action {

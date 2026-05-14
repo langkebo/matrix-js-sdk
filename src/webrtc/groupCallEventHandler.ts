@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MatrixEvent } from "../models/event.ts";
-import { type MatrixClient, ClientEvent } from "../client.ts";
+import { type MatrixEvent } from "../models/event";
+import { type MatrixClient, ClientEvent } from "../client";
 import {
     GroupCall,
     GroupCallIntent,
     GroupCallType,
     type IGroupCallDataChannelOptions,
     type IGroupCallRoomState,
-} from "./groupCall.ts";
-import { type Room } from "../models/room.ts";
-import { type RoomState, RoomStateEvent } from "../models/room-state.ts";
-import { type RoomMember } from "../models/room-member.ts";
-import { logger } from "../logger.ts";
-import { EventType } from "../@types/event.ts";
-import { SyncState } from "../sync.ts";
+} from "./groupCall";
+import { type Room } from "../models/room";
+import { type RoomState, RoomStateEvent } from "../models/room-state";
+import { type RoomMember } from "../models/room-member";
+import { logger } from "../logger";
+import { EventType } from "../@types/event";
+import { SyncState } from "../sync";
 
 function isGroupCallType(value: unknown): value is GroupCallType {
     return typeof value === "string" && Object.values(GroupCallType).includes(value as GroupCallType);

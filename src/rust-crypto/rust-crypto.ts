@@ -16,26 +16,26 @@ limitations under the License.
 
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import type { IMegolmSessionData } from "../@types/crypto.ts";
-import { KnownMembership } from "../@types/membership.ts";
-import { type IDeviceLists, type IToDeviceEvent, type ReceivedToDeviceMessage } from "../sync-accumulator.ts";
-import type { ToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage.ts";
-import { type MatrixEvent, MatrixEventEvent } from "../models/event.ts";
-import { type Room } from "../models/room.ts";
-import { type RoomMember } from "../models/room-member.ts";
+import type { IMegolmSessionData } from "../@types/crypto";
+import { KnownMembership } from "../@types/membership";
+import { type IDeviceLists, type IToDeviceEvent, type ReceivedToDeviceMessage } from "../sync-accumulator";
+import type { ToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
+import { type MatrixEvent, MatrixEventEvent } from "../models/event";
+import { type Room } from "../models/room";
+import { type RoomMember } from "../models/room-member";
 import {
     type BackupDecryptor,
     type CryptoBackend,
     DecryptionError,
     type EventDecryptionResult,
     type OnSyncCompletedData,
-} from "../common-crypto/CryptoBackend.ts";
-import { type Logger, LogSpan } from "../logger.ts";
-import { type IHttpOpts, type MatrixHttpApi, Method } from "../http-api/index.ts";
-import { RoomEncryptor } from "./RoomEncryptor.ts";
-import { OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { KeyClaimManager } from "./KeyClaimManager.ts";
-import { MapWithDefault } from "../utils.ts";
+} from "../common-crypto/CryptoBackend";
+import { type Logger, LogSpan } from "../logger";
+import { type IHttpOpts, type MatrixHttpApi, Method } from "../http-api/index";
+import { RoomEncryptor } from "./RoomEncryptor";
+import { OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { KeyClaimManager } from "./KeyClaimManager";
+import { MapWithDefault } from "../utils";
 import {
     AllDevicesIsolationMode,
     type BackupTrustInfo,
@@ -69,34 +69,34 @@ import {
     type StartDehydrationOpts,
     UserVerificationStatus,
     type VerificationRequest,
-} from "../crypto-api/index.ts";
-import { deviceKeysToDeviceMap, rustDeviceToJsDevice } from "./device-converter.ts";
-import { type IDownloadKeyResult, type IQueryKeysRequest } from "../client.ts";
-import { type Device, type DeviceMap } from "../models/device.ts";
+} from "../crypto-api/index";
+import { deviceKeysToDeviceMap, rustDeviceToJsDevice } from "./device-converter";
+import { type IDownloadKeyResult, type IQueryKeysRequest } from "../client";
+import { type Device, type DeviceMap } from "../models/device";
 import {
     SECRET_STORAGE_ALGORITHM_V1_AES,
     type SecretStorageKey,
     type ServerSideSecretStorage,
-} from "../secret-storage.ts";
-import { CrossSigningIdentity } from "./CrossSigningIdentity.ts";
-import { secretStorageContainsCrossSigningKeys } from "./secret-storage.ts";
-import { isVerificationEvent, RustVerificationRequest, verificationMethodIdentifierToMethod } from "./verification.ts";
-import { EventType, MsgType } from "../@types/event.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { decryptionKeyMatchesKeyBackupInfo, RustBackupManager } from "./backup.ts";
-import { TypedReEmitter } from "../ReEmitter.ts";
-import { secureRandomString } from "../randomstring.ts";
-import { ClientStoppedError } from "../errors.ts";
-import { type ISignatures } from "../@types/signed.ts";
-import { type RoomEncryptionEventContent } from "../@types/state_events.ts";
-import { decodeBase64, encodeBase64 } from "../base64.ts";
-import { OutgoingRequestsManager } from "./OutgoingRequestsManager.ts";
-import { PerSessionKeyBackupDownloader } from "./PerSessionKeyBackupDownloader.ts";
-import { DehydratedDeviceManager } from "./DehydratedDeviceManager.ts";
-import { VerificationMethod } from "../types.ts";
-import { keyFromAuthData } from "../common-crypto/key-passphrase.ts";
-import { type UIAuthCallback } from "../interactive-auth.ts";
-import { getHttpUriForMxc } from "../content-repo.ts";
+} from "../secret-storage";
+import { CrossSigningIdentity } from "./CrossSigningIdentity";
+import { secretStorageContainsCrossSigningKeys } from "./secret-storage";
+import { isVerificationEvent, RustVerificationRequest, verificationMethodIdentifierToMethod } from "./verification";
+import { EventType, MsgType } from "../@types/event";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { decryptionKeyMatchesKeyBackupInfo, RustBackupManager } from "./backup";
+import { TypedReEmitter } from "../ReEmitter";
+import { secureRandomString } from "../randomstring";
+import { ClientStoppedError } from "../errors";
+import { type ISignatures } from "../@types/signed";
+import { type RoomEncryptionEventContent } from "../@types/state_events";
+import { decodeBase64, encodeBase64 } from "../base64";
+import { OutgoingRequestsManager } from "./OutgoingRequestsManager";
+import { PerSessionKeyBackupDownloader } from "./PerSessionKeyBackupDownloader";
+import { DehydratedDeviceManager } from "./DehydratedDeviceManager";
+import { VerificationMethod } from "../types";
+import { keyFromAuthData } from "../common-crypto/key-passphrase";
+import { type UIAuthCallback } from "../interactive-auth";
+import { getHttpUriForMxc } from "../content-repo";
 
 const ALL_VERIFICATION_METHODS = [
     VerificationMethod.Sas,

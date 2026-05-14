@@ -15,35 +15,35 @@ limitations under the License.
 */
 import { AbortError } from "p-retry";
 
-import { EventType, RelationType } from "../@types/event.ts";
-import { type ISendEventResponse, type SendDelayedEventResponse } from "../@types/requests.ts";
-import { type EmptyObject } from "../@types/common.ts";
-import type { MatrixClient } from "../client.ts";
-import { ConnectionError, HTTPError, MatrixError } from "../http-api/errors.ts";
-import { type Logger, logger as rootLogger } from "../logger.ts";
-import { type Room } from "../models/room.ts";
+import { EventType, RelationType } from "../@types/event";
+import { type ISendEventResponse, type SendDelayedEventResponse } from "../@types/requests";
+import { type EmptyObject } from "../@types/common";
+import type { MatrixClient } from "../client";
+import { ConnectionError, HTTPError, MatrixError } from "../http-api/errors";
+import { type Logger, logger as rootLogger } from "../logger";
+import { type Room } from "../models/room";
 import {
     type CallMembership,
     DEFAULT_EXPIRE_DURATION,
     type RtcMembershipData,
     type SessionMembershipData,
-} from "./CallMembership.ts";
-import { type Transport, isMyMembership, type RTCCallIntent, Status } from "./types.ts";
+} from "./CallMembership";
+import { type Transport, isMyMembership, type RTCCallIntent, Status } from "./types";
 import {
     type SlotDescription,
     type MembershipConfig,
     type SessionConfig,
     slotDescriptionToId,
-} from "./MatrixRTCSession.ts";
-import { ActionScheduler, type ActionUpdate } from "./MembershipManagerActionScheduler.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { UnsupportedDelayedEventsEndpointError } from "../errors.ts";
+} from "./MatrixRTCSession";
+import { ActionScheduler, type ActionUpdate } from "./MembershipManagerActionScheduler";
+import { BaseManager } from "../managers/base-manager";
+import { UnsupportedDelayedEventsEndpointError } from "../errors";
 import {
     MembershipManagerEvent,
     type IMembershipManager,
     type MembershipManagerEventHandlerMap,
-} from "./IMembershipManager.ts";
-import { isLivekitTransportConfig } from "./LivekitTransport.ts";
+} from "./IMembershipManager";
+import { isLivekitTransportConfig } from "./LivekitTransport";
 
 /* MembershipActionTypes:
 On Join:  ───────────────┐   ┌───────────────(1)───────────┐

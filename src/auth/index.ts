@@ -36,13 +36,13 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { ClientPrefix } from "../http-api/prefix";
 import { type ILoginFlowsResponse } from "../@types/auth";
 import { type RegisterRequest, type RegisterResponse } from "../@types/registration";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
-import type { AuthPathPattern } from "./__generated__/route-table.ts";
+import type { AuthPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;

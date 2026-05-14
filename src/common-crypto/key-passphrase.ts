@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { deriveRecoveryKeyFromPassphrase } from "../crypto-api/index.ts";
+import { deriveRecoveryKeyFromPassphrase } from "../crypto-api/index";
 
 /* eslint-disable camelcase */
 interface IAuthData {

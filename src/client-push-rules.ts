@@ -1,4 +1,4 @@
-import { type IPushRule, type IPushRules, PushRuleActionName, PushRuleKind } from "./@types/PushRules.ts";
+import { type IPushRule, type IPushRules, PushRuleActionName, PushRuleKind } from "./@types/PushRules";
 
 type Scope = "global" | "device";
 

@@ -1,14 +1,14 @@
-import type { IDeviceKeys, IOneTimeKey } from "./@types/crypto.ts";
-import type { RoomType } from "./@types/event.ts";
-import type { Membership } from "./@types/membership.ts";
-import type { JoinRule, Visibility } from "./@types/partials.ts";
-import type { IEventWithRoomId, IStateEventWithRoomId } from "./@types/search.ts";
-import type { ISignatures } from "./@types/signed.ts";
-import type { QueryDict } from "./utils.ts";
-import type { CrossSigningKeyInfo } from "./crypto-api/index.ts";
-import type { AutoDiscoveryAction } from "./autodiscovery.ts";
-import type { IEvent } from "./models/event.ts";
-import type { IMinimalEvent } from "./sync-accumulator.ts";
+import type { IDeviceKeys, IOneTimeKey } from "./@types/crypto";
+import type { RoomType } from "./@types/event";
+import type { Membership } from "./@types/membership";
+import type { JoinRule, Visibility } from "./@types/partials";
+import type { IEventWithRoomId, IStateEventWithRoomId } from "./@types/search";
+import type { ISignatures } from "./@types/signed";
+import type { QueryDict } from "./utils";
+import type { CrossSigningKeyInfo } from "./crypto-api/index";
+import type { AutoDiscoveryAction } from "./autodiscovery";
+import type { IEvent } from "./models/event";
+import type { IMinimalEvent } from "./sync-accumulator";
 
 export interface IRequestTokenResponse {
     sid: string;

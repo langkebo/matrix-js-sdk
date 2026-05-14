@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MatrixClient, PendingEventOrdering } from "../client.ts";
-import { TypedReEmitter } from "../ReEmitter.ts";
-import { RelationType } from "../@types/event.ts";
-import { type IThreadBundledRelationship, MatrixEvent, MatrixEventEvent } from "./event.ts";
-import { Direction, EventTimeline } from "./event-timeline.ts";
-import { EventTimelineSet, type EventTimelineSetHandlerMap } from "./event-timeline-set.ts";
-import { type NotificationCountType, type Room, RoomEvent } from "./room.ts";
-import { type RoomState } from "./room-state.ts";
-import { ServerControlledNamespacedValue } from "../NamespacedValue.ts";
-import { logger } from "../logger.ts";
-import { ReadReceipt } from "./read-receipt.ts";
-import { type CachedReceiptStructure, type Receipt, ReceiptType } from "../@types/read_receipts.ts";
-import { Feature, ServerSupport } from "../feature.ts";
+import { type MatrixClient, PendingEventOrdering } from "../client";
+import { TypedReEmitter } from "../ReEmitter";
+import { RelationType } from "../@types/event";
+import { type IThreadBundledRelationship, MatrixEvent, MatrixEventEvent } from "./event";
+import { Direction, EventTimeline } from "./event-timeline";
+import { EventTimelineSet, type EventTimelineSetHandlerMap } from "./event-timeline-set";
+import { type NotificationCountType, type Room, RoomEvent } from "./room";
+import { type RoomState } from "./room-state";
+import { ServerControlledNamespacedValue } from "../NamespacedValue";
+import { logger } from "../logger";
+import { ReadReceipt } from "./read-receipt";
+import { type CachedReceiptStructure, type Receipt, ReceiptType } from "../@types/read_receipts";
+import { Feature, ServerSupport } from "../feature";
 
 export enum ThreadEvent {
     New = "Thread.new",

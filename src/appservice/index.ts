@@ -20,10 +20,10 @@ limitations under the License.
  * 提供应用服务的注册、查询、管理功能
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { AdminPrefix, ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
+import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { ValidationError } from "../errors";
 
@@ -136,14 +136,12 @@ interface ApplicationServiceManagerEventMap {
     [AppServiceEvent.ServiceError]: (error: Error) => void;
 }
 
-export class ApplicationServiceManager extends TypedEventEmitter<AppServiceEvent, ApplicationServiceManagerEventMap> {
-    private client: MatrixClient;
+export class ApplicationServiceManager extends BaseManager<AppServiceEvent, ApplicationServiceManagerEventMap> {
     private services: Map<string, ApplicationService> = new Map();
     private initialized: boolean = false;
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     /**

@@ -21,14 +21,14 @@ import {
     MSC4108FailureReason,
     RendezvousError,
     type RendezvousFailureListener,
-} from "./index.ts";
-import { type MatrixClient } from "../client.ts";
-import { logger } from "../logger.ts";
-import { type MSC4108SecureChannel } from "./channels/MSC4108SecureChannel.ts";
-import { MatrixError } from "../http-api/index.ts";
-import { sleep } from "../utils.ts";
-import { OAuthGrantType, type OidcClientConfig } from "../oidc/index.ts";
-import { type CryptoApi } from "../crypto-api/index.ts";
+} from "./index";
+import { type MatrixClient } from "../client";
+import { logger } from "../logger";
+import { type MSC4108SecureChannel } from "./channels/MSC4108SecureChannel";
+import { MatrixError } from "../http-api/index";
+import { sleep } from "../utils";
+import { OAuthGrantType, type OidcClientConfig } from "../oidc/index";
+import { type CryptoApi } from "../crypto-api/index";
 
 /**
  * Enum representing the payload types transmissible over [MSC4108](https://github.com/matrix-org/matrix-spec-proposals/pull/4108)

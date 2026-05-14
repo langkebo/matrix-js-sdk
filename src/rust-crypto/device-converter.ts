@@ -16,8 +16,8 @@ limitations under the License.
 
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { Device, DeviceVerification } from "../models/device.ts";
-import type { DeviceKeys } from "../client-api-types.ts";
+import { Device, DeviceVerification } from "../models/device";
+import type { DeviceKeys } from "../client-api-types";
 
 /**
  * Convert a {@link RustSdkCryptoJs.Device} to a {@link Device}

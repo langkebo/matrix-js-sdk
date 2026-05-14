@@ -20,13 +20,13 @@ limitations under the License.
  * 提供房间标签的添加、删除、查询功能
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { ValidationError } from "../errors";
-import type { TagsPathPattern } from "./__generated__/route-table.ts";
+import type { TagsPathPattern } from "./__generated__/route-table";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -59,13 +59,11 @@ interface TagManagerEventMap {
     [TagEvent.TagError]: (roomId: string, error: Error) => void;
 }
 
-export class TagManager extends TypedEventEmitter<TagEvent, TagManagerEventMap> {
-    private client: MatrixClient;
+export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
     private roomTags: Map<string, IRoomTags> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     async getRoomTags(roomId: string): Promise<IRoomTags> {

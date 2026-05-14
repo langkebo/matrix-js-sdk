@@ -11,7 +11,7 @@ export {
     setExtendedProfilePropertyRequest,
     setExtendedProfileRequest,
     unbindThreePidRequest,
-} from "./client-profile-requests.ts";
+} from "./client-profile-requests";
 
 export {
     acceptDeviceSigningVerificationRequest,
@@ -33,7 +33,7 @@ export {
     uploadDeviceSigningKeysHttpRequest,
     uploadKeySignaturesHttpRequest,
     uploadKeysHttpRequest,
-} from "./client-crypto-requests.ts";
+} from "./client-crypto-requests";
 
 export {
     buildStateEventPath,
@@ -53,7 +53,7 @@ export {
     searchMessageTextRequest,
     setRoomDirectoryVisibilityRequest,
     setRoomReadMarkersRequest,
-} from "./client-batch-requests.ts";
+} from "./client-batch-requests";
 
 export {
     buildCreateFilterPath,
@@ -66,7 +66,7 @@ export {
     selectDeleteAccountDataRequestOptions,
     setUserAccountDataRequest,
     buildUserAccountDataPath,
-} from "./client-account-data-requests.ts";
+} from "./client-account-data-requests";
 
 export {
     getStateEventRequest,
@@ -74,9 +74,9 @@ export {
     reportRoomRequest,
     sendTypingRequest,
     upgradeRoomRequest,
-} from "./client-room-management-requests.ts";
+} from "./client-room-management-requests";
 
-export { getRoomHierarchyRequest, timestampToEventRequest } from "./client-room-discovery-requests.ts";
+export { getRoomHierarchyRequest, timestampToEventRequest } from "./client-room-discovery-requests";
 
 export {
     createSecureBackupRequest,
@@ -90,4 +90,4 @@ export {
     searchRoomsRequest,
     storeSecureBackupKeysRequest,
     verifySecureBackupPassphraseRequest,
-} from "./client-secure-backup-requests.ts";
+} from "./client-secure-backup-requests";

@@ -16,7 +16,7 @@ limitations under the License.
 
 import { type EitherAnd } from "matrix-events-sdk";
 
-import { NamespacedValue, UnstableValue } from "../NamespacedValue.ts";
+import { NamespacedValue, UnstableValue } from "../NamespacedValue";
 import {
     type PolicyRuleEventContent,
     type RoomAvatarEventContent,
@@ -37,11 +37,11 @@ import {
     type RoomTopicEventContent,
     type SpaceChildEventContent,
     type SpaceParentEventContent,
-} from "./state_events.ts";
-import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../webrtc/groupCall.ts";
-import { type MSC3089EventContent } from "../models/MSC3089Branch.ts";
-import { type EmptyObject } from "./common.ts";
-import { type ReactionEventContent, type RoomMessageEventContent, type StickerEventContent } from "./events.ts";
+} from "./state_events";
+import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../webrtc/groupCall";
+import { type MSC3089EventContent } from "../models/MSC3089Branch";
+import { type EmptyObject } from "./common";
+import { type ReactionEventContent, type RoomMessageEventContent, type StickerEventContent } from "./events";
 import {
     type MCallAnswer,
     type MCallBase,
@@ -51,18 +51,18 @@ import {
     type MCallReplacesEvent,
     type MCallSelectAnswer,
     type SDPStreamMetadata,
-} from "../webrtc/callEventTypes.ts";
+} from "../webrtc/callEventTypes";
 import {
     type IRTCNotificationContent,
     type IRTCDeclineContent,
     type EncryptionKeysEventContent,
     type ICallNotifyContent,
-} from "../matrixrtc/types.ts";
-import { type RtcMembershipData, type SessionMembershipData } from "../matrixrtc/CallMembership.ts";
-import { type LocalNotificationSettings } from "./local_notifications.ts";
-import { type IPushRules } from "./PushRules.ts";
-import { type SecretInfo, type SecretStorageKeyDescription } from "../secret-storage.ts";
-import { type POLICIES_ACCOUNT_EVENT_TYPE } from "../models/invites-ignorer-types.ts";
+} from "../matrixrtc/types";
+import { type RtcMembershipData, type SessionMembershipData } from "../matrixrtc/CallMembership";
+import { type LocalNotificationSettings } from "./local_notifications";
+import { type IPushRules } from "./PushRules";
+import { type SecretInfo, type SecretStorageKeyDescription } from "../secret-storage";
+import { type POLICIES_ACCOUNT_EVENT_TYPE } from "../models/invites-ignorer-types";
 
 export enum EventType {
     // Room state events

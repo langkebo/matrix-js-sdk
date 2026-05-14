@@ -26,16 +26,16 @@ limitations under the License.
  * 后端实现: synapse-rust/src/web/routes/device.rs
  */
 
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { InvalidParamError } from "../common/errors.ts";
-import { logger } from "../logger.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
 import { MatrixClient } from "../client";
-import { MatrixError } from "../http-api/errors.ts";
+import { MatrixError } from "../http-api/errors";
 import { BaseManager } from "../managers/base-manager";
-import { NotFoundError, ValidationError } from "../errors.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import type { DevicePathPattern } from "./__generated__/route-table.ts";
+import { NotFoundError, ValidationError } from "../errors";
+import { LRUCache } from "../utils/lru-cache";
+import type { DevicePathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum DeviceEvent {

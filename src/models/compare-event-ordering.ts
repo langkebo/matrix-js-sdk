@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MatrixEvent } from "./event.ts";
-import { type Room } from "./room.ts";
-import { inMainTimelineForReceipt, threadIdForReceipt } from "../client.ts";
+import { type MatrixEvent } from "./event";
+import { type Room } from "./room";
+import { inMainTimelineForReceipt, threadIdForReceipt } from "../client";
 
 /**
  * Determine the order of two events in a room.

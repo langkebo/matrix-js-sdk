@@ -1,10 +1,10 @@
-import * as utils from "./utils.ts";
-import { Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import { ServerSupport } from "./feature.ts";
-import type { QueryDict } from "./utils.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { AccountDataPathPattern } from "./account-data/__generated__/route-table.ts";
+import * as utils from "./utils";
+import { Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import { ServerSupport } from "./feature";
+import type { QueryDict } from "./utils";
+import type { EmptyObject } from "./@types/common";
+import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 

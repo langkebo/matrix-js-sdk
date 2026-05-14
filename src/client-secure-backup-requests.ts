@@ -1,10 +1,10 @@
-import * as utils from "./utils.ts";
-import { ClientPrefix, Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import type { QueryDict } from "./utils.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { SyncPathPattern } from "./sync/__generated__/route-table.ts";
-import type { SearchPathPattern } from "./search/__generated__/route-table.ts";
+import * as utils from "./utils";
+import { ClientPrefix, Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import type { QueryDict } from "./utils";
+import type { EmptyObject } from "./@types/common";
+import type { SyncPathPattern } from "./sync/__generated__/route-table";
+import type { SearchPathPattern } from "./search/__generated__/route-table";
 
 type AuthedRequestFn = <T>(
     method: Method,

@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { NamespacedValue } from "../NamespacedValue.ts";
-import { type IMessageRendering } from "./extensible_events.ts";
+import { NamespacedValue } from "../NamespacedValue";
+import { type IMessageRendering } from "./extensible_events";
 
 /**
  * Extensible topic event type based on MSC3765

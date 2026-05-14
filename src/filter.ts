@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type EventType, type RelationType } from "./@types/event.ts";
-import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync.ts";
-import { FilterComponent, type IFilterComponent } from "./filter-component.ts";
-import { type MatrixEvent } from "./models/event.ts";
+import { type EventType, type RelationType } from "./@types/event";
+import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync";
+import { FilterComponent, type IFilterComponent } from "./filter-component";
+import { type MatrixEvent } from "./models/event";
 
 /**
  */

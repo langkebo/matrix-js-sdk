@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { setCryptoStoreFactory } from "./matrix.ts";
-import { IndexedDBCryptoStore } from "./crypto/store/indexeddb-crypto-store.ts";
-import * as matrixcs from "./matrix.ts";
+import { setCryptoStoreFactory } from "./matrix";
+import { IndexedDBCryptoStore } from "./crypto/store/indexeddb-crypto-store";
+import * as matrixcs from "./matrix";
 
-export * from "./matrix.ts";
+export * from "./matrix";
 
-type BrowserMatrix = typeof import("./matrix.ts");
+type BrowserMatrix = typeof import("./matrix");
 declare global {
     /* eslint-disable no-var, camelcase */
     var __js_sdk_entrypoint: boolean;

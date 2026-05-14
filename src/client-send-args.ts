@@ -5,9 +5,9 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import type { IContent } from "./models/event.ts";
-import type { IRedactOpts } from "./@types/requests.ts";
-import type { ImageInfo } from "./@types/media.ts";
+import type { IContent } from "./models/event";
+import type { IRedactOpts } from "./@types/requests";
+import type { ImageInfo } from "./@types/media";
 
 export interface NormalizedSendEventArgs {
     threadId: string | null;

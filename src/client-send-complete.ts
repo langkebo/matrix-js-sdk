@@ -5,10 +5,10 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import { EventStatus } from "./models/event.ts";
-import { type IEvent, MatrixEvent, MatrixEventEvent } from "./models/event.ts";
-import type { QueryDict } from "./utils.ts";
-import type { Room } from "./models/room.ts";
+import { EventStatus } from "./models/event";
+import { type IEvent, MatrixEvent, MatrixEventEvent } from "./models/event";
+import type { QueryDict } from "./utils";
+import type { Room } from "./models/room";
 
 interface ReEmitterLike {
     reEmit(target: MatrixEvent, events: MatrixEventEvent[]): void;

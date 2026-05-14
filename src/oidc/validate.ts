@@ -17,9 +17,9 @@ limitations under the License.
 import { jwtDecode } from "jwt-decode";
 import { type IdTokenClaims, type OidcMetadata, type SigninResponse } from "oidc-client-ts";
 
-import { logger } from "../logger.ts";
-import { OidcError } from "./error.ts";
-import { OAuthGrantType } from "./index.ts";
+import { logger } from "../logger";
+import { OidcError } from "./error";
+import { OAuthGrantType } from "./index";
 
 /**
  * Metadata from OAuth 2.0 client authentication API as per

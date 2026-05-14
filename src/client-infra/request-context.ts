@@ -1,6 +1,6 @@
-import { MatrixClient } from "../client.ts";
-import { type Body, type IRequestOpts, Method } from "../http-api/index.ts";
-import { type QueryDict } from "../utils.ts";
+import { MatrixClient } from "../client";
+import { type Body, type IRequestOpts, Method } from "../http-api/index";
+import { type QueryDict } from "../utils";
 
 export class ClientRequestContext {
     public constructor(private readonly client: MatrixClient) {}

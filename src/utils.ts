@@ -20,9 +20,9 @@ limitations under the License.
 
 import promiseRetry from "p-retry";
 
-import { type IEvent, type MatrixEvent } from "./models/event.ts";
-import { ReceiptType } from "./@types/read_receipts.ts";
-import { type BaseLogger } from "./logger.ts";
+import { type IEvent, type MatrixEvent } from "./models/event";
+import { ReceiptType } from "./@types/read_receipts";
+import { type BaseLogger } from "./logger";
 
 const interns = new Map<string, string>();
 

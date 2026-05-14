@@ -4,7 +4,7 @@ import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
-import type { TypingPathPattern } from "./__generated__/route-table.ts";
+import type { TypingPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 /*

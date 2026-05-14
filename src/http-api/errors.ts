@@ -16,9 +16,9 @@ limitations under the License.
 
 import { type IMatrixApiError as IWidgetMatrixError } from "matrix-widget-api";
 
-import { type IUsageLimit } from "../@types/partials.ts";
-import { type MatrixEvent } from "../models/event.ts";
-import { NamespacedValue } from "../NamespacedValue.ts";
+import { type IUsageLimit } from "../@types/partials";
+import { type MatrixEvent } from "../models/event";
+import { NamespacedValue } from "../NamespacedValue";
 
 interface IErrorJson extends Partial<IUsageLimit> {
     [key: string]: unknown; // extensible

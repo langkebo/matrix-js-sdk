@@ -5,10 +5,10 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import { EventStatus, type IEvent, type MatrixEvent } from "./models/event.ts";
-import type { SendDelayedEventRequestOpts } from "./@types/requests.ts";
-import type { QueryDict } from "./utils.ts";
-import type { Room } from "./models/room.ts";
+import { EventStatus, type IEvent, type MatrixEvent } from "./models/event";
+import type { SendDelayedEventRequestOpts } from "./@types/requests";
+import type { QueryDict } from "./utils";
+import type { Room } from "./models/room";
 import {
     addPendingEventOrThrow,
     attachThreadToLocalEvent,
@@ -17,7 +17,7 @@ import {
     ensureTxnId,
     formatSendEventDebugMessage,
     setupLocalEventReemit,
-} from "./client-send-complete.ts";
+} from "./client-send-complete";
 
 interface LoggerLike {
     debug(message: string): void;

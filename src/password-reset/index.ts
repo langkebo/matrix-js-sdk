@@ -20,18 +20,18 @@ limitations under the License.
  * 提供密码重置相关功能
  */
 
-import { MatrixClient } from "../client.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
-import type { EmptyObject } from "../@types/common.ts";
-import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types.ts";
-import type { AuthDict } from "../interactive-auth.ts";
+import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import type { EmptyObject } from "../@types/common";
+import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
+import type { AuthDict } from "../interactive-auth";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import {
     buildEmailTokenRequestParams,
     buildMsisdnTokenRequestParams,
     requestTokenFromEndpoint,
-} from "../client-auth.ts";
+} from "../client-auth";
 
 export type PasswordResetManagerEvents = Record<
     "password_reset_token_requested" | "password_changed",

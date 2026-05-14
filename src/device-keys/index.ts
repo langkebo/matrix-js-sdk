@@ -35,10 +35,10 @@ limitations under the License.
  * - PUT /sendToDevice/{event_type}/{transaction_id} - 发送设备消息
  */
 
-import { BaseManager } from "../managers/base-manager.ts";
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface DeviceKeys {

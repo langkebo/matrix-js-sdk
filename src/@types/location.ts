@@ -17,8 +17,8 @@ limitations under the License.
 // Types for MSC3488 - m.location: Extending events with location data
 import { type EitherAnd } from "matrix-events-sdk";
 
-import { UnstableValue } from "../NamespacedValue.ts";
-import { type M_TEXT } from "./extensible_events.ts";
+import { UnstableValue } from "../NamespacedValue";
+import { type M_TEXT } from "./extensible_events";
 
 export enum LocationAssetType {
     Self = "m.self",

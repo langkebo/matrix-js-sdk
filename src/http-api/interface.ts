@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MatrixError } from "./errors.ts";
-import { type Logger } from "../logger.ts";
-import { type QueryDict } from "../utils.ts";
+import { type MatrixError } from "./errors";
+import { type Logger } from "../logger";
+import { type QueryDict } from "../utils";
 
 export type RequestPriority = "high" | "low" | "auto";
 

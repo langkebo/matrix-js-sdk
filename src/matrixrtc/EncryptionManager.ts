@@ -1,11 +1,11 @@
-import { type Logger, logger as rootLogger } from "../logger.ts";
-import { type EncryptionConfig } from "./MatrixRTCSession.ts";
-import { secureRandomBase64Url } from "../randomstring.ts";
-import { decodeBase64, encodeUnpaddedBase64 } from "../base64.ts";
-import { safeGetRetryAfterMs } from "../http-api/errors.ts";
-import { type CallMembership } from "./CallMembership.ts";
-import { type KeyTransportEventListener, KeyTransportEvents, type IKeyTransport } from "./IKeyTransport.ts";
-import { isMyMembership, type EncryptionKeyMapKey, type Statistics } from "./types.ts";
+import { type Logger, logger as rootLogger } from "../logger";
+import { type EncryptionConfig } from "./MatrixRTCSession";
+import { secureRandomBase64Url } from "../randomstring";
+import { decodeBase64, encodeUnpaddedBase64 } from "../base64";
+import { safeGetRetryAfterMs } from "../http-api/errors";
+import { type CallMembership } from "./CallMembership";
+import { type KeyTransportEventListener, KeyTransportEvents, type IKeyTransport } from "./IKeyTransport";
+import { isMyMembership, type EncryptionKeyMapKey, type Statistics } from "./types";
 
 /**
  * The string used for the keys in the the encryption key map.

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type Logger, logger } from "../../logger.ts";
+import { type Logger, logger } from "../../logger";
 import {
     type CryptoStore,
     type IDeviceData,
@@ -29,9 +29,9 @@ import {
     ACCOUNT_OBJECT_KEY_MIGRATION_STATE,
     type InboundGroupSessionData,
     type IRoomEncryption,
-} from "./base.ts";
-import { IndexedDBCryptoStore } from "./indexeddb-crypto-store.ts";
-import { type CrossSigningKeyInfo } from "../../crypto-api/index.ts";
+} from "./base";
+import { IndexedDBCryptoStore } from "./indexeddb-crypto-store";
+import { type CrossSigningKeyInfo } from "../../crypto-api/index";
 
 const PROFILE_TRANSACTIONS = false;
 

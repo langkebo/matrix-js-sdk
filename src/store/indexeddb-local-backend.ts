@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type IMinimalEvent, type ISyncData, type ISyncResponse, SyncAccumulator } from "../sync-accumulator.ts";
-import { deepCopy, promiseTry } from "../utils.ts";
-import { exists as idbExists } from "../indexeddb-helpers.ts";
-import { logger } from "../logger.ts";
-import { type IStateEventWithRoomId, type IStoredClientOpts } from "../matrix.ts";
-import { type ISavedSync } from "./index.ts";
-import { type IIndexedDBBackend, type UserTuple } from "./indexeddb-backend.ts";
-import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage.ts";
+import { type IMinimalEvent, type ISyncData, type ISyncResponse, SyncAccumulator } from "../sync-accumulator";
+import { deepCopy, promiseTry } from "../utils";
+import { exists as idbExists } from "../indexeddb-helpers";
+import { logger } from "../logger";
+import { type IStateEventWithRoomId, type IStoredClientOpts } from "../matrix";
+import { type ISavedSync } from "./index";
+import { type IIndexedDBBackend, type UserTuple } from "./indexeddb-backend";
+import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
 
 type DbMigration = (db: IDBDatabase) => void;
 const DB_MIGRATIONS: DbMigration[] = [

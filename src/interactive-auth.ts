@@ -16,10 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { logger } from "./logger.ts";
-import { type MatrixClient } from "./client.ts";
-import { MatrixError } from "./http-api/index.ts";
-import { type UserIdentifier } from "./@types/auth.ts";
+import { logger } from "./logger";
+import { type MatrixClient } from "./client";
+import { MatrixError } from "./http-api/index";
+import { type UserIdentifier } from "./@types/auth";
 
 const EMAIL_STAGE_TYPE = "m.login.email.identity";
 const MSISDN_STAGE_TYPE = "m.login.msisdn";

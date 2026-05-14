@@ -23,20 +23,20 @@ limitations under the License.
  * for HTTP and WS at some point.
  */
 
-import type { SyncCryptoCallbacks } from "./common-crypto/CryptoBackend.ts";
-import { User } from "./models/user.ts";
-import { NotificationCountType, Room, RoomEvent } from "./models/room.ts";
-import { deepCopy, noUnsafeEventProps, unsafeProp, type QueryDict } from "./utils.ts";
-import { Filter } from "./filter.ts";
-import { EventTimeline } from "./models/event-timeline.ts";
-import { type Logger } from "./logger.ts";
+import type { SyncCryptoCallbacks } from "./common-crypto/CryptoBackend";
+import { User } from "./models/user";
+import { NotificationCountType, Room, RoomEvent } from "./models/room";
+import { deepCopy, noUnsafeEventProps, unsafeProp, type QueryDict } from "./utils";
+import { Filter } from "./filter";
+import { EventTimeline } from "./models/event-timeline";
+import { type Logger } from "./logger";
 import {
     ClientEvent,
     type IStoredClientOpts,
     type MatrixClient,
     PendingEventOrdering,
     type ResetTimelineCallback,
-} from "./client.ts";
+} from "./client";
 import {
     type IEphemeral,
     type IInvitedRoom,
@@ -52,18 +52,18 @@ import {
     type ITimeline,
     type IToDeviceEvent,
     type ReceivedToDeviceMessage,
-} from "./sync-accumulator.ts";
-import { MatrixEvent } from "./models/event.ts";
-import { type MatrixError, Method } from "./http-api/index.ts";
-import { type ISavedSync } from "./store/index.ts";
-import { EventType } from "./@types/event.ts";
-import { type IPushRules } from "./@types/PushRules.ts";
-import { type IMarkerFoundOptions, RoomStateEvent } from "./models/room-state.ts";
-import { RoomMemberEvent } from "./models/room-member.ts";
-import { type IEventsResponse } from "./@types/requests.ts";
-import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync.ts";
-import { Feature, ServerSupport } from "./feature.ts";
-import { KnownMembership } from "./@types/membership.ts";
+} from "./sync-accumulator";
+import { MatrixEvent } from "./models/event";
+import { type MatrixError, Method } from "./http-api/index";
+import { type ISavedSync } from "./store/index";
+import { EventType } from "./@types/event";
+import { type IPushRules } from "./@types/PushRules";
+import { type IMarkerFoundOptions, RoomStateEvent } from "./models/room-state";
+import { RoomMemberEvent } from "./models/room-member";
+import { type IEventsResponse } from "./@types/requests";
+import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync";
+import { Feature, ServerSupport } from "./feature";
+import { KnownMembership } from "./@types/membership";
 
 // /sync requests allow you to set a timeout= but the request may continue
 // beyond that and wedge forever, so we need to track how long we are willing

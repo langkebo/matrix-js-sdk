@@ -20,8 +20,8 @@ import {
     type FramerateMap,
     type ResolutionMap,
     type TrackID,
-} from "./statsReport.ts";
-import { type MediaTrackStats, type Resolution } from "./media/mediaTrackStats.ts";
+} from "./statsReport";
+import { type MediaTrackStats, type Resolution } from "./media/mediaTrackStats";
 
 export class ConnectionStatsReportBuilder {
     public static build(stats: Map<TrackID, MediaTrackStats>): ConnectionStatsReport {

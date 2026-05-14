@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { validatePromptTemplate } from "./validateTemplates.ts";
+import { validatePromptTemplate } from "./validateTemplates";
 
 export interface OpenApiParameter {
     in: "path" | "query" | "header" | "cookie";

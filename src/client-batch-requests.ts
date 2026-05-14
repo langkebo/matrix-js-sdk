@@ -1,22 +1,22 @@
-import * as utils from "./utils.ts";
-import { ClientPrefix, Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import type { QueryDict } from "./utils.ts";
-import type { IEvent, IContent } from "./models/event.ts";
-import type { IRoomDirectoryOptions, ISearchOpts } from "./@types/requests.ts";
+import * as utils from "./utils";
+import { ClientPrefix, Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import type { QueryDict } from "./utils";
+import type { IEvent, IContent } from "./models/event";
+import type { IRoomDirectoryOptions, ISearchOpts } from "./@types/requests";
 import type {
     IJoinedMembersResponse,
     IJoinedRoomsResponse,
     IRoomInitialSyncResponse,
     IPublicRoomsResponse,
     IOpenIDToken,
-} from "./client.ts";
-import type { IStateEventWithRoomId, ISearchRequestBody, ISearchResponse } from "./@types/search.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { Visibility } from "./@types/partials.ts";
-import { ReceiptType } from "./@types/read_receipts.ts";
-import type { SyncPathPattern } from "./sync/__generated__/route-table.ts";
-import type { AccountDataPathPattern } from "./account-data/__generated__/route-table.ts";
+} from "./client";
+import type { IStateEventWithRoomId, ISearchRequestBody, ISearchResponse } from "./@types/search";
+import type { EmptyObject } from "./@types/common";
+import type { Visibility } from "./@types/partials";
+import { ReceiptType } from "./@types/read_receipts";
+import type { SyncPathPattern } from "./sync/__generated__/route-table";
+import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
 
 type AuthedRequestFn = <T>(
     method: Method,

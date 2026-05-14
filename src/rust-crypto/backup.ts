@@ -27,22 +27,22 @@ import {
     type KeyBackupRestoreOpts,
     type KeyBackupRestoreResult,
     type KeyBackupRoomSessions,
-} from "../crypto-api/keybackup.ts";
-import { type Logger } from "../logger.ts";
-import { ClientPrefix, type IHttpOpts, MatrixError, type MatrixHttpApi, Method, HTTPError } from "../http-api/index.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { encodeUri, logDuration } from "../utils.ts";
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { sleep } from "../utils.ts";
-import { type BackupDecryptor } from "../common-crypto/CryptoBackend.ts";
+} from "../crypto-api/keybackup";
+import { type Logger } from "../logger";
+import { ClientPrefix, type IHttpOpts, MatrixError, type MatrixHttpApi, Method, HTTPError } from "../http-api/index";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { encodeUri, logDuration } from "../utils";
+import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { sleep } from "../utils";
+import { type BackupDecryptor } from "../common-crypto/CryptoBackend";
 import {
     type ImportRoomKeyProgressData,
     type ImportRoomKeysOpts,
     CryptoEvent,
     ImportRoomKeyStage,
-} from "../crypto-api/index.ts";
-import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload.ts";
-import { type IMegolmSessionData } from "../@types/crypto.ts";
+} from "../crypto-api/index";
+import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
+import { type IMegolmSessionData } from "../@types/crypto";
 
 /** Authentification of the backup info, depends on algorithm */
 type AuthData = KeyBackupInfo["auth_data"];

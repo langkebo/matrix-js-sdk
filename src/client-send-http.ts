@@ -9,13 +9,13 @@ import {
     type ISendEventResponse,
     type SendDelayedEventRequestOpts,
     type SendDelayedEventResponse,
-} from "./@types/requests.ts";
-import { Method } from "./http-api/method.ts";
-import { buildUnstableDelayQueryOpts } from "./client-internals.ts";
-import { buildSendEventPath } from "./client-send-paths.ts";
-import { resolveSendEventRequestArgs } from "./client-send-request.ts";
-import type { MatrixEvent } from "./models/event.ts";
-import type { QueryDict } from "./utils.ts";
+} from "./@types/requests";
+import { Method } from "./http-api/method";
+import { buildUnstableDelayQueryOpts } from "./client-internals";
+import { buildSendEventPath } from "./client-send-paths";
+import { resolveSendEventRequestArgs } from "./client-send-request";
+import type { MatrixEvent } from "./models/event";
+import type { QueryDict } from "./utils";
 
 interface LoggerLike {
     debug(message: string): void;

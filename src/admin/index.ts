@@ -37,8 +37,8 @@ import { NotFoundError, ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "./validators";
 import { buildPaginationParams, buildSearchParams, buildQueryParams } from "./utils";
-import type { AdminPath, AdminPathPattern, AdminReplaceBraces, ADMIN_ROUTES } from "./__generated__/route-table.ts";
-import type { ModulePathPattern } from "../module/__generated__/route-table.ts";
+import type { AdminPath, AdminPathPattern, AdminReplaceBraces, ADMIN_ROUTES } from "./__generated__/route-table";
+import type { ModulePathPattern } from "../module/__generated__/route-table";
 
 type StripAdminPath<P extends string> =
     P extends `/_synapse/admin${infer Rest}` ? Rest : never;

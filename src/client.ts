@@ -18,8 +18,8 @@ limitations under the License.
  * This is an internal module. See {@link MatrixClient} for the public class.
  */
 
-import { type ISyncStateData, type SetPresence, SyncApi, type SyncApiOptions, SyncState } from "./sync.ts";
-import type { MatrixClientExtensionMethods, MatrixClientInternalMethods } from "./matrix-client-extensions.d.ts";
+import { type ISyncStateData, type SetPresence, SyncApi, type SyncApiOptions, SyncState } from "./sync";
+import type { MatrixClientExtensionMethods, MatrixClientInternalMethods } from "./matrix-client-extensions.d";
 import {
     EventStatus,
     type IContent,
@@ -29,34 +29,34 @@ import {
     MatrixEventEvent,
     type MatrixEventHandlerMap,
     type PushDetails,
-} from "./models/event.ts";
-import { StubStore } from "./store/stub.ts";
+} from "./models/event";
+import { StubStore } from "./store/stub";
 import {
     type CallEvent,
     type CallEventHandlerMap,
     createNewMatrixCall,
     type MatrixCall,
     supportsMatrixCall,
-} from "./webrtc/call.ts";
-import { Filter, type IFilterDefinition } from "./filter.ts";
+} from "./webrtc/call";
+import { Filter, type IFilterDefinition } from "./filter";
 import {
     CallEventHandler,
     type CallEventHandlerEvent,
     type CallEventHandlerEventHandlerMap,
-} from "./webrtc/callEventHandler.ts";
+} from "./webrtc/callEventHandler";
 import {
     GroupCallEventHandler,
     type GroupCallEventHandlerEvent,
     type GroupCallEventHandlerEventHandlerMap,
-} from "./webrtc/groupCallEventHandler.ts";
-import * as utils from "./utils.ts";
-import { deepCompare, noUnsafeEventProps, type QueryDict, sleep } from "./utils.ts";
-import { Direction, EventTimeline } from "./models/event-timeline.ts";
-import { type IActionsObject, PushProcessor } from "./pushprocessor.ts";
-import { AutoDiscovery } from "./autodiscovery.ts";
-import { TypedReEmitter } from "./ReEmitter.ts";
-import { logger, type Logger } from "./logger.ts";
-import { SERVICE_TYPES } from "./service-types.ts";
+} from "./webrtc/groupCallEventHandler";
+import * as utils from "./utils";
+import { deepCompare, noUnsafeEventProps, type QueryDict, sleep } from "./utils";
+import { Direction, EventTimeline } from "./models/event-timeline";
+import { type IActionsObject, PushProcessor } from "./pushprocessor";
+import { AutoDiscovery } from "./autodiscovery";
+import { TypedReEmitter } from "./ReEmitter";
+import { logger, type Logger } from "./logger";
+import { SERVICE_TYPES } from "./service-types";
 import {
     type Body,
     ClientPrefix,
@@ -75,21 +75,21 @@ import {
     type Upload,
     type UploadOpts,
     type UploadResponse,
-} from "./http-api/index.ts";
-import { User, UserEvent, type UserEventHandlerMap } from "./models/user.ts";
-import { ProfileManager } from "./profile/index.ts";
-import { SearchResult } from "./models/search-result.ts";
-import { type IIdentityServerProvider } from "./@types/IIdentityServerProvider.ts";
-import { type MatrixScheduler } from "./scheduler.ts";
-import { type BeaconEvent, type BeaconEventHandlerMap } from "./models/beacon.ts";
-import { type AuthDict } from "./interactive-auth.ts";
-import { type IRoomEvent, type ReceivedToDeviceMessage } from "./sync-accumulator.ts";
-import type { EventTimelineSet } from "./models/event-timeline-set.ts";
-import { InflightRequestCache, stableSerialize } from "./utils/inflight-request-cache.ts";
-import { LRUCache } from "./utils/lru-cache.ts";
-import { NotificationCountType, type Room, type RoomEvent, type RoomEventHandlerMap } from "./models/room.ts";
-import { RoomMemberEvent, type RoomMemberEventHandlerMap } from "./models/room-member.ts";
-import { type RoomStateEvent, type RoomStateEventHandlerMap } from "./models/room-state.ts";
+} from "./http-api/index";
+import { User, UserEvent, type UserEventHandlerMap } from "./models/user";
+import { ProfileManager } from "./profile/index";
+import { SearchResult } from "./models/search-result";
+import { type IIdentityServerProvider } from "./@types/IIdentityServerProvider";
+import { type MatrixScheduler } from "./scheduler";
+import { type BeaconEvent, type BeaconEventHandlerMap } from "./models/beacon";
+import { type AuthDict } from "./interactive-auth";
+import { type IRoomEvent, type ReceivedToDeviceMessage } from "./sync-accumulator";
+import type { EventTimelineSet } from "./models/event-timeline-set";
+import { InflightRequestCache, stableSerialize } from "./utils/inflight-request-cache";
+import { LRUCache } from "./utils/lru-cache";
+import { NotificationCountType, type Room, type RoomEvent, type RoomEventHandlerMap } from "./models/room";
+import { RoomMemberEvent, type RoomMemberEventHandlerMap } from "./models/room-member";
+import { type RoomStateEvent, type RoomStateEventHandlerMap } from "./models/room-state";
 import {
     isSendDelayedEventRequestOpts,
     UpdateDelayedEventAction,
@@ -115,7 +115,7 @@ import {
     type KnockRoomOpts,
     type SendDelayedEventRequestOpts,
     type SendDelayedEventResponse,
-} from "./@types/requests.ts";
+} from "./@types/requests";
 import {
     type AccountDataEvents,
     EventType,
@@ -125,7 +125,7 @@ import {
     type StateEvents,
     type TimelineEvents,
     type WritableAccountDataEvents,
-} from "./@types/event.ts";
+} from "./@types/event";
 import {
     GuestAccess,
     HistoryVisibility,
@@ -133,19 +133,19 @@ import {
     Preset,
     type Terms,
     type Visibility,
-} from "./@types/partials.ts";
-import { type EventMapper, eventMapperFor, type MapperOpts } from "./event-mapper.ts";
-import { secureRandomString } from "./randomstring.ts";
-import { MSC3089TreeSpace } from "./models/MSC3089TreeSpace.ts";
-import { type IStore } from "./store/index.ts";
+} from "./@types/partials";
+import { type EventMapper, eventMapperFor, type MapperOpts } from "./event-mapper";
+import { secureRandomString } from "./randomstring";
+import { MSC3089TreeSpace } from "./models/MSC3089TreeSpace";
+import { type IStore } from "./store/index";
 import {
     type ISearchRequestBody,
     type ISearchResponse,
     type ISearchResults,
     type IStateEventWithRoomId,
     SearchOrderBy,
-} from "./@types/search.ts";
-import { type ISynapseAdminDeactivateResponse, type ISynapseAdminWhoisResponse } from "./@types/synapse.ts";
+} from "./@types/search";
+import { type ISynapseAdminDeactivateResponse, type ISynapseAdminWhoisResponse } from "./@types/synapse";
 import type {
     IKeyBackupPath,
     IMediaConfig,
@@ -157,17 +157,17 @@ import type {
     IThirdPartyUser,
     IUserDirectoryResponse,
     IWhoamiResponse,
-} from "./client-internal-types.ts";
-import { type IPushRule, type IPushRules } from "./@types/PushRules.ts";
-import { type IThreepid } from "./@types/threepids.ts";
-import { type CryptoStore } from "./crypto/store/base.ts";
+} from "./client-internal-types";
+import { type IPushRule, type IPushRules } from "./@types/PushRules";
+import { type IThreepid } from "./@types/threepids";
+import { type CryptoStore } from "./crypto/store/base";
 import {
     GroupCall,
     type GroupCallIntent,
     type GroupCallType,
     type IGroupCallDataChannelOptions,
-} from "./webrtc/groupCall.ts";
-import { MediaHandler } from "./webrtc/mediaHandler.ts";
+} from "./webrtc/groupCall";
+import { MediaHandler } from "./webrtc/mediaHandler";
 import {
     type ILoginFlowsResponse,
     type IRefreshTokenResponse,
@@ -175,56 +175,56 @@ import {
     type LoginResponse,
     type LoginTokenPostResponse,
     type SSOAction,
-} from "./@types/auth.ts";
-import { TypedEventEmitter } from "./models/typed-event-emitter.ts";
-import { ReceiptType } from "./@types/read_receipts.ts";
-import { type MSC3575SlidingSyncRequest, type MSC3575SlidingSyncResponse } from "./sliding-sync.ts";
-import { SlidingSyncSdk } from "./sliding-sync-sdk.ts";
-import type { SlidingSyncPathPattern } from "./sliding-sync/__generated__/route-table.ts";
+} from "./@types/auth";
+import { TypedEventEmitter } from "./models/typed-event-emitter";
+import { ReceiptType } from "./@types/read_receipts";
+import { type MSC3575SlidingSyncRequest, type MSC3575SlidingSyncResponse } from "./sliding-sync";
+import { SlidingSyncSdk } from "./sliding-sync-sdk";
+import type { SlidingSyncPathPattern } from "./sliding-sync/__generated__/route-table";
 import {
     determineFeatureSupport,
     FeatureSupport,
     Thread,
     THREAD_RELATION_TYPE,
     ThreadFilterType,
-} from "./models/thread.ts";
-import { NamespacedValue, UnstableValue } from "./NamespacedValue.ts";
-import { ToDeviceMessageQueue } from "./ToDeviceMessageQueue.ts";
-import { type ToDeviceBatch, type ToDevicePayload } from "./models/ToDeviceMessage.ts";
-import { IgnoredInvites } from "./models/invites-ignorer.ts";
-import { type UIARequest } from "./@types/uia.ts";
-import { type LocalNotificationSettings } from "./@types/local_notifications.ts";
-import { buildFeatureSupportMap, Feature, ServerSupport } from "./feature.ts";
-import { M_BEACON_INFO, type MBeaconInfoEventContent } from "./@types/beacon.ts";
-import { type CryptoBackend } from "./common-crypto/CryptoBackend.ts";
-import { RUST_SDK_STORE_PREFIX } from "./rust-crypto/constants.ts";
-import { type CryptoApi, type CryptoCallbacks, CryptoEvent, type CryptoEventHandlerMap } from "./crypto-api/index.ts";
+} from "./models/thread";
+import { NamespacedValue, UnstableValue } from "./NamespacedValue";
+import { ToDeviceMessageQueue } from "./ToDeviceMessageQueue";
+import { type ToDeviceBatch, type ToDevicePayload } from "./models/ToDeviceMessage";
+import { IgnoredInvites } from "./models/invites-ignorer";
+import { type UIARequest } from "./@types/uia";
+import { type LocalNotificationSettings } from "./@types/local_notifications";
+import { buildFeatureSupportMap, Feature, ServerSupport } from "./feature";
+import { M_BEACON_INFO, type MBeaconInfoEventContent } from "./@types/beacon";
+import { type CryptoBackend } from "./common-crypto/CryptoBackend";
+import { RUST_SDK_STORE_PREFIX } from "./rust-crypto/constants";
+import { type CryptoApi, type CryptoCallbacks, CryptoEvent, type CryptoEventHandlerMap } from "./crypto-api/index";
 import {
     type SecretStorageKeyDescription,
     type ServerSideSecretStorage,
     ServerSideSecretStorageImpl,
-} from "./secret-storage.ts";
-import { type RegisterRequest, type RegisterResponse } from "./@types/registration.ts";
-import { MatrixRTCSessionManager } from "./matrixrtc/MatrixRTCSessionManager.ts";
-import { type Membership } from "./@types/membership.ts";
-import { type RoomMessageEventContent } from "./@types/events.ts";
-import { type ImageInfo } from "./@types/media.ts";
-import { type Capabilities, ServerCapabilities } from "./serverCapabilities.ts";
-import { type OidcClientConfig } from "./oidc/index.ts";
-import { type EmptyObject } from "./@types/common.ts";
-import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors.ts";
-import { type Transport } from "./matrixrtc/index.ts";
-import { getLegacyClientPrefix } from "./client-internals.ts";
-import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events.ts";
+} from "./secret-storage";
+import { type RegisterRequest, type RegisterResponse } from "./@types/registration";
+import { MatrixRTCSessionManager } from "./matrixrtc/MatrixRTCSessionManager";
+import { type Membership } from "./@types/membership";
+import { type RoomMessageEventContent } from "./@types/events";
+import { type ImageInfo } from "./@types/media";
+import { type Capabilities, ServerCapabilities } from "./serverCapabilities";
+import { type OidcClientConfig } from "./oidc/index";
+import { type EmptyObject } from "./@types/common";
+import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors";
+import { type Transport } from "./matrixrtc/index";
+import { getLegacyClientPrefix } from "./client-internals";
+import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events";
 import {
     updateScheduledDelayedEventWithActionInBody as updateScheduledDelayedEventWithActionInBodyRequest,
     updateScheduledDelayedEventWithFallback,
-} from "./client-delayed-events-updater.ts";
-import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle.ts";
-import { encryptAndSendEventWorkflow } from "./client-encrypt-send.ts";
-import { dispatchSendEventHttpRequest } from "./client-send-http.ts";
-import { dispatchDelayedStateEventRequest, dispatchStateEventRequest } from "./client-send-state.ts";
-import { prepareSendEventParams, type PreparedSendEventParams } from "./client-send-event.ts";
+} from "./client-delayed-events-updater";
+import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
+import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
+import { dispatchSendEventHttpRequest } from "./client-send-http";
+import { dispatchDelayedStateEventRequest, dispatchStateEventRequest } from "./client-send-state";
+import { prepareSendEventParams, type PreparedSendEventParams } from "./client-send-event";
 import {
     buildEmoteMessagePayload,
     buildHtmlEmotePayload,
@@ -235,40 +235,40 @@ import {
     buildStickerMessagePayload,
     buildTextMessagePayload,
     normalizeSendMessageArgs,
-} from "./client-send-message.ts";
-import { normalizeRedactEventArgs } from "./client-send-args.ts";
-import { buildRedactEventContent } from "./client-send-redaction.ts";
+} from "./client-send-message";
+import { normalizeRedactEventArgs } from "./client-send-args";
+import { buildRedactEventContent } from "./client-send-redaction";
 import {
     buildEmailTokenRequestParams,
     buildMsisdnTokenRequestParams,
     fetchAuthMetadataWithFallback,
     requestTokenFromEndpoint,
-} from "./client-auth.ts";
-import { fixNotificationCountOnDecryption, inMainTimelineForReceipt, threadIdForReceipt } from "./client-receipts.ts";
-import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho } from "./client-receipt-requests.ts";
+} from "./client-auth";
+import { fixNotificationCountOnDecryption, inMainTimelineForReceipt, threadIdForReceipt } from "./client-receipts";
+import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho } from "./client-receipt-requests";
 import {
     identityHashedLookupRequest,
     lookupThreePidRequest,
     bulkLookupThreePidsRequest,
-} from "./client-identity-lookup.ts";
-import { sendToDeviceRequest } from "./client-to-device.ts";
+} from "./client-identity-lookup";
+import { sendToDeviceRequest } from "./client-to-device";
 import {
     getThirdpartyLocationRequest,
     getThirdpartyUserRequest,
     getThirdpartyProtocolsRequest,
-} from "./client-thirdparty.ts";
-import { leaveRoomChainRequest, membershipChangeRequest } from "./client-membership.ts";
-import { buildRoomUpgradeHistory, selectVisibleRoomsForClient } from "./client-room-upgrade.ts";
-import { mapStateAndChunkFromMessages, deriveBackPaginationTokenFromMessages } from "./client-timeline-core.ts";
-import { paginateEventTimelineRequest } from "./client-timeline-pagination.ts";
+} from "./client-thirdparty";
+import { leaveRoomChainRequest, membershipChangeRequest } from "./client-membership";
+import { buildRoomUpgradeHistory, selectVisibleRoomsForClient } from "./client-room-upgrade";
+import { mapStateAndChunkFromMessages, deriveBackPaginationTokenFromMessages } from "./client-timeline-core";
+import { paginateEventTimelineRequest } from "./client-timeline-pagination";
 import {
     getAccountDataFromStoreWhenReady,
     isAccountDataNotFoundError,
     shouldFallbackDeleteAccountDataToEmptyContent,
-} from "./client-account-data-core.ts";
-import { assertExtendedProfileSupported } from "./client-profile-core.ts";
-import { processRelationEvents } from "./client-relations-core.ts";
-import { createEncryptionUtils } from "./client-encryption-utils.ts";
+} from "./client-account-data-core";
+import { assertExtendedProfileSupported } from "./client-profile-core";
+import { processRelationEvents } from "./client-relations-core";
+import { createEncryptionUtils } from "./client-encryption-utils";
 import {
     type CrossSigningKeys,
     type IClientWellKnown,
@@ -316,14 +316,14 @@ import {
     type IVerificationRequestsResponse,
     type KeySignatures,
     type SendToDeviceContentMap,
-} from "./client-api-types.ts";
+} from "./client-api-types";
 import {
     type ICreateClientOpts,
     type IKeysUploadResponse,
     type IMatrixClientCreateOpts,
     type IStartClientOpts,
     type IStoredClientOpts,
-} from "./client-config-types.ts";
+} from "./client-config-types";
 import {
     acceptDeviceSigningVerificationRequest,
     buildCreateFilterPath,
@@ -380,12 +380,12 @@ import {
     uploadKeySignaturesHttpRequest,
     uploadKeysHttpRequest,
     verifySecureBackupPassphraseRequest,
-} from "./client-request-delegates.ts";
-import { createFileTreeSpaceRequest, getFileTreeSpaceReference, setGuestAccessRequest } from "./client-room-access.ts";
-import { beginRoomPeek, endRoomPeek } from "./client-room-peek.ts";
-import { getUrlPreviewRequest } from "./client-url-preview.ts";
-import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "./client-push-rules.ts";
-import { EventManager } from "./event/EventManager.ts";
+} from "./client-request-delegates";
+import { createFileTreeSpaceRequest, getFileTreeSpaceReference, setGuestAccessRequest } from "./client-room-access";
+import { beginRoomPeek, endRoomPeek } from "./client-room-peek";
+import { getUrlPreviewRequest } from "./client-url-preview";
+import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "./client-push-rules";
+import { EventManager } from "./event/EventManager";
 
 export type {
     IClientWellKnown,
@@ -445,15 +445,15 @@ export type {
     IUploadKeysRequest,
     Keys,
     SigningKeys,
-} from "./client-api-types.ts";
-export { PendingEventOrdering } from "./client-config-types.ts";
+} from "./client-api-types";
+export { PendingEventOrdering } from "./client-config-types";
 export type {
     ICreateClientOpts,
     IKeysUploadResponse,
     IMatrixClientCreateOpts,
     IStartClientOpts,
     IStoredClientOpts,
-} from "./client-config-types.ts";
+} from "./client-config-types";
 
 export type Store = IStore;
 
@@ -1629,7 +1629,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         // importing rust-crypto will download the webassembly, so we delay it until we know it will be
         // needed.
         this.logger.debug("Downloading Rust crypto library");
-        const RustCrypto = await import("./rust-crypto/index.ts");
+        const RustCrypto = await import("./rust-crypto/index");
 
         const rustCrypto = await RustCrypto.initRustCrypto({
             logger: this.logger,

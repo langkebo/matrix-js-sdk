@@ -32,16 +32,16 @@ import {
     UnstableApiVersion,
 } from "matrix-widget-api";
 
-import { MatrixEvent, type IEvent, type IContent, EventStatus } from "./models/event.ts";
+import { MatrixEvent, type IEvent, type IContent, EventStatus } from "./models/event";
 import {
     type ISendEventResponse,
     type SendDelayedEventRequestOpts,
     type SendDelayedEventResponse,
     UpdateDelayedEventAction,
     isSendDelayedEventRequestOpts,
-} from "./@types/requests.ts";
-import { EventType, type StateEvents } from "./@types/event.ts";
-import { logger } from "./logger.ts";
+} from "./@types/requests";
+import { EventType, type StateEvents } from "./@types/event";
+import { logger } from "./logger";
 import {
     MatrixClient,
     ClientEvent,
@@ -50,15 +50,15 @@ import {
     type SendToDeviceContentMap,
     type IOpenIDToken,
     UNSTABLE_MSC4140_DELAYED_EVENTS,
-} from "./client.ts";
-import { SyncApi, SyncState } from "./sync.ts";
-import { SlidingSyncSdk } from "./sliding-sync-sdk.ts";
-import { ConnectionError, MatrixError } from "./http-api/errors.ts";
-import { User } from "./models/user.ts";
-import { type Room } from "./models/room.ts";
-import { type ToDeviceBatch, type ToDevicePayload } from "./models/ToDeviceMessage.ts";
-import { MapWithDefault, type QueryDict, recursiveMapToObject } from "./utils.ts";
-import { type EmptyObject, TypedEventEmitter, UnsupportedDelayedEventsEndpointError } from "./matrix.ts";
+} from "./client";
+import { SyncApi, SyncState } from "./sync";
+import { SlidingSyncSdk } from "./sliding-sync-sdk";
+import { ConnectionError, MatrixError } from "./http-api/errors";
+import { User } from "./models/user";
+import { type Room } from "./models/room";
+import { type ToDeviceBatch, type ToDevicePayload } from "./models/ToDeviceMessage";
+import { MapWithDefault, type QueryDict, recursiveMapToObject } from "./utils";
+import { type EmptyObject, TypedEventEmitter, UnsupportedDelayedEventsEndpointError } from "./matrix";
 
 interface IStateEventRequest {
     eventType: string;

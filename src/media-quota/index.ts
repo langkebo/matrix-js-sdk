@@ -23,8 +23,8 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { Method } from "../http-api/method.ts";
-import { MediaPrefix } from "../http-api/prefix.ts";
+import { Method } from "../http-api/method";
+import { MediaPrefix } from "../http-api/prefix";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
 import { logger } from "../logger";

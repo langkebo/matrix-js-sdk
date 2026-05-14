@@ -1,7 +1,7 @@
-import { MediaPrefix, Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import { InflightRequestCache } from "./utils/inflight-request-cache.ts";
-import type { QueryDict } from "./utils.ts";
+import { MediaPrefix, Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import { InflightRequestCache } from "./utils/inflight-request-cache";
+import type { QueryDict } from "./utils";
 
 type AuthedRequestFn = <T>(
     method: Method,

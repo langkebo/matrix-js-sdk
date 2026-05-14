@@ -21,14 +21,14 @@ limitations under the License.
  * 粘性事件是一种在房间中持久显示的事件，如公告、置顶消息等
  */
 
-import { logger } from "../logger.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { logger } from "../logger";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { type IContent, MatrixEvent } from "../models/event.ts";
-import { EventType } from "../@types/event.ts";
+import { type IContent, MatrixEvent } from "../models/event";
+import { EventType } from "../@types/event";
 import { BaseManager } from "../managers/base-manager";
-import { LRUCache } from "../utils/lru-cache.ts";
+import { LRUCache } from "../utils/lru-cache";
 import { InvalidParamError } from "../common/errors";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 

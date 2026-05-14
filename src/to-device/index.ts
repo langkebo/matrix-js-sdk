@@ -25,12 +25,12 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, ApiError, SdkError } from "../errors.ts";
-import { logger } from "../logger.ts";
-import { BaseManager } from "../managers/base-manager.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { MatrixError } from "../http-api/errors";
+import { AuthError, ApiError, SdkError } from "../errors";
+import { logger } from "../logger";
+import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ToDeviceMessage {

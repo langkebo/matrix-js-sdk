@@ -16,15 +16,15 @@ limitations under the License.
 
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { encodeUri } from "../utils.ts";
-import { type IHttpOpts, type MatrixError, type MatrixHttpApi, Method } from "../http-api/index.ts";
-import { type IToDeviceEvent } from "../sync-accumulator.ts";
-import { type ServerSideSecretStorage } from "../secret-storage.ts";
-import { decodeBase64 } from "../base64.ts";
-import { type Logger } from "../logger.ts";
-import { CryptoEvent, type CryptoEventHandlerMap, type StartDehydrationOpts } from "../crypto-api/index.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { encodeUri } from "../utils";
+import { type IHttpOpts, type MatrixError, type MatrixHttpApi, Method } from "../http-api/index";
+import { type IToDeviceEvent } from "../sync-accumulator";
+import { type ServerSideSecretStorage } from "../secret-storage";
+import { decodeBase64 } from "../base64";
+import { type Logger } from "../logger";
+import { CryptoEvent, type CryptoEventHandlerMap, type StartDehydrationOpts } from "../crypto-api/index";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
 
 /**
  * The response body of `GET /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device`.

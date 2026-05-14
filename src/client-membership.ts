@@ -1,12 +1,12 @@
-import * as utils from "./utils.ts";
-import { MatrixError } from "./http-api/index.ts";
-import { Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import type { InviteOpts } from "./@types/requests.ts";
-import type { Membership } from "./@types/membership.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { Room } from "./models/room.ts";
-import type { QueryDict } from "./utils.ts";
+import * as utils from "./utils";
+import { MatrixError } from "./http-api/index";
+import { Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import type { InviteOpts } from "./@types/requests";
+import type { Membership } from "./@types/membership";
+import type { EmptyObject } from "./@types/common";
+import type { Room } from "./models/room";
+import type { QueryDict } from "./utils";
 
 export function normalizeInviteOptions(opts: InviteOpts | string): InviteOpts {
     if (typeof opts === "object") {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MsgType } from "../@types/event.ts";
+import { type MsgType } from "../@types/event";
 
 /**
  * Information on encrypted media attachments.

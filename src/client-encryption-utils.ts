@@ -20,12 +20,12 @@ limitations under the License.
  * 从 client.ts 提取的加密相关私有方法
  */
 
-import type { MatrixClient } from "./client.ts";
-import type { Room } from "./models/room.ts";
-import type { MatrixEvent } from "./models/event.ts";
-import type { CryptoBackend } from "./common-crypto/CryptoBackend.ts";
-import { EventType } from "./@types/event.ts";
-import { EventStatus } from "./models/event-status.ts";
+import type { MatrixClient } from "./client";
+import type { Room } from "./models/room";
+import type { MatrixEvent } from "./models/event";
+import type { CryptoBackend } from "./common-crypto/CryptoBackend";
+import { EventType } from "./@types/event";
+import { EventStatus } from "./models/event-status";
 
 const STATE_EVENT_TYPES_EXCLUDED_FROM_ENCRYPTION = [
     "m.room.create",

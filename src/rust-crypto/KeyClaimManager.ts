@@ -16,8 +16,8 @@ limitations under the License.
 
 import { type OlmMachine, type UserId } from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { type LogSpan } from "../logger.ts";
+import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { type LogSpan } from "../logger";
 
 /**
  * KeyClaimManager: linearises calls to OlmMachine.getMissingSessions to avoid races

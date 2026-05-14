@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export * from "./CallMembership.ts";
-export * from "./LivekitTransport.ts";
-export * from "./MatrixRTCSession.ts";
-export * from "./MatrixRTCSessionManager.ts";
-export type * from "./types.ts";
-export { Status, parseCallNotificationContent, isMyMembership } from "./types.ts";
-export { MembershipManagerEvent } from "./IMembershipManager.ts";
+export * from "./CallMembership";
+export * from "./LivekitTransport";
+export * from "./MatrixRTCSession";
+export * from "./MatrixRTCSessionManager";
+export type * from "./types";
+export { Status, parseCallNotificationContent, isMyMembership } from "./types";
+export { MembershipManagerEvent } from "./IMembershipManager";

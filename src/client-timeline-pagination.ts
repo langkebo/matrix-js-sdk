@@ -1,22 +1,22 @@
-import type { INotificationsResponse, IPaginateOpts, IRelationsResponse } from "./@types/requests.ts";
-import type { IMessagesResponse } from "./client-internal-types.ts";
-import { noUnsafeEventProps } from "./utils.ts";
-import { Direction, EventTimeline } from "./models/event-timeline.ts";
-import type { EventTimelineSet } from "./models/event-timeline-set.ts";
-import type { IEvent, MatrixEvent } from "./models/event.ts";
-import { type EventMapper } from "./event-mapper.ts";
-import type { Room } from "./models/room.ts";
-import { type Filter } from "./filter.ts";
-import { getRelationsThreadFilter } from "./thread-utils.ts";
-import { Thread } from "./models/thread.ts";
-import { type ThreadFilterType } from "./models/thread.ts";
-import { ReceiptType } from "./@types/read_receipts.ts";
+import type { INotificationsResponse, IPaginateOpts, IRelationsResponse } from "./@types/requests";
+import type { IMessagesResponse } from "./client-internal-types";
+import { noUnsafeEventProps } from "./utils";
+import { Direction, EventTimeline } from "./models/event-timeline";
+import type { EventTimelineSet } from "./models/event-timeline-set";
+import type { IEvent, MatrixEvent } from "./models/event";
+import { type EventMapper } from "./event-mapper";
+import type { Room } from "./models/room";
+import { type Filter } from "./filter";
+import { getRelationsThreadFilter } from "./thread-utils";
+import { Thread } from "./models/thread";
+import { type ThreadFilterType } from "./models/thread";
+import { ReceiptType } from "./@types/read_receipts";
 import {
     paginateNotificationsWithRequest,
     paginateTimelineWithRequest,
     stopBackPaginationIfNeeded,
     trackPaginationRequest,
-} from "./client-timeline-core.ts";
+} from "./client-timeline-core";
 
 interface PaginationDeps {
     notifTimelineSet: EventTimelineSet | null;

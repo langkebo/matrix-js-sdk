@@ -28,13 +28,13 @@ limitations under the License.
  * - 监控指标: 请求统计和性能监控
  */
 
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { LRUCache } from "../utils/lru-cache.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { SdkError, ValidationError } from "../errors.ts";
-import type { EphemeralPathPattern } from "./__generated__/route-table.ts";
+import { LRUCache } from "../utils/lru-cache";
+import { BaseManager } from "../managers/base-manager";
+import { SdkError, ValidationError } from "../errors";
+import type { EphemeralPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;

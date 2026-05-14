@@ -39,14 +39,14 @@ limitations under the License.
  * - 客户端定时器: 本地 setTimeout 作为第三重保障，到期后发送 redact 请求
  */
 
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client.ts";
-import { BaseManager, type RequestStats } from "../managers/base-manager.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
-import { NotFoundError, ValidationError, SdkError } from "../errors.ts";
-import { logger } from "../logger.ts";
-import type { BurnAfterReadPathPattern } from "./__generated__/route-table.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { MatrixClient } from "../client";
+import { BaseManager, type RequestStats } from "../managers/base-manager";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { NotFoundError, ValidationError, SdkError } from "../errors";
+import { logger } from "../logger";
+import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
 
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 

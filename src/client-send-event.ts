@@ -5,9 +5,9 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import type { IContent, IEvent, MatrixEvent } from "./models/event.ts";
-import { applyThreadRelationIfNeeded } from "./client-thread-relations.ts";
-import { normalizeSendEventArgs } from "./client-send-args.ts";
+import type { IContent, IEvent, MatrixEvent } from "./models/event";
+import { applyThreadRelationIfNeeded } from "./client-thread-relations";
+import { normalizeSendEventArgs } from "./client-send-args";
 
 interface ThreadLike {
     lastReply: (predicate: (event: MatrixEvent) => boolean) => MatrixEvent | null | undefined;

@@ -24,13 +24,13 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { SdkError, ValidationError } from "../errors.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { SdkError, ValidationError } from "../errors";
+import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
-import type { KeyBackupPathPattern } from "./__generated__/route-table.ts";
-import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
+import type { KeyBackupPathPattern } from "./__generated__/route-table";
+import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */

@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type IMarkerFoundOptions, RoomState } from "./room-state.ts";
-import { type EventTimelineSet } from "./event-timeline-set.ts";
-import { type MatrixEvent } from "./event.ts";
-import { type Filter } from "../filter.ts";
-import { EventType } from "../@types/event.ts";
+import { type IMarkerFoundOptions, RoomState } from "./room-state";
+import { type EventTimelineSet } from "./event-timeline-set";
+import { type MatrixEvent } from "./event";
+import { type Filter } from "../filter";
+import { EventType } from "../@types/event";
 
 export interface IInitialiseStateOptions extends Pick<IMarkerFoundOptions, "timelineWasEmpty"> {
     // This is a separate interface without any extra stuff currently added on

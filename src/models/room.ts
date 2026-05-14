@@ -19,23 +19,23 @@ import {
     EventTimelineSet,
     type EventTimelineSetHandlerMap,
     type IAddLiveEventOptions,
-} from "./event-timeline-set.ts";
-import { Direction, EventTimeline } from "./event-timeline.ts";
-import { getHttpUriForMxc } from "../content-repo.ts";
-import * as utils from "../utils.ts";
-import { normalize, noUnsafeEventProps, removeElement } from "../utils.ts";
+} from "./event-timeline-set";
+import { Direction, EventTimeline } from "./event-timeline";
+import { getHttpUriForMxc } from "../content-repo";
+import * as utils from "../utils";
+import { normalize, noUnsafeEventProps, removeElement } from "../utils";
 import {
     type IEvent,
     type IThreadBundledRelationship,
     MatrixEvent,
     MatrixEventEvent,
     type MatrixEventHandlerMap,
-} from "./event.ts";
-import { EventStatus } from "./event-status.ts";
-import { RoomMember } from "./room-member.ts";
-import { type Hero, type IRoomSummary, RoomSummary } from "./room-summary.ts";
-import { logger } from "../logger.ts";
-import { TypedReEmitter } from "../ReEmitter.ts";
+} from "./event";
+import { EventStatus } from "./event-status";
+import { RoomMember } from "./room-member";
+import { type Hero, type IRoomSummary, RoomSummary } from "./room-summary";
+import { logger } from "../logger";
+import { TypedReEmitter } from "../ReEmitter";
 import {
     EVENT_VISIBILITY_CHANGE_TYPE,
     EventType,
@@ -44,11 +44,11 @@ import {
     RoomType,
     UNSIGNED_THREAD_ID_FIELD,
     UNSTABLE_ELEMENT_FUNCTIONAL_USERS,
-} from "../@types/event.ts";
-import { type MatrixClient, PendingEventOrdering } from "../client.ts";
-import { type GuestAccess, type HistoryVisibility, type JoinRule, type ResizeMethod } from "../@types/partials.ts";
-import { Filter, type IFilterDefinition } from "../filter.ts";
-import { type RoomState, RoomStateEvent, type RoomStateEventHandlerMap } from "./room-state.ts";
+} from "../@types/event";
+import { type MatrixClient, PendingEventOrdering } from "../client";
+import { type GuestAccess, type HistoryVisibility, type JoinRule, type ResizeMethod } from "../@types/partials";
+import { Filter, type IFilterDefinition } from "../filter";
+import { type RoomState, RoomStateEvent, type RoomStateEventHandlerMap } from "./room-state";
 import {
     FILTER_RELATED_BY_REL_TYPES,
     FILTER_RELATED_BY_SENDERS,
@@ -57,23 +57,23 @@ import {
     ThreadEvent,
     type ThreadEventHandlerMap as ThreadHandlerMap,
     ThreadFilterType,
-} from "./thread.ts";
+} from "./thread";
 import {
     type CachedReceiptStructure,
     MAIN_ROOM_TIMELINE,
     type Receipt,
     type ReceiptContent,
     ReceiptType,
-} from "../@types/read_receipts.ts";
-import { type IStateEventWithRoomId } from "../@types/search.ts";
-import { RelationsContainer } from "./relations-container.ts";
-import { ReadReceipt, synthesizeReceipt } from "./read-receipt.ts";
-import { RoomReceipts } from "./room-receipts.ts";
-import { compareEventOrdering } from "./compare-event-ordering.ts";
-import { KnownMembership, type Membership } from "../@types/membership.ts";
-import { type Capabilities, type IRoomVersionsCapability, RoomVersionStability } from "../serverCapabilities.ts";
-import { type MSC4186Hero } from "../sliding-sync.ts";
-import { RoomStickyEventsStore, RoomStickyEventsEvent, type RoomStickyEventsMap } from "./room-sticky-events.ts";
+} from "../@types/read_receipts";
+import { type IStateEventWithRoomId } from "../@types/search";
+import { RelationsContainer } from "./relations-container";
+import { ReadReceipt, synthesizeReceipt } from "./read-receipt";
+import { RoomReceipts } from "./room-receipts";
+import { compareEventOrdering } from "./compare-event-ordering";
+import { KnownMembership, type Membership } from "../@types/membership";
+import { type Capabilities, type IRoomVersionsCapability, RoomVersionStability } from "../serverCapabilities";
+import { type MSC4186Hero } from "../sliding-sync";
+import { RoomStickyEventsStore, RoomStickyEventsEvent, type RoomStickyEventsMap } from "./room-sticky-events";
 
 // These constants are used as sane defaults when the homeserver doesn't support
 // the m.room_versions capability. In practice, KNOWN_SAFE_ROOM_VERSION should be
@@ -978,7 +978,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         eventId: string,
         relationType: string,
         eventType: string,
-    ): import("./relations.ts").Relations | undefined {
+    ): import("./relations").Relations | undefined {
         return this.relations.getChildEventsForEvent(eventId, relationType, eventType);
     }
 

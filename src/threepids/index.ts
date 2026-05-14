@@ -20,12 +20,12 @@ limitations under the License.
  * 提供三方身份（邮箱、手机号）的绑定、解绑、查询功能
  */
 
-import { MatrixClient } from "../client.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
-import type { IThreepid } from "../@types/threepids.ts";
-import type { IdServerUnbindResult } from "../@types/partials.ts";
-import type { EmptyObject } from "../@types/common.ts";
+import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import type { IThreepid } from "../@types/threepids";
+import type { IdServerUnbindResult } from "../@types/partials";
+import type { EmptyObject } from "../@types/common";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type ThreePidsManagerEvents = Record<

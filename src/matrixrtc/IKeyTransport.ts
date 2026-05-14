@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type CallMembershipIdentityParts } from "./EncryptionManager.ts";
-import { type ParticipantDeviceInfo } from "./types.ts";
+import { type CallMembershipIdentityParts } from "./EncryptionManager";
+import { type ParticipantDeviceInfo } from "./types";
 
 export enum KeyTransportEvents {
     ReceivedKeys = "received_keys",

@@ -16,10 +16,10 @@ limitations under the License.
 
 import { type IdTokenClaims, OidcClient, WebStorageStateStore, ErrorResponse } from "oidc-client-ts";
 
-import { type AccessTokens, TokenRefreshLogoutError } from "../http-api/index.ts";
-import { generateScope } from "./authorize.ts";
-import { discoverAndValidateOIDCIssuerWellKnown } from "./discovery.ts";
-import { logger } from "../logger.ts";
+import { type AccessTokens, TokenRefreshLogoutError } from "../http-api/index";
+import { generateScope } from "./authorize";
+import { discoverAndValidateOIDCIssuerWellKnown } from "./discovery";
+import { logger } from "../logger";
 
 /**
  * @experimental

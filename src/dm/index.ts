@@ -24,22 +24,22 @@ limitations under the License.
  * 错误位置: room.getAccountData(EventType.Direct)
  */
 
-import { InvalidParamError } from "../common/errors.ts";
-import { logger } from "../logger.ts";
-import { NotificationCountType } from "../models/room.ts";
-import { EventType } from "../@types/event.ts";
-import type { RoomMessageEventContent } from "../@types/events.ts";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
+import { NotificationCountType } from "../models/room";
+import { EventType } from "../@types/event";
+import type { RoomMessageEventContent } from "../@types/events";
 import { MatrixClient } from "../client";
-import type { Room } from "../models/room.ts";
-import type { RoomMember } from "../models/room-member.ts";
-import type { MatrixEvent } from "../models/event.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import { MatrixError } from "../http-api/errors.ts";
-import { NotFoundError } from "../errors.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import type { Room } from "../models/room";
+import type { RoomMember } from "../models/room-member";
+import type { MatrixEvent } from "../models/event";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { BaseManager } from "../managers/base-manager";
+import { LRUCache } from "../utils/lru-cache";
+import { MatrixError } from "../http-api/errors";
+import { NotFoundError } from "../errors";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 import { AdminValidators } from "../admin/validators";
 
 export enum DMEvent {

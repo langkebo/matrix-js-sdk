@@ -1,7 +1,7 @@
-import { encodeUnpaddedBase64Url } from "./base64.ts";
-import { sha256 } from "./digest.ts";
-import { IdentityPrefix, Method } from "./http-api/index.ts";
-import type { EmptyObject } from "./@types/common.ts";
+import { encodeUnpaddedBase64Url } from "./base64";
+import { sha256 } from "./digest";
+import { IdentityPrefix, Method } from "./http-api/index";
+import type { EmptyObject } from "./@types/common";
 
 export interface IdentityHashDetails {
     algorithms: string[];

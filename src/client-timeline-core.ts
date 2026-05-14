@@ -1,7 +1,7 @@
-import type { IContextResponse, INotificationsResponse } from "./@types/requests.ts";
-import type { IMessagesResponse } from "./client-internal-types.ts";
-import { Direction } from "./models/event-timeline.ts";
-import type { IEvent, MatrixEvent } from "./models/event.ts";
+import type { IContextResponse, INotificationsResponse } from "./@types/requests";
+import type { IMessagesResponse } from "./client-internal-types";
+import { Direction } from "./models/event-timeline";
+import type { IEvent, MatrixEvent } from "./models/event";
 
 export type NormalizedContextResponse = IContextResponse & Omit<Required<IContextResponse>, "start" | "end">;
 

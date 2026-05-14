@@ -1,14 +1,14 @@
-import { Filter } from "./filter.ts";
-import type { IIdentityServerProvider } from "./@types/IIdentityServerProvider.ts";
-import type { MatrixScheduler } from "./scheduler.ts";
-import type { QueryDict } from "./utils.ts";
-import type { TokenRefreshFunction } from "./http-api/index.ts";
-import type { CryptoStore } from "./crypto/store/base.ts";
-import type { CryptoCallbacks } from "./crypto-api/index.ts";
-import type { RoomNameState } from "./models/room.ts";
-import type { Logger } from "./logger.ts";
-import type { SlidingSync } from "./sliding-sync.ts";
-import type { IStore } from "./store/index.ts";
+import { Filter } from "./filter";
+import type { IIdentityServerProvider } from "./@types/IIdentityServerProvider";
+import type { MatrixScheduler } from "./scheduler";
+import type { QueryDict } from "./utils";
+import type { TokenRefreshFunction } from "./http-api/index";
+import type { CryptoStore } from "./crypto/store/base";
+import type { CryptoCallbacks } from "./crypto-api/index";
+import type { RoomNameState } from "./models/room";
+import type { Logger } from "./logger";
+import type { SlidingSync } from "./sliding-sync";
+import type { IStore } from "./store/index";
 
 export interface IKeysUploadResponse {
     one_time_key_counts: {

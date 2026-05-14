@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixClient } from "../client.ts";
-import { EventTimelineSet } from "../models/event-timeline-set.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { type LocalNotificationSettings } from "../@types/local_notifications.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { AdminValidators } from "../admin/validators.ts";
-import type { PushPathPattern } from "../push/__generated__/route-table.ts";
+import { MatrixClient } from "../client";
+import { EventTimelineSet } from "../models/event-timeline-set";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { type LocalNotificationSettings } from "../@types/local_notifications";
+import { BaseManager } from "../managers/base-manager";
+import { AdminValidators } from "../admin/validators";
+import type { PushPathPattern } from "../push/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 

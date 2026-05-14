@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export * from "./MSC4108SignInWithQR.ts";
-export type * from "./RendezvousChannel.ts";
-export type * from "./RendezvousCode.ts";
-export * from "./RendezvousError.ts";
-export * from "./RendezvousFailureReason.ts";
-export * from "./RendezvousIntent.ts";
-export type * from "./RendezvousTransport.ts";
-export * from "./transports/index.ts";
+export * from "./MSC4108SignInWithQR";
+export type * from "./RendezvousChannel";
+export type * from "./RendezvousCode";
+export * from "./RendezvousError";
+export * from "./RendezvousFailureReason";
+export * from "./RendezvousIntent";
+export type * from "./RendezvousTransport";
+export * from "./transports/index";
 
-export * from "./RendezvousManager.ts";
-export { extendMatrixClient } from "./RendezvousManager.ts";
-export * from "./channels/index.ts";
+export * from "./RendezvousManager";
+export { extendMatrixClient } from "./RendezvousManager";
+export * from "./channels/index";

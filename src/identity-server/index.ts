@@ -20,9 +20,9 @@ limitations under the License.
  * 提供身份服务器相关功能
  */
 
-import { MatrixClient } from "../client.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import * as utils from "../utils.ts";
+import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
+import * as utils from "../utils";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type IdentityServerManagerEvents = Record<"identity_server_url_changed", (url: string | undefined) => void>;

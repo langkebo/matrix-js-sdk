@@ -1,5 +1,5 @@
-import { EventType, RelationType } from "./@types/event.ts";
-import type { MatrixEvent } from "./models/event.ts";
+import { EventType, RelationType } from "./@types/event";
+import type { MatrixEvent } from "./models/event";
 
 export interface ProcessRelationEventsParams {
     events: MatrixEvent[];

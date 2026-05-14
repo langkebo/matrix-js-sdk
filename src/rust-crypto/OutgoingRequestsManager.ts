@@ -16,9 +16,9 @@ limitations under the License.
 
 import { type OlmMachine, type OutgoingRequest } from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { type Logger } from "../logger.ts";
-import { logDuration } from "../utils.ts";
+import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { type Logger } from "../logger";
+import { logDuration } from "../utils";
 
 /**
  * OutgoingRequestsManager: responsible for processing outgoing requests from the OlmMachine.

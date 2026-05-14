@@ -1,5 +1,5 @@
-import { EventType } from "./@types/event.ts";
-import { type Room } from "./models/room.ts";
+import { EventType } from "./@types/event";
+import { type Room } from "./models/room";
 
 type RoomLookup = (roomId: string | undefined) => Room | null;
 

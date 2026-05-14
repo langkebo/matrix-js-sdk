@@ -14,20 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { ConnectionStats } from "./connectionStats.ts";
-import { type StatsReportEmitter } from "./statsReportEmitter.ts";
-import { type ByteSend, type ByteSentStatsReport, type TrackID } from "./statsReport.ts";
-import { ConnectionStatsBuilder } from "./connectionStatsBuilder.ts";
-import { TransportStatsBuilder } from "./transportStatsBuilder.ts";
-import { MediaSsrcHandler } from "./media/mediaSsrcHandler.ts";
-import { MediaTrackHandler } from "./media/mediaTrackHandler.ts";
-import { MediaTrackStatsHandler } from "./media/mediaTrackStatsHandler.ts";
-import { TrackStatsBuilder } from "./trackStatsBuilder.ts";
-import { ConnectionStatsReportBuilder } from "./connectionStatsReportBuilder.ts";
-import { ValueFormatter } from "./valueFormatter.ts";
-import { type CallStatsReportSummary } from "./callStatsReportSummary.ts";
-import { logger } from "../../logger.ts";
-import { CallFeedStatsReporter } from "./callFeedStatsReporter.ts";
+import { ConnectionStats } from "./connectionStats";
+import { type StatsReportEmitter } from "./statsReportEmitter";
+import { type ByteSend, type ByteSentStatsReport, type TrackID } from "./statsReport";
+import { ConnectionStatsBuilder } from "./connectionStatsBuilder";
+import { TransportStatsBuilder } from "./transportStatsBuilder";
+import { MediaSsrcHandler } from "./media/mediaSsrcHandler";
+import { MediaTrackHandler } from "./media/mediaTrackHandler";
+import { MediaTrackStatsHandler } from "./media/mediaTrackStatsHandler";
+import { TrackStatsBuilder } from "./trackStatsBuilder";
+import { ConnectionStatsReportBuilder } from "./connectionStatsReportBuilder";
+import { ValueFormatter } from "./valueFormatter";
+import { type CallStatsReportSummary } from "./callStatsReportSummary";
+import { logger } from "../../logger";
+import { CallFeedStatsReporter } from "./callFeedStatsReporter";
 
 export class CallStatsReportGatherer {
     private isActive = true;

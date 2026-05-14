@@ -12,7 +12,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
-import type { CasPathPattern } from "./__generated__/route-table.ts";
+import type { CasPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
@@ -85,7 +85,7 @@ export class CasManager extends BaseManager {
         this.requireNonEmptyString(request.service_id, "service_id");
         this.requireNonEmptyString(request.name, "name");
         this.requireNonEmptyString(request.service_url_pattern, "service_url_pattern");
-        try {
+        return await this.withRetry(async () => {
             return await this.client.http.authedRequest<CasService>(
                 Method.Post,
                 cp("/cas/services"),
@@ -93,9 +93,7 @@ export class CasManager extends BaseManager {
                 request,
                 { prefix: AdminPrefix.V1 },
             );
-        } catch (e) {
-            throw this.normalizeError(e, "registerService");
-        }
+        }, "registerService");
     }
 
     public async listServices(): Promise<CasService[]> {
@@ -116,7 +114,7 @@ export class CasManager extends BaseManager {
 
     public async deleteService(serviceId: string): Promise<void> {
         this.requireNonEmptyString(serviceId, "serviceId");
-        try {
+        return await this.withRetry(async () => {
             await this.client.http.authedRequest<void>(
                 Method.Delete,
                 cp(`/cas/services/${encodeURIComponent(serviceId)}` as StripAdminV1<CasPathPattern>),
@@ -124,15 +122,13 @@ export class CasManager extends BaseManager {
                 undefined,
                 { prefix: AdminPrefix.V1 },
             );
-        } catch (e) {
-            throw this.normalizeError(e, "deleteService");
-        }
+        }, "deleteService");
     }
 
     public async setUserAttribute(userId: string, request: SetCasAttributeRequest): Promise<SetCasAttributeResponse> {
         this.requireNonEmptyString(userId, "userId");
         this.requireNonEmptyString(request.attribute_name, "attribute_name");
-        try {
+        return await this.withRetry(async () => {
             return await this.client.http.authedRequest<SetCasAttributeResponse>(
                 Method.Post,
                 cp(`/cas/users/${encodeURIComponent(userId)}/attributes` as StripAdminV1<CasPathPattern>),
@@ -140,9 +136,7 @@ export class CasManager extends BaseManager {
                 request,
                 { prefix: AdminPrefix.V1 },
             );
-        } catch (e) {
-            throw this.normalizeError(e, "setUserAttribute");
-        }
+        }, "setUserAttribute");
     }
 
     public async getUserAttributes(userId: string): Promise<CasUserAttribute[]> {

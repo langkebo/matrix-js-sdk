@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixClient } from "../client.ts";
-import { RoomManager } from "./RoomManager.ts";
+import { MatrixClient } from "../client";
+import { RoomManager } from "./RoomManager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
-export * from "./RoomManager.ts";
+export * from "./RoomManager";
 
 declare module "../client.ts" {
     interface MatrixClient {

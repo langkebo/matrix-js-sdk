@@ -25,11 +25,11 @@ limitations under the License.
  * - POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 设置邀请白名单
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { InvalidParamError } from "../common/errors.ts";
-import { logger } from "../logger.ts";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 

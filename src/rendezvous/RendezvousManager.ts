@@ -29,14 +29,13 @@ limitations under the License.
  * - GET /_matrix/client/v1/rendezvous/{session_id}/messages - 获取消息
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/method.ts";
-import { Body, type IRequestOpts } from "../http-api/interface.ts";
-import { MatrixError } from "../http-api/errors.ts";
-import { AuthError, NotFoundError, ApiError, SdkError } from "../errors.ts";
-import { logger } from "../logger.ts";
-import type { RendezvousPathPattern } from "./__generated__/route-table.ts";
+import { Method } from "../http-api/method";
+import { Body, type IRequestOpts } from "../http-api/interface";
+import { NotFoundError } from "../errors";
+import { logger } from "../logger";
+import type { RendezvousPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 const RENDEZVOUS_PREFIX = "/_matrix/client/v1";
@@ -114,12 +113,9 @@ interface RendezvousManagerEventMap {
     [RendezvousEvent.MessageReceived]: (messages: RendezvousMessage[]) => void;
 }
 
-export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, RendezvousManagerEventMap> {
-    private client: MatrixClient;
-
+export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousManagerEventMap> {
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     private buildRequestOpts(sessionKey?: string): IRequestOpts {
@@ -128,33 +124,6 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
             prefix: RENDEZVOUS_PREFIX,
             headers,
         };
-    }
-
-    private normalizeError(error: unknown, method: string): SdkError {
-        const err = error as Error;
-        if (error instanceof MatrixError) {
-            if (error.httpStatus === 401 || error.errcode === "M_UNKNOWN_TOKEN") {
-                return new AuthError(`RendezvousManager.${method} failed: ${err?.message ?? "Unknown error"}`, error);
-            }
-            if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
-                return new NotFoundError(
-                    `RendezvousManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                    error,
-                );
-            }
-            return new ApiError(
-                `RendezvousManager.${method} failed: ${err?.message ?? "Unknown error"}`,
-                error.errcode ?? "UNKNOWN",
-                error.httpStatus ?? 0,
-                error,
-            );
-        }
-        return new ApiError(
-            `RendezvousManager.${method} failed: ${err?.message ?? String(error)}`,
-            "UNKNOWN",
-            0,
-            error,
-        );
     }
 
     private async rendezvousRequest<T>(
@@ -365,7 +334,7 @@ export class RendezvousManager extends TypedEventEmitter<RendezvousEvent, Rendez
                 }
             }
 
-            await new Promise((resolve) => setTimeout(resolve, interval));
+            await this.sleep(interval);
         }
 
         return allMessages;

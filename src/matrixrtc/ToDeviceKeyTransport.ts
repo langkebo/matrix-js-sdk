@@ -16,14 +16,14 @@ limitations under the License.
 
 import { type WidgetApiResponseError } from "matrix-widget-api";
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { type IKeyTransport, KeyTransportEvents, type KeyTransportEventsHandlerMap } from "./IKeyTransport.ts";
-import { type Logger, logger as rootLogger } from "../logger.ts";
-import { type EncryptionKeysToDeviceEventContent, type ParticipantDeviceInfo, type Statistics } from "./types.ts";
-import { ClientEvent, type MatrixClient } from "../client.ts";
-import type { MatrixEvent } from "../models/event.ts";
-import { EventType } from "../@types/event.ts";
-import { type CallMembershipIdentityParts } from "./EncryptionManager.ts";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { type IKeyTransport, KeyTransportEvents, type KeyTransportEventsHandlerMap } from "./IKeyTransport";
+import { type Logger, logger as rootLogger } from "../logger";
+import { type EncryptionKeysToDeviceEventContent, type ParticipantDeviceInfo, type Statistics } from "./types";
+import { ClientEvent, type MatrixClient } from "../client";
+import type { MatrixEvent } from "../models/event";
+import { EventType } from "../@types/event";
+import { type CallMembershipIdentityParts } from "./EncryptionManager";
 
 export class NotSupportedError extends Error {
     public constructor(message?: string) {

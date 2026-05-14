@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { LocalIndexedDBStoreBackend } from "./indexeddb-local-backend.ts";
-import { logger } from "../logger.ts";
-import { type ISyncResponse, type IStateEventWithRoomId } from "../matrix.ts";
-import { type UserTuple } from "./indexeddb-backend.ts";
-import { type IStoredClientOpts } from "../client.ts";
-import { type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage.ts";
+import { LocalIndexedDBStoreBackend } from "./indexeddb-local-backend";
+import { logger } from "../logger";
+import { type ISyncResponse, type IStateEventWithRoomId } from "../matrix";
+import { type UserTuple } from "./indexeddb-backend";
+import { type IStoredClientOpts } from "../client";
+import { type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
 
 interface ICmd {
     command: string;

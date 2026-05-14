@@ -1,7 +1,7 @@
-import { Filter } from "./filter.ts";
-import type { IRoomEventFilter } from "./filter.ts";
-import { Direction } from "./models/event-timeline.ts";
-import * as utils from "./utils.ts";
+import { Filter } from "./filter";
+import type { IRoomEventFilter } from "./filter";
+import { Direction } from "./models/event-timeline";
+import * as utils from "./utils";
 
 export function buildMessagesRequestPath(roomId: string): string {
     return utils.encodeUri("/rooms/$roomId/messages", { $roomId: roomId });

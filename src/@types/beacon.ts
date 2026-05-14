@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type RelatesToRelationship, type REFERENCE_RELATION } from "./extensible_events.ts";
-import { UnstableValue } from "../NamespacedValue.ts";
-import { type MAssetEvent, type MLocationEvent, type MTimestampEvent } from "./location.ts";
+import { type RelatesToRelationship, type REFERENCE_RELATION } from "./extensible_events";
+import { UnstableValue } from "../NamespacedValue";
+import { type MAssetEvent, type MLocationEvent, type MTimestampEvent } from "./location";
 
 /**
  * Beacon info and beacon event types as described in MSC3672

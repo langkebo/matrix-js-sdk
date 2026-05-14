@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MXID_PATTERN } from "../models/room-member.ts";
-import { deepCompare } from "../utils.ts";
-import { type LivekitFocusSelection } from "./LivekitTransport.ts";
-import { slotDescriptionToId, slotIdToDescription, type SlotDescription } from "./MatrixRTCSession.ts";
-import type { RTCCallIntent, Transport } from "./types.ts";
-import { type MatrixEvent, type IContent } from "../models/event.ts";
-import { type RelationType } from "../@types/event.ts";
-import { sha256 } from "../digest.ts";
-import { encodeUnpaddedBase64 } from "../base64.ts";
-import { type Logger } from "../logger.ts";
+import { MXID_PATTERN } from "../models/room-member";
+import { deepCompare } from "../utils";
+import { type LivekitFocusSelection } from "./LivekitTransport";
+import { slotDescriptionToId, slotIdToDescription, type SlotDescription } from "./MatrixRTCSession";
+import type { RTCCallIntent, Transport } from "./types";
+import { type MatrixEvent, type IContent } from "../models/event";
+import { type RelationType } from "../@types/event";
+import { sha256 } from "../digest";
+import { encodeUnpaddedBase64 } from "../base64";
+import { type Logger } from "../logger";
 
 /**
  * The default duration in milliseconds that a membership is considered valid for.

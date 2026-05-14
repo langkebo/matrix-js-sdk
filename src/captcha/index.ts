@@ -25,7 +25,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
-import type { CaptchaPathPattern } from "./__generated__/route-table.ts";
+import type { CaptchaPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;

@@ -34,7 +34,7 @@ import { BaseManager } from "../managers/base-manager.js";
 import { Method } from "../http-api/method.js";
 import { MatrixClient } from "../client.js";
 import { InvalidParamError } from "../common/errors";
-import type { AiConnectionPathPattern } from "./__generated__/route-table.ts";
+import type { AiConnectionPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 function ap<P extends AiConnectionPathPattern>(path: P): P {

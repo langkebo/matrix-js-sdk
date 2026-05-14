@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { decodeBase64 } from "../base64.ts";
-import { deriveKeys } from "./internal/deriveKeys.ts";
-import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload.ts";
+import { decodeBase64 } from "../base64";
+import { deriveKeys } from "./internal/deriveKeys";
+import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 
 /**
  * Decrypt an AES-encrypted Secret Storage item.

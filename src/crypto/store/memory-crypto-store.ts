@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { safeSet } from "../../utils.ts";
+import { safeSet } from "../../utils";
 import {
     type CryptoStore,
     type ISession,
@@ -27,8 +27,8 @@ import {
     SESSION_BATCH_SIZE,
     type InboundGroupSessionData,
     type IRoomEncryption,
-} from "./base.ts";
-import { type CrossSigningKeyInfo } from "../../crypto-api/index.ts";
+} from "./base";
+import { type CrossSigningKeyInfo } from "../../crypto-api/index";
 
 function encodeSessionKey(senderCurve25519Key: string, sessionId: string): string {
     return encodeURIComponent(senderCurve25519Key) + "/" + encodeURIComponent(sessionId);

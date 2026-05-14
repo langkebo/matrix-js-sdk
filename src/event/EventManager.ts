@@ -14,29 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type { MatrixClient } from "../client.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { type IRoomEventFilter } from "../filter.ts";
-import { InvalidParamError } from "../common/errors.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import * as utils from "../utils.ts";
-import { QueryDict } from "../utils.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import { prepareSendCompleteEventLifecycle } from "../client-send-lifecycle.ts";
-import { encryptAndSendEventWorkflow } from "../client-encrypt-send.ts";
+import type { MatrixClient } from "../client";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { type IRoomEventFilter } from "../filter";
+import { InvalidParamError } from "../common/errors";
+import { BaseManager } from "../managers/base-manager";
+import * as utils from "../utils";
+import { QueryDict } from "../utils";
+import { LRUCache } from "../utils/lru-cache";
+import { prepareSendCompleteEventLifecycle } from "../client-send-lifecycle";
+import { encryptAndSendEventWorkflow } from "../client-encrypt-send";
 import {
     type IContextResponse,
     ISendEventResponse,
     SendDelayedEventRequestOpts,
     SendDelayedEventResponse,
-} from "../@types/requests.ts";
-import { type IMessagesResponse, type IThreadedMessagesResponse } from "../client-internal-types.ts";
-import { EventStatus, type IEvent, type MatrixEvent } from "../models/event.ts";
-import { Room } from "../models/room.ts";
-import { Direction } from "../models/event-timeline.ts";
-import { type MatrixScheduler } from "../scheduler.ts";
-import { FeatureSupport, Thread, ThreadFilterType, threadFilterTypeToFilter } from "../models/thread.ts";
+} from "../@types/requests";
+import { type IMessagesResponse, type IThreadedMessagesResponse } from "../client-internal-types";
+import { EventStatus, type IEvent, type MatrixEvent } from "../models/event";
+import { Room } from "../models/room";
+import { Direction } from "../models/event-timeline";
+import { type MatrixScheduler } from "../scheduler";
+import { FeatureSupport, Thread, ThreadFilterType, threadFilterTypeToFilter } from "../models/thread";
 import {
     buildEventContextParams,
     buildEventContextPath,
@@ -44,8 +44,8 @@ import {
     buildMessagesRequestPath,
     buildThreadListRequestParams,
     buildThreadListRequestPath,
-} from "../client-timeline-requests.ts";
-import { normalizeEventContextResponse, type NormalizedContextResponse } from "../client-timeline-core.ts";
+} from "../client-timeline-requests";
+import { normalizeEventContextResponse, type NormalizedContextResponse } from "../client-timeline-core";
 
 export enum EventManagerEvent {
     EventSent = "EventSent",

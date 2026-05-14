@@ -24,9 +24,12 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { BaseManager } from "../managers/base-manager";
 
-export class GlobalLogoutManager {
-    constructor(private client: MatrixClient) {}
+export class GlobalLogoutManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * 登出所有设备

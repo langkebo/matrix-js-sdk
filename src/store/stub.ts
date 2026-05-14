@@ -18,17 +18,17 @@ limitations under the License.
  * This is an internal module.
  */
 
-import { type EventType } from "../@types/event.ts";
-import { type Room } from "../models/room.ts";
-import { type User } from "../models/user.ts";
-import { type IEvent, type MatrixEvent } from "../models/event.ts";
-import { type Filter } from "../filter.ts";
-import { type ISavedSync, type IStore, type UserCreator } from "./index.ts";
-import { type RoomSummary } from "../models/room-summary.ts";
-import { type ISyncResponse } from "../sync-accumulator.ts";
-import { type IStateEventWithRoomId } from "../@types/search.ts";
-import { type IndexedToDeviceBatch, type ToDeviceBatch } from "../models/ToDeviceMessage.ts";
-import { type IStoredClientOpts } from "../client.ts";
+import { type EventType } from "../@types/event";
+import { type Room } from "../models/room";
+import { type User } from "../models/user";
+import { type IEvent, type MatrixEvent } from "../models/event";
+import { type Filter } from "../filter";
+import { type ISavedSync, type IStore, type UserCreator } from "./index";
+import { type RoomSummary } from "../models/room-summary";
+import { type ISyncResponse } from "../sync-accumulator";
+import { type IStateEventWithRoomId } from "../@types/search";
+import { type IndexedToDeviceBatch, type ToDeviceBatch } from "../models/ToDeviceMessage";
+import { type IStoredClientOpts } from "../client";
 
 /**
  * Construct a stub store. This does no-ops on most store methods.

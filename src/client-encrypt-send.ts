@@ -10,13 +10,13 @@ import {
     type ISendEventResponse,
     type SendDelayedEventRequestOpts,
     type SendDelayedEventResponse,
-} from "./@types/requests.ts";
-import { EventStatus, type MatrixEvent } from "./models/event.ts";
-import { MatrixError } from "./http-api/index.ts";
-import type { Room } from "./models/room.ts";
-import type { MatrixScheduler } from "./scheduler.ts";
-import type { QueryDict } from "./utils.ts";
-import { queueOrSendEvent } from "./client-send-execution.ts";
+} from "./@types/requests";
+import { EventStatus, type MatrixEvent } from "./models/event";
+import { MatrixError } from "./http-api/index";
+import type { Room } from "./models/room";
+import type { MatrixScheduler } from "./scheduler";
+import type { QueryDict } from "./utils";
+import { queueOrSendEvent } from "./client-send-execution";
 
 interface LoggerLike {
     error(...args: unknown[]): void;

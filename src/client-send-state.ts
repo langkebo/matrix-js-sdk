@@ -5,14 +5,14 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import { Method } from "./http-api/method.ts";
-import { buildUnstableDelayQueryOpts } from "./client-internals.ts";
-import type { QueryDict } from "./utils.ts";
-import type { SendDelayedEventRequestOpts, SendDelayedEventResponse } from "./@types/requests.ts";
-import { buildStateEventPath } from "./client-batch-requests.ts";
+import type { Body, IRequestOpts } from "./http-api/index";
+import { Method } from "./http-api/method";
+import { buildUnstableDelayQueryOpts } from "./client-internals";
+import type { QueryDict } from "./utils";
+import type { SendDelayedEventRequestOpts, SendDelayedEventResponse } from "./@types/requests";
+import { buildStateEventPath } from "./client-batch-requests";
 
-export { buildStateEventPath } from "./client-batch-requests.ts";
+export { buildStateEventPath } from "./client-batch-requests";
 
 interface HttpLike {
     authedRequest<T>(

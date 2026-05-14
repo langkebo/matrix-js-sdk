@@ -1,6 +1,6 @@
-import { logger as loggerInstance } from "../logger.ts";
-import { type MatrixEvent } from "./event.ts";
-import { TypedEventEmitter } from "./typed-event-emitter.ts";
+import { logger as loggerInstance } from "../logger";
+import { type MatrixEvent } from "./event";
+import { TypedEventEmitter } from "./typed-event-emitter";
 
 const logger = loggerInstance.getChild("RoomStickyEvents");
 

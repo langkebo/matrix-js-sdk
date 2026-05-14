@@ -32,7 +32,7 @@ import { type EmptyObject } from "../@types/common";
 import { getHttpUriForMxc } from "../content-repo";
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
-import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+import type { AuthPathPattern } from "../auth/__generated__/route-table";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -48,7 +48,7 @@ function authPath<P extends AuthPathPattern>(path: P): P {
     return path;
 }
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import { LRUCache } from "../utils/lru-cache.ts";
+import { LRUCache } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
 

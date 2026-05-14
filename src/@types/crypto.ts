@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type { ISignatures } from "./signed.ts";
-import type { EventDecryptionResult } from "../common-crypto/CryptoBackend.ts";
+import type { ISignatures } from "./signed";
+import type { EventDecryptionResult } from "../common-crypto/CryptoBackend";
 
 // Backwards compatible re-export
 /** @deprecated This is an internal type and should not be used. */

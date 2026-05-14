@@ -1,6 +1,6 @@
-import { type MediaTrackStats } from "./media/mediaTrackStats.ts";
-import { ValueFormatter } from "./valueFormatter.ts";
-import { type TrackSummary } from "./callStatsReportSummary.ts";
+import { type MediaTrackStats } from "./media/mediaTrackStats";
+import { ValueFormatter } from "./valueFormatter";
+import { type TrackSummary } from "./callStatsReportSummary";
 
 interface RTCStatsBase {
     id?: string;

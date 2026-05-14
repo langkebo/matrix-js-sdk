@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixError, TokenRefreshLogoutError } from "./errors.ts";
-import { type IHttpOpts } from "./interface.ts";
-import { sleep } from "../utils.ts";
+import { MatrixError, TokenRefreshLogoutError } from "./errors";
+import { type IHttpOpts } from "./interface";
+import { sleep } from "../utils";
 
 /**
  * This is an internal module. See {@link MatrixHttpApi} for the public class.

@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type { MatrixClient } from "../client.ts";
-import { type EncryptionKeysEventContent, type ParticipantDeviceInfo, type Statistics } from "./types.ts";
-import { EventType } from "../@types/event.ts";
-import { type MatrixError } from "../http-api/errors.ts";
-import { logger as rootLogger, type Logger } from "../logger.ts";
-import { KeyTransportEvents, type KeyTransportEventsHandlerMap, type IKeyTransport } from "./IKeyTransport.ts";
-import { type MatrixEvent } from "../models/event.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { type Room, RoomEvent } from "../models/room.ts";
+import type { MatrixClient } from "../client";
+import { type EncryptionKeysEventContent, type ParticipantDeviceInfo, type Statistics } from "./types";
+import { EventType } from "../@types/event";
+import { type MatrixError } from "../http-api/errors";
+import { logger as rootLogger, type Logger } from "../logger";
+import { KeyTransportEvents, type KeyTransportEventsHandlerMap, type IKeyTransport } from "./IKeyTransport";
+import { type MatrixEvent } from "../models/event";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { type Room, RoomEvent } from "../models/room";
 
 /**
  * @deprecated This is depreacted and not used anymore. use the ToDeviceTransport

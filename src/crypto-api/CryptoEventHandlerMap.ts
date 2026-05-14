@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { type CryptoEvent } from "./CryptoEvent.ts";
-import { type VerificationRequest } from "./verification.ts";
-import { type UserVerificationStatus } from "./index.ts";
-import { type RustBackupCryptoEventMap } from "../rust-crypto/backup.ts";
-import { type EmptyObject } from "../@types/common.ts";
+import { type CryptoEvent } from "./CryptoEvent";
+import { type VerificationRequest } from "./verification";
+import { type UserVerificationStatus } from "./index";
+import { type RustBackupCryptoEventMap } from "../rust-crypto/backup";
+import { type EmptyObject } from "../@types/common";
 
 /**
  * A map of the {@link CryptoEvent} fired by the {@link CryptoApi} and their payloads.

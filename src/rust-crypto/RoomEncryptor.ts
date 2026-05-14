@@ -26,17 +26,17 @@ import {
     UserId,
 } from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { EventType } from "../@types/event.ts";
-import { type MatrixEvent, type IContent } from "../models/event.ts";
-import { type Room } from "../models/room.ts";
-import { type Logger, LogSpan } from "../logger.ts";
-import { type KeyClaimManager } from "./KeyClaimManager.ts";
-import { type RoomMember } from "../models/room-member.ts";
-import { HistoryVisibility } from "../@types/partials.ts";
-import { type OutgoingRequestsManager } from "./OutgoingRequestsManager.ts";
-import { logDuration } from "../utils.ts";
-import { KnownMembership } from "../@types/membership.ts";
-import { type DeviceIsolationMode, DeviceIsolationModeKind } from "../crypto-api/index.ts";
+import { EventType } from "../@types/event";
+import { type MatrixEvent, type IContent } from "../models/event";
+import { type Room } from "../models/room";
+import { type Logger, LogSpan } from "../logger";
+import { type KeyClaimManager } from "./KeyClaimManager";
+import { type RoomMember } from "../models/room-member";
+import { HistoryVisibility } from "../@types/partials";
+import { type OutgoingRequestsManager } from "./OutgoingRequestsManager";
+import { logDuration } from "../utils";
+import { KnownMembership } from "../@types/membership";
+import { type DeviceIsolationMode, DeviceIsolationModeKind } from "../crypto-api/index";
 
 /**
  * RoomEncryptor: responsible for encrypting messages to a given room

@@ -26,12 +26,12 @@ limitations under the License.
  */
 
 import { logger } from "../logger";
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
-import type { GuestPathPattern } from "./__generated__/route-table.ts";
+import type { GuestPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 

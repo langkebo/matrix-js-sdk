@@ -17,7 +17,7 @@ limitations under the License.
 // allow camelcase as these are things that go onto the wire
 /* eslint-disable camelcase */
 
-import { type IContent } from "../models/event.ts";
+import { type IContent } from "../models/event";
 
 export enum PushRuleActionName {
     DontNotify = "dont_notify",

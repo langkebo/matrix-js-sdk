@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixClient } from "../client.ts";
-import { EventManager } from "./EventManager.ts";
-import type { RetryOptions } from "../managers/base-manager.ts";
+import { MatrixClient } from "../client";
+import { EventManager } from "./EventManager";
+import type { RetryOptions } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
-export * from "./EventManager.ts";
+export * from "./EventManager";
 
 declare module "../client.ts" {
     interface MatrixClient {

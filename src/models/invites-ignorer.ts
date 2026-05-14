@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MatrixClient } from "../client.ts";
-import { type IContent, type MatrixEvent } from "./event.ts";
-import { EventTimeline } from "./event-timeline.ts";
-import { Preset } from "../@types/partials.ts";
-import { globToRegexp } from "../utils.ts";
-import { type Room } from "./room.ts";
-import { EventType, type StateEvents } from "../@types/event.ts";
+import { type MatrixClient } from "../client";
+import { type IContent, type MatrixEvent } from "./event";
+import { EventTimeline } from "./event-timeline";
+import { Preset } from "../@types/partials";
+import { globToRegexp } from "../utils";
+import { type Room } from "./room";
+import { EventType, type StateEvents } from "../@types/event";
 import {
     IGNORE_INVITES_ACCOUNT_EVENT_KEY,
     POLICIES_ACCOUNT_EVENT_TYPE,
     PolicyRecommendation,
     PolicyScope,
-} from "./invites-ignorer-types.ts";
+} from "./invites-ignorer-types";
 
 export { IGNORE_INVITES_ACCOUNT_EVENT_KEY, POLICIES_ACCOUNT_EVENT_TYPE, PolicyRecommendation, PolicyScope };
 

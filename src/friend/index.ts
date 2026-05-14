@@ -21,17 +21,17 @@ limitations under the License.
  * 对接后端: synapse-rust/src/web/routes/friend_room.rs
  */
 
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { InvalidParamError } from "../common/errors.ts";
-import { logger } from "../logger.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { NotFoundError } from "../errors";
-import { BaseManager } from "../managers/base-manager.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { BaseManager } from "../managers/base-manager";
+import { LRUCache } from "../utils/lru-cache";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 import { AdminValidators } from "../admin/validators";
-import type { FriendPathPattern } from "./__generated__/route-table.ts";
+import type { FriendPathPattern } from "./__generated__/route-table";
 
 export enum FriendEvent {
     Invited = "Invited",

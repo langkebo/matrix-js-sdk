@@ -20,13 +20,13 @@ limitations under the License.
  * 提供联邦服务器管理、黑名单管理功能
  */
 
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
-import { AdminPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
-import { logger } from "../logger.ts";
-import { IUserProfile } from "../user-directory/index.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { AdminPrefix } from "../http-api/prefix";
+import { MatrixClient } from "../client";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { logger } from "../logger";
+import { IUserProfile } from "../user-directory/index";
 import { ValidationError } from "../errors";
 
 export enum FederationEvent {

@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type { CallMembership } from "./CallMembership.ts";
-import type { RTCCallIntent, Status, Transport } from "./types.ts";
-import { type TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import type { CallMembership } from "./CallMembership";
+import type { RTCCallIntent, Status, Transport } from "./types";
+import { type TypedEventEmitter } from "../models/typed-event-emitter";
 
 export enum MembershipManagerEvent {
     StatusChanged = "StatusChanged",

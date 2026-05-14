@@ -98,24 +98,22 @@ export class KeyRotationManager extends BaseManager {
             return this.statusCache.value;
         }
 
-        try {
-            const result = await this.client.http.authedRequest<KeyRotationStatus>(
+        const result = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<KeyRotationStatus>(
                 Method.Get,
                 "/keys/rotation/status",
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
+        }, "getStatus");
 
-            this.statusCache = {
-                value: result,
-                expiresAt: Date.now() + this.statusCacheTtlMs,
-            };
+        this.statusCache = {
+            value: result,
+            expiresAt: Date.now() + this.statusCacheTtlMs,
+        };
 
-            return result;
-        } catch (error) {
-            throw this.normalizeError(error, "getStatus");
-        }
+        return result;
     }
 
     public async rotateKey(request: RotateKeyRequest = {}): Promise<RotateKeyResponse> {
@@ -123,20 +121,18 @@ export class KeyRotationManager extends BaseManager {
             this.requireNonEmptyString(request.reason, "reason");
         }
 
-        try {
-            const result = await this.client.http.authedRequest<RotateKeyResponse>(
+        const result = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<RotateKeyResponse>(
                 Method.Post,
                 "/keys/rotation/rotate",
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
             );
+        }, "rotateKey");
 
-            this.clearStatusCache();
-            return result;
-        } catch (error) {
-            throw this.normalizeError(error, "rotateKey");
-        }
+        this.clearStatusCache();
+        return result;
     }
 
     public async getRotationHistory(
@@ -152,7 +148,7 @@ export class KeyRotationManager extends BaseManager {
             this.requireNonEmptyString(options.from, "from");
         }
 
-        try {
+        return await this.withRetry(async () => {
             return await this.client.http.authedRequest<KeyRotationHistory>(
                 Method.Get,
                 `/keys/rotation/history/${encodeURIComponent(deviceId)}`,
@@ -163,9 +159,7 @@ export class KeyRotationManager extends BaseManager {
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
-        } catch (error) {
-            throw this.normalizeError(error, "getRotationHistory");
-        }
+        }, "getRotationHistory");
     }
 
     public async revokeKey(request: RevokeKeyRequest): Promise<RevokeKeyResponse> {
@@ -174,20 +168,18 @@ export class KeyRotationManager extends BaseManager {
             this.requireNonEmptyString(request.reason, "reason");
         }
 
-        try {
-            const result = await this.client.http.authedRequest<RevokeKeyResponse>(
+        const result = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<RevokeKeyResponse>(
                 Method.Post,
                 "/keys/rotation/revoke",
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
             );
+        }, "revokeKey");
 
-            this.clearStatusCache();
-            return result;
-        } catch (error) {
-            throw this.normalizeError(error, "revokeKey");
-        }
+        this.clearStatusCache();
+        return result;
     }
 
     public async updateConfig(request: UpdateRotationConfigRequest): Promise<UpdateRotationConfigResponse> {
@@ -198,26 +190,24 @@ export class KeyRotationManager extends BaseManager {
             throw new InvalidParamError("rotation_period_ms must be a positive integer");
         }
 
-        try {
-            const result = await this.client.http.authedRequest<UpdateRotationConfigResponse>(
+        const result = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<UpdateRotationConfigResponse>(
                 Method.Put,
                 "/keys/rotation/config",
                 undefined,
                 request,
                 { prefix: ClientPrefix.V1 },
             );
+        }, "updateConfig");
 
-            this.clearStatusCache();
-            return result;
-        } catch (error) {
-            throw this.normalizeError(error, "updateConfig");
-        }
+        this.clearStatusCache();
+        return result;
     }
 
     public async checkKeyValidity(keyId: string): Promise<KeyCheckResponse> {
         this.requireNonEmptyString(keyId, "keyId");
 
-        try {
+        return await this.withRetry(async () => {
             return await this.client.http.authedRequest<KeyCheckResponse>(
                 Method.Get,
                 "/keys/rotation/check",
@@ -225,9 +215,7 @@ export class KeyRotationManager extends BaseManager {
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
-        } catch (error) {
-            throw this.normalizeError(error, "checkKeyValidity");
-        }
+        }, "checkKeyValidity");
     }
 
     public clearStatusCache(): void {

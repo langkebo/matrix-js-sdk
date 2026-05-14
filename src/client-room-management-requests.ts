@@ -1,8 +1,8 @@
-import * as utils from "./utils.ts";
-import { Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import type { QueryDict } from "./utils.ts";
-import type { EmptyObject } from "./@types/common.ts";
+import * as utils from "./utils";
+import { Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import type { QueryDict } from "./utils";
+import type { EmptyObject } from "./@types/common";
 
 type AuthedRequestFn = <T>(
     method: Method,

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { deepCompare, escapeRegExp, globToRegexp, isNullOrUndefined } from "./utils.ts";
-import { type Logger } from "./logger.ts";
-import { type MatrixClient } from "./client.ts";
-import { type MatrixEvent } from "./models/event.ts";
+import { deepCompare, escapeRegExp, globToRegexp, isNullOrUndefined } from "./utils";
+import { type Logger } from "./logger";
+import { type MatrixClient } from "./client";
+import { type MatrixEvent } from "./models/event";
 import {
     ConditionKind,
     type IAnnotatedPushRule,
@@ -38,8 +38,8 @@ import {
     type PushRuleSet,
     RuleId,
     TweakName,
-} from "./@types/PushRules.ts";
-import { EventType } from "./@types/event.ts";
+} from "./@types/PushRules";
+import { EventType } from "./@types/event";
 
 const RULEKINDS_IN_ORDER = [
     PushRuleKind.Override,

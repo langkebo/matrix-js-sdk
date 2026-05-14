@@ -30,13 +30,11 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixError } from "../http-api/errors.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
-import { logger } from "../logger.ts";
-import { LRUCache } from "../utils/lru-cache.ts";
-import type { E2eePathPattern } from "../e2ee/__generated__/route-table.ts";
+import { LRUCache } from "../utils/lru-cache";
+import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
@@ -253,44 +251,6 @@ export class SecureBackupManager extends BaseManager {
         return this.backupCache.getStats();
     }
 
-    private recordRequest(success: boolean, retried: boolean): void {
-        this.requestStats.total++;
-        if (success) {
-            this.requestStats.successful++;
-        } else {
-            this.requestStats.failed++;
-        }
-        if (retried) {
-            this.requestStats.retried++;
-        }
-    }
-
-    private isRetryableError(error: unknown): boolean {
-        if (error instanceof MatrixError) {
-            const retryableCodes = ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE"];
-            const retryableStatus = [429, 500, 502, 503, 504];
-            return retryableCodes.includes(error.errcode ?? "") || retryableStatus.includes(error.httpStatus ?? 0);
-        }
-        return false;
-    }
-
-    private getErrorType(error: unknown): string {
-        if (error instanceof MatrixError) {
-            return error.errcode ?? `http_${error.httpStatus}`;
-        }
-        if (error instanceof Error) {
-            return error.name ?? "UnknownError";
-        }
-        return "UnknownError";
-    }
-
-    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
-        try {
-            logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });
-        } catch {
-            // 忽略监控发送错误，不影响主流程
-        }
-    }
 }
 
 declare module "../client.ts" {

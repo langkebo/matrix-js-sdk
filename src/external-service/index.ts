@@ -27,11 +27,11 @@ limitations under the License.
  * - GET /_synapse/admin/v1/external_services/health - 获取所有服务健康状态
  */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "../http-api/method.ts";
-import { AdminPrefix } from "../http-api/prefix.ts";
-import { Body } from "../http-api/interface.ts";
-import { logger } from "../logger.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { AdminPrefix } from "../http-api/prefix";
+import { Body } from "../http-api/interface";
+import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
@@ -105,13 +105,11 @@ interface ExternalServiceManagerEventMap {
     [ExternalServiceEvent.Error]: (error: Error) => void;
 }
 
-export class ExternalServiceManager extends TypedEventEmitter<ExternalServiceEvent, ExternalServiceManagerEventMap> {
-    private client: MatrixClient;
+export class ExternalServiceManager extends BaseManager<ExternalServiceEvent, ExternalServiceManagerEventMap> {
     private servicesCache: Map<string, IExternalService> = new Map();
 
     constructor(client: MatrixClient) {
-        super();
-        this.client = client;
+        super(client);
     }
 
     private async adminRequest<T>(

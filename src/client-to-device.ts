@@ -1,7 +1,7 @@
-import { Method, type Body, type IRequestOpts } from "./http-api/index.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { SendToDeviceContentMap } from "./client-api-types.ts";
-import { type QueryDict, encodeUri } from "./utils.ts";
+import { Method, type Body, type IRequestOpts } from "./http-api/index";
+import type { EmptyObject } from "./@types/common";
+import type { SendToDeviceContentMap } from "./client-api-types";
+import { type QueryDict, encodeUri } from "./utils";
 
 export interface SendToDeviceOptions {
     eventType: string;

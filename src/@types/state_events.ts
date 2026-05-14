@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type RoomType } from "./event.ts";
-import { type GuestAccess, type HistoryVisibility, type JoinRule, type RestrictedAllowType } from "./partials.ts";
-import { type ImageInfo } from "./media.ts";
-import { type PolicyRecommendation } from "../models/invites-ignorer.ts";
-import { type IContent } from "../models/event.ts";
+import { type RoomType } from "./event";
+import { type GuestAccess, type HistoryVisibility, type JoinRule, type RestrictedAllowType } from "./partials";
+import { type ImageInfo } from "./media";
+import { type PolicyRecommendation } from "../models/invites-ignorer";
+import { type IContent } from "../models/event";
 
 export interface RoomCanonicalAliasEventContent extends IContent {
     alias?: string;

@@ -1,8 +1,8 @@
-import * as utils from "./utils.ts";
-import { ClientPrefix, MatrixError, Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import type { QueryDict } from "./utils.ts";
-import { type Direction } from "./models/event-timeline.ts";
+import * as utils from "./utils";
+import { ClientPrefix, MatrixError, Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import type { QueryDict } from "./utils";
+import { type Direction } from "./models/event-timeline";
 
 type AuthedRequestFn = <T>(
     method: Method,

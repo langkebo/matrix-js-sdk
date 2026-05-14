@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { SDPStreamMetadataPurpose } from "./callEventTypes.ts";
-import { acquireContext, releaseContext } from "./audioContext.ts";
-import { type MatrixClient } from "../client.ts";
-import { type RoomMember } from "../models/room-member.ts";
-import { logger } from "../logger.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { CallEvent, CallState, type MatrixCall } from "./call.ts";
+import { SDPStreamMetadataPurpose } from "./callEventTypes";
+import { acquireContext, releaseContext } from "./audioContext";
+import { type MatrixClient } from "../client";
+import { type RoomMember } from "../models/room-member";
+import { logger } from "../logger";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { CallEvent, CallState, type MatrixCall } from "./call";
 
 const POLLING_INTERVAL = 200; // ms
 export const SPEAKING_THRESHOLD = -60; // dB

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type IdServerUnbindResult } from "./partials.ts";
+import { type IdServerUnbindResult } from "./partials";
 
 // Types relating to Synapse Admin APIs
 

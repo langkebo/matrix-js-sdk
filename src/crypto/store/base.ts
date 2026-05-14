@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type Logger } from "../../logger.ts";
-import { type CrossSigningKeyInfo } from "../../crypto-api/index.ts";
-import { type AESEncryptedSecretStoragePayload } from "../../@types/AESEncryptedSecretStoragePayload.ts";
-import { type ISignatures } from "../../@types/signed.ts";
+import { type Logger } from "../../logger";
+import { type CrossSigningKeyInfo } from "../../crypto-api/index";
+import { type AESEncryptedSecretStoragePayload } from "../../@types/AESEncryptedSecretStoragePayload";
+import { type ISignatures } from "../../@types/signed";
 
 /**
  * Internal module. Definitions for storage for the crypto module

@@ -1,4 +1,4 @@
-import { MatrixClient } from "../client.ts";
+import { MatrixClient } from "../client";
 
 const MANAGER_REGISTRY = Symbol.for("matrix-js-sdk.manager-registry");
 

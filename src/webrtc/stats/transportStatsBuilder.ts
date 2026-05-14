@@ -1,4 +1,4 @@
-import { type TransportStats } from "./transportStats.ts";
+import { type TransportStats } from "./transportStats";
 
 export class TransportStatsBuilder {
     public static buildReport(

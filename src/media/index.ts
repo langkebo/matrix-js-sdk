@@ -21,12 +21,12 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/method.ts";
-import { MediaPrefix } from "../http-api/prefix.ts";
-import type { UploadResponse } from "../http-api/interface.ts";
+import { Method } from "../http-api/method";
+import { MediaPrefix } from "../http-api/prefix";
+import type { UploadResponse } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
-import type { MediaPathPattern } from "./__generated__/route-table.ts";
+import type { MediaPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripMediaPrefix<P extends string> =

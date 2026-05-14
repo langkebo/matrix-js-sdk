@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { FetchHttpApi } from "./fetch.ts";
+import { FetchHttpApi } from "./fetch";
 import {
     type FileType,
     type IContentUri,
@@ -22,19 +22,19 @@ import {
     type Upload,
     type UploadOpts,
     type UploadResponse,
-} from "./interface.ts";
-import { MediaPrefix } from "./prefix.ts";
-import { type QueryDict, removeElement } from "../utils.ts";
-import * as callbacks from "../realtime-callbacks.ts";
-import { Method } from "./method.ts";
-import { ConnectionError } from "./errors.ts";
-import { parseErrorResponse } from "./utils.ts";
+} from "./interface";
+import { MediaPrefix } from "./prefix";
+import { type QueryDict, removeElement } from "../utils";
+import * as callbacks from "../realtime-callbacks";
+import { Method } from "./method";
+import { ConnectionError } from "./errors";
+import { parseErrorResponse } from "./utils";
 
-export * from "./interface.ts";
-export * from "./prefix.ts";
-export * from "./errors.ts";
-export * from "./method.ts";
-export * from "./utils.ts";
+export * from "./interface";
+export * from "./prefix";
+export * from "./errors";
+export * from "./method";
+export * from "./utils";
 
 export class MatrixHttpApi<O extends IHttpOpts> extends FetchHttpApi<O> {
     private uploads: Upload[] = [];

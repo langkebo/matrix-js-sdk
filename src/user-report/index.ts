@@ -26,7 +26,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
-import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> =

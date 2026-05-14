@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { decodeBase64, encodeBase64 } from "../base64.ts";
-import { deriveKeys } from "./internal/deriveKeys.ts";
-import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload.ts";
+import { decodeBase64, encodeBase64 } from "../base64";
+import { deriveKeys } from "./internal/deriveKeys";
+import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 
 /**
  * Encrypt a string as a secret storage item, using AES-CTR.

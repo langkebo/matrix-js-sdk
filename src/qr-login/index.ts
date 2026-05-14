@@ -29,8 +29,9 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
+import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { BaseManager } from "../managers/base-manager";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -89,8 +90,10 @@ export interface QrLoginInvalidateResponse {
 
 export type QrLoginStatus = "pending" | "confirmed" | "expired" | "invalidated";
 
-export class QrLoginManager {
-    constructor(private client: MatrixClient) {}
+export class QrLoginManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     public async getQrCode(): Promise<QrCodeResponse> {
         return this.client.http.request<QrCodeResponse>(
@@ -155,7 +158,7 @@ export class QrLoginManager {
                 throw new Error(`QR login ${status.status}: ${transactionId}`);
             }
 
-            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+            await this.sleep(pollIntervalMs);
         }
 
         throw new Error(`QR login timed out after ${timeoutMs}ms`);

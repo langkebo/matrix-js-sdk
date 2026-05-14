@@ -31,8 +31,8 @@ limitations under the License.
  */
 
 import { logger } from "../logger";
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
 const ADMIN_PREFIX = "/_synapse/admin";
 import { MatrixError } from "../http-api/errors";
 import { MatrixClient } from "../client";
@@ -40,7 +40,7 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError } from "../errors";
 import { buildPaginationParams } from "../admin/utils";
 import type { QueryDict } from "../utils";
-import type { ModulePathPattern } from "./__generated__/route-table.ts";
+import type { ModulePathPattern } from "./__generated__/route-table";
 
 type StripAdminPath<P extends string> =
     P extends `/_synapse/admin${infer Rest}` ? Rest : P;

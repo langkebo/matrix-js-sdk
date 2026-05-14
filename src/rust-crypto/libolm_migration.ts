@@ -16,18 +16,18 @@ limitations under the License.
 
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { type Logger } from "../logger.ts";
-import { type CryptoStore, MigrationState, type SecretStorePrivateKeys } from "../crypto/store/base.ts";
-import { IndexedDBCryptoStore } from "../crypto/store/indexeddb-crypto-store.ts";
-import { type IHttpOpts, type MatrixHttpApi } from "../http-api/index.ts";
-import { requestKeyBackupVersion } from "./backup.ts";
-import { type CrossSigningKeyInfo, type Curve25519AuthData } from "../crypto-api/index.ts";
-import { type RustCrypto } from "./rust-crypto.ts";
-import { type KeyBackupInfo } from "../crypto-api/keybackup.ts";
-import { sleep } from "../utils.ts";
-import { encodeBase64 } from "../base64.ts";
-import decryptAESSecretStorageItem from "../utils/decryptAESSecretStorageItem.ts";
-import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload.ts";
+import { type Logger } from "../logger";
+import { type CryptoStore, MigrationState, type SecretStorePrivateKeys } from "../crypto/store/base";
+import { IndexedDBCryptoStore } from "../crypto/store/indexeddb-crypto-store";
+import { type IHttpOpts, type MatrixHttpApi } from "../http-api/index";
+import { requestKeyBackupVersion } from "./backup";
+import { type CrossSigningKeyInfo, type Curve25519AuthData } from "../crypto-api/index";
+import { type RustCrypto } from "./rust-crypto";
+import { type KeyBackupInfo } from "../crypto-api/keybackup";
+import { sleep } from "../utils";
+import { encodeBase64 } from "../base64";
+import decryptAESSecretStorageItem from "../utils/decryptAESSecretStorageItem";
+import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 
 interface LegacyRoomEncryption {
     algorithm: string;

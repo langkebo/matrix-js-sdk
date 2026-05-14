@@ -1,8 +1,8 @@
-import * as utils from "./utils.ts";
-import { Method, type Body, type IRequestOpts } from "./http-api/index.ts";
-import { ClientPrefix } from "./http-api/prefix.ts";
-import type { QueryDict } from "./utils.ts";
-import type { SearchPathPattern } from "./search/__generated__/route-table.ts";
+import * as utils from "./utils";
+import { Method, type Body, type IRequestOpts } from "./http-api/index";
+import { ClientPrefix } from "./http-api/prefix";
+import type { QueryDict } from "./utils";
+import type { SearchPathPattern } from "./search/__generated__/route-table";
 
 type AuthedRequestFn = <T>(
     method: Method,

@@ -1,9 +1,9 @@
-import { MAIN_ROOM_TIMELINE } from "./@types/read_receipts.ts";
-import { THREAD_RELATION_TYPE } from "./models/thread.ts";
-import { MatrixEvent } from "./models/event.ts";
-import { logger } from "./logger.ts";
-import { NotificationCountType } from "./models/room.ts";
-import type { MatrixClient } from "./client.ts";
+import { MAIN_ROOM_TIMELINE } from "./@types/read_receipts";
+import { THREAD_RELATION_TYPE } from "./models/thread";
+import { MatrixEvent } from "./models/event";
+import { logger } from "./logger";
+import { NotificationCountType } from "./models/room";
+import type { MatrixClient } from "./client";
 
 /**
  * recalculates an accurate notifications count on event decryption.

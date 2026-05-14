@@ -1,8 +1,8 @@
-import { Method, type Body, type IRequestOpts } from "./http-api/index.ts";
-import type { IThirdPartyLocation, IThirdPartyUser } from "./client-internal-types.ts";
-import type { IProtocol } from "./client-api-types.ts";
-import type { QueryDict } from "./utils.ts";
-import * as utils from "./utils.ts";
+import { Method, type Body, type IRequestOpts } from "./http-api/index";
+import type { IThirdPartyLocation, IThirdPartyUser } from "./client-internal-types";
+import type { IProtocol } from "./client-api-types";
+import type { QueryDict } from "./utils";
+import * as utils from "./utils";
 
 export interface AuthedRequestFn {
     <T>(method: Method, path: string, queryParams?: QueryDict, body?: Body, paramOpts?: IRequestOpts): Promise<T>;

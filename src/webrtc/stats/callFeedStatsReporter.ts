@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { type CallFeedReport, type CallFeedStats, type TrackStats, type TransceiverStats } from "./statsReport.ts";
-import { type CallFeed } from "../callFeed.ts";
+import { type CallFeedReport, type CallFeedStats, type TrackStats, type TransceiverStats } from "./statsReport";
+import { type CallFeed } from "../callFeed";
 
 export class CallFeedStatsReporter {
     public static buildCallFeedReport(callId: string, opponentMemberId: string, pc: RTCPeerConnection): CallFeedReport {

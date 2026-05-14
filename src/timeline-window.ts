@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type Direction, EventTimeline } from "./models/event-timeline.ts";
-import { logger } from "./logger.ts";
-import { type MatrixClient } from "./client.ts";
-import { type EventTimelineSet } from "./models/event-timeline-set.ts";
-import { type MatrixEvent } from "./models/event.ts";
-import { type Room, RoomEvent } from "./models/room.ts";
+import { type Direction, EventTimeline } from "./models/event-timeline";
+import { logger } from "./logger";
+import { type MatrixClient } from "./client";
+import { type EventTimelineSet } from "./models/event-timeline-set";
+import { type MatrixEvent } from "./models/event";
+import { type Room, RoomEvent } from "./models/room";
 
 /**
  * @internal

@@ -22,13 +22,13 @@ limitations under the License.
  * 对接后端: synapse-rust/src/services/widget_service.rs
  */
 
-import { BaseManager } from "../managers/base-manager.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { MatrixClient } from "../client.ts";
-import { getOrCreateManager } from "../client-infra/manager-registry.ts";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { MatrixClient } from "../client";
+import { getOrCreateManager } from "../client-infra/manager-registry";
 import { InvalidParamError } from "../common/errors";
-import type { WidgetPathPattern } from "./__generated__/route-table.ts";
+import type { WidgetPathPattern } from "./__generated__/route-table";
 
 export enum WidgetEvent {
     WidgetAdded = "WidgetAdded",

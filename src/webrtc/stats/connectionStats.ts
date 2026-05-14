@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type TransportStats } from "./transportStats.ts";
-import { type Bitrate } from "./media/mediaTrackStats.ts";
+import { type TransportStats } from "./transportStats";
+import { type Bitrate } from "./media/mediaTrackStats";
 
 export interface ConnectionStatsBandwidth {
     /**

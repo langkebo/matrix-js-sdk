@@ -18,14 +18,14 @@ limitations under the License.
  * This is an internal module. See {@link SyncAccumulator} for the public class.
  */
 
-import { logger } from "./logger.ts";
-import { deepCopy } from "./utils.ts";
-import { MAX_STICKY_DURATION_MS, type IContent, type IUnsigned } from "./models/event.ts";
-import { type IRoomSummary } from "./models/room-summary.ts";
-import { type EventType } from "./@types/event.ts";
-import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync.ts";
-import { ReceiptAccumulator } from "./receipt-accumulator.ts";
-import { type OlmEncryptionInfo } from "./crypto-api/index.ts";
+import { logger } from "./logger";
+import { deepCopy } from "./utils";
+import { MAX_STICKY_DURATION_MS, type IContent, type IUnsigned } from "./models/event";
+import { type IRoomSummary } from "./models/room-summary";
+import { type EventType } from "./@types/event";
+import { UNREAD_THREAD_NOTIFICATIONS } from "./@types/sync";
+import { ReceiptAccumulator } from "./receipt-accumulator";
+import { type OlmEncryptionInfo } from "./crypto-api/index";
 
 interface IOpts {
     /**

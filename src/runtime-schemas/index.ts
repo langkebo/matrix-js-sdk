@@ -16,9 +16,9 @@ limitations under the License.
 
 import { z } from "zod";
 
-import type { MatrixClient } from "../client.ts";
-import type { IContent, IEvent, IMentions, IUnsigned, MatrixEvent } from "../models/event.ts";
-import type { Room } from "../models/room.ts";
+import type { MatrixClient } from "../client";
+import type { IContent, IEvent, IMentions, IUnsigned, MatrixEvent } from "../models/event";
+import type { Room } from "../models/room";
 
 const mentionsSchema: z.ZodType<IMentions> = z
     .object({

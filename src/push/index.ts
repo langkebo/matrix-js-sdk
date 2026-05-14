@@ -7,11 +7,11 @@
  * 遵循 D7 契约驱动开发标准，100% 覆盖后端端点并保持类型对齐。
  */
 
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { InvalidParamError } from "../common/errors.ts";
-import { logger } from "../logger.ts";
+import { InvalidParamError } from "../common/errors";
+import { logger } from "../logger";
 import {
     PushRuleKind,
     PushRuleAction,
@@ -20,15 +20,15 @@ import {
     IPushRules,
     PushRuleCondition,
 } from "../@types/PushRules";
-import { PUSHER_ENABLED } from "../@types/event.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import { LRUCache, CacheRegistry } from "../utils/lru-cache.ts";
+import { PUSHER_ENABLED } from "../@types/event";
+import { BaseManager } from "../managers/base-manager";
+import { LRUCache, CacheRegistry } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import type { PushPathPattern } from "./__generated__/route-table.ts";
+import type { PushPathPattern } from "./__generated__/route-table";
 
 export type { IPushRules } from "../@types/PushRules";
-export { PUSHER_ENABLED } from "../@types/event.ts";
+export { PUSHER_ENABLED } from "../@types/event";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 

@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { getHttpUriForMxc } from "../content-repo.ts";
-import { removeDirectionOverrideChars, removeHiddenChars } from "../utils.ts";
-import { type User } from "./user.ts";
-import { type MatrixEvent } from "./event.ts";
-import { type RoomState } from "./room-state.ts";
-import { logger } from "../logger.ts";
-import { TypedEventEmitter } from "./typed-event-emitter.ts";
-import { EventType } from "../@types/event.ts";
-import { KnownMembership, type Membership } from "../@types/membership.ts";
+import { getHttpUriForMxc } from "../content-repo";
+import { removeDirectionOverrideChars, removeHiddenChars } from "../utils";
+import { type User } from "./user";
+import { type MatrixEvent } from "./event";
+import { type RoomState } from "./room-state";
+import { logger } from "../logger";
+import { TypedEventEmitter } from "./typed-event-emitter";
+import { EventType } from "../@types/event";
+import { KnownMembership, type Membership } from "../@types/membership";
 
 export enum RoomMemberEvent {
     Membership = "RoomMember.membership",

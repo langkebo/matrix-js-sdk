@@ -20,16 +20,16 @@ limitations under the License.
  * @see https://spec.matrix.org/v1.6/client-server-api/#storage
  */
 
-import { type TypedEventEmitter } from "./models/typed-event-emitter.ts";
-import { ClientEvent, type ClientEventHandlerMap } from "./client.ts";
-import { type MatrixEvent } from "./models/event.ts";
-import { secureRandomString } from "./randomstring.ts";
-import { logger } from "./logger.ts";
-import encryptAESSecretStorageItem from "./utils/encryptAESSecretStorageItem.ts";
-import decryptAESSecretStorageItem from "./utils/decryptAESSecretStorageItem.ts";
-import { type AESEncryptedSecretStoragePayload } from "./@types/AESEncryptedSecretStoragePayload.ts";
-import { type AccountDataEvents, type SecretStorageAccountDataEvents } from "./@types/event.ts";
-import { type EmptyObject } from "./@types/common.ts";
+import { type TypedEventEmitter } from "./models/typed-event-emitter";
+import { ClientEvent, type ClientEventHandlerMap } from "./client";
+import { type MatrixEvent } from "./models/event";
+import { secureRandomString } from "./randomstring";
+import { logger } from "./logger";
+import encryptAESSecretStorageItem from "./utils/encryptAESSecretStorageItem";
+import decryptAESSecretStorageItem from "./utils/decryptAESSecretStorageItem";
+import { type AESEncryptedSecretStoragePayload } from "./@types/AESEncryptedSecretStoragePayload";
+import { type AccountDataEvents, type SecretStorageAccountDataEvents } from "./@types/event";
+import { type EmptyObject } from "./@types/common";
 
 export const SECRET_STORAGE_ALGORITHM_V1_AES = "m.secret_storage.v1.aes-hmac-sha2";
 

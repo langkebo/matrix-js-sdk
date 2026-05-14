@@ -1,7 +1,7 @@
-import type { IRoomEvent, IStateEvent } from "./sync-accumulator.ts";
-import type { IHierarchyRoom } from "./@types/spaces.ts";
-import type { ISignatures } from "./@types/signed.ts";
-import type { Membership } from "./@types/membership.ts";
+import type { IRoomEvent, IStateEvent } from "./sync-accumulator";
+import type { IHierarchyRoom } from "./@types/spaces";
+import type { ISignatures } from "./@types/signed";
+import type { Membership } from "./@types/membership";
 
 export interface IKeyBackupPath {
     path: string;

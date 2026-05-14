@@ -5,11 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import { EventStatus, type MatrixEvent } from "./models/event.ts";
-import type { ISendEventResponse } from "./@types/requests.ts";
-import type { Room } from "./models/room.ts";
-import type { MatrixScheduler } from "./scheduler.ts";
-import type { QueryDict } from "./utils.ts";
+import { EventStatus, type MatrixEvent } from "./models/event";
+import type { ISendEventResponse } from "./@types/requests";
+import type { Room } from "./models/room";
+import type { MatrixScheduler } from "./scheduler";
+import type { QueryDict } from "./utils";
 
 interface SendExecutionArgs {
     scheduler?: MatrixScheduler<ISendEventResponse>;

@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type IPublicRoomsChunkRoom } from "../client.ts";
-import { type RoomType } from "./event.ts";
-import { type IStrippedState } from "../sync-accumulator.ts";
+import { type IPublicRoomsChunkRoom } from "../client";
+import { type RoomType } from "./event";
+import { type IStrippedState } from "../sync-accumulator";
 
 // Types relating to Rooms of type `m.space` and related APIs
 

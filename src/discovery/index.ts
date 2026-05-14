@@ -30,9 +30,9 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
-import type { IRoomDirectoryOptions } from "../@types/requests.ts";
-import type { AuthPathPattern } from "../auth/__generated__/route-table.ts";
-import type { IServerVersions } from "../client-api-types.ts";
+import type { IRoomDirectoryOptions } from "../@types/requests";
+import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import type { IServerVersions } from "../client-api-types";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> =

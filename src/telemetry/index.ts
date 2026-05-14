@@ -17,9 +17,9 @@ limitations under the License.
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { Method } from "../http-api/method.ts";
-import { AdminPrefix } from "../http-api/prefix.ts";
-import type { TelemetryPathPattern } from "./__generated__/route-table.ts";
+import { Method } from "../http-api/method";
+import { AdminPrefix } from "../http-api/prefix";
+import type { TelemetryPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 

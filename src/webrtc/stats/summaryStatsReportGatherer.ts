@@ -10,11 +10,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import { type StatsReportEmitter } from "./statsReportEmitter.ts";
-import { type CallStatsReportSummary } from "./callStatsReportSummary.ts";
-import { type SummaryStatsReport } from "./statsReport.ts";
-import { type ParticipantState } from "../groupCall.ts";
-import { type RoomMember } from "../../matrix.ts";
+import { type StatsReportEmitter } from "./statsReportEmitter";
+import { type CallStatsReportSummary } from "./callStatsReportSummary";
+import { type SummaryStatsReport } from "./statsReport";
+import { type ParticipantState } from "../groupCall";
+import { type RoomMember } from "../../matrix";
 
 interface CallStatsReportSummaryCounter {
     receivedAudio: number;

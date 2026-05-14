@@ -16,18 +16,18 @@ limitations under the License.
 
 /* eslint-disable @babel/no-invalid-this */
 
-import { MemoryStore, type IOpts as IBaseOpts } from "./memory.ts";
-import { LocalIndexedDBStoreBackend } from "./indexeddb-local-backend.ts";
-import { RemoteIndexedDBStoreBackend } from "./indexeddb-remote-backend.ts";
-import { type IEvent, MatrixEvent } from "../models/event.ts";
-import { logger } from "../logger.ts";
-import { type ISavedSync, type StoreEvent, type StoreEventHandlerMap } from "./index.ts";
-import { type IIndexedDBBackend } from "./indexeddb-backend.ts";
-import { type ISyncResponse } from "../sync-accumulator.ts";
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { type IStateEventWithRoomId } from "../@types/search.ts";
-import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage.ts";
-import { type IStoredClientOpts } from "../client.ts";
+import { MemoryStore, type IOpts as IBaseOpts } from "./memory";
+import { LocalIndexedDBStoreBackend } from "./indexeddb-local-backend";
+import { RemoteIndexedDBStoreBackend } from "./indexeddb-remote-backend";
+import { type IEvent, MatrixEvent } from "../models/event";
+import { logger } from "../logger";
+import { type ISavedSync, type StoreEvent, type StoreEventHandlerMap } from "./index";
+import { type IIndexedDBBackend } from "./indexeddb-backend";
+import { type ISyncResponse } from "../sync-accumulator";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
+import { type IStateEventWithRoomId } from "../@types/search";
+import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
+import { type IStoredClientOpts } from "../client";
 
 /**
  * This is an internal module. See {@link IndexedDBStore} for the public class.

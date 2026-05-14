@@ -28,12 +28,12 @@ import {
     UploadSigningKeysRequest,
 } from "@matrix-org/matrix-sdk-crypto-wasm";
 
-import { type Logger } from "../logger.ts";
-import { calculateRetryBackoff, type IHttpOpts, type MatrixHttpApi, Method } from "../http-api/index.ts";
-import { logDuration, type QueryDict, sleep } from "../utils.ts";
-import { type AuthDict, type UIAuthCallback } from "../interactive-auth.ts";
-import { ToDeviceMessageId } from "../@types/event.ts";
-import { UnstablePrefix as DehydrationUnstablePrefix } from "./DehydratedDeviceManager.ts";
+import { type Logger } from "../logger";
+import { calculateRetryBackoff, type IHttpOpts, type MatrixHttpApi, Method } from "../http-api/index";
+import { logDuration, type QueryDict, sleep } from "../utils";
+import { type AuthDict, type UIAuthCallback } from "../interactive-auth";
+import { ToDeviceMessageId } from "../@types/event";
+import { UnstablePrefix as DehydrationUnstablePrefix } from "./DehydratedDeviceManager";
 
 /**
  * OutgoingRequestManager: turns `OutgoingRequest`s from the rust sdk into HTTP requests

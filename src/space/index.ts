@@ -37,10 +37,10 @@ import { NotFoundError } from "../errors";
 import { type QueryDict } from "../utils";
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
-import { LRUCache } from "../utils/lru-cache.ts";
+import { LRUCache } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
-import type { SpacePathPattern } from "./__generated__/route-table.ts";
+import type { SpacePathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type JsonObject = Record<string, unknown>;

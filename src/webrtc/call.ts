@@ -24,12 +24,12 @@ limitations under the License.
 import { v4 as uuidv4 } from "uuid";
 import { parse as parseSdp, write as writeSdp } from "sdp-transform";
 
-import { logger } from "../logger.ts";
-import { checkObjectHasKeys, isNullOrUndefined, recursivelyAssign } from "../utils.ts";
-import { type MatrixEvent } from "../models/event.ts";
-import { EventType, type TimelineEvents, ToDeviceMessageId } from "../@types/event.ts";
-import { type RoomMember } from "../models/room-member.ts";
-import { secureRandomString } from "../randomstring.ts";
+import { logger } from "../logger";
+import { checkObjectHasKeys, isNullOrUndefined, recursivelyAssign } from "../utils";
+import { type MatrixEvent } from "../models/event";
+import { EventType, type TimelineEvents, ToDeviceMessageId } from "../@types/event";
+import { type RoomMember } from "../models/room-member";
+import { secureRandomString } from "../randomstring";
 import {
     type MCallReplacesEvent,
     type MCallAnswer,
@@ -44,15 +44,15 @@ import {
     type MCallCandidates,
     type MCallBase,
     type MCallHangupReject,
-} from "./callEventTypes.ts";
-import { CallFeed } from "./callFeed.ts";
-import { type MatrixClient } from "../client.ts";
-import { EventEmitterEvents, TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { GroupCallUnknownDeviceError } from "./groupCall.ts";
-import { type IScreensharingOpts } from "./mediaHandler.ts";
-import { MatrixError } from "../http-api/index.ts";
-import { Method } from "../http-api/method.ts";
-import { type GroupCallStats } from "./stats/groupCallStats.ts";
+} from "./callEventTypes";
+import { CallFeed } from "./callFeed";
+import { type MatrixClient } from "../client";
+import { EventEmitterEvents, TypedEventEmitter } from "../models/typed-event-emitter";
+import { GroupCallUnknownDeviceError } from "./groupCall";
+import { type IScreensharingOpts } from "./mediaHandler";
+import { MatrixError } from "../http-api/index";
+import { Method } from "../http-api/method";
+import { type GroupCallStats } from "./stats/groupCallStats";
 
 interface CallOpts {
     // The room ID for this call.

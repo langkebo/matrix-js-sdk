@@ -13,10 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type { IContent, IMentions } from "../matrix.ts";
-import type { RelationEvent } from "../types.ts";
-import type { CallMembership } from "./CallMembership.ts";
-import { type CallMembershipIdentityParts } from "./EncryptionManager.ts";
+import type { IContent, IMentions } from "../matrix";
+import type { RelationEvent } from "../types";
+import type { CallMembership } from "./CallMembership";
+import { type CallMembershipIdentityParts } from "./EncryptionManager";
 
 export type EncryptionKeyMapKey = string;
 

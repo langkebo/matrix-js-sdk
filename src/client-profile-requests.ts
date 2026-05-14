@@ -1,11 +1,11 @@
-import * as utils from "./utils.ts";
-import { ClientPrefix, Method } from "./http-api/index.ts";
-import type { Body, IRequestOpts } from "./http-api/index.ts";
-import type { QueryDict } from "./utils.ts";
-import type { EmptyObject } from "./@types/common.ts";
-import type { IThreepid } from "./@types/threepids.ts";
-import type { IAddThreePidOnlyBody, IBindThreePidBody } from "./@types/requests.ts";
-import type { IdServerUnbindResult } from "./@types/partials.ts";
+import * as utils from "./utils";
+import { ClientPrefix, Method } from "./http-api/index";
+import type { Body, IRequestOpts } from "./http-api/index";
+import type { QueryDict } from "./utils";
+import type { EmptyObject } from "./@types/common";
+import type { IThreepid } from "./@types/threepids";
+import type { IAddThreePidOnlyBody, IBindThreePidBody } from "./@types/requests";
+import type { IdServerUnbindResult } from "./@types/partials";
 
 export type ProfileField = "displayname" | "avatar_url";
 

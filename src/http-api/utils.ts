@@ -16,8 +16,8 @@ limitations under the License.
 
 import { parse as parseContentType, type ParsedMediaType } from "content-type";
 
-import { logger } from "../logger.ts";
-import { sleep } from "../utils.ts";
+import { logger } from "../logger";
+import { sleep } from "../utils";
 import {
     ConnectionError,
     HTTPError,
@@ -25,7 +25,7 @@ import {
     MatrixSafetyError,
     MatrixSafetyErrorCode,
     safeGetRetryAfterMs,
-} from "./errors.ts";
+} from "./errors";
 
 // Ponyfill for https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout
 export function timeoutSignal(ms: number): AbortSignal {

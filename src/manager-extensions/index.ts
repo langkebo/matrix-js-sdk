@@ -498,7 +498,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeModeration || all) {
-                promises.push(import("../moderation/index.ts").then((m) => m.extendMatrixClient()));
+                promises.push(import("../moderation/index").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeTimeline || all) {
@@ -510,15 +510,15 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeKeyBackup || all) {
-                promises.push(import("../key-backup/index.ts").then((m) => m.extendMatrixClient()));
+                promises.push(import("../key-backup/index").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeFeatureFlag || all) {
-                promises.push(import("../feature-flags/index.ts").then((m) => m.extendMatrixClient()));
+                promises.push(import("../feature-flags/index").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeEventReport || all) {
-                promises.push(import("../event-report/index.ts").then((m) => m.extendMatrixClient()));
+                promises.push(import("../event-report/index").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeBurnAfterRead || all) {

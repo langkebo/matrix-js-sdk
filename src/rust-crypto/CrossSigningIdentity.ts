@@ -21,11 +21,11 @@ import {
 } from "@matrix-org/matrix-sdk-crypto-wasm";
 
 import type * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
-import { type BootstrapCrossSigningOpts } from "../crypto-api/index.ts";
-import { type Logger } from "../logger.ts";
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor.ts";
-import { type UIAuthCallback } from "../interactive-auth.ts";
-import { type ServerSideSecretStorage } from "../secret-storage.ts";
+import { type BootstrapCrossSigningOpts } from "../crypto-api/index";
+import { type Logger } from "../logger";
+import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { type UIAuthCallback } from "../interactive-auth";
+import { type ServerSideSecretStorage } from "../secret-storage";
 
 /** Manages the cross-signing keys for our own user.
  *

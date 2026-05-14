@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { ToDeviceMessageId } from "./@types/event.ts";
-import { type Logger } from "./logger.ts";
-import { type MatrixClient, ClientEvent } from "./client.ts";
-import { type MatrixError } from "./http-api/index.ts";
+import { ToDeviceMessageId } from "./@types/event";
+import { type Logger } from "./logger";
+import { type MatrixClient, ClientEvent } from "./client";
+import { type MatrixError } from "./http-api/index";
 import {
     type IndexedToDeviceBatch,
     type ToDeviceBatch,
     type ToDeviceBatchWithTxnId,
     type ToDevicePayload,
-} from "./models/ToDeviceMessage.ts";
-import { MatrixScheduler } from "./scheduler.ts";
-import { SyncState } from "./sync.ts";
-import { MapWithDefault } from "./utils.ts";
+} from "./models/ToDeviceMessage";
+import { MatrixScheduler } from "./scheduler";
+import { SyncState } from "./sync";
+import { MapWithDefault } from "./utils";
 
 const MAX_BATCH_SIZE = 20;
 

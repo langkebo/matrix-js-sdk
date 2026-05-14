@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MsgType } from "./@types/event.ts";
-import { type IMessageRendering } from "./@types/extensible_events.ts";
-import { type MRoomTopicEventContent, type MTopicContent, M_TOPIC, type MTopicEvent } from "./@types/topic.ts";
-import { type RoomMessageEventContent } from "./@types/events.ts";
-import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types/beacon.ts";
+import { MsgType } from "./@types/event";
+import { type IMessageRendering } from "./@types/extensible_events";
+import { type MRoomTopicEventContent, type MTopicContent, M_TOPIC, type MTopicEvent } from "./@types/topic";
+import { type RoomMessageEventContent } from "./@types/events";
+import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types/beacon";
 
 /**
  * Utility to check if a value is provided (not null or undefined)

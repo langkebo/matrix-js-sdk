@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { BaseManager } from "../managers/base-manager";
 import {
     type IDeviceSigningVerificationAcceptRequest,
     type IDeviceSigningVerificationAcceptResponse,
@@ -42,8 +43,10 @@ type VerificationApiVersion = "v1" | "r0";
 const DEFAULT_CANCEL_CODE = "m.user";
 const DEFAULT_CANCEL_REASON = "Cancelled by user";
 
-export class KeyVerificationManager {
-    constructor(private client: MatrixClient) {}
+export class KeyVerificationManager extends BaseManager {
+    constructor(client: MatrixClient) {
+        super(client);
+    }
 
     /**
      * Request verification

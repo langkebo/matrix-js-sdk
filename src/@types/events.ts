@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type MsgType, type RelationType } from "./event.ts";
-import { type FileInfo, type ImageInfo, type MediaEventContent } from "./media.ts";
-import { type XOR } from "./common.ts";
+import { type MsgType, type RelationType } from "./event";
+import { type FileInfo, type ImageInfo, type MediaEventContent } from "./media";
+import { type XOR } from "./common";
 
 interface BaseTimelineEvent {
     "body": string;

@@ -18,10 +18,10 @@ limitations under the License.
  * This is an internal module. See {@link MatrixHttpApi} for the public class.
  */
 
-import { checkObjectHasKeys, deepCopy, encodeParams } from "../utils.ts";
-import { type TypedEventEmitter } from "../models/typed-event-emitter.ts";
-import { Method } from "./method.ts";
-import { ConnectionError, MatrixError, TokenRefreshError } from "./errors.ts";
+import { checkObjectHasKeys, deepCopy, encodeParams } from "../utils";
+import { type TypedEventEmitter } from "../models/typed-event-emitter";
+import { Method } from "./method";
+import { ConnectionError, MatrixError, TokenRefreshError } from "./errors";
 import {
     type BaseRequestOpts,
     HttpApiEvent,
@@ -29,10 +29,10 @@ import {
     type IHttpOpts,
     type IRequestOpts,
     type Body,
-} from "./interface.ts";
-import { anySignal, parseErrorResponse, timeoutSignal } from "./utils.ts";
-import { type QueryDict } from "../utils.ts";
-import { TokenRefresher, TokenRefreshOutcome } from "./refresh.ts";
+} from "./interface";
+import { anySignal, parseErrorResponse, timeoutSignal } from "./utils";
+import { type QueryDict } from "../utils";
+import { TokenRefresher, TokenRefreshOutcome } from "./refresh";
 
 export class FetchHttpApi<O extends IHttpOpts> {
     private abortController = new AbortController();

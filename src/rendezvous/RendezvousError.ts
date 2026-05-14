@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { type RendezvousFailureReason } from "./index.ts";
+import { type RendezvousFailureReason } from "./index";
 
 export class RendezvousError extends Error {
     public constructor(

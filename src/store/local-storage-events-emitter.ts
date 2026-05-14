@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { TypedEventEmitter } from "../models/typed-event-emitter.ts";
+import { TypedEventEmitter } from "../models/typed-event-emitter";
 
 export enum LocalStorageErrors {
     Global = "Global",

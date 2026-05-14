@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixClient } from "../client.ts";
-import { Method } from "../http-api/method.ts";
-import { ClientPrefix } from "../http-api/prefix.ts";
-import { BaseManager } from "../managers/base-manager.ts";
-import type { OpenclawPathPattern } from "./__generated__/route-table.ts";
+import { MatrixClient } from "../client";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { BaseManager } from "../managers/base-manager";
+import type { OpenclawPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IOpenClawConnection {
