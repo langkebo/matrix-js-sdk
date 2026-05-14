@@ -90,22 +90,17 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
     }
 
     public async getServerRetentionPolicy(): Promise<RetentionPolicy> {
-        return this.withRetry(async () => {
-            const response = await this.adminRequest<RetentionPolicy>(Method.Get, "/retention/policy");
-            return response;
-        }, "getServerRetentionPolicy");
+        return await this.adminRequest<RetentionPolicy>(Method.Get, "/retention/policy", undefined, undefined, "getServerRetentionPolicy");
     }
 
     public async setServerRetentionPolicy(policy: RetentionPolicy): Promise<RetentionPolicy> {
-        return this.withRetry(async () => {
-            const response = await this.adminRequest<RetentionPolicy>(Method.Post, "/retention/policy", undefined, {
-                max_lifetime: policy.max_lifetime ?? null,
-                min_lifetime: policy.min_lifetime ?? null,
-                expire_on_clients: policy.expire_on_clients ?? false,
-            });
-            this.emit("serverPolicyUpdated", { policy: response });
-            return response;
+        const response = await this.adminRequest<RetentionPolicy>(Method.Post, "/retention/policy", undefined, {
+            max_lifetime: policy.max_lifetime ?? null,
+            min_lifetime: policy.min_lifetime ?? null,
+            expire_on_clients: policy.expire_on_clients ?? false,
         }, "setServerRetentionPolicy");
+        this.emit("serverPolicyUpdated", { policy: response });
+        return response;
     }
 
     public async getRoomRetentionPolicy(roomId: string): Promise<RetentionPolicy & { room_id: string }> {
@@ -113,13 +108,13 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
             throw new InvalidParamError("roomId is required");
         }
 
-        return this.withRetry(async () => {
-            const response = await this.adminRequest<RetentionPolicy & { room_id: string }>(
-                Method.Get,
-                `/retention/policy/${encodeURIComponent(roomId)}`,
-            );
-            return response;
-        }, "getRoomRetentionPolicy");
+        return await this.adminRequest<RetentionPolicy & { room_id: string }>(
+            Method.Get,
+            `/retention/policy/${encodeURIComponent(roomId)}`,
+            undefined,
+            undefined,
+            "getRoomRetentionPolicy",
+        );
     }
 
     public async setRoomRetentionPolicy(
@@ -130,45 +125,40 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
             throw new InvalidParamError("roomId is required");
         }
 
-        return this.withRetry(async () => {
-            const response = await this.adminRequest<RetentionPolicy & { room_id: string }>(
-                Method.Post,
-                `/retention/policy/${encodeURIComponent(roomId)}`,
-                undefined,
-                {
-                    max_lifetime: policy.max_lifetime ?? null,
-                    min_lifetime: policy.min_lifetime ?? null,
-                    expire_on_clients: policy.expire_on_clients ?? false,
-                },
-            );
-            this.emit("retentionPolicyUpdated", { roomId, policy: response });
-            return response;
-        }, "setRoomRetentionPolicy");
+        const response = await this.adminRequest<RetentionPolicy & { room_id: string }>(
+            Method.Post,
+            `/retention/policy/${encodeURIComponent(roomId)}`,
+            undefined,
+            {
+                max_lifetime: policy.max_lifetime ?? null,
+                min_lifetime: policy.min_lifetime ?? null,
+                expire_on_clients: policy.expire_on_clients ?? false,
+            },
+            "setRoomRetentionPolicy",
+        );
+        this.emit("retentionPolicyUpdated", { roomId, policy: response });
+        return response;
     }
 
     public async runRetention(roomId?: string): Promise<IRetentionRunResult> {
-        return this.withRetry(async () => {
-            const body: Record<string, unknown> = {};
-            if (roomId) {
-                body.room_id = roomId;
-            }
+        const body: Record<string, unknown> = {};
+        if (roomId) {
+            body.room_id = roomId;
+        }
 
-            const response = await this.adminRequest<IRetentionRunResult>(
-                Method.Post,
-                "/retention/run",
-                undefined,
-                body,
-            );
-            this.emit("retentionRunCompleted", { result: response });
-            return response;
-        }, "runRetention");
+        const response = await this.adminRequest<IRetentionRunResult>(
+            Method.Post,
+            "/retention/run",
+            undefined,
+            body,
+            "runRetention",
+        );
+        this.emit("retentionRunCompleted", { result: response });
+        return response;
     }
 
     public async getRetentionStatus(): Promise<IRetentionStatus> {
-        return this.withRetry(
-            () => this.adminRequest<IRetentionStatus>(Method.Get, "/retention/status"),
-            "getRetentionStatus",
-        );
+        return await this.adminRequest<IRetentionStatus>(Method.Get, "/retention/status", undefined, undefined, "getRetentionStatus");
     }
 
     public getRoomRetentionState(roomId: string): RetentionState {
@@ -236,21 +226,6 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         const remaining = state.policy.max_lifetime - age;
 
         return remaining > 0 ? remaining : 0;
-    }
-
-    private async adminRequest<T>(
-        method: Method,
-        path: string,
-        queryParams?: Record<string, unknown>,
-        body?: Record<string, unknown>,
-    ): Promise<T> {
-        return this.client.http.authedRequest<T>(
-            method,
-            `/_synapse/admin/v1${path}`,
-            queryParams as Record<string, string> | undefined,
-            body,
-            { prefix: "" },
-        );
     }
 }
 

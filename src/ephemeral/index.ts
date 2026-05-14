@@ -33,7 +33,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
-import { SdkError, ValidationError } from "../errors";
+import { ValidationError } from "../errors";
 import type { EphemeralPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -222,9 +222,6 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
         this.ephemeralEventsCache.clear();
     }
 
-    protected normalizeError(error: unknown, method: string): SdkError {
-        return super.normalizeError(error, method);
-    }
 }
 
 declare module "../client.ts" {

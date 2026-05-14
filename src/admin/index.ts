@@ -30,7 +30,6 @@ limitations under the License.
 import { Method } from "../http-api/method";
 import { MatrixError } from "../http-api/errors";
 import { logger } from "../logger";
-import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError, ValidationError } from "../errors";
@@ -38,17 +37,11 @@ import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "./validators";
 import { buildPaginationParams, buildSearchParams, buildQueryParams } from "./utils";
 import type { AdminPath, AdminPathPattern, AdminReplaceBraces, ADMIN_ROUTES } from "./__generated__/route-table";
-import type { ModulePathPattern } from "../module/__generated__/route-table";
 
 type StripAdminPath<P extends string> =
     P extends `/_synapse/admin${infer Rest}` ? Rest : never;
-type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? `/v1${Rest}` : never;
 
 function ap(path: string): string {
-    return path;
-}
-
-function mp<P extends StripAdminV1<ModulePathPattern>>(path: P): P {
     return path;
 }
 
@@ -534,16 +527,6 @@ interface AdminManagerEventMap {
     [AdminEvent.AdminError]: (error: Error) => void;
 }
 
-/**
- * Admin Manager - 管理员 API 封装
- *
- * ⚠️ 重要：URL 组装规则
- * prefix 配置为 "/_synapse/admin"，path 传版本化相对路径（如 /v1/...、/v2/...）
- * 正确: prefix="/_synapse/admin", path="/v1/users"
- * 错误: prefix="/_synapse/admin/v1", path="/v2/users" (会拼成 /v1/v2/...)
- */
-const ADMIN_PREFIX = "/_synapse/admin";
-
 export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> {
     private serverStats: ServerStats | null = null;
 
@@ -551,53 +534,41 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         super(client);
     }
 
-    /**
-     * 发起带前缀的 Admin API 请求
-     *
-     * @param method - HTTP 方法
-     * @param path - 相对路径（不带前缀）
-     * @param queryParams - 查询参数
-     * @param body - 请求体
-     * @returns 响应数据
-     */
-    private async adminRequest<T>(
+    protected async adminRequest<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string | string[]>,
-        body?: Body,
-        methodName?: string,
+        body?: Record<string, unknown>,
+        label?: string,
     ): Promise<T> {
         try {
-            return (await this.client.http.authedRequest(method, path, queryParams ?? {}, body, {
-                prefix: ADMIN_PREFIX,
-            })) as Promise<T>;
+            return await super.adminRequest<T>(method, path, queryParams, body, label);
         } catch (err) {
-            const error = this.normalizeError(err, methodName ?? "unknown");
+            const error = this.normalizeError(err, label ?? "unknown");
             this.emit(AdminEvent.AdminError, error);
             throw error;
         }
     }
 
-    /**
-     * 发起不追加 Admin 前缀的认证请求。
-     *
-     * 用于访问完整路径形式的 Matrix Client API / Federation API 等端点。
-     */
-    private async rawRequest<T>(
+    private async v2Request<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string | string[]>,
-        body?: Body,
-        methodName?: string,
-        rawResponseBody = false,
+        body?: Record<string, unknown>,
+        label?: string,
     ): Promise<T> {
         try {
-            return (await this.client.http.authedRequest(method, path, queryParams ?? {}, body, {
-                prefix: "",
-                rawResponseBody,
-            })) as Promise<T>;
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<T>(
+                    method,
+                    path,
+                    queryParams,
+                    body,
+                    { prefix: "/_synapse/admin" },
+                );
+            }, label ?? "v2Request");
         } catch (err) {
-            const error = this.normalizeError(err, methodName ?? "unknown");
+            const error = this.normalizeError(err, label ?? "unknown");
             this.emit(AdminEvent.AdminError, error);
             throw error;
         }
@@ -684,7 +655,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             total?: number;
         };
         try {
-            response = await this.adminRequest<{
+            response = await this.v2Request<{
                 users: UserInfo[];
                 next_token?: string;
                 total?: number;
@@ -696,7 +667,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                     users: UserInfo[];
                     next_token?: string;
                     total?: number;
-                }>(Method.Get, "/v1/users", buildQueryParams(queryParams));
+                }>(Method.Get, "/users", buildQueryParams(queryParams));
             } else {
                 throw e;
             }
@@ -740,7 +711,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
         try {
             try {
-                return await this.adminRequest<UserInfo>(
+                return await this.v2Request<UserInfo>(
                     Method.Get,
                     `/v2/users/${encodeURIComponent(userId)}`,
                     undefined,
@@ -752,7 +723,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
                     return await this.adminRequest<UserInfo>(
                         Method.Get,
-                        `/v1/users/${encodeURIComponent(userId)}`,
+                        `/users/${encodeURIComponent(userId)}`,
                         undefined,
                         undefined,
                         "getUser",
@@ -815,7 +786,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     ): Promise<UserInfo> {
         AdminValidators.validateUserId(userId);
 
-        const user = await this.adminRequest<UserInfo>(
+        const user = await this.v2Request<UserInfo>(
             Method.Put,
             `/v2/users/${encodeURIComponent(userId)}`,
             undefined,
@@ -834,18 +805,18 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async deactivateUser(userId: string, _erase?: boolean): Promise<void> {
         AdminValidators.validateUserId(userId);
 
-        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/deactivate`);
+        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/deactivate`);
         this.emit(AdminEvent.UserDeactivated, userId);
     }
 
     async deleteUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
         try {
-            await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}`);
+            await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}`);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Delete, `/v2/users/${encodeURIComponent(userId)}`);
+                await this.v2Request(Method.Delete, `/v2/users/${encodeURIComponent(userId)}`);
                 return;
             }
             throw e;
@@ -853,11 +824,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     async batchCreateUsers(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return await this.adminRequest(Method.Post, "/v1/users/batch", {}, payload);
+        return await this.adminRequest(Method.Post, "/users/batch", {}, payload);
     }
 
     async batchDeactivateUsers(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return await this.adminRequest(Method.Post, "/v1/users/batch_deactivate", {}, payload);
+        return await this.adminRequest(Method.Post, "/users/batch_deactivate", {}, payload);
     }
 
     /**
@@ -868,7 +839,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async resetPassword(userId: string, newPassword: string): Promise<void> {
         AdminValidators.validateUserId(userId);
 
-        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/password`, undefined, {
+        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/password`, undefined, {
             new_password: newPassword,
         });
     }
@@ -879,7 +850,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async setAdmin(userId: string, admin: boolean): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Put, `/v1/users/${encodeURIComponent(userId)}/admin`, undefined, { admin });
+        await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/admin`, undefined, { admin });
     }
 
     /**
@@ -908,12 +879,12 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         try {
             response = await this.adminRequest<{ devices: DeviceInfo[] }>(
                 Method.Get,
-                `/v1/users/${encodeURIComponent(userId)}/devices`,
+                `/users/${encodeURIComponent(userId)}/devices`,
             );
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                response = await this.adminRequest<{ devices: DeviceInfo[] }>(
+                response = await this.v2Request<{ devices: DeviceInfo[] }>(
                     Method.Get,
                     `/v2/users/${encodeURIComponent(userId)}/devices`,
                 );
@@ -950,7 +921,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!deviceIds || deviceIds.length === 0) {
             throw new ValidationError("Device IDs list cannot be empty");
         }
-        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/devices/delete`, undefined, {
+        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/devices/delete`, undefined, {
             devices: deviceIds,
         });
     }
@@ -965,13 +936,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         if (!deviceId) throw new ValidationError("Device ID is required");
         try {
-            await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`);
+            await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(
                     Method.Post,
-                    `/v1/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}/delete`,
+                    `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}/delete`,
                     {},
                     undefined,
                 );
@@ -985,7 +956,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ tokens?: Record<string, unknown>[] }>(
             Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/tokens`,
+            `/users/${encodeURIComponent(userId)}/tokens`,
         );
         return { tokens: response.tokens || [] };
     }
@@ -995,7 +966,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!tokenId) throw new ValidationError("Token ID is required");
         await this.adminRequest(
             Method.Delete,
-            `/v1/users/${encodeURIComponent(userId)}/tokens/${encodeURIComponent(tokenId)}`,
+            `/users/${encodeURIComponent(userId)}/tokens/${encodeURIComponent(tokenId)}`,
         );
     }
 
@@ -1003,7 +974,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ refresh_tokens?: Record<string, unknown>[] }>(
             Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/refresh_tokens`,
+            `/users/${encodeURIComponent(userId)}/refresh_tokens`,
         );
         return { refresh_tokens: response.refresh_tokens || [] };
     }
@@ -1013,49 +984,49 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!tokenId) throw new ValidationError("Token ID is required");
         await this.adminRequest(
             Method.Delete,
-            `/v1/users/${encodeURIComponent(userId)}/refresh_tokens/${encodeURIComponent(tokenId)}`,
+            `/users/${encodeURIComponent(userId)}/refresh_tokens/${encodeURIComponent(tokenId)}`,
         );
     }
 
     async getUserSession(userId: string): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Get, `/v1/user_sessions/${encodeURIComponent(userId)}`);
+        return await this.adminRequest(Method.Get, `/user_sessions/${encodeURIComponent(userId)}`);
     }
 
     async getUserRooms(userId: string, from?: string, limit?: number): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
         const query = buildPaginationParams(from, limit);
-        return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/rooms`, query);
+        return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rooms`, query);
     }
 
     async getUserStats(userId: string): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/stats`);
+        return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/stats`);
     }
 
     async listUserStats(from?: string, limit?: number): Promise<Record<string, unknown>> {
         const query = buildPaginationParams(from, limit);
-        return await this.adminRequest(Method.Get, "/v1/user_stats", query);
+        return await this.adminRequest(Method.Get, "/user_stats", query);
     }
 
     async invalidateUserSession(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Post, `/v1/user_sessions/${encodeURIComponent(userId)}/invalidate`, {}, undefined);
+        await this.adminRequest(Method.Post, `/user_sessions/${encodeURIComponent(userId)}/invalidate`, {}, undefined);
     }
 
     async loginAsUser(userId: string, payload?: Record<string, unknown>): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/login`, {}, payload ?? {});
+        return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/login`, {}, payload ?? {});
     }
 
     async logoutUser(userId: string, payload?: Record<string, unknown>): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/logout`, {}, payload ?? {});
+        return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/logout`, {}, payload ?? {});
     }
 
     async evictUser(userId: string, payload?: Record<string, unknown>): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/evict`, {}, payload ?? {});
+        return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/evict`, {}, payload ?? {});
     }
 
     /**
@@ -1068,7 +1039,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getAccountStatus(userId: string, throwOnError = true): Promise<AccountStatus | null> {
         AdminValidators.validateUserId(userId);
         try {
-            return await this.adminRequest<AccountStatus>(Method.Get, `/v1/account/${encodeURIComponent(userId)}`);
+            return await this.adminRequest<AccountStatus>(Method.Get, `/account/${encodeURIComponent(userId)}`);
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -1092,7 +1063,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         try {
             const response = await this.adminRequest<{ admin: boolean }>(
                 Method.Get,
-                `/v1/users/${encodeURIComponent(userId)}/admin`,
+                `/users/${encodeURIComponent(userId)}/admin`,
             );
             return response.admin;
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
@@ -1111,7 +1082,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @param userId - 用户 ID
      */
     async overrideRateLimit(userId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`);
+        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/override_ratelimit`);
     }
 
     /**
@@ -1125,7 +1096,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         try {
             return await this.adminRequest<{ overridden: boolean }>(
                 Method.Get,
-                `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`,
+                `/users/${encodeURIComponent(userId)}/override_ratelimit`,
             );
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
@@ -1145,7 +1116,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @param userId - 用户 ID
      */
     async deleteRateLimitOverride(userId: string): Promise<void> {
-        await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`);
+        await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/override_ratelimit`);
     }
 
     // ===== Retention Policy =====
@@ -1156,7 +1127,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @returns 保留策略
      */
     async getRetentionPolicy(): Promise<RetentionPolicy> {
-        return await this.adminRequest<RetentionPolicy>(Method.Get, ap("/v1/retention/policy"));
+        return await this.adminRequest<RetentionPolicy>(Method.Get, ap("/retention/policy"));
     }
 
     /**
@@ -1168,7 +1139,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         min_lifetime?: number | null;
         expire_on_clients?: boolean;
     }): Promise<RetentionPolicy> {
-        return await this.adminRequest<RetentionPolicy>(Method.Post, ap("/v1/retention/policy"), undefined, policy);
+        return await this.adminRequest<RetentionPolicy>(Method.Post, ap("/retention/policy"), undefined, policy);
     }
 
     /**
@@ -1179,7 +1150,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomRetentionPolicy>(
             Method.Get,
-            ap(`/v1/retention/policy/${encodeURIComponent(roomId)}`),
+            ap(`/retention/policy/${encodeURIComponent(roomId)}`),
         );
     }
 
@@ -1198,7 +1169,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomRetentionPolicy>(
             Method.Post,
-            ap(`/v1/retention/policy/${encodeURIComponent(roomId)}`),
+            ap(`/retention/policy/${encodeURIComponent(roomId)}`),
             undefined,
             policy,
         );
@@ -1214,7 +1185,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }): Promise<RetentionRunResult> {
         return await this.adminRequest<RetentionRunResult>(
             Method.Post,
-            ap("/v1/retention/run"),
+            ap("/retention/run"),
             undefined,
             options || {},
         );
@@ -1225,7 +1196,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 对接: GET /_synapse/admin/v1/retention/status
      */
     async getRetentionStatus(): Promise<RetentionStatus> {
-        return await this.adminRequest<RetentionStatus>(Method.Get, ap("/v1/retention/status"));
+        return await this.adminRequest<RetentionStatus>(Method.Get, ap("/retention/status"));
     }
 
     // Deprecated getRooms method
@@ -1294,7 +1265,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             rooms: RoomInfo[];
             next_token?: string;
             total?: number;
-        }>(Method.Get, "/v1/rooms", buildQueryParams(queryParams));
+        }>(Method.Get, "/rooms", buildQueryParams(queryParams));
 
         return {
             items: response.rooms || [],
@@ -1310,11 +1281,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 if (v !== undefined && v !== null) query[k] = String(v);
             }
         }
-        return await this.adminRequest(Method.Get, "/v1/rooms/search", query);
+        return await this.adminRequest(Method.Get, "/rooms/search", query);
     }
 
     async searchRoomsPost(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-        return await this.adminRequest(Method.Post, "/v1/rooms/search", {}, payload);
+        return await this.adminRequest(Method.Post, "/rooms/search", {}, payload);
     }
 
     /**
@@ -1326,7 +1297,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getRoom(roomId: string, throwOnError = true): Promise<RoomInfo | null> {
         AdminValidators.validateRoomId(roomId);
         try {
-            return await this.adminRequest<RoomInfo>(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}`);
+            return await this.adminRequest<RoomInfo>(Method.Get, `/rooms/${encodeURIComponent(roomId)}`);
         } catch (e) {
             const err = e as MatrixError;
             if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) {
@@ -1360,18 +1331,18 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 body.reason = reason;
             }
         }
-        await this.adminRequest(Method.Delete, `/v1/rooms/${encodeURIComponent(roomId)}`, {}, body);
+        await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}`, {}, body);
         this.emit(AdminEvent.RoomDeleted, roomId);
     }
 
     async deleteRoomAdmin(roomId: string, payload?: Record<string, unknown>): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/delete`, {}, payload ?? {});
+        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/delete`, {}, payload ?? {});
     }
 
     async purgeRoomHistory(roomId: string, payload?: Record<string, unknown>): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/purge_history`, {}, payload ?? {});
+        return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/purge_history`, {}, payload ?? {});
     }
 
     /**
@@ -1387,13 +1358,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (reason) {
             body.reason = reason;
         }
-        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/block`, undefined, body);
+        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/block`, undefined, body);
         this.emit(AdminEvent.RoomBlocked, roomId, block);
     }
 
     async unblockRoom(roomId: string, payload?: Record<string, unknown>): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/unblock`, {}, payload ?? {});
+        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/unblock`, {}, payload ?? {});
     }
 
     /**
@@ -1406,7 +1377,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateRoomId(roomId);
         const response = await this.adminRequest<{ members: UserInfo[] }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/members`,
+            `/rooms/${encodeURIComponent(roomId)}/members`,
         );
         return response.members || [];
     }
@@ -1416,7 +1387,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Put,
-            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
             {},
             payload ?? {},
         );
@@ -1427,7 +1398,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Delete,
-            `/v1/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
             {},
             undefined,
         );
@@ -1438,7 +1409,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/ban/${encodeURIComponent(userId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/ban/${encodeURIComponent(userId)}`,
             {},
             payload ?? {},
         );
@@ -1449,7 +1420,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/kick/${encodeURIComponent(userId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/kick/${encodeURIComponent(userId)}`,
             {},
             payload ?? {},
         );
@@ -1460,7 +1431,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
-            `/v1/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`,
             {},
             payload ?? {},
         );
@@ -1468,22 +1439,22 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async banRoom(roomId: string, payload: Record<string, unknown>): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/ban`, {}, payload);
+        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/ban`, {}, payload);
     }
 
     async kickRoom(roomId: string, payload: Record<string, unknown>): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/kick`, {}, payload);
+        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/kick`, {}, payload);
     }
 
     async makeRoomAdmin(roomId: string, payload: Record<string, unknown>): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         try {
-            await this.adminRequest(Method.Put, `/v1/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
+            await this.adminRequest(Method.Put, `/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
+                await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
                 return;
             }
             throw e;
@@ -1500,7 +1471,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateRoomId(roomId);
         const response = await this.adminRequest<{ state: RoomStateEvent[] }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/state`,
+            `/rooms/${encodeURIComponent(roomId)}/state`,
         );
         return { state: response.state || [] };
     }
@@ -1530,7 +1501,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         }
         const response = await this.adminRequest<{ chunk?: RoomMessage[]; start?: string; end?: string; messages?: RoomMessage[] }>(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/messages`,
+            `/rooms/${encodeURIComponent(roomId)}/messages`,
             queryParams,
         );
         return {
@@ -1558,7 +1529,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         }
         await this.adminRequest(
             Method.Delete,
-            `/v1/rooms/${encodeURIComponent(roomId)}/messages/${encodeURIComponent(eventId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/messages/${encodeURIComponent(eventId)}`,
             undefined,
             body,
         );
@@ -1589,7 +1560,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             }
         }
         const queryParams = buildPaginationParams(from, limit);
-        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(Method.Get, "/v1/media", queryParams);
+        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(Method.Get, "/media", queryParams);
         return { media: response.media || [], next_token: response.next_token };
     }
 
@@ -1603,11 +1574,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return await this.adminRequest<MediaInfo>(Method.Get, `/v1/media/${encodeURIComponent(mediaId)}`);
+        return await this.adminRequest<MediaInfo>(Method.Get, `/media/${encodeURIComponent(mediaId)}`);
     }
 
     async getMediaQuota(): Promise<Record<string, unknown>> {
-        return await this.adminRequest(Method.Get, "/v1/media/quota");
+        return await this.adminRequest(Method.Get, "/media/quota");
     }
 
     /**
@@ -1619,7 +1590,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        await this.adminRequest(Method.Delete, `/v1/media/${encodeURIComponent(mediaId)}`);
+        await this.adminRequest(Method.Delete, `/media/${encodeURIComponent(mediaId)}`);
     }
 
     async getUserMedia(
@@ -1631,7 +1602,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         const queryParams = buildPaginationParams(from, limit);
         const response = await this.adminRequest<{ media?: MediaInfo[]; next_token?: string }>(
             Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/media`,
+            `/users/${encodeURIComponent(userId)}/media`,
             queryParams,
         );
         return {
@@ -1642,7 +1613,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async deleteUserMedia(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/media`);
+        await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/media`);
     }
 
     /**
@@ -1654,7 +1625,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        await this.adminRequest(Method.Post, `/v1/media/${encodeURIComponent(mediaId)}/quarantine`);
+        await this.adminRequest(Method.Post, `/media/${encodeURIComponent(mediaId)}/quarantine`);
     }
 
     /**
@@ -1666,7 +1637,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        await this.adminRequest(Method.Post, `/v1/media/${encodeURIComponent(mediaId)}/unquarantine`);
+        await this.adminRequest(Method.Post, `/media/${encodeURIComponent(mediaId)}/unquarantine`);
     }
 
     /**
@@ -1677,11 +1648,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getServerStats(): Promise<ServerStats> {
         let stats: ServerStats;
         try {
-            stats = await this.adminRequest<ServerStats>(Method.Get, "/v1/statistics");
+            stats = await this.adminRequest<ServerStats>(Method.Get, "/statistics");
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                stats = await this.adminRequest<ServerStats>(Method.Get, "/v1/server_stats");
+                stats = await this.adminRequest<ServerStats>(Method.Get, "/server_stats");
             } else {
                 throw e;
             }
@@ -1706,7 +1677,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @returns 服务器状态
      */
     async getServerStatus(): Promise<ServerStatus> {
-        return await this.adminRequest<ServerStatus>(Method.Get, "/v1/status");
+        return await this.adminRequest<ServerStatus>(Method.Get, "/status");
     }
 
     /**
@@ -1716,11 +1687,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async getServerHealth(): Promise<ServerHealth> {
         try {
-            return await this.adminRequest<ServerHealth>(Method.Get, "/v1/health");
+            return await this.adminRequest<ServerHealth>(Method.Get, "/health");
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest<ServerHealth>(Method.Get, "/v1/server_health");
+                return await this.adminRequest<ServerHealth>(Method.Get, "/server_health");
             }
             throw e;
         }
@@ -1733,11 +1704,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async getServerInfo(): Promise<ServerInfo> {
         try {
-            return await this.adminRequest<ServerInfo>(Method.Get, "/v1/info");
+            return await this.adminRequest<ServerInfo>(Method.Get, "/info");
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest<ServerInfo>(Method.Get, "/v1/server_info");
+                return await this.adminRequest<ServerInfo>(Method.Get, "/server_info");
             }
             throw e;
         }
@@ -1762,7 +1733,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         delete_old_rooms?: boolean;
         delete_old_users?: boolean;
     }): Promise<AdminCleanupResponse> {
-        return await this.adminRequest<AdminCleanupResponse>(Method.Post, "/v1/cleanup", undefined, options || {});
+        return await this.adminRequest<AdminCleanupResponse>(Method.Post, "/cleanup", undefined, options || {});
     }
 
     /**
@@ -1786,7 +1757,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         const queryParams = buildPaginationParams(from, localLimit);
         const response = await this.adminRequest<{ notices: ServerNotice[]; next_token?: string }>(
             Method.Get,
-            "/v1/server_notices",
+            "/server_notices",
             queryParams,
         );
         return { notices: response.notices || [], next_token: response.next_token };
@@ -1809,7 +1780,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 user_id: arg1,
                 content: arg2,
             };
-            return await this.adminRequest<{ event_id?: string }>(Method.Post, "/v1/send_server_notice", {}, body);
+            return await this.adminRequest<{ event_id?: string }>(Method.Post, "/send_server_notice", {}, body);
         }
         const body: { content: string; type?: string; target_users?: string[] } = { content: arg1 };
         if (typeof arg2 === "string") {
@@ -1818,7 +1789,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (arg3) {
             body.target_users = arg3;
         }
-        return await this.adminRequest<{ event_id?: string }>(Method.Post, "/v1/server_notices", {}, body);
+        return await this.adminRequest<{ event_id?: string }>(Method.Post, "/server_notices", {}, body);
     }
 
     /**
@@ -1830,17 +1801,17 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!notificationId) {
             throw new ValidationError("Notification ID is required");
         }
-        await this.adminRequest(Method.Delete, `/v1/server_notices/${encodeURIComponent(notificationId)}`);
+        await this.adminRequest(Method.Delete, `/server_notices/${encodeURIComponent(notificationId)}`);
     }
 
     async getServerNotice(noticeId: string): Promise<ServerNotice> {
         if (!noticeId) throw new ValidationError("Notice ID is required");
-        return await this.adminRequest(Method.Get, `/v1/server_notices/${encodeURIComponent(noticeId)}`);
+        return await this.adminRequest(Method.Get, `/server_notices/${encodeURIComponent(noticeId)}`);
     }
 
     async listNotifications(from?: string, limit?: number): Promise<SystemNotificationPage> {
         const queryParams = buildPaginationParams(from, limit);
-        const response = await this.adminRequest<SystemNotificationPage>(Method.Get, "/v1/notifications", queryParams);
+        const response = await this.adminRequest<SystemNotificationPage>(Method.Get, "/notifications", queryParams);
         return {
             notifications: response.notifications || [],
             next_token: response.next_token,
@@ -1848,13 +1819,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     async createNotification(payload: Record<string, unknown>): Promise<SystemNotificationInfo> {
-        return await this.adminRequest<SystemNotificationInfo>(Method.Post, "/v1/notifications", {}, payload);
+        return await this.adminRequest<SystemNotificationInfo>(Method.Post, "/notifications", {}, payload);
     }
 
     async listActiveNotifications(): Promise<SystemNotificationInfo[]> {
         const response = await this.adminRequest<{ notifications?: SystemNotificationInfo[] }>(
             Method.Get,
-            "/v1/notifications/active",
+            "/notifications/active",
         );
         return response.notifications || [];
     }
@@ -1863,7 +1834,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<SystemNotificationInfo>(
             Method.Get,
-            `/v1/notifications/${encodeURIComponent(notificationId)}`,
+            `/notifications/${encodeURIComponent(notificationId)}`,
         );
     }
 
@@ -1871,7 +1842,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<SystemNotificationInfo>(
             Method.Put,
-            `/v1/notifications/${encodeURIComponent(notificationId)}`,
+            `/notifications/${encodeURIComponent(notificationId)}`,
             {},
             payload,
         );
@@ -1879,29 +1850,29 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async deactivateNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        await this.adminRequest(Method.Put, `/v1/notifications/${encodeURIComponent(notificationId)}/deactivate`, {}, undefined);
+        await this.adminRequest(Method.Put, `/notifications/${encodeURIComponent(notificationId)}/deactivate`, {}, undefined);
     }
 
     async deleteNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        await this.adminRequest(Method.Delete, `/v1/notifications/${encodeURIComponent(notificationId)}`, {}, undefined);
+        await this.adminRequest(Method.Delete, `/notifications/${encodeURIComponent(notificationId)}`, {}, undefined);
     }
 
     async getUserNotification(userId: string): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/notification`);
+        return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/notification`);
     }
 
     async setUserNotification(userId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Put, `/v1/users/${encodeURIComponent(userId)}/notification`, {}, payload);
+        return await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/notification`, {}, payload);
     }
 
     async getUserPushers(userId: string): Promise<{ pushers: UserPusher[] }> {
         AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ pushers?: UserPusher[] }>(
             Method.Get,
-            `/v1/users/${encodeURIComponent(userId)}/pushers`,
+            `/users/${encodeURIComponent(userId)}/pushers`,
         );
         return { pushers: response.pushers || [] };
     }
@@ -1911,7 +1882,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!pushkey) throw new ValidationError("Pushkey is required");
         await this.adminRequest(
             Method.Delete,
-            `/v1/users/${encodeURIComponent(userId)}/pushers/${encodeURIComponent(pushkey)}`,
+            `/users/${encodeURIComponent(userId)}/pushers/${encodeURIComponent(pushkey)}`,
             {},
             undefined,
         );
@@ -1925,7 +1896,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getFederationBlacklist(): Promise<FederationBlacklistEntry[]> {
         const response = await this.adminRequest<{ blacklist: FederationBlacklistEntry[] }>(
             Method.Get,
-            "/v1/federation/blacklist",
+            "/federation/blacklist",
         );
         return response.blacklist || [];
     }
@@ -1944,7 +1915,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (reason) {
             body.reason = reason;
         }
-        await this.adminRequest(Method.Post, "/v1/federation/blacklist", undefined, body);
+        await this.adminRequest(Method.Post, "/federation/blacklist", undefined, body);
     }
 
     /**
@@ -1956,7 +1927,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
-        await this.adminRequest(Method.Delete, `/v1/federation/blacklist/${encodeURIComponent(serverName)}`);
+        await this.adminRequest(Method.Delete, `/federation/blacklist/${encodeURIComponent(serverName)}`);
     }
 
     /**
@@ -1967,7 +1938,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getFederationDestinations(): Promise<FederationDestination[]> {
         const response = await this.adminRequest<{ destinations: FederationDestination[] }>(
             Method.Get,
-            "/v1/federation/destinations",
+            "/federation/destinations",
         );
         return response.destinations || [];
     }
@@ -1977,7 +1948,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 对接: GET /_synapse/admin/v1/federation/cache
      */
     async getFederationCache(): Promise<any> {
-        return await this.adminRequest(Method.Get, ap("/v1/federation/cache"));
+        return await this.adminRequest(Method.Get, ap("/federation/cache"));
     }
 
     /**
@@ -1985,7 +1956,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 对接: POST /_synapse/admin/v1/federation/cache/clear
      */
     async clearFederationCache(): Promise<void> {
-        await this.adminRequest(Method.Post, ap("/v1/federation/cache/clear"));
+        await this.adminRequest(Method.Post, ap("/federation/cache/clear"));
     }
 
     /**
@@ -1998,7 +1969,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!key) {
             throw new ValidationError("Cache key is required");
         }
-        await this.adminRequest(Method.Delete, ap(`/v1/federation/cache/${encodeURIComponent(key)}`));
+        await this.adminRequest(Method.Delete, ap(`/federation/cache/${encodeURIComponent(key)}`));
     }
 
     /**
@@ -2010,7 +1981,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         try {
             const response = await this.adminRequest<{ admissions?: FederationAdmissionResult[]; pending?: FederationAdmissionResult[] }>(
                 Method.Get,
-                "/v1/federation/pending",
+                "/federation/pending",
             );
             return response.admissions || response.pending || [];
         } catch (e) {
@@ -2018,7 +1989,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
                 const fallback = await this.adminRequest<{ admissions?: FederationAdmissionResult[] }>(
                     Method.Get,
-                    "/v1/federation/admissions",
+                    "/federation/admissions",
                 );
                 return fallback.admissions || [];
             }
@@ -2038,7 +2009,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         try {
             return await this.adminRequest<PendingFederationList>(
                 Method.Get,
-                "/v1/federation/pending",
+                "/federation/pending",
                 queryParams,
             );
         } catch (e) {
@@ -2046,7 +2017,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
                 return await this.adminRequest<PendingFederationList>(
                     Method.Get,
-                    "/v1/federation/pending_servers",
+                    "/federation/pending_servers",
                     queryParams,
                 );
             }
@@ -2062,7 +2033,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getRegistrationTokens(): Promise<RegistrationToken[]> {
         const response = await this.adminRequest<{ registration_tokens: RegistrationToken[] }>(
             Method.Get,
-            "/v1/registration_tokens",
+            "/registration_tokens",
         );
         return response.registration_tokens || [];
     }
@@ -2084,7 +2055,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             typeof tokenOrPayload === "string"
                 ? { token: tokenOrPayload, uses_allowed: usesAllowed, expiry_ts: expiryTs }
                 : { ...tokenOrPayload };
-        return await this.adminRequest<RegistrationToken>(Method.Post, "/v1/registration_tokens", undefined, body);
+        return await this.adminRequest<RegistrationToken>(Method.Post, "/registration_tokens", undefined, body);
     }
 
     /**
@@ -2096,7 +2067,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!token) {
             throw new ValidationError("Token is required");
         }
-        await this.adminRequest(Method.Delete, `/v1/registration_tokens/${encodeURIComponent(token)}`);
+        await this.adminRequest(Method.Delete, `/registration_tokens/${encodeURIComponent(token)}`);
     }
 
     /**
@@ -2108,13 +2079,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async getRoomStats(from?: string, limit?: number): Promise<RoomStats[]> {
         const queryParams = buildPaginationParams(from, limit);
-        const response = await this.adminRequest<{ rooms: RoomStats[] }>(Method.Get, "/v1/room_stats", queryParams);
+        const response = await this.adminRequest<{ rooms: RoomStats[] }>(Method.Get, "/room_stats", queryParams);
         return response.rooms || [];
     }
 
     async getRoomStatsByRoom(roomId: string): Promise<RoomStats> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest<RoomStats>(Method.Get, `/v1/room_stats/${encodeURIComponent(roomId)}`);
+        return await this.adminRequest<RoomStats>(Method.Get, `/room_stats/${encodeURIComponent(roomId)}`);
     }
 
     /**
@@ -2125,7 +2096,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      */
     async getUserWhois(userId: string): Promise<WhoisResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest<WhoisResponse>(Method.Get, `/v1/whois/${encodeURIComponent(userId)}`);
+        return await this.adminRequest<WhoisResponse>(Method.Get, `/whois/${encodeURIComponent(userId)}`);
     }
 
     /**
@@ -2134,7 +2105,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @returns 功能标志列表
      */
     async getFeatureFlags(): Promise<FeatureFlagPage> {
-        return await this.adminRequest<FeatureFlagPage>(Method.Get, ap("/v1/feature_flags"));
+        return await this.adminRequest<FeatureFlagPage>(Method.Get, ap("/feature_flags"));
     }
 
     /**
@@ -2147,7 +2118,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!flagKey) {
             throw new ValidationError("Flag key is required");
         }
-        return await this.adminRequest<FeatureFlag>(Method.Get, ap(`/v1/feature_flags/${encodeURIComponent(flagKey)}`));
+        return await this.adminRequest<FeatureFlag>(Method.Get, ap(`/feature_flags/${encodeURIComponent(flagKey)}`));
     }
 
     /**
@@ -2187,7 +2158,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         };
         return await this.adminRequest<FeatureFlag>(
             Method.Put,
-            ap(`/v1/feature_flags/${encodeURIComponent(flagKey)}`),
+            ap(`/feature_flags/${encodeURIComponent(flagKey)}`),
             undefined,
             body,
         );
@@ -2202,25 +2173,25 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!flagKey) {
             throw new ValidationError("Flag key is required");
         }
-        await this.adminRequest(Method.Delete, ap(`/v1/feature_flags/${encodeURIComponent(flagKey)}`));
+        await this.adminRequest(Method.Delete, ap(`/feature_flags/${encodeURIComponent(flagKey)}`));
     }
 
     // ===== Compatibility wrappers / additional admin routes =====
     async shadowBanUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`, {}, undefined);
+        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/shadow_ban`, {}, undefined);
         this.emit(AdminEvent.UserShadowBanned, userId);
     }
 
     async unshadowBanUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`, {}, undefined);
+        await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/shadow_ban`, {}, undefined);
         this.emit(AdminEvent.UserUnshadowBanned, userId);
     }
 
     async getShadowBanStatus(userId: string, throwOnError = true): Promise<any | null> {
         try {
-            return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/shadow_ban`);
+            return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/shadow_ban`);
         } catch (e) {
             const err = e as MatrixError;
             if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) return null;
@@ -2230,7 +2201,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async getRateLimit(userId: string, throwOnError = true): Promise<any | null> {
         try {
-            return await this.adminRequest(Method.Get, `/v1/users/${encodeURIComponent(userId)}/rate_limit`);
+            return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rate_limit`);
         } catch (e) {
             if (throwOnError) {
                 throw e;
@@ -2249,11 +2220,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async setRateLimit(userId: string, config: { messages_per_second?: number; burst_count?: number }): Promise<void> {
         try {
-            await this.adminRequest(Method.Put, `/v1/users/${encodeURIComponent(userId)}/rate_limit`, {}, config);
+            await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/rate_limit`, {}, config);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Post, `/v1/users/${encodeURIComponent(userId)}/override_ratelimit`, {}, config);
+                await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/override_ratelimit`, {}, config);
                 return;
             }
             throw e;
@@ -2262,7 +2233,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async deleteRateLimit(userId: string): Promise<void> {
         try {
-            await this.adminRequest(Method.Delete, `/v1/users/${encodeURIComponent(userId)}/rate_limit`);
+            await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/rate_limit`);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
@@ -2274,22 +2245,22 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     async joinRoom(roomId: string, userId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/join`, {}, { user_id: userId });
+        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/join`, {}, { user_id: userId });
     }
 
     async getRoomAliases(roomId: string): Promise<{ aliases: string[] }> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/aliases`);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/aliases`);
     }
 
     async getRoomVersion(roomId: string): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/version`);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/version`);
     }
 
     async getRoomBlockStatus(roomId: string): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/block`);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/block`);
     }
 
     async getRoomEventContext(roomId: string, eventId: string): Promise<any> {
@@ -2297,48 +2268,48 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!eventId) throw new ValidationError("Event ID is required");
         return await this.adminRequest(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`,
         );
     }
 
     async getRoomForwardExtremities(roomId: string): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/forward_extremities`);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/forward_extremities`);
     }
 
     async getRoomTokenSync(roomId: string): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/token_sync`);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/token_sync`);
     }
 
     async searchRoomEvents(roomId: string, payload: Record<string, unknown>): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Post, `/v1/rooms/${encodeURIComponent(roomId)}/search`, {}, payload);
+        return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/search`, {}, payload);
     }
 
     async getRoomListings(roomId: string): Promise<any> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/listings`);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/listings`);
     }
 
     async setRoomPublicListing(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Put, `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
+        await this.adminRequest(Method.Put, `/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
     }
 
     async deleteRoomPublicListing(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Delete, `/v1/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
+        await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
     }
 
     async getServerConfig(throwOnError = true): Promise<Record<string, unknown>> {
         try {
-            return await this.adminRequest(Method.Get, "/v1/config");
+            return await this.adminRequest(Method.Get, "/config");
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
                 try {
-                    return await this.adminRequest(Method.Get, "/v1/server_config");
+                    return await this.adminRequest(Method.Get, "/server_config");
                 } catch (fallbackErr) {
                     if (!throwOnError) return {};
                     throw fallbackErr;
@@ -2355,7 +2326,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async getServerVersion(throwOnError = true): Promise<{ server_version: string; python_version: string }> {
         try {
-            return await this.adminRequest(Method.Get, "/v1/server_version");
+            return await this.adminRequest(Method.Get, "/server_version");
         } catch (e) {
             if (!throwOnError) return { server_version: "unknown", python_version: "unknown" };
             throw e;
@@ -2364,7 +2335,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async addToFederationBlacklist(serverName: string, reason?: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
-        await this.adminRequest(Method.Post, `/v1/federation/blacklist/${encodeURIComponent(serverName)}`, {}, reason ? { reason } : undefined);
+        await this.adminRequest(Method.Post, `/federation/blacklist/${encodeURIComponent(serverName)}`, {}, reason ? { reason } : undefined);
     }
 
     async removeFromFederationBlacklist(serverName: string): Promise<void> {
@@ -2372,12 +2343,12 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     async disconnectFederation(serverName: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`, {}, undefined);
+        await this.adminRequest(Method.Post, `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`, {}, undefined);
     }
 
     async getFederationDestination(serverName: string, throwOnError = true): Promise<any | null> {
         try {
-            return await this.adminRequest(Method.Get, `/v1/federation/destinations/${encodeURIComponent(serverName)}`);
+            return await this.adminRequest(Method.Get, `/federation/destinations/${encodeURIComponent(serverName)}`);
         } catch (e) {
             const err = e as MatrixError;
             if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) return null;
@@ -2396,7 +2367,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         const query: Record<string, string> = {};
         if (options?.from !== undefined) query.from = String(options.from);
         if (options?.limit !== undefined) query.limit = String(options.limit);
-        return await this.adminRequest(Method.Get, `/v1/federation/destinations/${encodeURIComponent(serverName)}/rooms`, query);
+        return await this.adminRequest(Method.Get, `/federation/destinations/${encodeURIComponent(serverName)}/rooms`, query);
     }
 
     async getAccountDetails(userId: string): Promise<any> {
@@ -2405,39 +2376,39 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async updateAccountDetails(userId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/v1/account/${encodeURIComponent(userId)}`, {}, payload);
+        return await this.adminRequest(Method.Post, `/account/${encodeURIComponent(userId)}`, {}, payload);
     }
 
     async getSpace(spaceId: string): Promise<any> {
         AdminValidators.validateRoomId(spaceId);
-        return await this.adminRequest(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}`);
+        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}`);
     }
 
     async listSpaces(from?: string, limit?: number): Promise<SpacePage> {
         const query = buildPaginationParams(from, limit);
-        return await this.adminRequest(Method.Get, "/v1/spaces", query);
+        return await this.adminRequest(Method.Get, "/spaces", query);
     }
 
     async deleteSpace(spaceId: string): Promise<void> {
         AdminValidators.validateRoomId(spaceId);
-        await this.adminRequest(Method.Delete, `/v1/spaces/${encodeURIComponent(spaceId)}`);
+        await this.adminRequest(Method.Delete, `/spaces/${encodeURIComponent(spaceId)}`);
     }
 
     async getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(from, limit);
-        return await this.adminRequest(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
+        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
     }
 
     async getSpaceStats(spaceId: string): Promise<Record<string, unknown>> {
         AdminValidators.validateRoomId(spaceId);
-        return await this.adminRequest(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}/stats`);
+        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/stats`);
     }
 
     async getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(from, limit);
-        return await this.adminRequest(Method.Get, `/v1/spaces/${encodeURIComponent(spaceId)}/users`, query);
+        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/users`, query);
     }
 
     async whois(userId: string): Promise<WhoisResponse> {
@@ -2447,7 +2418,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async whoisByDevice(userId: string, deviceId: string): Promise<any> {
         AdminValidators.validateUserId(userId);
         if (!deviceId) throw new ValidationError("Device ID is required");
-        return await this.adminRequest(Method.Get, `/v1/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`);
+        return await this.adminRequest(Method.Get, `/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`);
     }
 
     async purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }> {
@@ -2457,18 +2428,18 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
             }
         }
         const body = beforeTs !== undefined ? { before_ts: beforeTs } : {};
-        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/v1/purge_media_cache", {}, body);
+        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/purge_media_cache", {}, body);
         return { deleted: result.deleted ?? 0 };
     }
 
     async updateRegistrationToken(token: string, payload: { uses_allowed?: number; expiry_ts?: number }): Promise<void> {
         if (!token) throw new ValidationError("Token is required");
         try {
-            await this.adminRequest(Method.Post, `/v1/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
+            await this.adminRequest(Method.Post, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Put, `/v1/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
+                await this.adminRequest(Method.Put, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
                 return;
             }
             throw e;
@@ -2477,36 +2448,36 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
 
     async getRegistrationToken(token: string): Promise<RegistrationToken> {
         if (!token) throw new ValidationError("Token is required");
-        return await this.adminRequest(Method.Get, `/v1/registration_tokens/${encodeURIComponent(token)}`);
+        return await this.adminRequest(Method.Get, `/registration_tokens/${encodeURIComponent(token)}`);
     }
 
     async getRegisterNonce(): Promise<{ nonce: string }> {
-        return await this.adminRequest(Method.Get, "/v1/register/nonce");
+        return await this.adminRequest(Method.Get, "/register/nonce");
     }
 
     async registerAdmin(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/register", {}, payload);
+        return await this.adminRequest(Method.Post, "/register", {}, payload);
     }
 
     async listReports(options?: { from?: string; limit?: number }): Promise<any> {
         const query = buildPaginationParams(options?.from, options?.limit);
-        return await this.adminRequest(Method.Get, "/v1/reports", query);
+        return await this.adminRequest(Method.Get, "/reports", query);
     }
 
     async getReport(reportId: string): Promise<any> {
         if (!reportId) throw new ValidationError("Report ID is required");
-        return await this.adminRequest(Method.Get, `/v1/reports/${encodeURIComponent(reportId)}`);
+        return await this.adminRequest(Method.Get, `/reports/${encodeURIComponent(reportId)}`);
     }
 
     async deleteReport(reportId: string): Promise<void> {
         if (!reportId) throw new ValidationError("Report ID is required");
-        await this.adminRequest(Method.Delete, `/v1/reports/${encodeURIComponent(reportId)}`);
+        await this.adminRequest(Method.Delete, `/reports/${encodeURIComponent(reportId)}`);
     }
 
     async listRoomReports(roomId: string, options?: { from?: string; limit?: number }): Promise<any> {
         AdminValidators.validateRoomId(roomId);
         const query = buildPaginationParams(options?.from, options?.limit);
-        return await this.adminRequest(Method.Get, `/v1/rooms/${encodeURIComponent(roomId)}/reports`, query);
+        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/reports`, query);
     }
 
     async getRoomReport(roomId: string, reportId: string): Promise<any> {
@@ -2514,7 +2485,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!reportId) throw new ValidationError("Report ID is required");
         return await this.adminRequest(
             Method.Get,
-            `/v1/rooms/${encodeURIComponent(roomId)}/reports/${encodeURIComponent(reportId)}`,
+            `/rooms/${encodeURIComponent(roomId)}/reports/${encodeURIComponent(reportId)}`,
         );
     }
 
@@ -2525,16 +2496,16 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 if (v !== undefined && v !== null) query[k] = String(v);
             }
         }
-        return await this.adminRequest(Method.Get, "/v1/audit/events", query);
+        return await this.adminRequest(Method.Get, "/audit/events", query);
     }
 
     async getAuditEvent(eventId: string): Promise<any> {
         if (!eventId) throw new ValidationError("Event ID is required");
-        return await this.adminRequest(Method.Get, `/v1/audit/events/${encodeURIComponent(eventId)}`);
+        return await this.adminRequest(Method.Get, `/audit/events/${encodeURIComponent(eventId)}`);
     }
 
     async createAuditEvent(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/audit/events", {}, payload);
+        return await this.adminRequest(Method.Post, "/audit/events", {}, payload);
     }
 
     async listFeatureFlags(options?: Record<string, string | number | undefined>): Promise<any> {
@@ -2544,40 +2515,40 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
                 if (v !== undefined && v !== null) query[k] = String(v);
             }
         }
-        return await this.adminRequest(Method.Get, "/v1/feature-flags", query);
+        return await this.adminRequest(Method.Get, "/feature-flags", query);
     }
 
     async updateFeatureFlag(flagId: string, payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Patch, `/v1/feature-flags/${encodeURIComponent(flagId)}`, {}, payload);
+        return await this.adminRequest(Method.Patch, `/feature-flags/${encodeURIComponent(flagId)}`, {}, payload);
     }
 
     async resolveFederation(serverName: string): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/federation/resolve", {}, { server_name: serverName });
+        return await this.adminRequest(Method.Post, "/federation/resolve", {}, { server_name: serverName });
     }
 
     async rewriteFederation(from: string, to: string): Promise<any> {
         if (!from || !to) throw new ValidationError("from and to are required");
-        return await this.adminRequest(Method.Post, "/v1/federation/rewrite", {}, { from, to });
+        return await this.adminRequest(Method.Post, "/federation/rewrite", {}, { from, to });
     }
 
     async confirmFederation(payload: { server_name?: string; action?: string; reason?: string }): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/federation/confirm", {}, payload);
+        return await this.adminRequest(Method.Post, "/federation/confirm", {}, payload);
     }
 
     async deleteFederationDestination(serverName: string): Promise<void> {
-        await this.adminRequest(Method.Delete, `/v1/federation/destinations/${encodeURIComponent(serverName)}`, {}, undefined);
+        await this.adminRequest(Method.Delete, `/federation/destinations/${encodeURIComponent(serverName)}`, {}, undefined);
     }
 
     async resetFederationDestination(serverName: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
         try {
-            await this.adminRequest(Method.Post, `/v1/federation/destinations/${encodeURIComponent(serverName)}/reset`, {}, undefined);
+            await this.adminRequest(Method.Post, `/federation/destinations/${encodeURIComponent(serverName)}/reset`, {}, undefined);
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(
                     Method.Post,
-                    `/v1/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
+                    `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
                     {},
                     undefined,
                 );
@@ -2588,163 +2559,163 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }
 
     async blockEventReportUser(userId: string, payload: { blocked_until?: number; reason?: string }): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}/block`, {}, payload);
+        await this.adminRequest(Method.Post, `/event_reports/rate_limit/${encodeURIComponent(userId)}/block`, {}, payload);
     }
 
     async unblockEventReportUser(userId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`, {}, undefined);
+        await this.adminRequest(Method.Post, `/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`, {}, undefined);
     }
 
     async acknowledgeTelemetryAlert(alertId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/v1/telemetry/alerts/${encodeURIComponent(alertId)}/ack`, {}, undefined);
+        await this.adminRequest(Method.Post, `/telemetry/alerts/${encodeURIComponent(alertId)}/ack`, {}, undefined);
     }
 
     async listModules(options?: { limit?: number; from?: string }): Promise<any> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);
-        return await this.adminRequest(Method.Get, "/v1/modules", query);
+        return await this.adminRequest(Method.Get, "/modules", query);
     }
 
     async listModulesByType(moduleType: string): Promise<any> {
-        return await this.adminRequest(Method.Get, `/v1/modules/type/${encodeURIComponent(moduleType)}`);
+        return await this.adminRequest(Method.Get, `/modules/type/${encodeURIComponent(moduleType)}`);
     }
 
     async updateModuleConfig(moduleId: string, config: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Put, `/v1/modules/${encodeURIComponent(moduleId)}/config`, {}, { config });
+        return await this.adminRequest(Method.Put, `/modules/${encodeURIComponent(moduleId)}/config`, {}, { config });
     }
 
     async setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<any> {
-        return await this.adminRequest(Method.Post, `/v1/modules/${encodeURIComponent(moduleId)}/enable`, {}, { is_enabled: isEnabled });
+        return await this.adminRequest(Method.Post, `/modules/${encodeURIComponent(moduleId)}/enable`, {}, { is_enabled: isEnabled });
     }
 
     async getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<any> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);
-        return await this.adminRequest(Method.Get, `/v1/modules/${encodeURIComponent(moduleId)}/logs`, query);
+        return await this.adminRequest(Method.Get, `/modules/${encodeURIComponent(moduleId)}/logs`, query);
     }
 
     async checkModuleThirdPartyRule(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/modules/check_third_party_rule", {}, payload);
+        return await this.adminRequest(Method.Post, "/modules/check_third_party_rule", {}, payload);
     }
 
     async getModuleSpamCheckResult(eventId: string): Promise<any> {
-        return await this.adminRequest(Method.Get, `/v1/modules/spam_check/${encodeURIComponent(eventId)}`);
+        return await this.adminRequest(Method.Get, `/modules/spam_check/${encodeURIComponent(eventId)}`);
     }
 
     async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<any> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
-        return await this.adminRequest(Method.Get, `/v1/modules/spam_check/sender/${encodeURIComponent(sender)}`, query);
+        return await this.adminRequest(Method.Get, `/modules/spam_check/sender/${encodeURIComponent(sender)}`, query);
     }
 
     async getModuleThirdPartyRuleResults(eventId: string): Promise<any> {
-        return await this.adminRequest(Method.Get, `/v1/modules/third_party_rule/${encodeURIComponent(eventId)}`);
+        return await this.adminRequest(Method.Get, `/modules/third_party_rule/${encodeURIComponent(eventId)}`);
     }
 
     async createAccountValidity(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/account_validity", {}, payload);
+        return await this.adminRequest(Method.Post, "/account_validity", {}, payload);
     }
 
     async getAccountValidity(userId: string): Promise<any> {
-        return await this.adminRequest(Method.Get, `/v1/account_validity/${encodeURIComponent(userId)}`);
+        return await this.adminRequest(Method.Get, `/account_validity/${encodeURIComponent(userId)}`);
     }
 
     async renewAccountValidity(userId: string, payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, `/v1/account_validity/${encodeURIComponent(userId)}/renew`, {}, payload);
+        return await this.adminRequest(Method.Post, `/account_validity/${encodeURIComponent(userId)}/renew`, {}, payload);
     }
 
     async listPasswordAuthProviders(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/password_auth_providers");
+        return await this.adminRequest(Method.Get, "/password_auth_providers");
     }
 
     async createPasswordAuthProvider(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/password_auth_providers", {}, payload);
+        return await this.adminRequest(Method.Post, "/password_auth_providers", {}, payload);
     }
 
     async listPresenceRoutes(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/presence_routes");
+        return await this.adminRequest(Method.Get, "/presence_routes");
     }
 
     async createPresenceRoute(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/presence_routes", {}, payload);
+        return await this.adminRequest(Method.Post, "/presence_routes", {}, payload);
     }
 
     async listMediaCallbacks(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/media_callbacks");
+        return await this.adminRequest(Method.Get, "/media_callbacks");
     }
 
     async listMediaCallbacksByType(callbackType: string): Promise<any> {
-        return await this.adminRequest(Method.Get, `/v1/media_callbacks/${encodeURIComponent(callbackType)}`);
+        return await this.adminRequest(Method.Get, `/media_callbacks/${encodeURIComponent(callbackType)}`);
     }
 
     async createMediaCallback(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/media_callbacks", {}, payload);
+        return await this.adminRequest(Method.Post, "/media_callbacks", {}, payload);
     }
 
     async listRateLimitCallbacks(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/rate_limit_callbacks");
+        return await this.adminRequest(Method.Get, "/rate_limit_callbacks");
     }
 
     async createRateLimitCallback(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/rate_limit_callbacks", {}, payload);
+        return await this.adminRequest(Method.Post, "/rate_limit_callbacks", {}, payload);
     }
 
     async listAccountDataCallbacks(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/account_data_callbacks");
+        return await this.adminRequest(Method.Get, "/account_data_callbacks");
     }
 
     async createAccountDataCallback(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/account_data_callbacks", {}, payload);
+        return await this.adminRequest(Method.Post, "/account_data_callbacks", {}, payload);
     }
 
     async getInviteAllowlist(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/invite/allowlist");
+        return await this.adminRequest(Method.Get, "/invite/allowlist");
     }
 
     async getInviteBlocklist(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/invite/blocklist");
+        return await this.adminRequest(Method.Get, "/invite/blocklist");
     }
 
     async getJitsiConfig(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/jitsi/config");
+        return await this.adminRequest(Method.Get, "/jitsi/config");
     }
 
     async cleanupAll(): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/cleanup/all", {}, undefined);
+        return await this.adminRequest(Method.Post, "/cleanup/all", {}, undefined);
     }
 
     async cleanupRooms(payload?: Record<string, unknown>): Promise<any> {
         try {
-            return await this.adminRequest(Method.Post, "/v1/rooms/cleanup", {}, payload ?? {});
+            return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
         } catch (e) {
             const err = e as MatrixError;
             if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest(Method.Post, "/v1/cleanup/rooms", {}, payload ?? {});
+                return await this.adminRequest(Method.Post, "/cleanup/rooms", {}, payload ?? {});
             }
             throw e;
         }
     }
 
     async cleanupTokens(): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/cleanup/tokens", {}, undefined);
+        return await this.adminRequest(Method.Post, "/cleanup/tokens", {}, undefined);
     }
 
     async purgeRoom(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/purge_room", {}, payload);
+        return await this.adminRequest(Method.Post, "/purge_room", {}, payload);
     }
 
     async purgeHistory(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/purge_history", {}, payload);
+        return await this.adminRequest(Method.Post, "/purge_history", {}, payload);
     }
 
     async shutdownRoom(payload: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/shutdown_room", {}, payload);
+        return await this.adminRequest(Method.Post, "/shutdown_room", {}, payload);
     }
 
     async restartServer(payload?: Record<string, unknown>): Promise<any> {
-        return await this.adminRequest(Method.Post, "/v1/restart", {}, payload ?? {});
+        return await this.adminRequest(Method.Post, "/restart", {}, payload ?? {});
     }
 
     async listBackups(options?: { limit?: number; offset?: number }): Promise<any> {
@@ -2761,11 +2732,11 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.offset !== undefined) query.offset = String(options.offset);
-        return await this.adminRequest(Method.Get, "/v1/backups", query);
+        return await this.adminRequest(Method.Get, "/backups", query);
     }
 
     async getExperimentalFeatures(): Promise<any> {
-        return await this.adminRequest(Method.Get, "/v1/experimental_features");
+        return await this.adminRequest(Method.Get, "/experimental_features");
     }
 }
 

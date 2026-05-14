@@ -26,7 +26,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { SdkError, ValidationError } from "../errors";
+import { ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
 import type { KeyBackupPathPattern } from "./__generated__/route-table";
@@ -639,9 +639,6 @@ export class KeyBackupManager extends BaseManager {
         return this.versionCache.getStats();
     }
 
-    protected normalizeError(error: unknown, method: string): SdkError {
-        return super.normalizeError(error, method);
-    }
 }
 
 declare module "../client.ts" {

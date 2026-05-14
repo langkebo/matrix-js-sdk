@@ -18,7 +18,6 @@ import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { AdminPrefix } from "../http-api/prefix";
 import type { TelemetryPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
@@ -343,12 +342,6 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
             logger.warn("TelemetryManager.sendToServer failed:", e);
             this.eventQueue.push(...events);
         }
-    }
-
-    private async adminRequest<T>(method: Method, path: string, queryParams?: Record<string, string>): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, undefined, {
-            prefix: AdminPrefix.V1,
-        });
     }
 
     public resetStats(): void {

@@ -156,7 +156,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
             return response;
         } catch (error) {
-            this.emit(GuestEvent.GuestError, error as Error);
+            this.emit(GuestEvent.GuestError, this.normalizeError(error, "registerGuestOnServer"));
             throw error;
         }
     }
@@ -422,9 +422,11 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = (await this.client.http.request(Method.Post, gp("/register/guest"), undefined, body, {
-                prefix: ClientPrefix.V3,
-            })) as IGuestRegisterResponse;
+            const response = (await this.withRetry(async () => {
+                return await this.client.http.request(Method.Post, gp("/register/guest"), undefined, body, {
+                    prefix: ClientPrefix.V3,
+                });
+            }, "registerGuestOnServer")) as IGuestRegisterResponse;
 
             const guestInfo: IGuestInfo = {
                 userId: response.user_id,

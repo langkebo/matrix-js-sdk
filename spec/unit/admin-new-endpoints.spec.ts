@@ -20,8 +20,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("getRetentionPolicy GETs /v1/retention/policy", async () => {
             await manager.getRetentionPolicy();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/retention/policy");
-            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
+            expect(req.mock.calls[0][1]).toBe("/retention/policy");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
         });
 
         it("setRetentionPolicy POSTs body unchanged", async () => {
@@ -36,22 +36,22 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("setRoomRetentionPolicy POSTs room-scoped policy to the typed route", async () => {
             await manager.setRoomRetentionPolicy("!room:x", { min_lifetime: 60_000, max_lifetime: 86_400_000 });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe(`/v1/retention/policy/${encodeURIComponent("!room:x")}`);
+            expect(req.mock.calls[0][1]).toBe(`/retention/policy/${encodeURIComponent("!room:x")}`);
             expect(req.mock.calls[0][3]).toEqual({ min_lifetime: 60_000, max_lifetime: 86_400_000 });
         });
 
         it("runRetention POSTs {room_id}", async () => {
             await manager.runRetention({ room_id: "!r:x" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/retention/run");
+            expect(req.mock.calls[0][1]).toBe("/retention/run");
             expect(req.mock.calls[0][3]).toEqual({ room_id: "!r:x" });
         });
 
         it("getRetentionStatus GETs /v1/retention/status", async () => {
             await manager.getRetentionStatus();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/retention/status");
-            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
+            expect(req.mock.calls[0][1]).toBe("/retention/status");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
         });
     });
 
@@ -61,7 +61,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValue({ events: [], total: 0, next_token: null });
             await manager.listAuditEvents({ actor_id: "@a:x", limit: 50 });
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/audit/events");
+            expect(req.mock.calls[0][1]).toBe("/audit/events");
             expect(req.mock.calls[0][2]).toEqual({ actor_id: "@a:x", limit: "50" });
         });
 
@@ -94,7 +94,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("updateFeatureFlag uses PATCH", async () => {
             await manager.updateFeatureFlag("flag1", { rollout_percent: 50 });
             expect(req.mock.calls[0][0]).toBe("PATCH");
-            expect(req.mock.calls[0][1]).toBe("/v1/feature-flags/flag1");
+            expect(req.mock.calls[0][1]).toBe("/feature-flags/flag1");
             expect(req.mock.calls[0][3]).toEqual({ rollout_percent: 50 });
         });
     });
@@ -103,7 +103,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     describe("federation resolve/rewrite", () => {
         it("resolveFederation POSTs {server_name}", async () => {
             await manager.resolveFederation("example.org");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/resolve");
+            expect(req.mock.calls[0][1]).toBe("/federation/resolve");
             expect(req.mock.calls[0][3]).toEqual({ server_name: "example.org" });
         });
 
@@ -120,7 +120,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("confirmFederation POSTs payload to /v1/federation/confirm", async () => {
             await manager.confirmFederation({ server_name: "example.org", action: "approve", reason: "verified" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/confirm");
+            expect(req.mock.calls[0][1]).toBe("/federation/confirm");
             expect(req.mock.calls[0][3]).toEqual({
                 server_name: "example.org",
                 action: "approve",
@@ -134,20 +134,20 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("deleteFederationDestination uses DELETE", async () => {
             await manager.deleteFederationDestination("example.org");
             expect(req.mock.calls[0][0]).toBe("DELETE");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/destinations/example.org");
+            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org");
         });
 
         it("getFederationDestinationRooms passes from+limit", async () => {
             req.mockResolvedValue({ rooms: [] });
             await manager.getFederationDestinationRooms("example.org", { from: 10, limit: 5 });
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/destinations/example.org/rooms");
+            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/rooms");
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "5" });
         });
 
         it("resetFederationDestination prefers /reset path", async () => {
             await manager.resetFederationDestination("example.org");
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/destinations/example.org/reset");
+            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset");
         });
 
         it("resetFederationDestination falls back to /reset_connection on 404", async () => {
@@ -159,8 +159,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({});
             await manager.resetFederationDestination("example.org");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/destinations/example.org/reset");
-            expect(req.mock.calls[1][1]).toBe("/v1/federation/destinations/example.org/reset_connection");
+            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset");
+            expect(req.mock.calls[1][1]).toBe("/federation/destinations/example.org/reset_connection");
         });
     });
 
@@ -169,22 +169,22 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("getFederationCache GETs /v1/federation/cache", async () => {
             await manager.getFederationCache();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/cache");
-            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
+            expect(req.mock.calls[0][1]).toBe("/federation/cache");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
         });
 
         it("clearFederationCache POSTs to /v1/federation/cache/clear", async () => {
             await manager.clearFederationCache();
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/cache/clear");
-            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
+            expect(req.mock.calls[0][1]).toBe("/federation/cache/clear");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
         });
 
         it("deleteFederationCacheEntry DELETEs /v1/federation/cache/{key}", async () => {
             await manager.deleteFederationCacheEntry("example.com");
             expect(req.mock.calls[0][0]).toBe("DELETE");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/cache/example.com");
-            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
+            expect(req.mock.calls[0][1]).toBe("/federation/cache/example.com");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
         });
 
         it("deleteFederationCacheEntry validates key", async () => {
@@ -197,7 +197,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ pending: [{ server_name: "example.org" }] });
             const result = await manager.getFederationAdmissionList();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/pending");
+            expect(req.mock.calls[0][1]).toBe("/federation/pending");
             expect(result).toEqual([{ server_name: "example.org" }]);
         });
 
@@ -210,8 +210,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({ admissions: [{ server_name: "legacy.example" }] });
             const result = await manager.getFederationAdmissionList();
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/pending");
-            expect(req.mock.calls[1][1]).toBe("/v1/federation/admissions");
+            expect(req.mock.calls[0][1]).toBe("/federation/pending");
+            expect(req.mock.calls[1][1]).toBe("/federation/admissions");
             expect(result).toEqual([{ server_name: "legacy.example" }]);
         });
 
@@ -219,7 +219,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ pending_servers: [], total: 0 });
             await manager.getPendingFederationServers("10", 20);
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/pending");
+            expect(req.mock.calls[0][1]).toBe("/federation/pending");
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "20" });
         });
 
@@ -232,8 +232,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({ pending_servers: [], total: 0 });
             await manager.getPendingFederationServers("1", 5);
-            expect(req.mock.calls[0][1]).toBe("/v1/federation/pending");
-            expect(req.mock.calls[1][1]).toBe("/v1/federation/pending_servers");
+            expect(req.mock.calls[0][1]).toBe("/federation/pending");
+            expect(req.mock.calls[1][1]).toBe("/federation/pending_servers");
             expect(req.mock.calls[1][2]).toEqual({ from: "1", limit: "5" });
         });
     });
@@ -249,7 +249,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("unblock uses POST without body", async () => {
             await manager.unblockEventReportUser("@a:x");
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/event_reports/rate_limit/%40a%3Ax/unblock");
+            expect(req.mock.calls[0][1]).toBe("/event_reports/rate_limit/%40a%3Ax/unblock");
         });
     });
 
@@ -258,7 +258,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("acknowledgeTelemetryAlert POSTs to /ack", async () => {
             await manager.acknowledgeTelemetryAlert("alert-1");
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/telemetry/alerts/alert-1/ack");
+            expect(req.mock.calls[0][1]).toBe("/telemetry/alerts/alert-1/ack");
         });
     });
 
@@ -267,26 +267,26 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("listModules passes pagination query", async () => {
             await manager.listModules({ limit: 10, from: "cursor-1" });
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/modules");
+            expect(req.mock.calls[0][1]).toBe("/modules");
             expect(req.mock.calls[0][2]).toEqual({ limit: "10", from: "cursor-1" });
         });
 
         it("listModulesByType uses the typed route path", async () => {
             await manager.listModulesByType("spam_check");
-            expect(req.mock.calls[0][1]).toBe("/v1/modules/type/spam_check");
+            expect(req.mock.calls[0][1]).toBe("/modules/type/spam_check");
         });
 
         it("updateModuleConfig uses PUT with {config}", async () => {
             await manager.updateModuleConfig("mod1", { level: "strict" });
             expect(req.mock.calls[0][0]).toBe("PUT");
-            expect(req.mock.calls[0][1]).toBe("/v1/modules/mod1/config");
+            expect(req.mock.calls[0][1]).toBe("/modules/mod1/config");
             expect(req.mock.calls[0][3]).toEqual({ config: { level: "strict" } });
         });
 
         it("setModuleEnabled posts {enabled}", async () => {
             await manager.setModuleEnabled("mod1", true);
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/modules/mod1/enable");
+            expect(req.mock.calls[0][1]).toBe("/modules/mod1/enable");
             expect(req.mock.calls[0][3]).toEqual({ is_enabled: true });
         });
 
@@ -315,25 +315,25 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.listAccountDataCallbacks();
             await manager.createAccountDataCallback({ callback_name: "ad1", callback_type: "m.tag", config: {} });
 
-            expect(req.mock.calls[0][1]).toBe("/v1/modules/check_third_party_rule");
-            expect(req.mock.calls[1][1]).toBe("/v1/modules/spam_check/%24e2");
-            expect(req.mock.calls[2][1]).toBe("/v1/modules/spam_check/sender/%40alice%3Ax");
+            expect(req.mock.calls[0][1]).toBe("/modules/check_third_party_rule");
+            expect(req.mock.calls[1][1]).toBe("/modules/spam_check/%24e2");
+            expect(req.mock.calls[2][1]).toBe("/modules/spam_check/sender/%40alice%3Ax");
             expect(req.mock.calls[2][2]).toEqual({ limit: "5" });
-            expect(req.mock.calls[3][1]).toBe("/v1/modules/third_party_rule/%24e3");
-            expect(req.mock.calls[4][1]).toBe("/v1/account_validity");
-            expect(req.mock.calls[5][1]).toBe("/v1/account_validity/%40u%3Ax");
-            expect(req.mock.calls[6][1]).toBe("/v1/account_validity/%40u%3Ax/renew");
-            expect(req.mock.calls[7][1]).toBe("/v1/password_auth_providers");
-            expect(req.mock.calls[8][1]).toBe("/v1/password_auth_providers");
-            expect(req.mock.calls[9][1]).toBe("/v1/presence_routes");
-            expect(req.mock.calls[10][1]).toBe("/v1/presence_routes");
-            expect(req.mock.calls[11][1]).toBe("/v1/media_callbacks");
-            expect(req.mock.calls[12][1]).toBe("/v1/media_callbacks/upload");
-            expect(req.mock.calls[13][1]).toBe("/v1/media_callbacks");
-            expect(req.mock.calls[14][1]).toBe("/v1/rate_limit_callbacks");
-            expect(req.mock.calls[15][1]).toBe("/v1/rate_limit_callbacks");
-            expect(req.mock.calls[16][1]).toBe("/v1/account_data_callbacks");
-            expect(req.mock.calls[17][1]).toBe("/v1/account_data_callbacks");
+            expect(req.mock.calls[3][1]).toBe("/modules/third_party_rule/%24e3");
+            expect(req.mock.calls[4][1]).toBe("/account_validity");
+            expect(req.mock.calls[5][1]).toBe("/account_validity/%40u%3Ax");
+            expect(req.mock.calls[6][1]).toBe("/account_validity/%40u%3Ax/renew");
+            expect(req.mock.calls[7][1]).toBe("/password_auth_providers");
+            expect(req.mock.calls[8][1]).toBe("/password_auth_providers");
+            expect(req.mock.calls[9][1]).toBe("/presence_routes");
+            expect(req.mock.calls[10][1]).toBe("/presence_routes");
+            expect(req.mock.calls[11][1]).toBe("/media_callbacks");
+            expect(req.mock.calls[12][1]).toBe("/media_callbacks/upload");
+            expect(req.mock.calls[13][1]).toBe("/media_callbacks");
+            expect(req.mock.calls[14][1]).toBe("/rate_limit_callbacks");
+            expect(req.mock.calls[15][1]).toBe("/rate_limit_callbacks");
+            expect(req.mock.calls[16][1]).toBe("/account_data_callbacks");
+            expect(req.mock.calls[17][1]).toBe("/account_data_callbacks");
         });
     });
 
@@ -345,9 +345,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.getJitsiConfig();
 
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/invite/allowlist");
-            expect(req.mock.calls[1][1]).toBe("/v1/invite/blocklist");
-            expect(req.mock.calls[2][1]).toBe("/v1/jitsi/config");
+            expect(req.mock.calls[0][1]).toBe("/invite/allowlist");
+            expect(req.mock.calls[1][1]).toBe("/invite/blocklist");
+            expect(req.mock.calls[2][1]).toBe("/jitsi/config");
         });
 
         it("posts cleanupAll and cleanupTokens to v1 cleanup routes", async () => {
@@ -355,8 +355,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.cleanupTokens();
 
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/cleanup/all");
-            expect(req.mock.calls[1][1]).toBe("/v1/cleanup/tokens");
+            expect(req.mock.calls[0][1]).toBe("/cleanup/all");
+            expect(req.mock.calls[1][1]).toBe("/cleanup/tokens");
         });
 
         it("cleanupRooms prefers /v1/rooms/cleanup and falls back to /v1/cleanup/rooms on 404", async () => {
@@ -369,9 +369,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.cleanupRooms({ limit: 100 });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/rooms/cleanup");
+            expect(req.mock.calls[0][1]).toBe("/rooms/cleanup");
             expect(req.mock.calls[0][3]).toEqual({ limit: 100 });
-            expect(req.mock.calls[1][1]).toBe("/v1/cleanup/rooms");
+            expect(req.mock.calls[1][1]).toBe("/cleanup/rooms");
             expect(req.mock.calls[1][3]).toEqual({ limit: 100 });
         });
 
@@ -379,20 +379,20 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.purgeRoom({ room_id: "!room:example.com" });
             await manager.shutdownRoom({ room_id: "!room:example.com", new_room_user_id: "@admin:example.com" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/purge_room");
+            expect(req.mock.calls[0][1]).toBe("/purge_room");
             expect(req.mock.calls[0][3]).toEqual({ room_id: "!room:example.com" });
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/shutdown_room");
+            expect(req.mock.calls[1][1]).toBe("/shutdown_room");
         });
 
         it("purgeHistory/restartServer post to server maintenance routes", async () => {
             await manager.purgeHistory({ purge_up_to_ts: 123 });
             await manager.restartServer({ reason: "maintenance-window" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/purge_history");
+            expect(req.mock.calls[0][1]).toBe("/purge_history");
             expect(req.mock.calls[0][3]).toEqual({ purge_up_to_ts: 123 });
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/restart");
+            expect(req.mock.calls[1][1]).toBe("/restart");
             expect(req.mock.calls[1][3]).toEqual({ reason: "maintenance-window" });
         });
 
@@ -405,8 +405,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({ healthy: true });
             const result = await manager.getServerHealth();
-            expect(req.mock.calls[0][1]).toBe("/v1/health");
-            expect(req.mock.calls[1][1]).toBe("/v1/server_health");
+            expect(req.mock.calls[0][1]).toBe("/health");
+            expect(req.mock.calls[1][1]).toBe("/server_health");
             expect(result).toEqual({ healthy: true });
         });
 
@@ -419,8 +419,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({ server_name: "example.org" });
             const result = await manager.getServerInfo();
-            expect(req.mock.calls[0][1]).toBe("/v1/info");
-            expect(req.mock.calls[1][1]).toBe("/v1/server_info");
+            expect(req.mock.calls[0][1]).toBe("/info");
+            expect(req.mock.calls[1][1]).toBe("/server_info");
             expect(result).toEqual({ server_name: "example.org" });
         });
 
@@ -436,7 +436,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ notifications: [], next_token: "n1" });
             const result = await manager.listNotifications("10", 20);
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/notifications");
+            expect(req.mock.calls[0][1]).toBe("/notifications");
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "20" });
             expect(result).toEqual({ notifications: [], next_token: "n1" });
         });
@@ -449,28 +449,28 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.deleteNotification("notice1");
 
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/notifications");
-            expect(req.mock.calls[1][1]).toBe("/v1/notifications/notice1");
+            expect(req.mock.calls[0][1]).toBe("/notifications");
+            expect(req.mock.calls[1][1]).toBe("/notifications/notice1");
             expect(req.mock.calls[2][0]).toBe("PUT");
-            expect(req.mock.calls[2][1]).toBe("/v1/notifications/notice1");
-            expect(req.mock.calls[3][1]).toBe("/v1/notifications/notice1/deactivate");
+            expect(req.mock.calls[2][1]).toBe("/notifications/notice1");
+            expect(req.mock.calls[3][1]).toBe("/notifications/notice1/deactivate");
             expect(req.mock.calls[4][0]).toBe("DELETE");
-            expect(req.mock.calls[4][1]).toBe("/v1/notifications/notice1");
+            expect(req.mock.calls[4][1]).toBe("/notifications/notice1");
         });
 
         it("listActiveNotifications uses GET /v1/notifications/active", async () => {
             req.mockResolvedValueOnce({ notifications: [{ notification_id: "n1" }] });
             const result = await manager.listActiveNotifications();
-            expect(req.mock.calls[0][1]).toBe("/v1/notifications/active");
+            expect(req.mock.calls[0][1]).toBe("/notifications/active");
             expect(result).toEqual([{ notification_id: "n1" }]);
         });
 
         it("getUserNotification/setUserNotification use user route", async () => {
             await manager.getUserNotification("@u:x");
             await manager.setUserNotification("@u:x", { muted: true });
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/notification");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/notification");
             expect(req.mock.calls[1][0]).toBe("PUT");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/notification");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/notification");
             expect(req.mock.calls[1][3]).toEqual({ muted: true });
         });
 
@@ -478,9 +478,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ pushers: [{ pushkey: "p1", app_id: "a1" }] });
             const result = await manager.getUserPushers("@u:x");
             await manager.deleteUserPusher("@u:x", "p1");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/pushers");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/pushers");
             expect(req.mock.calls[1][0]).toBe("DELETE");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/pushers/p1");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/pushers/p1");
             expect(result.pushers).toHaveLength(1);
         });
 
@@ -497,7 +497,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("getServerNotice uses GET /v1/server_notices/{notice_id}", async () => {
             await manager.getServerNotice("notice-1");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/server_notices/notice-1");
+            expect(req.mock.calls[0][1]).toBe("/server_notices/notice-1");
         });
 
         it("getServerNotice validates notice id", async () => {
@@ -510,21 +510,21 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.listSpaces("5", 10);
             await manager.getSpace("!space:example.com");
             await manager.deleteSpace("!space:example.com");
-            expect(req.mock.calls[0][1]).toBe("/v1/spaces");
+            expect(req.mock.calls[0][1]).toBe("/spaces");
             expect(req.mock.calls[0][2]).toEqual({ from: "5", limit: "10" });
-            expect(req.mock.calls[1][1]).toBe(`/v1/spaces/${encodeURIComponent("!space:example.com")}`);
+            expect(req.mock.calls[1][1]).toBe(`/spaces/${encodeURIComponent("!space:example.com")}`);
             expect(req.mock.calls[2][0]).toBe("DELETE");
-            expect(req.mock.calls[2][1]).toBe(`/v1/spaces/${encodeURIComponent("!space:example.com")}`);
+            expect(req.mock.calls[2][1]).toBe(`/spaces/${encodeURIComponent("!space:example.com")}`);
         });
 
         it("space rooms/stats/users routes are correct", async () => {
             await manager.getSpaceRooms("!space:example.com", "1", 20);
             await manager.getSpaceStats("!space:example.com");
             await manager.getSpaceUsers("!space:example.com", "2", 30);
-            expect(req.mock.calls[0][1]).toBe(`/v1/spaces/${encodeURIComponent("!space:example.com")}/rooms`);
+            expect(req.mock.calls[0][1]).toBe(`/spaces/${encodeURIComponent("!space:example.com")}/rooms`);
             expect(req.mock.calls[0][2]).toEqual({ from: "1", limit: "20" });
-            expect(req.mock.calls[1][1]).toBe(`/v1/spaces/${encodeURIComponent("!space:example.com")}/stats`);
-            expect(req.mock.calls[2][1]).toBe(`/v1/spaces/${encodeURIComponent("!space:example.com")}/users`);
+            expect(req.mock.calls[1][1]).toBe(`/spaces/${encodeURIComponent("!space:example.com")}/stats`);
+            expect(req.mock.calls[2][1]).toBe(`/spaces/${encodeURIComponent("!space:example.com")}/users`);
             expect(req.mock.calls[2][2]).toEqual({ from: "2", limit: "30" });
         });
 
@@ -542,7 +542,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ media: [{ media_id: "m1" }], next_token: "n1" });
             const result = await manager.getUserMedia("@u:x", "3", 9);
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/media");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/media");
             expect(req.mock.calls[0][2]).toEqual({ from: "3", limit: "9" });
             expect(result).toEqual({ media: [{ media_id: "m1" }], next_token: "n1" });
         });
@@ -550,7 +550,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("deleteUserMedia uses DELETE /v1/users/{user_id}/media", async () => {
             await manager.deleteUserMedia("@u:x");
             expect(req.mock.calls[0][0]).toBe("DELETE");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/media");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/media");
         });
 
         it("validates user id for user-media methods", async () => {
@@ -565,9 +565,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             const result = await manager.getUserTokens("@u:x");
             await manager.deleteUserToken("@u:x", "t1");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/tokens");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/tokens");
             expect(req.mock.calls[1][0]).toBe("DELETE");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/tokens/t1");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/tokens/t1");
             expect(result.tokens).toHaveLength(1);
         });
 
@@ -576,9 +576,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             const result = await manager.getUserRefreshTokens("@u:x");
             await manager.deleteUserRefreshToken("@u:x", "r1");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/refresh_tokens");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/refresh_tokens");
             expect(req.mock.calls[1][0]).toBe("DELETE");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/refresh_tokens/r1");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/refresh_tokens/r1");
             expect(result.refresh_tokens).toHaveLength(1);
         });
 
@@ -595,20 +595,20 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.getUserSession("@u:x");
             await manager.invalidateUserSession("@u:x");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/user_sessions/%40u%3Ax");
+            expect(req.mock.calls[0][1]).toBe("/user_sessions/%40u%3Ax");
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/user_sessions/%40u%3Ax/invalidate");
+            expect(req.mock.calls[1][1]).toBe("/user_sessions/%40u%3Ax/invalidate");
         });
 
         it("login/logout/evict use /v1/users/{user_id} action routes", async () => {
             await manager.loginAsUser("@u:x", { device_id: "D1" });
             await manager.logoutUser("@u:x", { revoke_all: true });
             await manager.evictUser("@u:x", { reason: "security" });
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/login");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/login");
             expect(req.mock.calls[0][3]).toEqual({ device_id: "D1" });
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/logout");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/logout");
             expect(req.mock.calls[1][3]).toEqual({ revoke_all: true });
-            expect(req.mock.calls[2][1]).toBe("/v1/users/%40u%3Ax/evict");
+            expect(req.mock.calls[2][1]).toBe("/users/%40u%3Ax/evict");
             expect(req.mock.calls[2][3]).toEqual({ reason: "security" });
         });
 
@@ -617,10 +617,10 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.getUserStats("@u:x");
             await manager.listUserStats("1", 9);
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/rooms");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/rooms");
             expect(req.mock.calls[0][2]).toEqual({ from: "3", limit: "7" });
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/stats");
-            expect(req.mock.calls[2][1]).toBe("/v1/user_stats");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/stats");
+            expect(req.mock.calls[2][1]).toBe("/user_stats");
             expect(req.mock.calls[2][2]).toEqual({ from: "1", limit: "9" });
         });
 
@@ -646,7 +646,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ devices: [{ device_id: "DEV1" }] });
             const devices = await manager.getUserDevices("@u:x");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/devices");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/devices");
             expect(req.mock.calls[1][0]).toBe("GET");
             expect(req.mock.calls[1][1]).toBe("/v2/users/%40u%3Ax/devices");
             expect(devices).toEqual([{ device_id: "DEV1" }]);
@@ -662,9 +662,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.deleteUserDevice("@u:x", "DEV1");
             expect(req.mock.calls[0][0]).toBe("DELETE");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/devices/DEV1");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/devices/DEV1");
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/devices/DEV1/delete");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/devices/DEV1/delete");
         });
 
         it("getRateLimit prefers /rate_limit and falls back to /override_ratelimit", async () => {
@@ -676,8 +676,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({ overridden: true });
             const result = await manager.getRateLimit("@u:x", false);
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/rate_limit");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/override_ratelimit");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/rate_limit");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/override_ratelimit");
             expect(result).toEqual({ overridden: true });
         });
 
@@ -691,9 +691,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.setRateLimit("@u:x", { messages_per_second: 3 });
             expect(req.mock.calls[0][0]).toBe("PUT");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/rate_limit");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/rate_limit");
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax/override_ratelimit");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/override_ratelimit");
 
             req.mockRejectedValueOnce(
                 new MatrixError({
@@ -704,9 +704,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.deleteRateLimit("@u:x");
             expect(req.mock.calls[2][0]).toBe("DELETE");
-            expect(req.mock.calls[2][1]).toBe("/v1/users/%40u%3Ax/rate_limit");
+            expect(req.mock.calls[2][1]).toBe("/users/%40u%3Ax/rate_limit");
             expect(req.mock.calls[3][0]).toBe("DELETE");
-            expect(req.mock.calls[3][1]).toBe("/v1/users/%40u%3Ax/override_ratelimit");
+            expect(req.mock.calls[3][1]).toBe("/users/%40u%3Ax/override_ratelimit");
         });
     });
 
@@ -714,7 +714,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("getMediaQuota uses GET /v1/media/quota", async () => {
             await manager.getMediaQuota();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/media/quota");
+            expect(req.mock.calls[0][1]).toBe("/media/quota");
         });
 
         it("getServerStats prefers /v1/statistics and falls back to /v1/server_stats on 404", async () => {
@@ -726,15 +726,15 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             );
             req.mockResolvedValueOnce({ total_users: 1, total_rooms: 2 });
             const stats = await manager.getServerStats();
-            expect(req.mock.calls[0][1]).toBe("/v1/statistics");
-            expect(req.mock.calls[1][1]).toBe("/v1/server_stats");
+            expect(req.mock.calls[0][1]).toBe("/statistics");
+            expect(req.mock.calls[1][1]).toBe("/server_stats");
             expect(stats.total_users).toBe(1);
         });
 
         it("getRoomStatsByRoom uses GET /v1/room_stats/{room_id}", async () => {
             await manager.getRoomStatsByRoom("!room:example.com");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/room_stats/!room%3Aexample.com");
+            expect(req.mock.calls[0][1]).toBe("/room_stats/!room%3Aexample.com");
         });
 
         it("getRoomStatsByRoom validates room id", async () => {
@@ -747,29 +747,29 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.getRegisterNonce();
             await manager.registerAdmin({ username: "admin", password: "pw", admin: true });
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/register/nonce");
+            expect(req.mock.calls[0][1]).toBe("/register/nonce");
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/register");
+            expect(req.mock.calls[1][1]).toBe("/register");
         });
 
         it("list/get/delete report routes are correct", async () => {
             await manager.listReports({ from: "5", limit: 10 });
             await manager.getReport("r1");
             await manager.deleteReport("r1");
-            expect(req.mock.calls[0][1]).toBe("/v1/reports");
+            expect(req.mock.calls[0][1]).toBe("/reports");
             expect(req.mock.calls[0][2]).toEqual({ from: "5", limit: "10" });
-            expect(req.mock.calls[1][1]).toBe("/v1/reports/r1");
+            expect(req.mock.calls[1][1]).toBe("/reports/r1");
             expect(req.mock.calls[2][0]).toBe("DELETE");
-            expect(req.mock.calls[2][1]).toBe("/v1/reports/r1");
+            expect(req.mock.calls[2][1]).toBe("/reports/r1");
         });
 
         it("list/get room reports routes are correct", async () => {
             await manager.listRoomReports("!room:example.com", { from: "3", limit: 7 });
             await manager.getRoomReport("!room:example.com", "rep-1");
-            expect(req.mock.calls[0][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/reports`);
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/reports`);
             expect(req.mock.calls[0][2]).toEqual({ from: "3", limit: "7" });
             expect(req.mock.calls[1][1]).toBe(
-                `/v1/rooms/${encodeURIComponent("!room:example.com")}/reports/${encodeURIComponent("rep-1")}`,
+                `/rooms/${encodeURIComponent("!room:example.com")}/reports/${encodeURIComponent("rep-1")}`,
             );
         });
 
@@ -784,14 +784,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("searchRooms uses GET /v1/rooms/search with query params", async () => {
             await manager.searchRooms({ term: "matrix", from: 5, limit: 20 });
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/rooms/search");
+            expect(req.mock.calls[0][1]).toBe("/rooms/search");
             expect(req.mock.calls[0][2]).toEqual({ term: "matrix", from: "5", limit: "20" });
         });
 
         it("searchRoomsPost uses POST /v1/rooms/search", async () => {
             await manager.searchRoomsPost({ search_term: "matrix" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/rooms/search");
+            expect(req.mock.calls[0][1]).toBe("/rooms/search");
             expect(req.mock.calls[0][3]).toEqual({ search_term: "matrix" });
         });
     });
@@ -802,10 +802,10 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.getRoomForwardExtremities("!room:example.com");
             await manager.getRoomTokenSync("!room:example.com");
             expect(req.mock.calls[0][1]).toBe(
-                `/v1/rooms/${encodeURIComponent("!room:example.com")}/event_context/${encodeURIComponent("$event:example.com")}`,
+                `/rooms/${encodeURIComponent("!room:example.com")}/event_context/${encodeURIComponent("$event:example.com")}`,
             );
-            expect(req.mock.calls[1][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/forward_extremities`);
-            expect(req.mock.calls[2][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/token_sync`);
+            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/forward_extremities`);
+            expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/token_sync`);
         });
 
         it("room search and listing routes are correct", async () => {
@@ -815,14 +815,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.setRoomPublicListing("!room:example.com");
             await manager.deleteRoomPublicListing("!room:example.com");
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/search`);
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/search`);
             expect(req.mock.calls[0][3]).toEqual(payload);
             expect(req.mock.calls[1][0]).toBe("GET");
-            expect(req.mock.calls[1][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/listings`);
+            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/listings`);
             expect(req.mock.calls[2][0]).toBe("PUT");
-            expect(req.mock.calls[2][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/listings/public`);
+            expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/listings/public`);
             expect(req.mock.calls[3][0]).toBe("DELETE");
-            expect(req.mock.calls[3][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/listings/public`);
+            expect(req.mock.calls[3][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/listings/public`);
         });
 
         it("member and moderation user routes are correct", async () => {
@@ -832,24 +832,24 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.kickRoomMember("!room:example.com", "@u:x", { reason: "rule" });
             await manager.unbanRoomMember("!room:example.com", "@u:x", { reason: "appeal-ok" });
             expect(req.mock.calls[0][0]).toBe("PUT");
-            expect(req.mock.calls[0][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`);
             expect(req.mock.calls[1][0]).toBe("DELETE");
-            expect(req.mock.calls[1][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`);
             expect(req.mock.calls[2][0]).toBe("POST");
-            expect(req.mock.calls[2][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/ban/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/ban/${encodeURIComponent("@u:x")}`);
             expect(req.mock.calls[3][0]).toBe("POST");
-            expect(req.mock.calls[3][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/kick/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[3][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/kick/${encodeURIComponent("@u:x")}`);
             expect(req.mock.calls[4][0]).toBe("POST");
-            expect(req.mock.calls[4][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/unban/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[4][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/unban/${encodeURIComponent("@u:x")}`);
         });
 
         it("ban/kick body routes and make_admin compatibility are correct", async () => {
             await manager.banRoom("!room:example.com", { user_id: "@u:x", reason: "spam" });
             await manager.kickRoom("!room:example.com", { user_id: "@u:x", reason: "rule" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/ban`);
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/ban`);
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/kick`);
+            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/kick`);
 
             req.mockRejectedValueOnce(
                 new MatrixError({
@@ -860,9 +860,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.makeRoomAdmin("!room:example.com", { user_id: "@u:x" });
             expect(req.mock.calls[2][0]).toBe("PUT");
-            expect(req.mock.calls[2][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/make_admin`);
+            expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/make_admin`);
             expect(req.mock.calls[3][0]).toBe("POST");
-            expect(req.mock.calls[3][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/make_admin`);
+            expect(req.mock.calls[3][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/make_admin`);
         });
 
         it("room delete/purge_history admin routes are correct", async () => {
@@ -870,13 +870,13 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.purgeRoomHistory("!room:example.com", { delete_local_events: true });
             await manager.unblockRoom("!room:example.com", { reason: "manual-review" });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/delete`);
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/delete`);
             expect(req.mock.calls[0][3]).toEqual({ purge: true, reason: "cleanup" });
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/purge_history`);
+            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/purge_history`);
             expect(req.mock.calls[1][3]).toEqual({ delete_local_events: true });
             expect(req.mock.calls[2][0]).toBe("POST");
-            expect(req.mock.calls[2][1]).toBe(`/v1/rooms/${encodeURIComponent("!room:example.com")}/unblock`);
+            expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/unblock`);
             expect(req.mock.calls[2][3]).toEqual({ reason: "manual-review" });
         });
 
@@ -911,7 +911,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("getRegistrationToken uses GET /v1/registration_tokens/{token}", async () => {
             await manager.getRegistrationToken("token-1");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/registration_tokens/token-1");
+            expect(req.mock.calls[0][1]).toBe("/registration_tokens/token-1");
         });
 
         it("updateRegistrationToken prefers POST and falls back to PUT on 404", async () => {
@@ -924,9 +924,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.updateRegistrationToken("token-1", { uses_allowed: 5 });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/registration_tokens/token-1");
+            expect(req.mock.calls[0][1]).toBe("/registration_tokens/token-1");
             expect(req.mock.calls[1][0]).toBe("PUT");
-            expect(req.mock.calls[1][1]).toBe("/v1/registration_tokens/token-1");
+            expect(req.mock.calls[1][1]).toBe("/registration_tokens/token-1");
         });
     });
 
@@ -935,7 +935,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("uses PUT /v1/users/{id}/admin with {admin} body", async () => {
             await manager.setAdmin("@u:x", true);
             expect(req.mock.calls[0][0]).toBe("PUT");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax/admin");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/admin");
             expect(req.mock.calls[0][3]).toEqual({ admin: true });
         });
 
@@ -949,7 +949,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({});
             await manager.deleteUser("@u:x");
             expect(req.mock.calls[0][0]).toBe("DELETE");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/%40u%3Ax");
+            expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax");
             expect(req.mock.calls[1][0]).toBe("DELETE");
             expect(req.mock.calls[1][1]).toBe("/v2/users/%40u%3Ax");
         });
@@ -958,10 +958,10 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.batchCreateUsers({ users: [{ user_id: "@a:x" }] });
             await manager.batchDeactivateUsers({ user_ids: ["@a:x"] });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/users/batch");
+            expect(req.mock.calls[0][1]).toBe("/users/batch");
             expect(req.mock.calls[0][3]).toEqual({ users: [{ user_id: "@a:x" }] });
             expect(req.mock.calls[1][0]).toBe("POST");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/batch_deactivate");
+            expect(req.mock.calls[1][1]).toBe("/users/batch_deactivate");
             expect(req.mock.calls[1][3]).toEqual({ user_ids: ["@a:x"] });
         });
 
@@ -981,7 +981,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/v2/users");
             expect(req.mock.calls[0][2]).toEqual({ from: "2", limit: "3" });
-            expect(req.mock.calls[1][1]).toBe("/v1/users");
+            expect(req.mock.calls[1][1]).toBe("/users");
             expect(req.mock.calls[1][2]).toEqual({ from: "2", limit: "3" });
             expect(result.items).toEqual([{ user_id: "@u:x" }]);
             expect(result.total).toBe(1);
@@ -997,7 +997,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValueOnce({ user_id: "@u:x", admin: false });
             const user = await manager.getUser("@u:x");
             expect(req.mock.calls[0][1]).toBe("/v2/users/%40u%3Ax");
-            expect(req.mock.calls[1][1]).toBe("/v1/users/%40u%3Ax");
+            expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax");
             expect(user).toEqual({ user_id: "@u:x", admin: false });
         });
     });
@@ -1007,13 +1007,13 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("hits /v1/account/{user_id}", async () => {
             req.mockResolvedValue({ user_id: "@u:x", exists: true });
             await manager.getAccountStatus("@u:x");
-            expect(req.mock.calls[0][1]).toBe("/v1/account/%40u%3Ax");
+            expect(req.mock.calls[0][1]).toBe("/account/%40u%3Ax");
         });
 
         it("updateAccountDetails POSTs /v1/account/{user_id}", async () => {
             await manager.updateAccountDetails("@u:x", { suspended: true });
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/account/%40u%3Ax");
+            expect(req.mock.calls[0][1]).toBe("/account/%40u%3Ax");
             expect(req.mock.calls[0][3]).toEqual({ suspended: true });
         });
 
@@ -1028,7 +1028,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValue({ user_id: "@u:x", devices: {} });
             await manager.whoisByDevice("@u:x", "DEV1");
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/whois/%40u%3Ax/DEV1");
+            expect(req.mock.calls[0][1]).toBe("/whois/%40u%3Ax/DEV1");
         });
 
         it("validates deviceId", async () => {
@@ -1042,7 +1042,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValue({ deleted: 0 });
             const result = await manager.purgeMediaCache();
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/v1/purge_media_cache");
+            expect(req.mock.calls[0][1]).toBe("/purge_media_cache");
             expect(req.mock.calls[0][3]).toEqual({});
             expect(result).toEqual({ deleted: 0 });
         });
@@ -1084,7 +1084,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             });
             const result = await manager.listBackups();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/backups");
+            expect(req.mock.calls[0][1]).toBe("/backups");
             expect(req.mock.calls[0][2]).toEqual({});
             expect(result.total).toBe(0);
         });
@@ -1112,7 +1112,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             req.mockResolvedValue({ enabled: [], disabled: [], total: 0, total_flags: 3 });
             const result = await manager.getExperimentalFeatures();
             expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/v1/experimental_features");
+            expect(req.mock.calls[0][1]).toBe("/experimental_features");
             expect(result).toHaveProperty("enabled");
             expect(result).toHaveProperty("disabled");
         });

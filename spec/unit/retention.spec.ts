@@ -31,10 +31,10 @@ describe("RetentionManager", () => {
             expect(res).toEqual({ max_lifetime: 86400000 });
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Get,
-                "/_synapse/admin/v1/retention/policy",
+                "/retention/policy",
                 undefined,
                 undefined,
-                { prefix: "" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -61,10 +61,10 @@ describe("RetentionManager", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,
-                "/_synapse/admin/v1/retention/policy",
+                "/retention/policy",
                 undefined,
                 { max_lifetime: 86400000, min_lifetime: null, expire_on_clients: false },
-                { prefix: "" },
+                { prefix: "/_synapse/admin/v1" },
             );
             expect(emitted).toHaveLength(1);
         });
@@ -82,10 +82,10 @@ describe("RetentionManager", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Get,
-                "/_synapse/admin/v1/retention/policy/!abc%3Aex",
+                "/retention/policy/!abc%3Aex",
                 undefined,
                 undefined,
-                { prefix: "" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
     });
@@ -115,10 +115,10 @@ describe("RetentionManager", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,
-                "/_synapse/admin/v1/retention/run",
+                "/retention/run",
                 undefined,
                 {},
-                { prefix: "" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -131,10 +131,10 @@ describe("RetentionManager", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,
-                "/_synapse/admin/v1/retention/run",
+                "/retention/run",
                 undefined,
                 { room_id: "!r:ex" },
-                { prefix: "" },
+                { prefix: "/_synapse/admin/v1" },
             );
             expect(emitted).toHaveLength(1);
         });
@@ -160,10 +160,10 @@ describe("RetentionManager", () => {
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Get,
-                "/_synapse/admin/v1/retention/status",
+                "/retention/status",
                 undefined,
                 undefined,
-                { prefix: "" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
     });

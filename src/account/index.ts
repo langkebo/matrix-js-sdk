@@ -99,7 +99,9 @@ export class AccountManager extends BaseManager {
      * Get login flows supported by the server
      */
     public loginFlows(): Promise<ILoginFlowsResponse> {
-        return this.client.http.request(Method.Get, ap("/login"));
+        return this.withRetry(async () => {
+            return await this.client.http.request(Method.Get, ap("/login"));
+        }, "loginFlows");
     }
 
     /**
@@ -210,11 +212,13 @@ export class AccountManager extends BaseManager {
      * Submit email verification token for registration
      */
     public async submitEmailToken(sid: string, clientSecret: string, token: string): Promise<{ success: boolean }> {
-        return this.client.http.request(Method.Post, ap("/register/email/submitToken"), undefined, {
-            sid,
-            client_secret: clientSecret,
-            token,
-        });
+        return this.withRetry(async () => {
+            return await this.client.http.request(Method.Post, ap("/register/email/submitToken"), undefined, {
+                sid,
+                client_secret: clientSecret,
+                token,
+            });
+        }, "submitEmailToken");
     }
 
     /**

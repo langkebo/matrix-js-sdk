@@ -32,19 +32,15 @@ limitations under the License.
 
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-const ADMIN_PREFIX = "/_synapse/admin";
 import { MatrixError } from "../http-api/errors";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError } from "../errors";
 import { buildPaginationParams } from "../admin/utils";
-import type { QueryDict } from "../utils";
 import type { ModulePathPattern } from "./__generated__/route-table";
 
-type StripAdminPath<P extends string> =
-    P extends `/_synapse/admin${infer Rest}` ? Rest : P;
 type StripAdminV1<P extends string> =
-    P extends `/_synapse/admin/v1${infer Rest}` ? `/v1${Rest}` : never;
+    P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
 /**
  * 模块路径类型安全包装函数，确保只使用 Ledger 注册的有效路径
@@ -186,21 +182,15 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         super(client);
     }
 
-    private async adminRequest<T>(
+    protected async adminRequest<T>(
         method: Method,
         path: string,
-        queryParams?: QueryDict,
+        queryParams?: Record<string, string | string[]>,
         body?: Record<string, unknown>,
+        label?: string,
     ): Promise<T> {
         try {
-            const response = await this.client.http.authedRequest<T>(
-                method,
-                path,
-                queryParams,
-                body as any,
-                { prefix: ADMIN_PREFIX },
-            );
-            return response;
+            return await super.adminRequest<T>(method, path, queryParams, body, label);
         } catch (error) {
             const err = error instanceof MatrixError ? error : new Error(String(error));
             this.emit(ModuleEvent.ModuleError, err);
@@ -212,7 +202,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     async listModules(options?: { limit?: number; from?: string }): Promise<ModuleListResponse> {
         const query = buildPaginationParams(options?.from, options?.limit);
-        const result = await this.adminRequest<ModuleListResponse>(Method.Get, mp("/v1/modules"), query);
+        const result = await this.adminRequest<ModuleListResponse>(Method.Get, mp("/modules"), query);
         this.emit(ModuleEvent.ModulesListed, result);
         return result;
     }
@@ -220,7 +210,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async listModulesByType(moduleType: string): Promise<ModuleInfo[]> {
         const result = await this.adminRequest<{ modules: ModuleInfo[] }>(
             Method.Get,
-            mp(`/v1/modules/type/${encodeURIComponent(moduleType)}`),
+            mp(`/modules/type/${encodeURIComponent(moduleType)}`),
         );
         return result.modules;
     }
@@ -229,7 +219,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         try {
             return await this.adminRequest<ModuleInfo>(
                 Method.Get,
-                mp(`/v1/modules/${encodeURIComponent(moduleName)}`),
+                mp(`/modules/${encodeURIComponent(moduleName)}`),
             );
         } catch (error) {
             if (error instanceof MatrixError && error.errcode === "M_NOT_FOUND") {
@@ -242,7 +232,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async createModule(moduleConfig: Record<string, unknown>): Promise<ModuleInfo> {
         const result = await this.adminRequest<ModuleInfo>(
             Method.Post,
-            mp("/v1/modules"),
+            mp("/modules"),
             undefined,
             moduleConfig,
         );
@@ -253,7 +243,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async deleteModule(moduleName: string): Promise<void> {
         await this.adminRequest<void>(
             Method.Delete,
-            mp(`/v1/modules/${encodeURIComponent(moduleName)}`),
+            mp(`/modules/${encodeURIComponent(moduleName)}`),
         );
         this.emit(ModuleEvent.ModuleDeleted, moduleName);
     }
@@ -261,7 +251,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async updateModuleConfig(moduleName: string, config: Record<string, unknown>): Promise<ModuleInfo> {
         const result = await this.adminRequest<ModuleInfo>(
             Method.Put,
-            mp(`/v1/modules/${encodeURIComponent(moduleName)}/config`),
+            mp(`/modules/${encodeURIComponent(moduleName)}/config`),
             undefined,
             { config },
         );
@@ -272,7 +262,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async setModuleEnabled(moduleName: string, enabled: boolean): Promise<void> {
         await this.adminRequest<void>(
             Method.Post,
-            mp(`/v1/modules/${encodeURIComponent(moduleName)}/enable`),
+            mp(`/modules/${encodeURIComponent(moduleName)}/enable`),
             undefined,
             { is_enabled: enabled },
         );
@@ -290,7 +280,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         const query = buildPaginationParams(options?.from, options?.limit);
         const result = await this.adminRequest<ModuleLogResponse>(
             Method.Get,
-            mp(`/v1/modules/${encodeURIComponent(moduleName)}/logs`),
+            mp(`/modules/${encodeURIComponent(moduleName)}/logs`),
             query,
         );
         this.emit(ModuleEvent.ModuleLogsReceived, result);
@@ -302,7 +292,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async checkSpam(payload: SpamCheckRequest): Promise<SpamCheckResponse> {
         const result = await this.adminRequest<SpamCheckResponse>(
             Method.Post,
-            mp("/v1/modules/check_spam"),
+            mp("/modules/check_spam"),
             undefined,
             payload as unknown as Record<string, unknown>,
         );
@@ -313,7 +303,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getSpamCheckResult(eventId: string): Promise<SpamCheckResponse> {
         return await this.adminRequest<SpamCheckResponse>(
             Method.Get,
-            mp(`/v1/modules/spam_check/${encodeURIComponent(eventId)}`),
+            mp(`/modules/spam_check/${encodeURIComponent(eventId)}`),
         );
     }
 
@@ -324,7 +314,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         const query = buildPaginationParams(options?.from, options?.limit);
         const result = await this.adminRequest<{ checks: SpamCheckResponse[] }>(
             Method.Get,
-            mp(`/v1/modules/spam_check/sender/${encodeURIComponent(sender)}`),
+            mp(`/modules/spam_check/sender/${encodeURIComponent(sender)}`),
             query,
         );
         return result.checks;
@@ -335,7 +325,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async checkThirdPartyRule(payload: ThirdPartyRuleRequest): Promise<ThirdPartyRuleResponse> {
         const result = await this.adminRequest<ThirdPartyRuleResponse>(
             Method.Post,
-            mp("/v1/modules/check_third_party_rule"),
+            mp("/modules/check_third_party_rule"),
             undefined,
             payload as unknown as Record<string, unknown>,
         );
@@ -346,7 +336,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getThirdPartyRuleResult(eventId: string): Promise<ThirdPartyRuleResponse> {
         return await this.adminRequest<ThirdPartyRuleResponse>(
             Method.Get,
-            mp(`/v1/modules/third_party_rule/${encodeURIComponent(eventId)}`),
+            mp(`/modules/third_party_rule/${encodeURIComponent(eventId)}`),
         );
     }
 
@@ -355,7 +345,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getAccountDataCallbacks(): Promise<CallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(
             Method.Get,
-            mp("/v1/account_data_callbacks"),
+            mp("/account_data_callbacks"),
         );
         return result.callbacks;
     }
@@ -366,7 +356,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }): Promise<CallbackInfo> {
         const result = await this.adminRequest<CallbackInfo>(
             Method.Post,
-            mp("/v1/account_data_callbacks"),
+            mp("/account_data_callbacks"),
             undefined,
             callback as unknown as Record<string, unknown>,
         );
@@ -377,7 +367,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getMediaCallbacks(): Promise<CallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(
             Method.Get,
-            mp("/v1/media_callbacks"),
+            mp("/media_callbacks"),
         );
         return result.callbacks;
     }
@@ -388,7 +378,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }): Promise<CallbackInfo> {
         const result = await this.adminRequest<CallbackInfo>(
             Method.Post,
-            mp("/v1/media_callbacks"),
+            mp("/media_callbacks"),
             undefined,
             callback as unknown as Record<string, unknown>,
         );
@@ -399,7 +389,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getMediaCallbacksByType(callbackType: string): Promise<CallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(
             Method.Get,
-            mp(`/v1/media_callbacks/${encodeURIComponent(callbackType)}`),
+            mp(`/media_callbacks/${encodeURIComponent(callbackType)}`),
         );
         return result.callbacks;
     }
@@ -407,7 +397,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getRateLimitCallbacks(): Promise<RateLimitCallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: RateLimitCallbackInfo[] }>(
             Method.Get,
-            mp("/v1/rate_limit_callbacks"),
+            mp("/rate_limit_callbacks"),
         );
         return result.callbacks;
     }
@@ -417,7 +407,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }): Promise<RateLimitCallbackInfo> {
         const result = await this.adminRequest<RateLimitCallbackInfo>(
             Method.Post,
-            mp("/v1/rate_limit_callbacks"),
+            mp("/rate_limit_callbacks"),
             undefined,
             callback as unknown as Record<string, unknown>,
         );
@@ -430,7 +420,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getPasswordAuthProviders(): Promise<PasswordAuthProviderInfo[]> {
         const result = await this.adminRequest<{ providers: PasswordAuthProviderInfo[] }>(
             Method.Get,
-            mp("/v1/password_auth_providers"),
+            mp("/password_auth_providers"),
         );
         return result.providers;
     }
@@ -442,7 +432,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }): Promise<PasswordAuthProviderInfo> {
         const result = await this.adminRequest<PasswordAuthProviderInfo>(
             Method.Post,
-            mp("/v1/password_auth_providers"),
+            mp("/password_auth_providers"),
             undefined,
             provider as unknown as Record<string, unknown>,
         );
@@ -455,7 +445,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async getPresenceRoutes(): Promise<PresenceRouteInfo[]> {
         const result = await this.adminRequest<{ routes: PresenceRouteInfo[] }>(
             Method.Get,
-            mp("/v1/presence_routes"),
+            mp("/presence_routes"),
         );
         return result.routes;
     }
@@ -466,7 +456,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }): Promise<PresenceRouteInfo> {
         const result = await this.adminRequest<PresenceRouteInfo>(
             Method.Post,
-            mp("/v1/presence_routes"),
+            mp("/presence_routes"),
             undefined,
             route as unknown as Record<string, unknown>,
         );
@@ -477,13 +467,13 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     // ==================== 账户有效性 ====================
 
     async checkAccountValidity(): Promise<void> {
-        await this.adminRequest<void>(Method.Post, mp("/v1/account_validity"));
+        await this.adminRequest<void>(Method.Post, mp("/account_validity"));
     }
 
     async getAccountValidity(userId: string): Promise<AccountValidityInfo> {
         const result = await this.adminRequest<AccountValidityInfo>(
             Method.Get,
-            mp(`/v1/account_validity/${encodeURIComponent(userId)}`),
+            mp(`/account_validity/${encodeURIComponent(userId)}`),
         );
         this.emit(ModuleEvent.AccountValidityChecked, result);
         return result;
@@ -492,7 +482,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async renewAccountValidity(userId: string): Promise<void> {
         await this.adminRequest<void>(
             Method.Post,
-            mp(`/v1/account_validity/${encodeURIComponent(userId)}/renew`),
+            mp(`/account_validity/${encodeURIComponent(userId)}/renew`),
         );
         this.emit(ModuleEvent.AccountValidityRenewed, userId);
     }

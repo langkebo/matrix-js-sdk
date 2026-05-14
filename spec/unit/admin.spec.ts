@@ -64,7 +64,7 @@ describe("AdminManager", () => {
             await adminManager.getRooms(undefined, 10, "test");
 
             const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[1]).toBe("/v1/rooms");
+            expect(call[1]).toBe("/rooms");
             // queryParams should be passed (even if some values are undefined)
             expect(call[2]).toBeDefined();
             expect(call[1]).not.toContain("/_synapse/admin");
@@ -82,8 +82,8 @@ describe("AdminManager", () => {
 
             const status = await adminManager.getServerStatus();
             expect(status).toEqual({ status: "online", uptime: 12345 });
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/v1/status", {}, undefined, {
-                prefix: "/_synapse/admin",
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/status", undefined, undefined, {
+                prefix: "/_synapse/admin/v1",
             });
         });
 
@@ -122,13 +122,13 @@ describe("AdminManager", () => {
             expect(result.event_id).toBe("$event123");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                "/v1/send_server_notice",
+                "/send_server_notice",
                 {},
                 {
                     user_id: "@user:example.com",
                     content: { msgtype: "m.text", body: "Test notice" },
                 },
-                { prefix: "/_synapse/admin" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -161,10 +161,10 @@ describe("AdminManager", () => {
             await adminManager.addToFederationBlacklist("evil.com", "spam");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                "/v1/federation/blacklist/evil.com",
+                "/federation/blacklist/evil.com",
                 {},
                 { reason: "spam" },
-                { prefix: "/_synapse/admin" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -174,10 +174,10 @@ describe("AdminManager", () => {
             await adminManager.removeFromFederationBlacklist("evil.com");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "DELETE",
-                "/v1/federation/blacklist/evil.com",
-                {},
+                "/federation/blacklist/evil.com",
                 undefined,
-                { prefix: "/_synapse/admin" },
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -187,10 +187,10 @@ describe("AdminManager", () => {
             await adminManager.disconnectFederation("server.com");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                "/v1/federation/destinations/server.com/reset_connection",
+                "/federation/destinations/server.com/reset_connection",
                 {},
                 undefined,
-                { prefix: "/_synapse/admin" },
+                { prefix: "/_synapse/admin/v1" },
             );
         });
     });
@@ -202,10 +202,10 @@ describe("AdminManager", () => {
             await adminManager.deleteUserDevice("@user:example.com", "DEVICE123");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "DELETE",
-                "/v1/users/%40user%3Aexample.com/devices/DEVICE123",
-                {},
+                "/users/%40user%3Aexample.com/devices/DEVICE123",
                 undefined,
-                { prefix: "/_synapse/admin" },
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -234,10 +234,10 @@ describe("AdminManager", () => {
             await adminManager.overrideRateLimit("@user:example.com");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
-                "/v1/users/%40user%3Aexample.com/override_ratelimit",
-                {},
+                "/users/%40user%3Aexample.com/override_ratelimit",
                 undefined,
-                { prefix: "/_synapse/admin" },
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
             );
         });
 
@@ -254,10 +254,10 @@ describe("AdminManager", () => {
             await adminManager.deleteRateLimitOverride("@user:example.com");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "DELETE",
-                "/v1/users/%40user%3Aexample.com/override_ratelimit",
-                {},
+                "/users/%40user%3Aexample.com/override_ratelimit",
                 undefined,
-                { prefix: "/_synapse/admin" },
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
             );
         });
     });
@@ -723,7 +723,7 @@ describe("AdminManager", () => {
             const opts = call[4];
 
             expect(path).not.toContain("_synapse/admin");
-            expect(opts.prefix).toBe("/_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
 
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl: "http://localhost:28008",
@@ -746,7 +746,7 @@ describe("AdminManager", () => {
             const opts = call[4];
 
             expect(path).not.toContain("_synapse/admin");
-            expect(opts.prefix).toBe("/_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
 
         it("getServerStats 不应该产生重复前缀的 URL", async () => {
@@ -762,7 +762,7 @@ describe("AdminManager", () => {
             const opts = call[4];
 
             expect(path).not.toContain("_synapse/admin");
-            expect(opts.prefix).toBe("/_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
 
         it("getRoomStats 不应该产生重复前缀的 URL", async () => {
@@ -777,7 +777,7 @@ describe("AdminManager", () => {
             const opts = call[4];
 
             expect(path).not.toContain("_synapse/admin");
-            expect(opts.prefix).toBe("/_synapse/admin");
+            expect(opts.prefix).toBe("/_synapse/admin/v1");
         });
     });
 
@@ -786,13 +786,14 @@ describe("AdminManager", () => {
     describe("URL 拼接完整性", () => {
         it("所有 API 方法都应该传递正确的 prefix", async () => {
             const methodsToTest = [
-                { name: "getUsers", call: () => adminManager.getUsers() },
-                { name: "getRooms", call: () => adminManager.getRooms() },
-                { name: "getServerVersion", call: () => adminManager.getServerVersion() },
-                { name: "getServerStats", call: () => adminManager.getServerStats() },
+                { name: "getUsers", call: () => adminManager.getUsers(), expectedPrefix: "/_synapse/admin" },
+                { name: "getRooms", call: () => adminManager.getRooms(), expectedPrefix: "/_synapse/admin/v1" },
+                { name: "getServerVersion", call: () => adminManager.getServerVersion(), expectedPrefix: "/_synapse/admin/v1" },
+                { name: "getServerStats", call: () => adminManager.getServerStats(), expectedPrefix: "/_synapse/admin/v1" },
             ];
 
-            for (const { call } of methodsToTest) {
+            for (const { call, expectedPrefix } of methodsToTest) {
+                mockClient.http.authedRequest.mockReset();
                 mockClient.http.authedRequest.mockResolvedValueOnce({});
 
                 await call();
@@ -801,7 +802,7 @@ describe("AdminManager", () => {
                 const opts = callArgs[4];
 
                 expect(opts).toBeDefined();
-                expect(opts.prefix).toBe("/_synapse/admin");
+                expect(opts.prefix).toBe(expectedPrefix);
             }
         });
 

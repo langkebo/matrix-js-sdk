@@ -26,6 +26,8 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
+import { Method } from "../http-api/method";
+import { AdminPrefix } from "../http-api/prefix";
 import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, ValidationError } from "../errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
@@ -270,6 +272,24 @@ export abstract class BaseManager<
         if (value && value.length > maxLength) {
             throw new ValidationError(`${fieldName} too long (max ${maxLength} characters)`);
         }
+    }
+
+    protected async adminRequest<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string | string[]>,
+        body?: Record<string, unknown>,
+        label?: string,
+    ): Promise<T> {
+        return await this.withRetry(async () => {
+            return await this.client.http.authedRequest<T>(
+                method,
+                path,
+                queryParams,
+                body,
+                { prefix: AdminPrefix.V1 },
+            );
+        }, label ?? "adminRequest");
     }
 
     protected sleep(ms: number): Promise<void> {

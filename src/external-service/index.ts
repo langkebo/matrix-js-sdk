@@ -29,8 +29,6 @@ limitations under the License.
 
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { AdminPrefix } from "../http-api/prefix";
-import { Body } from "../http-api/interface";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -110,18 +108,6 @@ export class ExternalServiceManager extends BaseManager<ExternalServiceEvent, Ex
 
     constructor(client: MatrixClient) {
         super(client);
-    }
-
-    private async adminRequest<T>(
-        method: Method,
-        path: string,
-        queryParams?: Record<string, string>,
-        body?: Body,
-    ): Promise<T> {
-        return await this.withRetry(
-            async () => await this.client.http.authedRequest<T>(method, path, queryParams, body, { prefix: AdminPrefix.V1 }),
-            "adminRequest",
-        );
     }
 
     /**

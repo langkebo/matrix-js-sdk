@@ -278,11 +278,11 @@ describe("AdminManager - Extended Tests", () => {
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "GET",
-                "/v1/rooms/!room%3Aexample.com/messages",
+                "/rooms/!room%3Aexample.com/messages",
                 { limit: "0", dir: "b" },
                 undefined,
                 {
-                    prefix: "/_synapse/admin",
+                    prefix: "/_synapse/admin/v1",
                 },
             );
         });
