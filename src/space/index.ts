@@ -29,13 +29,11 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { MatrixError } from "../http-api/errors";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { Body } from "../http-api/interface";
 import { NotFoundError } from "../errors";
 import { type QueryDict } from "../utils";
-import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
@@ -183,66 +181,11 @@ interface SpaceManagerEventMap {
 export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> {
     private cache: LRUCache<Space[]>;
     private spaceCache: LRUCache<Space>;
-    private readonly maxRetries = 3;
-    private readonly retryDelay = 1000;
 
     constructor(client: MatrixClient) {
         super(client);
         this.cache = new LRUCache<Space[]>({ maxSize: 50, ttl: 5 * 60 * 1000, name: "index.ts-space" });
         this.spaceCache = new LRUCache<Space>({ maxSize: 100, ttl: 5 * 60 * 1000, name: "index.ts-space" });
-    }
-
-    private isRetryableError(error: unknown): boolean {
-        if (error instanceof MatrixError) {
-            return (
-                ["M_LIMIT_EXCEEDED", "M_SERVER_UNAVAILABLE", "M_UNKNOWN"].includes(error.errcode ?? "") ||
-                [429, 502, 503, 504].includes(error.httpStatus ?? 0)
-            );
-        }
-        const err = error as Record<string, unknown>;
-        return (
-            ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"].includes(err?.code as string) ||
-            [429, 500, 502, 503, 504].includes(err?.httpStatus as number)
-        );
-    }
-
-    private async withRetryRequest<T>(
-        requestFn: () => Promise<T>,
-        method: string,
-        retries = this.maxRetries,
-    ): Promise<T> {
-        let lastError: unknown;
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const result = await requestFn();
-                this.recordRequest(true, attempt > 0);
-                return result;
-            } catch (error: unknown) {
-                lastError = error;
-                if (!this.isRetryableError(error)) {
-                    this.recordRequest(false, false);
-                    const normalized = this.normalizeError(error, method);
-                    this.emit(SpaceEvent.SpaceError, normalized);
-                    throw normalized;
-                }
-                if (attempt < retries) {
-                    const delay = this.retryDelay * Math.pow(2, attempt);
-                    logger.warn(`SpaceManager.${method} failed, retrying in ${delay}ms`);
-                    await new Promise((r) => setTimeout(r, delay));
-                }
-            }
-        }
-        this.recordRequest(false, true);
-        const normalized = this.normalizeError(lastError, method);
-        this.emit(SpaceEvent.SpaceError, normalized);
-        throw normalized;
-    }
-
-    private recordRequest(success: boolean, retried: boolean): void {
-        this.requestStats.total++;
-        if (success) this.requestStats.successful++;
-        else this.requestStats.failed++;
-        if (retried) this.requestStats.retried++;
     }
 
     public getMetrics(): SpaceManagerMetrics {
@@ -305,13 +248,18 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         if (options.visibility && options.visibility.length > 50) {
             throw new ValidationError("Space visibility too long (max 50 characters)");
         }
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(Method.Post, sp("/spaces"), undefined, options);
-        }, "createSpace");
-        this.clearCache();
-        const space = this.normalizeSpace(response);
-        this.emit(SpaceEvent.SpaceCreated, space);
-        return space;
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<JsonObject>(Method.Post, sp("/spaces"), undefined, options);
+            }, "createSpace");
+            this.clearCache();
+            const space = this.normalizeSpace(response);
+            this.emit(SpaceEvent.SpaceCreated, space);
+            return space;
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "createSpace"));
+            throw error;
+        }
     }
 
     /**
@@ -341,63 +289,93 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         const cached = this.spaceCache.get(spaceId);
         if (cached) return cached;
 
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId", spaceId));
-        }, "getSpace");
-        const space = this.normalizeSpace(response, spaceId);
-        this.spaceCache.set(spaceId, space);
-        return space;
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId", spaceId));
+            }, "getSpace");
+            const space = this.normalizeSpace(response, spaceId);
+            this.spaceCache.set(spaceId, space);
+            return space;
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpace"));
+            throw error;
+        }
     }
 
     async updateSpace(spaceId: string, options: UpdateSpaceOptions): Promise<Space> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(
-                Method.Put,
-                this.spacePath("/spaces/$spaceId", spaceId),
-                undefined,
-                options,
-            );
-        }, "updateSpace");
-        this.clearCache();
-        let space: Space;
-        if (Object.keys(response ?? {}).length === 0) {
-            space = await this.getSpace(spaceId);
-        } else {
-            space = this.normalizeSpace(response, spaceId);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<JsonObject>(
+                    Method.Put,
+                    this.spacePath("/spaces/$spaceId", spaceId),
+                    undefined,
+                    options,
+                );
+            }, "updateSpace");
+            this.clearCache();
+            let space: Space;
+            if (Object.keys(response ?? {}).length === 0) {
+                space = await this.getSpace(spaceId);
+            } else {
+                space = this.normalizeSpace(response, spaceId);
+            }
+            this.emit(SpaceEvent.SpaceUpdated, space);
+            return space;
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "updateSpace"));
+            throw error;
         }
-        this.emit(SpaceEvent.SpaceUpdated, space);
-        return space;
     }
 
     async deleteSpace(spaceId: string): Promise<void> {
-        await this.withRetryRequest(async () => {
-            await this.request(Method.Delete, this.spacePath("/spaces/$spaceId", spaceId));
-        }, "deleteSpace");
-        this.clearCache();
-        this.emit(SpaceEvent.SpaceDeleted, spaceId);
+        try {
+            await this.withRetry(async () => {
+                await this.request(Method.Delete, this.spacePath("/spaces/$spaceId", spaceId));
+            }, "deleteSpace");
+            this.clearCache();
+            this.emit(SpaceEvent.SpaceDeleted, spaceId);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "deleteSpace"));
+            throw error;
+        }
     }
 
     async getPublicSpaces(options: SpaceQueryOptions = {}): Promise<SpaceListResponse> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/public"), options);
-        }, "getPublicSpaces");
-        return this.normalizeSpaceListResponse(response);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/public"), options);
+            }, "getPublicSpaces");
+            return this.normalizeSpaceListResponse(response);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getPublicSpaces"));
+            throw error;
+        }
     }
 
     async searchSpaces(query: string, limit: number = 10): Promise<Space[]> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/search"), {
-                search_term: query,
-                limit,
-            });
-        }, "searchSpaces");
-        return this.extractSpaces(response);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/search"), {
+                    search_term: query,
+                    limit,
+                });
+            }, "searchSpaces");
+            return this.extractSpaces(response);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "searchSpaces"));
+            throw error;
+        }
     }
 
     async getSpaceStatistics(): Promise<SpaceStatistics> {
-        return this.withRetryRequest(async () => {
-            return await this.request<SpaceStatistics>(Method.Get, sp("/spaces/statistics"));
-        }, "getSpaceStatistics");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<SpaceStatistics>(Method.Get, sp("/spaces/statistics"));
+            }, "getSpaceStatistics");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceStatistics"));
+            throw error;
+        }
     }
 
     async getUserSpaces(forceRefresh = false): Promise<Space[]> {
@@ -407,23 +385,33 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
             if (cached) return cached;
         }
 
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/user"));
-        }, "getUserSpaces");
-        const spaces = this.extractSpaces(response);
-        this.cache.set(cacheKey, spaces);
-        return spaces;
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/user"));
+            }, "getUserSpaces");
+            const spaces = this.extractSpaces(response);
+            this.cache.set(cacheKey, spaces);
+            return spaces;
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getUserSpaces"));
+            throw error;
+        }
     }
 
     async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject | SpaceChild[]>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/children", spaceId),
-                options,
-            );
-        }, "getSpaceChildren");
-        return this.extractChildren(response, spaceId);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<JsonObject | SpaceChild[]>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/children", spaceId),
+                    options,
+                );
+            }, "getSpaceChildren");
+            return this.extractChildren(response, spaceId);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceChildren"));
+            throw error;
+        }
     }
 
     /**
@@ -462,89 +450,129 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async addChild(spaceId: string, options: AddChildOptions): Promise<void> {
         AdminValidators.validateRoomId(spaceId);
         AdminValidators.validateRoomId(options.room_id);
-        await this.withRetryRequest(async () => {
-            await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
-                room_id: options.room_id,
-                via_servers: options.via_servers ?? [],
-                suggested: options.suggested,
-            });
-        }, "addChild");
-        this.clearCache();
-        this.emit(SpaceEvent.ChildAdded, spaceId, options.room_id);
+        try {
+            await this.withRetry(async () => {
+                await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
+                    room_id: options.room_id,
+                    via_servers: options.via_servers ?? [],
+                    suggested: options.suggested,
+                });
+            }, "addChild");
+            this.clearCache();
+            this.emit(SpaceEvent.ChildAdded, spaceId, options.room_id);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "addChild"));
+            throw error;
+        }
     }
 
     async removeChild(spaceId: string, roomId: string): Promise<void> {
-        await this.withRetryRequest(async () => {
-            await this.request(
-                Method.Delete,
-                sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),
-            );
-        }, "removeChild");
-        this.clearCache();
-        this.emit(SpaceEvent.ChildRemoved, spaceId, roomId);
+        try {
+            await this.withRetry(async () => {
+                await this.request(
+                    Method.Delete,
+                    sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),
+                );
+            }, "removeChild");
+            this.clearCache();
+            this.emit(SpaceEvent.ChildRemoved, spaceId, roomId);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "removeChild"));
+            throw error;
+        }
     }
 
     async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceMember[]> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject | SpaceMember[]>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/members", spaceId),
-                options,
-            );
-        }, "getSpaceMembers");
-        return this.extractMembers(response, spaceId);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<JsonObject | SpaceMember[]>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/members", spaceId),
+                    options,
+                );
+            }, "getSpaceMembers");
+            return this.extractMembers(response, spaceId);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceMembers"));
+            throw error;
+        }
     }
 
     async getSpaceRooms(spaceId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<SpaceListResponse>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/rooms", spaceId),
-                options,
-            );
-        }, "getSpaceRooms");
-        return this.extractSpaces(response);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<SpaceListResponse>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/rooms", spaceId),
+                    options,
+                );
+            }, "getSpaceRooms");
+            return this.extractSpaces(response);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceRooms"));
+            throw error;
+        }
     }
 
     async getSpaceState(spaceId: string): Promise<unknown[]> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<unknown[] | { events?: unknown[] }>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/state", spaceId),
-            );
-        }, "getSpaceState");
-        if (Array.isArray(response)) return response;
-        return Array.isArray(response.events) ? response.events : [];
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<unknown[] | { events?: unknown[] }>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/state", spaceId),
+                );
+            }, "getSpaceState");
+            if (Array.isArray(response)) return response;
+            return Array.isArray(response.events) ? response.events : [];
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceState"));
+            throw error;
+        }
     }
 
     async inviteToSpace(spaceId: string, userId: string, body: JsonObject = {}): Promise<void> {
-        await this.withRetryRequest(async () => {
-            await this.request(Method.Post, this.spacePath("/spaces/$spaceId/invite", spaceId), undefined, {
-                user_id: userId,
-                ...body,
-            });
-        }, "inviteToSpace");
+        try {
+            await this.withRetry(async () => {
+                await this.request(Method.Post, this.spacePath("/spaces/$spaceId/invite", spaceId), undefined, {
+                    user_id: userId,
+                    ...body,
+                });
+            }, "inviteToSpace");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "inviteToSpace"));
+            throw error;
+        }
     }
 
     async joinSpace(spaceId: string, body: JsonObject = {}): Promise<JsonObject> {
-        const result = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(
-                Method.Post,
-                this.spacePath("/spaces/$spaceId/join", spaceId),
-                undefined,
-                body,
-            );
-        }, "joinSpace");
-        this.emit(SpaceEvent.MemberJoined, spaceId, this.client.getUserId() || "");
-        return result;
+        try {
+            const result = await this.withRetry(async () => {
+                return await this.request<JsonObject>(
+                    Method.Post,
+                    this.spacePath("/spaces/$spaceId/join", spaceId),
+                    undefined,
+                    body,
+                );
+            }, "joinSpace");
+            this.emit(SpaceEvent.MemberJoined, spaceId, this.client.getUserId() || "");
+            return result;
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "joinSpace"));
+            throw error;
+        }
     }
 
     async leaveSpace(spaceId: string, body: JsonObject = {}): Promise<void> {
-        await this.withRetryRequest(async () => {
-            await this.request(Method.Post, this.spacePath("/spaces/$spaceId/leave", spaceId), undefined, body);
-        }, "leaveSpace");
-        this.clearCache();
-        this.emit(SpaceEvent.MemberLeft, spaceId, this.client.getUserId() || "");
+        try {
+            await this.withRetry(async () => {
+                await this.request(Method.Post, this.spacePath("/spaces/$spaceId/leave", spaceId), undefined, body);
+            }, "leaveSpace");
+            this.clearCache();
+            this.emit(SpaceEvent.MemberLeft, spaceId, this.client.getUserId() || "");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "leaveSpace"));
+            throw error;
+        }
     }
 
     async getSpaceHierarchy(spaceId: string): Promise<SpaceHierarchy> {
@@ -557,60 +585,90 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     }
 
     async getSpaceHierarchyPage(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
-        return this.withRetryRequest(async () => {
-            return await this.request<SpaceHierarchyPage>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/hierarchy", spaceId),
-                options,
-            );
-        }, "getSpaceHierarchyPage");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<SpaceHierarchyPage>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/hierarchy", spaceId),
+                    options,
+                );
+            }, "getSpaceHierarchyPage");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceHierarchyPage"));
+            throw error;
+        }
     }
 
     async getSpaceHierarchyV1(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
-        return this.withRetryRequest(async () => {
-            return await this.request<SpaceHierarchyPage>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/hierarchy/v1", spaceId),
-                options,
-            );
-        }, "getSpaceHierarchyV1");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<SpaceHierarchyPage>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/hierarchy/v1", spaceId),
+                    options,
+                );
+            }, "getSpaceHierarchyV1");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceHierarchyV1"));
+            throw error;
+        }
     }
 
     async getSpaceSummary(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
-        return this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/summary", spaceId),
-                options,
-            );
-        }, "getSpaceSummary");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<JsonObject>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/summary", spaceId),
+                    options,
+                );
+            }, "getSpaceSummary");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceSummary"));
+            throw error;
+        }
     }
 
     async getSpaceSummaryWithChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
-        return this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/summary/with_children", spaceId),
-                options,
-            );
-        }, "getSpaceSummaryWithChildren");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<JsonObject>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/summary/with_children", spaceId),
+                    options,
+                );
+            }, "getSpaceSummaryWithChildren");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceSummaryWithChildren"));
+            throw error;
+        }
     }
 
     async getSpaceTreePath(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
-        return this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(
-                Method.Get,
-                this.spacePath("/spaces/$spaceId/tree_path", spaceId),
-                options,
-            );
-        }, "getSpaceTreePath");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<JsonObject>(
+                    Method.Get,
+                    this.spacePath("/spaces/$spaceId/tree_path", spaceId),
+                    options,
+                );
+            }, "getSpaceTreePath");
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceTreePath"));
+            throw error;
+        }
     }
 
     async getSpaceByRoom(roomId: string): Promise<Space> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));
-        }, "getSpaceByRoom");
-        return this.normalizeSpace(response);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));
+            }, "getSpaceByRoom");
+            return this.normalizeSpace(response);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceByRoom"));
+            throw error;
+        }
     }
 
     /**
@@ -621,14 +679,19 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     }
 
     async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
-        const response = await this.withRetryRequest(async () => {
-            return await this.request<SpaceListResponse>(
-                Method.Get,
-                sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),
-                options,
-            );
-        }, "getRoomParentSpaces");
-        return this.extractSpaces(response);
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.request<SpaceListResponse>(
+                    Method.Get,
+                    sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),
+                    options,
+                );
+            }, "getRoomParentSpaces");
+            return this.extractSpaces(response);
+        } catch (error) {
+            this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getRoomParentSpaces"));
+            throw error;
+        }
     }
 
     async isSpace(roomId: string): Promise<boolean> {

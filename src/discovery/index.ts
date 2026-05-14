@@ -112,13 +112,15 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getServerDiscoveryInfo(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(
-            Method.Get,
-            ap("/.well-known/matrix/client"),
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.request<Record<string, unknown>>(
+                Method.Get,
+                ap("/.well-known/matrix/client"),
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        }, "getServerDiscoveryInfo");
     }
 
     public async getClientConfig(): Promise<{
@@ -133,23 +135,27 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getServerWellKnown(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(
-            Method.Get,
-            ap("/.well-known/matrix/server"),
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.request<Record<string, unknown>>(
+                Method.Get,
+                ap("/.well-known/matrix/server"),
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        }, "getServerWellKnown");
     }
 
     public async getSupportWellKnown(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(
-            Method.Get,
-            ap("/.well-known/matrix/support"),
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.request<Record<string, unknown>>(
+                Method.Get,
+                ap("/.well-known/matrix/support"),
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        }, "getSupportWellKnown");
     }
 
     public async getVersions(): Promise<IServerVersions> {
@@ -157,26 +163,34 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getMatrixServerVersion(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(
-            Method.Get,
-            ap("/_matrix/server_version"),
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.request<Record<string, unknown>>(
+                Method.Get,
+                ap("/_matrix/server_version"),
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        }, "getMatrixServerVersion");
     }
 
     public async getHealth(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(Method.Get, ap("/health"), undefined, undefined, { prefix: "" });
+        return this.withRetry(async () => {
+            return await this.client.http.request<Record<string, unknown>>(Method.Get, ap("/health"), undefined, undefined, { prefix: "" });
+        }, "getHealth");
     }
 
     public async getUnderscoreHealth(): Promise<Record<string, unknown>> {
-        return this.client.http.request<Record<string, unknown>>(Method.Get, ap("/_health"), undefined, undefined, { prefix: "" });
+        return this.withRetry(async () => {
+            return await this.client.http.request<Record<string, unknown>>(Method.Get, ap("/_health"), undefined, undefined, { prefix: "" });
+        }, "getUnderscoreHealth");
     }
 
     public async getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
         const path = ap(`/directory/room/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>);
-        return this.client.http.authedRequest<{ room_id: string; servers: string[] }>(Method.Get, path);
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<{ room_id: string; servers: string[] }>(Method.Get, path);
+        }, "getRoomIdForAlias");
     }
 
     public async getAliasRoomId(alias: string): Promise<string | null> {
@@ -193,31 +207,41 @@ export class DiscoveryManager extends BaseManager {
         if (limit !== undefined) {
             body.limit = limit;
         }
-        return this.client.http.authedRequest<UserDirectorySearchResponse>(
-            Method.Post,
-            ap("/user_directory/search"),
-            undefined,
-            body,
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<UserDirectorySearchResponse>(
+                Method.Post,
+                ap("/user_directory/search"),
+                undefined,
+                body,
+            );
+        }, "searchUserDirectory");
     }
 
     public async listUserDirectory(): Promise<UserDirectoryListResponse> {
-        return this.client.http.authedRequest<UserDirectoryListResponse>(Method.Post, ap("/user_directory/list"));
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<UserDirectoryListResponse>(Method.Post, ap("/user_directory/list"));
+        }, "listUserDirectory");
     }
 
     public async getUserDirectoryProfile(userId: string): Promise<UserDirectoryProfile> {
         const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
-        return this.client.http.authedRequest<UserDirectoryProfile>(Method.Get, path);
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<UserDirectoryProfile>(Method.Get, path);
+        }, "getUserDirectoryProfile");
     }
 
     public async getRoomVisibility(roomId: string): Promise<RoomVisibilityResponse> {
         const path = ap(`/directory/list/room/${encodeURIComponent(roomId)}` as StripAuthPrefix<AuthPathPattern>);
-        return this.client.http.authedRequest<RoomVisibilityResponse>(Method.Get, path);
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<RoomVisibilityResponse>(Method.Get, path);
+        }, "getRoomVisibility");
     }
 
     public async setRoomVisibility(roomId: string, visibility: "public" | "private"): Promise<void> {
         const path = ap(`/directory/list/room/${encodeURIComponent(roomId)}` as StripAuthPrefix<AuthPathPattern>);
-        await this.client.http.authedRequest(Method.Put, path, undefined, { visibility });
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Put, path, undefined, { visibility });
+        }, "setRoomVisibility");
     }
 
     public async getPublicRooms(limit?: number, since?: string, server?: string): Promise<PublicRoomsResponse> {
@@ -229,7 +253,9 @@ export class DiscoveryManager extends BaseManager {
         if (limit !== undefined) queryParams.limit = limit;
         if (since !== undefined) queryParams.since = since;
         if (server !== undefined) queryParams.server = server;
-        return this.client.http.request<PublicRoomsResponse>(Method.Get, ap("/publicRooms"), queryParams);
+        return this.withRetry(async () => {
+            return await this.client.http.request<PublicRoomsResponse>(Method.Get, ap("/publicRooms"), queryParams);
+        }, "getPublicRooms");
     }
 
     public async queryPublicRooms(
@@ -244,38 +270,50 @@ export class DiscoveryManager extends BaseManager {
         const queryParams: Record<string, string | number> = {};
         if (limit !== undefined) queryParams.limit = limit;
         if (since !== undefined) queryParams.since = since;
-        return this.client.http.request<PublicRoomsResponse>(Method.Post, ap("/publicRooms"), queryParams, {
-            filter,
-        });
+        return this.withRetry(async () => {
+            return await this.client.http.request<PublicRoomsResponse>(Method.Post, ap("/publicRooms"), queryParams, {
+                filter,
+            });
+        }, "queryPublicRooms");
     }
 
     public async setRoomAlias(roomId: string, alias: string): Promise<void> {
         const path = ap(`/directory/room/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>);
-        await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+        }, "setRoomAlias");
     }
 
     public async getAliasesForRoom(roomId: string): Promise<RoomAliasListResponse> {
         const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias` as StripAuthPrefix<AuthPathPattern>);
-        return this.client.http.authedRequest<RoomAliasListResponse>(Method.Get, path);
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<RoomAliasListResponse>(Method.Get, path);
+        }, "getAliasesForRoom");
     }
 
     public async addRoomAliasForRoom(roomId: string, alias: string): Promise<void> {
         const path = ap(
             `/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>,
         );
-        await this.client.http.authedRequest(Method.Put, path);
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Put, path);
+        }, "addRoomAliasForRoom");
     }
 
     public async deleteRoomAliasForRoom(roomId: string, alias: string): Promise<void> {
         const path = ap(
             `/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>,
         );
-        await this.client.http.authedRequest(Method.Delete, path);
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Delete, path);
+        }, "deleteRoomAliasForRoom");
     }
 
     public async deleteRoomAlias(alias: string): Promise<void> {
         const path = ap(`/directory/room/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>);
-        await this.client.http.authedRequest(Method.Delete, path);
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Delete, path);
+        }, "deleteRoomAlias");
     }
 }
 

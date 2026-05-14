@@ -92,13 +92,15 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                 body.template_name = templateName;
             }
 
-            const response = await this.client.http.request<CaptchaSendResponse>(
-                Method.Post,
-                cp("/register/captcha/send"),
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<CaptchaSendResponse>(
+                    Method.Post,
+                    cp("/register/captcha/send"),
+                    undefined,
+                    body,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "sendCaptcha");
 
             this.emit("captchaSent", {
                 captchaId: response.captcha_id,
@@ -114,13 +116,15 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
 
     public async verifyCaptcha(captchaId: string, code: string): Promise<CaptchaVerifyResponse> {
         try {
-            const response = await this.client.http.request<CaptchaVerifyResponse>(
-                Method.Post,
-                cp("/register/captcha/verify"),
-                undefined,
-                { captcha_id: captchaId, code },
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<CaptchaVerifyResponse>(
+                    Method.Post,
+                    cp("/register/captcha/verify"),
+                    undefined,
+                    { captcha_id: captchaId, code },
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "verifyCaptcha");
 
             if (response.verified) {
                 this.emit("captchaVerified", { captchaId });
@@ -134,13 +138,15 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
 
     public async getCaptchaStatus(captchaId: string): Promise<CaptchaStatusResponse> {
         try {
-            return await this.client.http.request<CaptchaStatusResponse>(
-                Method.Get,
-                cp("/register/captcha/status"),
-                { captcha_id: captchaId },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.withRetry(async () => {
+                return await this.client.http.request<CaptchaStatusResponse>(
+                    Method.Get,
+                    cp("/register/captcha/status"),
+                    { captcha_id: captchaId },
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "getCaptchaStatus");
         } catch (error) {
             throw this.normalizeError(error, "getCaptchaStatus");
         }
@@ -148,13 +154,15 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
 
     public async cleanupExpiredCaptchas(): Promise<CaptchaCleanupResponse> {
         try {
-            return await this.client.http.authedRequest<CaptchaCleanupResponse>(
-                Method.Post,
-                ap("/captcha/cleanup"),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<CaptchaCleanupResponse>(
+                    Method.Post,
+                    ap("/captcha/cleanup"),
+                    undefined,
+                    undefined,
+                    { prefix: AdminPrefix.V1 },
+                );
+            }, "cleanupExpiredCaptchas");
         } catch (error) {
             throw this.normalizeError(error, "cleanupExpiredCaptchas");
         }

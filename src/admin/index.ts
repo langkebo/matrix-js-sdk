@@ -35,8 +35,8 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError, ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "./validators";
-import { buildPaginationParams, buildSearchParams, buildQueryParams } from "./utils";
-import type { AdminPath, AdminPathPattern, AdminReplaceBraces, ADMIN_ROUTES } from "./__generated__/route-table";
+import { buildPaginationParams, buildQueryParams } from "./utils";
+
 
 type StripAdminPath<P extends string> =
     P extends `/_synapse/admin${infer Rest}` ? Rest : never;

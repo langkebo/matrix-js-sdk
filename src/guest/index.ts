@@ -135,13 +135,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = await this.client.http.request<IGuestRegisterResponse>(
-                Method.Post,
-                "/register",
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<IGuestRegisterResponse>(
+                    Method.Post,
+                    "/register",
+                    undefined,
+                    body,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "registerGuest");
 
             const guestInfo: IGuestInfo = {
                 userId: response.user_id,
@@ -175,13 +177,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 body.initial_device_display_name = initialDeviceDisplayName;
             }
 
-            const response = await this.client.http.request<IGuestLoginResponse>(
-                Method.Post,
-                "/login",
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.withRetry(async () => {
+                return await this.client.http.request<IGuestLoginResponse>(
+                    Method.Post,
+                    "/login",
+                    undefined,
+                    body,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "loginGuest");
 
             const guestInfo: IGuestInfo = {
                 userId: response.user_id,
@@ -252,9 +256,11 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 body.auth = authDict;
             }
 
-            await this.client.http.authedRequest(Method.Post, "/account/password", undefined, body, {
-                prefix: ClientPrefix.V3,
-            });
+            await this.withRetry(async () => {
+                await this.client.http.authedRequest(Method.Post, "/account/password", undefined, body, {
+                    prefix: ClientPrefix.V3,
+                });
+            }, "upgradeGuestAccount");
 
             this.guestInfo = null;
             // @swallow-error { owner: "guest", expires: "2026-12-31" }
@@ -315,13 +321,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }
 
             if (roomIdOrAlias.startsWith("#")) {
-                const response = await this.client.http.authedRequest<{ room_id?: string }>(
-                    Method.Get,
-                    `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                const response = await this.withRetry(async () => {
+                    return await this.client.http.authedRequest<{ room_id?: string }>(
+                        Method.Get,
+                        `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
+                        undefined,
+                        undefined,
+                        { prefix: ClientPrefix.V3 },
+                    );
+                }, "canJoinRoom");
                 return !!response?.room_id;
             }
 
@@ -351,15 +359,17 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
     public async getGuestInfoFromServer(): Promise<IServerGuestInfo> {
         try {
-            const response = (await this.client.http.authedRequest(
-                Method.Get,
-                gp("/account/guest"),
-                undefined,
-                undefined,
-                {
-                    prefix: ClientPrefix.V3,
-                },
-            )) as IServerGuestInfoResponse;
+            const response = (await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Get,
+                    gp("/account/guest"),
+                    undefined,
+                    undefined,
+                    {
+                        prefix: ClientPrefix.V3,
+                    },
+                );
+            }, "getGuestInfoFromServer")) as IServerGuestInfoResponse;
 
             const guestInfo = "guest" in response ? response.guest : response;
             this.emit(GuestEvent.GuestInfoReceived, guestInfo);
@@ -389,13 +399,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 body.auth = request.auth;
             }
 
-            const response = (await this.client.http.authedRequest(
-                Method.Post,
-                gp("/account/guest/upgrade"),
-                undefined,
-                body,
-                { prefix: ClientPrefix.V3 },
-            )) as IUpgradeGuestResponse;
+            const response = (await this.withRetry(async () => {
+                return await this.client.http.authedRequest(
+                    Method.Post,
+                    gp("/account/guest/upgrade"),
+                    undefined,
+                    body,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "upgradeGuestAccountOnServer")) as IUpgradeGuestResponse;
 
             this.guestInfo = null;
             this.emit(GuestEvent.GuestUpgraded, response.user_id);

@@ -181,7 +181,9 @@ export class AccountManager extends BaseManager {
      * Send a login request
      */
     public async loginRequest(data: LoginRequest): Promise<LoginResponse> {
-        return await this.client.http.request<LoginResponse>(Method.Post, ap("/login"), undefined, data);
+        return await this.withRetry(async () => {
+            return await this.client.http.request<LoginResponse>(Method.Post, ap("/login"), undefined, data);
+        }, "loginRequest");
     }
 
     /**
@@ -193,7 +195,9 @@ export class AccountManager extends BaseManager {
             this.client.http.abort();
         }
 
-        return this.client.http.authedRequest(Method.Post, ap("/logout"));
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(Method.Post, ap("/logout"));
+        }, "logout");
     }
 
     /**
@@ -205,7 +209,9 @@ export class AccountManager extends BaseManager {
             this.client.http.abort();
         }
 
-        return this.client.http.authedRequest(Method.Post, ap("/logout/all"));
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(Method.Post, ap("/logout/all"));
+        }, "logoutAll");
     }
 
     /**
@@ -236,7 +242,9 @@ export class AccountManager extends BaseManager {
             body.erase = erase;
         }
 
-        return this.client.http.authedRequest(Method.Post, ap("/account/deactivate"), undefined, body);
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest(Method.Post, ap("/account/deactivate"), undefined, body);
+        }, "deactivateAccount");
     }
 
     /**
@@ -244,13 +252,15 @@ export class AccountManager extends BaseManager {
      */
     public async requestLoginToken(auth?: AuthDict): Promise<LoginTokenPostResponse> {
         const body: UIARequest<unknown> = { auth };
-        return this.client.http.authedRequest<LoginTokenPostResponse>(
-            Method.Post,
-            "/login/get_token",
-            undefined,
-            body,
-            { prefix: ClientPrefix.V1 },
-        );
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<LoginTokenPostResponse>(
+                Method.Post,
+                "/login/get_token",
+                undefined,
+                body,
+                { prefix: ClientPrefix.V1 },
+            );
+        }, "requestLoginToken");
     }
 
     /**
@@ -271,7 +281,9 @@ export class AccountManager extends BaseManager {
         const path = utils.encodeUri("/rooms/$roomId/guest_access", {
             $roomId: roomId,
         });
-        await this.client.http.authedRequest(Method.Put, path, undefined, opts);
+        await this.withRetry(async () => {
+            await this.client.http.authedRequest(Method.Put, path, undefined, opts);
+        }, "setGuestAccess");
     }
 }
 
