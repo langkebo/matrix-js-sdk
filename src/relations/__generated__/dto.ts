@@ -9,7 +9,7 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-import type { MatrixEvent } from "../../models/event";
+import type { MatrixEvent } from "../../models/event.ts";
 
 export interface RelationsResponse {
     chunk: MatrixEvent[];

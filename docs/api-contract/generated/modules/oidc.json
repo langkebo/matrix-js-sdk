@@ -2,23 +2,11 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "oidc",
-  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
-  "generated_at": "2026-05-13T21:21:43Z",
+  "synapse_rust_commit": null,
+  "generated_at": "2026-05-17T01:47:28Z",
   "source_profile": "all",
-  "entry_count": 19,
+  "entry_count": 16,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/.well-known/jwks.json",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/.well-known/openid-configuration",
-      "registered_by": "oidc",
-      "path_params": []
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/login/sso/redirect",
@@ -88,12 +76,6 @@
     {
       "method": "GET",
       "path": "/_matrix/client/v3/oidc/callback",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/oidc/login",
       "registered_by": "oidc",
       "path_params": []
     },

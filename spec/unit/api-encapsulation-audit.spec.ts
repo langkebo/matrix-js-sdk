@@ -6,18 +6,14 @@ import { AuthManager } from "../../src/auth/index";
 import { ApplicationServiceManager } from "../../src/appservice/index";
 import { DeviceManager } from "../../src/device/index";
 import { DiscoveryManager } from "../../src/discovery/index";
-import { ExternalServiceManager } from "../../src/external-service/index";
 import { FederationManager } from "../../src/federation/index";
 import { FriendManager } from "../../src/friend/index";
 import { GuestManager } from "../../src/guest/index";
 import { MediaManager } from "../../src/media/index";
 import { PresenceManager } from "../../src/presence/index";
 import { RoomSummaryManager } from "../../src/room-summary/index";
-import { SamlAuthManager } from "../../src/saml/index";
 import { SpaceManager } from "../../src/space/index";
 import { ThreadingManager } from "../../src/threading/index";
-import { VoiceMessageManager } from "../../src/voice/index";
-import { WidgetManager } from "../../src/widget/index";
 import { AdminPrefix, ClientPrefix, MediaPrefix, Method } from "../../src/http-api";
 
 describe("API encapsulation audit", () => {
@@ -267,77 +263,6 @@ describe("API encapsulation audit", () => {
             `/directory/room/${encodeURIComponent("#room:test")}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
-        );
-    });
-
-    it("uses relative saml login paths with the r0 client prefix", async () => {
-        const request = vi.fn().mockResolvedValue({
-            redirect_url: "https://idp/redirect",
-        });
-        const manager = new SamlAuthManager({ http: { request } } as any);
-
-        await manager.initiateLogin();
-
-        expect(request).toHaveBeenCalledWith(Method.Post, "/login/sso/redirect/saml", undefined, undefined, {
-            prefix: ClientPrefix.R0,
-        });
-    });
-
-    it("uses relative voice config api path with the r0 client prefix", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({
-            enabled: true,
-            supported_formats: ["audio/ogg", "audio/mpeg"],
-            max_size_bytes: 52428800,
-            max_duration_ms: 600000,
-        });
-        const manager = new VoiceMessageManager({
-            http: { authedRequest },
-        } as any);
-
-        await manager.getServerConfig();
-
-        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/voice/config", undefined, undefined, {
-            prefix: "/_matrix/client/r0",
-        });
-    });
-
-    it("uses the v3 widget capability endpoint", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ capabilities: [] });
-        const manager = new WidgetManager({ http: { authedRequest } } as any);
-
-        await manager.getWidgetCapabilities("!room:test", "widget1");
-
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            `/rooms/${encodeURIComponent("!room:test")}/widgets/${encodeURIComponent("widget1")}/capabilities`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
-    });
-
-    it("uses the v3 widget send endpoint with normalized type/content payload", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ event_id: "$reply" });
-        const manager = new WidgetManager({ http: { authedRequest } } as any);
-
-        await manager.sendWidgetMessage("!room:test", "widget1", {
-            api: "widget",
-            action: "ping",
-            data: { ok: true },
-        });
-
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            `/rooms/${encodeURIComponent("!room:test")}/widgets/${encodeURIComponent("widget1")}/send`,
-            undefined,
-            {
-                type: "ping",
-                content: {
-                    api: "widget",
-                    ok: true,
-                },
-            },
             { prefix: ClientPrefix.V3 },
         );
     });
@@ -710,17 +635,6 @@ describe("API encapsulation audit", () => {
             {},
             { prefix: ClientPrefix.V3 },
         );
-    });
-
-    it("uses relative admin paths for external service requests", async () => {
-        const authedRequest = vi.fn().mockResolvedValue([]);
-        const manager = new ExternalServiceManager({ http: { authedRequest } } as any);
-
-        await manager.listServices();
-
-        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/external_services", undefined, undefined, {
-            prefix: AdminPrefix.V1,
-        });
     });
 
     it("includes markdown code-block endpoints in the contract audit", () => {

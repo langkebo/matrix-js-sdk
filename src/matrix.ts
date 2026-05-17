@@ -132,7 +132,6 @@ export type {
     MSC3575Filter,
 } from "./sliding-sync";
 export { SlidingSyncSdk } from "./sliding-sync-sdk";
-export { VoiceEvent } from "./voice/index";
 export { MediaHandlerEvent } from "./webrtc/mediaHandler";
 export { CallFeedEvent } from "./webrtc/callFeed";
 export { StatsReport } from "./webrtc/stats/statsReport";

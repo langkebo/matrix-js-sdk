@@ -2,7 +2,6 @@ export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./
 export { WorkerAdminManager } from "./worker-admin";
 export { AccountManager } from "./account";
 export { AccountDataManager } from "./account-data";
-export { AIConnectionManager } from "./ai-connection";
 export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
 export { CapabilitiesManager } from "./capabilities";
 export { CryptoKeysManager } from "./crypto-keys";
@@ -14,7 +13,6 @@ export {
     type UserDirectoryListResponse,
     type PublicRoomsResponse,
 } from "./discovery";
-export { ExternalServiceManager } from "./external-service";
 export { PushManager } from "./push";
 export { QrLoginManager, type QrCodeResponse, type QrLoginStatus } from "./qr-login";
 export { RenderingManager } from "./rendering";
@@ -47,7 +45,6 @@ export { RoomSummaryManager } from "./room-summary";
 export { StickyEventManager } from "./sticky-event";
 export { ThirdPartyManager } from "./thirdparty";
 export { UserManager } from "./user";
-export { VoiceMessageManager } from "./voice";
 export { BeaconManager } from "./beacon";
 export { Beacon, BeaconEvent, getBeaconInfoIdentifier } from "./models/beacon";
 export type { BeaconIdentifier, BeaconEventHandlerMap } from "./models/beacon";
@@ -73,9 +70,7 @@ export type {
 } from "./device";
 export { ProfileManager } from "./profile";
 export { SecurityManager } from "./security";
-export { SamlAuthManager } from "./saml";
 export { TypingManager } from "./typing";
-export { WidgetManager } from "./widget";
 export { TagManager, TagEvent } from "./tags";
 export type { IRoomTags, IRoomTag } from "./tags";
 export { AggregationsManager } from "./aggregations";

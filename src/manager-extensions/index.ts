@@ -40,7 +40,6 @@ export interface ManagerExtensionsOptions {
     includeKeyVerification?: boolean;
     includeDeviceTrust?: boolean;
     includeDiscovery?: boolean;
-    includeExternalService?: boolean;
     includeGlobalLogout?: boolean;
     includeDm?: boolean;
     includeGuest?: boolean;
@@ -64,7 +63,6 @@ export interface ManagerExtensionsOptions {
     includeDevice?: boolean;
     includeProfile?: boolean;
     includeSecureBackup?: boolean;
-    includeSamlAuth?: boolean;
     includeThirdParty?: boolean;
     includeOidc?: boolean;
     includeTelemetry?: boolean;
@@ -72,10 +70,6 @@ export interface ManagerExtensionsOptions {
     includeTyping?: boolean;
     includeUser?: boolean;
     includeUserReport?: boolean;
-    includeVoice?: boolean;
-    includeAiConnection?: boolean;
-    includeOpenClaw?: boolean;
-    includeWidget?: boolean;
     includeThreePids?: boolean;
     includeIdentityServer?: boolean;
     includePasswordReset?: boolean;
@@ -90,7 +84,6 @@ export interface ManagerExtensionsOptions {
     includeEventReport?: boolean;
     includeBurnAfterRead?: boolean;
     includeVerification?: boolean;
-    includeCas?: boolean;
     includeE2EE?: boolean;
     includeWorkerBody?: boolean;
     includeAll?: boolean;
@@ -119,7 +112,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeDeviceTrust: true,
     includeDiscovery: true,
     includeDm: true,
-    includeExternalService: true,
     includeGlobalLogout: true,
     includeGuest: true,
     includeInviteBlocklist: true,
@@ -142,7 +134,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeDevice: true,
     includeProfile: true,
     includeSecureBackup: true,
-    includeSamlAuth: true,
     includeThirdParty: true,
     includeOidc: true,
     includeTelemetry: true,
@@ -150,10 +141,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeTyping: true,
     includeUser: true,
     includeUserReport: true,
-    includeVoice: true,
-    includeAiConnection: true,
-    includeOpenClaw: true,
-    includeWidget: true,
     includeThreePids: true,
     includeIdentityServer: true,
     includePasswordReset: true,
@@ -168,7 +155,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeEventReport: true,
     includeBurnAfterRead: true,
     includeVerification: true,
-    includeCas: true,
     includeE2EE: true,
     includeWorkerBody: true,
 };
@@ -191,7 +177,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeKeyVerification", module: "key-verification" },
     { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
-    { option: "includeExternalService", module: "external-service" },
     { option: "includeGlobalLogout", module: "global-logout" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
@@ -215,7 +200,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeDevice", module: "device" },
     { option: "includeProfile", module: "profile" },
     { option: "includeSecureBackup", module: "secure-backup" },
-    { option: "includeSamlAuth", module: "saml" },
     { option: "includeThirdParty", module: "thirdparty" },
     { option: "includeOidc", module: "oidc" },
     { option: "includeTelemetry", module: "telemetry" },
@@ -223,10 +207,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeTyping", module: "typing" },
     { option: "includeUser", module: "user" },
     { option: "includeUserReport", module: "user-report" },
-    { option: "includeVoice", module: "voice" },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw" },
-    { option: "includeWidget", module: "widget" },
     { option: "includeThreePids", module: "threepids" },
     { option: "includeIdentityServer", module: "identity-server" },
     { option: "includePasswordReset", module: "password-reset" },
@@ -241,7 +221,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeEventReport", module: "event-report" },
     { option: "includeBurnAfterRead", module: "burn-after-read" },
     { option: "includeVerification", module: "verification" },
-    { option: "includeCas", module: "cas" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body" },
 ];
@@ -333,10 +312,6 @@ export async function extendMatrixClientWithManagers(
                 promises.push(import("../dm/index.js").then((m) => m.extendMatrixClient()));
             }
 
-            if (currentOptions.includeExternalService || all) {
-                promises.push(import("../external-service/index.js").then((m) => m.extendMatrixClient()));
-            }
-
             if (currentOptions.includeGlobalLogout || all) {
                 promises.push(import("../auth/global-logout.js").then((m) => m.extendMatrixClient()));
             }
@@ -425,10 +400,6 @@ export async function extendMatrixClientWithManagers(
                 promises.push(import("../secure-backup/index.js").then((m) => m.extendMatrixClient()));
             }
 
-            if (currentOptions.includeSamlAuth || all) {
-                promises.push(import("../saml/index.js").then((m) => m.extendMatrixClient()));
-            }
-
             if (currentOptions.includeThirdParty || all) {
                 promises.push(import("../thirdparty/index.js").then((m) => m.extendMatrixClient()));
             }
@@ -455,22 +426,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeUserReport || all) {
                 promises.push(import("../user-report/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeVoice || all) {
-                promises.push(import("../voice/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeAiConnection || all) {
-                promises.push(import("../ai-connection/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeOpenClaw || all) {
-                promises.push(import("../openclaw/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeWidget || all) {
-                promises.push(import("../widget/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeThreePids || all) {
@@ -527,10 +482,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeVerification || all) {
                 promises.push(import("../verification/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeCas || all) {
-                promises.push(import("../cas/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeE2EE || all) {

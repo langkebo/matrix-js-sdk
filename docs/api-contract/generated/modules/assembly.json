@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "assembly",
-  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
-  "generated_at": "2026-05-13T21:21:43Z",
+  "synapse_rust_commit": null,
+  "generated_at": "2026-05-17T01:47:28Z",
   "source_profile": "all",
-  "entry_count": 153,
+  "entry_count": 143,
   "entries": [
     {
       "method": "GET",
@@ -328,51 +328,6 @@
       "path": "/_matrix/client/r0/register/email/submitToken",
       "registered_by": "assembly::auth_compat",
       "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/call/{call_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "call_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.answer/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.candidates/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.hangup/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.invite/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
     },
     {
       "method": "POST",
@@ -918,51 +873,6 @@
       "path": "/_matrix/client/v3/register/email/submitToken",
       "registered_by": "assembly::auth_compat",
       "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/call/{call_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "call_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.answer/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.candidates/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.hangup/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.invite/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
     },
     {
       "method": "POST",

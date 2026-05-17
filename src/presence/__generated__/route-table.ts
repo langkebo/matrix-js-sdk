@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/presence.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  b3c5153fc5fa969a2caa04d8e506b18655b349a6
  */
 
 /** Routes served by the synapse-rust `presence` module. */

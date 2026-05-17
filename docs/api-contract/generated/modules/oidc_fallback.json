@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "oidc_fallback",
+  "synapse_rust_commit": null,
+  "generated_at": "2026-05-17T01:47:28Z",
+  "source_profile": "all",
+  "entry_count": 2,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/.well-known/jwks.json",
+      "registered_by": "oidc_fallback",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/.well-known/openid-configuration",
+      "registered_by": "oidc_fallback",
+      "path_params": []
+    }
+  ]
+}

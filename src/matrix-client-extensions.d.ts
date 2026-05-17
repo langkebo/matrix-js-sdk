@@ -135,7 +135,6 @@ export interface MatrixClientExtensionMethods {
     getCapabilitiesManager(): import("./capabilities/index").CapabilitiesManager;
     getDiscoveryManager(): import("./discovery/index").DiscoveryManager;
     getDirectoryManager(): import("./directory/index").DirectoryManager;
-    getExternalServiceManager(): import("./external-service/index").ExternalServiceManager;
     getFederationManager(): import("./federation/index").FederationManager;
     getServerCapabilitiesManager(): import("./server-capabilities/index").ServerCapabilitiesManager;
     getHttpManager(): import("./http/index").HttpManager;
@@ -171,7 +170,6 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Widgets & Integrations ============
     getWidgetsManager(): import("./widgets/index").WidgetsManager;
-    getWidgetManager(): import("./widget/index").WidgetManager;
     getGroupCallManager(): import("./group-management/index").GroupCallManager;
 
     // ============ Scheduled Events ============
@@ -185,7 +183,6 @@ export interface MatrixClientExtensionMethods {
     getCaptchaManager(): import("./captcha/index").CaptchaManager;
     getRetentionManager(): import("./retention/index").RetentionManager;
     getBeaconManager(): import("./beacon/index").BeaconManager;
-    getSamlAuthManager(): import("./saml/index").SamlAuthManager;
     getLoggerManager(): import("./logger/index").LoggerManager;
     getLifecycleManager(): import("./lifecycle/index").LifecycleManager;
     getPowerLevelsManager(): import("./power-levels/index").PowerLevelsManager;
@@ -199,14 +196,12 @@ export interface MatrixClientExtensionMethods {
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
     getRenderingManager(): import("./rendering/index").RenderingManager;
     getStickyEventManager(): import("./sticky-event/index").StickyEventManager;
-    getVoiceManager(): import("./voice/index").VoiceMessageManager;
     getQrLoginManager(): import("./qr-login/index").QrLoginManager;
     getOidcManager(): import("./oidc/manager").OidcManager;
     getTelemetryManager(
         config?: Partial<import("./telemetry/index").TelemetryConfig>,
     ): import("./telemetry/index").TelemetryManager;
     getRendezvousManager(): import("./rendezvous/RendezvousManager").RendezvousManager;
-    getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
     getStateSendManager(): import("./state-send/index").StateSendManager;
     getUserReportManager(): import("./user-report/index").UserReportManager;
     getSessionManager(): import("./session/index").SessionManager;
@@ -215,9 +210,7 @@ export interface MatrixClientExtensionMethods {
     getFeatureFlagManager(): import("./feature-flags/index").FeatureFlagManager;
     getModerationManager(): import("./moderation/index").ModerationManager;
     getVerificationManager(): import("./verification/index").VerificationManager;
-    getCasManager(): import("./cas/index").CasManager;
     getE2EEManager(): import("./e2ee/index").E2EEManager;
-    getOpenClawManager(): import("./openclaw/index").OpenClawManager;
     getWorkerBodyManager(): import("./worker-body/index").WorkerBodyManager;
 }
 

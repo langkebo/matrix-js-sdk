@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "admin",
-  "synapse_rust_commit": "b3c5153fc5fa969a2caa04d8e506b18655b349a6",
-  "generated_at": "2026-05-13T21:21:43Z",
+  "synapse_rust_commit": null,
+  "generated_at": "2026-05-17T01:47:28Z",
   "source_profile": "all",
-  "entry_count": 157,
+  "entry_count": 142,
   "entries": [
     {
       "method": "GET",
@@ -247,56 +247,6 @@
       "registered_by": "admin::media",
       "path_params": [
         "media_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/notifications",
-      "registered_by": "admin::notification",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/notifications",
-      "registered_by": "admin::notification",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/notifications/active",
-      "registered_by": "admin::notification",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_synapse/admin/v1/notifications/{notification_id}",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "notification_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/notifications/{notification_id}",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "notification_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_synapse/admin/v1/notifications/{notification_id}",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "notification_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_synapse/admin/v1/notifications/{notification_id}/deactivate",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "notification_id"
       ]
     },
     {
@@ -719,34 +669,6 @@
       ]
     },
     {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/send_server_notice",
-      "registered_by": "admin::notification",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/server_notices",
-      "registered_by": "admin::notification",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_synapse/admin/v1/server_notices/{notice_id}",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "notice_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/server_notices/{notice_id}",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "notice_id"
-      ]
-    },
-    {
       "method": "GET",
       "path": "/_synapse/admin/v1/server_version",
       "registered_by": "admin::server",
@@ -963,22 +885,6 @@
       ]
     },
     {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/users/{user_id}/notification",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_synapse/admin/v1/users/{user_id}/notification",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
       "method": "DELETE",
       "path": "/_synapse/admin/v1/users/{user_id}/override_ratelimit",
       "registered_by": "admin::security",
@@ -1008,23 +914,6 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/users/{user_id}/pushers",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_synapse/admin/v1/users/{user_id}/pushers/{pushkey}",
-      "registered_by": "admin::notification",
-      "path_params": [
-        "user_id",
-        "pushkey"
       ]
     },
     {
