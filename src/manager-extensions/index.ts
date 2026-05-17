@@ -86,6 +86,8 @@ export interface ManagerExtensionsOptions {
     includeVerification?: boolean;
     includeE2EE?: boolean;
     includeWorkerBody?: boolean;
+    includeAiConnection?: boolean;
+    includeOpenClaw?: boolean;
     includeAll?: boolean;
 }
 
@@ -157,6 +159,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeVerification: true,
     includeE2EE: true,
     includeWorkerBody: true,
+    includeAiConnection: true,
+    includeOpenClaw: true,
 };
 
 let isInitialized = false;
@@ -223,6 +227,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body" },
+    { option: "includeAiConnection", module: "ai-connection" },
+    { option: "includeOpenClaw", module: "openclaw" },
 ];
 
 function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {
@@ -486,6 +492,14 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeE2EE || all) {
                 promises.push(import("../e2ee/index.js").then((m) => m.extendMatrixClient()));
+            }
+
+            if (currentOptions.includeAiConnection || all) {
+                promises.push(import("../ai-connection/index.js").then((m) => m.extendMatrixClient()));
+            }
+
+            if (currentOptions.includeOpenClaw || all) {
+                promises.push(import("../openclaw/index.js").then((m) => m.extendMatrixClient()));
             }
 
             await Promise.all(promises);

@@ -180,3 +180,24 @@ export { UserDirectoryManager } from "./user-directory";
 export { UserPresenceManager } from "./user-presence";
 export { VoIPCallsManager } from "./voip-calls";
 export { WidgetsManager } from "./widgets";
+export { AIConnectionManager, AIConnectionEvent } from "./ai-connection";
+export type { AiConnection, CreateConnectionRequest, McpToolCallRequest } from "./ai-connection";
+export { OpenClawManager, OpenClawEvent } from "./openclaw";
+export type {
+    OpenClawConnection,
+    OpenClawConversation,
+    OpenClawMessage,
+    OpenClawGeneration,
+    OpenClawChatRole,
+    CreateOpenClawConnectionRequest,
+    UpdateOpenClawConnectionRequest,
+    CreateOpenClawConversationRequest,
+    UpdateOpenClawConversationRequest,
+    SendMessageRequest,
+    CreateGenerationRequest,
+    CreateChatRoleRequest,
+    UpdateChatRoleRequest,
+    PaginatedResponse,
+    PaginationParams,
+    ConnectionTestResult,
+} from "./openclaw";
