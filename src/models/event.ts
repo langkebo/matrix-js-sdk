@@ -50,6 +50,29 @@ import { type EmptyObject } from "../@types/common";
 
 export { EventStatus } from "./event-status";
 
+export interface IMediaInfo {
+    mimetype?: string;
+    size?: number;
+    [key: string]: unknown;
+}
+
+export interface IImageInfo extends IMediaInfo {
+    w?: number;
+    h?: number;
+    thumbnail_url?: string;
+    thumbnail_info?: IImageInfo;
+}
+
+export interface IVideoInfo extends IImageInfo {
+    duration?: number;
+}
+
+export interface IAudioInfo extends IMediaInfo {
+    duration?: number;
+}
+
+export type EventContentInfo = IImageInfo | IVideoInfo | IAudioInfo | IMediaInfo | Record<string, unknown>;
+
 /* eslint-disable camelcase */
 export interface IContent {
     [key: string]: unknown;
@@ -62,7 +85,7 @@ export interface IContent {
     "m.mentions"?: IMentions;
     "body"?: string;
     "url"?: string;
-    "info"?: unknown; // TODO: refine info type later if needed
+    "info"?: EventContentInfo;
 }
 
 type StrippedState = Required<Pick<IEvent, "content" | "state_key" | "type" | "sender">>;

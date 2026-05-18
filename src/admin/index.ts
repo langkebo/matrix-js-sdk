@@ -36,12 +36,17 @@ import { NotFoundError, ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "./validators";
 import { buildPaginationParams, buildQueryParams } from "./utils";
+import type { AdminPathPattern } from "./__generated__/route-table";
 
 
 type StripAdminPath<P extends string> =
     P extends `/_synapse/admin${infer Rest}` ? Rest : never;
 
-function ap(path: string): string {
+function ap<P extends StripAdminPath<AdminPathPattern>>(path: P): P {
+    return path;
+}
+
+function apu(path: string): string {
     return path;
 }
 
@@ -1127,7 +1132,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @returns 保留策略
      */
     async getRetentionPolicy(): Promise<RetentionPolicy> {
-        return await this.adminRequest<RetentionPolicy>(Method.Get, ap("/retention/policy"));
+        return await this.adminRequest<RetentionPolicy>(Method.Get, ap("/v1/retention/policy"));
     }
 
     /**
@@ -1139,7 +1144,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         min_lifetime?: number | null;
         expire_on_clients?: boolean;
     }): Promise<RetentionPolicy> {
-        return await this.adminRequest<RetentionPolicy>(Method.Post, ap("/retention/policy"), undefined, policy);
+        return await this.adminRequest<RetentionPolicy>(Method.Post, ap("/v1/retention/policy"), undefined, policy);
     }
 
     /**
@@ -1150,7 +1155,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomRetentionPolicy>(
             Method.Get,
-            ap(`/retention/policy/${encodeURIComponent(roomId)}`),
+            ap(`/v1/retention/policy/${encodeURIComponent(roomId)}` as StripAdminPath<AdminPathPattern>),
         );
     }
 
@@ -1169,7 +1174,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomRetentionPolicy>(
             Method.Post,
-            ap(`/retention/policy/${encodeURIComponent(roomId)}`),
+            ap(`/v1/retention/policy/${encodeURIComponent(roomId)}` as StripAdminPath<AdminPathPattern>),
             undefined,
             policy,
         );
@@ -1185,7 +1190,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     }): Promise<RetentionRunResult> {
         return await this.adminRequest<RetentionRunResult>(
             Method.Post,
-            ap("/retention/run"),
+            ap("/v1/retention/run"),
             undefined,
             options || {},
         );
@@ -1196,7 +1201,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 对接: GET /_synapse/admin/v1/retention/status
      */
     async getRetentionStatus(): Promise<RetentionStatus> {
-        return await this.adminRequest<RetentionStatus>(Method.Get, ap("/retention/status"));
+        return await this.adminRequest<RetentionStatus>(Method.Get, ap("/v1/retention/status"));
     }
 
     // Deprecated getRooms method
@@ -1948,7 +1953,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 对接: GET /_synapse/admin/v1/federation/cache
      */
     async getFederationCache(): Promise<any> {
-        return await this.adminRequest(Method.Get, ap("/federation/cache"));
+        return await this.adminRequest(Method.Get, apu("/federation/cache"));
     }
 
     /**
@@ -1956,7 +1961,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 对接: POST /_synapse/admin/v1/federation/cache/clear
      */
     async clearFederationCache(): Promise<void> {
-        await this.adminRequest(Method.Post, ap("/federation/cache/clear"));
+        await this.adminRequest(Method.Post, apu("/federation/cache/clear"));
     }
 
     /**
@@ -1969,7 +1974,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!key) {
             throw new ValidationError("Cache key is required");
         }
-        await this.adminRequest(Method.Delete, ap(`/federation/cache/${encodeURIComponent(key)}`));
+        await this.adminRequest(Method.Delete, apu(`/federation/cache/${encodeURIComponent(key)}`));
     }
 
     /**
@@ -2105,7 +2110,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * @returns 功能标志列表
      */
     async getFeatureFlags(): Promise<FeatureFlagPage> {
-        return await this.adminRequest<FeatureFlagPage>(Method.Get, ap("/feature_flags"));
+        return await this.adminRequest<FeatureFlagPage>(Method.Get, apu("/feature_flags"));
     }
 
     /**
@@ -2118,7 +2123,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!flagKey) {
             throw new ValidationError("Flag key is required");
         }
-        return await this.adminRequest<FeatureFlag>(Method.Get, ap(`/feature_flags/${encodeURIComponent(flagKey)}`));
+        return await this.adminRequest<FeatureFlag>(Method.Get, apu(`/feature_flags/${encodeURIComponent(flagKey)}`));
     }
 
     /**
@@ -2158,7 +2163,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         };
         return await this.adminRequest<FeatureFlag>(
             Method.Put,
-            ap(`/feature_flags/${encodeURIComponent(flagKey)}`),
+            apu(`/feature_flags/${encodeURIComponent(flagKey)}`),
             undefined,
             body,
         );
@@ -2173,7 +2178,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         if (!flagKey) {
             throw new ValidationError("Flag key is required");
         }
-        await this.adminRequest(Method.Delete, ap(`/feature_flags/${encodeURIComponent(flagKey)}`));
+        await this.adminRequest(Method.Delete, apu(`/feature_flags/${encodeURIComponent(flagKey)}`));
     }
 
     // ===== Compatibility wrappers / additional admin routes =====

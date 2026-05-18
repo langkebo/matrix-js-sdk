@@ -1,11 +1,8 @@
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { InvalidParamError } from "../common/errors";
-import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import type { VoicePathPattern } from "./__generated__/route-table";
 
 export interface IVoiceStats {
     total_messages: number;

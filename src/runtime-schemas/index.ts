@@ -35,7 +35,7 @@ export const matrixEventContentSchema: z.ZodType<IContent> = z
         "displayname": z.string().optional(),
         "body": z.string().optional(),
         "url": z.string().optional(),
-        "info": z.unknown().optional(),
+        "info": z.record(z.string(), z.unknown()).optional(),
         "m.relates_to": z.record(z.string(), z.unknown()).optional(),
         "m.mentions": mentionsSchema.optional(),
     })
