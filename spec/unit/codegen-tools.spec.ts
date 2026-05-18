@@ -8,9 +8,9 @@ import {
     generateApisFromOpenApiDocument,
     normalizeOpenApiOperations,
     parseOpenApiDocument,
-} from "../../src/codegen/generateApis";
-import { buildGeneratedCodeSection, syncContractDoc, upsertMarkdownSection } from "../../src/codegen/syncDocs";
-import { extractCanonicalPrompt, validatePromptTemplate } from "../../src/codegen/validateTemplates";
+} from "../../src/code-gen/generateApis";
+import { buildGeneratedCodeSection, syncContractDoc, upsertMarkdownSection } from "../../src/code-gen/syncDocs";
+import { extractCanonicalPrompt, validatePromptTemplate } from "../../src/code-gen/validateTemplates";
 
 const repoRoot = process.cwd();
 const promptTemplatePath = path.join(repoRoot, "docs", "api-contract", "governance", "SDK_CODEGEN_PROMPT_TEMPLATE.md");

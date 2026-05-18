@@ -43,7 +43,7 @@ export { MessageManager } from "./message";
 export { ModuleManager } from "./module";
 export { RoomSummaryManager } from "./room-summary";
 export { StickyEventManager } from "./sticky-event";
-export { ThirdPartyManager } from "./thirdparty";
+export { ThirdPartyManager } from "./third-party";
 export { UserManager } from "./user";
 export { BeaconManager } from "./beacon";
 export { Beacon, BeaconEvent, getBeaconInfoIdentifier } from "./models/beacon";
@@ -74,7 +74,7 @@ export { TypingManager } from "./typing";
 export { TagManager, TagEvent } from "./tags";
 export type { IRoomTags, IRoomTag } from "./tags";
 export { AggregationsManager } from "./aggregations";
-export { ApplicationServiceManager } from "./appservice";
+export { ApplicationServiceManager } from "./app-service";
 export {
     BurnAfterReadManager,
     BurnAfterReadEvent,
@@ -206,7 +206,7 @@ export type {
     McpToolCallResponse,
     ConnectionListResponse,
 } from "./ai-connection";
-export { OpenClawManager, OpenClawEvent } from "./openclaw";
+export { OpenClawManager, OpenClawEvent } from "./open-claw";
 export type {
     OpenClawConnection,
     OpenClawConversation,
@@ -224,4 +224,4 @@ export type {
     PaginatedResponse,
     PaginationParams,
     ConnectionTestResult,
-} from "./openclaw";
+} from "./open-claw";

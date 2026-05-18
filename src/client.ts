@@ -37,18 +37,18 @@ import {
     createNewMatrixCall,
     type MatrixCall,
     supportsMatrixCall,
-} from "./webrtc/call";
+} from "./web-rtc/call";
 import { Filter, type IFilterDefinition } from "./filter";
 import {
     CallEventHandler,
     type CallEventHandlerEvent,
     type CallEventHandlerEventHandlerMap,
-} from "./webrtc/callEventHandler";
+} from "./web-rtc/callEventHandler";
 import {
     GroupCallEventHandler,
     type GroupCallEventHandlerEvent,
     type GroupCallEventHandlerEventHandlerMap,
-} from "./webrtc/groupCallEventHandler";
+} from "./web-rtc/groupCallEventHandler";
 import * as utils from "./utils";
 import { deepCompare, noUnsafeEventProps, type QueryDict, sleep } from "./utils";
 import { Direction, EventTimeline } from "./models/event-timeline";
@@ -159,15 +159,15 @@ import type {
     IWhoamiResponse,
 } from "./client-internal-types";
 import { type IPushRule, type IPushRules } from "./@types/PushRules";
-import { type IThreepid } from "./@types/threepids";
+import { type IThreepid } from "./@types/three-pids";
 import { type CryptoStore } from "./crypto/store/base";
 import {
     GroupCall,
     type GroupCallIntent,
     type GroupCallType,
     type IGroupCallDataChannelOptions,
-} from "./webrtc/groupCall";
-import { MediaHandler } from "./webrtc/mediaHandler";
+} from "./web-rtc/groupCall";
+import { MediaHandler } from "./web-rtc/mediaHandler";
 import {
     type ILoginFlowsResponse,
     type IRefreshTokenResponse,
@@ -205,7 +205,7 @@ import {
     ServerSideSecretStorageImpl,
 } from "./secret-storage";
 import { type RegisterRequest, type RegisterResponse } from "./@types/registration";
-import { MatrixRTCSessionManager } from "./matrixrtc/MatrixRTCSessionManager";
+import { MatrixRTCSessionManager } from "./matrix-rtc/MatrixRTCSessionManager";
 import { type Membership } from "./@types/membership";
 import { type RoomMessageEventContent } from "./@types/events";
 import { type ImageInfo } from "./@types/media";
@@ -213,7 +213,7 @@ import { type Capabilities, ServerCapabilities } from "./serverCapabilities";
 import { type OidcClientConfig } from "./oidc/index";
 import { type EmptyObject } from "./@types/common";
 import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors";
-import { type Transport } from "./matrixrtc/index";
+import { type Transport } from "./matrix-rtc/index";
 import { getLegacyClientPrefix } from "./client-internals";
 import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events";
 import {
@@ -256,7 +256,7 @@ import {
     getThirdpartyLocationRequest,
     getThirdpartyUserRequest,
     getThirdpartyProtocolsRequest,
-} from "./client-thirdparty";
+} from "./client-third-party";
 import { leaveRoomChainRequest, membershipChangeRequest } from "./client-membership";
 import { buildRoomUpgradeHistory, selectVisibleRoomsForClient } from "./client-room-upgrade";
 import { mapStateAndChunkFromMessages, deriveBackPaginationTokenFromMessages } from "./client-timeline-core";

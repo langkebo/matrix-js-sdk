@@ -67,7 +67,7 @@ import {
     TweakName,
     UpdateDelayedEventAction,
 } from "../../src";
-import { supportsMatrixCall } from "../../src/webrtc/call";
+import { supportsMatrixCall } from "../../src/web-rtc/call";
 import {
     IGNORE_INVITES_ACCOUNT_EVENT_KEY,
     POLICIES_ACCOUNT_EVENT_TYPE,
@@ -85,15 +85,15 @@ import { mockOpenIdConfiguration } from "../test-utils/oidc.ts";
 import { type CryptoBackend } from "../../src/common-crypto/CryptoBackend";
 import { SyncResponder } from "../test-utils/SyncResponder.ts";
 import { mockInitialApiRequests } from "../test-utils/mockEndpoints.ts";
-import { type Transport } from "../../src/matrixrtc/index.ts";
+import { type Transport } from "../../src/matrix-rtc/index.ts";
 import { extendMatrixClient as extendRoom } from "../../src/room/index";
 
 extendRoom();
 
 vi.useFakeTimers();
 
-vi.mock("../../src/webrtc/call", async () => ({
-    ...(await vi.importActual("../../src/webrtc/call")),
+vi.mock("../../src/web-rtc/call", async () => ({
+    ...(await vi.importActual("../../src/web-rtc/call")),
     supportsMatrixCall: vi.fn(() => false),
 }));
 

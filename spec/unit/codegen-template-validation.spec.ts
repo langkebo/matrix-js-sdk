@@ -8,7 +8,7 @@ import {
     extractCanonicalPrompt,
     validatePromptTemplate,
     validatePromptTemplateFile,
-} from "../../src/codegen/validateTemplates";
+} from "../../src/code-gen/validateTemplates";
 
 const repoRoot = process.cwd();
 const promptTemplatePath = path.join(repoRoot, "docs", "api-contract", "governance", "SDK_CODEGEN_PROMPT_TEMPLATE.md");

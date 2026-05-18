@@ -83,7 +83,7 @@ export * from "./@types/partials";
 export * from "./@types/requests";
 export * from "./@types/search";
 export * from "./@types/topic";
-export * from "./@types/threepids";
+export * from "./@types/three-pids";
 export * from "./@types/auth";
 export type * from "./@types/local_notifications";
 export type * from "./@types/registration";
@@ -110,8 +110,8 @@ export { TimelineWindow } from "./timeline-window";
 export { ReceiptType } from "./@types/read_receipts";
 export * as ContentHelpers from "./content-helpers";
 export * as SecretStorage from "./secret-storage";
-export { createNewMatrixCall, CallEvent } from "./webrtc/call";
-export type { MatrixCall } from "./webrtc/call";
+export { createNewMatrixCall, CallEvent } from "./web-rtc/call";
+export type { MatrixCall } from "./web-rtc/call";
 export {
     GroupCall,
     GroupCallEvent,
@@ -119,7 +119,7 @@ export {
     GroupCallState,
     GroupCallType,
     GroupCallStatsReportEvent,
-} from "./webrtc/groupCall";
+} from "./web-rtc/groupCall";
 
 export { SyncState, SetPresence } from "./sync";
 export type { ISyncStateData as SyncStateData } from "./sync";
@@ -132,9 +132,9 @@ export type {
     MSC3575Filter,
 } from "./sliding-sync";
 export { SlidingSyncSdk } from "./sliding-sync-sdk";
-export { MediaHandlerEvent } from "./webrtc/mediaHandler";
-export { CallFeedEvent } from "./webrtc/callFeed";
-export { StatsReport } from "./webrtc/stats/statsReport";
+export { MediaHandlerEvent } from "./web-rtc/mediaHandler";
+export { CallFeedEvent } from "./web-rtc/callFeed";
+export { StatsReport } from "./web-rtc/stats/statsReport";
 export { Relations, RelationsEvent } from "./models/relations";
 export { TypedEventEmitter } from "./models/typed-event-emitter";
 export { LocalStorageErrors, localStorageErrorsEventsEmitter } from "./store/local-storage-events-emitter";

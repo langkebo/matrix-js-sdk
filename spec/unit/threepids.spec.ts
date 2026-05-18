@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Method } from "../../src/http-api/index.ts";
-import { ThreePidsManager } from "../../src/threepids/index.ts";
+import { ThreePidsManager } from "../../src/three-pids/index.ts";
 
 describe("ThreePidsManager", () => {
     let authedRequest: ReturnType<typeof vi.fn>;

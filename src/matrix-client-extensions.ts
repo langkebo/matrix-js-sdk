@@ -53,7 +53,7 @@ export interface MatrixClientExtensionMethods {
     setDeviceName(deviceId: string, name: string): Promise<void>;
     deleteDevice(deviceId: string, auth?: Record<string, unknown>): Promise<void>;
     deleteMultipleDevices(deviceIds: string[], auth?: Record<string, unknown>): Promise<void>;
-    getThreePidsManager(): import("./threepids/index").ThreePidsManager;
+    getThreePidsManager(): import("./three-pids/index").ThreePidsManager;
     getIdentityServerManager(): import("./identity-server/index").IdentityServerManager;
     getPasswordResetManager(): import("./password-reset/index").PasswordResetManager;
     getGlobalLogoutManager(): import("./auth/global-logout").GlobalLogoutManager;
@@ -247,7 +247,7 @@ export interface MatrixClientExtensionMethods {
     getScheduledEventsManager(): import("./scheduled-events/index").ScheduledEventsManager;
 
     // ============ Other Features ============
-    getThirdPartyManager(): import("./thirdparty/index").ThirdPartyManager;
+    getThirdPartyManager(): import("./third-party/index").ThirdPartyManager;
     getUrlPreviewManager(): import("./url-preview/index").UrlPreviewManager;
     getGuestManager(): import("./guest/index").GuestManager;
     getCaptchaManager(): import("./captcha/index").CaptchaManager;
@@ -280,7 +280,7 @@ export interface MatrixClientExtensionMethods {
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
     getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
-    getOpenClawManager(): import("./openclaw/index").OpenClawManager;
+    getOpenClawManager(): import("./open-claw/index").OpenClawManager;
 }
 
 /**

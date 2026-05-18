@@ -20,7 +20,7 @@ export * from "./@types/PushRules";
 export * from "./@types/membership";
 export * from "./@types/search";
 export * from "./@types/topic";
-export * from "./@types/threepids";
+export * from "./@types/three-pids";
 export * from "./@types/read_receipts";
 export { Visibility } from "./@types/partials";
 export { Preset } from "./@types/partials";

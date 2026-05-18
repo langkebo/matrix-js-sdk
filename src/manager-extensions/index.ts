@@ -416,7 +416,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeThirdParty || all) {
-                promises.push(import("../thirdparty/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(import("../third-party/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeOidc || all) {
@@ -444,7 +444,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeThreePids || all) {
-                promises.push(import("../threepids/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(import("../three-pids/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeIdentityServer || all) {
@@ -508,7 +508,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeOpenClaw || all) {
-                promises.push(import("../openclaw/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(import("../open-claw/index.js").then((m) => m.extendMatrixClient()));
             }
 
             if (currentOptions.includeVoice || all) {

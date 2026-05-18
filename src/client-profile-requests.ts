@@ -3,7 +3,7 @@ import { ClientPrefix, Method } from "./http-api/index";
 import type { Body, IRequestOpts } from "./http-api/index";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
-import type { IThreepid } from "./@types/threepids";
+import type { IThreepid } from "./@types/three-pids";
 import type { IAddThreePidOnlyBody, IBindThreePidBody } from "./@types/requests";
 import type { IdServerUnbindResult } from "./@types/partials";
 

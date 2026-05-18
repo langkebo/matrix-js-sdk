@@ -30,7 +30,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { MatrixCall } from "../webrtc/call";
+import { MatrixCall } from "../web-rtc/call";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";

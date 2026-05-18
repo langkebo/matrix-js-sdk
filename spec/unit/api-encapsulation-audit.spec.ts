@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 import { AuthManager } from "../../src/auth/index";
-import { ApplicationServiceManager } from "../../src/appservice/index";
+import { ApplicationServiceManager } from "../../src/app-service/index";
 import { DeviceManager } from "../../src/device/index";
 import { DiscoveryManager } from "../../src/discovery/index";
 import { FederationManager } from "../../src/federation/index";

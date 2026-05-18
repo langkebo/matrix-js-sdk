@@ -38,7 +38,7 @@ import {
     type SpaceChildEventContent,
     type SpaceParentEventContent,
 } from "./state_events";
-import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../webrtc/groupCall";
+import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../web-rtc/groupCall";
 import { type MSC3089EventContent } from "../models/MSC3089Branch";
 import { type EmptyObject } from "./common";
 import { type ReactionEventContent, type RoomMessageEventContent, type StickerEventContent } from "./events";
@@ -51,14 +51,14 @@ import {
     type MCallReplacesEvent,
     type MCallSelectAnswer,
     type SDPStreamMetadata,
-} from "../webrtc/callEventTypes";
+} from "../web-rtc/callEventTypes";
 import {
     type IRTCNotificationContent,
     type IRTCDeclineContent,
     type EncryptionKeysEventContent,
     type ICallNotifyContent,
-} from "../matrixrtc/types";
-import { type RtcMembershipData, type SessionMembershipData } from "../matrixrtc/CallMembership";
+} from "../matrix-rtc/types";
+import { type RtcMembershipData, type SessionMembershipData } from "../matrix-rtc/CallMembership";
 import { type LocalNotificationSettings } from "./local_notifications";
 import { type IPushRules } from "./PushRules";
 import { type SecretInfo, type SecretStorageKeyDescription } from "../secret-storage";

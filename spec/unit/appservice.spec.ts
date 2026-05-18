@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApplicationServiceManager } from "../../src/appservice/index.ts";
+import { ApplicationServiceManager } from "../../src/app-service/index.ts";
 import { Method } from "../../src/http-api/method.ts";
 import { ClientPrefix } from "../../src/http-api/prefix.ts";
 
