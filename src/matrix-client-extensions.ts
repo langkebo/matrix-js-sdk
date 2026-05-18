@@ -281,6 +281,7 @@ export interface MatrixClientExtensionMethods {
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
     getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
     getOpenClawManager(): import("./open-claw/index").OpenClawManager;
+    getSamlAuthManager(): import("./saml/index").SamlAuthManager;
 }
 
 /**

@@ -237,7 +237,7 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeVoice", module: "voice" },
     { option: "includeExternalService", module: "external-service" },
-    { option: "includeSamlAuth", module: "saml-auth" },
+    { option: "includeSamlAuth", module: "saml" },
 ];
 
 function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {

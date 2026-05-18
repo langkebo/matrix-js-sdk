@@ -76,6 +76,18 @@ export type { IRoomTags, IRoomTag } from "./tags";
 export { AggregationsManager } from "./aggregations";
 export { ApplicationServiceManager } from "./app-service";
 export {
+    SamlAuthManager,
+    type SamlLoginResponse,
+    type SamlAuthResult,
+    type SamlLogoutResponse,
+    type SamlMetadata,
+    type SamlSpMetadata,
+    type SamlAdminConfig,
+    type SamlUserMapping,
+    type SamlUserMappingPage,
+    type SamlRefreshResult,
+} from "./saml";
+export {
     BurnAfterReadManager,
     BurnAfterReadEvent,
     type IBurnAfterReadMessage,

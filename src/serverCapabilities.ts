@@ -40,6 +40,11 @@ export interface ISetAvatarUrlCapability extends ICapability {}
 
 export interface IProfileFieldsCapability extends ICapability {}
 
+export interface ISsoCapability extends ICapability {
+    enabled: boolean;
+    providers?: string[];
+}
+
 export enum RoomVersionStability {
     Stable = "stable",
     Unstable = "unstable",
@@ -68,6 +73,7 @@ export interface Capabilities {
      * Since Matrix v1.16
      */
     "m.profile_fields"?: IProfileFieldsCapability;
+    "m.sso"?: ISsoCapability;
 }
 
 type CapabilitiesResponse = {
