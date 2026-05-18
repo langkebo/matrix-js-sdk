@@ -35,7 +35,7 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./sync`                   | Sync 白名单：同步入口                                           | `SyncApi`                                                                                   |
 | `./telemetry`              | Telemetry 白名单：遥测管理入口                                  | `TelemetryManager`                                                                          |
 | `./timeline-window`        | Timeline 白名单：timeline 窗口能力                              | `TimelineWindow`, `TimelineIndex`                                                          |
-| `./voice`                  | Voice 白名单：语音消息 manager 与语音领域类型                   | `VoiceMessageManager`, `VoiceEvent`, `VoiceMessage`                                        |
+| `./voice`                  | Voice 白名单：语音消息 manager 与语音领域类型                   | `VoiceManager`, `VoiceEvent`, `IVoiceMessage`                                              |
 | `./webrtc`                 | WebRTC 白名单：通话入口（当前仅校验子路径存在）                 | `-`                                                                                        |
 | `./@types/partials`        | 类型白名单：协议 partial/type 枚举集合                          | `Visibility`, `Preset`, `JoinRule`                                                         |
 | `./@types/PushRules`       | 类型白名单：push rules 枚举与动作类型                           | `PushRuleActionName`, `TweakName`, `PushRuleAction`                                        |

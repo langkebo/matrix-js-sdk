@@ -41,20 +41,24 @@ export enum InviteBlocklistEvent {
 
 export interface IBlocklistResponse {
     blocklist: string[];
+    blocked_users?: string[];
 }
 
 export interface IAllowlistResponse {
     allowlist: string[];
+    allowed_users?: string[];
 }
 
 export interface IBlocklistResult {
     success: boolean;
     blocklist: string[];
+    blocked_users?: string[];
 }
 
 export interface IAllowlistResult {
     success: boolean;
     allowlist: string[];
+    allowed_users?: string[];
 }
 
 interface InviteBlocklistManagerEventMap {
@@ -91,7 +95,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                 );
             }, "getBlocklist");
 
-            const blocklist = response.blocklist || [];
+            const blocklist = response.blocked_users || response.blocklist || [];
             this.blocklistCache.set(roomId, blocklist);
             return blocklist;
         } catch (error) {
@@ -130,6 +134,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
             return {
                 success: true,
                 blocklist: userIds,
+                blocked_users: userIds,
             };
         } catch (error) {
             logger.error(`InviteBlocklistManager.setBlocklist failed for room ${roomId}:`, error);
@@ -183,7 +188,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                 );
             }, "getAllowlist");
 
-            const allowlist = response.allowlist || [];
+            const allowlist = response.allowed_users || response.allowlist || [];
             this.allowlistCache.set(roomId, allowlist);
             return allowlist;
         } catch (error) {
@@ -222,6 +227,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
             return {
                 success: true,
                 allowlist: userIds,
+                allowed_users: userIds,
             };
         } catch (error) {
             logger.error(`InviteBlocklistManager.setAllowlist failed for room ${roomId}:`, error);

@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/admin.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `admin` module. */
@@ -46,6 +47,13 @@ export const ADMIN_ROUTES = [
     { method: "GET", path: "/_synapse/admin/v1/media/quota" },
     { method: "DELETE", path: "/_synapse/admin/v1/media/{media_id}" },
     { method: "GET", path: "/_synapse/admin/v1/media/{media_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/notifications" },
+    { method: "POST", path: "/_synapse/admin/v1/notifications" },
+    { method: "GET", path: "/_synapse/admin/v1/notifications/active" },
+    { method: "DELETE", path: "/_synapse/admin/v1/notifications/{notification_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/notifications/{notification_id}" },
+    { method: "PUT", path: "/_synapse/admin/v1/notifications/{notification_id}" },
+    { method: "PUT", path: "/_synapse/admin/v1/notifications/{notification_id}/deactivate" },
     { method: "POST", path: "/_synapse/admin/v1/purge_history" },
     { method: "POST", path: "/_synapse/admin/v1/purge_media_cache" },
     { method: "POST", path: "/_synapse/admin/v1/purge_room" },
@@ -102,6 +110,10 @@ export const ADMIN_ROUTES = [
     { method: "POST", path: "/_synapse/admin/v1/rooms/{room_id}/unban/{user_id}" },
     { method: "POST", path: "/_synapse/admin/v1/rooms/{room_id}/unblock" },
     { method: "GET", path: "/_synapse/admin/v1/rooms/{room_id}/version" },
+    { method: "POST", path: "/_synapse/admin/v1/send_server_notice" },
+    { method: "GET", path: "/_synapse/admin/v1/server_notices" },
+    { method: "DELETE", path: "/_synapse/admin/v1/server_notices/{notice_id}" },
+    { method: "GET", path: "/_synapse/admin/v1/server_notices/{notice_id}" },
     { method: "GET", path: "/_synapse/admin/v1/server_version" },
     { method: "POST", path: "/_synapse/admin/v1/shutdown_room" },
     { method: "GET", path: "/_synapse/admin/v1/spaces" },
@@ -131,10 +143,14 @@ export const ADMIN_ROUTES = [
     { method: "POST", path: "/_synapse/admin/v1/users/{user_id}/logout" },
     { method: "DELETE", path: "/_synapse/admin/v1/users/{user_id}/media" },
     { method: "GET", path: "/_synapse/admin/v1/users/{user_id}/media" },
+    { method: "GET", path: "/_synapse/admin/v1/users/{user_id}/notification" },
+    { method: "PUT", path: "/_synapse/admin/v1/users/{user_id}/notification" },
     { method: "DELETE", path: "/_synapse/admin/v1/users/{user_id}/override_ratelimit" },
     { method: "GET", path: "/_synapse/admin/v1/users/{user_id}/override_ratelimit" },
     { method: "POST", path: "/_synapse/admin/v1/users/{user_id}/override_ratelimit" },
     { method: "POST", path: "/_synapse/admin/v1/users/{user_id}/password" },
+    { method: "GET", path: "/_synapse/admin/v1/users/{user_id}/pushers" },
+    { method: "DELETE", path: "/_synapse/admin/v1/users/{user_id}/pushers/{pushkey}" },
     { method: "DELETE", path: "/_synapse/admin/v1/users/{user_id}/rate_limit" },
     { method: "GET", path: "/_synapse/admin/v1/users/{user_id}/rate_limit" },
     { method: "PUT", path: "/_synapse/admin/v1/users/{user_id}/rate_limit" },

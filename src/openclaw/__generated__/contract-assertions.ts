@@ -9,20 +9,20 @@ import { OPENCLAW_ROUTES } from "./route-table";
 export const OPENCLAW_ROUTES_ENTRY_COUNT = 23 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _OpenClawEntryCountAssertion: 23 = OPENCLAW_ROUTES.length;
-void _OpenClawEntryCountAssertion;
+const _OpenclawEntryCountAssertion: 23 = OPENCLAW_ROUTES.length;
+void _OpenclawEntryCountAssertion;
 
 export const OPENCLAW_ROUTES_STATUS_SCENARIOS = [
 ] as const;
 
-export type OpenClawStatusScenario = (typeof OPENCLAW_ROUTES_STATUS_SCENARIOS)[number];
+export type OpenclawStatusScenario = (typeof OPENCLAW_ROUTES_STATUS_SCENARIOS)[number];
 
 export const OPENCLAW_ROUTES_ERROR_SCENARIOS = [
 ] as const;
 
-export type OpenClawErrorScenario = (typeof OPENCLAW_ROUTES_ERROR_SCENARIOS)[number];
+export type OpenclawErrorScenario = (typeof OPENCLAW_ROUTES_ERROR_SCENARIOS)[number];
 
 export const OPENCLAW_ROUTES_ERRCODES = [
 ] as const;
 
-export type OpenClawErrcode = (typeof OPENCLAW_ROUTES_ERRCODES)[number];
+export type OpenclawErrcode = (typeof OPENCLAW_ROUTES_ERRCODES)[number];

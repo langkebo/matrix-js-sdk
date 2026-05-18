@@ -97,7 +97,7 @@ module.exports = {
                 // We're okay being explicit at the moment
                 "@typescript-eslint/no-empty-interface": "off",
                 // We disable this while we're transitioning
-                "@typescript-eslint/no-explicit-any": "off",
+                "@typescript-eslint/no-explicit-any": "warn",
                 // We'd rather not do this but we do
                 "@typescript-eslint/ban-ts-comment": "off",
                 // We're okay with assertion errors when we ask for them

@@ -14,63 +14,174 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * OpenClaw Manager - AI 连接与对话管理
- *
- * 提供连接管理、对话管理、消息管理、生成管理、角色管理功能
- * 对接后端: synapse-rust/src/web/routes/openclaw.rs
- */
-
 import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import type { OpenClawPathPattern } from "./__generated__/route-table";
-import type {
-    OpenClawConnection,
-    CreateOpenClawConnectionRequest,
-    UpdateOpenClawConnectionRequest,
-    ConnectionTestResult,
-    OpenClawConversation,
-    CreateOpenClawConversationRequest,
-    UpdateOpenClawConversationRequest,
-    OpenClawMessage,
-    SendMessageRequest,
-    OpenClawGeneration,
-    CreateGenerationRequest,
-    OpenClawChatRole,
-    CreateChatRoleRequest,
-    UpdateChatRoleRequest,
-    PaginatedResponse,
-    PaginationParams,
-} from "./__generated__/dto";
+import type { OpenclawPathPattern } from "./__generated__/route-table";
 
-export type {
-    OpenClawConnection,
-    CreateOpenClawConnectionRequest,
-    UpdateOpenClawConnectionRequest,
-    ConnectionTestResult,
-    OpenClawConversation,
-    CreateOpenClawConversationRequest,
-    UpdateOpenClawConversationRequest,
-    OpenClawMessage,
-    SendMessageRequest,
-    OpenClawGeneration,
-    CreateGenerationRequest,
-    OpenClawChatRole,
-    CreateChatRoleRequest,
-    UpdateChatRoleRequest,
-    PaginatedResponse,
-    PaginationParams,
-} from "./__generated__/dto";
+export interface OpenClawConnection {
+    id: number;
+    name: string;
+    provider: string;
+    base_url: string;
+    has_api_key: boolean;
+    config?: Record<string, unknown>;
+    is_default: boolean;
+    is_active: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface CreateOpenClawConnectionRequest {
+    name: string;
+    provider: string;
+    base_url: string;
+    api_key?: string;
+    config?: Record<string, unknown>;
+    is_default?: boolean;
+}
+
+export interface UpdateOpenClawConnectionRequest {
+    name?: string;
+    base_url?: string;
+    api_key?: string;
+    config?: Record<string, unknown>;
+    is_default?: boolean;
+    is_active?: boolean;
+}
+
+export interface ConnectionTestResult {
+    success: boolean;
+    message?: string;
+    latency_ms?: number;
+}
+
+export interface OpenClawConversation {
+    id: number;
+    connection_id?: number;
+    title?: string;
+    model_id?: string;
+    system_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_pinned: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface CreateOpenClawConversationRequest {
+    connection_id?: number;
+    title?: string;
+    model_id?: string;
+    system_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+}
+
+export interface UpdateOpenClawConversationRequest {
+    title?: string;
+    model_id?: string;
+    system_prompt?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_pinned?: boolean;
+}
+
+export interface OpenClawMessage {
+    id: number;
+    conversation_id: number;
+    role: string;
+    content: string;
+    token_count?: number;
+    tool_calls?: Record<string, unknown>;
+    created_ts: number;
+}
+
+export interface SendMessageRequest {
+    content: string;
+    role?: string;
+    metadata?: Record<string, unknown>;
+}
+
+export interface OpenClawGeneration {
+    id: number;
+    type: string;
+    prompt: string;
+    status: string;
+    result_url?: string;
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface CreateGenerationRequest {
+    type: string;
+    prompt: string;
+    model_id?: string;
+    parameters?: Record<string, unknown>;
+}
+
+export interface OpenClawChatRole {
+    id: number;
+    name: string;
+    description?: string;
+    system_message: string;
+    model_id?: string;
+    avatar_url?: string;
+    category?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_public: boolean;
+    created_ts: number;
+    updated_ts: number;
+}
+
+export interface CreateChatRoleRequest {
+    name: string;
+    system_message: string;
+    description?: string;
+    model_id?: string;
+    avatar_url?: string;
+    category?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_public?: boolean;
+}
+
+export interface UpdateChatRoleRequest {
+    name?: string;
+    system_message?: string;
+    description?: string;
+    model_id?: string;
+    avatar_url?: string;
+    category?: string;
+    temperature?: number;
+    max_tokens?: number;
+    is_public?: boolean;
+}
+
+export interface PaginationParams {
+    limit?: number;
+    offset?: number;
+    from?: string;
+    before?: number;
+    type?: string;
+}
+
+export interface PaginatedResponse<T> {
+    items: T[];
+    total: number;
+    has_more: boolean;
+    next_offset?: number;
+}
 
 const OPENCLAW_PREFIX = "/_matrix/client/unstable/org.synapse_rust.openclaw";
 
 type StripOpenClawPrefix<P extends string> =
     P extends `${typeof OPENCLAW_PREFIX}${infer Rest}` ? Rest : never;
 
-function oc<P extends StripOpenClawPrefix<OpenClawPathPattern>>(path: P): P {
+function oc<P extends StripOpenClawPrefix<OpenclawPathPattern>>(path: P): P {
     return path;
 }
 
@@ -126,14 +237,10 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         }, "request");
     }
 
-    // ===== Connections =====
-
-    /** GET /connections */
     async listConnections(): Promise<OpenClawConnection[]> {
         return this.request<OpenClawConnection[]>(Method.Get, oc("/connections"));
     }
 
-    /** POST /connections */
     async createConnection(req: CreateOpenClawConnectionRequest): Promise<OpenClawConnection> {
         this.requireNonEmptyString(req.name, "name");
         this.requireNonEmptyString(req.provider, "provider");
@@ -143,21 +250,19 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** GET /connections/{id} */
     async getConnection(id: number): Promise<OpenClawConnection> {
         this.requirePositiveInteger(id, "id");
         return this.request<OpenClawConnection>(
             Method.Get,
-            oc(`/connections/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
     }
 
-    /** PUT /connections/{id} */
     async updateConnection(id: number, req: UpdateOpenClawConnectionRequest): Promise<OpenClawConnection> {
         this.requirePositiveInteger(id, "id");
         const result = await this.request<OpenClawConnection>(
             Method.Put,
-            oc(`/connections/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
             req,
         );
@@ -165,30 +270,25 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** DELETE /connections/{id} */
     async deleteConnection(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
         await this.request<void>(
             Method.Delete,
-            oc(`/connections/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
         this.emit(OpenClawEvent.ConnectionDeleted, id);
     }
 
-    /** POST /connections/{id}/test */
     async testConnection(id: number): Promise<ConnectionTestResult> {
         this.requirePositiveInteger(id, "id");
         const result = await this.request<ConnectionTestResult>(
             Method.Post,
-            oc(`/connections/${id}/test` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/connections/${id}/test` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
         this.emit(OpenClawEvent.ConnectionTested, result);
         return result;
     }
 
-    // ===== Conversations =====
-
-    /** GET /conversations */
     async listConversations(params?: PaginationParams): Promise<PaginatedResponse<OpenClawConversation>> {
         const q: Record<string, string> = {};
         if (params?.limit !== undefined) q.limit = String(params.limit);
@@ -203,28 +303,25 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         );
     }
 
-    /** POST /conversations */
     async createConversation(req: CreateOpenClawConversationRequest): Promise<OpenClawConversation> {
         const result = await this.request<OpenClawConversation>(Method.Post, oc("/conversations"), undefined, req);
         this.emit(OpenClawEvent.ConversationCreated, result);
         return result;
     }
 
-    /** GET /conversations/{id} */
     async getConversation(id: number): Promise<OpenClawConversation> {
         this.requirePositiveInteger(id, "id");
         return this.request<OpenClawConversation>(
             Method.Get,
-            oc(`/conversations/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/conversations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
     }
 
-    /** PUT /conversations/{id} */
     async updateConversation(id: number, req: UpdateOpenClawConversationRequest): Promise<OpenClawConversation> {
         this.requirePositiveInteger(id, "id");
         const result = await this.request<OpenClawConversation>(
             Method.Put,
-            oc(`/conversations/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/conversations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
             req,
         );
@@ -232,19 +329,15 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** DELETE /conversations/{id} */
     async deleteConversation(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
         await this.request<void>(
             Method.Delete,
-            oc(`/conversations/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/conversations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
         this.emit(OpenClawEvent.ConversationDeleted, id);
     }
 
-    // ===== Messages =====
-
-    /** GET /conversations/{conversationId}/messages */
     async listMessages(
         conversationId: number,
         params?: PaginationParams,
@@ -258,18 +351,17 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         if (params?.type) q.type = params.type;
         return this.request<PaginatedResponse<OpenClawMessage>>(
             Method.Get,
-            oc(`/conversations/${conversationId}/messages` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/conversations/${conversationId}/messages` as StripOpenClawPrefix<OpenclawPathPattern>),
             Object.keys(q).length > 0 ? q : undefined,
         );
     }
 
-    /** POST /conversations/{conversationId}/messages */
     async sendMessage(conversationId: number, req: SendMessageRequest): Promise<OpenClawMessage> {
         this.requirePositiveInteger(conversationId, "conversationId");
         this.requireNonEmptyString(req.content, "content");
         const result = await this.request<OpenClawMessage>(
             Method.Post,
-            oc(`/conversations/${conversationId}/messages` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/conversations/${conversationId}/messages` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
             req,
         );
@@ -277,19 +369,15 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** DELETE /messages/{id} */
     async deleteMessage(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
         await this.request<void>(
             Method.Delete,
-            oc(`/messages/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/messages/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
         this.emit(OpenClawEvent.MessageDeleted, id);
     }
 
-    // ===== Generations =====
-
-    /** GET /generations */
     async listGenerations(params?: PaginationParams): Promise<PaginatedResponse<OpenClawGeneration>> {
         const q: Record<string, string> = {};
         if (params?.limit !== undefined) q.limit = String(params.limit);
@@ -304,7 +392,6 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         );
     }
 
-    /** POST /generations */
     async createGeneration(req: CreateGenerationRequest): Promise<OpenClawGeneration> {
         this.requireNonEmptyString(req.type, "type");
         this.requireNonEmptyString(req.prompt, "prompt");
@@ -313,33 +400,27 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** GET /generations/{id} */
     async getGeneration(id: number): Promise<OpenClawGeneration> {
         this.requirePositiveInteger(id, "id");
         return this.request<OpenClawGeneration>(
             Method.Get,
-            oc(`/generations/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/generations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
     }
 
-    /** DELETE /generations/{id} */
     async deleteGeneration(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
         await this.request<void>(
             Method.Delete,
-            oc(`/generations/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/generations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
         this.emit(OpenClawEvent.GenerationDeleted, id);
     }
 
-    // ===== Roles =====
-
-    /** GET /roles */
     async listChatRoles(): Promise<OpenClawChatRole[]> {
         return this.request<OpenClawChatRole[]>(Method.Get, oc("/roles"));
     }
 
-    /** POST /roles */
     async createChatRole(req: CreateChatRoleRequest): Promise<OpenClawChatRole> {
         this.requireNonEmptyString(req.name, "name");
         this.requireNonEmptyString(req.system_message, "system_message");
@@ -348,21 +429,19 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** GET /roles/{id} */
     async getChatRole(id: number): Promise<OpenClawChatRole> {
         this.requirePositiveInteger(id, "id");
         return this.request<OpenClawChatRole>(
             Method.Get,
-            oc(`/roles/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
     }
 
-    /** PUT /roles/{id} */
     async updateChatRole(id: number, req: UpdateChatRoleRequest): Promise<OpenClawChatRole> {
         this.requirePositiveInteger(id, "id");
         const result = await this.request<OpenClawChatRole>(
             Method.Put,
-            oc(`/roles/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
             req,
         );
@@ -370,12 +449,11 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return result;
     }
 
-    /** DELETE /roles/{id} */
     async deleteChatRole(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
         await this.request<void>(
             Method.Delete,
-            oc(`/roles/${id}` as StripOpenClawPrefix<OpenClawPathPattern>),
+            oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
         this.emit(OpenClawEvent.RoleDeleted, id);
     }

@@ -88,6 +88,9 @@ export interface ManagerExtensionsOptions {
     includeWorkerBody?: boolean;
     includeAiConnection?: boolean;
     includeOpenClaw?: boolean;
+    includeVoice?: boolean;
+    includeExternalService?: boolean;
+    includeSamlAuth?: boolean;
     includeAll?: boolean;
 }
 
@@ -161,6 +164,9 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeWorkerBody: true,
     includeAiConnection: true,
     includeOpenClaw: true,
+    includeVoice: true,
+    includeExternalService: true,
+    includeSamlAuth: true,
 };
 
 let isInitialized = false;
@@ -229,6 +235,9 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeWorkerBody", module: "worker-body" },
     { option: "includeAiConnection", module: "ai-connection" },
     { option: "includeOpenClaw", module: "openclaw" },
+    { option: "includeVoice", module: "voice" },
+    { option: "includeExternalService", module: "external-service" },
+    { option: "includeSamlAuth", module: "saml-auth" },
 ];
 
 function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {
@@ -500,6 +509,10 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeOpenClaw || all) {
                 promises.push(import("../openclaw/index.js").then((m) => m.extendMatrixClient()));
+            }
+
+            if (currentOptions.includeVoice || all) {
+                promises.push(import("../voice/index.js").then((m) => m.extendMatrixClient()));
             }
 
             await Promise.all(promises);

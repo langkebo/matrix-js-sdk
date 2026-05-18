@@ -6,10 +6,10 @@
 
 import { VERIFICATION_ROUTES } from "./route-table";
 
-export const VERIFICATION_ROUTES_ENTRY_COUNT = 18 as const;
+export const VERIFICATION_ROUTES_ENTRY_COUNT = 36 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _VerificationEntryCountAssertion: 18 = VERIFICATION_ROUTES.length;
+const _VerificationEntryCountAssertion: 36 = VERIFICATION_ROUTES.length;
 void _VerificationEntryCountAssertion;
 
 export const VERIFICATION_ROUTES_STATUS_SCENARIOS = [

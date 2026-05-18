@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/oidc.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `oidc` module. */
@@ -24,6 +25,7 @@ export const OIDC_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/login/sso/userinfo" },
     { method: "GET", path: "/_matrix/client/v3/oidc/authorize" },
     { method: "GET", path: "/_matrix/client/v3/oidc/callback" },
+    { method: "POST", path: "/_matrix/client/v3/oidc/login" },
     { method: "POST", path: "/_matrix/client/v3/oidc/logout" },
     { method: "POST", path: "/_matrix/client/v3/oidc/register" },
     { method: "POST", path: "/_matrix/client/v3/oidc/token" },

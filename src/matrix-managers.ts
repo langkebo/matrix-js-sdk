@@ -179,9 +179,33 @@ export { UrlPreviewManager } from "./url-preview";
 export { UserDirectoryManager } from "./user-directory";
 export { UserPresenceManager } from "./user-presence";
 export { VoIPCallsManager } from "./voip-calls";
+export { VoiceManager, VoiceEvent } from "./voice";
+export type {
+    IVoiceStats,
+    IVoiceRoomStats,
+    IVoiceUserStats,
+    IVoiceConfig,
+    IVoiceUploadRequest,
+    IVoiceUploadResponse,
+    IVoiceConvertRequest,
+    IVoiceOptimizeRequest,
+    IVoiceTranscriptionRequest,
+    IVoiceTranscriptionResponse,
+    IVoiceMessage,
+    IVoiceDeleteResponse,
+} from "./voice";
 export { WidgetsManager } from "./widgets";
 export { AIConnectionManager, AIConnectionEvent } from "./ai-connection";
-export type { AiConnection, CreateConnectionRequest, McpToolCallRequest } from "./ai-connection";
+export type {
+    AIConnection,
+    CreateConnectionOptions,
+    McpToolCallRequest,
+    AiApiVersion,
+    McpTool,
+    McpToolListResponse,
+    McpToolCallResponse,
+    ConnectionListResponse,
+} from "./ai-connection";
 export { OpenClawManager, OpenClawEvent } from "./openclaw";
 export type {
     OpenClawConnection,

@@ -1,7 +1,7 @@
 ---
 module: presence
 generated_from: docs/api-contract/generated/modules/presence.json
-generated_hash: sha256-1ad8850ce0ee8498e69a4230fedce9d6086c340c4e513422b5680261397bf267
+generated_hash: sha256-25a4355d35417fd6e697aa09fac920419a0d3d6333732e97c1c3ebe8b10d6244
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---

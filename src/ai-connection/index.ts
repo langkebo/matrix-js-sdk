@@ -15,10 +15,49 @@ limitations under the License.
 */
 
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { AiConnectionPathPattern } from "./__generated__/route-table";
+import type {
+    AIConnection as AIConnectionDto,
+    CreateConnectionOptions as CreateConnectionOptionsDto,
+    McpToolCallRequest as McpToolCallRequestDto,
+} from "./__generated__/dto";
+
+export type AIConnection = AIConnectionDto;
+export type CreateConnectionOptions = CreateConnectionOptionsDto;
+export type McpToolCallRequest = McpToolCallRequestDto;
+
+export interface McpTool {
+    name: string;
+    description?: string;
+    input_schema?: Record<string, unknown>;
+}
+
+export interface McpToolListResponse {
+    tools: McpTool[];
+}
+
+export interface McpToolCallResponse {
+    result: Record<string, unknown>;
+}
+
+export interface ConnectionListResponse {
+    connections: AIConnection[];
+    total: number;
+}
+
+const AI_V1_PREFIX = "/_matrix/client/v1/ai";
+const AI_V3_PREFIX = "/_matrix/client/v3/ai";
+
+type StripAiV1Prefix<P extends string> =
+    P extends `${typeof AI_V1_PREFIX}${infer Rest}` ? Rest : never;
+
+function ai<P extends StripAiV1Prefix<AiConnectionPathPattern>>(path: P): P {
+    return path;
+}
 
 export enum AIConnectionEvent {
     ConnectionCreated = "ConnectionCreated",
@@ -27,115 +66,95 @@ export enum AIConnectionEvent {
     ToolCalled = "ToolCalled",
 }
 
-export interface AiConnection {
-    id: string;
-    user_id: string;
-    provider: string;
-    config?: Record<string, unknown>;
-    is_active: boolean;
-    created_ts: number;
-    updated_ts?: number;
-}
-
-export interface CreateConnectionRequest {
-    provider: string;
-    config?: Record<string, unknown>;
-}
-
-export interface McpToolCallRequest {
-    provider: string;
-    tool_name: string;
-    arguments: Record<string, unknown>;
-}
-
 interface AIConnectionManagerEventMap {
-    [AIConnectionEvent.ConnectionCreated]: (connection: AiConnection) => void;
-    [AIConnectionEvent.ConnectionUpdated]: (connection: AiConnection) => void;
+    [AIConnectionEvent.ConnectionCreated]: (connection: AIConnection) => void;
+    [AIConnectionEvent.ConnectionUpdated]: (connection: AIConnection) => void;
     [AIConnectionEvent.ConnectionDeleted]: (id: string) => void;
-    [AIConnectionEvent.ToolCalled]: (result: Record<string, unknown>) => void;
+    [AIConnectionEvent.ToolCalled]: (result: McpToolCallResponse) => void;
 }
+
+export type AiApiVersion = "v1" | "v3";
 
 export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnectionManagerEventMap> {
     constructor(client: MatrixClient) {
         super(client);
     }
 
-    public async listConnections(): Promise<AiConnection[]> {
-        return this.withRetry(async () => {
-            return await this.client.http.authedRequest<AiConnection[]>(
-                Method.Get,
-                "/connections",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-        }, "listConnections");
+    private getPrefix(version: AiApiVersion): string {
+        return version === "v3" ? AI_V3_PREFIX : AI_V1_PREFIX;
     }
 
-    public async createConnection(request: CreateConnectionRequest): Promise<AiConnection> {
-        this.requireNonEmptyString(request.provider, "provider");
+    private request<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string>,
+        body?: unknown,
+        version: AiApiVersion = "v1",
+    ): Promise<T> {
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<AiConnection>(
-                Method.Post,
-                "/connections",
-                undefined,
-                request as unknown as Record<string, unknown>,
-                { prefix: ClientPrefix.V1 },
-            );
-        }, "createConnection");
+            return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
+                prefix: this.getPrefix(version),
+            }) as Promise<T>;
+        }, "request");
     }
 
-    public async getConnection(id: string): Promise<AiConnection> {
+    async listConnections(version: AiApiVersion = "v1"): Promise<AIConnection[]> {
+        return this.request<AIConnection[]>(Method.Get, ai("/connections"), undefined, undefined, version);
+    }
+
+    async createConnection(req: CreateConnectionOptions, version: AiApiVersion = "v1"): Promise<AIConnection> {
+        this.requireNonEmptyString(req.provider, "provider");
+        const result = await this.request<AIConnection>(Method.Post, ai("/connections"), undefined, req, version);
+        this.emit(AIConnectionEvent.ConnectionCreated, result);
+        return result;
+    }
+
+    async getConnection(id: string, version: AiApiVersion = "v1"): Promise<AIConnection> {
         this.requireNonEmptyString(id, "id");
-        return this.withRetry(async () => {
-            return await this.client.http.authedRequest<AiConnection>(
-                Method.Get,
-                `/connections/${id}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-        }, "getConnection");
+        return this.request<AIConnection>(
+            Method.Get,
+            ai(`/connections/${id}` as StripAiV1Prefix<AiConnectionPathPattern>),
+            undefined,
+            undefined,
+            version,
+        );
     }
 
-    public async deleteConnection(id: string): Promise<void> {
+    async deleteConnection(id: string, version: AiApiVersion = "v1"): Promise<void> {
         this.requireNonEmptyString(id, "id");
-        return this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Delete,
-                `/connections/${id}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-        }, "deleteConnection");
+        await this.request<void>(
+            Method.Delete,
+            ai(`/connections/${id}` as StripAiV1Prefix<AiConnectionPathPattern>),
+            undefined,
+            undefined,
+            version,
+        );
+        this.emit(AIConnectionEvent.ConnectionDeleted, id);
     }
 
-    public async listMcpTools(provider: string): Promise<Record<string, unknown>> {
+    async listMcpTools(provider: string, version: AiApiVersion = "v1"): Promise<McpToolListResponse> {
         this.requireNonEmptyString(provider, "provider");
-        return this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
-                Method.Get,
-                "/mcp/tools",
-                { provider },
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-        }, "listMcpTools");
+        return this.request<McpToolListResponse>(
+            Method.Get,
+            ai("/mcp/tools"),
+            { provider },
+            undefined,
+            version,
+        );
     }
 
-    public async callMcpTool(request: McpToolCallRequest): Promise<Record<string, unknown>> {
-        this.requireNonEmptyString(request.provider, "provider");
-        this.requireNonEmptyString(request.tool_name, "tool_name");
-        return this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
-                Method.Post,
-                "/mcp/tools/call",
-                undefined,
-                request as unknown as Record<string, unknown>,
-                { prefix: ClientPrefix.V1 },
-            );
-        }, "callMcpTool");
+    async callMcpTool(req: McpToolCallRequest, version: AiApiVersion = "v1"): Promise<McpToolCallResponse> {
+        this.requireNonEmptyString(req.provider, "provider");
+        this.requireNonEmptyString(req.tool_name, "tool_name");
+        const result = await this.request<McpToolCallResponse>(
+            Method.Post,
+            ai("/mcp/tools/call"),
+            undefined,
+            req,
+            version,
+        );
+        this.emit(AIConnectionEvent.ToolCalled, result);
+        return result;
     }
 }
 

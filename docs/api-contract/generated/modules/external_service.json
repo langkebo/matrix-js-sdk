@@ -1,0 +1,141 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "1",
+  "module": "external_service",
+  "synapse_rust_commit": "ef9bd5d4d22c35afba65b2b5452278f6a0a28115",
+  "generated_at": "2026-05-18T08:38:43Z",
+  "source_profile": "all",
+  "entry_count": 18,
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/admin/v1/external_services",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/admin/v1/external_services",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/admin/v1/external_services/health",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/admin/v1/external_services/{as_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/admin/v1/external_services/{as_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/external_services/health",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/external_services/{service_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/external_services/{service_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/external_services",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/external_services",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/external_services/health",
+      "registered_by": "external_service",
+      "path_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/external_services/{as_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/external_services/{as_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/external_services/{as_id}/health",
+      "registered_by": "external_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/external_services/{as_id}/health/check",
+      "registered_by": "external_service",
+      "path_params": [
+        "as_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/external/openclaw/{service_id}/webhook",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/external/trendradar/{service_id}/webhook",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/external/webhook/{service_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ]
+    }
+  ]
+}

@@ -9,7 +9,7 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface OpenClawConnection {
+export interface IOpenClawConnection {
     id: number;
     name: string;
     provider: string;
@@ -22,32 +22,7 @@ export interface OpenClawConnection {
     updated_ts: number;
 }
 
-export interface CreateOpenClawConnectionRequest {
-    name: string;
-    provider: string;
-    base_url: string;
-    api_key?: string;
-    config?: Record<string, unknown>;
-    is_default?: boolean;
-}
-
-export interface UpdateOpenClawConnectionRequest {
-    name?: string;
-    base_url?: string;
-    api_key?: string;
-    config?: Record<string, unknown>;
-    is_default?: boolean;
-    is_active?: boolean;
-}
-
-export interface ConnectionTestResult {
-    healthy: boolean;
-    latency_ms: number;
-    provider: string;
-    base_url: string;
-}
-
-export interface OpenClawConversation {
+export interface IOpenClawConversation {
     id: number;
     connection_id?: number;
     title?: string;
@@ -60,60 +35,17 @@ export interface OpenClawConversation {
     updated_ts: number;
 }
 
-export interface CreateOpenClawConversationRequest {
-    connection_id?: number;
-    title?: string;
-    model_id?: string;
-    system_prompt?: string;
-    temperature?: number;
-    max_tokens?: number;
-}
-
-export interface UpdateOpenClawConversationRequest {
-    title?: string;
-    system_prompt?: string;
-    temperature?: number;
-    max_tokens?: number;
-    is_pinned?: boolean;
-}
-
-export interface OpenClawMessage {
+export interface IOpenClawMessage {
     id: number;
     conversation_id: number;
-    role: string;
+    role: string; // "user", "assistant", "system", "tool"
     content: string;
     token_count?: number;
     tool_calls?: Record<string, unknown>;
     created_ts: number;
 }
 
-export interface SendMessageRequest {
-    content: string;
-    role?: string;
-    tool_calls?: Record<string, unknown>;
-    tool_call_id?: string;
-}
-
-export interface OpenClawGeneration {
-    id: number;
-    conversation_id?: number;
-    type: string;
-    prompt: string;
-    result_url?: string;
-    result_mxc?: string;
-    status: string;
-    error_message?: string;
-    created_ts: number;
-    completed_ts?: number;
-}
-
-export interface CreateGenerationRequest {
-    conversation_id?: number;
-    type: string;
-    prompt: string;
-}
-
-export interface OpenClawChatRole {
+export interface IOpenClawChatRole {
     id: number;
     name: string;
     description?: string;
@@ -126,44 +58,4 @@ export interface OpenClawChatRole {
     is_public: boolean;
     created_ts: number;
     updated_ts: number;
-}
-
-export interface CreateChatRoleRequest {
-    name: string;
-    description?: string;
-    system_message: string;
-    model_id?: string;
-    avatar_url?: string;
-    category?: string;
-    temperature?: number;
-    max_tokens?: number;
-    is_public?: boolean;
-}
-
-export interface UpdateChatRoleRequest {
-    name?: string;
-    description?: string;
-    system_message?: string;
-    model_id?: string;
-    avatar_url?: string;
-    category?: string;
-    temperature?: number;
-    max_tokens?: number;
-    is_public?: boolean;
-}
-
-export interface PaginatedResponse<T> {
-    items: T[];
-    total: number;
-    limit: number;
-    offset: number;
-    next_batch?: string;
-}
-
-export interface PaginationParams {
-    limit?: number;
-    offset?: number;
-    from?: string;
-    before?: number;
-    type?: string;
 }

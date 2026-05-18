@@ -164,6 +164,7 @@ export interface MatrixClientExtensionMethods {
     getMediaManager(): import("./media/index").MediaManager;
     getMediaQuotaManager(): import("./media-quota/index").MediaQuotaManager;
     getContentScanManager(): import("./content-scan/index").ContentScanManager;
+    getVoiceManager(): import("./voice/index").VoiceManager;
 
     // ============ Tags & Labels ============
     getTagsManager(): import("./tags-management/index").TagsManager;

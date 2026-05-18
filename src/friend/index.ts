@@ -93,6 +93,13 @@ export interface FriendStatusInfo {
     user_id: string;
     status: string;
     is_friend?: boolean;
+    are_friends?: boolean;
+}
+
+export interface FriendshipCheckResponse {
+    user_id: string;
+    is_friend: boolean;
+    are_friends: boolean;
 }
 
 export interface FriendSearchResult {
@@ -871,20 +878,20 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         );
     }
 
-    async checkFriendship(userId: string): Promise<boolean> {
+    async checkFriendship(userId: string): Promise<FriendshipCheckResponse> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
 
         try {
-            const response = await this.client.http.authedRequest<{ is_friend: boolean }>(
+            const response = await this.client.http.authedRequest<FriendshipCheckResponse>(
                 Method.Get,
                 `/friends/check/${encodeURIComponent(userId)}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: ClientPrefix.V3 },
             );
-            return response.is_friend;
+            return response;
         } catch (e) {
             throw this.normalizeError(e, "checkFriendship");
         }
