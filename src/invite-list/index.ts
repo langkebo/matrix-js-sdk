@@ -1,3 +1,36 @@
+/*
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/**
+ * Invite List Manager - 邀请列表管理 API 封装
+ *
+ * 提供聊天邀请的获取、接受、拒绝等操作，以及批量处理功能
+ * 基于客户端本地 Room 数据构建邀请信息，不依赖独立后端路由
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getInviteListManager();
+ * // 获取所有待处理邀请
+ * const invites = await manager.getInvites();
+ * // 接受邀请
+ * await manager.acceptInvite("!room:example.com");
+ * // 拒绝所有邀请
+ * await manager.rejectAllInvites();
+ * ```
+ */
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";

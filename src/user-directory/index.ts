@@ -14,6 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * User Directory Manager - 用户目录搜索 API 封装
+ *
+ * 提供用户目录搜索功能，支持按用户 ID 和显示名称模糊匹配
+ * 对接后端: synapse-rust/src/web/routes/user_directory.rs
+ * API 路径: /_matrix/client/v3/user_directory/search
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getUserDirectoryManager();
+ * // 搜索用户
+ * const results = await manager.searchUserDirectory({ term: "alice" });
+ * ```
+ */
 import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { Method } from "../http-api/method";

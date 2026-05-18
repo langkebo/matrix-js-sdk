@@ -14,6 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * Telemetry Manager - 遥测与告警管理 API 封装
+ *
+ * 提供服务器遥测数据查询、告警管理、系统指标监控等功能
+ * 对接后端: synapse-rust/src/web/routes/telemetry.rs
+ * API 前缀: /_synapse/admin/v1/telemetry
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getTelemetryManager();
+ * // 获取遥测指标
+ * const metrics = await manager.getMetrics();
+ * // 确认告警
+ * await manager.acknowledgeAlert("alert-1");
+ * ```
+ */
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";

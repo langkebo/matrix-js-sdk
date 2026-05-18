@@ -1,3 +1,24 @@
+/**
+ * Voice Manager - 语音消息管理 API 封装
+ *
+ * 提供语音消息统计查询、配置获取、上传/获取/删除语音消息等功能
+ * 对接后端: synapse-rust/src/web/routes/voice.rs
+ * API 前缀: /_matrix/client/v3/voice（v3）和 /_matrix/client/v1/voice（v1）
+ *
+ * 注意：MSC3245 协议规定语音转码/转录/优化在客户端完成，以下方法已标记 @deprecated：
+ * - convertVoiceMessage → 使用客户端 Web Audio API
+ * - optimizeVoiceMessage → 使用客户端音频处理
+ * - transcribeVoiceMessage → 使用客户端 Web Speech API
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getVoiceManager();
+ * // 获取语音统计
+ * const stats = await manager.getVoiceStats();
+ * // 上传语音消息
+ * const result = await manager.uploadVoiceMessage({ content_type: "audio/ogg", body: "..." });
+ * ```
+ */
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";

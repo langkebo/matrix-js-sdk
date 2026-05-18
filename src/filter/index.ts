@@ -14,6 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * Filter Manager - 消息过滤器管理 API 封装
+ *
+ * 提供消息过滤器的创建、获取和缓存功能
+ * 对接后端: Matrix 标准客户端-服务器协议
+ * API 路径: /_matrix/client/v3/user/{userId}/filter
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getFilterManager();
+ * // 创建过滤器
+ * const filterId = await manager.createFilter({ room: { timeline: { limit: 50 } } });
+ * // 获取过滤器
+ * const filter = await manager.getFilter(filterId);
+ * ```
+ */
 import { MatrixClient } from "../client";
 import { Filter, IFilterDefinition } from "../filter";
 import * as utils from "../utils";

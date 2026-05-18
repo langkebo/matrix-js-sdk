@@ -14,6 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * Key Rotation Manager - 密钥轮换管理 API 封装
+ *
+ * 提供加密密钥轮换状态查询、手动轮换、轮换历史、密钥吊销、配置更新等功能
+ * 对接后端: synapse-rust/src/web/routes/key_rotation.rs
+ * API 前缀: /_matrix/client/v1/keys/rotation
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getKeyRotationManager();
+ * // 获取轮换状态
+ * const status = await manager.getStatus();
+ * // 手动轮换密钥
+ * const result = await manager.rotateKey({ reason: "scheduled" });
+ * // 吊销密钥
+ * await manager.revokeKey({ key_id: "key-1" });
+ * ```
+ */
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { BaseManager } from "../managers/base-manager";
