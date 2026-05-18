@@ -619,17 +619,17 @@ describe("FriendManager", () => {
 
     describe("Additional Methods", () => {
         it("should check friendship status", async () => {
-            mockAuthedRequest.mockResolvedValue({ is_friend: true });
+            mockAuthedRequest.mockResolvedValue({ is_friend: true, are_friends: true, user_id: "@bob:example.com" });
 
             const result = await friendManager.checkFriendship("@bob:example.com");
 
-            expect(result).toBe(true);
+            expect(result).toEqual({ is_friend: true, are_friends: true, user_id: "@bob:example.com" });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/friends/check/%40bob%3Aexample.com",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: ClientPrefix.V3 },
             );
         });
 

@@ -14,6 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * AI Connection Manager - AI 连接与 MCP 工具管理 API 封装
+ *
+ * 提供 AI 连接 CRUD 和 MCP（Model Context Protocol）工具调用功能
+ * 对接后端: synapse-rust/src/web/routes/ai_connection.rs
+ * API 前缀: /_matrix/client/v1/ai (v1) 和 /_matrix/client/v3/ai (v3)
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getAIConnectionManager();
+ * // 列出所有 AI 连接
+ * const connections = await manager.listConnections();
+ * // 创建新连接
+ * const conn = await manager.createConnection({ provider: "openai" });
+ * // 列出 MCP 工具
+ * const tools = await manager.listMcpTools("openai");
+ * // 调用 MCP 工具
+ * const result = await manager.callMcpTool({ provider: "openai", tool_name: "search", arguments: { q: "test" } });
+ * ```
+ */
+
 import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";

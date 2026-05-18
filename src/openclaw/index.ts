@@ -14,6 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * OpenClaw Manager - AI 对话与生成管理 API 封装
+ *
+ * 提供 AI 连接管理、对话管理、消息收发、内容生成、聊天角色管理等功能
+ * 对接后端: synapse-rust/src/web/routes/openclaw/
+ * API 前缀: /_matrix/client/unstable/org.synapse_rust.openclaw
+ *
+ * 使用方式:
+ * ```typescript
+ * const manager = client.getOpenClawManager();
+ * // 列出所有 AI 连接
+ * const connections = await manager.listConnections();
+ * // 创建对话
+ * const conversation = await manager.createConversation({ title: "New Chat" });
+ * // 发送消息
+ * const message = await manager.sendMessage(conversation.id, { content: "Hello!" });
+ * ```
+ */
+
 import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
