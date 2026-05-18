@@ -72,8 +72,26 @@ import {
     type SpacePage,
     type SpaceUser,
     type SpaceRoom,
+    type SpaceInfo,
+    type AuditEvent,
+    type AuditEventPage,
     type PaginatedResponse,
 } from "./types";
+import type {
+    AdminRoomVersionResponse, AdminRoomBlockStatus, AdminEventContext,
+    AdminForwardExtremity, AdminTokenSync, AdminRoomSearchResult,
+    AdminRoomListings, AdminFederationCache, AdminFederationDestinationRooms,
+    AdminAccountDetails, AdminRegisterResult, AdminReport, AdminReportPage,
+    AdminModuleInfo, AdminModulePage, AdminModuleLogPage,
+    AdminAccountValidityInfo, AdminPasswordAuthProvider, AdminPasswordAuthProviderPage,
+    AdminPresenceRoute, AdminPresenceRoutePage,
+    AdminMediaCallback, AdminMediaCallbackPage,
+    AdminRateLimitCallback, AdminRateLimitCallbackPage,
+    AdminAccountDataCallback, AdminAccountDataCallbackPage,
+    AdminInviteList, AdminJitsiConfig,
+    AdminPurgeHistoryResult, AdminShutdownRoomResult,
+    AdminBackupPage, AdminExperimentalFeatures,
+} from "./__generated__/dto";
 
 export * from "./types";
 
@@ -912,7 +930,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/delete`, {}, payload ?? {});
     }
 
-    async purgeRoomHistory(roomId: string, payload?: Record<string, unknown>): Promise<any> {
+    async purgeRoomHistory(roomId: string, payload?: Record<string, unknown>): Promise<AdminPurgeHistoryResult> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/purge_history`, {}, payload ?? {});
     }
@@ -1519,7 +1537,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
      * 获取联邦缓存信息
      * 对接: GET /_synapse/admin/v1/federation/cache
      */
-    async getFederationCache(): Promise<any> {
+    async getFederationCache(): Promise<AdminFederationCache> {
         return await this.adminRequest(Method.Get, apu("/federation/cache"));
     }
 
@@ -1825,17 +1843,17 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/aliases`);
     }
 
-    async getRoomVersion(roomId: string): Promise<any> {
+    async getRoomVersion(roomId: string): Promise<AdminRoomVersionResponse> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/version`);
     }
 
-    async getRoomBlockStatus(roomId: string): Promise<any> {
+    async getRoomBlockStatus(roomId: string): Promise<AdminRoomBlockStatus> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/block`);
     }
 
-    async getRoomEventContext(roomId: string, eventId: string): Promise<any> {
+    async getRoomEventContext(roomId: string, eventId: string): Promise<AdminEventContext> {
         AdminValidators.validateRoomId(roomId);
         if (!eventId) throw new ValidationError("Event ID is required");
         return await this.adminRequest(
@@ -1844,22 +1862,22 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         );
     }
 
-    async getRoomForwardExtremities(roomId: string): Promise<any> {
+    async getRoomForwardExtremities(roomId: string): Promise<AdminForwardExtremity[]> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/forward_extremities`);
     }
 
-    async getRoomTokenSync(roomId: string): Promise<any> {
+    async getRoomTokenSync(roomId: string): Promise<AdminTokenSync> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/token_sync`);
     }
 
-    async searchRoomEvents(roomId: string, payload: Record<string, unknown>): Promise<any> {
+    async searchRoomEvents(roomId: string, payload: Record<string, unknown>): Promise<AdminRoomSearchResult> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/search`, {}, payload);
     }
 
-    async getRoomListings(roomId: string): Promise<any> {
+    async getRoomListings(roomId: string): Promise<AdminRoomListings> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/listings`);
     }
@@ -1935,15 +1953,16 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
     async getFederationDestinationRooms(
         serverName: string,
         options?: { from?: number; limit?: number },
-    ): Promise<any> {
+    ): Promise<AdminFederationDestinationRooms> {
         const query: Record<string, string> = {};
         if (options?.from !== undefined) query.from = String(options.from);
         if (options?.limit !== undefined) query.limit = String(options.limit);
         return await this.adminRequest(Method.Get, `/federation/destinations/${encodeURIComponent(serverName)}/rooms`, query);
     }
 
-    async getAccountDetails(userId: string): Promise<any> {
-        return await this.getAccountStatus(userId);
+    async getAccountDetails(userId: string): Promise<AdminAccountDetails> {
+        AdminValidators.validateUserId(userId);
+        return await this.adminRequest<AdminAccountDetails>(Method.Get, `/account/${encodeURIComponent(userId)}`);
     }
 
     async updateAccountDetails(userId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -1951,7 +1970,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Post, `/account/${encodeURIComponent(userId)}`, {}, payload);
     }
 
-    async getSpace(spaceId: string): Promise<any> {
+    async getSpace(spaceId: string): Promise<SpaceInfo> {
         AdminValidators.validateRoomId(spaceId);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}`);
     }
@@ -1987,7 +2006,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.getUserWhois(userId);
     }
 
-    async whoisByDevice(userId: string, deviceId: string): Promise<any> {
+    async whoisByDevice(userId: string, deviceId: string): Promise<WhoisResponse> {
         AdminValidators.validateUserId(userId);
         if (!deviceId) throw new ValidationError("Device ID is required");
         return await this.adminRequest(Method.Get, `/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`);
@@ -2027,16 +2046,16 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Get, "/register/nonce");
     }
 
-    async registerAdmin(payload: Record<string, unknown>): Promise<any> {
+    async registerAdmin(payload: Record<string, unknown>): Promise<AdminRegisterResult> {
         return await this.adminRequest(Method.Post, "/register", {}, payload);
     }
 
-    async listReports(options?: { from?: string; limit?: number }): Promise<any> {
+    async listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         const query = buildPaginationParams(options?.from, options?.limit);
         return await this.adminRequest(Method.Get, "/reports", query);
     }
 
-    async getReport(reportId: string): Promise<any> {
+    async getReport(reportId: string): Promise<AdminReport> {
         if (!reportId) throw new ValidationError("Report ID is required");
         return await this.adminRequest(Method.Get, `/reports/${encodeURIComponent(reportId)}`);
     }
@@ -2046,13 +2065,13 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         await this.adminRequest(Method.Delete, `/reports/${encodeURIComponent(reportId)}`);
     }
 
-    async listRoomReports(roomId: string, options?: { from?: string; limit?: number }): Promise<any> {
+    async listRoomReports(roomId: string, options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         AdminValidators.validateRoomId(roomId);
         const query = buildPaginationParams(options?.from, options?.limit);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/reports`, query);
     }
 
-    async getRoomReport(roomId: string, reportId: string): Promise<any> {
+    async getRoomReport(roomId: string, reportId: string): Promise<AdminReport> {
         AdminValidators.validateRoomId(roomId);
         if (!reportId) throw new ValidationError("Report ID is required");
         return await this.adminRequest(
@@ -2061,7 +2080,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         );
     }
 
-    async listAuditEvents(options?: Record<string, string | number | undefined>): Promise<any> {
+    async listAuditEvents(options?: Record<string, string | number | undefined>): Promise<AuditEventPage> {
         const query: Record<string, string> = {};
         if (options) {
             for (const [k, v] of Object.entries(options)) {
@@ -2071,16 +2090,16 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Get, "/audit/events", query);
     }
 
-    async getAuditEvent(eventId: string): Promise<any> {
+    async getAuditEvent(eventId: string): Promise<AuditEvent> {
         if (!eventId) throw new ValidationError("Event ID is required");
         return await this.adminRequest(Method.Get, `/audit/events/${encodeURIComponent(eventId)}`);
     }
 
-    async createAuditEvent(payload: Record<string, unknown>): Promise<any> {
+    async createAuditEvent(payload: Record<string, unknown>): Promise<AuditEvent> {
         return await this.adminRequest(Method.Post, "/audit/events", {}, payload);
     }
 
-    async listFeatureFlags(options?: Record<string, string | number | undefined>): Promise<any> {
+    async listFeatureFlags(options?: Record<string, string | number | undefined>): Promise<FeatureFlagPage> {
         const query: Record<string, string> = {};
         if (options) {
             for (const [k, v] of Object.entries(options)) {
@@ -2090,20 +2109,20 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Get, "/feature-flags", query);
     }
 
-    async updateFeatureFlag(flagId: string, payload: Record<string, unknown>): Promise<any> {
+    async updateFeatureFlag(flagId: string, payload: Record<string, unknown>): Promise<FeatureFlag> {
         return await this.adminRequest(Method.Patch, `/feature-flags/${encodeURIComponent(flagId)}`, {}, payload);
     }
 
-    async resolveFederation(serverName: string): Promise<any> {
+    async resolveFederation(serverName: string): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/federation/resolve", {}, { server_name: serverName });
     }
 
-    async rewriteFederation(from: string, to: string): Promise<any> {
+    async rewriteFederation(from: string, to: string): Promise<Record<string, unknown>> {
         if (!from || !to) throw new ValidationError("from and to are required");
         return await this.adminRequest(Method.Post, "/federation/rewrite", {}, { from, to });
     }
 
-    async confirmFederation(payload: { server_name?: string; action?: string; reason?: string }): Promise<any> {
+    async confirmFederation(payload: { server_name?: string; action?: string; reason?: string }): Promise<FederationAdmissionResult> {
         return await this.adminRequest(Method.Post, "/federation/confirm", {}, payload);
     }
 
@@ -2142,123 +2161,123 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         await this.adminRequest(Method.Post, `/telemetry/alerts/${encodeURIComponent(alertId)}/ack`, {}, undefined);
     }
 
-    async listModules(options?: { limit?: number; from?: string }): Promise<any> {
+    async listModules(options?: { limit?: number; from?: string }): Promise<AdminModulePage> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);
         return await this.adminRequest(Method.Get, "/modules", query);
     }
 
-    async listModulesByType(moduleType: string): Promise<any> {
+    async listModulesByType(moduleType: string): Promise<AdminModulePage> {
         return await this.adminRequest(Method.Get, `/modules/type/${encodeURIComponent(moduleType)}`);
     }
 
-    async updateModuleConfig(moduleId: string, config: Record<string, unknown>): Promise<any> {
+    async updateModuleConfig(moduleId: string, config: Record<string, unknown>): Promise<AdminModuleInfo> {
         return await this.adminRequest(Method.Put, `/modules/${encodeURIComponent(moduleId)}/config`, {}, { config });
     }
 
-    async setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<any> {
+    async setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, `/modules/${encodeURIComponent(moduleId)}/enable`, {}, { is_enabled: isEnabled });
     }
 
-    async getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<any> {
+    async getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLogPage> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);
         return await this.adminRequest(Method.Get, `/modules/${encodeURIComponent(moduleId)}/logs`, query);
     }
 
-    async checkModuleThirdPartyRule(payload: Record<string, unknown>): Promise<any> {
+    async checkModuleThirdPartyRule(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/modules/check_third_party_rule", {}, payload);
     }
 
-    async getModuleSpamCheckResult(eventId: string): Promise<any> {
+    async getModuleSpamCheckResult(eventId: string): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Get, `/modules/spam_check/${encodeURIComponent(eventId)}`);
     }
 
-    async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<any> {
+    async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<Record<string, unknown>[]> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         return await this.adminRequest(Method.Get, `/modules/spam_check/sender/${encodeURIComponent(sender)}`, query);
     }
 
-    async getModuleThirdPartyRuleResults(eventId: string): Promise<any> {
+    async getModuleThirdPartyRuleResults(eventId: string): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Get, `/modules/third_party_rule/${encodeURIComponent(eventId)}`);
     }
 
-    async createAccountValidity(payload: Record<string, unknown>): Promise<any> {
+    async createAccountValidity(payload: Record<string, unknown>): Promise<AdminAccountValidityInfo> {
         return await this.adminRequest(Method.Post, "/account_validity", {}, payload);
     }
 
-    async getAccountValidity(userId: string): Promise<any> {
+    async getAccountValidity(userId: string): Promise<AdminAccountValidityInfo> {
         return await this.adminRequest(Method.Get, `/account_validity/${encodeURIComponent(userId)}`);
     }
 
-    async renewAccountValidity(userId: string, payload: Record<string, unknown>): Promise<any> {
+    async renewAccountValidity(userId: string, payload: Record<string, unknown>): Promise<AdminAccountValidityInfo> {
         return await this.adminRequest(Method.Post, `/account_validity/${encodeURIComponent(userId)}/renew`, {}, payload);
     }
 
-    async listPasswordAuthProviders(): Promise<any> {
+    async listPasswordAuthProviders(): Promise<AdminPasswordAuthProviderPage> {
         return await this.adminRequest(Method.Get, "/password_auth_providers");
     }
 
-    async createPasswordAuthProvider(payload: Record<string, unknown>): Promise<any> {
+    async createPasswordAuthProvider(payload: Record<string, unknown>): Promise<AdminPasswordAuthProvider> {
         return await this.adminRequest(Method.Post, "/password_auth_providers", {}, payload);
     }
 
-    async listPresenceRoutes(): Promise<any> {
+    async listPresenceRoutes(): Promise<AdminPresenceRoutePage> {
         return await this.adminRequest(Method.Get, "/presence_routes");
     }
 
-    async createPresenceRoute(payload: Record<string, unknown>): Promise<any> {
+    async createPresenceRoute(payload: Record<string, unknown>): Promise<AdminPresenceRoute> {
         return await this.adminRequest(Method.Post, "/presence_routes", {}, payload);
     }
 
-    async listMediaCallbacks(): Promise<any> {
+    async listMediaCallbacks(): Promise<AdminMediaCallbackPage> {
         return await this.adminRequest(Method.Get, "/media_callbacks");
     }
 
-    async listMediaCallbacksByType(callbackType: string): Promise<any> {
+    async listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallbackPage> {
         return await this.adminRequest(Method.Get, `/media_callbacks/${encodeURIComponent(callbackType)}`);
     }
 
-    async createMediaCallback(payload: Record<string, unknown>): Promise<any> {
+    async createMediaCallback(payload: Record<string, unknown>): Promise<AdminMediaCallback> {
         return await this.adminRequest(Method.Post, "/media_callbacks", {}, payload);
     }
 
-    async listRateLimitCallbacks(): Promise<any> {
+    async listRateLimitCallbacks(): Promise<AdminRateLimitCallbackPage> {
         return await this.adminRequest(Method.Get, "/rate_limit_callbacks");
     }
 
-    async createRateLimitCallback(payload: Record<string, unknown>): Promise<any> {
+    async createRateLimitCallback(payload: Record<string, unknown>): Promise<AdminRateLimitCallback> {
         return await this.adminRequest(Method.Post, "/rate_limit_callbacks", {}, payload);
     }
 
-    async listAccountDataCallbacks(): Promise<any> {
+    async listAccountDataCallbacks(): Promise<AdminAccountDataCallbackPage> {
         return await this.adminRequest(Method.Get, "/account_data_callbacks");
     }
 
-    async createAccountDataCallback(payload: Record<string, unknown>): Promise<any> {
+    async createAccountDataCallback(payload: Record<string, unknown>): Promise<AdminAccountDataCallback> {
         return await this.adminRequest(Method.Post, "/account_data_callbacks", {}, payload);
     }
 
-    async getInviteAllowlist(): Promise<any> {
+    async getInviteAllowlist(): Promise<AdminInviteList> {
         return await this.adminRequest(Method.Get, "/invite/allowlist");
     }
 
-    async getInviteBlocklist(): Promise<any> {
+    async getInviteBlocklist(): Promise<AdminInviteList> {
         return await this.adminRequest(Method.Get, "/invite/blocklist");
     }
 
-    async getJitsiConfig(): Promise<any> {
+    async getJitsiConfig(): Promise<AdminJitsiConfig> {
         return await this.adminRequest(Method.Get, "/jitsi/config");
     }
 
-    async cleanupAll(): Promise<any> {
+    async cleanupAll(): Promise<AdminCleanupResponse> {
         return await this.adminRequest(Method.Post, "/cleanup/all", {}, undefined);
     }
 
-    async cleanupRooms(payload?: Record<string, unknown>): Promise<any> {
+    async cleanupRooms(payload?: Record<string, unknown>): Promise<AdminCleanupResponse> {
         try {
             return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
         } catch (e) {
@@ -2270,27 +2289,27 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         }
     }
 
-    async cleanupTokens(): Promise<any> {
+    async cleanupTokens(): Promise<AdminCleanupResponse> {
         return await this.adminRequest(Method.Post, "/cleanup/tokens", {}, undefined);
     }
 
-    async purgeRoom(payload: Record<string, unknown>): Promise<any> {
+    async purgeRoom(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/purge_room", {}, payload);
     }
 
-    async purgeHistory(payload: Record<string, unknown>): Promise<any> {
+    async purgeHistory(payload: Record<string, unknown>): Promise<AdminPurgeHistoryResult> {
         return await this.adminRequest(Method.Post, "/purge_history", {}, payload);
     }
 
-    async shutdownRoom(payload: Record<string, unknown>): Promise<any> {
+    async shutdownRoom(payload: Record<string, unknown>): Promise<AdminShutdownRoomResult> {
         return await this.adminRequest(Method.Post, "/shutdown_room", {}, payload);
     }
 
-    async restartServer(payload?: Record<string, unknown>): Promise<any> {
+    async restartServer(payload?: Record<string, unknown>): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/restart", {}, payload ?? {});
     }
 
-    async listBackups(options?: { limit?: number; offset?: number }): Promise<any> {
+    async listBackups(options?: { limit?: number; offset?: number }): Promise<AdminBackupPage> {
         if (options?.limit !== undefined) {
             if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 500) {
                 throw new ValidationError("limit must be an integer between 1 and 500");
@@ -2307,7 +2326,7 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         return await this.adminRequest(Method.Get, "/backups", query);
     }
 
-    async getExperimentalFeatures(): Promise<any> {
+    async getExperimentalFeatures(): Promise<AdminExperimentalFeatures> {
         return await this.adminRequest(Method.Get, "/experimental_features");
     }
 }
