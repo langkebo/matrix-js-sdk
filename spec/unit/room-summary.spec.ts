@@ -676,22 +676,29 @@ describe("RoomSummaryManager", () => {
 
         it("should translate room event via v3 endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
-                translated: true,
-                language: "en",
+                room_id: "!room:example.com",
+                event_id: "$evt",
+                source_text: "Hello",
+                translated_text: "你好",
+                detected_source_lang: "en",
+                target_lang: "zh",
+                provider: "google",
             });
 
             const result = await summaryManager.translateRoomEvent("!room:example.com", "$evt", {
-                target_lang: "en",
+                target_lang: "zh",
             });
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 `/rooms/${encodeURIComponent("!room:example.com")}/translate/${encodeURIComponent("$evt")}`,
                 undefined,
-                { target_lang: "en" },
+                { target_lang: "zh" },
                 { prefix: ClientPrefix.V3 },
             );
-            expect(result.translated).toBe(true);
+            expect(result.translated_text).toBe("你好");
+            expect(result.target_lang).toBe("zh");
+            expect(result.provider).toBe("google");
         });
 
         it("should convert room event via v3 endpoint", async () => {
