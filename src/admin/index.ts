@@ -806,10 +806,20 @@ export class AdminManager extends BaseManager<AdminEvent, AdminManagerEventMap> 
         from?: string,
         limit?: number,
         search?: string,
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         order_by?: string,
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         sort_order?: "asc" | "desc",
     ): Promise<{ rooms: RoomInfo[]; next_token?: string; total?: number }> {
-        const paginated = await this.getRoomsPaginated({ from, limit, search, order_by, sort_order });
+        const paginated = await this.getRoomsPaginated({
+            from,
+            limit,
+            search,
+            // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+            order_by,
+            // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+            sort_order,
+        });
         return {
             rooms: paginated.items,
             next_token: paginated.nextToken,

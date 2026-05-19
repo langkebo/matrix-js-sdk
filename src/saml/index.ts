@@ -14,6 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { MatrixClient } from "../client";
+import { BaseManager } from "../managers/base-manager";
+import { Method } from "../http-api";
+import { ClientPrefix, AdminPrefix } from "../http-api/prefix";
+import type { SamlPathPattern } from "./__generated__/route-table";
+import {
+    type SamlLoginResponse,
+    type SamlAuthResult,
+    type SamlLogoutResponse,
+    type SamlMetadata,
+    type SamlSpMetadata,
+    type SamlAdminConfig,
+    type SamlUserMapping,
+    type SamlUserMappingPage,
+    type SamlRefreshResult,
+} from "./__generated__/dto";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+
 /**
  * SAML Auth Manager - SAML 认证管理 API 封装
  *
@@ -35,23 +53,6 @@ limitations under the License.
  * const config = await manager.getAdminConfig();
  * ```
  */
-import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
-import { Method } from "../http-api";
-import { ClientPrefix, AdminPrefix } from "../http-api/prefix";
-import type { SamlPathPattern } from "./__generated__/route-table";
-import {
-    type SamlLoginResponse,
-    type SamlAuthResult,
-    type SamlLogoutResponse,
-    type SamlMetadata,
-    type SamlSpMetadata,
-    type SamlAdminConfig,
-    type SamlUserMapping,
-    type SamlUserMappingPage,
-    type SamlRefreshResult,
-} from "./__generated__/dto";
-import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export type {
     SamlLoginResponse,

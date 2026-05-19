@@ -33,6 +33,10 @@ import { getHttpUriForMxc } from "../content-repo";
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import { getOrCreateManager } from "../client-infra/manager-registry";
+import { LRUCache } from "../utils/lru-cache";
+import { AdminValidators } from "../admin/validators";
+import { ValidationError } from "../errors";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -47,10 +51,6 @@ function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
 function authPath<P extends AuthPathPattern>(path: P): P {
     return path;
 }
-import { getOrCreateManager } from "../client-infra/manager-registry";
-import { LRUCache } from "../utils/lru-cache";
-import { AdminValidators } from "../admin/validators";
-import { ValidationError } from "../errors";
 
 export enum ProfileEvent {
     ProfileUpdated = "ProfileUpdated",
