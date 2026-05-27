@@ -25,6 +25,17 @@ import type { RoomSummaryOptions, RoomSummary, RoomSearchResult } from "../types
 import type { IPublicRoomsResponse, IPublicRoomsChunkRoom } from "../../client-api-types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
+/** 房间搜索请求体 */
+export interface RoomSearchBody {
+    search_term?: string;
+    keys?: string[];
+    limit?: number;
+    order_by?: string;
+    direction?: "f" | "b";
+    filter?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
@@ -220,7 +231,7 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * @param body - 搜索请求体
      * @returns 搜索结果
      */
-    public async searchRoom(roomId: string, body: Record<string, unknown>): Promise<RoomSearchResult> {
+    public async searchRoom(roomId: string, body: RoomSearchBody): Promise<RoomSearchResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
             return await this.requestV3<RoomSearchResult>(

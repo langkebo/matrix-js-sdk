@@ -31,6 +31,7 @@ limitations under the License.
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
+import { type IContent } from "../models/event";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
@@ -52,21 +53,21 @@ export enum EphemeralEvent {
 export interface IEphemeralEventData {
     type: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: IContent;
 }
 
 export interface IEphemeralEventInfo {
     roomId: string;
     type: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: IContent;
     timestamp: number;
 }
 
 export interface IServerEphemeralEvent {
     type: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: IContent;
     origin_server_ts?: number;
     stream_id?: number;
     event_id?: string;
@@ -110,7 +111,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
         return { cache: this.ephemeralEventsCache.getStats(), requests: { ...this.requestStats } };
     }
 
-    public async sendEphemeralEvent(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {
+    public async sendEphemeralEvent(roomId: string, type: string, content: IContent): Promise<void> {
         const userId = this.client.getUserId() ?? "";
         const contentMap = new Map<string, Map<string, Record<string, unknown>>>();
         const roomMap = new Map<string, Record<string, unknown>>();
@@ -128,7 +129,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
                 roomId,
                 type: event.getType(),
                 sender: event.getSender() ?? "",
-                content: event.getContent<Record<string, unknown>>(),
+                content: event.getContent<IContent>(),
                 timestamp: event.getTs(),
             }),
         );

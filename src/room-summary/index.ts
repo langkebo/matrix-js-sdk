@@ -176,7 +176,7 @@ import { RoomSummaryMemberManager, RoomSummaryMemberEvent } from "./sub-managers
 import { RoomSummaryStateManager } from "./sub-managers/room-state-manager";
 import { RoomSummaryStatsManager, RoomSummaryStatsEvent } from "./sub-managers/room-stats-manager";
 import { RoomSummaryThreadManager } from "./sub-managers/room-thread-manager";
-import { RoomSummarySearchManager } from "./sub-managers/room-search-manager";
+import { RoomSummarySearchManager, type RoomSearchBody } from "./sub-managers/room-search-manager";
 import { RoomSummaryKeyManager } from "./sub-managers/room-key-manager";
 import { RoomSummaryInvitePolicyManager } from "./sub-managers/room-invite-policy-manager";
 import { RoomSummaryEventOperationManager, type TranslateEventBody, type ConvertEventBody, type SignEventBody, type VerifyEventBody } from "./sub-managers/room-event-operation-manager";
@@ -719,7 +719,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.search.getRecentRooms(limit);
     }
 
-    async searchRoom(roomId: string, body: Record<string, unknown>): Promise<RoomSearchResult> {
+    async searchRoom(roomId: string, body: RoomSearchBody): Promise<RoomSearchResult> {
         return this.search.searchRoom(roomId, body);
     }
 

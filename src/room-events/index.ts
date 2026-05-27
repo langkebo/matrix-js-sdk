@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { MatrixEvent, type IEvent } from "../models/event";
+import { type IEphemeralEventData } from "../ephemeral/index";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -67,7 +68,7 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         return this.client.getTimelineEvents(roomId);
     }
 
-    public getEphemeralEvents(roomId: string): Array<Record<string, unknown>> {
+    public getEphemeralEvents(roomId: string): IEphemeralEventData[] {
         return this.client.getEphemeralEvents(roomId);
     }
 

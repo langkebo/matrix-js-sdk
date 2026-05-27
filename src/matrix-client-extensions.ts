@@ -103,7 +103,7 @@ export type WidgetData = Record<string, unknown>;
 export type UserDeviceMap = Record<string, unknown>;
 
 /** Ephemeral event data (typing receipts, read receipts, etc.) */
-export type EphemeralEventData = Record<string, unknown>;
+export type EphemeralEventData = import("./ephemeral/index").IEphemeralEventData;
 
 /** Forwarded room key data */
 export interface ForwardedRoomKey {
