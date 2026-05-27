@@ -72,6 +72,22 @@ export interface RoomStats {
     storage_size: number;
 }
 
+/** Result of recalculating summary heroes */
+export interface HeroesRecalcResult {
+    room_id: string;
+    heroes?: string[];
+    joined_member_count?: number;
+    invited_member_count?: number;
+    [key: string]: unknown;
+}
+
+/** Result of clearing summary unread counts */
+export interface UnreadClearResult {
+    room_id: string;
+    cleared: boolean;
+    [key: string]: unknown;
+}
+
 /** Room summary state event content — structure varies by event type */
 export type RoomSummaryStateContent = import("../models/event").IContent;
 

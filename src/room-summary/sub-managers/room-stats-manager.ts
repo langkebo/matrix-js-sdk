@@ -16,7 +16,7 @@ limitations under the License.
 
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
-import type { RoomStats } from "../types";
+import type { RoomStats, HeroesRecalcResult, UnreadClearResult } from "../types";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import { LRUCache } from "../../utils/lru-cache";
 import { logger } from "../../logger";
@@ -118,11 +118,11 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
     public async recalculateSummaryHeroes(
         roomId: string,
         body: Record<string, unknown> = {},
-    ): Promise<Record<string, unknown>> {
+    ): Promise<HeroesRecalcResult> {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            const result = await this.requestV3<Record<string, unknown>>(
+            const result = await this.requestV3<HeroesRecalcResult>(
                 Method.Post,
                 rsv(`/rooms/${encodeURIComponent(roomId)}/summary/heroes/recalculate`),
                 undefined,
@@ -136,11 +136,11 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
     public async clearSummaryUnread(
         roomId: string,
         body: Record<string, unknown> = {},
-    ): Promise<Record<string, unknown>> {
+    ): Promise<UnreadClearResult> {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            const result = await this.requestV3<Record<string, unknown>>(
+            const result = await this.requestV3<UnreadClearResult>(
                 Method.Post,
                 rsv(`/rooms/${encodeURIComponent(roomId)}/summary/unread/clear`),
                 undefined,

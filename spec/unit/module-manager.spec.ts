@@ -63,7 +63,7 @@ describe("ModuleManager", () => {
             const emittedEvents: any[] = [];
             moduleManager.on(ModuleEvent.ModuleCreated, (module: any) => emittedEvents.push(module));
 
-            const result = await moduleManager.createModule({ name: "new-module" });
+            const result = await moduleManager.createModule({ name: "new-module", type: "custom" });
             expect(result.name).toBe("new-module");
             expect(emittedEvents).toHaveLength(1);
         });

@@ -94,6 +94,8 @@ export type {
     StickyEvent,
     InviteBlocklist,
     InviteAllowlist,
+    HeroesRecalcResult,
+    UnreadClearResult,
 } from "./types";
 
 // 重新导出子 Manager 类型，供直接使用
@@ -169,6 +171,8 @@ import type {
     StickyEvent,
     InviteBlocklist,
     InviteAllowlist,
+    HeroesRecalcResult,
+    UnreadClearResult,
 } from "./types";
 
 // 子 Manager 导入
@@ -660,14 +664,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async recalculateSummaryHeroes(
         roomId: string,
         body: Record<string, unknown> = {},
-    ): Promise<Record<string, unknown>> {
+    ): Promise<HeroesRecalcResult> {
         return this.stats.recalculateSummaryHeroes(roomId, body);
     }
 
     async clearSummaryUnread(
         roomId: string,
         body: Record<string, unknown> = {},
-    ): Promise<Record<string, unknown>> {
+    ): Promise<UnreadClearResult> {
         return this.stats.clearSummaryUnread(roomId, body);
     }
 

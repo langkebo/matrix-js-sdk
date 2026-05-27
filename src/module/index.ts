@@ -79,6 +79,14 @@ export interface ModuleInfo {
     description?: string;
 }
 
+export interface CreateModuleRequest {
+    name: string;
+    type: string;
+    config?: Record<string, unknown>;
+    enabled?: boolean;
+    [key: string]: unknown;
+}
+
 export interface ModuleListResponse {
     modules: ModuleInfo[];
     total: number;
@@ -187,7 +195,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         method: Method,
         path: string,
         queryParams?: Record<string, string | string[]>,
-        body?: Record<string, unknown>,
+        body?: object,
         label?: string,
     ): Promise<T> {
         try {
@@ -230,7 +238,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         }
     }
 
-    async createModule(moduleConfig: Record<string, unknown>): Promise<ModuleInfo> {
+    async createModule(moduleConfig: CreateModuleRequest): Promise<ModuleInfo> {
         const result = await this.adminRequest<ModuleInfo>(
             Method.Post,
             mp("/modules"),
@@ -295,7 +303,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             Method.Post,
             mp("/modules/check_spam"),
             undefined,
-            payload as unknown as Record<string, unknown>,
+            payload,
         );
         this.emit(ModuleEvent.SpamCheckCompleted, result);
         return result;
@@ -328,7 +336,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             Method.Post,
             mp("/modules/check_third_party_rule"),
             undefined,
-            payload as unknown as Record<string, unknown>,
+            payload,
         );
         this.emit(ModuleEvent.ThirdPartyRuleChecked, result);
         return result;
@@ -359,7 +367,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             Method.Post,
             mp("/account_data_callbacks"),
             undefined,
-            callback as unknown as Record<string, unknown>,
+            callback,
         );
         this.emit(ModuleEvent.AccountDataCallbackRegistered, result);
         return result;
@@ -381,7 +389,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             Method.Post,
             mp("/media_callbacks"),
             undefined,
-            callback as unknown as Record<string, unknown>,
+            callback,
         );
         this.emit(ModuleEvent.MediaCallbackRegistered, result);
         return result;
@@ -410,7 +418,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             Method.Post,
             mp("/rate_limit_callbacks"),
             undefined,
-            callback as unknown as Record<string, unknown>,
+            callback,
         );
         this.emit(ModuleEvent.RateLimitCallbackRegistered, result);
         return result;
@@ -459,7 +467,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             Method.Post,
             mp("/presence_routes"),
             undefined,
-            route as unknown as Record<string, unknown>,
+            route,
         );
         this.emit(ModuleEvent.PresenceRouteRegistered, result);
         return result;
