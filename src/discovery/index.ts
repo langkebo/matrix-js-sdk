@@ -95,6 +95,32 @@ export interface PublicRoomsResponse {
 
 type PublicRoomsFilter = NonNullable<IRoomDirectoryOptions["filter"]>;
 
+export interface ClientWellKnownResponse {
+    "m.homeserver": { base_url: string };
+    "m.identity_server"?: { base_url: string };
+    [key: string]: unknown;
+}
+
+export interface ServerWellKnownResponse {
+    "m.server": string;
+    [key: string]: unknown;
+}
+
+export interface SupportWellKnownResponse {
+    admins?: Array<{ user_id: string; role?: string }>;
+    support_page?: string;
+    [key: string]: unknown;
+}
+
+export interface ServerVersionResponse extends IServerVersions {
+    [key: string]: unknown;
+}
+
+export interface HealthResponse {
+    status?: "ok" | "error";
+    [key: string]: unknown;
+}
+
 export class DiscoveryManager extends BaseManager {
     constructor(client: MatrixClient) {
         super(client);
@@ -111,9 +137,9 @@ export class DiscoveryManager extends BaseManager {
         return (this.client as unknown as { clientWellKnown?: Record<string, unknown> }).clientWellKnown;
     }
 
-    public async getServerDiscoveryInfo(): Promise<Record<string, unknown>> {
+    public async getServerDiscoveryInfo(): Promise<ClientWellKnownResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request<Record<string, unknown>>(
+            return await this.client.http.request<ClientWellKnownResponse>(
                 Method.Get,
                 ap("/.well-known/matrix/client"),
                 undefined,
@@ -134,9 +160,9 @@ export class DiscoveryManager extends BaseManager {
         return this.client.getClientConfig();
     }
 
-    public async getServerWellKnown(): Promise<Record<string, unknown>> {
+    public async getServerWellKnown(): Promise<ServerWellKnownResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request<Record<string, unknown>>(
+            return await this.client.http.request<ServerWellKnownResponse>(
                 Method.Get,
                 ap("/.well-known/matrix/server"),
                 undefined,
@@ -146,9 +172,9 @@ export class DiscoveryManager extends BaseManager {
         }, "getServerWellKnown");
     }
 
-    public async getSupportWellKnown(): Promise<Record<string, unknown>> {
+    public async getSupportWellKnown(): Promise<SupportWellKnownResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request<Record<string, unknown>>(
+            return await this.client.http.request<SupportWellKnownResponse>(
                 Method.Get,
                 ap("/.well-known/matrix/support"),
                 undefined,
@@ -162,9 +188,9 @@ export class DiscoveryManager extends BaseManager {
         return this.client.getVersions();
     }
 
-    public async getMatrixServerVersion(): Promise<Record<string, unknown>> {
+    public async getMatrixServerVersion(): Promise<ServerVersionResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request<Record<string, unknown>>(
+            return await this.client.http.request<ServerVersionResponse>(
                 Method.Get,
                 ap("/_matrix/server_version"),
                 undefined,
@@ -174,15 +200,15 @@ export class DiscoveryManager extends BaseManager {
         }, "getMatrixServerVersion");
     }
 
-    public async getHealth(): Promise<Record<string, unknown>> {
+    public async getHealth(): Promise<HealthResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request<Record<string, unknown>>(Method.Get, ap("/health"), undefined, undefined, { prefix: "" });
+            return await this.client.http.request<HealthResponse>(Method.Get, ap("/health"), undefined, undefined, { prefix: "" });
         }, "getHealth");
     }
 
-    public async getUnderscoreHealth(): Promise<Record<string, unknown>> {
+    public async getUnderscoreHealth(): Promise<HealthResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request<Record<string, unknown>>(Method.Get, ap("/_health"), undefined, undefined, { prefix: "" });
+            return await this.client.http.request<HealthResponse>(Method.Get, ap("/_health"), undefined, undefined, { prefix: "" });
         }, "getUnderscoreHealth");
     }
 

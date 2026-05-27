@@ -95,3 +95,24 @@ last_reviewed: 2026-05-03
   通过请求体区分 `subscribe`、`unsubscribe` 和空载荷查询。
 - `getPresenceList(targetUserId)` 直连 `GET /presence/list/{user_id}`。
 - 当前 `r0` / `v1` presence 状态路由被视为兼容别名，SDK 默认使用 `v3` 主路径。
+
+## DTO Definitions
+
+> Source: `src/presence/__generated__/dto.ts`
+
+```typescript
+export type PresenceState = "online" | "offline" | "unavailable" | "away" | "busy";
+export interface PresenceUserState {
+    presence: PresenceState; status_msg?: string;
+    last_active_ago?: number; currently_active?: boolean;
+}
+export interface PresenceUser {
+    user_id: string; presence: PresenceState; status_msg?: string;
+    last_active_ago?: number; currently_active?: boolean;
+}
+export interface SetPresenceRequest { presence: PresenceState; status_msg?: string; }
+export type GetPresenceResponse = PresenceUserState;
+export interface PresenceListResponse { presences: PresenceUser[]; }
+export interface SubscribePresenceRequest { subscribe: string[]; }
+export interface UnsubscribePresenceRequest { unsubscribe: string[]; }
+```

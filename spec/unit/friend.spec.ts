@@ -476,7 +476,7 @@ describe("FriendManager", () => {
         it("should create a friend group", async () => {
             mockAuthedRequest.mockResolvedValue({ id: "group123", name: "Best Friends", members: [], created_at: 1 });
 
-            const groupId = await friendManager.createFriendGroup("Best Friends");
+            const group = await friendManager.createFriendGroup("Best Friends");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -486,7 +486,8 @@ describe("FriendManager", () => {
                 { prefix: ClientPrefix.V1 },
             );
 
-            expect(groupId).toBe("group123");
+            expect(group.id).toBe("group123");
+            expect(group.name).toBe("Best Friends");
         });
 
         it("should add user to friend group", async () => {
@@ -946,43 +947,4 @@ describe("FriendManager", () => {
         });
     });
 
-    describe("Alias Methods", () => {
-        it("should use getFriendsList as alias for getFriends", async () => {
-            mockAuthedRequest.mockResolvedValue({ friends: [] });
-
-            await friendManager.getFriendsList();
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
-                prefix: ClientPrefix.V3,
-            });
-        });
-
-        it("should use addFriend as alias for sendFriendRequest", async () => {
-            mockAuthedRequest.mockResolvedValue({});
-
-            await friendManager.addFriend("@bob:example.com", "Hello");
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/friends/request",
-                undefined,
-                { user_id: "@bob:example.com", message: "Hello" },
-                { prefix: ClientPrefix.V1 },
-            );
-        });
-
-        it("should use declineFriendRequest as alias for rejectFriendRequest", async () => {
-            mockAuthedRequest.mockResolvedValue({});
-
-            await friendManager.declineFriendRequest("@bob:example.com");
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/friends/request/%40bob%3Aexample.com/reject",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-        });
-    });
 });

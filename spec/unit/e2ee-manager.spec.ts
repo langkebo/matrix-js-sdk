@@ -22,7 +22,7 @@ describe("E2EEManager", () => {
             .mockResolvedValueOnce({ requests: [] })
             .mockResolvedValueOnce({ key_count: 1 });
 
-        await manager.uploadKeys({ one_time_keys: { "signed_curve25519:k1": { key: "abc" } } });
+        await manager.uploadKeys({ oneTimeKeys: { "signed_curve25519:k1": { key: "abc" } } });
         await manager.listRoomKeyRequests();
         await manager.storeSecureBackupKeys("backup-1", { passphrase: "secret", session_keys: [] });
 
@@ -31,7 +31,7 @@ describe("E2EEManager", () => {
             "POST",
             "/keys/upload",
             undefined,
-            { one_time_keys: { "signed_curve25519:k1": { key: "abc" } } },
+            { oneTimeKeys: { "signed_curve25519:k1": { key: "abc" } } },
             expect.objectContaining({ prefix: "/_matrix/client/v3" }),
         );
         expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
@@ -78,19 +78,28 @@ describe("E2EEManager", () => {
         );
     });
 
-    it("requires passphrase rather than algorithm when creating secure backups", async () => {
+    it("requires passphrase or algorithm when creating secure backups", async () => {
+        // Algorithm-only (no passphrase) is now valid
         mockClient.http.authedRequest.mockResolvedValueOnce({ backup_id: "b1" });
+        await expect(
+            manager.createSecureBackup({
+                algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+            }),
+        ).resolves.toEqual({ backup_id: "b1" });
 
-        await expect(manager.createSecureBackup({ algorithm: "m.megolm_backup.v1.curve25519-aes-sha2" })).rejects.toThrow(
-            "passphrase is required",
-        );
-
+        // Both passphrase and algorithm
+        mockClient.http.authedRequest.mockResolvedValueOnce({ backup_id: "b2" });
         await expect(
             manager.createSecureBackup({
                 passphrase: "secret",
                 algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
             }),
-        ).resolves.toEqual({ backup_id: "b1" });
+        ).resolves.toEqual({ backup_id: "b2" });
+
+        // Neither passphrase nor algorithm → error
+        await expect(manager.createSecureBackup({} as any)).rejects.toThrow(
+            "Either passphrase or algorithm must be provided",
+        );
 
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             "POST",

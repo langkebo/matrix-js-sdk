@@ -51,58 +51,32 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
 
     public async getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getRoomEvents: (roomId: string, limit?: number) => Promise<MatrixEvent[]>;
-                    }
-                ).getRoomEvents(roomId, limit),
+            () => this.client.getRoomEvents(roomId, limit),
             "getRoomEvents",
         );
     }
 
     public async getStateEventsForRoom(roomId: string): Promise<MatrixEvent[]> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getStateEventsForRoom: (roomId: string) => Promise<MatrixEvent[]>;
-                    }
-                ).getStateEventsForRoom(roomId),
+            () => this.client.getStateEventsForRoom(roomId),
             "getStateEventsForRoom",
         );
     }
 
     public getTimelineEvents(roomId: string): MatrixEvent[] {
-        return (
-            this.client as unknown as {
-                getTimelineEvents: (roomId: string) => MatrixEvent[];
-            }
-        ).getTimelineEvents(roomId);
+        return this.client.getTimelineEvents(roomId);
     }
 
     public getEphemeralEvents(roomId: string): Array<Record<string, unknown>> {
-        return (
-            this.client as unknown as {
-                getEphemeralEvents: (roomId: string) => Array<Record<string, unknown>>;
-            }
-        ).getEphemeralEvents(roomId);
+        return this.client.getEphemeralEvents(roomId);
     }
 
     public hasTimelineEvent(roomId: string, eventId: string): boolean {
-        return (
-            this.client as unknown as {
-                hasTimelineEvent: (roomId: string, eventId: string) => boolean;
-            }
-        ).hasTimelineEvent(roomId, eventId);
+        return this.client.hasTimelineEvent(roomId, eventId);
     }
 
     public findEventById(roomId: string, eventId: string): MatrixEvent | null {
-        return (
-            this.client as unknown as {
-                findEventById: (roomId: string, eventId: string) => MatrixEvent | null;
-            }
-        ).findEventById(roomId, eventId);
+        return this.client.findEventById(roomId, eventId);
     }
 
     public async getEvent(roomId: string, eventId: string): Promise<Record<string, unknown>> {

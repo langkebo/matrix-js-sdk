@@ -265,7 +265,6 @@ export class Backend implements CryptoStore {
         });
 
         if (result.length === 0) {
-            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
             // No sessions left.
             return null;
         }
@@ -414,7 +413,6 @@ export class Backend implements CryptoStore {
         );
 
         if (result.length === 0) {
-            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
             // No sessions left.
             return null;
         }
@@ -609,7 +607,7 @@ function createDatabase(db: IDBDatabase): void {
 }
 
 interface IWrappedIDBTransaction extends IDBTransaction {
-    _mx_abortexception: Error; // eslint-disable-line camelcase
+    _mx_abortexception: Error;
 }
 
 /*

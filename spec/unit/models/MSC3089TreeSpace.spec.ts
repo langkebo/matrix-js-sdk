@@ -189,7 +189,7 @@ describe("MSC3089TreeSpace", () => {
         expect(finalPermissions).toEqual(role);
     }
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support setting Viewer permissions", () => {
         return evaluatePowerLevels(
             {
@@ -205,7 +205,7 @@ describe("MSC3089TreeSpace", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support setting Editor permissions", () => {
         return evaluatePowerLevels(
             {
@@ -221,7 +221,7 @@ describe("MSC3089TreeSpace", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support setting Owner permissions", () => {
         return evaluatePowerLevels(
             {
@@ -237,7 +237,7 @@ describe("MSC3089TreeSpace", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support demoting permissions", () => {
         return evaluatePowerLevels(
             {
@@ -256,7 +256,7 @@ describe("MSC3089TreeSpace", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support promoting permissions", () => {
         return evaluatePowerLevels(
             {
@@ -275,17 +275,17 @@ describe("MSC3089TreeSpace", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support defaults: Viewer", () => {
         return evaluatePowerLevels({}, TreePermissions.Viewer, 0);
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support defaults: Editor", () => {
         return evaluatePowerLevels({}, TreePermissions.Editor, 50);
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should support defaults: Owner", () => {
         return evaluatePowerLevels({}, TreePermissions.Owner, 100);
     });
@@ -593,7 +593,7 @@ describe("MSC3089TreeSpace", () => {
             await expect(tree.setOrder(2)).rejects.toThrow("Cannot set order of top level spaces currently");
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should return a stable order for unordered children", () => {
             const a = "!a:example.org";
             const b = "!b:example.org";
@@ -609,7 +609,7 @@ describe("MSC3089TreeSpace", () => {
             expectOrder(c, 2);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should return a stable order for ordered children", () => {
             const a = "!a:example.org";
             const b = "!b:example.org";
@@ -625,7 +625,7 @@ describe("MSC3089TreeSpace", () => {
             expectOrder(a, 2);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should return a stable order for partially ordered children", () => {
             const a = "!a:example.org";
             const b = "!b:example.org";
@@ -644,7 +644,7 @@ describe("MSC3089TreeSpace", () => {
             expectOrder(a, 2);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should return a stable order if the create event timestamps are the same", () => {
             const a = "!a:example.org";
             const b = "!b:example.org";
@@ -660,7 +660,7 @@ describe("MSC3089TreeSpace", () => {
             expectOrder(c, 2);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should return a stable order if there are no known create events", () => {
             const a = "!a:example.org";
             const b = "!b:example.org";

@@ -9,15 +9,24 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
+export interface EphemeralEventContent {
+    /** For m.typing events: list of user IDs currently typing */
+    user_ids?: string[];
+    /** For m.receipt events: map of event_id → receipt data */
+    [eventId: string]: unknown;
+}
+
+export interface EphemeralEvent {
+    type: string;
+    sender: string;
+    content: EphemeralEventContent;
+    origin_server_ts: number;
+    stream_id: number;
+    event_id: string;
+}
+
 export interface EphemeralEventsResponse {
-    chunk: Array<{
-        type: string;
-        sender: string;
-        content: Record<string, unknown>;
-        origin_server_ts: number;
-        stream_id: number;
-        event_id: string;
-    }>;
+    chunk: EphemeralEvent[];
     start?: string;
     end?: string;
 }

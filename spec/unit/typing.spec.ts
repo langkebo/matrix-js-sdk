@@ -16,7 +16,7 @@ describe("TypingManager", () => {
             http: {
                 authedRequest: mockAuthedRequest,
             },
-            sendTyping: vi.fn().mockResolvedValue({}),
+            isGuest: vi.fn().mockReturnValue(false),
             getUserId: vi.fn().mockReturnValue("@user:example.com"),
             getRoom: vi.fn().mockReturnValue({
                 currentState: {
@@ -39,16 +39,28 @@ describe("TypingManager", () => {
     describe("startTyping", () => {
         it("should start typing in a room", async () => {
             await typingManager.startTyping("!room:example.com");
-            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", true, expect.any(Number));
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/rooms/!room%3Aexample.com/typing/%40user%3Aexample.com",
+                undefined,
+                { typing: true, timeout: 30000 },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("should use custom timeout", async () => {
             await typingManager.startTyping("!room:example.com", { timeout: 5000 });
-            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", true, 5000);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/rooms/!room%3Aexample.com/typing/%40user%3Aexample.com",
+                undefined,
+                { typing: true, timeout: 5000 },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("should handle errors gracefully", async () => {
-            mockClient.sendTyping.mockRejectedValueOnce(new Error("Network error"));
+            mockAuthedRequest.mockRejectedValueOnce(new Error("Network error"));
             await expect(typingManager.startTyping("!room:example.com")).resolves.not.toThrow();
         });
 
@@ -58,8 +70,22 @@ describe("TypingManager", () => {
             await typingManager.startTyping("!room:example.com", { timeout: 5000 });
             await vi.advanceTimersByTimeAsync(5000);
 
-            expect(mockClient.sendTyping).toHaveBeenNthCalledWith(1, "!room:example.com", true, 5000);
-            expect(mockClient.sendTyping).toHaveBeenNthCalledWith(2, "!room:example.com", false, 0);
+            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
+                1,
+                Method.Put,
+                "/rooms/!room%3Aexample.com/typing/%40user%3Aexample.com",
+                undefined,
+                { typing: true, timeout: 5000 },
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
+                2,
+                Method.Put,
+                "/rooms/!room%3Aexample.com/typing/%40user%3Aexample.com",
+                undefined,
+                { typing: false },
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -67,7 +93,14 @@ describe("TypingManager", () => {
         it("should stop typing in a room", async () => {
             await typingManager.startTyping("!room:example.com");
             await typingManager.stopTyping("!room:example.com");
-            expect(mockClient.sendTyping).toHaveBeenCalledWith("!room:example.com", false, 0);
+            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
+                2,
+                Method.Put,
+                "/rooms/!room%3Aexample.com/typing/%40user%3Aexample.com",
+                undefined,
+                { typing: false },
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -143,7 +176,7 @@ describe("TypingManager", () => {
             typingManager.clearAllTimers();
             await vi.advanceTimersByTimeAsync(30000);
 
-            expect(mockClient.sendTyping).toHaveBeenCalledTimes(2);
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(2);
         });
     });
 
@@ -203,7 +236,7 @@ describe("TypingManager", () => {
     });
 
     describe("fetchRoomsTyping", () => {
-        it("should post room_ids and map wrapped batch typing responses", async () => {
+        it("should post rooms and map wrapped batch typing responses", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
                 rooms: {
                     "!room1:example.com": { user_ids: ["@user1:example.com"], timeout: 5000 },
@@ -217,7 +250,7 @@ describe("TypingManager", () => {
                 Method.Post,
                 "/rooms/typing",
                 undefined,
-                { room_ids: ["!room1:example.com", "!room2:example.com"] },
+                { rooms: ["!room1:example.com", "!room2:example.com"] },
                 { prefix: ClientPrefix.V3 },
             );
             expect(result.get("!room1:example.com")).toEqual([{ userId: "@user1:example.com", timeout: 5000 }]);

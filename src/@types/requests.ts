@@ -25,7 +25,6 @@ import { type IRoomEvent } from "../sync-accumulator";
 import { type EventType, type RelationType, type RoomType } from "./event";
 
 // allow camelcase as these are things that go onto the wire
-/* eslint-disable camelcase */
 
 export interface IJoinRoomOpts {
     /**
@@ -343,5 +342,3 @@ export interface IStatusResponse extends IPresenceOpts {
     currently_active?: boolean;
     last_active_ago?: number;
 }
-
-/* eslint-enable camelcase */

@@ -22,12 +22,13 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
-import { MediaPrefix } from "../http-api/prefix";
+import { MediaPrefix, ClientPrefix } from "../http-api/prefix";
 import type { UploadResponse } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { MediaPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { IMediaConfig } from "../client-internal-types";
 
 type StripMediaPrefix<P extends string> =
     P extends `/_matrix/media/v1${infer Rest}` ? Rest :
@@ -89,6 +90,30 @@ function parseMxcUri(mxc?: string): { serverName: string; mediaId: string } | nu
 export class MediaManager extends BaseManager {
     constructor(client: MatrixClient) {
         super(client);
+    }
+
+    /**
+     * Get the media config for the homeserver.
+     * GET /_matrix/client/v1/media/config (authenticated) or GET /_matrix/media/v3/config (unauthenticated)
+     *
+     * @param useAuthenticatedMedia - Whether to use the authenticated media endpoint.
+     * Note that the server's support for authenticated media will *not* be checked -
+     * it is the caller's responsibility to do so before calling this function.
+     * @returns Promise which resolves with an object containing the config.
+     */
+    public getMediaConfig(useAuthenticatedMedia: boolean = false): Promise<IMediaConfig> {
+        const path = useAuthenticatedMedia ? "/media/config" : "/config";
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<IMediaConfig>(
+                Method.Get,
+                path,
+                undefined,
+                undefined,
+                {
+                    prefix: useAuthenticatedMedia ? ClientPrefix.V1 : MediaPrefix.V3,
+                },
+            );
+        }, "getMediaConfig");
     }
 
     /**

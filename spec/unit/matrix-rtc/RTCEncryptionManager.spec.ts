@@ -231,7 +231,7 @@ describe("RTCEncryptionManager", () => {
         // This means that no matter what, the key once rolled out will be too old to be re-used for the new member that
         // joined within the grace period.
         // So we expect another rotation to happen in all cases where a new member joins.
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("test grace period lower than delay period", async () => {
             vi.useFakeTimers();
 

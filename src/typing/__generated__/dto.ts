@@ -26,4 +26,4 @@ export interface TypingRequestDto {
     timeout: number;
 }
 
-export type TypingResponseDto = Record<string, never>;
+export interface TypingResponseDto {}

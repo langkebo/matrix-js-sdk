@@ -13,15 +13,12 @@ describe("ThirdPartyManager", () => {
             http: {
                 authedRequest: vi.fn(),
             },
-            getThirdpartyProtocols: vi.fn(),
-            getThirdpartyLocation: vi.fn(),
-            getThirdpartyUser: vi.fn(),
         };
         thirdPartyManager = new ThirdPartyManager(mockClient);
     });
 
     it("returns protocols successfully", async () => {
-        mockClient.getThirdpartyProtocols.mockResolvedValueOnce({
+        mockClient.http.authedRequest.mockResolvedValueOnce({
             irc: { instances: [], location_fields: [], user_fields: [] },
         });
 
@@ -36,13 +33,13 @@ describe("ThirdPartyManager", () => {
     });
 
     it("throws by default when fetching protocols fails", async () => {
-        mockClient.getThirdpartyProtocols.mockRejectedValueOnce(new Error("boom"));
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(thirdPartyManager.getProtocols()).rejects.toBeInstanceOf(Error);
     });
 
     it("returns an empty list when protocol fallback mode is enabled", async () => {
-        mockClient.getThirdpartyProtocols.mockRejectedValueOnce(new Error("boom"));
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(thirdPartyManager.getProtocols(false)).resolves.toEqual([]);
     });
@@ -83,7 +80,7 @@ describe("ThirdPartyManager", () => {
     });
 
     it("throws by default when searching locations fails", async () => {
-        mockClient.getThirdpartyLocation.mockRejectedValueOnce(new Error("boom"));
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(thirdPartyManager.searchLocations("irc", { alias: "#room:example.com" })).rejects.toBeInstanceOf(
             Error,
@@ -91,7 +88,7 @@ describe("ThirdPartyManager", () => {
     });
 
     it("returns an empty list when location search fallback mode is enabled", async () => {
-        mockClient.getThirdpartyLocation.mockRejectedValueOnce(new Error("boom"));
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(thirdPartyManager.searchLocations("irc", { alias: "#room:example.com" }, false)).resolves.toEqual(
             [],
@@ -99,7 +96,7 @@ describe("ThirdPartyManager", () => {
     });
 
     it("throws by default when searching users fails", async () => {
-        mockClient.getThirdpartyUser.mockRejectedValueOnce(new Error("boom"));
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(thirdPartyManager.searchUsers("irc", { userid: "@alice:example.com" })).rejects.toBeInstanceOf(
             Error,
@@ -107,7 +104,7 @@ describe("ThirdPartyManager", () => {
     });
 
     it("returns an empty list when user search fallback mode is enabled", async () => {
-        mockClient.getThirdpartyUser.mockRejectedValueOnce(new Error("boom"));
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
         await expect(thirdPartyManager.searchUsers("irc", { userid: "@alice:example.com" }, false)).resolves.toEqual(
             [],

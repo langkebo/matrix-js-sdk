@@ -280,7 +280,7 @@ import * as sdk from "matrix-js-sdk";
 const myUserId = "@example:localhost";
 const myAccessToken = "QGV4YW1wbGU6bG9jYWxob3N0.qPEvLuYfNBjxikiCjP";
 const matrixClient = sdk.createClient({
-    baseUrl: "http://localhost:28008",
+    baseUrl: "https://matrix.test",
     accessToken: myAccessToken,
     userId: myUserId,
 });
@@ -389,7 +389,7 @@ To initialize the end-to-end encryption support in the matrix client:
 ```javascript
 // Create a new matrix client
 const matrixClient = sdk.createClient({
-    baseUrl: "http://localhost:28008",
+    baseUrl: "https://matrix.test",
     accessToken: myAccessToken,
     userId: myUserId,
 });
@@ -486,7 +486,7 @@ but you need to provide the legacy [`cryptoStore`](https://matrix-org.github.io/
 const matrixClient = sdk.createClient({
     cryptoStore: myCryptoStore,
     pickleKey: myPickleKey,
-    baseUrl: "http://localhost:28008",
+    baseUrl: "https://matrix.test",
     accessToken: myAccessToken,
     userId: myUserId,
 });

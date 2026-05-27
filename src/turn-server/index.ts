@@ -21,13 +21,17 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { type ITurnServer } from "../client";
+import { type ITurnServer, type ITurnServerResponse } from "../client";
+import { ClientEvent } from "../client";
+import { type HTTPError } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
+const TURN_CHECK_INTERVAL = 30 * 1000;
+
 export interface TurnServerManagerEvents {
-    turn_servers_updated: { servers: ITurnServer[] };
-    turn_server_expired: void;
+    turn_servers_updated: (data: { servers: ITurnServer[] }) => void;
+    turn_server_expired: () => void;
 }
 
 export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents, TurnServerManagerEvents> {
@@ -36,15 +40,78 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 
     public getTurnServers(): ITurnServer[] {
-        return this.client.getTurnServers();
+        return (this.client as any).turnServers || [];
     }
 
     public async getTurnServerURIs(): Promise<string[]> {
-        return await this.client.getTurnServerURIs();
+        const servers = this.getTurnServers();
+        if (servers.length > 0) {
+            return servers.flatMap((s) => s.urls);
+        }
+        // No cached servers, fetch from server
+        try {
+            const res: ITurnServerResponse = await (this.client as any).turnServer();
+            if (res.uris) {
+                return res.uris;
+            }
+        } catch {
+            // Fall through to empty
+        }
+        return [];
     }
 
     public getTurnServerExpiry(): number {
-        return this.client.getTurnServersExpiry();
+        return (this.client as any).turnServersExpiry ?? 0;
+    }
+
+    /**
+     * Check TURN servers and refresh credentials if needed.
+     * Emits TurnServers and TurnServersError events on the client.
+     * @returns true if credentials are good, undefined if VoIP not supported.
+     */
+    public async checkTurnServers(): Promise<boolean | undefined> {
+        const client = this.client as any;
+        if (!client.supportsVoip || !client.supportsVoip()) {
+            return;
+        }
+
+        let credentialsGood = false;
+        const remainingTime = client.turnServersExpiry - Date.now();
+        if (remainingTime > TURN_CHECK_INTERVAL) {
+            client.logger?.debug?.("TURN creds are valid for another " + remainingTime + " ms: not fetching new ones.");
+            credentialsGood = true;
+        } else {
+            client.logger?.debug?.("Fetching new TURN credentials");
+            try {
+                const res: ITurnServerResponse = await client.turnServer();
+                if (res.uris) {
+                    client.logger?.debug?.("Got TURN URIs: " + res.uris + " refresh in " + res.ttl + " secs");
+                    const servers: ITurnServer = {
+                        urls: res.uris,
+                        username: res.username,
+                        credential: res.password,
+                    };
+                    client.turnServers = [servers];
+                    client.turnServersExpiry = Date.now() + res.ttl * 1000;
+                    credentialsGood = true;
+                    client.emit(ClientEvent.TurnServers, client.turnServers);
+                }
+            } catch (err) {
+                client.logger?.error?.("Failed to get TURN URIs", err);
+                if ((err as HTTPError).httpStatus === 403) {
+                    client.logger?.info?.("TURN access unavailable for this account: stopping credentials checks");
+                    if (client.checkTurnServersIntervalID !== null) {
+                        globalThis.clearInterval(client.checkTurnServersIntervalID);
+                    }
+                    client.checkTurnServersIntervalID = undefined;
+                    client.emit(ClientEvent.TurnServersError, err as HTTPError, true);
+                } else {
+                    client.emit(ClientEvent.TurnServersError, err as Error, false);
+                }
+            }
+        }
+
+        return credentialsGood;
     }
 }
 

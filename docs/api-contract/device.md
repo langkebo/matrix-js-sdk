@@ -116,3 +116,23 @@ console.log("Left:", updates.left);
 - **SDK 主路径覆盖**: 12/12
 - **已绑定生成路由模板**: 12/12
 - **契约覆盖率**: 100%
+
+## DTO Definitions
+
+> Source: `src/device/__generated__/dto.ts`
+
+```typescript
+export interface DeviceInfo {
+    device_id: string; display_name?: string; last_seen_ip?: string;
+    last_seen_ts?: number; user_id?: string;
+}
+export interface DeviceListResponse { devices: DeviceInfo[]; }
+export interface UpdateDeviceRequest { display_name?: string; }
+export interface AuthDict { type: string; session?: string; [key: string]: unknown; }
+export interface DeleteDeviceRequest { auth?: AuthDict; }
+export interface DeleteDevicesRequest { devices: string[]; auth?: AuthDict; }
+export interface DeviceData { display_name?: string; last_seen_ts?: number; last_seen_ip?: string; }
+export interface DeviceChange { user_id: string; device_id: string; device_data: DeviceData; }
+export interface DeviceListUpdatesRequest { users: string[]; }
+export interface DeviceListUpdatesResponse { changed: DeviceChange[]; left: string[]; }
+```

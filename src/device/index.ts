@@ -128,6 +128,46 @@ export class UIAError extends Error {
     }
 }
 
+function extractUiaErrorData(error: unknown): IUIAErrorData | null {
+    const candidates = [error];
+    let fallback: IUIAErrorData | null = null;
+
+    if (error && typeof error === "object" && "cause" in error) {
+        candidates.push((error as { cause?: unknown }).cause);
+    }
+
+    for (const candidate of candidates) {
+        if (!candidate || typeof candidate !== "object") {
+            continue;
+        }
+
+        const record = candidate as Record<string, unknown>;
+        if (record.data && typeof record.data === "object") {
+            const nestedData = record.data as Record<string, unknown>;
+            if (
+                "flows" in nestedData ||
+                "session" in nestedData ||
+                "params" in nestedData ||
+                record.errcode === "M_UIA_REQUIRED"
+            ) {
+                return record.data as IUIAErrorData;
+            }
+        }
+
+        if ("flows" in record || "session" in record || "params" in record) {
+            return record as IUIAErrorData;
+        }
+
+        if (record.errcode === "M_UIA_REQUIRED" || record.errorCode === "M_UIA_REQUIRED") {
+            fallback ??= {
+                error: typeof record.message === "string" ? record.message : "User-Interactive Authentication required",
+            };
+        }
+    }
+
+    return fallback;
+}
+
 interface IDevicesResponse {
     devices: IDevice[];
 }
@@ -331,12 +371,9 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
             this.deviceListCache.delete("devices");
         } catch (error) {
-            const err = error as Record<string, unknown>;
-            if (
-                err.errcode === "M_UIA_REQUIRED" ||
-                (err.data && typeof err.data === "object" && "flows" in (err.data as Record<string, unknown>))
-            ) {
-                throw new UIAError((err.data ?? err) as IUIAErrorData);
+            const uiaData = extractUiaErrorData(error);
+            if (uiaData) {
+                throw new UIAError(uiaData);
             }
             throw this.normalizeError(error, "updateDevice");
         }
@@ -390,6 +427,8 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         }
 
         try {
+            // Some homeservers require DELETE /devices/{id} to carry a JSON body,
+            // even before they decide whether UIA is needed.
             const body: { auth?: IAuthDict } = {};
             if (authDict) {
                 body.auth = authDict;
@@ -400,7 +439,7 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
                     Method.Delete,
                     dp(`/devices/${encodeURIComponent(deviceId)}`),
                     undefined,
-                    Object.keys(body).length > 0 ? body : undefined,
+                    body,
                     { prefix: ClientPrefix.V3 },
                 );
             }, "deleteDevice");
@@ -409,12 +448,9 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
             this.deviceListCache.delete("devices");
             this.emit(DeviceEvent.DeviceDeleted, deviceId);
         } catch (error) {
-            const err = error as Record<string, unknown>;
-            if (
-                err.errcode === "M_UIA_REQUIRED" ||
-                (err.data && typeof err.data === "object" && "flows" in (err.data as Record<string, unknown>))
-            ) {
-                throw new UIAError((err.data ?? err) as IUIAErrorData);
+            const uiaData = extractUiaErrorData(error);
+            if (uiaData) {
+                throw new UIAError(uiaData);
             }
             throw this.normalizeError(error, "deleteDevice");
         }
@@ -459,8 +495,9 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
             this.deviceListCache.delete("devices");
         } catch (error) {
-            if (error instanceof MatrixError && (error.errcode === "M_UIA_REQUIRED" || error.data?.flows)) {
-                throw new UIAError(error.data ?? { error: error.message });
+            const uiaData = extractUiaErrorData(error);
+            if (uiaData) {
+                throw new UIAError(uiaData);
             }
             throw this.normalizeError(error, "deleteDevices");
         }

@@ -39,11 +39,9 @@ describe("KeyRotationManager", () => {
 
     it("should get key rotation status", async () => {
         const mockResponse = {
-            current_key_id: "key_v1",
-            rotation_period_ms: 2592000000,
-            last_rotation_ts: 1714175000000,
-            next_rotation_ts: 1716767000000,
-            auto_rotation_enabled: true,
+            enabled: true,
+            status: { rotation_enabled: true, grace_period_ms: 2592000000 },
+            user_last_rotation: 1714175000000,
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
@@ -57,11 +55,9 @@ describe("KeyRotationManager", () => {
 
     it("should reuse cached status without another request", async () => {
         const mockResponse = {
-            current_key_id: "key_v1",
-            rotation_period_ms: 1000,
-            last_rotation_ts: 1,
-            next_rotation_ts: 2,
-            auto_rotation_enabled: true,
+            enabled: true,
+            status: { rotation_enabled: true },
+            user_last_rotation: 1,
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
@@ -75,18 +71,19 @@ describe("KeyRotationManager", () => {
 
     it("should rotate key", async () => {
         const mockResponse = {
-            new_key_id: "key_v2",
-            rotated_at: 1714176000000,
+            success: true,
+            message: "Keys rotated successfully",
+            has_new_key: true,
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
-        const result = await manager.rotateKey({ reason: "scheduled_rotation" });
+        const result = await manager.rotateKey({ key_id: "key_v1" });
 
         expect(mockHttp.authedRequest).toHaveBeenCalledWith(
             Method.Post,
             "/keys/rotation/rotate",
             undefined,
-            { reason: "scheduled_rotation" },
+            { key_id: "key_v1" },
             { prefix: ClientPrefix.V1 },
         );
         expect(result).toEqual(mockResponse);
@@ -94,15 +91,13 @@ describe("KeyRotationManager", () => {
 
     it("should get rotation history", async () => {
         const mockResponse = {
+            device_id: "DEVICE1",
             rotations: [
                 {
                     key_id: "key_v1",
-                    rotated_at: 1714176000000,
-                    reason: "scheduled_rotation",
-                    previous_key_id: "key_v0",
+                    rotated_ts: 1714176000000,
                 },
             ],
-            next_batch: "batch-1",
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
@@ -120,8 +115,9 @@ describe("KeyRotationManager", () => {
 
     it("should revoke key", async () => {
         const mockResponse = {
-            revoked: true,
-            revoked_at: 1714176000000,
+            success: true,
+            revoked: 0,
+            message: "Key revocation is handled automatically by key rotation",
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
@@ -139,13 +135,14 @@ describe("KeyRotationManager", () => {
 
     it("should update rotation config", async () => {
         const mockResponse = {
-            updated: true,
+            enabled: true,
+            interval_ms: 2592000000,
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
         const result = await manager.updateConfig({
-            auto_rotation_enabled: true,
-            rotation_period_ms: 2592000000,
+            enabled: true,
+            interval_ms: 2592000000,
         });
 
         expect(mockHttp.authedRequest).toHaveBeenCalledWith(
@@ -153,8 +150,8 @@ describe("KeyRotationManager", () => {
             "/keys/rotation/config",
             undefined,
             {
-                auto_rotation_enabled: true,
-                rotation_period_ms: 2592000000,
+                enabled: true,
+                interval_ms: 2592000000,
             },
             { prefix: ClientPrefix.V1 },
         );
@@ -163,9 +160,9 @@ describe("KeyRotationManager", () => {
 
     it("should check key validity", async () => {
         const mockResponse = {
-            valid: true,
-            revoked: false,
-            expires_at: 1716776000000,
+            needs_rotation: false,
+            last_rotation: 1714176000000,
+            interval_ms: 2592000000,
         };
         mockHttp.authedRequest.mockResolvedValue(mockResponse);
 
@@ -194,8 +191,8 @@ describe("KeyRotationManager", () => {
     it("should validate config payload", async () => {
         await expect(
             manager.updateConfig({
-                auto_rotation_enabled: true,
-                rotation_period_ms: 0,
+                enabled: true,
+                interval_ms: 0,
             }),
         ).rejects.toBeInstanceOf(ValidationError);
 
@@ -205,32 +202,29 @@ describe("KeyRotationManager", () => {
     it("should invalidate cached status after mutate operations", async () => {
         mockHttp.authedRequest
             .mockResolvedValueOnce({
-                current_key_id: "key_v1",
-                rotation_period_ms: 1000,
-                last_rotation_ts: 1,
-                next_rotation_ts: 2,
-                auto_rotation_enabled: true,
+                enabled: true,
+                status: { rotation_enabled: true },
+                user_last_rotation: 1,
             })
             .mockResolvedValueOnce({
-                updated: true,
+                enabled: false,
+                interval_ms: 2000,
             })
             .mockResolvedValueOnce({
-                current_key_id: "key_v2",
-                rotation_period_ms: 2000,
-                last_rotation_ts: 3,
-                next_rotation_ts: 4,
-                auto_rotation_enabled: false,
+                enabled: false,
+                status: { rotation_enabled: false },
+                user_last_rotation: 3,
             });
 
         const first = await manager.getStatus();
         await manager.updateConfig({
-            auto_rotation_enabled: false,
-            rotation_period_ms: 2000,
+            enabled: false,
+            interval_ms: 2000,
         });
         const second = await manager.getStatus();
 
-        expect(first.current_key_id).toBe("key_v1");
-        expect(second.current_key_id).toBe("key_v2");
+        expect(first.enabled).toBe(true);
+        expect(second.enabled).toBe(false);
         expect(mockHttp.authedRequest).toHaveBeenCalledTimes(3);
     });
 });

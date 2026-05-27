@@ -52,7 +52,7 @@ type UIARequest<T> = T & {
 
 const SSO_ACTION_PARAM = {
     stable: "action",
-    unstable: "_action",
+    unstable: "org.matrix.msc3824.action",
 };
 
 export class AccountManager extends BaseManager {
@@ -270,7 +270,7 @@ export class AccountManager extends BaseManager {
         const path = utils.encodeUri("/auth/$loginType/fallback/web", {
             $loginType: loginType,
         });
-        const params = { authSessionId };
+        const params = { session: authSessionId };
         return this.client.http.getUrl(path, params).href;
     }
 

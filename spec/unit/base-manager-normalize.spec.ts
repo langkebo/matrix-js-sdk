@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { BaseManager } from "../../src/managers/base-manager";
 import type { MatrixClient } from "../../src/client";
-import { MatrixError } from "../../src/http-api/errors";
+import { HTTPError, MatrixError } from "../../src/http-api/errors";
 import { RetryableError, NotFoundError, AuthError, ApiError } from "../../src/errors";
 
 class DummyManager extends BaseManager {
@@ -25,6 +25,13 @@ describe("BaseManager.normalizeError", () => {
     it("classifies 429 MatrixError as RetryableError", () => {
         const m = new DummyManager();
         const err = new MatrixError({ errcode: "M_LIMIT_EXCEEDED", error: "rate limited" }, 429);
+        const e = m.n(err, "t");
+        expect(e).toBeInstanceOf(RetryableError);
+    });
+
+    it("classifies 429 HTTPError as RetryableError", () => {
+        const m = new DummyManager();
+        const err = new HTTPError("rate limited", 429);
         const e = m.n(err, "t");
         expect(e).toBeInstanceOf(RetryableError);
     });

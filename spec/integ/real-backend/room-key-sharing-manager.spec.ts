@@ -1,39 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createClient, type MatrixClient } from "../../../src/matrix";
+import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient as extendRoomKeySharingClient } from "../../../src/room-key-sharing/index";
 import { TestConfig } from "./TestConfig";
+import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendRoomKeySharingClient();
-
-type TestUserConfig = {
-    localpart: string;
-    password: string;
-};
-
-function createTestUser(localpartPrefix: string): TestUserConfig {
-    return {
-        localpart: `${localpartPrefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-        password: "Test@123",
-    };
-}
-
-async function registerUser(user: TestUserConfig): Promise<MatrixClient> {
-    const registrationClient = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
-    const result = await registrationClient.registerRequest({
-        username: user.localpart,
-        password: user.password,
-        auth: { type: "m.login.dummy" },
-    });
-
-    return createClient({
-        baseUrl: TestConfig.baseUrl,
-        allowInsecureHttp: true,
-        accessToken: result.access_token,
-        userId: result.user_id,
-        deviceId: result.device_id,
-    });
-}
 
 describe("RoomKeySharingManager real backend integration", () => {
     let client: MatrixClient;
@@ -43,7 +15,7 @@ describe("RoomKeySharingManager real backend integration", () => {
 
     beforeAll(async () => {
         try {
-            client = await registerUser(createTestUser("rk_primary"));
+            client = await loginAsConfiguredUser();
             const room = await client.createRoom({ name: `rk_test_${Date.now()}` });
             roomId = room.room_id;
             backendAvailable = true;

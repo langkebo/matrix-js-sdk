@@ -54,16 +54,7 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
         userId: string,
     ): Promise<IKeyForwardingResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        requestKeyForwarding: (
-                            roomId: string,
-                            eventId: string,
-                            userId: string,
-                        ) => Promise<IKeyForwardingResponse>;
-                    }
-                ).requestKeyForwarding(roomId, eventId, userId),
+            () => this.client.requestKeyForwarding(roomId, eventId, userId),
             "requestKeyForwarding",
         );
     }
@@ -75,35 +66,17 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
         key: Record<string, unknown>,
     ): Promise<IKeyForwardingResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        forwardKey: (
-                            roomId: string,
-                            eventId: string,
-                            userId: string,
-                            key: Record<string, unknown>,
-                        ) => Promise<IKeyForwardingResponse>;
-                    }
-                ).forwardKey(roomId, eventId, userId, key),
+            () => this.client.forwardKey(roomId, eventId, userId, key),
             "forwardKey",
         );
     }
 
     public hasForwardedKey(roomId: string, eventId: string): boolean {
-        return (
-            this.client as unknown as {
-                hasForwardedKey: (roomId: string, eventId: string) => boolean;
-            }
-        ).hasForwardedKey(roomId, eventId);
+        return this.client.hasForwardedKey(roomId, eventId);
     }
 
     public getForwardedKeys(roomId: string): IForwardedKey[] {
-        return (
-            this.client as unknown as {
-                getForwardedKeys: (roomId: string) => IForwardedKey[];
-            }
-        ).getForwardedKeys(roomId);
+        return this.client.getForwardedKeys(roomId);
     }
 }
 

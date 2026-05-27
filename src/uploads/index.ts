@@ -58,38 +58,21 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
 
     public async uploadFile(file: File | Blob, opts?: IUploadOptions): Promise<IUploadResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        uploadFile: (file: File | Blob, opts?: IUploadOptions) => Promise<IUploadResponse>;
-                    }
-                ).uploadFile(file, opts),
+            () => this.client.uploadFile(file, opts),
             "uploadFile",
         );
     }
 
     public cancelUpload(upload: Promise<unknown>): boolean {
-        return (
-            this.client as unknown as {
-                cancelUpload: (upload: Promise<unknown>) => boolean;
-            }
-        ).cancelUpload(upload);
+        return this.client.cancelUpload(upload as Promise<import("../http-api/interface").UploadResponse>);
     }
 
     public getUploadProgress(uploadId: string): IUploadProgress | null {
-        return (
-            this.client as unknown as {
-                getUploadProgress: (uploadId: string) => IUploadProgress | null;
-            }
-        ).getUploadProgress(uploadId);
+        return this.client.getUploadProgress(uploadId);
     }
 
     public abortAllUploads(): void {
-        (
-            this.client as unknown as {
-                abortAllUploads: () => void;
-            }
-        ).abortAllUploads();
+        this.client.abortAllUploads();
     }
 }
 

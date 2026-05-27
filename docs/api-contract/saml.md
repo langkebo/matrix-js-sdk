@@ -114,3 +114,40 @@ last_reviewed: 2026-05-03
 | `M_FORBIDDEN`      | `403`     | 当前映射策略拒绝登录或提供方拒绝认证              |
 | `M_NOT_FOUND`      | `404`     | 登出回调引用的会话不存在                          |
 | `M_LIMIT_EXCEEDED` | `429`     | SAML 登录链路触发限流                             |
+
+## DTO Definitions
+
+> Source: `src/saml/__generated__/dto.ts`
+
+```typescript
+export interface SamlLoginResponse { redirect_url: string; }
+export interface SamlAuthResult {
+    user_id: string; access_token: string; device_id: string;
+    expires_in?: number; refresh_token?: string;
+}
+export interface SamlLogoutResponse { redirect_url?: string; }
+export interface SamlMetadata {
+    entity_id?: string; sso_url?: string; slo_url?: string;
+    x509_certificates?: string[]; nameid_format?: string; xml?: string;
+    [key: string]: unknown;
+}
+export interface SamlSpMetadata { xml: string; }
+export interface SamlAdminConfig {
+    enabled: boolean; metadata_url?: string; sp_entity_id?: string;
+    sp_acs_url?: string; sp_sls_url?: string; nameid_format?: string;
+    allow_existing_users?: boolean; block_unknown_users?: boolean;
+    user_id_template?: string; sign_requests?: boolean;
+    want_response_signed?: boolean; want_assertions_signed?: boolean;
+    want_assertions_encrypted?: boolean;
+    attribute_mapping?: { uid?: string; displayname?: string; email?: string };
+    session_lifetime?: number; metadata_refresh_interval?: number;
+    allowed_idp_entity_ids?: string[]; timeout?: number;
+    [key: string]: unknown;
+}
+export interface SamlUserMapping {
+    name_id: string; user_id: string; displayname?: string; email?: string;
+    created_at?: number; updated_at?: number; [key: string]: unknown;
+}
+export interface SamlUserMappingPage { mappings: SamlUserMapping[]; total?: number; next_token?: string; }
+export interface SamlRefreshResult { status: string; [key: string]: unknown; }
+```

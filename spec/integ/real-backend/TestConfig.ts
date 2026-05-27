@@ -4,21 +4,25 @@
  * 用于在真实后端服务器上测试SDK模块
  */
 
+declare const process: {
+    env: Record<string, string | undefined>;
+};
+
 export const TestConfig = {
-    // 后端配置 (OrbStack 端口映射: 28008 -> 8008)
-    baseUrl: "http://localhost:28008",
+    // 后端配置，默认指向当前真实后端测试域名
+    baseUrl: process.env.MATRIX_REAL_BACKEND_BASE_URL || "https://matrix.test",
 
     // 测试用户配置
     testUser: {
-        userId: "@sdk_testuser:localhost",
-        password: "Test@123",
-        deviceId: "TEST_DEVICE",
+        userId: process.env.MATRIX_REAL_BACKEND_TEST_USER_ID || "@sdk_testuser:matrix.test",
+        password: process.env.MATRIX_REAL_BACKEND_TEST_USER_PASSWORD || "Test@123",
+        deviceId: process.env.MATRIX_REAL_BACKEND_TEST_DEVICE_ID || "TEST_DEVICE",
     },
 
     // 辅助用户
     secondaryUser: {
-        userId: "@sdk_testuser2:localhost",
-        password: "Test@123",
+        userId: process.env.MATRIX_REAL_BACKEND_SECONDARY_USER_ID || "@sdk_testuser2:matrix.test",
+        password: process.env.MATRIX_REAL_BACKEND_SECONDARY_USER_PASSWORD || "Test@123",
     },
 
     // 测试房间配置
@@ -42,5 +46,18 @@ export const TestConfig = {
     // 测试消息
     testMessages: ["Hello, World!", "Test message 1", "Test message 2", "中文测试消息"],
 };
+
+export function getRealBackendVersionsUrl(): string {
+    return new URL("/_matrix/client/versions", TestConfig.baseUrl).toString();
+}
+
+export function isRealBackendReachable(): boolean {
+    try {
+        new URL(getRealBackendVersionsUrl());
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 export default TestConfig;

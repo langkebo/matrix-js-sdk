@@ -690,7 +690,7 @@ function scanDefaultManagerModules() {
     const content = fs.readFileSync(file, "utf8");
     return [
         ...content.matchAll(
-            /import\("\.\.\/([^"]+?)(?:\/index)?\.js"\)\.then\(\(m\)\s*=>\s*m\.extendMatrixClient\(\)\)/g,
+            /import\("\.\.\/([^"]+?)(?:\/index)?\.js"\)\.then\(\(m\)\s*=>\s*m\??\.extendMatrixClient\(\)\)/g,
         ),
     ].map((match) => match[1]);
 }

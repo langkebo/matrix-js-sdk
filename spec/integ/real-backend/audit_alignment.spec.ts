@@ -1,29 +1,27 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createClient, type MatrixClient } from "../../../src/matrix";
+import type { MatrixClient } from "../../../src/matrix";
 import {
     BurnAfterReadManager,
     extendMatrixClient as extendBurnAfterReadClient,
 } from "../../../src/burn-after-read/index";
 import { extendMatrixClient as extendFriendClient, FriendRelationshipStatus } from "../../../src/friend/index";
 import { extendMatrixClient as extendRoomListClient } from "../../../src/room-list/index";
+import { extendMatrixClient as extendRoomSummaryClient } from "../../../src/room-summary/index";
+import { extendMatrixClient as extendSyncClient } from "../../../src/sync-management/index";
 import { TestConfig } from "./TestConfig";
+import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendFriendClient();
 extendBurnAfterReadClient();
 extendRoomListClient();
+extendRoomSummaryClient();
+extendSyncClient();
 
 const ALLOWED_FRIEND_STATUSES = new Set<string>(Object.values(FriendRelationshipStatus));
 
 async function login(): Promise<MatrixClient> {
-    const testClient = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
-    const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-    const result = await testClient.login("m.login.password", {
-        user: username,
-        password: TestConfig.testUser.password,
-    });
-    testClient.setAccessToken(result.access_token);
-    return testClient;
+    return loginAsConfiguredUser();
 }
 
 describe("SDK 与后端对齐审计自动化测试套件", () => {

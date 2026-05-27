@@ -11,18 +11,12 @@ import {
 } from "../../../src/burn-after-read/index";
 import { AuthError, NotFoundError, ValidationError, ApiError, RetryableError } from "../../../src/errors";
 import { TestConfig } from "./TestConfig";
+import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendBurnAfterReadClient();
 
 async function login(): Promise<MatrixClient> {
-    const testClient = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
-    const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-    const result = await testClient.login("m.login.password", {
-        user: username,
-        password: TestConfig.testUser.password,
-    });
-    testClient.setAccessToken(result.access_token);
-    return testClient;
+    return loginAsConfiguredUser();
 }
 
 describe("Burn After Read 集成测试", () => {

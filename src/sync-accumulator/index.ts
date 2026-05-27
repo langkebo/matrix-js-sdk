@@ -55,39 +55,26 @@ export class SyncAccumulatorManager extends BaseManager<
     }
 
     public getSyncAccumulator(): SyncAccumulator | null {
-        return (this.client as unknown as { syncAccumulator?: SyncAccumulator }).syncAccumulator ?? null;
+        return this.client.syncAccumulator ?? null;
     }
 
     public setSyncAccumulator(accumulator: SyncAccumulator): void {
-        (this.client as unknown as { syncAccumulator?: SyncAccumulator }).syncAccumulator = accumulator;
+        this.client.syncAccumulator = accumulator;
     }
 
     public async accumulateSyncData(data: Record<string, unknown>): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        accumulateSyncData: (data: Record<string, unknown>) => Promise<void>;
-                    }
-                ).accumulateSyncData(data),
+            () => this.client.accumulateSyncData(data),
             "accumulateSyncData",
         );
     }
 
     public getAccumulatedData(): ISyncAccumulatedData | null {
-        return (
-            this.client as unknown as {
-                getAccumulatedData: () => ISyncAccumulatedData | null;
-            }
-        ).getAccumulatedData();
+        return this.client.getAccumulatedData();
     }
 
     public resetAccumulator(): void {
-        (
-            this.client as unknown as {
-                resetAccumulator: () => void;
-            }
-        ).resetAccumulator();
+        this.client.resetAccumulator();
     }
 }
 

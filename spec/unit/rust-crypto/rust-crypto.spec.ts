@@ -47,6 +47,7 @@ import {
     MatrixHttpApi,
     MemoryCryptoStore,
     TypedEventEmitter,
+    UIAError,
 } from "../../../src";
 import { emitPromise, mkEvent, waitFor } from "../../test-utils/test-utils";
 import { type CryptoBackend } from "../../../src/common-crypto/CryptoBackend";
@@ -738,6 +739,7 @@ describe("RustCrypto", () => {
         });
         // check that rustCrypto.resetKeyBackup was called
         expect(resetKeyBackup.mock.calls).toHaveLength(1);
+        expect(resetKeyBackup).toHaveBeenNthCalledWith(1, undefined);
 
         // reset secret storage
         await rustCrypto.bootstrapSecretStorage({
@@ -747,6 +749,21 @@ describe("RustCrypto", () => {
         });
         // check that rustCrypto.resetKeyBackup was called again
         expect(resetKeyBackup.mock.calls).toHaveLength(2);
+        expect(resetKeyBackup).toHaveBeenNthCalledWith(2, undefined);
+
+        const setupNewKeyBackupAuth = {
+            type: "m.login.password",
+            session: "uia-session",
+            user: "@alice:server",
+            password: "secret",
+        };
+        await rustCrypto.bootstrapSecretStorage({
+            createSecretStorageKey,
+            setupNewSecretStorage: true,
+            setupNewKeyBackup: true,
+            setupNewKeyBackupAuth,
+        });
+        expect(resetKeyBackup).toHaveBeenNthCalledWith(3, setupNewKeyBackupAuth);
     });
 
     describe("upload existing key backup key to new 4S store", () => {
@@ -810,6 +827,106 @@ describe("RustCrypto", () => {
             });
 
             expect(storeSpy).toHaveBeenCalledWith("m.megolm_backup.v1", expect.anything());
+        });
+
+        it("resetKeyBackup forwards UIA auth when creating a new backup version", async () => {
+            const rustCrypto = await makeTestRustCrypto(
+                fetchMock as unknown as MatrixHttpApi<any>,
+                testData.TEST_USER_ID,
+                undefined,
+                secretStorage,
+            );
+            const auth = {
+                type: "m.login.password",
+                session: "uia-session",
+                user: testData.TEST_USER_ID,
+                password: "hunter2",
+            };
+
+            await rustCrypto.resetKeyBackup(auth);
+
+            expect(fetchMock.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/room_keys/version",
+                undefined,
+                expect.objectContaining({ auth }),
+                expect.any(Object),
+            );
+        });
+
+        it("resetKeyBackup retries with the returned UIA session when auth is provided without one", async () => {
+            const requestBodies: Array<Record<string, unknown>> = [];
+            fetchMock.authedRequest.mockImplementation((method, path, query, body) => {
+                if (path === "/room_keys/version" && method === "POST") {
+                    requestBodies.push(body as Record<string, unknown>);
+                    const auth = body["auth"] as Record<string, unknown> | undefined;
+                    if (!auth?.session) {
+                        return Promise.reject({
+                            errcode: "M_UIA_REQUIRED",
+                            data: {
+                                session: "uia-session-from-server",
+                                flows: [{ stages: ["m.login.password"] }],
+                                params: {},
+                                error: "User-Interactive Authentication required",
+                            },
+                        });
+                    }
+                    return Promise.resolve({ version: "1" });
+                }
+                return Promise.resolve({});
+            });
+
+            const rustCrypto = await makeTestRustCrypto(
+                fetchMock as unknown as MatrixHttpApi<any>,
+                testData.TEST_USER_ID,
+                undefined,
+                secretStorage,
+            );
+            const auth = {
+                type: "m.login.password",
+                user: testData.TEST_USER_ID,
+                password: "hunter2",
+            };
+
+            await rustCrypto.resetKeyBackup(auth);
+
+            expect(requestBodies).toHaveLength(2);
+            expect(requestBodies[0]).toMatchObject({ auth });
+            expect(requestBodies[1]).toMatchObject({
+                auth: {
+                    ...auth,
+                    session: "uia-session-from-server",
+                },
+            });
+        });
+
+        it("resetKeyBackup throws UIAError when interactive auth is required", async () => {
+            fetchMock.authedRequest.mockImplementation((method, path, query, body) => {
+                if (path === "/room_keys/version" && method === "POST" && !body["auth"]) {
+                    return Promise.reject({
+                        errcode: "M_UIA_REQUIRED",
+                        data: {
+                            session: "uia-required",
+                            flows: [{ stages: ["m.login.password"] }],
+                            params: {},
+                            error: "User-Interactive Authentication required",
+                        },
+                    });
+                }
+                return Promise.resolve({});
+            });
+
+            const rustCrypto = await makeTestRustCrypto(
+                fetchMock as unknown as MatrixHttpApi<any>,
+                testData.TEST_USER_ID,
+                undefined,
+                secretStorage,
+            );
+
+            await expect(rustCrypto.resetKeyBackup()).rejects.toBeInstanceOf(UIAError);
+            await expect(rustCrypto.resetKeyBackup()).rejects.toMatchObject({
+                data: expect.objectContaining({ session: "uia-required" }),
+            });
         });
 
         it("bootstrapSecretStorage doesn't try to save megolm backup key not in cache", async () => {

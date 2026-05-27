@@ -64,7 +64,6 @@ describe("burn_after_read contract acceptance", () => {
         for (const code of errcodes) {
             const hasHandling = errorScenarios.some(s => s.httpOrErrcode.includes(code.errcode));
             if (!hasHandling) {
-                // console.warn(`No specific error scenario handling for errcode ${code.errcode} in burn_after_read`);
             }
         }
     });

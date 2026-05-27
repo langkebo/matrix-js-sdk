@@ -28,14 +28,12 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ITagContent {
     order?: number;
-    [key: string]: unknown;
 }
 
 export interface IRoomAccountData {
     tags?: {
         [tag: string]: ITagContent;
     };
-    [key: string]: unknown;
 }
 
 export interface TagsManagerEvents {
@@ -50,23 +48,16 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
     }
 
     public getRoomTags(roomId: string): string[] {
-        return (
-            this.client as unknown as {
-                store: {
-                    getRoomTags: (roomId: string) => string[];
-                };
-            }
-        ).store.getRoomTags(roomId);
+        const room = this.client.getRoom(roomId);
+        if (!room) return [];
+        return Object.keys(room.tags);
     }
 
     public getRoomAccountData(roomId: string, eventType: string): Record<string, unknown> | null {
-        return (
-            this.client as unknown as {
-                store: {
-                    getRoomAccountData: (roomId: string, eventType: string) => Record<string, unknown> | null;
-                };
-            }
-        ).store.getRoomAccountData(roomId, eventType);
+        const room = this.client.getRoom(roomId);
+        if (!room) return null;
+        const event = room.getAccountData(eventType);
+        return (event?.getContent() as Record<string, unknown>) ?? null;
     }
 
     public async setRoomAccountData(

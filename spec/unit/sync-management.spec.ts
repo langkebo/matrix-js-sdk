@@ -16,9 +16,13 @@ describe("SyncManager", () => {
         mockClient = {
             syncToken: "token1",
             syncing: true,
-            getSyncState: vi.fn().mockReturnValue(SyncState.Syncing),
-            getSyncStateData: vi.fn().mockReturnValue({ since: "s1" }),
-            getRooms: vi.fn().mockReturnValue(rooms),
+            syncApi: {
+                getSyncState: vi.fn().mockReturnValue(SyncState.Syncing),
+                getSyncStateData: vi.fn().mockReturnValue({ since: "s1" }),
+            },
+            store: {
+                getRooms: vi.fn().mockReturnValue(rooms),
+            },
             getJoinedRooms: vi.fn().mockResolvedValue({ joined_rooms: ["!j:hs"] }),
         };
         manager = new SyncManager(mockClient);

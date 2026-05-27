@@ -3,7 +3,7 @@
  *
  * 测试模块: presence, user, user-presence, user-directory, profile, ignored-users, direct-message, friend, directory, discovery
  *
- * 运行: npx tsx spec/integ/real-backend/step4-user.test.ts
+ * 运行: pnpm run test:real-backend:tsx -- spec/integ/real-backend/step4-user.test.ts
  */
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
@@ -325,4 +325,7 @@ async function main(): Promise<void> {
     process.exit(failed > 0 ? 1 : 0);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});

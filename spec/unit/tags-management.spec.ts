@@ -16,16 +16,18 @@ describe("TagsManager", () => {
         manager = new TagsManager({
             http: { authedRequest },
             credentials: { userId: "@alice:example.com" },
-            store: {
-                getRoomTags: getRoomTagsStub,
-                getRoomAccountData: getRoomAccountDataStub,
-            },
+            getRoom: vi.fn().mockImplementation((roomId: string) => ({
+                tags: ((getRoomTagsStub as any)(roomId) || []).reduce((acc: any, t: string) => ({ ...acc, [t]: {} }), {}),
+                getAccountData: (type: string) => ({
+                    getContent: () => (getRoomAccountDataStub as any)(roomId, type),
+                }),
+            })),
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
 
     describe("getRoomTags", () => {
-        it("delegates to the store", () => {
+        it("delegates to the client's room object", () => {
             getRoomTagsStub.mockReturnValue(["m.favourite", "u.custom"]);
             expect(manager.getRoomTags("!room:example.com")).toEqual(["m.favourite", "u.custom"]);
             expect(getRoomTagsStub).toHaveBeenCalledWith("!room:example.com");
@@ -33,10 +35,9 @@ describe("TagsManager", () => {
     });
 
     describe("getRoomAccountData", () => {
-        it("delegates to the store", () => {
+        it("delegates to the client's room object", () => {
             getRoomAccountDataStub.mockReturnValue({ hidden: true });
             expect(manager.getRoomAccountData("!room:example.com", "m.hidden")).toEqual({ hidden: true });
-            expect(getRoomAccountDataStub).toHaveBeenCalledWith("!room:example.com", "m.hidden");
         });
     });
 

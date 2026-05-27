@@ -130,7 +130,7 @@ describe("Room", () => {
             }
         }
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should apply on ban", async () => {
             const { room, messageEvents } = await setupRoom(true);
             const banEvent = createRedactOnMembershipChange(CREATOR_USER_ID, MODERATOR_USER_ID, "ban");
@@ -139,7 +139,7 @@ describe("Room", () => {
             expectRedacted(messageEvents, room, true);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should apply on kick", async () => {
             const { room, messageEvents } = await setupRoom(true);
             const kickEvent = createRedactOnMembershipChange(CREATOR_USER_ID, MODERATOR_USER_ID, "leave");
@@ -148,7 +148,7 @@ describe("Room", () => {
             expectRedacted(messageEvents, room, true);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not apply if the user doesn't have permission to redact", async () => {
             const { room, messageEvents } = await setupRoom(false); // difference from other tests here
             const banEvent = createRedactOnMembershipChange(CREATOR_USER_ID, MODERATOR_USER_ID, "ban");
@@ -157,7 +157,7 @@ describe("Room", () => {
             expectRedacted(messageEvents, room, false);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not apply to self-leaves", async () => {
             const { room, messageEvents } = await setupRoom(true);
             const leaveEvent = createRedactOnMembershipChange(CREATOR_USER_ID, CREATOR_USER_ID, "leave");
@@ -166,7 +166,7 @@ describe("Room", () => {
             expectRedacted(messageEvents, room, false);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not apply to invites", async () => {
             const { room, messageEvents } = await setupRoom(true);
             const leaveEvent = createRedactOnMembershipChange(CREATOR_USER_ID, CREATOR_USER_ID, "invite");
@@ -175,7 +175,7 @@ describe("Room", () => {
             expectRedacted(messageEvents, room, false);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not apply to joins", async () => {
             const { room, messageEvents } = await setupRoom(true);
             const leaveEvent = createRedactOnMembershipChange(CREATOR_USER_ID, CREATOR_USER_ID, "join");
@@ -184,7 +184,7 @@ describe("Room", () => {
             expectRedacted(messageEvents, room, false);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not apply to knocks", async () => {
             const { room, messageEvents } = await setupRoom(true);
             const leaveEvent = createRedactOnMembershipChange(CREATOR_USER_ID, CREATOR_USER_ID, "knock");

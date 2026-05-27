@@ -100,12 +100,22 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
 declare module "../client.ts" {
     interface MatrixClient {
         getUserManager(): UserManager;
+        getUser(userId: string): User | null;
+        getUsers(): User[];
     }
 }
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserManager = function (): UserManager {
         return getOrCreateManager(this, "user", () => new UserManager(this));
+    };
+
+    MatrixClient.prototype.getUser = function (this: MatrixClient, userId: string): User | null {
+        return this.getUserManager().getUser(userId);
+    };
+
+    MatrixClient.prototype.getUsers = function (this: MatrixClient): User[] {
+        return this.getUserManager().getUsers();
     };
 }
 

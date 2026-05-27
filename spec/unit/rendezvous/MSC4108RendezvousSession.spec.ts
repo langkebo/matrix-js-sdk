@@ -122,12 +122,12 @@ describe("MSC4108RendezvousSession", () => {
         await Promise.all([expect(transport.send("data")).rejects.toThrow(), fetchMock.callHistory.flush(true)]);
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("POST with absolute path response", async function () {
         await postAndCheckLocation(false, "https://fallbackserver/rz", "https://fallbackserver/123");
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("POST to built-in MSC3886 implementation", async function () {
         await postAndCheckLocation(
             true,
@@ -136,7 +136,7 @@ describe("MSC4108RendezvousSession", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("POST with relative path response including parent", async function () {
         await postAndCheckLocation(false, "https://fallbackserver/rz/abc", "https://fallbackserver/rz/xyz/123");
     });

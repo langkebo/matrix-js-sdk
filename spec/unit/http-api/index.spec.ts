@@ -245,6 +245,7 @@ describe("MatrixHttpApi", () => {
             baseUrl,
             prefix,
             accessToken: "token",
+            useAuthorizationHeader: false,
             onlyData: true,
         });
         expect(api.getContentUri()).toMatchSnapshot();

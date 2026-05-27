@@ -21,12 +21,28 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { Preset } from "../@types/partials";
+import { determineFeatureSupport, FeatureSupport } from "../models/thread";
+import { Feature, ServerSupport } from "../feature";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
+import { type Capabilities } from "../serverCapabilities";
+import { type IServerVersions } from "../client-api-types";
+import { type QueryDict } from "../utils";
+import { buildFeatureSupportMap } from "../feature";
+import * as utils from "../utils";
 
-export interface ServerCapabilities {
-    [key: string]: unknown;
-}
+const UNSTABLE_MSC2666_SHARED_ROOMS = "uk.half-shot.msc2666";
+const UNSTABLE_MSC2666_MUTUAL_ROOMS = "uk.half-shot.msc2666.mutual_rooms";
+const UNSTABLE_MSC2666_QUERY_MUTUAL_ROOMS = "uk.half-shot.msc2666.query_mutual_rooms";
+
+// How often we update the server capabilities cache.
+// 6 hours - an arbitrary value, but they should change very infrequently.
+const CAPABILITIES_CACHE_MS = 6 * 60 * 60 * 1000;
+
+export interface ServerCapabilities {}
 
 export interface ServerCapabilitiesManagerEvents {
     capabilities_updated: { capabilities: ServerCapabilities };
@@ -37,28 +53,250 @@ export class ServerCapabilitiesManager extends BaseManager<
     keyof ServerCapabilitiesManagerEvents,
     ServerCapabilitiesManagerEvents
 > {
+    /** Cached capabilities response */
+    private cachedCapabilities?: Capabilities;
+    /** Timestamp of when the capabilities cache was last fetched */
+    private capabilitiesFetchedAt = 0;
+
     constructor(client: MatrixClient) {
         super(client);
     }
 
-    public async getServerCapabilities(): Promise<ServerCapabilities> {
-        return this.withRetry(() => this.client.getServerCapabilities(), "getServerCapabilities");
+    public async getServerCapabilities(): Promise<Capabilities> {
+        const now = Date.now();
+        if (this.cachedCapabilities && now - this.capabilitiesFetchedAt < CAPABILITIES_CACHE_MS) {
+            return this.cachedCapabilities;
+        }
+        return this.withRetry(async () => {
+            const resp = await this.client.http.authedRequest<{ capabilities: Capabilities }>(
+                Method.Get,
+                "/_matrix/client/v3/capabilities",
+            );
+            this.cachedCapabilities = resp["capabilities"];
+            this.capabilitiesFetchedAt = Date.now();
+            return this.cachedCapabilities!;
+        }, "getServerCapabilities");
     }
 
     public hasServerSupport(feature: string): boolean {
-        return this.client.hasServerSupport(feature);
+        // Use doesServerSupportUnstableFeature which has independent logic via this.client.getVersions()
+        // Note: doesServerSupportUnstableFeature is async, but hasServerSupport is sync.
+        // We fall back to checking canSupport map which is synchronously available.
+        return this.client.canSupport.get(feature as Feature) !== ServerSupport.Unsupported;
     }
 
     public async getServerVersion(): Promise<string> {
-        return this.withRetry(() => this.client.getServerVersion(), "getServerVersion");
+        const { versions } = await this.client.getVersions();
+        return versions?.[0] ?? "";
     }
 
+    /**
+     * Check if a particular spec version is supported by the server.
+     * @param version - The spec version (such as "r0.5.0") to check for.
+     * @returns Whether it is supported
+     */
+    public async isVersionSupported(version: string): Promise<boolean> {
+        const { versions } = await this.client.getVersions();
+        return versions && versions.includes(version);
+    }
+
+    /**
+     * Query the server to see if it lists support for an unstable feature
+     * in the /versions response
+     * @param feature - the feature name
+     * @returns true if the feature is supported
+     */
+    public async doesServerSupportUnstableFeature(feature: string): Promise<boolean> {
+        const response = await this.client.getVersions();
+        if (!response) return false;
+        const unstableFeatures = response["unstable_features"];
+        return unstableFeatures && !!unstableFeatures[feature];
+    }
+
+    /**
+     * Query the server to see if it is forcing encryption to be enabled for
+     * a given room preset, based on the /versions response.
+     * @param presetName - The name of the preset to check.
+     * @returns true if the server is forcing encryption
+     * for the preset.
+     */
+    public async doesServerForceEncryptionForPreset(presetName: Preset): Promise<boolean> {
+        const response = await this.client.getVersions();
+        if (!response) return false;
+        const unstableFeatures = response["unstable_features"];
+
+        // The preset name in the versions response will be without the _chat suffix.
+        const versionsPresetName = presetName.includes("_chat")
+            ? presetName.substring(0, presetName.indexOf("_chat"))
+            : presetName;
+
+        return unstableFeatures && !!unstableFeatures[`io.element.e2ee_forced.${versionsPresetName}`];
+    }
+
+    public async doesServerSupportThread(): Promise<{
+        threads: FeatureSupport;
+        list: FeatureSupport;
+        fwdPagination: FeatureSupport;
+    }> {
+        if (await this.isVersionSupported("v1.4")) {
+            return {
+                threads: FeatureSupport.Stable,
+                list: FeatureSupport.Stable,
+                fwdPagination: FeatureSupport.Stable,
+            };
+        }
+
+        try {
+            const [threadUnstable, threadStable, listUnstable, listStable, fwdPaginationUnstable, fwdPaginationStable] =
+                await Promise.all([
+                    this.doesServerSupportUnstableFeature("org.matrix.msc3440"),
+                    this.doesServerSupportUnstableFeature("org.matrix.msc3440.stable"),
+                    this.doesServerSupportUnstableFeature("org.matrix.msc3856"),
+                    this.doesServerSupportUnstableFeature("org.matrix.msc3856.stable"),
+                    this.doesServerSupportUnstableFeature("org.matrix.msc3715"),
+                    this.doesServerSupportUnstableFeature("org.matrix.msc3715.stable"),
+                ]);
+
+            return {
+                threads: determineFeatureSupport(threadStable, threadUnstable),
+                list: determineFeatureSupport(listStable, listUnstable),
+                fwdPagination: determineFeatureSupport(fwdPaginationStable, fwdPaginationUnstable),
+            };
+        } catch {
+            return {
+                threads: FeatureSupport.None,
+                list: FeatureSupport.None,
+                fwdPagination: FeatureSupport.None,
+            };
+        }
+    }
+
+    /**
+     * A helper to determine thread support
+     * @returns a boolean to determine if threads are enabled
+     */
     public supportsThreads(): boolean {
-        return this.client.supportsThreads();
+        return this.client.getClientOpts()?.threadSupport || false;
+    }
+
+    /**
+     * A helper to determine intentional mentions support
+     * @returns a boolean to determine if intentional mentions are enabled on the server
+     * @experimental
+     */
+    public supportsIntentionalMentions(): boolean {
+        return this.client.canSupport.get(Feature.IntentionalMentions) !== ServerSupport.Unsupported;
+    }
+
+    /**
+     * Get if lazy loading members is being used.
+     * @returns Whether or not members are lazy loaded by this client
+     */
+    public hasLazyLoadMembersEnabled(): boolean {
+        return !!this.client.getClientOpts()?.lazyLoadMembers;
     }
 
     public supportsLocation(): boolean {
-        return this.client.supportsLocation();
+        return this.client.canSupport.get(Feature.Location) !== ServerSupport.Unsupported;
+    }
+
+    /**
+     * Get the API versions supported by the server, along with any
+     * unstable APIs it supports.
+     * Caches the result and builds the feature support map.
+     * @returns The server /versions response
+     */
+    public async getVersions(): Promise<IServerVersions> {
+        const client = this.client as any;
+        if (client.serverVersionsPromise) {
+            return client.serverVersionsPromise;
+        }
+
+        client.serverVersionsPromise = this.client.http
+            .authedRequest<IServerVersions>(Method.Get, "/_matrix/client/versions", undefined, undefined, {
+                prefix: "",
+            })
+            .catch((e: Error) => {
+                client.serverVersionsPromise = undefined;
+                throw e;
+            });
+
+        const serverVersions = await client.serverVersionsPromise;
+        client.canSupport = await buildFeatureSupportMap(serverVersions);
+
+        return client.serverVersionsPromise;
+    }
+
+    /**
+     * Gets a set of room IDs in common with another user.
+     * Note: This endpoint is unstable (MSC2666).
+     * @param userId - The userId to check.
+     * @returns Promise which resolves to an array of rooms
+     */
+    public async _unstable_getSharedRooms(userId: string): Promise<string[]> {
+        const sharedRoomsSupport = await this.doesServerSupportUnstableFeature(UNSTABLE_MSC2666_SHARED_ROOMS);
+        const mutualRoomsSupport = await this.doesServerSupportUnstableFeature(UNSTABLE_MSC2666_MUTUAL_ROOMS);
+        const queryMutualRoomsSupport = await this.doesServerSupportUnstableFeature(UNSTABLE_MSC2666_QUERY_MUTUAL_ROOMS);
+
+        if (!sharedRoomsSupport && !mutualRoomsSupport && !queryMutualRoomsSupport) {
+            throw Error("Server does not support the Mutual Rooms API");
+        }
+
+        let path;
+        let query;
+
+        if (queryMutualRoomsSupport) {
+            path = "/uk.half-shot.msc2666/user/mutual_rooms";
+            query = { user_id: userId };
+        } else {
+            path = utils.encodeUri(
+                `/uk.half-shot.msc2666/user/${mutualRoomsSupport ? "mutual_rooms" : "shared_rooms"}/$userId`,
+                { $userId: userId },
+            );
+            query = {};
+        }
+
+        const rooms: string[] = [];
+        let token = null;
+
+        do {
+            const tokenQuery: Record<string, string> = {};
+            if (token != null && queryMutualRoomsSupport) {
+                tokenQuery["batch_token"] = token;
+            }
+
+            const res = await this.client.http.authedRequest<{
+                joined: string[];
+                next_batch_token?: string;
+            }>(Method.Get, path, { ...query, ...tokenQuery } as QueryDict, undefined, {
+                prefix: ClientPrefix.Unstable,
+            });
+
+            rooms.push(...res.joined);
+
+            if (res.next_batch_token !== undefined) {
+                token = res.next_batch_token;
+            } else {
+                token = null;
+            }
+        } while (token != null);
+
+        return rooms;
+    }
+
+    /**
+     * Returns a set of configured RTC transports supported by the homeserver.
+     * Requires homeserver support for MSC4143.
+     * @throws A M_NOT_FOUND error if not supported by the homeserver.
+     */
+    public async _unstable_getRTCTransports(): Promise<any[]> {
+        return (
+            await this.client.http.authedRequest<{
+                rtc_transports: any[];
+            }>(Method.Get, "/rtc/transports", undefined, undefined, {
+                prefix: `${ClientPrefix.Unstable}/org.matrix.msc4143`,
+            })
+        ).rtc_transports;
     }
 }
 

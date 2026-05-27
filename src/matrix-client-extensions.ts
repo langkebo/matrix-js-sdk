@@ -13,6 +13,7 @@
 import type { MatrixClient } from "./client";
 import type { Room } from "./models/room";
 import type { MatrixEvent } from "./models/event";
+import type { IContent } from "./models/event";
 import type { RoomMember } from "./models/room-member";
 import type { ISendEventResponse, IRedactOpts } from "./@types/requests";
 import type { RoomAccountDataEvents } from "./@types/event";
@@ -27,15 +28,134 @@ import type { SyncApiOptions } from "./sync";
 
 // ============ 类型定义 ============
 
+/** User-Interactive Authentication data — structure varies by auth stage */
+export type UiaAuthData = Record<string, unknown>;
+
+/** OIDC UserInfo response — standard claims from OpenID Connect */
+export interface OidcUserInfo {
+    /** Subject identifier */
+    sub?: string;
+    /** Full name */
+    name?: string;
+    /** Given name(s) */
+    given_name?: string;
+    /** Family name(s) */
+    family_name?: string;
+    /** Middle name(s) */
+    middle_name?: string;
+    /** Nickname */
+    nickname?: string;
+    /** Preferred username */
+    preferred_username?: string;
+    /** Profile page URL */
+    profile?: string;
+    /** Profile picture URL */
+    picture?: string;
+    /** Website URL */
+    website?: string;
+    /** Email address */
+    email?: string;
+    /** Email address verified */
+    email_verified?: boolean;
+    /** Gender */
+    gender?: string;
+    /** Birthdate */
+    birthdate?: string;
+    /** Zoneinfo (timezone) */
+    zoneinfo?: string;
+    /** Locale */
+    locale?: string;
+    /** Phone number */
+    phone_number?: string;
+    /** Phone number verified */
+    phone_number_verified?: boolean;
+    /** Address */
+    address?: { formatted?: string; street_address?: string; locality?: string; region?: string; postal_code?: string; country?: string };
+    /** Updated at (timestamp) */
+    updated_at?: number;
+    /** Additional claims */
+    [key: string]: unknown;
+}
+
+/** Server capabilities response */
+export interface ServerCapabilities {
+    /** Room versions supported by the server */
+    "m.room_versions"?: { default: string; available: Record<string, string> };
+    /** Change password capability */
+    "m.change_password"?: { enabled: boolean };
+    /** Room directory search capability */
+    "m.room_directory_search"?: { enabled: boolean };
+    /** 3PID changes capability */
+    "m.3pid_changes"?: { enabled: boolean };
+    /** Get media config capability */
+    "m.get_media_config"?: { enabled: boolean };
+    /** Additional capabilities */
+    [key: string]: unknown;
+}
+
+/** Map of user_id → device_id → session_id indicating key sharing status */
+export type SharedWithUsersMap = Record<string, unknown>;
+
+/** Widget data — structure varies by widget type */
+export type WidgetData = Record<string, unknown>;
+
+/** Map of device_id → device info for a user */
+export type UserDeviceMap = Record<string, unknown>;
+
+/** Ephemeral event data (typing receipts, read receipts, etc.) */
+export type EphemeralEventData = Record<string, unknown>;
+
+/** Forwarded room key data */
+export interface ForwardedRoomKey {
+    /** The algorithm used for the key */
+    algorithm?: string;
+    /** The room ID the key is for */
+    room_id?: string;
+    /** The sender's curve25519 key */
+    sender_key?: string;
+    /** The session ID */
+    session_id?: string;
+    /** The session key */
+    session_key?: string;
+    /** Additional key properties */
+    [key: string]: unknown;
+}
+
 export interface MatrixClientExtensionMethods {
     // ============ Account & Profile ============
     getAccountManager(): import("./account/index").AccountManager;
     getAccountDataManager(): import("./account-data/index").AccountDataManager;
-    getProfileManager(): import("./profile/index").ProfileManager;
+    getRoom(roomId: string): Room | null;
+    getRooms(): Room[];
+    getUsers(): any[];
+    getUser(userId: string): any | null;
+    sendEvent(
+        roomId: string,
+        eventType: string,
+        content: any,
+        txnId?: string,
+    ): Promise<{ event_id: string }>;
+    sendEvent(
+        roomId: string,
+        threadId: string | null,
+        eventType: string,
+        content: any,
+        txnId?: string,
+    ): Promise<{ event_id: string }>;
+    sendStateEvent(
+        roomId: string,
+        eventType: string,
+        content: any,
+        stateKey?: string,
+        opts?: import("./http-api/index").IRequestOpts,
+    ): Promise<import("./@types/requests").ISendEventResponse>;
+    sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<any>;
     getProfileInfo(userId: string): Promise<import("./profile/index").IProfile>;
     getUserProfile(userId: string): Promise<import("./profile/index").IProfile>;
+    getDisplayName(userId: string): Promise<string | null>;
     setDisplayName(name: string): Promise<void>;
     setAvatarUrl(url: string): Promise<void>;
+    getProfileManager(): import("./profile/index").ProfileManager;
     mxcUrlToHttp(
         mxcUrl: string,
         width?: number,
@@ -51,8 +171,8 @@ export interface MatrixClientExtensionMethods {
     getDevices(): Promise<import("./device/index").IDevice[]>;
     getDevice(deviceId: string): Promise<import("./device/index").IDevice>;
     setDeviceName(deviceId: string, name: string): Promise<void>;
-    deleteDevice(deviceId: string, auth?: Record<string, unknown>): Promise<void>;
-    deleteMultipleDevices(deviceIds: string[], auth?: Record<string, unknown>): Promise<void>;
+    deleteDevice(deviceId: string, auth?: UiaAuthData): Promise<void>;
+    deleteMultipleDevices(deviceIds: string[], auth?: UiaAuthData): Promise<void>;
     getThreePidsManager(): import("./three-pids/index").ThreePidsManager;
     getIdentityServerManager(): import("./identity-server/index").IdentityServerManager;
     getPasswordResetManager(): import("./password-reset/index").PasswordResetManager;
@@ -86,7 +206,6 @@ export interface MatrixClientExtensionMethods {
     getRoomAccountDataManager(): import("./room-account-data/index").RoomAccountDataManager;
 
     // ============ Messaging & Events ============
-    getMessageManager(): import("./message/index").MessageManager;
     getSendingManager(): import("./sending/index").SendingManager;
     getSendingQueueManager(): import("./sending-queue/index").SendingQueueManager;
     getEventManager(): import("./event/index").EventManager;
@@ -96,10 +215,9 @@ export interface MatrixClientExtensionMethods {
     getRelationsManager(): import("./relations/index").RelationsManager;
     getAggregationsManager(): import("./aggregations/index").AggregationsManager;
     getTimelineManager(): import("./timeline/index").TimelineManager;
-    getPaginationManager(): import("./pagination/index").PaginationManager;
     getThreadingManager(): import("./threading/index").ThreadingManager;
     getRoomEvent(roomId: string, eventId: string): Promise<import("./room/index").IRoomEvent>;
-    getRoomStateEvent(roomId: string, eventType: string, stateKey?: string): Promise<Record<string, unknown>>;
+    getRoomStateEvent(roomId: string, eventType: string, stateKey?: string): Promise<import("./models/event").IContent>;
     redact(roomId: string, eventId: string, txnId?: string, opts?: IRedactOpts): Promise<ISendEventResponse>;
 
     // ============ Presence & Typing ============
@@ -147,12 +265,10 @@ export interface MatrixClientExtensionMethods {
     getPushRulesManager(): import("./push-rules/index").PushRulesManager;
     getPushNotificationsManager(): import("./push-notifications/index").PushNotificationsManager;
     getNotificationsManager(): import("./notifications/index").NotificationsManager;
-    getNotificationsLegacyManager(): import("./notifications-legacy/index").NotificationsLegacyManager;
 
     // ============ Crypto & Security ============
     getCryptoKeysManager(): import("./crypto-keys/index").CryptoKeysManager;
     getCryptoEncryptionManager(): import("./crypto-encryption/index").CryptoEncryptionManager;
-    getCryptoAlgorithmsManager(): import("./crypto-algorithms/index").CryptoAlgorithmsManager;
     getCryptoBackupManager(): import("./crypto-backup/index").CryptoBackupManager;
     getCryptoStoreManager(): import("./crypto-store/index").CryptoStoreManager;
     getCrossSigningManager(): import("./cross-signing/index").CrossSigningManager;
@@ -161,7 +277,6 @@ export interface MatrixClientExtensionMethods {
     getKeyForwardingManager(): import("./key-forwarding/index").KeyForwardingManager;
     getKeyClaimManager(): import("./key-claim/index").KeyClaimManager;
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
-    getEncryptionRotationManager(): import("./encryption-rotation/index").EncryptionRotationManager;
     getSecurityManager(): import("./security/index").SecurityManager;
     getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
     getDeviceTrustManager(): import("./device-trust/index").DeviceTrustManager;
@@ -196,7 +311,6 @@ export interface MatrixClientExtensionMethods {
     // ============ Sessions & Tokens ============
     getSessionsManager(): import("./sessions/index").SessionsManager;
     getTokenManager(): import("./token-management/index").TokenManager;
-    getOtrManager(): import("./otr/index").OtrManager;
 
     // ============ Server & Network ============
     getCapabilitiesManager(): import("./capabilities/index").CapabilitiesManager;
@@ -212,7 +326,6 @@ export interface MatrixClientExtensionMethods {
     // ============ Sync & State ============
     getSyncManager(): import("./sync-management/index").SyncManager;
     getSyncAccumulatorManager(): import("./sync-accumulator/index").SyncAccumulatorManager;
-    getFilteringManager(): import("./filtering/index").FilteringManager;
 
     // ============ Storage & Persistence ============
     getStoresManager(): import("./stores/index").StoresManager;
@@ -221,6 +334,12 @@ export interface MatrixClientExtensionMethods {
     // ============ Admin & Moderation ============
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
+    getAdminUserManager(): import("./admin/sub-managers/admin-user-manager").AdminUserManager;
+    getAdminRoomManager(): import("./admin/sub-managers/admin-room-manager").AdminRoomManager;
+    getAdminServerManager(): import("./admin/sub-managers/admin-server-manager").AdminServerManager;
+    getAdminFederationManager(): import("./admin/sub-managers/admin-federation-manager").AdminFederationManager;
+    getAdminMediaManager(): import("./admin/sub-managers/admin-media-manager").AdminMediaManager;
+    getAdminConfigManager(): import("./admin/sub-managers/admin-config-manager").AdminConfigManager;
     getBackgroundUpdateManager(): import("./background-update/index").BackgroundUpdateManager;
     getWorkerAdminManager(): import("./worker-admin/index").WorkerAdminManager;
     getWorkerBodyManager(): import("./worker-body/index").WorkerBodyManager;
@@ -231,7 +350,6 @@ export interface MatrixClientExtensionMethods {
     getMediaManager(): import("./media/index").MediaManager;
     getMediaApiUrl(path: string): string;
     getMediaQuotaManager(): import("./media-quota/index").MediaQuotaManager;
-    getContentScanManager(): import("./content-scan/index").ContentScanManager;
     sendEmote(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
 
     // ============ Tags & Labels ============
@@ -240,10 +358,8 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Widgets & Integrations ============
     getWidgetsManager(): import("./widgets/index").WidgetsManager;
-    getGroupCallManager(): import("./group-management/index").GroupCallManager;
 
     // ============ Scheduled Events ============
-    getScheduledCallManager(): import("./scheduled-call/index").ScheduledCallManager;
     getScheduledEventsManager(): import("./scheduled-events/index").ScheduledEventsManager;
 
     // ============ Other Features ============
@@ -255,22 +371,16 @@ export interface MatrixClientExtensionMethods {
     getBeaconManager(): import("./beacon/index").BeaconManager;
     getLoggerManager(): import("./logger/index").LoggerManager;
     getLifecycleManager(): import("./lifecycle/index").LifecycleManager;
-    getPowerLevelsManager(): import("./power-levels/index").PowerLevelsManager;
-    setUserPowerLevel(userId: string, roomId: string, powerLevel: number): Promise<void>;
     setUserPowerLevel(roomId: string, userId: string, powerLevel: number): Promise<void>;
     getMembershipManager(): import("./membership/index").MembershipManager;
-    getSettledManager(): import("./settled/index").SettledManager;
-    getEditionsManager(): import("./editions/index").EditionsManager;
-    getPendingActionsManager(): import("./pending-actions/index").PendingActionsManager;
     getReadReceiptsManager(): import("./read-receipts/index").ReadReceiptsManager;
     getKeyBackupManager(): import("./key-backup/index").KeyBackupManager;
     getKeyRotationManager(): import("./key-rotation/index").KeyRotationManager;
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
-    getRenderingManager(): import("./rendering/index").RenderingManager;
     getStickyEventManager(): import("./sticky-event/index").StickyEventManager;
     getQrLoginManager(): import("./qr-login/index").QrLoginManager;
     getOidcManager(): import("./oidc/manager").OidcManager;
-    oidcUserInfo(): Promise<Record<string, unknown>>;
+    oidcUserInfo(): Promise<OidcUserInfo>;
     getTelemetryManager(
         config?: Partial<import("./telemetry/index").TelemetryConfig>,
     ): import("./telemetry/index").TelemetryManager;
@@ -413,7 +523,7 @@ export interface MatrixClientInternalMethods {
     getMediaConfig(useAuthenticatedMedia?: boolean): Promise<IMediaConfig>;
 
     // ============ Server Capabilities ============
-    getServerCapabilities(): Promise<Record<string, unknown>>;
+    getServerCapabilities(): Promise<ServerCapabilities>;
     hasServerSupport(feature: string): boolean;
     getServerVersion(): Promise<string>;
     supportsThreads(): boolean;
@@ -421,7 +531,7 @@ export interface MatrixClientInternalMethods {
 
     // ============ Room Key Sharing ============
     shareRoomKey(roomId: string, users: string[]): Promise<unknown>;
-    getSharedWithUsers(roomId: string): Promise<Record<string, unknown>>;
+    getSharedWithUsers(roomId: string): Promise<SharedWithUsersMap>;
     hasSharedKeyWithUser(userId: string): Promise<boolean>;
     exportRoomKeys(): Promise<unknown>;
     importRoomKeys(keys: unknown[], options?: unknown): Promise<unknown>;
@@ -438,15 +548,8 @@ export interface MatrixClientInternalMethods {
 
     // ============ Room Retention ============
     getRoomRetention(roomId: string): Promise<unknown>;
-    setRoomRetention(roomId: string, policy: Record<string, unknown>): Promise<void>;
+    setRoomRetention(roomId: string, policy: import("./room-summary/types").RetentionPolicy): Promise<void>;
     getServerRetention(): Promise<unknown>;
-
-    // ============ Encryption Rotation ============
-    rotateEncryptionKeys(): Promise<void>;
-    isRotationNeeded(): boolean;
-    getRotationPeriod(): number;
-    setRotationPeriod(period: number): void;
-    getLastRotationTime(): number;
 
     // ============ Reactions ============
     reactToMessage(roomId: string, eventId: string, key: string): Promise<void>;
@@ -463,17 +566,17 @@ export interface MatrixClientInternalMethods {
     stopCrypto(): void;
     checkCrossSigningStatus(): unknown;
     getCrossSigningKeys(): Promise<unknown>;
-    isCrossSigningReady(): boolean;
+    isCrossSigningReady(): Promise<boolean>;
     getUserCrossSigningKeys(userId: string): Promise<unknown>;
     checkAndTrustCrossSigning(): Promise<void>;
-    isCryptoBackupEnabled(): boolean;
+    isCryptoBackupEnabled(): Promise<boolean>;
     enableCryptoBackup(passphrase: string): Promise<void>;
     disableCryptoBackup(): Promise<void>;
     getCryptoBackup(): Promise<unknown>;
     restoreCryptoBackup(backup: string | object, passphrase?: string): Promise<void>;
     deleteCryptoStore(): Promise<void>;
     isCryptoStoreReady(): boolean;
-    isSecretStorageReady(): boolean;
+    isSecretStorageReady(): Promise<boolean>;
 
     // ============ User Directory & Profile ============
     searchUserDirectory(opts: { term: string; limit?: number }): Promise<{
@@ -484,14 +587,14 @@ export interface MatrixClientInternalMethods {
     getSecretStorageKey(keyId: string): Promise<[string, string] | null>;
     storeSecret(name: string, secret: string, keys: string[]): Promise<void>;
     getSecret(name: string): Promise<string | null>;
-    hasSecret(name: string): boolean;
+    hasSecret(name: string): Promise<boolean>;
     getSecretStorageKeys(): Promise<Record<string, string>>;
 
     // ============ Widgets ============
-    getUserWidgets(): Promise<Record<string, unknown>>;
-    getRoomWidgets(roomId: string): Promise<Record<string, unknown>>;
-    setUserWidgets(widgets: Record<string, unknown>): Promise<void>;
-    setRoomWidgets(roomId: string, widgets: Record<string, unknown>): Promise<void>;
+    getUserWidgets(): Promise<WidgetData>;
+    getRoomWidgets(roomId: string): Promise<WidgetData>;
+    setUserWidgets(widgets: WidgetData): Promise<void>;
+    setRoomWidgets(roomId: string, widgets: WidgetData): Promise<void>;
     getAllWidgetEvents(roomId: string): Promise<MatrixEvent[]>;
 
     // ============ Beacons ============
@@ -521,6 +624,176 @@ export interface MatrixClientInternalMethods {
 
     // ============ Notification Callback ============
     notificationCallback: unknown;
+
+    // ============ Logger (logger/index.ts) ============
+    // Note: logger is private on MatrixClient, access via (client as any).logger
+    // logger?: import("./logger/index").ILogger;
+
+    // ============ Crypto Encryption (crypto-encryption/index.ts) ============
+    isCryptoReady(): boolean;
+    deviceList?: unknown;
+    encryptEvent(event: MatrixEvent, room: Room): Promise<import("./crypto-encryption/index").IEncryptionResult>;
+    decryptEvent(event: MatrixEvent): Promise<import("./crypto-encryption/index").IDecryptionResult>;
+    getUserDevices(userId: string): Promise<UserDeviceMap>;
+    setDeviceVerified(userId: string, deviceId: string): Promise<void>;
+    markDeviceAsVerified(userId: string, deviceId: string): Promise<void>;
+    markAllDevicesAsVerified(userId: string): Promise<void>;
+    getEncryptionInfoForRoom(roomId: string): Promise<import("./crypto-encryption/index").IEncryptionInfo>;
+
+    // ============ Scheduled Events (scheduled-events/index.ts) ============
+    // Note: _unstable_* methods have incompatible signatures with MatrixClient's actual methods
+    // Access via (client as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>)["_unstable_*"]
+    // _unstable_sendDelayedEvent(...): Promise<IDelayedEventResponse>;
+    // _unstable_sendStickyDelayedEvent(...): Promise<IDelayedEventResponse>;
+    // _unstable_sendDelayedStateEvent(...): Promise<IDelayedEventResponse>;
+    // _unstable_getDelayedEvents(): Promise<IDelayedEvent[]>;
+    // _unstable_updateDelayedEvent(...): Promise<IDelayedEventResponse>;
+    // _unstable_restartScheduledDelayedEvent(...): Promise<IDelayedEventResponse>;
+    // _unstable_sendScheduledDelayedEvent(...): Promise<IDelayedEventResponse>;
+
+    // ============ Sessions (sessions/index.ts) ============
+    getActiveSessions(): import("./sessions/index").ISessionInfo[];
+    getSessionInfo(): import("./sessions/index").ISessionInfo | null;
+    refreshSession(): Promise<import("./sessions/index").ISessionInfo>;
+    revokeSession(deviceId: string): Promise<void>;
+    getLastActiveSession(): import("./sessions/index").ISessionDetail | null;
+    setLastActiveSession(sessionId: string): void;
+
+    // ============ Room Events (room-events/index.ts) ============
+    getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]>;
+    getStateEventsForRoom(roomId: string): Promise<MatrixEvent[]>;
+    getTimelineEvents(roomId: string): MatrixEvent[];
+    getEphemeralEvents(roomId: string): EphemeralEventData[];
+    hasTimelineEvent(roomId: string, eventId: string): boolean;
+    findEventById(roomId: string, eventId: string): MatrixEvent | null;
+
+    // ============ Room State Management (room-state-management/index.ts) ============
+    getRoomState(roomId: string): Promise<import("./room-state-management/index").IRoomStateEvent[]>;
+    getRoomAccountDataSync(roomId: string, eventType: string): import("./models/event").IContent | null;
+
+    // ============ Sending Queue (sending-queue/index.ts) ============
+    sendingQueue?: import("./sending-queue/index").IQueuedEvent[];
+
+    // ============ Sync Accumulator (sync-accumulator/index.ts) ============
+    syncAccumulator?: import("./sync-accumulator").SyncAccumulator;
+    accumulateSyncData(data: Record<string, unknown> /* raw sync response */): Promise<void>;
+    getAccumulatedData(): import("./sync-accumulator/index").ISyncAccumulatedData | null;
+    resetAccumulator(): void;
+
+    // ============ Stores (stores/index.ts) ============
+    store?: import("./store/index").IStore;
+    storeValue(key: string, value: unknown): Promise<void>;
+    getStoredValue(key: string): Promise<unknown>;
+
+    // ============ Push Rules (push-rules/index.ts) ============
+    getPushRule(kind: string, ruleId: string): Promise<import("./push-rules/index").IPushRule | null>;
+    enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<void>;
+    pushRules?: import("./@types/PushRules").IPushRules;
+
+    // ============ Push Notifications (push-notifications/index.ts) ============
+    getPushers(): Promise<import("./push-notifications/index").IPushersResponse>;
+    setPushers(pushers: import("./push-notifications/index").IPusher[]): Promise<void>;
+    removePusher(pusherData: import("./push-notifications/index").IPusher): Promise<void>;
+    getPusherData(roomId: string, userId: string): import("./push-notifications/index").IPusherData | null;
+
+    // ============ Lifecycle (lifecycle/index.ts) ============
+    clientRunning?: boolean;
+    exit(code?: number): Promise<void>;
+    terminate(): void;
+    reset(): Promise<void>;
+    prepare(clientOptions?: import("./lifecycle/index").IClientOptions): Promise<void>;
+
+    // ============ Key Forwarding (key-forwarding/index.ts) ============
+    requestKeyForwarding(
+        roomId: string,
+        eventId: string,
+        userId: string,
+    ): Promise<import("./key-forwarding/index").IKeyForwardingResponse>;
+    forwardKey(
+        roomId: string,
+        eventId: string,
+        userId: string,
+        key: ForwardedRoomKey,
+    ): Promise<import("./key-forwarding/index").IKeyForwardingResponse>;
+    hasForwardedKey(roomId: string, eventId: string): boolean;
+    getForwardedKeys(roomId: string): import("./key-forwarding/index").IForwardedKey[];
+
+    // ============ Invites (invites/index.ts) ============
+    // Note: invite methods have different signatures than MatrixClient's actual implementations
+    // inviteByThreePid on MatrixClient: (roomId, medium, address) => Promise<EmptyObject>
+    // inviteUserToRoom, acceptInvite, declineInvite are phantom methods
+    // getInviteEvents, hasInvite are phantom methods
+    // inviteByThreePid(medium: string, address: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    // inviteUserToRoom(userId: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    // getInviteEvents(): import("./invites/index").IInviteEvent[];
+    // hasInvite(roomId: string): boolean;
+    // acceptInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    // declineInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
+
+    // ============ HTTP (http/index.ts) ============
+    createRequest(options: import("./http/index").IRequestOptions): Promise<unknown>;
+    pickAnyDestinationCertificate(roomId: string, eventId: string): unknown;
+    getPendingRequests(): import("./http/index").IPendingRequest[];
+    cancelPendingRequests(reason: string): void;
+
+    // ============ Event Processing (event-processing/index.ts) ============
+    processEvent(event: MatrixEvent): Promise<void>;
+    handleEvent(event: MatrixEvent): Promise<void>;
+
+    // ============ Capabilities (capabilities/index.ts) ============
+    // Note: serverCapabilitiesService is private on MatrixClient
+    // serverCapabilitiesService?: {
+    //     getCachedCapabilities(): import("./capabilities/index").IServerCapabilities | undefined;
+    //     fetchCapabilities(): Promise<import("./capabilities/index").IServerCapabilities>;
+    // };
+
+    // ============ Room Creation (room-creation/index.ts) ============
+    createDirectRoom(
+        userId: string,
+        options?: import("./room-creation/index").ICreateRoomOptions,
+    ): Promise<import("./room-creation/index").ICreateRoomResponse>;
+    findOrCreateDirectRoom(userId: string): Promise<import("./room-creation/index").ICreateRoomResponse>;
+    getCreateRoomOptions(): import("./room-creation/index").ICreateRoomOptionsConfig;
+    setCreateRoomOptions(options: import("./room-creation/index").ICreateRoomOptionsConfig): void;
+
+    // ============ Device Keys (device-keys/index.ts) ============
+    getDeviceKeys(userId: string): Promise<Record<string, import("./device-keys/index").DeviceKeys>>;
+    uploadDeviceKeys(keys: import("./device-keys/index").DeviceKeys): Promise<import("./device-keys/index").UploadKeysResponse>;
+    hasDevice(deviceId: string): boolean;
+
+    // ============ Uploads (uploads/index.ts) ============
+    uploadFile(file: File | Blob, opts?: import("./uploads/index").IUploadOptions): Promise<import("./uploads/index").IUploadResponse>;
+    getUploadProgress(uploadId: string): import("./uploads/index").IUploadProgress | null;
+    abortAllUploads(): void;
+
+    // ============ Room Upgrades (room-upgrades/index.ts) ============
+    getRoomUpgradeHistory(roomId: string): import("./room-upgrades/index").IRoomUpgradeHistory[];
+    upgradeRoom(roomId: string, newVersion: string): Promise<import("./room-upgrades/index").IUpgradeRoomResponse>;
+    canUpgradeRoom(roomId: string): boolean;
+    getRecommendedRoomVersion(): Promise<string>;
+
+    // ============ State Send / Sync Management / Timeline / Threading internals ============
+    // Note: clientOpts, buildSyncApiOptions, syncApi are protected on MatrixClient
+    // clientOpts: unknown;
+    // buildSyncApiOptions(): unknown;
+    // syncApi?: { getSyncState(): unknown; getSyncStateData(): unknown };
+    stopPeeking(): void;
+    timelineSupport?: unknown;
+    // Note: getThreadTimeline, getEventContext, getEventMapper have complex signatures
+    // that differ from MatrixClient's actual implementation. Use local ClientInternals type instead.
+    // getThreadTimeline(timelineSet: unknown, eventId: string): Promise<unknown>;
+    // getEventContext(roomId: string, eventId: string, opts?: unknown): Promise<unknown>;
+    // getEventMapper(): (event: unknown) => unknown;
+    // getStateEvent(roomId: string, eventType: string, stateKey: string): Promise<import("./models/event").IContent>;
+    usingExternalCrypto: boolean;
+    enableEncryptedStateEvents?: boolean;
+
+    // ============ Discovery (discovery/index.ts) ============
+    // Note: clientWellKnown is protected on MatrixClient
+    // clientWellKnown?: Record<string, unknown>;
+
+    // ============ Telemetry (telemetry/index.ts) ============
+    version?: string;
 }
 
 declare global {

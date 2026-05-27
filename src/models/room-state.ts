@@ -56,11 +56,8 @@ export interface IPowerLevelsContent extends IContent {
     users?: Record<string, number>;
     events?: Record<string, number>;
     notifications?: Partial<Record<"room", number>>;
-    // eslint-disable-next-line camelcase
     users_default?: number;
-    // eslint-disable-next-line camelcase
     events_default?: number;
-    // eslint-disable-next-line camelcase
     state_default?: number;
     ban?: number;
     invite?: number;

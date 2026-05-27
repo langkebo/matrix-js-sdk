@@ -43,6 +43,8 @@ import {
 } from "../crypto-api/index";
 import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 import { type IMegolmSessionData } from "../@types/crypto";
+import type { IAuthData, AuthDict } from "../interactive-auth";
+import { UIAError } from "../errors";
 
 /** Authentification of the backup info, depends on algorithm */
 type AuthData = KeyBackupInfo["auth_data"];
@@ -56,6 +58,33 @@ interface KeyBackupCreationInfo {
     algorithm: string;
     authData: AuthData;
     decryptionKey: RustSdkCryptoJs.BackupDecryptionKey;
+}
+
+function extractUiaErrorData(error: unknown): IAuthData | null {
+    const candidates = [error];
+    if (error && typeof error === "object" && "cause" in error) {
+        candidates.push((error as { cause?: unknown }).cause);
+    }
+
+    for (const candidate of candidates) {
+        if (!candidate || typeof candidate !== "object") {
+            continue;
+        }
+
+        const record = candidate as Record<string, unknown>;
+        if (record.data && typeof record.data === "object") {
+            const nestedData = record.data as Record<string, unknown>;
+            if ("flows" in nestedData || "session" in nestedData || "params" in nestedData) {
+                return record.data as IAuthData;
+            }
+        }
+
+        if ("flows" in record || "session" in record || "params" in record) {
+            return record as IAuthData;
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -208,11 +237,19 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
             this.logger.info(
                 `handleBackupSecretReceived: A valid backup decryption key has been received and stored in cache.`,
             );
-            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
-            await this.saveBackupDecryptionKey(backupDecryptionKey, latestBackupInfo.version);
+            try {
+                await this.saveBackupDecryptionKey(backupDecryptionKey, latestBackupInfo.version);
+            } catch (saveErr) {
+                // DATA LOSS RISK: Key is only in memory cache and will be lost on restart.
+                // Log prominently so operators can investigate.
+                this.logger.error(
+                    "handleBackupSecretReceived: Failed to persist backup decryption key - key will be lost on restart",
+                    saveErr,
+                );
+                this.emit(CryptoEvent.KeyBackupFailed, (saveErr as Error).message);
+            }
             return true;
         } catch (e) {
-            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
             if (throwOnError) {
                 throw e;
             }
@@ -566,7 +603,10 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * existing identity.
      * @returns a KeyBackupCreationInfo - All information related to the backup.
      */
-    public async setupKeyBackup(signObject: (authData: AuthData) => Promise<void>): Promise<KeyBackupCreationInfo> {
+    public async setupKeyBackup(
+        signObject: (authData: AuthData) => Promise<void>,
+        auth?: AuthDict,
+    ): Promise<KeyBackupCreationInfo> {
         // Clean up any existing backup
         await this.deleteAllKeyBackupVersions();
 
@@ -577,18 +617,41 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
 
         await signObject(authData);
 
-        const res = await this.http.authedRequest<{ version: string }>(
-            Method.Post,
-            "/room_keys/version",
-            undefined,
-            {
-                algorithm: pubKey.algorithm,
-                auth_data: authData,
-            },
-            {
-                prefix: ClientPrefix.V3,
-            },
-        );
+        const createBackupVersion = async (authPayload?: AuthDict): Promise<{ version: string }> => {
+            return await this.http.authedRequest<{ version: string }>(
+                Method.Post,
+                "/room_keys/version",
+                undefined,
+                {
+                    algorithm: pubKey.algorithm,
+                    auth_data: authData,
+                    auth: authPayload,
+                },
+                {
+                    prefix: ClientPrefix.V3,
+                },
+            );
+        };
+
+        let res: { version: string };
+        try {
+            res = await createBackupVersion(auth);
+        } catch (error) {
+            const uiaData = extractUiaErrorData(error);
+            const authSession =
+                auth && typeof auth === "object" && "session" in auth && typeof auth.session === "string"
+                    ? auth.session
+                    : undefined;
+            if (uiaData) {
+                if (auth && !authSession && uiaData.session) {
+                    res = await createBackupVersion({ ...auth, session: uiaData.session });
+                } else {
+                    throw new UIAError(uiaData, error);
+                }
+            } else {
+                throw error;
+            }
+        }
 
         await this.saveBackupDecryptionKey(randomKey, res.version);
 

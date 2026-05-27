@@ -242,10 +242,11 @@ describe("AdminManager", () => {
         });
 
         it("应该获取速率限制覆盖状态", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({ overridden: true });
+            mockClient.http.authedRequest.mockResolvedValueOnce({ messages_per_second: 10, burst_count: 20 });
 
             const result = await adminManager.getRateLimitOverride("@user:example.com");
-            expect(result?.overridden).toBe(true);
+            expect(result?.messages_per_second).toBe(10);
+            expect(result?.burst_count).toBe(20);
         });
 
         it("应该删除速率限制覆盖", async () => {
@@ -377,7 +378,7 @@ describe("AdminManager", () => {
             );
             mockClient.http.authedRequest.mockRejectedValue(matrixError);
 
-            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(/AdminManager/);
+            await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(/Admin/);
         });
 
         it("错误消息应该包含原始错误信息", async () => {
@@ -673,12 +674,12 @@ describe("AdminManager", () => {
             expect(opts.prefix).toBe("/_synapse/admin");
 
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
-                baseUrl: "http://localhost:28008",
+                baseUrl: "https://matrix.test",
                 prefix: "/_matrix/client/v3",
                 onlyData: true,
                 allowInsecureHttp: true,
             });
-            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:28008");
+            const url = httpApi.getUrl(path, undefined, opts.prefix, "https://matrix.test");
             expect(url.pathname).toBe("/_synapse/admin/v2/users/%40user%3Aexample.com");
             expect(url.pathname).not.toContain("/_synapse/admin/v1/v2");
         });
@@ -726,12 +727,12 @@ describe("AdminManager", () => {
             expect(opts.prefix).toBe("/_synapse/admin/v1");
 
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
-                baseUrl: "http://localhost:28008",
+                baseUrl: "https://matrix.test",
                 prefix: "/_matrix/client/v3",
                 onlyData: true,
                 allowInsecureHttp: true,
             });
-            const url = httpApi.getUrl(path, undefined, opts.prefix, "http://localhost:28008");
+            const url = httpApi.getUrl(path, undefined, opts.prefix, "https://matrix.test");
             expect(url.pathname).toBe("/_synapse/admin/v1/users/%40user%3Aexample.com/deactivate");
             expect(url.pathname).not.toContain("/_synapse/admin/v1/v1");
         });

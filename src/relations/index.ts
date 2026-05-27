@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { type MatrixEvent } from "../models/event";
+import { type IEvent, type MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
@@ -34,8 +34,10 @@ import { QueryDict } from "../utils";
 import { IRelationsRequestOpts, IRelationsResponse } from "../@types/requests";
 import { logger } from "../logger";
 import type { RelationsPathPattern } from "./__generated__/route-table";
+import { processRelationEvents } from "../client-relations-core";
+import { EventType, RelationType as RelationTypeBase } from "../@types/event";
 
-export type RelationType = "m.reference" | "m.annotation" | "m.replace" | "m.thread" | string;
+export type RelationType = RelationTypeBase | string;
 export type RelationEventType = "m.room.message" | "m.room.encrypted" | string;
 
 export interface RelationResult {
@@ -71,7 +73,6 @@ export interface SendRelationResponse {
         event_id: string;
         rel_type: RelationType;
     };
-    [key: string]: unknown;
 }
 
 export enum RelationsEvent {
@@ -271,6 +272,68 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         } catch (e) {
             throw this.normalizeError(e, "getAggregations");
         }
+    }
+
+    public async relations(
+        roomId: string,
+        eventId: string,
+        relationType: RelationType | string | null,
+        eventType?: EventType | string | null,
+        opts: IRelationsRequestOpts = { dir: Direction.Backward },
+        deps?: {
+            getEncryptedIfNeededEventType: (roomId: string, eventType?: string | null) => EventType | string | null | undefined;
+            fetchRoomEvent: (roomId: string, eventId: string) => Promise<Partial<IEvent>>;
+            fetchRelations: (
+                roomId: string,
+                eventId: string,
+                relationType: RelationType | string | null,
+                eventType?: string | null,
+                opts?: IRelationsRequestOpts,
+            ) => Promise<IRelationsResponse>;
+            getEventMapper: () => (e: Partial<IEvent>) => MatrixEvent;
+            decryptEventIfNeeded: (event: MatrixEvent) => Promise<void>;
+        },
+    ): Promise<{
+        originalEvent?: MatrixEvent | null;
+        events: MatrixEvent[];
+        nextBatch?: string | null;
+        prevBatch?: string | null;
+    }> {
+        if (!deps) {
+            // Fallback without encryption support
+            const result = await this.fetchRelations(roomId, eventId, relationType, eventType as string | null, opts);
+            const mapper = this.client.getEventMapper();
+            return {
+                originalEvent: null,
+                events: result.chunk.map(mapper),
+                nextBatch: result.next_batch ?? null,
+                prevBatch: result.prev_batch ?? null,
+            };
+        }
+
+        const fetchedEventType = eventType ? deps.getEncryptedIfNeededEventType(roomId, eventType) : null;
+        const [eventResult, result] = await Promise.all([
+            deps.fetchRoomEvent(roomId, eventId),
+            deps.fetchRelations(roomId, eventId, relationType, fetchedEventType, opts),
+        ]);
+        const mapper = deps.getEventMapper();
+
+        const originalEvent = eventResult ? mapper(eventResult) : undefined;
+        let events = result.chunk.map(mapper);
+        events = await processRelationEvents({
+            events,
+            originalEvent,
+            fetchedEventType,
+            requestedEventType: eventType,
+            relationType,
+            decryptEventIfNeeded: (event) => deps.decryptEventIfNeeded(event),
+        });
+        return {
+            originalEvent: originalEvent ?? null,
+            events,
+            nextBatch: result.next_batch ?? null,
+            prevBatch: result.prev_batch ?? null,
+        };
     }
 
     public async sendRelation(

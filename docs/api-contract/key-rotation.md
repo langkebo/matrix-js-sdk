@@ -1,16 +1,16 @@
 ---
 module: key_rotation
 generated_from: docs/api-contract/generated/modules/key_rotation.json
-generated_hash: sha256-93f3e6a5937b74af96f343c838bf25c50311218674224da5c277f4142ecb6228
+generated_hash: sha256-<pending-regeneration>
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-26
 ---
 
 # Key Rotation API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/key_rotation.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
-> 更新日期: 2026-04-27  
+> 后端代码: `synapse-rust/src/web/routes/key_rotation.rs`
+> 装配入口: `synapse-rust/src/web/routes/assembly.rs`
+> 更新日期: 2026-05-26
 > 挂载版本: `v1`
 
 ## 一、模块概述
@@ -31,54 +31,64 @@ Key Rotation API 提供端到端加密密钥轮换功能，用于：
 ### 1.3 认证要求
 
 - 所有端点需要 `AuthenticatedUser`
+- 部分端点（轮换、吊销、配置）需要 `is_admin` 权限
 
 ## 二、端点详情
 
 ### 2.1 查询密钥轮换状态
 
-**路径**: `GET /_matrix/client/v1/keys/rotation/status`  
-**认证**: `AuthenticatedUser`  
+**路径**: `GET /_matrix/client/v1/keys/rotation/status`
+**认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
 **响应**: `200 OK`
 
 ```typescript
 interface KeyRotationStatus {
-    current_key_id: string;
-    rotation_period_ms: number;
-    last_rotation_ts: number;
-    next_rotation_ts: number;
-    auto_rotation_enabled: boolean;
+    /** 是否启用轮换（来自 rotation_status.rotation_enabled） */
+    enabled: boolean;
+    /** 完整的轮换状态对象（由 rotation_manager.get_rotation_status() 返回） */
+    status: Record<string, unknown>;
+    /** 用户上次轮换时间戳（毫秒），无记录时为 null */
+    user_last_rotation: number | null;
 }
 ```
 
 ### 2.2 执行密钥轮换
 
-**路径**: `POST /_matrix/client/v1/keys/rotation/rotate`  
-**认证**: `AuthenticatedUser`  
+**路径**: `POST /_matrix/client/v1/keys/rotation/rotate`
+**认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
 **请求体**:
 
 ```json
 {
-    "reason": "scheduled_rotation"
+    "key_id": "optional_specific_key_id"
 }
 ```
 
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `key_id` | string | 否 | 指定要轮换的密钥 ID |
+
 **响应**: `200 OK`
 
-```json
-{
-    "new_key_id": "key_v2_abc123",
-    "rotated_at": 1714176000000
+```typescript
+interface RotateKeyResponse {
+    /** 操作是否成功 */
+    success: boolean;
+    /** 结果描述信息 */
+    message: string;
+    /** 是否产生了新密钥 */
+    has_new_key: boolean;
 }
 ```
 
 ### 2.3 查询密钥轮换历史
 
-**路径**: `GET /_matrix/client/v1/keys/rotation/history/{device_id}`  
-**认证**: `AuthenticatedUser`  
+**路径**: `GET /_matrix/client/v1/keys/rotation/history/{device_id}`
+**认证**: `AuthenticatedUser`
 **挂载版本**: `v1`
 
 **路径参数**:
@@ -95,21 +105,25 @@ interface KeyRotationStatus {
 **响应**: `200 OK`
 
 ```typescript
+interface KeyRotationHistoryEntry {
+    /** 轮换后的新密钥 ID，数据库无记录时为 null */
+    key_id: string | null;
+    /** 轮换时间戳（毫秒），数据库无记录时为 null */
+    rotated_ts: number | null;
+}
+
 interface KeyRotationHistory {
-    rotations: Array<{
-        key_id: string;
-        rotated_at: number;
-        reason: string;
-        previous_key_id?: string;
-    }>;
-    next_batch?: string;
+    /** 设备 ID */
+    device_id: string;
+    /** 轮换记录列表 */
+    rotations: KeyRotationHistoryEntry[];
 }
 ```
 
 ### 2.4 撤销密钥
 
-**路径**: `POST /_matrix/client/v1/keys/rotation/revoke`  
-**认证**: `AuthenticatedUser`  
+**路径**: `POST /_matrix/client/v1/keys/rotation/revoke`
+**认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
 **请求体**:
@@ -121,56 +135,76 @@ interface KeyRotationHistory {
 }
 ```
 
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `key_id` | string | 是 | 要撤销的密钥 ID |
+| `reason` | string | 否 | 撤销原因 |
+
 **响应**: `200 OK`
 
-```json
-{
-    "revoked": true,
-    "revoked_at": 1714176000000
+```typescript
+interface RevokeKeyResponse {
+    /** 操作是否成功 */
+    success: boolean;
+    /** 被撤销的密钥数量 */
+    revoked: number;
+    /** 结果描述信息 */
+    message: string;
 }
 ```
 
 ### 2.5 配置轮换策略
 
-**路径**: `PUT /_matrix/client/v1/keys/rotation/config`  
-**认证**: `AuthenticatedUser`  
+**路径**: `PUT /_matrix/client/v1/keys/rotation/config`
+**认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
 **请求体**:
 
 ```json
 {
-    "auto_rotation_enabled": true,
-    "rotation_period_ms": 2592000000
+    "enabled": true,
+    "interval_ms": 2592000000
 }
 ```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `enabled` | boolean | 否 | 是否启用自动轮换 |
+| `interval_ms` | integer | 否 | 轮换间隔（毫秒） |
 
 **响应**: `200 OK`
 
-```json
-{
-    "updated": true
+```typescript
+interface UpdateRotationConfigResponse {
+    /** 当前是否启用自动轮换 */
+    enabled: boolean;
+    /** 当前轮换间隔（毫秒） */
+    interval_ms: number;
 }
 ```
 
-### 2.6 检查密钥有效性
+### 2.6 检查是否需要轮换
 
-**路径**: `GET /_matrix/client/v1/keys/rotation/check`  
-**认证**: `AuthenticatedUser`  
+**路径**: `GET /_matrix/client/v1/keys/rotation/check`
+**认证**: `AuthenticatedUser`
 **挂载版本**: `v1`
 
 **查询参数**:
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `key_id` | string | 是 | 要检查的密钥 ID |
+| `key_id` | string | 否 | 要检查的特定密钥 ID |
 
 **响应**: `200 OK`
 
 ```typescript
 interface KeyCheckResponse {
-    valid: boolean;
-    revoked: boolean;
-    expires_at?: number;
+    /** 是否需要轮换 */
+    needs_rotation: boolean;
+    /** 上次轮换时间戳（毫秒），无记录时为 null */
+    last_rotation: number | null;
+    /** 配置的轮换间隔（毫秒） */
+    interval_ms: number;
 }
 ```
 
@@ -197,6 +231,7 @@ interface KeyCheckResponse {
 
 - SDK 已提供 `KeyRotationManager`，覆盖状态查询、轮换、历史查询、撤销、策略更新与有效性检查
 - `getStatus()` 带有短 TTL 的本地缓存，写操作后会主动失效，减少重复请求
+- 后端同时提供 POST 变体用于 `status`、`config`、`check` 端点（SDK 未封装 POST 变体）
 
 ## 四、常见错误码
 
@@ -214,3 +249,4 @@ interface KeyCheckResponse {
 | ---------- | ------------------------------------------------ | ------------------------- |
 | 2026-04-27 | 初版                                             | -                         |
 | 2026-04-27 | 新增 `KeyRotationManager` SDK 封装并补齐单元测试 | SDK 封装覆盖率提升至 100% |
+| 2026-05-26 | 修正类型定义以对齐后端实际响应                   | 修正所有端点的请求/响应类型 |

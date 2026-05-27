@@ -1,39 +1,22 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createClient, type MatrixClient } from "../../../src/matrix";
+import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient, UIAError } from "../../../src/device/index";
 import { TestConfig } from "./TestConfig";
+import { loginWithDevice, safeLogout } from "./device-test-helpers";
 
 extendMatrixClient();
 
-function localpartFromMxid(userId: string): string {
-    return userId.replace("@", "").split(":")[0];
-}
+const BULK_DEVICE_TIMEOUT = TestConfig.timeout.long * 3;
 
-async function loginWithDevice(deviceId: string): Promise<MatrixClient> {
-    const client = createClient({
-        baseUrl: TestConfig.baseUrl,
-        allowInsecureHttp: true,
-        deviceId,
-    });
-
-    const result = await client.login("m.login.password", {
-        user: localpartFromMxid(TestConfig.testUser.userId),
-        password: TestConfig.testUser.password,
-        device_id: deviceId,
-    });
-    client.setAccessToken(result.access_token);
-    return client;
-}
-
-function makePasswordAuth(session?: string) {
+function makePasswordAuth(userId: string, session?: string) {
     return {
         type: "m.login.password",
-        user: localpartFromMxid(TestConfig.testUser.userId),
+        user: userId,
         password: TestConfig.testUser.password,
         identifier: {
             type: "m.id.user",
-            user: localpartFromMxid(TestConfig.testUser.userId),
+            user: userId,
         },
         ...(session ? { session } : {}),
     };
@@ -45,28 +28,31 @@ describe("DeviceManager.deleteDevices (real-backend)", () => {
     let clientC: MatrixClient | null = null;
     let deviceBId: string;
     let deviceCId: string;
+    let primaryUserId: string;
 
     beforeAll(async () => {
-        clientA = await loginWithDevice(TestConfig.testUser.deviceId);
+        const primary = await loginWithDevice(TestConfig.testUser.deviceId);
+        clientA = primary.client;
+        primaryUserId = primary.userId;
 
         deviceBId = `SDK_TEST_DEVICE_B_${Date.now()}`;
         deviceCId = `SDK_TEST_DEVICE_C_${Date.now()}`;
 
-        clientB = await loginWithDevice(deviceBId);
-        clientC = await loginWithDevice(deviceCId);
-    }, TestConfig.timeout.long);
+        clientB = (await loginWithDevice(deviceBId)).client;
+        clientC = (await loginWithDevice(deviceCId)).client;
+    }, BULK_DEVICE_TIMEOUT);
 
     afterAll(async () => {
         for (const c of [clientB, clientC, clientA]) {
             if (!c) continue;
             try {
-                await c.logout();
+                await safeLogout(c);
             } catch {}
         }
         clientA = null;
         clientB = null;
         clientC = null;
-    }, TestConfig.timeout.long);
+    }, BULK_DEVICE_TIMEOUT);
 
     it(
         "can bulk delete other devices (UIA if required)",
@@ -81,7 +67,10 @@ describe("DeviceManager.deleteDevices (real-backend)", () => {
                 await dm.deleteDevices([deviceBId, deviceCId]);
             } catch (e) {
                 if (e instanceof UIAError) {
-                    await dm.deleteDevices({ devices: [deviceBId, deviceCId], auth: makePasswordAuth(e.data.session) });
+                    await dm.deleteDevices({
+                        devices: [deviceBId, deviceCId],
+                        auth: makePasswordAuth(primaryUserId, e.data.session),
+                    });
                 } else {
                     throw e;
                 }
@@ -91,6 +80,6 @@ describe("DeviceManager.deleteDevices (real-backend)", () => {
             expect(after.some((d) => d.device_id === deviceBId)).toBe(false);
             expect(after.some((d) => d.device_id === deviceCId)).toBe(false);
         },
-        TestConfig.timeout.long,
+        BULK_DEVICE_TIMEOUT,
     );
 });

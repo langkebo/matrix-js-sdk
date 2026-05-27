@@ -31,4 +31,4 @@ export interface FeatureFlagsRequestDto {
     enabled: boolean;
 }
 
-export type FeatureFlagsResponseDto = Record<string, never>;
+export interface FeatureFlagsResponseDto {}

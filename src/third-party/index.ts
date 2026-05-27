@@ -5,6 +5,10 @@ import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { ThirdpartyPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
+import type { IThirdPartyLocation, IThirdPartyUser } from "../client-internal-types";
+import type { QueryDict } from "../utils";
+import * as utils from "../utils";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -52,26 +56,79 @@ export class ThirdPartyManager extends BaseManager {
     }
 
     /**
+     * Get the third party protocols that can be reached using this HS.
+     * GET /_matrix/client/v3/thirdparty/protocols
+     */
+    async getThirdpartyProtocols(): Promise<{ [protocol: string]: IProtocol }> {
+        return this.withRetry(async () => {
+            const response = await this.client.http.authedRequest<Record<string, IProtocol>>(
+                Method.Get,
+                tp("/thirdparty/protocols"),
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            if (!response || typeof response !== "object") {
+                throw new Error(`/thirdparty/protocols did not return an object: ${response}`);
+            }
+            return response;
+        }, "getThirdpartyProtocols");
+    }
+
+    /**
+     * Get third party locations for a protocol.
+     * GET /_matrix/client/v3/thirdparty/location/{protocol}
+     */
+    getThirdpartyLocation(
+        protocol: string,
+        params?: { searchFields?: string[] },
+    ): Promise<IThirdPartyLocation[]> {
+        const path = utils.encodeUri("/thirdparty/location/$protocol", { $protocol: protocol });
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<IThirdPartyLocation[]>(
+                Method.Get,
+                path,
+                params as QueryDict,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "getThirdpartyLocation");
+    }
+
+    /**
+     * Get third party users for a protocol.
+     * GET /_matrix/client/v3/thirdparty/user/{protocol}
+     */
+    getThirdpartyUser(protocol: string, params?: QueryDict): Promise<IThirdPartyUser[]> {
+        const path = utils.encodeUri("/thirdparty/user/$protocol", { $protocol: protocol });
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<IThirdPartyUser[]>(
+                Method.Get,
+                path,
+                params,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "getThirdpartyUser");
+    }
+
+    /**
      * 获取支持的第三方协议
      */
-    async getProtocols(throwOnError = true): Promise<ThirdPartyProtocol[]> {
+    async getProtocols(options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyProtocol[]> {
         try {
-            const protocols = await this.client.getThirdpartyProtocols();
+            const protocols = await this.getThirdpartyProtocols();
             return Object.entries(protocols).map(([name, data]) => ({
                 ...data,
                 protocol: name,
             }));
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw this.normalizeError(e, "getProtocols");
-            }
-            logger.warn("ThirdPartyManager.getProtocols failed:", e);
-            return [];
+            return handleManagerError<ThirdPartyProtocol[]>(e, options, "getProtocols") ?? [];
         }
     }
 
-    async getProtocol(protocol: string, throwOnError = true): Promise<ThirdPartyProtocol | null> {
+    async getProtocol(protocol: string, options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyProtocol | null> {
         try {
             const data = await this.withRetry(async () => {
                 return await this.client.http.authedRequest<IProtocol>(
@@ -88,11 +145,7 @@ export class ThirdPartyManager extends BaseManager {
             };
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw this.normalizeError(e, "getProtocol");
-            }
-            logger.warn("ThirdPartyManager.getProtocol failed:", e);
-            return null;
+            return handleManagerError<ThirdPartyProtocol>(e, options, "getProtocol");
         }
     }
 
@@ -102,7 +155,7 @@ export class ThirdPartyManager extends BaseManager {
         throwOnError = true,
     ): Promise<ThirdPartyLocation[]> {
         try {
-            return await this.client.getThirdpartyLocation(protocol, params);
+            return await this.getThirdpartyLocation(protocol, params);
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -119,7 +172,7 @@ export class ThirdPartyManager extends BaseManager {
         throwOnError = true,
     ): Promise<ThirdPartyUser[]> {
         try {
-            return await this.client.getThirdpartyUser(protocol, params);
+            return await this.getThirdpartyUser(protocol, params);
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -130,7 +183,7 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
-    async searchAllLocations(params: ThirdPartySearchParams = {}, throwOnError = true): Promise<ThirdPartyLocation[]> {
+    async searchAllLocations(params: ThirdPartySearchParams = {}, options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyLocation[]> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<ThirdPartyLocation[]>(
@@ -143,15 +196,11 @@ export class ThirdPartyManager extends BaseManager {
             }, "searchAllLocations");
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw this.normalizeError(e, "searchAllLocations");
-            }
-            logger.warn("ThirdPartyManager.searchAllLocations failed:", e);
-            return [];
+            return handleManagerError<ThirdPartyLocation[]>(e, options, "searchAllLocations") ?? [];
         }
     }
 
-    async searchAllUsers(params: ThirdPartySearchParams = {}, throwOnError = true): Promise<ThirdPartyUser[]> {
+    async searchAllUsers(params: ThirdPartySearchParams = {}, options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyUser[]> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<ThirdPartyUser[]>(
@@ -164,11 +213,7 @@ export class ThirdPartyManager extends BaseManager {
             }, "searchAllUsers");
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw this.normalizeError(e, "searchAllUsers");
-            }
-            logger.warn("ThirdPartyManager.searchAllUsers failed:", e);
-            return [];
+            return handleManagerError<ThirdPartyUser[]>(e, options, "searchAllUsers") ?? [];
         }
     }
 

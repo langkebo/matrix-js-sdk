@@ -523,7 +523,7 @@ describe("BurnAfterReadManager", () => {
             await manager.burnMessage("$to_burn");
 
             expect(authedRequest).toHaveBeenCalledWith(
-                Method.Post,
+                Method.Put,
                 expect.stringContaining("/rooms/!room%3Atest/redact/%24to_burn/"),
                 undefined,
                 { reason: "Burn after read" },
@@ -538,7 +538,7 @@ describe("BurnAfterReadManager", () => {
             await manager.burnMessage("$nonexistent");
 
             expect(authedRequest).not.toHaveBeenCalledWith(
-                Method.Post,
+                Method.Put,
                 expect.any(String),
                 expect.anything(),
                 expect.anything(),
@@ -815,7 +815,7 @@ describe("BurnAfterReadManager", () => {
             for (const call of calls) {
                 const prefixArg = call[4];
                 if (typeof prefixArg === "object" && prefixArg !== null) {
-                    // eslint-disable-next-line @vitest/no-conditional-expect
+                    // eslint-disable-next-line vitest/no-conditional-expect
                     expect([ClientPrefix.V1, ClientPrefix.V3]).toContain(prefixArg.prefix);
                 }
             }

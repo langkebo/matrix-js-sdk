@@ -4,7 +4,7 @@
  * Tests database schema integrity, field types, indexes, and constraints
  * to ensure the database conforms to DATABASE_FIELD_STANDARDS.md
  *
- * Run with: npx tsx spec/integ/real-backend/database-integrity.script.ts
+ * Run with: pnpm run test:real-backend:tsx -- spec/integ/real-backend/database-integrity.script.ts
  */
 
 import { DatabaseVerifier } from "./DatabaseVerifier";

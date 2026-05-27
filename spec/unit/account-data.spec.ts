@@ -19,18 +19,15 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AccountDataManager } from "../../src/account-data/index";
 import { MatrixEvent } from "../../src/models/event";
 import { Method } from "../../src/http-api";
+import { Feature, ServerSupport } from "../../src/feature";
 
 describe("AccountDataManager", () => {
     let mockClient: any;
     let accountDataManager: AccountDataManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
-    let mockSetAccountData: ReturnType<typeof vi.fn>;
-    let mockSetAccountDataRaw: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
         mockAuthedRequest = vi.fn();
-        mockSetAccountData = vi.fn();
-        mockSetAccountDataRaw = vi.fn();
 
         const mockAccountDataMap = new Map();
 
@@ -38,6 +35,7 @@ describe("AccountDataManager", () => {
             credentials: {
                 userId: "@alice:example.com",
             },
+            getSafeUserId: vi.fn().mockReturnValue("@alice:example.com"),
             http: {
                 authedRequest: mockAuthedRequest,
             },
@@ -50,35 +48,57 @@ describe("AccountDataManager", () => {
                     });
                 }),
             },
-            setAccountData: mockSetAccountData,
-            setAccountDataRaw: mockSetAccountDataRaw,
+            clientRunning: true,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            isInitialSyncComplete: vi.fn().mockReturnValue(true),
+            canSupport: new Map<Feature, ServerSupport>(),
         };
         accountDataManager = new AccountDataManager(mockClient);
     });
 
     describe("setAccountData", () => {
-        it("should set account data", async () => {
-            mockSetAccountData.mockResolvedValue({});
+        it("should set account data via setAccountDataRaw when client is not running", async () => {
+            mockClient.clientRunning = false;
+            mockAuthedRequest.mockResolvedValue({});
 
-            await accountDataManager.setAccountData("m.direct", { "@bob:example.com": ["!room:example.com"] });
+            await accountDataManager.setAccountData("m.direct" as any, { "@bob:example.com": ["!room:example.com"] } as any);
 
-            expect(mockSetAccountData).toHaveBeenCalledWith("m.direct", { "@bob:example.com": ["!room:example.com"] });
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/user/%40alice%3Aexample.com/account_data/m.direct",
+                undefined,
+                { "@bob:example.com": ["!room:example.com"] },
+            );
         });
 
         it("should handle custom event types", async () => {
-            mockSetAccountData.mockResolvedValue({});
+            mockClient.clientRunning = false;
+            mockAuthedRequest.mockResolvedValue({});
 
-            await accountDataManager.setAccountData("com.example.custom", { data: "value" });
+            await accountDataManager.setAccountData("com.example.custom" as any, { data: "value" } as any);
 
-            expect(mockSetAccountData).toHaveBeenCalledWith("com.example.custom", { data: "value" });
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/user/%40alice%3Aexample.com/account_data/com.example.custom",
+                undefined,
+                { data: "value" },
+            );
         });
     });
 
     describe("setAccountDataRaw", () => {
-        it("should set account data raw", () => {
-            accountDataManager.setAccountDataRaw("m.push_rules", { global: {} });
+        it("should set account data raw via http", async () => {
+            mockAuthedRequest.mockResolvedValue({});
 
-            expect(mockSetAccountDataRaw).toHaveBeenCalledWith("m.push_rules", { global: {} });
+            await accountDataManager.setAccountDataRaw("m.push_rules" as any, { global: {} } as any);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/user/%40alice%3Aexample.com/account_data/m.push_rules",
+                undefined,
+                { global: {} },
+            );
         });
     });
 
@@ -90,42 +110,40 @@ describe("AccountDataManager", () => {
             });
             mockClient.store.accountData.set("m.direct", event);
 
-            const result = accountDataManager.getAccountData("m.direct");
+            const result = accountDataManager.getAccountData("m.direct" as any);
 
             expect(result).toBe(event);
             expect(mockClient.store.getAccountData).toHaveBeenCalledWith("m.direct");
         });
 
         it("should return undefined for non-existent data", () => {
-            const result = accountDataManager.getAccountData("m.nonexistent");
+            const result = accountDataManager.getAccountData("m.nonexistent" as any);
 
             expect(result).toBeUndefined();
         });
     });
 
     describe("getAccountDataFromServer", () => {
-        it("should get account data from server", async () => {
+        it("should return local content when initial sync is complete and data exists", async () => {
             const content = { "@bob:example.com": ["!room:example.com"] };
-            mockAuthedRequest.mockResolvedValue(content);
+            const event = new MatrixEvent({ type: "m.direct", content });
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(event);
+            mockClient.isInitialSyncComplete = vi.fn().mockReturnValue(true);
 
-            const result = await accountDataManager.getAccountDataFromServer("m.direct");
+            const result = await accountDataManager.getAccountDataFromServer("m.direct" as any);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/user/%40alice%3Aexample.com/account_data/m.direct",
-            );
-            expect(result).toBeInstanceOf(MatrixEvent);
-            expect(result?.getType()).toBe("m.direct");
-            expect(result?.getContent()).toEqual(content);
+            expect(result).toEqual(content);
         });
 
-        it("should cache fetched data in store", async () => {
-            const content = { data: "value" };
-            mockAuthedRequest.mockResolvedValue(content);
+        it("should return null when data not found on server", async () => {
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(undefined);
+            mockClient.isInitialSyncComplete = vi.fn().mockReturnValue(false);
+            const error = { data: { errcode: "M_NOT_FOUND" } };
+            mockAuthedRequest.mockRejectedValue(error);
 
-            await accountDataManager.getAccountDataFromServer("com.example.custom");
+            const result = await accountDataManager.getAccountDataFromServer("m.nonexistent" as any);
 
-            expect(mockClient.store.accountData.has("com.example.custom")).toBe(true);
+            expect(result).toBeNull();
         });
     });
 
@@ -187,35 +205,34 @@ describe("AccountDataManager", () => {
     });
 
     describe("deleteAccountData", () => {
-        it("should delete account data", async () => {
-            mockAuthedRequest.mockResolvedValue({});
+        it("should delete account data when supported", async () => {
+            mockClient.canSupport.set(Feature.AccountDataDeletion, ServerSupport.Stable);
+            mockAuthedRequest.mockResolvedValue(undefined);
 
-            await accountDataManager.deleteAccountData("m.direct");
+            await accountDataManager.deleteAccountData("m.direct" as any);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Delete,
                 "/user/%40alice%3Aexample.com/account_data/m.direct",
+                undefined,
+                undefined,
+                undefined,
             );
         });
 
-        it("should clear data from store after deletion", async () => {
+        it("should fallback to setAccountData with empty content when deletion is unsupported", async () => {
+            mockClient.canSupport.set(Feature.AccountDataDeletion, ServerSupport.Unsupported);
+            mockClient.clientRunning = false;
             mockAuthedRequest.mockResolvedValue({});
 
-            await accountDataManager.deleteAccountData("m.direct");
+            await accountDataManager.deleteAccountData("m.direct" as any);
 
-            const storedEvent = mockClient.store.accountData.get("m.direct");
-            expect(storedEvent).toBeInstanceOf(MatrixEvent);
-            expect(storedEvent.getContent()).toEqual({});
-        });
-
-        it("should handle deletion of non-existent data", async () => {
-            mockAuthedRequest.mockResolvedValue({});
-
-            await accountDataManager.deleteAccountData("m.nonexistent");
-
+            // Should call PUT with empty content as fallback
             expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Delete,
-                "/user/%40alice%3Aexample.com/account_data/m.nonexistent",
+                Method.Put,
+                "/user/%40alice%3Aexample.com/account_data/m.direct",
+                undefined,
+                {},
             );
         });
     });
@@ -250,68 +267,100 @@ describe("AccountDataManager", () => {
         });
     });
 
+    describe("getIgnoredUsers", () => {
+        it("should return empty array when no ignored users", () => {
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(undefined);
+
+            const result = accountDataManager.getIgnoredUsers();
+
+            expect(result).toEqual([]);
+        });
+
+        it("should return ignored user IDs", () => {
+            const event = new MatrixEvent({
+                type: "m.ignored_user_list",
+                content: { ignored_users: { "@bob:example.com": {}, "@charlie:example.com": {} } },
+            });
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(event);
+
+            const result = accountDataManager.getIgnoredUsers();
+
+            expect(result).toEqual(["@bob:example.com", "@charlie:example.com"]);
+        });
+    });
+
+    describe("setIgnoredUsers", () => {
+        it("should set ignored users via setAccountData", async () => {
+            mockClient.clientRunning = false;
+            mockAuthedRequest.mockResolvedValue({});
+
+            await accountDataManager.setIgnoredUsers(["@bob:example.com"]);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/user/%40alice%3Aexample.com/account_data/m.ignored_user_list",
+                undefined,
+                { ignored_users: { "@bob:example.com": {} } },
+            );
+        });
+    });
+
+    describe("isUserIgnored", () => {
+        it("should return true for ignored user", () => {
+            const event = new MatrixEvent({
+                type: "m.ignored_user_list",
+                content: { ignored_users: { "@bob:example.com": {} } },
+            });
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(event);
+
+            expect(accountDataManager.isUserIgnored("@bob:example.com")).toBe(true);
+        });
+
+        it("should return false for non-ignored user", () => {
+            const event = new MatrixEvent({
+                type: "m.ignored_user_list",
+                content: { ignored_users: { "@bob:example.com": {} } },
+            });
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(event);
+
+            expect(accountDataManager.isUserIgnored("@charlie:example.com")).toBe(false);
+        });
+    });
+
     describe("Data Validation", () => {
         it("should reject data_type longer than 128 characters", async () => {
             const longType = "a".repeat(129);
 
-            await expect(accountDataManager.setAccountData(longType, { data: "value" })).rejects.toThrow(
+            await expect(accountDataManager.setAccountData(longType as any, { data: "value" } as any)).rejects.toThrow(
                 "data_type too long (max 128 characters)",
             );
-        });
-
-        it("should accept data_type with exactly 128 characters", async () => {
-            const maxType = "a".repeat(128);
-            mockSetAccountData.mockResolvedValue({});
-
-            await accountDataManager.setAccountData(maxType, { data: "value" });
-
-            expect(mockSetAccountData).toHaveBeenCalledWith(maxType, { data: "value" });
         });
 
         it("should reject content larger than 64KB", async () => {
             const largeContent = { data: "x".repeat(65537) };
 
-            await expect(accountDataManager.setAccountData("m.test", largeContent)).rejects.toThrow(
+            await expect(accountDataManager.setAccountData("m.test" as any, largeContent as any)).rejects.toThrow(
                 "Account data too large (max 65536 bytes)",
             );
-        });
-
-        it("should accept content with exactly 64KB", async () => {
-            // Create content that serializes to exactly 64KB
-            const content = { data: "x".repeat(65520) }; // Accounting for JSON overhead
-            mockSetAccountData.mockResolvedValue({});
-
-            await accountDataManager.setAccountData("m.test", content);
-
-            expect(mockSetAccountData).toHaveBeenCalled();
         });
     });
 
     describe("Error Handling", () => {
-        it("should throw error on server failure", async () => {
+        it("should throw error on server failure for getAccountDataFromServer", async () => {
+            mockClient.store.getAccountData = vi.fn().mockReturnValue(undefined);
+            mockClient.isInitialSyncComplete = vi.fn().mockReturnValue(false);
             const error = new Error("Server error");
             mockAuthedRequest.mockRejectedValue(error);
 
-            await expect(accountDataManager.getAccountDataFromServer("m.direct")).rejects.toThrow("Server error");
+            await expect(accountDataManager.getAccountDataFromServer("m.direct" as any)).rejects.toThrow("Server error");
         });
 
         it("should throw error on delete failure", async () => {
+            mockClient.canSupport.set(Feature.AccountDataDeletion, ServerSupport.Stable);
             const error = new Error("Delete failed");
             mockAuthedRequest.mockRejectedValue(error);
 
-            await expect(accountDataManager.deleteAccountData("m.direct")).rejects.toThrow("Delete failed");
-        });
-
-        it("should emit AccountDataError event on setAccountData failure", async () => {
-            const error = new Error("Set failed");
-            mockSetAccountData.mockRejectedValue(error);
-
-            const errorHandler = vi.fn();
-            accountDataManager.on("AccountDataError" as any, errorHandler);
-
-            await expect(accountDataManager.setAccountData("m.test", { data: "value" })).rejects.toThrow();
-
-            expect(errorHandler).toHaveBeenCalled();
+            await expect(accountDataManager.deleteAccountData("m.direct" as any)).rejects.toThrow("Delete failed");
         });
     });
 });

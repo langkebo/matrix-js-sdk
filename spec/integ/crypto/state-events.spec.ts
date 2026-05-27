@@ -191,7 +191,7 @@ describe("Encrypted State Events", () => {
         expect(decryptedEvent.getContent().topic).toEqual("Secret!");
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("Should send an encrypted state event", async () => {
         const homeserverUrl = aliceClient.getHomeserverUrl();
         const keyResponder = new E2EKeyResponder(homeserverUrl);

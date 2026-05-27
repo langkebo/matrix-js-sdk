@@ -847,7 +847,7 @@ describe("SlidingSyncSdk", () => {
             });
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("can handle missing fields", async () => {
             ext.onResponse({
                 next_batch: "23456",
@@ -1096,7 +1096,7 @@ describe("SlidingSyncSdk", () => {
             expect(receipt?.data.thread_id).toBeFalsy();
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("gracefully handles missing rooms when receiving receipts", async () => {
             const roomId = "!room:id";
             const alice = "@alice:alice";

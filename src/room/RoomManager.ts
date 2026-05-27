@@ -17,7 +17,8 @@ limitations under the License.
 import { MatrixClient, ClientEvent } from "../client";
 import { Room } from "../models/room";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, MediaPrefix } from "../http-api/prefix";
+import { MatrixError } from "../http-api/errors";
 import { type EmptyObject } from "../@types/common";
 import {
     type ICreateRoomOpts,
@@ -34,12 +35,15 @@ import * as utils from "../utils";
 import { logger } from "../logger";
 import { KnownMembership } from "../@types/membership";
 import { IThirdPartySigned, IJoinRequestBody, ITagMetadata, IRoomHierarchy } from "../client-internal-types";
-import { IRoomInitialSyncResponse } from "../client-api-types";
+import { IRoomInitialSyncResponse, type IPreviewUrlResponse } from "../client-api-types";
 import { QueryDict } from "../utils";
 import { SyncApi } from "../sync";
+import { searchRoomsRequest } from "../client-secure-backup-requests";
 import { LRUCache } from "../utils/lru-cache";
-import { Visibility } from "../@types/partials";
+import { InflightRequestCache } from "../utils/inflight-request-cache";
+import { Visibility, GuestAccess, HistoryVisibility } from "../@types/partials";
 import * as ContentHelpers from "../content-helpers";
+import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
 import type { RoomPathPattern } from "./__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
 
@@ -152,6 +156,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     private roomInfoCache: LRUCache<RoomInfoCacheEntry>;
     private membersCache: LRUCache<IStateEvent[]>;
     private stateCache: LRUCache<IStateEvent[]>;
+    private peekSync: SyncApi | null = null;
+    private readonly urlPreviewRequestCache: InflightRequestCache<IPreviewUrlResponse>;
 
     constructor(client: MatrixClient) {
         super(client);
@@ -159,6 +165,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         this.roomInfoCache = new LRUCache<RoomInfoCacheEntry>(100, 5 * 60 * 1000);
         this.membersCache = new LRUCache<IStateEvent[]>(100, 2 * 60 * 1000);
         this.stateCache = new LRUCache<IStateEvent[]>(50, 5 * 60 * 1000);
+        this.urlPreviewRequestCache = new InflightRequestCache<IPreviewUrlResponse>(client.urlPreviewCache);
     }
 
     private validateRoomId(roomId: string): void {
@@ -373,7 +380,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
         return this.withRetry(async () => {
             return await this.client.http.authedRequest(Method.Post, path, queryParams, body);
-        }, "knockRoom");
+        }, { label: "knockRoom", idempotent: false });
     }
 
     public async leave(roomId: string): Promise<EmptyObject> {
@@ -851,25 +858,30 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         roomId: string,
         limit?: number,
         maxDepth?: number,
-        suggestedOnly?: boolean,
+        suggestedOnly = false,
         fromToken?: string,
     ): Promise<IRoomHierarchy> {
         this.validateRoomId(roomId);
-        const query: QueryDict = {};
-        if (limit) query.limit = limit.toString();
-        if (maxDepth) query.max_depth = maxDepth.toString();
-        if (suggestedOnly) query.suggested_only = "true";
-        if (fromToken) query.from = fromToken;
+        const path = utils.encodeUri("/rooms/$roomId/hierarchy", { $roomId: roomId });
+        const query: QueryDict = {
+            suggested_only: String(suggestedOnly),
+            max_depth: maxDepth?.toString(),
+            from: fromToken,
+            limit: limit?.toString(),
+        };
 
-        const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IRoomHierarchy>(
-                Method.Get,
-                rp(`/rooms/${encodeURIComponent(roomId)}/hierarchy`),
-                query,
-                undefined,
-            );
-        });
-        return response;
+        try {
+            return await this.client.http.authedRequest<IRoomHierarchy>(Method.Get, path, query, undefined, {
+                prefix: ClientPrefix.V1,
+            });
+        } catch (e) {
+            if ((e as MatrixError).errcode === "M_UNRECOGNIZED") {
+                return await this.client.http.authedRequest<IRoomHierarchy>(Method.Get, path, query, undefined, {
+                    prefix: "/_matrix/client/unstable/org.matrix.msc2946",
+                });
+            }
+            throw e;
+        }
     }
 
     public async getRoomIdForAlias(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
@@ -980,24 +992,98 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     public async setGuestAccess(roomId: string, opts: IGuestAccessOpts): Promise<void> {
         this.validateRoomId(roomId);
-        await this.withRetry(async () => {
-            return await this.client.http.authedRequest<void>(
-                Method.Put,
-                utils.encodeUri("/rooms/$roomId/guest_access", { $roomId: roomId }),
-                undefined,
-                opts,
+        const writePromise = this.client.sendStateEvent(
+            roomId,
+            EventType.RoomGuestAccess,
+            {
+                guest_access: opts.allowJoin ? GuestAccess.CanJoin : GuestAccess.Forbidden,
+            },
+            "",
+        );
+        let readPromise: Promise<unknown> = Promise.resolve();
+        if (opts.allowRead) {
+            readPromise = this.client.sendStateEvent(
+                roomId,
+                EventType.RoomHistoryVisibility,
+                {
+                    history_visibility: HistoryVisibility.WorldReadable,
+                },
+                "",
             );
-        });
+        }
+        await Promise.all([readPromise, writePromise]);
     }
 
     // ==================== Peeking ====================
 
     public async peekInRoom(roomId: string, limit = 20): Promise<Room> {
         this.validateRoomId(roomId);
-        // Implementation logic from MatrixClient.peekInRoom would go here
-        // For now, simple sync call
-        const syncApi = new SyncApi(this.client, this.client.getClientOpts(), this.client.getSyncApiOptions());
-        return syncApi.peek(roomId, limit);
+        const { nextPeekSync, peekPromise } = beginRoomPeek(
+            roomId,
+            limit,
+            this.peekSync,
+            () => new SyncApi(this.client, this.client.getClientOpts(), this.client.getSyncApiOptions()),
+        );
+        this.peekSync = nextPeekSync;
+        return peekPromise;
+    }
+
+    public stopPeeking(): void {
+        this.peekSync = endRoomPeek(this.peekSync);
+    }
+
+    // ==================== Typing ====================
+
+    public async getRoomTyping(roomId: string): Promise<string[]> {
+        this.validateRoomId(roomId);
+        const path = `/rooms/${encodeURIComponent(roomId)}/typing`;
+        const response = await this.client.http.authedRequest<{ user_ids: string[] }>(
+            Method.Get,
+            path,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
+        return response.user_ids || [];
+    }
+
+    public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>> {
+        const path = "/rooms/typing";
+        const response = await this.client.http.authedRequest<{
+            rooms: Record<string, { user_ids: string[] }>;
+        }>(Method.Post, path, undefined, { room_ids: roomIds }, { prefix: ClientPrefix.V3 });
+
+        const result: Record<string, string[]> = {};
+        for (const [roomId, data] of Object.entries(response.rooms || {})) {
+            result[roomId] = data.user_ids || [];
+        }
+        return result;
+    }
+
+    // ==================== URL Preview ====================
+
+    public async getUrlPreview(url: string, ts: number): Promise<IPreviewUrlResponse> {
+        const bucketedTs = Math.floor(ts / 60000) * 60000;
+
+        const parsed = new URL(url);
+        parsed.hash = "";
+        const normalizedUrl = parsed.toString();
+        const key = bucketedTs + "_" + normalizedUrl;
+
+        return this.urlPreviewRequestCache.getOrCreate(key, () =>
+            this.client.http.authedRequest<IPreviewUrlResponse>(
+                Method.Get,
+                "/preview_url",
+                {
+                    url: normalizedUrl,
+                    ts: bucketedTs.toString(),
+                },
+                undefined,
+                {
+                    prefix: MediaPrefix.V3,
+                },
+            ),
+        );
     }
 
     // ==================== Cache Management ====================
@@ -1015,5 +1101,113 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         this.roomInfoCache.clear();
         this.membersCache.clear();
         this.stateCache.clear();
+    }
+
+    // ==================== Synapse-rust specific methods ====================
+
+    /**
+     * Get all rooms for the current user, including join, invite, and leave status.
+     * Custom endpoint for synapse-rust.
+     */
+    public async getMyRooms(): Promise<{ rooms: any[]; total: number }> {
+        const response = await (this.client as any).authedRequestProxy(
+            Method.Get,
+            "/_matrix/client/v3/my_rooms",
+        );
+        return {
+            ...response,
+            rooms: response.rooms.map((room: any) => {
+                const membership = room.membership ?? room.join_state;
+                const joinState = room.join_state ?? room.membership;
+                if (membership === room.membership && joinState === room.join_state) {
+                    return room;
+                }
+                return { ...room, membership, join_state: joinState };
+            }),
+        };
+    }
+
+    /**
+     * Search rooms by term (synapse-rust specific).
+     * POST /_matrix/client/v3/search_rooms
+     */
+    public async searchRooms(
+        searchTerm: string,
+        limit?: number,
+    ): Promise<{ results: unknown[]; count: number; next_batch: string | null }> {
+        return searchRoomsRequest(
+            this.client.http.authedRequest.bind(this.client.http),
+            searchTerm,
+            limit,
+        );
+    }
+
+    /**
+     * Get client-facing server config (synapse-rust specific).
+     * GET /_matrix/client/v1/config/client
+     */
+    public async getClientConfig(): Promise<{
+        homeserver: { base_url: string; server_name: string };
+        identity_server: { base_url: string };
+        push: { enabled: boolean };
+        email: { enabled: boolean };
+        features: Record<string, boolean>;
+        defaults: Record<string, unknown>;
+    }> {
+        return (this.client as any).authedRequestProxy(
+            Method.Get,
+            "/_matrix/client/v1/config/client",
+        );
+    }
+
+    /**
+     * Get SSO/OIDC userinfo (synapse-rust specific).
+     * GET /_matrix/client/v3/login/sso/userinfo
+     */
+    public async getSSOUserInfo(): Promise<{
+        sub: string;
+        name?: string;
+        picture?: string;
+        email?: string;
+    }> {
+        return (this.client as any).authedRequestProxy(
+            Method.Get,
+            "/_matrix/client/v3/login/sso/userinfo",
+        );
+    }
+
+    /**
+     * Perform a single MSC3575 sliding sync request.
+     * @param req - The request to make.
+     * @param proxyBaseUrl - The base URL for the sliding sync proxy.
+     * @param abortSignal - Optional signal to abort request mid-flight.
+     * @returns The sliding sync response.
+     */
+    public async slidingSync(
+        req: any,
+        proxyBaseUrl?: string,
+        abortSignal?: AbortSignal,
+    ): Promise<any> {
+        const qps: Record<string, any> = {};
+        if (req.pos !== undefined) {
+            qps.pos = req.pos;
+        }
+        if (req.timeout !== undefined) {
+            qps.timeout = req.timeout;
+        }
+        const clientTimeout = req.clientTimeout;
+        const { pos: _pos, timeout: _timeout, clientTimeout: _clientTimeout, ...body } = req;
+        return this.client.http.authedRequest(
+            Method.Post,
+            "/sync",
+            qps,
+            body,
+            {
+                prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
+                baseUrl: proxyBaseUrl,
+                localTimeoutMs: clientTimeout,
+                abortSignal,
+            },
+        );
     }
 }

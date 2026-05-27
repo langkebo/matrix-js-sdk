@@ -128,7 +128,7 @@ describe("MatrixClient.initRustCrypto", () => {
         );
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should ignore a second call", async () => {
         const matrixClient = createClient({
             baseUrl: "http://test.server",
@@ -493,7 +493,7 @@ describe("MatrixClient.clearStores", () => {
         expect(await indexedDB.databases()).toHaveLength(0);
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("should not fail in environments without indexedDB", async () => {
         // eslint-disable-next-line no-global-assign
         indexedDB = undefined!;

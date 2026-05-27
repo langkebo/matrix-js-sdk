@@ -73,45 +73,24 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
 
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        createDirectRoom: (
-                            userId: string,
-                            options?: ICreateRoomOptions,
-                        ) => Promise<ICreateRoomResponse>;
-                    }
-                ).createDirectRoom(userId, options),
+            () => this.client.createDirectRoom(userId, options),
             "createDirectRoom",
         );
     }
 
     public async findOrCreateDirectRoom(userId: string): Promise<ICreateRoomResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        findOrCreateDirectRoom: (userId: string) => Promise<ICreateRoomResponse>;
-                    }
-                ).findOrCreateDirectRoom(userId),
+            () => this.client.findOrCreateDirectRoom(userId),
             "findOrCreateDirectRoom",
         );
     }
 
     public getCreateRoomOptions(): ICreateRoomOptionsConfig {
-        return (
-            this.client as unknown as {
-                getCreateRoomOptions: () => ICreateRoomOptionsConfig;
-            }
-        ).getCreateRoomOptions();
+        return this.client.getCreateRoomOptions();
     }
 
     public setCreateRoomOptions(options: ICreateRoomOptionsConfig): void {
-        (
-            this.client as unknown as {
-                setCreateRoomOptions: (options: ICreateRoomOptionsConfig) => void;
-            }
-        ).setCreateRoomOptions(options);
+        this.client.setCreateRoomOptions(options);
     }
 }
 

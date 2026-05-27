@@ -58,43 +58,26 @@ export class HttpManager extends BaseManager<keyof HttpManagerEvents, HttpManage
     }
 
     public setHttp(http: ClientHttpApi): void {
-        (this.client as unknown as { http: ClientHttpApi }).http = http;
+        this.client.http = http;
     }
 
     public async createRequest(options: IRequestOptions): Promise<unknown> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        createRequest: (options: IRequestOptions) => Promise<unknown>;
-                    }
-                ).createRequest(options),
+            () => this.client.createRequest(options),
             "createRequest",
         );
     }
 
     public pickAnyDestinationCertificate(roomId: string, eventId: string): unknown {
-        return (
-            this.client as unknown as {
-                pickAnyDestinationCertificate: (roomId: string, eventId: string) => unknown;
-            }
-        ).pickAnyDestinationCertificate(roomId, eventId);
+        return this.client.pickAnyDestinationCertificate(roomId, eventId);
     }
 
     public getPendingRequests(): IPendingRequest[] {
-        return (
-            this.client as unknown as {
-                getPendingRequests: () => IPendingRequest[];
-            }
-        ).getPendingRequests();
+        return this.client.getPendingRequests();
     }
 
     public cancelPendingRequests(reason: string): void {
-        (
-            this.client as unknown as {
-                cancelPendingRequests: (reason: string) => void;
-            }
-        ).cancelPendingRequests(reason);
+        this.client.cancelPendingRequests(reason);
     }
 }
 

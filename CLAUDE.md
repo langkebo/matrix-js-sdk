@@ -28,7 +28,8 @@ pnpm clean                # Remove lib/ directory
 ```bash
 pnpm test                                    # Run all tests (excludes real-backend)
 pnpm test:watch                              # Run tests in watch mode
-pnpm test:real-backend                       # Run real backend integration tests
+pnpm test:real-backend                       # Unified real-backend batch: setup users, then run vitest suites + tsx scripts
+pnpm test:real-backend:batch                 # Run the mixed real-backend batch without setup
 pnpm test:real-backend:verification          # Run key verification tests only
 pnpm test:real-backend:device                # Run device management tests
 pnpm coverage                                # Generate coverage report
@@ -36,8 +37,24 @@ pnpm coverage                                # Generate coverage report
 # Run specific test file
 npx vitest run spec/unit/matrix-client.spec.ts
 
-# Run real-backend tests with custom config
-npx vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/step1-account.test.ts
+# Run real-backend tests with CA injection (recommended for matrix.test)
+pnpm run test:real-backend:tsx -- spec/integ/real-backend/step1-account.test.ts
+
+# Ensure the default matrix.test users exist before running the batch
+pnpm run test:real-backend:setup
+
+# Run the entire mixed real-backend batch safely
+pnpm run test:real-backend
+
+# Run the mixed batch on a subset of files/directories; the wrapper auto-splits vitest suites and tsx scripts
+pnpm run test:real-backend:batch -- spec/integ/real-backend
+pnpm run test:real-backend:batch -- spec/integ/real-backend/device-manager.spec.ts spec/integ/real-backend/step1-account.test.ts
+
+# Avoid running `vitest` directly against the whole `spec/integ/real-backend` directory:
+# that tree contains both Vitest suites and standalone tsx scripts, so use `test:real-backend` or `test:real-backend:batch`.
+
+# Run real-backend tests with custom vitest config
+pnpm run test:real-backend:with-ca -- pnpm exec vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/step1-account.test.ts
 ```
 
 ### Linting
@@ -167,9 +184,8 @@ This fork includes comprehensive real backend integration tests against a synaps
 
 ### Test Configuration
 
-- Backend URL: `http://localhost:28008` (configured in `spec/integ/real-backend/TestConfig.ts`)
+- Backend URL: `https://matrix.test` (configured in `spec/integ/real-backend/TestConfig.ts`)
 - Database: PostgreSQL (accessible for verification tests)
-- Test config: `vitest.real-backend.config.ts`
 
 ### Database Verification
 
@@ -186,9 +202,16 @@ expect(result.rows.length).toBe(1);
 
 Prerequisites:
 
-1. synapse-rust backend running on `localhost:28008`
+1. synapse-rust backend running and reachable at `https://matrix.test`
 2. PostgreSQL database accessible
 3. SDK built (`pnpm build`)
+
+If the backend uses a self-signed certificate, `pnpm run test:real-backend:tsx ...` now auto-injects trust in this order:
+
+1. `NODE_EXTRA_CA_CERTS`
+2. `MATRIX_REAL_BACKEND_CA_CERT`
+3. the leaf certificate fetched from `MATRIX_REAL_BACKEND_BASE_URL`
+4. local mkcert root CA
 
 See `docs/SDK真实服务器测试方案.md` for comprehensive testing documentation.
 

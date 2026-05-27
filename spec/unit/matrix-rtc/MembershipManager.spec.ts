@@ -322,12 +322,12 @@ describe("MembershipManager", () => {
                     expect(client._unstable_restartScheduledDelayedEvent).toHaveBeenCalledTimes(2);
                 }
 
-                // eslint-disable-next-line @vitest/expect-expect
+                // eslint-disable-next-line vitest/expect-expect
                 it("sends a membership event after rate limits during delayed event setup when joining a call", async () => {
                     await testJoin(false);
                 });
 
-                // eslint-disable-next-line @vitest/expect-expect
+                // eslint-disable-next-line vitest/expect-expect
                 it("does not prefix the state key with _ for rooms that support user-owned state events", async () => {
                     await testJoin(true);
                 });
@@ -643,11 +643,11 @@ describe("MembershipManager", () => {
                 expect(sentMembership.expires).toBe(expire * i);
             }
         }
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("extends `expires` when call still active", async () => {
             await testExpires(10_000);
         });
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("extends `expires` using headroom configuration", async () => {
             await testExpires(10_000, 1_000);
         });
@@ -956,7 +956,7 @@ describe("MembershipManager", () => {
     });
 
     describe("updateCallIntent()", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should fail if the user has not joined the call", async () => {
             const manager = new MembershipManager({}, room, client, callSession);
             // After joining we want our own focus to be the one we select.

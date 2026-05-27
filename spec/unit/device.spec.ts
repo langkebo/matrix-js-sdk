@@ -211,6 +211,13 @@ describe("DeviceManager", () => {
             const emitSpy = vi.spyOn(deviceManager, "emit");
             await deviceManager.deleteDevice("device2");
 
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "DELETE",
+                "/devices/device2",
+                undefined,
+                {},
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+            );
             expect(emitSpy).toHaveBeenCalledWith(DeviceEvent.DeviceDeleted, "device2");
         });
 

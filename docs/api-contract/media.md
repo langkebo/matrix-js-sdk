@@ -153,3 +153,26 @@ last_reviewed: 2026-05-11
 - **SDK 主链路覆盖**: 22/22
 - **已绑定生成路由模板**: 8/8 个相对 media 路径调用点
 - **契约覆盖率**: 100%
+
+## DTO Definitions
+
+> Source: `src/media/__generated__/dto.ts`
+
+```typescript
+export interface UploadRequest { name?: string; type?: string; }
+export interface UploadResponse { content_uri: string; }
+export interface MediaConfig { "m.upload.size"?: number; }
+export interface UrlPreview {
+    url?: string; title?: string; description?: string; image_url?: string;
+    image?: string; og_image?: string; "matrix:image"?: string;
+}
+export interface MediaDownloadUrlOptions {
+    filename?: string; allowDirectLinks?: boolean; allowRedirects?: boolean;
+    useAuthentication?: boolean; version?: "v1" | "v3" | "r1";
+}
+export interface MediaThumbnailUrlOptions {
+    width?: number; height?: number; method?: "crop" | "scale";
+    allowDirectLinks?: boolean; allowRedirects?: boolean;
+    useAuthentication?: boolean; animated?: boolean;
+}
+```

@@ -16,7 +16,15 @@ limitations under the License.
 
 import { type WidgetApi } from "matrix-widget-api";
 
+import { extendMatrixClient as extendAccount } from "./account";
+import { extendMatrixClient as extendAccountData } from "./account-data";
+import { extendMatrixClient as extendAuth } from "./auth";
+import { extendMatrixClient as extendCredentials } from "./credentials";
 import { MemoryCryptoStore } from "./crypto/store/memory-crypto-store";
+import { extendMatrixClient as extendDevice } from "./device";
+import { extendMatrixClient as extendIdentityServer } from "./identity-server";
+import { extendMatrixClient as extendPresence } from "./presence";
+import { extendMatrixClient as extendProfile } from "./profile";
 import { MemoryStore } from "./store/memory";
 import { MatrixScheduler } from "./scheduler";
 import { MatrixClient, type ICreateClientOpts } from "./client";
@@ -168,19 +176,63 @@ function amendClientOpts(opts: ICreateClientOpts): ICreateClientOpts {
     return opts;
 }
 
+function installSynchronousCoreManagerExtensions(): void {
+    extendRoom();
+    extendEvent();
+    extendAccount();
+    extendAccountData();
+    extendAuth();
+    extendCredentials();
+    extendDevice();
+    extendIdentityServer();
+    extendPresence();
+    extendProfile();
+}
+
+function shouldSkipAsyncManagerInit(): boolean {
+    return typeof process !== "undefined" && Boolean(process.env?.VITEST);
+}
+
+/** Track whether the Vitest environment is being torn down */
+let isTearingDown = false;
+if (typeof process !== "undefined" && process.env?.VITEST) {
+    const origExit = process.exit?.bind(process);
+    if (typeof origExit === "function") {
+        process.exit = ((code?: number) => {
+            isTearingDown = true;
+            origExit(code);
+        }) as typeof process.exit;
+    }
+}
+
+function isEnvironmentTornDown(): boolean {
+    return isTearingDown;
+}
+
 async function autoInitManagerExtensions(opts: ICreateClientOpts): Promise<void> {
     if (opts.disableDynamicExtensions) {
         return;
     }
 
-    extendRoom();
-    extendEvent();
-
     if (isManagerExtensionsInitialized()) {
         return;
     }
 
-    await initializeManagerExtensions();
+    if (shouldSkipAsyncManagerInit()) {
+        return;
+    }
+
+    try {
+        await initializeManagerExtensions();
+    } catch (error) {
+        // Silently swallow teardown-related import errors to avoid
+        // EnvironmentTeardownError when dynamic imports resolve after
+        // the Vitest environment has been torn down.
+        if (isEnvironmentTornDown() || (error instanceof Error && error.name === "EnvironmentTeardownError")) {
+            return;
+        }
+        throw error;
+    }
 }
 
 export async function initializeManagerExtensions(): Promise<void> {
@@ -198,7 +250,8 @@ export async function initializeManagerExtensions(): Promise<void> {
  * `opts`.
  */
 export function createClient(opts: ICreateClientOpts): MatrixClient {
-    autoInitManagerExtensions(opts);
+    installSynchronousCoreManagerExtensions();
+    void autoInitManagerExtensions(opts);
     return new MatrixClient(amendClientOpts(opts));
 }
 
@@ -223,6 +276,7 @@ export function createRoomWidgetClient(
     opts: ICreateClientOpts,
     sendContentLoaded = true,
 ): MatrixClient {
+    installSynchronousCoreManagerExtensions();
     autoInitManagerExtensions(opts);
     return new RoomWidgetClient(widgetApi, capabilities, roomId, amendClientOpts(opts), sendContentLoaded);
 }

@@ -34,9 +34,9 @@ export interface CryptoBackupInfo {
 }
 
 export interface CryptoBackupManagerEvents {
-    backup_enabled: void;
-    backup_disabled: void;
-    backup_restored: { version: string };
+    backup_enabled: () => void;
+    backup_disabled: () => void;
+    backup_restored: (data: { version: string }) => void;
 }
 
 export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEvents, CryptoBackupManagerEvents> {
@@ -44,27 +44,67 @@ export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEv
         super(client);
     }
 
-    public isCryptoBackupEnabled(): boolean {
-        return this.client.isCryptoBackupEnabled();
+    public async isCryptoBackupEnabled(): Promise<boolean> {
+        const crypto = this.client.getCrypto();
+        if (!crypto) return false;
+        const version = await crypto.getActiveSessionBackupVersion();
+        return version !== null;
     }
 
     public async enableCryptoBackup(passphrase: string): Promise<void> {
-        await this.client.enableCryptoBackup(passphrase);
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) return;
+            // If a passphrase is provided, try to restore from an existing backup first;
+            // otherwise create a new backup.
+            if (passphrase) {
+                try {
+                    await crypto.restoreKeyBackupWithPassphrase(passphrase);
+                } catch {
+                    // If restore fails (no existing backup), create a new one
+                    await crypto.resetKeyBackup();
+                }
+            } else {
+                await crypto.resetKeyBackup();
+            }
+            this.emit("backup_enabled");
+        }, "enableCryptoBackup");
     }
 
     public async disableCryptoBackup(): Promise<void> {
-        await this.client.disableCryptoBackup();
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) return;
+            await crypto.disableKeyStorage();
+            this.emit("backup_disabled");
+        }, "disableCryptoBackup");
     }
 
     public async getCryptoBackup(): Promise<CryptoBackupInfo | null> {
-        return this.withRetry(
-            () => this.client.getCryptoBackup() as Promise<CryptoBackupInfo | null>,
-            "getCryptoBackup",
-        );
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) return null;
+            const keyBackupInfo = await crypto.getKeyBackupInfo();
+            if (!keyBackupInfo) return null;
+            return {
+                version: keyBackupInfo.version ?? "",
+                algorithm: keyBackupInfo.algorithm,
+                auth_data: { ...keyBackupInfo.auth_data } as Record<string, unknown>,
+                etag: keyBackupInfo.etag ?? "",
+                count: keyBackupInfo.count ?? 0,
+                hash: "",
+            };
+        }, "getCryptoBackup");
     }
 
     public async restoreCryptoBackup(backup: CryptoBackupInfo | string, passphrase: string): Promise<void> {
-        await this.client.restoreCryptoBackup(backup, passphrase);
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) return;
+            await crypto.restoreKeyBackupWithPassphrase(passphrase);
+            const version = typeof backup === "string" ? backup : backup.version;
+            this.emit("backup_restored", { version });
+        }, "restoreCryptoBackup");
     }
 }
 

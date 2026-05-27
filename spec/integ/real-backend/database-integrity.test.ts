@@ -4,7 +4,7 @@
  * Tests database schema integrity, field types, indexes, and constraints
  * to ensure the database conforms to DATABASE_FIELD_STANDARDS.md
  *
- * Run with: npx tsx spec/integ/real-backend/database-integrity.test.ts
+ * Run with: pnpm run test:real-backend:tsx -- spec/integ/real-backend/database-integrity.test.ts
  */
 
 import { describe, beforeAll, afterAll, test, expect } from "vitest";
@@ -45,7 +45,14 @@ describe("Database Integrity Tests", () => {
 
     describe("TIMESTAMP Field Type Validation", () => {
         test("users table should use BIGINT for timestamp fields, not TIMESTAMP", async () => {
-            const columns = ["created_ts", "updated_ts", "last_seen_ts"];
+            const columns = [
+                "created_ts",
+                "updated_ts",
+                "invalid_update_at",
+                "password_changed_ts",
+                "password_expires_at",
+                "locked_until",
+            ];
             const dataTypes: Array<string | null> = [];
 
             for (const col of columns) {
@@ -236,7 +243,7 @@ describe("Database Integrity Tests", () => {
                 "is_public",
                 "created_ts",
                 "last_activity_ts",
-                "guest_access",
+                "has_guest_access",
             ];
 
             const columns = await dbVerifier.getTableColumns("rooms");

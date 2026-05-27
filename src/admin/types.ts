@@ -14,6 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/** Dynamic configuration object — structure varies by module/provider */
+export type DynamicConfig = Record<string, unknown>;
+
+export interface LoginWellKnown {
+    /** The homeserver's base URL */
+    "m.homeserver"?: { base_url: string };
+    /** The identity server's base URL */
+    "m.identity_server"?: { base_url: string };
+    /** Additional well-known properties */
+    [key: string]: unknown;
+}
+
+export interface PusherData {
+    /** The URL to use for sending push notifications */
+    url?: string;
+    /** The format of the push notification */
+    format?: string;
+    /** Additional pusher data fields */
+    [key: string]: unknown;
+}
+
 export enum AdminEvent {
     UserCreated = "UserCreated",
     UserDeactivated = "UserDeactivated",
@@ -45,7 +66,7 @@ export interface MediaInfo {
 export interface RoomStateEvent {
     type: string;
     state_key: string;
-    content: Record<string, unknown>;
+    content: import("../models/event").IContent;
     sender: string;
     event_id: string;
 }
@@ -53,7 +74,7 @@ export interface RoomStateEvent {
 export interface RoomMessage {
     event_id: string;
     type: string;
-    content: Record<string, unknown>;
+    content: import("../models/event").IContent;
     sender: string;
     origin_server_ts: number;
 }
@@ -73,21 +94,6 @@ export interface UserSession {
     last_seen_ts?: number;
     last_seen_ip?: string;
     user_agent?: string;
-}
-
-export interface UserInfo {
-    user_id: string;
-    name?: string;
-    displayname?: string;
-    avatar_url?: string;
-    admin?: boolean;
-    deactivated?: boolean;
-    suspended?: boolean;
-    created_ts?: number;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
-    user_type?: string;
-    is_guest?: boolean;
 }
 
 export interface RoomInfo {
@@ -160,7 +166,7 @@ export interface AccountStatus {
 export interface ServerNotice {
     event_id: string;
     user_id: string;
-    content: Record<string, unknown>;
+    content: import("../models/event").IContent;
     sent_ts: number;
 }
 
@@ -200,6 +206,12 @@ export interface FederationDestination {
     updated_ts?: number;
 }
 
+/** 单个联邦目的地的详细信息（GET /federation/destinations/{destination}） */
+export interface AdminFederationDestinationDetail extends FederationDestination {
+    failure_count: number;
+    last_successful_ts?: number;
+}
+
 export interface FederationAdmissionResult {
     server_name: string;
     status: "active" | "rejected";
@@ -237,14 +249,119 @@ export interface RoomStats {
     created_ts?: number;
 }
 
-export interface AdminRegisterResponse {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-    device_id: string;
-    user_id: string;
-    home_server: string;
+export interface AdminRoomVersionResponse {
+    room_version: string;
+    room_id?: string;
 }
+
+export interface AdminRoomBlockStatus {
+    block: boolean;
+    room_id: string;
+    user_id?: string;
+}
+
+export interface AdminEventContextEvent {
+    event_id: string;
+    type: string;
+    content: import("../models/event").IContent;
+    sender: string;
+    origin_server_ts: number;
+    state_key?: string;
+}
+
+export interface AdminEventContext {
+    events: AdminEventContextEvent[];
+    state?: AdminEventContextEvent[];
+    start?: string;
+    end?: string;
+}
+
+export interface AdminForwardExtremity {
+    event_id: string;
+    state_group: number;
+    depth: number;
+    received_ts: number;
+}
+
+export interface AdminTokenSync {
+    stream_ordering: number;
+    room_id: string;
+}
+
+export interface AdminRoomSearchResult {
+    results: AdminEventContextEvent[];
+    count: number;
+    next_batch?: string;
+    highlights?: string[];
+}
+
+export interface AdminRoomListing {
+    room_id: string;
+    name?: string;
+    alias?: string;
+    joined_members?: number;
+    public?: boolean;
+}
+
+export interface AdminRoomListings {
+    rooms: AdminRoomListing[];
+    total?: number;
+    next_batch?: string;
+}
+
+export interface AdminFederationCacheEntry {
+    key: string;
+    value: Record<string, unknown>;
+    size?: number;
+    last_access_ts?: number;
+}
+
+export interface AdminFederationCache {
+    entries: AdminFederationCacheEntry[];
+    total?: number;
+}
+
+export interface AdminFederationDestinationRoom {
+    room_id: string;
+    stream_ordering?: number;
+    event_id?: string;
+    sent_ts?: number;
+}
+
+export interface AdminFederationDestinationRooms {
+    rooms: AdminFederationDestinationRoom[];
+    total: number;
+    next_token?: string;
+}
+
+export interface AdminAccountDetails {
+    user_id: string;
+    name?: string;
+    displayname?: string;
+    avatar_url?: string;
+    admin?: boolean;
+    deactivated?: boolean;
+    suspended?: boolean;
+    created_ts?: number;
+    last_seen_ts?: number;
+    last_seen_ip?: string;
+    user_type?: string;
+    is_guest?: boolean;
+    erased?: boolean;
+}
+
+export interface AdminRegisterResult {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    device_id?: string;
+    user_id: string;
+    home_server?: string;
+    nonce?: string;
+}
+
+/** @deprecated Use AdminRegisterResult instead — fields are optional in practice */
+export type AdminRegisterResponse = AdminRegisterResult;
 
 export interface WhoisResponse {
     user_id: string;
@@ -260,6 +377,248 @@ export interface WhoisResponse {
             }>;
         }
     >;
+}
+
+export interface AdminReport {
+    id: string;
+    event_id?: string;
+    room_id?: string;
+    name?: string;
+    score?: number;
+    reason?: string;
+    received_ts?: number;
+    user_id?: string;
+    sender?: string;
+}
+
+export interface AdminReportPage {
+    reports: AdminReport[];
+    total?: number;
+    next_token?: string;
+}
+
+export interface AdminModuleInfo {
+    module_id: string;
+    module_type?: string;
+    config?: DynamicConfig;
+    is_enabled?: boolean;
+    description?: string;
+}
+
+export interface AdminModulePage {
+    modules: AdminModuleInfo[];
+    total?: number;
+    next_token?: string;
+}
+
+export interface AdminModuleLog {
+    log_id: string;
+    module_id: string;
+    level?: string;
+    message?: string;
+    ts?: number;
+}
+
+export interface AdminModuleLogPage {
+    logs: AdminModuleLog[];
+    total?: number;
+    next_token?: string;
+}
+
+export interface AdminAccountValidityInfo {
+    user_id: string;
+    expiration_ts?: number;
+    is_valid?: boolean;
+}
+
+export interface AdminPasswordAuthProvider {
+    provider_name: string;
+    provider_type: string;
+    config?: DynamicConfig;
+}
+
+export interface AdminPasswordAuthProviderPage {
+    providers: AdminPasswordAuthProvider[];
+    total?: number;
+}
+
+export interface AdminPresenceRoute {
+    route_name: string;
+    route_type: string;
+    config?: DynamicConfig;
+}
+
+export interface AdminPresenceRoutePage {
+    routes: AdminPresenceRoute[];
+    total?: number;
+}
+
+export interface AdminMediaCallback {
+    callback_name: string;
+    callback_type: string;
+    url?: string;
+    config?: DynamicConfig;
+}
+
+export interface AdminMediaCallbackPage {
+    callbacks: AdminMediaCallback[];
+    total?: number;
+}
+
+export interface AdminRateLimitCallback {
+    callback_name: string;
+    callback_type: string;
+    config?: DynamicConfig;
+}
+
+export interface AdminRateLimitCallbackPage {
+    callbacks: AdminRateLimitCallback[];
+    total?: number;
+}
+
+export interface AdminAccountDataCallback {
+    callback_name: string;
+    callback_type: string;
+    config?: DynamicConfig;
+}
+
+export interface AdminAccountDataCallbackPage {
+    callbacks: AdminAccountDataCallback[];
+    total?: number;
+}
+
+export interface AdminInviteList {
+    user_ids: string[];
+}
+
+export interface AdminJitsiConfig {
+    config?: DynamicConfig;
+}
+
+export interface AdminPurgeHistoryResult {
+    purge_id: string;
+}
+
+export interface AdminShutdownRoomResult {
+    kicked_users?: string[];
+    failed_to_kick_users?: string[];
+    local_aliases?: string[];
+    new_room_id?: string;
+}
+
+export interface AdminBackupInfo {
+    backup_id: string;
+    room_id?: string;
+    session_count?: number;
+    key_count?: number;
+    created_ts?: number;
+    version?: string;
+}
+
+export interface AdminBackupPage {
+    backups: AdminBackupInfo[];
+    total: number;
+    total_keys: number;
+    limit: number;
+    offset: number;
+}
+
+export interface AdminExperimentalFeatures {
+    enabled: string[];
+    disabled: string[];
+    total: number;
+    total_flags: number;
+}
+
+export interface AdminLoginAsUserRequest {
+    type?: string;
+    device_id?: string;
+    initial_device_display_name?: string;
+}
+
+export interface AdminLoginAsUserResponse {
+    access_token: string;
+    device_id: string;
+    user_id: string;
+    well_known?: LoginWellKnown;
+}
+
+export interface AdminServerConfig {
+    server_name: string;
+    public_baseurl?: string;
+    registration_enabled?: boolean;
+    federation_enabled?: boolean;
+    default_identity_server?: string;
+    [key: string]: unknown;
+}
+
+export interface AdminInfoResponse {
+    server_version: string;
+    python_version: string;
+    uptime_seconds?: number;
+    total_users?: number;
+    total_rooms?: number;
+    [key: string]: unknown;
+}
+
+export interface BatchCreateUsersRequest {
+    users: Array<{
+        user_id: string;
+        password?: string;
+        displayname?: string;
+        admin?: boolean;
+    }>;
+}
+
+export interface BatchCreateUsersResponse {
+    created: string[];
+    errors?: Array<{ user_id: string; error: string }>;
+}
+
+export interface BatchDeactivateUsersRequest {
+    user_ids: string[];
+    erase?: boolean;
+}
+
+export interface BatchDeactivateUsersResponse {
+    deactivated: string[];
+    errors?: Array<{ user_id: string; error: string }>;
+}
+
+export interface UpdateAccountDetailsRequest {
+    displayname?: string;
+    avatar_url?: string;
+    password?: string;
+    suspended?: boolean;
+    threepids?: Array<{ medium: string; address: string }>;
+    external_ids?: Array<{ auth_provider: string; external_id: string }>;
+}
+
+export interface UpdateAccountDetailsResponse {
+    updated: boolean;
+    [key: string]: unknown;
+}
+
+export interface AdminLogoutResponse {
+    device_id?: string;
+    [key: string]: unknown;
+}
+
+export interface AdminEvictResponse {
+    evicted: boolean;
+    [key: string]: unknown;
+}
+
+export class AdminApiError extends Error {
+    constructor(
+        message: string,
+        public readonly code: string,
+        public readonly statusCode: number,
+        public readonly details?: Record<string, unknown>,
+    ) {
+        super(message);
+        this.name = "AdminApiError";
+    }
 }
 
 export interface RetentionPolicy {
@@ -368,7 +727,6 @@ export interface ApplicationServiceInfo {
     hs_token?: string;
     url?: string;
     sender_localpart?: string;
-    [key: string]: unknown;
 }
 
 export interface ApplicationServicePage {
@@ -403,7 +761,7 @@ export interface UserPusher {
     device_display_name?: string;
     profile_tag?: string;
     lang?: string;
-    data?: Record<string, unknown>;
+    data?: PusherData;
 }
 
 export interface SpacePage {
@@ -413,12 +771,10 @@ export interface SpacePage {
 
 export interface SpaceUser {
     user_id: string;
-    [key: string]: unknown;
 }
 
 export interface SpaceRoom {
     room_id: string;
-    [key: string]: unknown;
 }
 
 export interface SecurityEvent {
@@ -426,7 +782,6 @@ export interface SecurityEvent {
     event_type?: string;
     user_id?: string;
     ts?: number;
-    [key: string]: unknown;
 }
 
 export interface SecurityEventPage {
@@ -439,30 +794,16 @@ export interface IpBlock {
     cidr?: number;
     reason?: string;
     expire_at?: number;
-    [key: string]: unknown;
 }
 
 export interface ServerLogEntry {
     level: string;
     ts: number;
     message: string;
-    [key: string]: unknown;
 }
 
 export interface PaginatedResponse<T> {
     items: T[];
     nextToken?: string;
     total?: number;
-}
-
-export class AdminApiError extends Error {
-    constructor(
-        message: string,
-        public readonly code: string,
-        public readonly statusCode: number,
-        public readonly details?: Record<string, unknown>,
-    ) {
-        super(message);
-        this.name = "AdminApiError";
-    }
 }

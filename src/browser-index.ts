@@ -22,10 +22,8 @@ export * from "./matrix";
 
 type BrowserMatrix = typeof import("./matrix");
 declare global {
-    /* eslint-disable no-var, camelcase */
     var __js_sdk_entrypoint: boolean;
     var matrixcs: BrowserMatrix;
-    /* eslint-enable no-var */
 }
 
 if (globalThis.__js_sdk_entrypoint) {

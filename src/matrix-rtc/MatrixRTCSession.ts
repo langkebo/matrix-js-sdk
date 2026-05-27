@@ -299,16 +299,6 @@ export class MatrixRTCSession extends TypedEventEmitter<
     }
 
     /**
-     * The callId (sessionId) of the call.
-     *
-     * It can be undefined since the callId is only known once the first membership joins.
-     * The callId is the property that, per definition, groups memberships into one call.
-     * @deprecated use `slotId` instead.
-     */
-    public get callId(): string | undefined {
-        return this.slotDescription?.id;
-    }
-    /**
      * The slotId of the call.
      * `{application}#{appSpecificId}`
      * It can be undefined since the slotId is only known once the first membership joins.
@@ -364,17 +354,6 @@ export class MatrixRTCSession extends TypedEventEmitter<
         opts?: SessionMembershipsForSlotOpts,
     ): MatrixRTCSession {
         return new MatrixRTCSession(client, room, slotDescription, opts);
-    }
-
-    /**
-     * WARN: this can in theory only be a subset of the room with the properties required by
-     * this class.
-     * Outside of tests this most likely will be a full room, however.
-     * @deprecated Relying on a full Room object being available here is an anti-pattern. You should be tracking
-     * the room object in your own code and passing it in when needed.
-     */
-    public get room(): Room {
-        return this.roomSubset as Room;
     }
 
     /**
@@ -568,24 +547,6 @@ export class MatrixRTCSession extends TypedEventEmitter<
     }
 
     /**
-     *
-     * @param fociPreferred
-     * @param multiSfuFocus
-     * @param joinConfig
-     * @deprecated use the joinRTCSession method instead
-     */
-    public joinRoomSession(
-        fociPreferred: Transport[],
-        multiSfuFocus?: Transport,
-        joinConfig?: JoinSessionConfig,
-    ): void {
-        const [userId, deviceId] = [this.client.getUserId()!, this.client.getDeviceId()!];
-        // Known limitation: memberId generation should migrate to UUID format.
-        const memberId = `${userId}:${deviceId}`;
-        this.joinRTCSession({ userId, deviceId, memberId }, fociPreferred, multiSfuFocus, joinConfig);
-    }
-
-    /**
      * Announces this user and device as having left the MatrixRTC session
      * and stops scheduled updates.
      * This will not unsubscribe from updates: remember to call unsubscribe() separately if
@@ -609,23 +570,6 @@ export class MatrixRTCSession extends TypedEventEmitter<
         this.emit(MatrixRTCSessionEvent.JoinStateChanged, false);
 
         return await leavePromise;
-    }
-    /**
-     * This returns the focus in use by the oldest membership.
-     * Do not use since this might be just the focus for the oldest membership. others might use a different focus.
-     * @deprecated use `member.getTransport(session.getOldestMembership())` instead for the specific member you want to get the focus for.
-     */
-    public getFocusInUse(): Transport | undefined {
-        const oldestMembership = this.getOldestMembership();
-        return oldestMembership?.getTransport(oldestMembership);
-    }
-
-    /**
-     * The used focusActive of the oldest membership (to find out the selection type multi-sfu or oldest membership active focus)
-     * @deprecated does not work with m.rtc.member. Do not rely on it.
-     */
-    public getActiveFocus(): Transport | undefined {
-        return this.getOldestMembership()?.getFocusActive();
     }
     public getOldestMembership(): CallMembership | undefined {
         return this.memberships[0];
@@ -771,7 +715,6 @@ export class MatrixRTCSession extends TypedEventEmitter<
      * Call this when something changed that may impacts the current MatrixRTC members in this session.
      */
     // We allow this name schema since this function should only be used for testing purposes.
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     public _onRTCSessionMemberUpdate = async (): Promise<void> => {
         await this.recalculateSessionMembers();
     };
@@ -806,7 +749,7 @@ export class MatrixRTCSession extends TypedEventEmitter<
         const oldMemberships = this.memberships;
 
         this.memberships = await MatrixRTCSession.sessionMembershipsForSlot(
-            this.room,
+            this.roomSubset as Room,
             slotDescriptionToId(this.slotDescription),
             this.calculateMembershipsOpts,
         );

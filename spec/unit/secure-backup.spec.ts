@@ -118,9 +118,8 @@ describe("SecureBackupManager", () => {
 
         it("should restore from secure backup", async () => {
             const mockResponse = {
-                success: true,
-                key_count: 100,
-                message: "Restore completed",
+                recovered_keys: 100,
+                total_keys: 100,
             };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
 

@@ -27,14 +27,28 @@ limitations under the License.
  * - 用户只能访问自己的数据
  */
 
-import { MatrixClient } from "../client";
+import { MatrixClient, ClientEvent } from "../client";
 import { MatrixEvent } from "../models/event";
-import { Method } from "../http-api/index";
+import { Method, retryNetworkOperation } from "../http-api/index";
+import { type EmptyObject } from "../@types/common";
+import { EventType, type AccountDataEvents, type WritableAccountDataEvents } from "../@types/event";
 import {
     buildRoomAccountDataPath,
     buildUserAccountDataListPath,
     buildUserAccountDataPath,
+    setUserAccountDataRequest,
+    getUserAccountDataRequest,
+    deleteUserAccountDataRequest,
+    selectDeleteAccountDataRequestOptions,
 } from "../client-account-data-requests";
+import {
+    getAccountDataFromStoreWhenReady,
+    isAccountDataNotFoundError,
+    shouldFallbackDeleteAccountDataToEmptyContent,
+} from "../client-account-data-core";
+import { Feature } from "../feature";
+import { deepCompare } from "../utils";
+import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
@@ -78,64 +92,104 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     }
 
     /**
-     * Set account data
+     * Set account data with remote echo waiting.
      *
-     * @param eventType - 数据类型，最大长度 128 字符
-     * @param content - 数据内容，序列化后最大 64KB
-     * @throws Error 当 eventType 过长或 content 过大时
+     * @param eventType - The event type
+     * @param content - The contents object for the event
+     * @returns Promise which resolves: an empty object
      */
-    public async setAccountData<K extends string>(eventType: K, content: Record<string, unknown>): Promise<void> {
-        this.validateDataType(eventType);
-        this.validateContentSize(content);
+    public async setAccountData<K extends keyof WritableAccountDataEvents>(
+        eventType: K,
+        content: AccountDataEvents[K] | Record<string, never>,
+    ): Promise<EmptyObject> {
+        this.validateDataType(eventType as string);
+        this.validateContentSize(content as Record<string, unknown>);
+
+        // If the sync loop is not running, fall back to setAccountDataRaw.
+        if (!this.client.clientRunning) {
+            logger.warn(
+                "Calling `setAccountData` before the client is started: `getAccountData` may return inconsistent results.",
+            );
+            return await retryNetworkOperation(5, () => this.setAccountDataRaw(eventType, content));
+        }
+
+        // If the account data is already correct, then we cannot expect an update over sync, and the operation
+        // is, in any case, a no-op.
+        const existingData = this.client.store.getAccountData(eventType as string);
+        if (existingData && deepCompare(existingData.event.content, content)) return {};
+
+        // Create a promise which will resolve when the update is received
+        const updatedResolvers = Promise.withResolvers<void>();
+        function accountDataListener(event: MatrixEvent): void {
+            if (event.getType() === eventType) updatedResolvers.resolve();
+        }
+        this.client.addListener(ClientEvent.AccountData, accountDataListener);
 
         try {
-            await this.client.setAccountData(eventType, content);
-            const event = new MatrixEvent({ type: eventType, content });
-            this.emit(AccountDataEvent.AccountDataUpdated, eventType, event);
-        } catch (e) {
-            const error = this.normalizeError(e, "setAccountData");
-            this.emit(AccountDataEvent.AccountDataError, error);
-            throw error;
+            const result = await retryNetworkOperation(5, () => this.setAccountDataRaw(eventType, content));
+            await updatedResolvers.promise;
+            return result;
+        } finally {
+            this.client.removeListener(ClientEvent.AccountData, accountDataListener);
         }
     }
 
-    public setAccountDataRaw<K extends string>(eventType: K, content: Record<string, unknown>): void {
-        this.client.setAccountDataRaw(eventType, content);
+    /**
+     * Set account data event for the current user, without waiting for the remote echo.
+     *
+     * @param eventType - The event type
+     * @param content - the contents object for the event
+     */
+    public setAccountDataRaw<K extends keyof WritableAccountDataEvents>(
+        eventType: K,
+        content: AccountDataEvents[K] | Record<string, never>,
+    ): Promise<EmptyObject> {
+        return setUserAccountDataRequest(
+            this.client.credentials.userId,
+            eventType as string,
+            content as Record<string, unknown>,
+            this.client.http.authedRequest.bind(this.client.http),
+        );
     }
 
     /**
-     * Get account data
+     * Get account data event of given type for the current user.
+     * @param eventType - The event type
+     * @returns The contents of the given account data event
      */
-    public getAccountData<K extends string>(eventType: K): MatrixEvent | undefined {
-        return this.client.store.getAccountData(eventType);
+    public getAccountData<K extends keyof AccountDataEvents>(eventType: K): MatrixEvent | undefined {
+        return this.client.store.getAccountData(eventType as string);
     }
 
     /**
-     * Get account data from server
-     *
-     * @param eventType - 数据类型
-     * @returns MatrixEvent 或 undefined（当数据不存在时）
-     * @throws Error 当请求失败时（404 表示数据不存在，除了 m.push_rules）
-     *
-     * 特殊处理:
-     * - m.push_rules 不存在时返回默认推送规则骨架
+     * Get account data event of given type for the current user. This variant
+     * gets account data directly from the homeserver if the local store is not
+     * ready, which can be useful very early in startup before the initial sync.
+     * @param eventType - The event type
+     * @returns Promise which resolves: The contents of the given account data event.
+     * @returns Rejects: with an error response.
      */
-    public async getAccountDataFromServer<K extends string>(eventType: K): Promise<MatrixEvent | undefined> {
-        const path = buildUserAccountDataPath(this.client.credentials.userId!, eventType);
-
+    public async getAccountDataFromServer<K extends keyof AccountDataEvents>(
+        eventType: K,
+    ): Promise<AccountDataEvents[K] | null> {
+        const localContent = getAccountDataFromStoreWhenReady<AccountDataEvents[K]>(
+            this.client.isInitialSyncComplete(),
+            this.client.store.getAccountData(eventType as string),
+        );
+        if (localContent !== undefined) {
+            return localContent;
+        }
         try {
-            const response = await this.client.http.authedRequest<Record<string, unknown>>(Method.Get, path);
-            const event = new MatrixEvent({
-                type: eventType,
-                content: response,
-            });
-            this.client.store?.storeAccountDataEvents?.([event]);
-            this.emit(AccountDataEvent.AccountDataUpdated, eventType, event);
-            return event;
+            return await getUserAccountDataRequest<AccountDataEvents[K]>(
+                this.client.credentials.userId,
+                eventType as string,
+                this.client.http.authedRequest.bind(this.client.http),
+            );
         } catch (e) {
-            const error = this.normalizeError(e, "getAccountDataFromServer");
-            this.emit(AccountDataEvent.AccountDataError, error);
-            throw error;
+            if (isAccountDataNotFoundError(e)) {
+                return null;
+            }
+            throw e;
         }
     }
 
@@ -228,21 +282,56 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     }
 
     /**
-     * Delete account data
+     * Delete account data.
+     * @param eventType - The event type to delete
      */
-    public async deleteAccountData(eventType: string): Promise<void> {
-        const path = buildUserAccountDataPath(this.client.credentials.userId!, eventType);
-
-        try {
-            await this.client.http.authedRequest(Method.Delete, path);
-            const event = new MatrixEvent({ type: eventType, content: {} });
-            this.client.store?.storeAccountDataEvents?.([event]);
-            this.emit(AccountDataEvent.AccountDataUpdated, eventType, event);
-        } catch (e) {
-            const error = this.normalizeError(e, "deleteAccountData");
-            this.emit(AccountDataEvent.AccountDataError, error);
-            throw error;
+    public async deleteAccountData(eventType: keyof WritableAccountDataEvents): Promise<void> {
+        const msc3391DeleteAccountDataServerSupport = this.client.canSupport.get(Feature.AccountDataDeletion);
+        // if deletion is not supported overwrite with empty content
+        if (shouldFallbackDeleteAccountDataToEmptyContent(msc3391DeleteAccountDataServerSupport)) {
+            await this.setAccountData(eventType, {});
+            return;
         }
+        return await deleteUserAccountDataRequest(
+            this.client.getSafeUserId(),
+            eventType as string,
+            this.client.http.authedRequest.bind(this.client.http),
+            selectDeleteAccountDataRequestOptions(msc3391DeleteAccountDataServerSupport),
+        );
+    }
+
+    /**
+     * Gets the users that are ignored by this client
+     * @returns The array of users that are ignored (empty if none)
+     */
+    public getIgnoredUsers(): string[] {
+        const event = this.getAccountData(EventType.IgnoredUserList);
+        const ignoredUsers = event?.getContent()["ignored_users"];
+        if (!ignoredUsers || typeof ignoredUsers !== "object") return [];
+        return Object.keys(ignoredUsers);
+    }
+
+    /**
+     * Sets the users that the current user should ignore.
+     * @param userIds - the user IDs to ignore
+     * @returns Promise which resolves: an empty object
+     * @returns Rejects: with an error response.
+     */
+    public setIgnoredUsers(userIds: string[]): Promise<EmptyObject> {
+        const content = { ignored_users: {} as Record<string, EmptyObject> };
+        userIds.forEach((u) => {
+            content.ignored_users[u] = {};
+        });
+        return this.setAccountData(EventType.IgnoredUserList, content);
+    }
+
+    /**
+     * Gets whether or not a specific user is being ignored by this client.
+     * @param userId - the user ID to check
+     * @returns true if the user is ignored, false otherwise
+     */
+    public isUserIgnored(userId: string): boolean {
+        return this.getIgnoredUsers().includes(userId);
     }
 }
 

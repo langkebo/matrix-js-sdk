@@ -161,3 +161,65 @@ last_reviewed: 2026-05-11
 - **SDK 主路径覆盖**: 33/33
 - **已绑定生成路由模板**: 21/21 个 `KeyBackupManager` v3 调用点
 - **契约覆盖率**: 100%
+
+## DTO Definitions
+
+> Source: `src/key-backup/__generated__/dto.ts`
+
+```typescript
+export interface EncryptedData { ciphertext: string; ephemeral: string; mac: string; }
+export interface AuthData { public_key: string; signatures?: Record<string, Record<string, string>>; }
+export interface SessionData {
+    first_message_index: number; forwarded_count: number; is_verified: boolean;
+    session_data: EncryptedData | Record<string, unknown>;
+}
+export interface BackupVersionInfo {
+    version: string; algorithm: string; auth_data: AuthData | Record<string, unknown>;
+    count?: number; etag?: string;
+}
+export interface RoomSessions { sessions: Record<string, SessionData>; }
+export interface RoomKeyBackup { rooms: Record<string, RoomSessions>; etag: string; }
+export interface RecoveryProgress {
+    user_id: string; version: string; total_keys: number; recovered_keys: number;
+    status: string; started_ts: number; updated_ts: number;
+}
+export interface BatchRecoverResult {
+    rooms: Record<string, RoomSessions>; total_sessions: number;
+    has_more: boolean; next_batch?: string;
+}
+export interface ExportedRoomKey {
+    room_id: string; session_id: string;
+    session_data: EncryptedData | Record<string, unknown>;
+    first_message_index: number; forwarded_count: number; is_verified: boolean;
+}
+export interface ExportResult { room_keys: ExportedRoomKey[]; version: string; }
+export interface ImportResult { count: number; failed: number; total: number; }
+export interface VerifyResult {
+    valid: boolean; algorithm: string; auth_data: AuthData | Record<string, unknown>;
+    key_count: number; signatures?: Record<string, Record<string, string>>;
+}
+export interface PutRoomKeysBody { rooms: Record<string, RoomSessions>; }
+export interface PutRoomSessionsBody { sessions: Record<string, SessionData>; }
+export interface KeyBackupAuthData {
+    type: string; session?: string; password?: string; token?: string;
+    user?: string; [key: string]: unknown;
+}
+export interface CreateBackupVersionRequest {
+    algorithm: string; auth_data?: AuthData | Record<string, unknown>; auth?: KeyBackupAuthData;
+}
+export interface UpdateBackupVersionRequest { auth_data: AuthData | Record<string, unknown>; }
+export interface RecoverKeysRequest { version: string; rooms?: string[]; }
+export interface BatchRecoverRequest { version: string; room_ids: string[]; session_limit?: number; }
+export interface ImportKeysRequest { room_keys: ExportedRoomKey[]; version?: string; }
+export interface CreateBackupVersionResponse { version: string; }
+export interface DeleteBackupVersionResponse { deleted: boolean; version: string; }
+export interface UploadKeysResult { count: number; etag: string; }
+export interface RecoverKeysResult {
+    rooms: Record<string, RoomSessions>; total_keys: number; recovered_keys: number;
+}
+export interface RecoverRoomKeysResult { room_id: string; sessions: SessionData[]; }
+export interface RecoverSessionKeyResult {
+    room_id: string; session_id: string;
+    session_data: EncryptedData | Record<string, unknown>;
+}
+```

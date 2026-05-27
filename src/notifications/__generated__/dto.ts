@@ -9,11 +9,28 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
+export interface NotificationEvent {
+    event_id: string;
+    type: string;
+    content: Record<string, unknown>;
+    sender: string;
+    origin_server_ts: number;
+    room_id?: string;
+    state_key?: string;
+}
+
+export interface NotificationAction {
+    /** Action type: "notify", "dont_notify", "coalesce", or a tweak object */
+    set_tweak?: string;
+    value?: unknown;
+    [key: string]: unknown;
+}
+
 export interface INotificationsResponse {
     next_token?: string;
     notifications: Array<{
-        actions: unknown[];
-        event: Record<string, unknown>;
+        actions: NotificationAction[];
+        event: NotificationEvent;
         profile_tag?: string;
         read: boolean;
         room_id: string;

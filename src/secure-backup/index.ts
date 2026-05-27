@@ -77,9 +77,8 @@ export interface SecureBackupKeysResponse {
 }
 
 export interface SecureBackupRestoreResponse {
-    success: boolean;
-    key_count: number;
-    message?: string;
+    recovered_keys: number;
+    total_keys: number;
 }
 
 export interface SecureBackupVerifyResponse {
@@ -95,6 +94,26 @@ export class SecureBackupManager extends BaseManager {
             ttl: 5 * 60 * 1000,
             name: "index.ts-securebackupinfo",
         });
+    }
+
+    /**
+     * 列出所有安全备份
+     * GET /_matrix/client/v3/keys/backup/secure
+     */
+    async listSecureBackups(): Promise<Record<string, unknown>> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<Record<string, unknown>>(
+                    Method.Get,
+                    sb("/keys/backup/secure"),
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "listSecureBackups");
+        } catch (error) {
+            throw this.normalizeError(error, "listSecureBackups");
+        }
     }
 
     /**

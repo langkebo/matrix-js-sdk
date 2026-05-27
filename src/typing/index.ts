@@ -7,6 +7,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import type { TypingPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
+import type { EmptyObject } from "../@types/common";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -50,6 +51,39 @@ export class TypingManager extends BaseManager {
     }
 
     /**
+     * Send a typing notification to a room.
+     * PUT /_matrix/client/v3/rooms/{roomId}/typing/{userId}
+     *
+     * @param roomId - The room ID
+     * @param isTyping - Whether the user is typing
+     * @param timeoutMs - The length of time in milliseconds to mark this user as typing
+     * @returns Promise which resolves to an empty object if successful
+     */
+    async sendTyping(roomId: string, isTyping: boolean, timeoutMs: number): Promise<EmptyObject> {
+        if (this.client.isGuest()) {
+            return {}; // guests cannot send typing notifications so don't bother.
+        }
+        const userId = this.client.getUserId();
+        if (!userId) {
+            throw new ValidationError("User ID is required");
+        }
+        const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
+        const data: Record<string, unknown> = { typing: isTyping };
+        if (isTyping) {
+            data.timeout = timeoutMs ? timeoutMs : 20000;
+        }
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<EmptyObject>(
+                Method.Put,
+                path,
+                undefined,
+                data,
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "sendTyping");
+    }
+
+    /**
      * 开始打字提示
      *
      * @param roomId - 房间 ID（格式：!localpart:homeserver）
@@ -87,7 +121,7 @@ export class TypingManager extends BaseManager {
             if (!userId) {
                 throw new ValidationError("User ID is required");
             }
-            await this.client.sendTyping(roomId, true, timeout);
+            await this.sendTyping(roomId, true, timeout);
 
             // 设置自动停止打字
             const timer = setTimeout(async () => {
@@ -122,7 +156,7 @@ export class TypingManager extends BaseManager {
         }
 
         try {
-            await this.client.sendTyping(roomId, false, 0);
+            await this.sendTyping(roomId, false, 0);
         } catch (e) {
             logger.warn("TypingManager.stopTyping failed:", this.normalizeError(e, "stopTyping"));
         }
@@ -244,7 +278,7 @@ export class TypingManager extends BaseManager {
                 Method.Post,
                 tp("/rooms/typing"),
                 undefined,
-                { room_ids: rooms },
+                { rooms: rooms },
                 { prefix: ClientPrefix.V3 },
             );
         }, "fetchRoomsTyping");
@@ -287,12 +321,22 @@ export class TypingManager extends BaseManager {
 declare module "../client.ts" {
     interface MatrixClient {
         getTypingManager(): TypingManager;
+        sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<any>;
     }
 }
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTypingManager = function (): TypingManager {
         return getOrCreateManager(this, "typing", () => new TypingManager(this));
+    };
+
+    MatrixClient.prototype.sendTyping = function (
+        this: MatrixClient,
+        roomId: string,
+        isTyping: boolean,
+        timeoutMs?: number,
+    ): Promise<any> {
+        return this.getTypingManager().sendTyping(roomId, isTyping, timeoutMs ?? 30000);
     };
 }
 

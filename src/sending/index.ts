@@ -28,7 +28,6 @@ export interface IImageInfo {
     size?: number;
     thumbnail_url?: string;
     thumbnail_info?: IImageInfo;
-    [key: string]: unknown;
 }
 
 export interface IFileContent {
@@ -44,7 +43,6 @@ export interface IFileContent {
         hashes: Record<string, string>;
         v: string;
     };
-    [key: string]: unknown;
 }
 
 export interface SendingManagerEvents {
@@ -286,7 +284,7 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
 
     public async sendFile(roomId: string, content: IFileContent, txnId?: string): Promise<ISendEventResponse> {
         return this.withRetry(
-            () => this.client.sendMessage(roomId, null, content as unknown as RoomMessageEventContent, txnId),
+            () => this.client.sendMessage(roomId, null, content as RoomMessageEventContent, txnId),
             "sendFile",
         );
     }

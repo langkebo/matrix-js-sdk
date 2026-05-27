@@ -40,24 +40,14 @@ export class EventProcessingManager extends BaseManager<
 
     public async processEvent(event: MatrixEvent): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        processEvent: (event: MatrixEvent) => Promise<void>;
-                    }
-                ).processEvent(event),
+            () => this.client.processEvent(event),
             "processEvent",
         );
     }
 
     public async handleEvent(event: MatrixEvent): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        handleEvent: (event: MatrixEvent) => Promise<void>;
-                    }
-                ).handleEvent(event),
+            () => this.client.handleEvent(event),
             "handleEvent",
         );
     }

@@ -126,7 +126,6 @@ export class LocalStorageCryptoStore extends MemoryCryptoStore implements Crypto
         func(count);
     }
 
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     private _getEndToEndSessions(deviceKey: string): Record<string, ISessionInfo> {
         const sessions = getJsonItem(this.store, keyEndToEndSessions(deviceKey));
         const fixedSessions: Record<string, ISessionInfo> = {};
@@ -397,10 +396,10 @@ function getJsonItem<T>(store: Storage, key: string): T | null {
         // if the key is absent, store.getItem() returns null, and
         // JSON.parse(null) === null, so this returns null.
         return JSON.parse(store.getItem(key)!);
-        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
     } catch (e) {
-        logger.log("Error: Failed to get key %s: %s", key, (<Error>e).message);
-        logger.log((<Error>e).stack);
+        // INTEGRITY: Corrupt or tampered crypto store data is a security concern.
+        // Log at error level so operators can detect data integrity issues.
+        logger.error("Crypto store integrity: Failed to parse key %s - data may be corrupt", key, e);
     }
     return null;
 }

@@ -139,7 +139,6 @@ export type AuthDict =
     | RecaptchaDict
     | EmailIdentityDict
     | { type: Exclude<string, AuthType>; [key: string]: unknown }
-    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     | {};
 
 export class NoAuthFlowFoundError extends Error {
@@ -147,7 +146,6 @@ export class NoAuthFlowFoundError extends Error {
 
     public constructor(
         m: string,
-        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         public readonly required_stages: string[],
         public readonly flows: UIAFlow[],
     ) {

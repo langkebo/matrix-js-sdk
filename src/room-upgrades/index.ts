@@ -46,41 +46,23 @@ export class RoomUpgradesManager extends BaseManager<keyof RoomUpgradesManagerEv
     }
 
     public getRoomUpgradeHistory(roomId: string): IRoomUpgradeHistory[] {
-        return (
-            this.client as unknown as {
-                getRoomUpgradeHistory: (roomId: string) => IRoomUpgradeHistory[];
-            }
-        ).getRoomUpgradeHistory(roomId);
+        return this.client.getRoomUpgradeHistory(roomId);
     }
 
     public async upgradeRoom(roomId: string, newVersion: string): Promise<IUpgradeRoomResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        upgradeRoom: (roomId: string, newVersion: string) => Promise<IUpgradeRoomResponse>;
-                    }
-                ).upgradeRoom(roomId, newVersion),
+            () => this.client.upgradeRoom(roomId, newVersion),
             "upgradeRoom",
         );
     }
 
     public canUpgradeRoom(roomId: string): boolean {
-        return (
-            this.client as unknown as {
-                canUpgradeRoom: (roomId: string) => boolean;
-            }
-        ).canUpgradeRoom(roomId);
+        return this.client.canUpgradeRoom(roomId);
     }
 
     public async getRecommendedRoomVersion(): Promise<string> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getRecommendedRoomVersion: () => Promise<string>;
-                    }
-                ).getRecommendedRoomVersion(),
+            () => this.client.getRecommendedRoomVersion(),
             "getRecommendedRoomVersion",
         );
     }

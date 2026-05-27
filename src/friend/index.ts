@@ -195,6 +195,13 @@ interface IFriendListResponse {
 
 interface IFriendsResponse extends IFriendListResponse {
     friends?: Friend[];
+    items?: Friend[];
+    limit?: number;
+    offset?: number;
+    next_offset?: number;
+    version?: number;
+    cached?: boolean;
+    generated_ts?: number;
 }
 
 interface IFriendRequestsResponse {
@@ -538,7 +545,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
                 this.friendListRoomId = response.room_id;
             }
 
-            const friends = (response.friends || []).map(normalizeFriend);
+            const friends = (response.friends || response.items || []).map(normalizeFriend);
             this.friends.clear();
             friends.forEach((f) => this.friends.set(f.user_id, f));
 
@@ -781,22 +788,22 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
      * 创建好友分组
      *
      * @param name - 分组名称
-     * @returns 分组 ID
+     * @returns 创建的好友分组对象
      *
      * @example
      * ```typescript
      * // 创建好友分组
-     * const groupId = await friendManager.createFriendGroup("Work Friends");
-     * console.log("Group created:", groupId);
+     * const group = await friendManager.createFriendGroup("Work Friends");
+     * console.log("Group created:", group.id);
      *
      * // 添加好友到分组
-     * await friendManager.addToFriendGroup(groupId, "@alice:example.com");
+     * await friendManager.addToFriendGroup(group.id, "@alice:example.com");
      * ```
      *
      * @throws {ValidationError} 如果分组名称为空或过长
      * @throws {ApiError} 如果 API 调用失败
      */
-    async createFriendGroup(name: string): Promise<string> {
+    async createFriendGroup(name: string): Promise<FriendGroup> {
         if (!name || name.length === 0) {
             throw new InvalidParamError("Group name is required");
         }
@@ -812,15 +819,16 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             { prefix: ClientPrefix.V1 },
         );
 
-        const groupId = response.id;
-        this.groups[groupId] = {
-            id: groupId,
+        const group: FriendGroup = {
+            id: response.id,
             name: response.name ?? name,
             members: response.members ?? [],
             created_at: response.created_at,
+            updated_ts: response.updated_ts,
         };
+        this.groups[group.id] = group;
 
-        return groupId;
+        return group;
     }
 
     async addToFriendGroup(groupId: string, userId: string): Promise<void> {
@@ -1032,18 +1040,6 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         return Array.from(this.outgoingRequests.values());
     }
 
-    async getFriendsList(): Promise<Friend[]> {
-        return this.getFriends();
-    }
-
-    async addFriend(userId: string, reason?: string): Promise<void> {
-        await this.sendFriendRequest(userId, reason);
-    }
-
-    async declineFriendRequest(userId: string): Promise<void> {
-        return this.rejectFriendRequest(userId);
-    }
-
     /**
      * 获取好友信息
      *
@@ -1091,9 +1087,11 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 
     async sync(): Promise<void> {
-        await this.getFriends();
-        await this.getIncomingRequests();
-        await this.getOutgoingRequests();
+        await Promise.all([
+            this.getFriends(),
+            this.getIncomingRequests(),
+            this.getOutgoingRequests(),
+        ]);
         this.emit(FriendEvent.SyncComplete);
     }
 
@@ -1101,10 +1099,12 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         if (this.initialized) return;
 
         try {
-            await this.getFriends();
-            await this.getIncomingRequests();
-            await this.getOutgoingRequests();
-            await this.getFriendGroups();
+            await Promise.all([
+                this.getFriends(),
+                this.getIncomingRequests(),
+                this.getOutgoingRequests(),
+                this.getFriendGroups(),
+            ]);
             this.initialized = true;
         } catch (e) {
             logger.warn("FriendManager.start failed:", e);

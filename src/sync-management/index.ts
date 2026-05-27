@@ -16,9 +16,10 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
-import { SyncState } from "../sync";
+import { SyncApi, SyncState, type ISyncStateData } from "../sync";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { logger } from "../logger";
 
 export interface SyncManagerEvents {
     sync_started: void;
@@ -28,6 +29,9 @@ export interface SyncManagerEvents {
 }
 
 export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManagerEvents> {
+    private syncedLeftRooms = false;
+    private syncLeftRoomsPromise: Promise<Room[]> | undefined;
+
     constructor(client: MatrixClient) {
         super(client);
     }
@@ -37,11 +41,15 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 
     public getSyncState(): SyncState | null {
-        return this.client.getSyncState();
+        return (this.client as any).syncApi?.getSyncState() ?? null;
     }
 
-    public getSyncStateData(): unknown {
-        return this.client.getSyncStateData();
+    public getSyncStateData(): ISyncStateData | null {
+        const syncApi = (this.client as any).syncApi;
+        if (!syncApi) {
+            return null;
+        }
+        return syncApi.getSyncStateData();
     }
 
     public isSyncing(): boolean {
@@ -49,7 +57,7 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 
     public getRooms(): Room[] {
-        return this.client.getRooms();
+        return this.client.store.getRooms();
     }
 
     public async getJoinedRooms(): Promise<string[]> {
@@ -60,11 +68,39 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 
     public getInvitedRooms(): Room[] {
-        return this.client.getRooms().filter((r) => r.getMyMembership() === "invite");
+        return this.client.store.getRooms().filter((r) => r.getMyMembership() === "invite");
     }
 
     public getLeftRooms(): Room[] {
-        return this.client.getRooms().filter((r) => r.getMyMembership() === "leave");
+        return this.client.store.getRooms().filter((r) => r.getMyMembership() === "leave");
+    }
+
+    public syncLeftRooms(): Promise<Room[]> {
+        // Guard against multiple calls whilst ongoing and multiple calls post success
+        if (this.syncedLeftRooms) {
+            return Promise.resolve([]); // don't call syncRooms again if it succeeded.
+        }
+        if (this.syncLeftRoomsPromise) {
+            return this.syncLeftRoomsPromise; // return the ongoing request
+        }
+        const clientInternals = this.client as unknown as {
+            clientOpts: any;
+            buildSyncApiOptions(): any;
+        };
+        const syncApi = new SyncApi(this.client, clientInternals.clientOpts, clientInternals.buildSyncApiOptions());
+        this.syncLeftRoomsPromise = syncApi.syncLeftRooms();
+
+        // cleanup locks
+        this.syncLeftRoomsPromise
+            .then(() => {
+                logger.debug("Marking success of sync left room request");
+                this.syncedLeftRooms = true; // flip the bit on success
+            })
+            .finally(() => {
+                this.syncLeftRoomsPromise = undefined; // cleanup ongoing request state
+            });
+
+        return this.syncLeftRoomsPromise;
     }
 }
 

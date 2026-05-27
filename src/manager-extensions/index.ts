@@ -45,10 +45,8 @@ export interface ManagerExtensionsOptions {
     includeGuest?: boolean;
     includeInviteBlocklist?: boolean;
     includeMedia?: boolean;
-    includeMessage?: boolean;
     includePush?: boolean;
     includeQrLogin?: boolean;
-    includeRendering?: boolean;
     includeRoom?: boolean;
     includeRoomKeySharing?: boolean;
     includeRoomSummary?: boolean;
@@ -89,8 +87,29 @@ export interface ManagerExtensionsOptions {
     includeAiConnection?: boolean;
     includeOpenClaw?: boolean;
     includeVoice?: boolean;
-    includeExternalService?: boolean;
     includeSamlAuth?: boolean;
+    includeCredentials?: boolean;
+
+    includeServerCapabilities?: boolean;
+    includeSyncManagement?: boolean;
+    includeFilter?: boolean;
+    includeToDevice?: boolean;
+    includeTurnServer?: boolean;
+    includeSearch?: boolean;
+    includeReporting?: boolean;
+    includeReadReceipts?: boolean;
+    includeNotifications?: boolean;
+    includeCryptoBackup?: boolean;
+    includeTagsManagement?: boolean;
+    includeSecretStorage?: boolean;
+    includeCrossSigning?: boolean;
+    includeRoomSettings?: boolean;
+    includeRoomState?: boolean;
+    includeServerTime?: boolean;
+    includeVoipCalls?: boolean;
+    includeRoomAccountData?: boolean;
+    includeBackgroundUpdate?: boolean;
+    includeUserDirectory?: boolean;
     includeAll?: boolean;
 }
 
@@ -121,10 +140,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeGuest: true,
     includeInviteBlocklist: true,
     includeMedia: true,
-    includeMessage: true,
     includePush: true,
     includeQrLogin: true,
-    includeRendering: true,
     includeRoom: true,
     includeRoomKeySharing: true,
     includeRoomSummary: true,
@@ -165,8 +182,29 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeAiConnection: true,
     includeOpenClaw: true,
     includeVoice: true,
-    includeExternalService: true,
     includeSamlAuth: true,
+    includeCredentials: true,
+
+    includeServerCapabilities: true,
+    includeSyncManagement: true,
+    includeFilter: true,
+    includeToDevice: true,
+    includeTurnServer: true,
+    includeSearch: true,
+    includeReporting: true,
+    includeReadReceipts: true,
+    includeNotifications: true,
+    includeCryptoBackup: true,
+    includeTagsManagement: true,
+    includeSecretStorage: true,
+    includeCrossSigning: true,
+    includeRoomSettings: true,
+    includeRoomState: true,
+    includeServerTime: true,
+    includeVoipCalls: true,
+    includeRoomAccountData: true,
+    includeBackgroundUpdate: true,
+    includeUserDirectory: true,
 };
 
 let isInitialized = false;
@@ -192,10 +230,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeGuest", module: "guest" },
     { option: "includeInviteBlocklist", module: "invite-blocklist" },
     { option: "includeMedia", module: "media" },
-    { option: "includeMessage", module: "message" },
     { option: "includePush", module: "push" },
     { option: "includeQrLogin", module: "qr-login" },
-    { option: "includeRendering", module: "rendering" },
     { option: "includeRoom", module: "room" },
     { option: "includeRoomKeySharing", module: "room-key-sharing" },
     { option: "includeRoomSummary", module: "room-summary" },
@@ -236,8 +272,29 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeAiConnection", module: "ai-connection" },
     { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeVoice", module: "voice" },
-    { option: "includeExternalService", module: "external-service" },
     { option: "includeSamlAuth", module: "saml" },
+    { option: "includeCredentials", module: "credentials" },
+
+    { option: "includeServerCapabilities", module: "server-capabilities" },
+    { option: "includeSyncManagement", module: "sync-management" },
+    { option: "includeFilter", module: "filter" },
+    { option: "includeToDevice", module: "to-device" },
+    { option: "includeTurnServer", module: "turn-server" },
+    { option: "includeSearch", module: "search" },
+    { option: "includeReporting", module: "reporting" },
+    { option: "includeReadReceipts", module: "read-receipts" },
+    { option: "includeNotifications", module: "notifications" },
+    { option: "includeCryptoBackup", module: "crypto-backup" },
+    { option: "includeTagsManagement", module: "tags-management" },
+    { option: "includeSecretStorage", module: "secret-storage" },
+    { option: "includeCrossSigning", module: "cross-signing" },
+    { option: "includeRoomSettings", module: "room-settings" },
+    { option: "includeRoomState", module: "room-state" },
+    { option: "includeServerTime", module: "server-time" },
+    { option: "includeVoipCalls", module: "voip-calls" },
+    { option: "includeRoomAccountData", module: "room-account-data" },
+    { option: "includeBackgroundUpdate", module: "background-update" },
+    { option: "includeUserDirectory", module: "user-directory" },
 ];
 
 function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {
@@ -248,6 +305,20 @@ function emitLifecycleEvent(event: ManagerExtensionsLifecycleEvent): void {
             continue;
         }
     }
+}
+
+/**
+ * Wraps a dynamic import promise to gracefully handle EnvironmentTeardownError
+ * that can occur when Vitest tears down the test environment before the import
+ * resolves. Returns undefined instead of throwing in that case.
+ */
+function safeDynamicImport<T>(importPromise: Promise<T>): Promise<T | undefined> {
+    return importPromise.catch((error: unknown) => {
+        if (error instanceof Error && error.name === "EnvironmentTeardownError") {
+            return undefined;
+        }
+        throw error;
+    });
 }
 
 function getEnabledModules(options: ManagerExtensionsOptions): string[] {
@@ -281,238 +352,314 @@ export async function extendMatrixClientWithManagers(
         emitLifecycleEvent({ phase: "register", status: "success", modules: enabledModules });
         emitLifecycleEvent({ phase: "init", status: "begin", modules: enabledModules });
 
-        const promises: Promise<void>[] = [];
+        const promises: Promise<void | undefined>[] = [];
 
         try {
             if (currentOptions.includeAdmin || all) {
-                promises.push(import("../admin/index.js").then((m) => m.extendMatrixClient()));
-                promises.push(import("../background-update/index.js").then((m) => m.extendMatrixClient()));
-                promises.push(import("../worker-admin/index.js").then((m) => m.extendMatrixClient()));
-                promises.push(import("../worker-body/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../admin/index.js").then((m) => m?.extendMatrixClient())));
+                promises.push(safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())));
+                promises.push(safeDynamicImport(import("../worker-admin/index.js").then((m) => m?.extendMatrixClient())));
+                promises.push(safeDynamicImport(import("../worker-body/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeAccount || all) {
-                promises.push(import("../account/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../account/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeAccountData || all) {
-                promises.push(import("../account-data/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../account-data/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeAuth || all) {
-                promises.push(import("../auth/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../auth/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeCapabilities || all) {
-                promises.push(import("../capabilities/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../capabilities/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeCryptoKeys || all) {
-                promises.push(import("../crypto-keys/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../crypto-keys/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeKeyVerification || all) {
-                promises.push(import("../key-verification/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../key-verification/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDeviceTrust || all) {
-                promises.push(import("../device-trust/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../device-trust/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDiscovery || all) {
-                promises.push(import("../discovery/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../discovery/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDm || all) {
-                promises.push(import("../dm/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../dm/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeGlobalLogout || all) {
-                promises.push(import("../auth/global-logout.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../auth/global-logout.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeGuest || all) {
-                promises.push(import("../guest/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../guest/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeInviteBlocklist || all) {
-                promises.push(import("../invite-blocklist/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../invite-blocklist/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeMedia || all) {
-                promises.push(import("../media/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeMessage || all) {
-                promises.push(import("../message/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../media/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includePush || all) {
-                promises.push(import("../push/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../push/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeQrLogin || all) {
-                promises.push(import("../qr-login/index.js").then((m) => m.extendMatrixClient()));
-            }
-
-            if (currentOptions.includeRendering || all) {
-                promises.push(import("../rendering/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../qr-login/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoom || all) {
-                promises.push(import("../room/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../room/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoomKeySharing || all) {
-                promises.push(import("../room-key-sharing/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../room-key-sharing/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoomSummary || all) {
-                promises.push(import("../room-summary/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../room-summary/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoomList || all) {
-                promises.push(import("../room-list/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../room-list/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeFriend || all) {
-                promises.push(import("../friend/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../friend/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSpace || all) {
-                promises.push(import("../space/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../space/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSending || all) {
-                promises.push(import("../sending/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../sending/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includePresence || all) {
-                promises.push(import("../presence/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../presence/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeFederation || all) {
-                promises.push(import("../federation/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../federation/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSecurity || all) {
-                promises.push(import("../security/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../security/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeStickyEvent || all) {
-                promises.push(import("../sticky-event/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../sticky-event/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDevice || all) {
-                promises.push(import("../device/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../device/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeProfile || all) {
-                promises.push(import("../profile/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../profile/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSecureBackup || all) {
-                promises.push(import("../secure-backup/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../secure-backup/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeThirdParty || all) {
-                promises.push(import("../third-party/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../third-party/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeOidc || all) {
-                promises.push(import("../oidc/manager.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../oidc/manager.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeTelemetry || all) {
-                promises.push(import("../telemetry/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../telemetry/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRendezvous || all) {
-                promises.push(import("../rendezvous/RendezvousManager.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../rendezvous/RendezvousManager.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeTyping || all) {
-                promises.push(import("../typing/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../typing/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeUser || all) {
-                promises.push(import("../user/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../user/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeUserReport || all) {
-                promises.push(import("../user-report/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../user-report/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeThreePids || all) {
-                promises.push(import("../three-pids/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../three-pids/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeIdentityServer || all) {
-                promises.push(import("../identity-server/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../identity-server/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includePasswordReset || all) {
-                promises.push(import("../password-reset/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../password-reset/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeThreading || all) {
-                promises.push(import("../threading/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../threading/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeStateSend || all) {
-                promises.push(import("../state-send/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../state-send/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRelations || all) {
-                promises.push(import("../relations/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../relations/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeModeration || all) {
-                promises.push(import("../moderation/index").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../moderation/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeTimeline || all) {
-                promises.push(import("../timeline/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../timeline/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeKeyRotation || all) {
-                promises.push(import("../key-rotation/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../key-rotation/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeKeyBackup || all) {
-                promises.push(import("../key-backup/index").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../key-backup/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeFeatureFlag || all) {
-                promises.push(import("../feature-flags/index").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../feature-flags/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeEventReport || all) {
-                promises.push(import("../event-report/index").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../event-report/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeBurnAfterRead || all) {
-                promises.push(import("../burn-after-read/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../burn-after-read/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeVerification || all) {
-                promises.push(import("../verification/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../verification/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeE2EE || all) {
-                promises.push(import("../e2ee/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../e2ee/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeAiConnection || all) {
-                promises.push(import("../ai-connection/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../ai-connection/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeOpenClaw || all) {
-                promises.push(import("../open-claw/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../open-claw/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeVoice || all) {
-                promises.push(import("../voice/index.js").then((m) => m.extendMatrixClient()));
+                promises.push(safeDynamicImport(import("../voice/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeCredentials || all) {
+                promises.push(safeDynamicImport(import("../credentials/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeServerCapabilities || all) {
+                promises.push(safeDynamicImport(import("../server-capabilities/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeSyncManagement || all) {
+                promises.push(safeDynamicImport(import("../sync-management/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeFilter || all) {
+                promises.push(safeDynamicImport(import("../filter/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeToDevice || all) {
+                promises.push(safeDynamicImport(import("../to-device/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeTurnServer || all) {
+                promises.push(safeDynamicImport(import("../turn-server/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeSearch || all) {
+                promises.push(safeDynamicImport(import("../search/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeReporting || all) {
+                promises.push(safeDynamicImport(import("../reporting/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeReadReceipts || all) {
+                promises.push(safeDynamicImport(import("../read-receipts/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeNotifications || all) {
+                promises.push(safeDynamicImport(import("../notifications/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeCryptoBackup || all) {
+                promises.push(safeDynamicImport(import("../crypto-backup/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeTagsManagement || all) {
+                promises.push(safeDynamicImport(import("../tags-management/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeSecretStorage || all) {
+                promises.push(safeDynamicImport(import("../secret-storage/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeCrossSigning || all) {
+                promises.push(safeDynamicImport(import("../cross-signing/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeRoomSettings || all) {
+                promises.push(safeDynamicImport(import("../room-settings/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeRoomState || all) {
+                promises.push(safeDynamicImport(import("../room-state/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeServerTime || all) {
+                promises.push(safeDynamicImport(import("../server-time/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeVoipCalls || all) {
+                promises.push(safeDynamicImport(import("../voip-calls/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeRoomAccountData || all) {
+                promises.push(safeDynamicImport(import("../room-account-data/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeBackgroundUpdate || all) {
+                promises.push(safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeUserDirectory || all) {
+                promises.push(safeDynamicImport(import("../user-directory/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             await Promise.all(promises);

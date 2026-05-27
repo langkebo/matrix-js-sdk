@@ -31,7 +31,6 @@ describe("Room upgrades", function () {
             "/rooms/!r1/upgrade",
             undefined,
             { new_version: "12" },
-            undefined,
         );
     });
 
@@ -52,7 +51,6 @@ describe("Room upgrades", function () {
                 new_version: "13",
                 additional_creators: ["@u:s.co", "@v:a.b"],
             },
-            undefined,
         );
     });
 });

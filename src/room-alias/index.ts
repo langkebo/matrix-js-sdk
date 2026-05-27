@@ -26,6 +26,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
+import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
 
 export enum RoomAliasEvent {
     AliasCreated = "AliasCreated",
@@ -71,7 +72,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名响应
      */
-    async getAliasRoom(alias: string, throwOnError = true): Promise<IRoomAliasResponse | null> {
+    async getAliasRoom(alias: string, options: ErrorHandlingOptions | boolean = {}): Promise<IRoomAliasResponse | null> {
         if (!alias) {
             throw new InvalidParamError("Alias is required");
         }
@@ -103,13 +104,9 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
             this.aliasCache.set(alias, info);
 
             return response;
-            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw e;
-            }
-            logger.warn("RoomAliasManager.getAliasRoom failed:", e);
-            return null;
+            this.emit(RoomAliasEvent.AliasError, "", e as Error);
+            return handleManagerError<IRoomAliasResponse>(e, options, "getAliasRoom");
         }
     }
 
@@ -190,7 +187,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名列表响应
      */
-    async getRoomAliases(roomId: string, throwOnError = true): Promise<IRoomAliasesResponse | null> {
+    async getRoomAliases(roomId: string, options: ErrorHandlingOptions | boolean = {}): Promise<IRoomAliasesResponse | null> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
@@ -214,13 +211,9 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
             this.roomAliasesCache.set(roomId, aliases);
 
             return { aliases };
-            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw e;
-            }
-            logger.warn("RoomAliasManager.getRoomAliases failed:", e);
-            return null;
+            this.emit(RoomAliasEvent.AliasError, roomId, e as Error);
+            return handleManagerError<IRoomAliasesResponse>(e, options, "getRoomAliases");
         }
     }
 
@@ -253,7 +246,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 主别名
      */
-    async getCanonicalAlias(roomId: string, throwOnError = true): Promise<string | null> {
+    async getCanonicalAlias(roomId: string, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
         try {
             const room = this.client.getRoom(roomId);
             if (!room) {
@@ -267,13 +260,9 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
             }
 
             return null;
-            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw e;
-            }
-            logger.warn("RoomAliasManager.getCanonicalAlias failed:", e);
-            return null;
+            this.emit(RoomAliasEvent.AliasError, roomId, e as Error);
+            return handleManagerError<string>(e, options, "getCanonicalAlias");
         }
     }
 
@@ -299,7 +288,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 备选别名列表
      */
-    async getAltAliases(roomId: string, throwOnError = true): Promise<string[]> {
+    async getAltAliases(roomId: string, options: ErrorHandlingOptions | boolean = {}): Promise<string[]> {
         try {
             const room = this.client.getRoom(roomId);
             if (!room) {
@@ -313,13 +302,9 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
             }
 
             return [];
-            // @swallow-error { owner: "room-alias", expires: "2026-12-31" }
         } catch (e) {
-            if (throwOnError) {
-                throw e;
-            }
-            logger.warn("RoomAliasManager.getAltAliases failed:", e);
-            return [];
+            this.emit(RoomAliasEvent.AliasError, roomId, e as Error);
+            return handleManagerError<string[]>(e, options, "getAltAliases") ?? [];
         }
     }
 

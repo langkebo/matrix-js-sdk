@@ -351,7 +351,7 @@ describe("MatrixClient", function () {
             expect((await prom).room_id).toBe(roomId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should no-op if you've already knocked a room", function () {
             const room = new Room(roomId, client, userId);
 
@@ -1398,7 +1398,7 @@ describe("MatrixClient", function () {
     });
 
     describe("publicRooms", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should use GET request if no server or filter is specified", () => {
             httpBackend.when("GET", "/publicRooms").respond(200, {});
             client.publicRooms({});
@@ -1599,7 +1599,7 @@ describe("MatrixClient", function () {
     });
 
     describe("sendTyping", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should bail early for guests", async () => {
             client.setGuest(true);
             await client.sendTyping("!room:server", true, 100);
@@ -1875,7 +1875,7 @@ describe("MatrixClient", function () {
     });
 
     describe("setRoomMutePushRule", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should set room push rule to muted", async () => {
             const roomId = "!roomId:server";
             // Use TestClient to get a client with manager extensions

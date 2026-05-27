@@ -25,14 +25,53 @@ export interface QueryResult {
 }
 
 export class DatabaseVerifier {
-    private containerName: string;
+    private requestedContainerName: string;
+    private resolvedContainerName: string | null = null;
 
     constructor(containerName: string = "docker-postgres") {
-        this.containerName = containerName;
+        this.requestedContainerName = containerName;
+    }
+
+    private async resolveContainerName(): Promise<string> {
+        if (this.resolvedContainerName) {
+            return this.resolvedContainerName;
+        }
+
+        const configured = process.env.MATRIX_REAL_BACKEND_DB_CONTAINER;
+        const candidates = [
+            configured,
+            this.requestedContainerName,
+            "synapse-postgres",
+            "docker-postgres",
+        ].filter((name): name is string => Boolean(name));
+
+        try {
+            const { stdout } = await execAsync("docker ps --format '{{.Names}}'");
+            const running = new Set(
+                stdout
+                    .split("\n")
+                    .map((name) => name.trim())
+                    .filter(Boolean),
+            );
+
+            const matched = candidates.find((name) => running.has(name));
+            if (matched) {
+                this.resolvedContainerName = matched;
+                return matched;
+            }
+
+            throw new Error(
+                `No matching postgres container found. Candidates: ${candidates.join(", ")}. Running: ${Array.from(running).join(", ")}`,
+            );
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            throw new Error(`Failed to resolve database container: ${err.message || String(error)}`);
+        }
     }
 
     private async execPsql(sql: string): Promise<string> {
-        const cmd = `docker exec ${this.containerName} psql -U synapse -d synapse -t -c "${sql.replace(/"/g, '\\"')}"`;
+        const containerName = await this.resolveContainerName();
+        const cmd = `docker exec ${containerName} psql -U synapse -d synapse -t -c "${sql.replace(/"/g, '\\"')}"`;
 
         try {
             const { stdout } = await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
@@ -44,7 +83,8 @@ export class DatabaseVerifier {
     }
 
     private async execPsqlWithHeaders(sql: string): Promise<string> {
-        const cmd = `docker exec ${this.containerName} psql -U synapse -d synapse -c "${sql.replace(/"/g, '\\"')}"`;
+        const containerName = await this.resolveContainerName();
+        const cmd = `docker exec ${containerName} psql -U synapse -d synapse -c "${sql.replace(/"/g, '\\"')}"`;
 
         try {
             const { stdout } = await execAsync(cmd, { maxBuffer: 10 * 1024 * 1024 });
@@ -154,7 +194,7 @@ export class DatabaseVerifier {
                 const words = trimmed.split(/\s{2,}/).filter(Boolean);
                 return words[0] || "";
             })
-            .filter(Boolean);
+            .filter((columnName) => Boolean(columnName) && columnName !== "column_name");
     }
 
     async getColumnType(tableName: string, columnName: string): Promise<string | null> {

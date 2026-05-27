@@ -66,7 +66,7 @@ describe("cross-signing", () => {
     let e2eKeyResponder: E2EKeyResponder;
 
     // Encryption key used to encrypt cross signing keys
-    const encryptionKey = new Uint8Array(32);
+    const encryptionKey = new Uint8Array(32) as Uint8Array<ArrayBuffer>;
 
     /**
      * Create the {@link CryptoCallbacks}
@@ -74,7 +74,7 @@ describe("cross-signing", () => {
     function createCryptoCallbacks(): CryptoCallbacks {
         return {
             getSecretStorageKey: (keys, name) => {
-                return Promise.resolve<[string, Uint8Array<ArrayBuffer>]>(["key_id", encryptionKey]);
+                return Promise.resolve<[string, Uint8Array<ArrayBuffer>] | null>(["key_id", encryptionKey]);
             },
         };
     }
@@ -105,10 +105,10 @@ describe("cross-signing", () => {
                 body: { errcode: "M_NOT_FOUND" },
             });
 
-            await aliceClient.initRustCrypto();
+            await aliceClient.initRustCrypto({ useIndexedDB: false });
         },
         /* it can take a while to initialise the crypto library on the first pass, so bump up the timeout. */
-        10000,
+        30000,
     );
 
     afterEach(async () => {

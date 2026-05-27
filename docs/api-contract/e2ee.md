@@ -170,3 +170,146 @@ last_reviewed: 2026-05-11
 - `room_key_distribution` 已标注为当前不可用客户端接口。
 - secure backup 文档已明确区分后端扩展字段与 SDK 高层稳定字段。
 - `spec/unit/e2ee-manager.spec.ts` 已新增专用断言，覆盖生成路由绑定、验证请求参数语义与 `getSecuritySummary()` fallback。
+
+## DTO Definitions
+
+> Source: `src/e2ee/__generated__/dto.ts`
+
+```typescript
+// ─── Keys Upload ───────────────────────────────────────────────
+export interface DeviceKeyData {
+    user_id?: string;
+    device_id?: string;
+    algorithms?: string[];
+    keys?: Record<string, string>;
+    signatures?: Record<string, Record<string, string>>;
+}
+export interface UploadKeysRequest {
+    device_keys?: DeviceKeyData;
+    one_time_keys?: Record<string, Record<string, string>>;
+}
+export interface UploadKeysResponse {
+    one_time_key_counts: Record<string, number>;
+}
+
+// ─── Keys Query ────────────────────────────────────────────────
+export interface QueryKeysRequest {
+    device_keys: Record<string, string[]>;
+    timeout?: number;
+    token?: string;
+}
+export interface CrossSigningKey {
+    user_id?: string;
+    usage?: string[];
+    keys?: Record<string, string>;
+    signatures?: Record<string, Record<string, string>>;
+}
+export interface QueryKeysResponse {
+    device_keys: Record<string, Record<string, DeviceKeyData>>;
+    failures: Record<string, { error?: string; message?: string }>;
+    master_keys: Record<string, CrossSigningKey>;
+    self_signing_keys: Record<string, CrossSigningKey>;
+    user_signing_keys: Record<string, CrossSigningKey>;
+}
+
+// ─── Keys Claim ────────────────────────────────────────────────
+export interface ClaimKeysRequest {
+    one_time_keys: Record<string, Record<string, string>>;
+    timeout?: number;
+}
+export interface ClaimKeysResponse {
+    one_time_keys: Record<string, Record<string, Record<string, Record<string, string>>>>;
+    failures: Record<string, { error?: string; message?: string }>;
+}
+
+// ─── Key Changes ───────────────────────────────────────────────
+export interface KeyChangesResponse { changed: string[]; left: string[]; }
+
+// ─── Send To Device ────────────────────────────────────────────
+export type SendToDeviceMessages = Record<string, Record<string, Record<string, unknown>>>;
+export interface SendToDeviceRequest { messages: SendToDeviceMessages; }
+
+// ─── Signatures ────────────────────────────────────────────────
+export interface UploadSignaturesRequest { [userId: string]: Record<string, Record<string, unknown>>; }
+export interface UploadSignaturesResponse { failures: Record<string, Record<string, unknown>>; }
+
+// ─── Device Signing ────────────────────────────────────────────
+export interface UploadDeviceSigningRequest {
+    master_key?: CrossSigningKey;
+    self_signing_key?: CrossSigningKey;
+    user_signing_key?: CrossSigningKey;
+    auth?: { type: string; session?: string; [key: string]: unknown };
+}
+
+// ─── Room Key Request ──────────────────────────────────────────
+export interface RoomKeyRequestRequest {
+    action: "request" | "cancel_request";
+    requesting_device_id: string;
+    request_id: string;
+    room_id?: string;
+    session_id?: string;
+    algorithm?: string;
+    devices?: Array<{ user_id: string; device_id: string }>;
+}
+
+// ─── Device Verification (v3-only) ────────────────────────────
+export interface DeviceVerificationRequest {
+    user_id?: string; new_device_id?: string; device_id?: string; method?: string;
+}
+export interface DeviceVerificationResponse {
+    transaction_id?: string; state?: string; device_id?: string; verified?: boolean;
+}
+export interface DeviceVerificationStatusResponse {
+    token: string; state: "pending" | "verified" | "cancelled" | "expired";
+    device_id?: string; requested_ts?: number; completed_ts?: number;
+}
+
+// ─── Device Trust (v3-only) ───────────────────────────────────
+export interface DeviceTrustEntry {
+    device_id: string; user_id?: string;
+    trust_level?: "verified" | "cross_signed" | "unverified" | "unknown";
+    display_name?: string; last_seen_ts?: number; last_seen_ip?: string;
+}
+export interface DeviceTrustListResponse { devices: DeviceTrustEntry[]; }
+export interface DeviceTrustResponse {
+    device_id: string; trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
+    display_name?: string; last_seen_ts?: number; last_seen_ip?: string;
+}
+
+// ─── Security Summary (v3-only) ───────────────────────────────
+export interface SecuritySummaryResponse {
+    verified_devices: number; unverified_devices: number;
+    key_backup_configured: boolean; cross_signing_setup: boolean;
+    backed_up_sessions?: number; total_sessions?: number;
+}
+
+// ─── Secure Backup (v3-only) ──────────────────────────────────
+export interface SecurityBackupCreateRequest {
+    algorithm?: string; auth_data?: Record<string, unknown>; passphrase?: string;
+}
+export interface SecurityBackupCreateResponse { version: string; algorithm: string; }
+export interface SecurityBackupListResponse {
+    backups: Array<{ version: string; algorithm: string; auth_data?: Record<string, unknown> }>;
+}
+export interface SecurityBackupGetResponse {
+    version: string; algorithm: string; auth_data?: Record<string, unknown>;
+    count?: number; etag?: string;
+}
+export interface SecureBackupStoreKeysRequest { keys: Record<string, Record<string, unknown>>; }
+export interface SecureBackupStoreKeysResponse { count: number; etag: string; }
+export interface SecureBackupRestoreRequest { rooms?: string[]; passphrase?: string; key?: string; }
+export interface SecureBackupRestoreResponse { recovered_keys: number; total_keys: number; }
+export interface SecureBackupVerifyRequest { passphrase?: string; key?: string; }
+export interface SecureBackupVerifyResponse { valid: boolean; algorithm?: string; }
+
+// ─── Device List Update ───────────────────────────────────────
+export interface DeviceListUpdateRequest { users: string[]; }
+export interface DeviceListUpdateResponse { changed?: string[]; left?: string[]; }
+
+// ─── Room Key Distribution ────────────────────────────────────
+export interface RoomKeyDistributionResponse {
+    room_id: string;
+    devices?: Array<{ user_id: string; device_id: string }>;
+    status?: string;
+}
+```

@@ -176,10 +176,11 @@ describe("verification", () => {
             }
 
             // have alice initiate a verification. She should send a m.key.verification.request
-            let [requestBody, request] = await Promise.all([
+            const [initialRequestBody, request] = await Promise.all([
                 expectSendToDeviceMessage("m.key.verification.request"),
                 aliceClient.getCrypto()!.requestDeviceVerification(TEST_USER_ID, TEST_DEVICE_ID),
             ]);
+            let requestBody: typeof initialRequestBody = initialRequestBody;
             const transactionId = request.transactionId!;
             expect(transactionId).toBeDefined();
             expect(request.phase).toEqual(VerificationPhase.Requested);
@@ -212,7 +213,7 @@ describe("verification", () => {
             expect(toDeviceMessage.from_device).toEqual(aliceClient.deviceId);
             expect(toDeviceMessage.transaction_id).toEqual(transactionId);
             if (methods !== undefined) {
-                // eslint-disable-next-line @vitest/no-conditional-expect
+                // eslint-disable-next-line vitest/no-conditional-expect
                 expect(new Set(toDeviceMessage.methods)).toEqual(new Set(methods));
             }
 
@@ -516,7 +517,7 @@ describe("verification", () => {
             // Rust crypto waits for the 'done' to arrive from the other side.
             if (request.phase === VerificationPhase.Done) {
                 const userVerificationStatus = await aliceClient.getCrypto()!.getUserVerificationStatus(TEST_USER_ID);
-                // eslint-disable-next-line @vitest/no-conditional-expect
+                // eslint-disable-next-line vitest/no-conditional-expect
                 expect(userVerificationStatus.isCrossSigningVerified()).toBeTruthy();
                 await verificationPromise;
             }
@@ -1314,7 +1315,7 @@ describe("verification", () => {
             await vi.runAllTimersAsync();
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("Should request cross signing keys after verification", async () => {
             const requestPromises = mockSecretRequestAndGetPromises();
 

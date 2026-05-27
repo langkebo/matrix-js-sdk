@@ -24,6 +24,16 @@ export interface EventReportsResponse {
     total: number;
 }
 
+export interface EventJson {
+    event_id: string;
+    type: string;
+    content: Record<string, unknown>;
+    sender: string;
+    origin_server_ts: number;
+    room_id?: string;
+    state_key?: string;
+}
+
 export interface EventReportDetail {
     id: number;
     received_ts: number;
@@ -34,7 +44,7 @@ export interface EventReportDetail {
     score?: number;
     sender: string;
     canonical_alias?: string;
-    event_json: object;
+    event_json: EventJson;
 }
 
-export type EventReportResponseDto = Record<string, never>;
+export interface EventReportResponseDto {}

@@ -374,9 +374,8 @@ export interface ISecureBackupStoreKeysResponse {
 }
 
 export interface ISecureBackupRestoreResponse {
-    success: boolean;
-    key_count: number;
-    message: string;
+    recovered_keys: number;
+    total_keys: number;
 }
 
 export interface ISignedKey {
@@ -450,7 +449,6 @@ export interface IWellKnownConfig<T = IClientWellKnown> {
     action?: AutoDiscoveryAction;
     reason?: string;
     error?: Error | string;
-    // eslint-disable-next-line
     base_url?: string | null;
     /** Undocumented field. */
     server_name?: string;

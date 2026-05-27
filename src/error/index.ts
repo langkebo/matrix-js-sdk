@@ -56,6 +56,56 @@ export function isSDKError(error: unknown): error is SDKError {
     return error instanceof SDKError;
 }
 
+/** Options for controlling error handling behavior in Manager methods */
+export type ErrorHandlingOptions = {
+    /** If true (default), errors are thrown. If false, errors are caught and null is returned. */
+    throwOnError?: boolean;
+    /** Optional callback when an error occurs, regardless of throwOnError */
+    onError?: (error: SDKError) => void;
+};
+
+/** Default error handling options */
+const DEFAULT_ERROR_OPTIONS: Required<ErrorHandlingOptions> = {
+    throwOnError: true,
+    onError: () => {},
+};
+
+/**
+ * Unified error handler for Manager methods.
+ * Replaces the inconsistent `throwOnError` parameter pattern with a structured options approach.
+ *
+ * Usage:
+ *   return handleManagerError(error, { throwOnError: false }, "getUser");
+ *   // or with the legacy boolean shorthand:
+ *   return handleManagerError(error, throwOnError, "getUser");
+ */
+export function handleManagerError<T = null>(
+    error: unknown,
+    options: ErrorHandlingOptions | boolean = {},
+    context?: string,
+): T | null {
+    const opts = typeof options === "boolean"
+        ? { throwOnError: options, onError: undefined }
+        : { ...DEFAULT_ERROR_OPTIONS, ...options };
+
+    let sdkError: SDKError;
+    if (isSDKError(error)) {
+        sdkError = error;
+    } else if (error instanceof Error) {
+        sdkError = createError(ErrorCodes.SERVER_ERROR, error.message);
+    } else {
+        sdkError = createError(ErrorCodes.SERVER_ERROR, "Unknown error");
+    }
+
+    opts.onError?.(sdkError);
+
+    if (opts.throwOnError) {
+        throw sdkError;
+    }
+
+    return null;
+}
+
 export async function withErrorHandling<T>(
     fn: () => Promise<T>,
     fallback?: T,
@@ -97,4 +147,60 @@ export function mapHttpError(status: number, message?: string): SDKError {
         default:
             return createError(ErrorCodes.SERVER_ERROR, message || `HTTP error ${status}`, status);
     }
+}
+
+/**
+ * Bridge utilities for converting SDK errors to application-level error formats.
+ * Used by hula frontend to convert SDKError to AppError/AppException.
+ */
+
+/** Structured error info that can be consumed by application error handlers */
+export type SDKErrorInfo = {
+    code: string;
+    message: string;
+    statusCode?: number;
+    details?: unknown;
+    isRetryable: boolean;
+    retryAfter?: unknown;
+    traceId?: string;
+};
+
+/**
+ * Convert any error to a structured SDKErrorInfo object.
+ * This provides a stable serialization format that hula's AppError can consume
+ * without depending on the SDKError class directly.
+ */
+export function toErrorInfo(error: unknown): SDKErrorInfo {
+    if (isSDKError(error)) {
+        return {
+            code: error.code,
+            message: error.message,
+            statusCode: error.statusCode,
+            details: error.details,
+            isRetryable: error.code === ErrorCodes.RATE_LIMITED || error.code === ErrorCodes.SERVICE_UNAVAILABLE,
+            retryAfter: error.details && typeof error.details === "object" && "retry_after_ms" in (error.details as Record<string, unknown>)
+                ? (error.details as Record<string, unknown>).retry_after_ms
+                : undefined,
+        };
+    }
+    if (error instanceof Error) {
+        return {
+            code: ErrorCodes.SERVER_ERROR,
+            message: error.message,
+            isRetryable: false,
+        };
+    }
+    return {
+        code: ErrorCodes.SERVER_ERROR,
+        message: "Unknown error",
+        isRetryable: false,
+    };
+}
+
+/**
+ * Create an SDKError from an SDKErrorInfo object (reverse bridge).
+ * Useful for re-creating errors from serialized error info.
+ */
+export function fromErrorInfo(info: SDKErrorInfo): SDKError {
+    return new SDKError(info.message, info.code, info.statusCode, info.details);
 }

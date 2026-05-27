@@ -12,7 +12,6 @@ import type { IStore } from "./store/index";
 
 export interface IKeysUploadResponse {
     one_time_key_counts: {
-        // eslint-disable-line camelcase
         [algorithm: string]: number;
     };
 }

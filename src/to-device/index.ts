@@ -29,6 +29,11 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { SendToDeviceContentMap } from "../client-api-types";
+import type { EmptyObject } from "../@types/common";
+import type { ToDeviceBatch as ModelToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
+import { AuthError } from "../errors";
+import { MatrixError } from "../http-api/errors";
 
 export interface ToDeviceMessage {
     [userId: string]: {
@@ -60,7 +65,7 @@ export class ToDeviceManager extends BaseManager {
     async sendToDevice(eventType: string, messages: ToDeviceMessage, txnId?: string): Promise<ToDeviceResult> {
         const transactionId = txnId ?? this.makeTxnId();
 
-        return await this.withRetry(async () => {
+        const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<ToDeviceResult>(
                 Method.Put,
                 `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
@@ -69,6 +74,47 @@ export class ToDeviceManager extends BaseManager {
                 { prefix: ClientPrefix.V3 },
             );
         }, "sendToDevice");
+
+        return { success: !!response, failures: response?.failures };
+    }
+
+    /**
+     * Send an event to a specific list of devices using SendToDeviceContentMap.
+     * This is the client.ts-compatible API that accepts Map<string, Map<string, ...>> format.
+     * PUT /_matrix/client/v3/sendToDevice/{event_type}/{txnId}
+     */
+    async sendToDeviceFromContentMap(
+        eventType: string,
+        contentMap: SendToDeviceContentMap,
+        txnId?: string,
+    ): Promise<EmptyObject> {
+        const transactionId = txnId ?? this.makeTxnId();
+        const path = `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`;
+
+        // Convert Map<string, Map<string, Record<string, any>>> to plain object
+        const messages: Record<string, Record<string, unknown>> = {};
+        for (const [userId, deviceMessages] of contentMap) {
+            const perUserMessages: Record<string, unknown> = {};
+            for (const [deviceId, content] of deviceMessages) {
+                perUserMessages[deviceId] = content;
+            }
+            messages[userId] = perUserMessages;
+        }
+
+        return await this.client.http.authedRequest<EmptyObject>(
+            Method.Put,
+            path,
+            undefined,
+            { messages },
+            { prefix: ClientPrefix.V3 },
+        );
+    }
+
+    /**
+     * Queue a ToDeviceBatch for batch sending via the client's ToDeviceMessageQueue.
+     */
+    async queueToDeviceBatch(batch: ModelToDeviceBatch): Promise<void> {
+        return (this.client as any).toDeviceMessageQueue.queueBatch(batch);
     }
 
     /**
@@ -94,6 +140,27 @@ export class ToDeviceManager extends BaseManager {
         }
 
         return results;
+    }
+
+    /**
+     * Encrypt the payload for all devices in the list and queue it.
+     * The type of the sent to-device message will be `m.room.encrypted`.
+     * @param eventType - The type of event to send
+     * @param devices - The list of devices to send the event to.
+     * @param payload - The payload to send. This will be encrypted.
+     * @returns Promise which resolves once queued.
+     */
+    async encryptAndSendToDevice(
+        eventType: string,
+        devices: { userId: string; deviceId: string }[],
+        payload: ToDevicePayload,
+    ): Promise<void> {
+        const client = this.client as any;
+        if (!client.cryptoBackend) {
+            throw new Error("Cannot encrypt to device event, your client does not support encryption.");
+        }
+        const batch = await client.cryptoBackend.encryptToDeviceMessages(eventType, devices, payload);
+        await this.queueToDeviceBatch(batch);
     }
 
     /**

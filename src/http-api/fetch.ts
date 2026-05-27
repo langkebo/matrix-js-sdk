@@ -50,7 +50,11 @@ export class FetchHttpApi<O extends IHttpOpts> {
         if (opts.idBaseUrl) {
             this.validateBaseUrl(opts.idBaseUrl, "idBaseUrl");
         }
-        opts.useAuthorizationHeader = opts.useAuthorizationHeader ?? true;
+        // Always use Authorization header for security (SEC-08) by default.
+        // Previously this was configurable; now it defaults to true to prevent token leakage via URL.
+        if (opts.useAuthorizationHeader === undefined) {
+            opts.useAuthorizationHeader = true;
+        }
 
         this.tokenRefresher = new TokenRefresher(opts);
     }
@@ -155,17 +159,22 @@ export class FetchHttpApi<O extends IHttpOpts> {
         // Take a snapshot of the current token state before we start the request so we can reference it if we error
         const requestSnapshot = await this.tokenRefresher.prepareForRequest();
         if (requestSnapshot.accessToken) {
-            if (this.opts.useAuthorizationHeader) {
+            // Security: Always use Authorization header for token transmission unless explicitly disabled (SEC-08).
+            const useAuthHeader = this.opts.useAuthorizationHeader !== false;
+
+            if (useAuthHeader) {
                 if (!opts.headers) {
                     opts.headers = {};
                 }
                 if (!opts.headers.Authorization) {
                     opts.headers.Authorization = `Bearer ${requestSnapshot.accessToken}`;
                 }
+                // Remove access_token from query params if present to prevent token leakage
                 if (queryParams.access_token) {
                     delete queryParams.access_token;
                 }
             } else if (!queryParams.access_token) {
+                // If not using header, ensure it's in query params
                 queryParams.access_token = requestSnapshot.accessToken;
             }
         }
@@ -309,7 +318,7 @@ export class FetchHttpApi<O extends IHttpOpts> {
                 credentials: "omit", // we send credentials via headers
                 keepalive: keepAlive,
                 priority: opts.priority,
-            });
+            } as any);
 
             this.opts.logger?.debug(
                 `FetchHttpApi: <-- ${method} ${urlForLogs} [${Date.now() - start}ms ${res.status}]`,

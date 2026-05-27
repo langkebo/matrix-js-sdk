@@ -1,5 +1,4 @@
 // allow non-camelcase as these are events type that go onto the wire
-/* eslint-disable camelcase */
 
 import { type CallErrorCode } from "./call";
 import { NamespacedValue } from "../NamespacedValue";
@@ -98,5 +97,3 @@ export interface MCallCandidates extends MCallBase {
 export interface MCallHangupReject extends MCallBase {
     reason?: CallErrorCode;
 }
-
-/* eslint-enable camelcase */

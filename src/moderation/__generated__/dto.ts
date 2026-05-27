@@ -21,7 +21,7 @@ export interface ModerationRequestDto {
     reason: string;
 }
 
-export type ModerationResponseDto = Record<string, never>;
+export interface ModerationResponseDto {}
 
 export interface ModerationV3RequestDto {
     reason: string;

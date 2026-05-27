@@ -16,7 +16,6 @@
 
 import { deriveRecoveryKeyFromPassphrase } from "../crypto-api/index";
 
-/* eslint-disable camelcase */
 interface IAuthData {
     private_key_salt?: string;
     private_key_iterations?: number;
@@ -28,6 +27,8 @@ interface IAuthData {
  * @param authData - The auth data containing the salt and iterations
  * @param passphrase - The passphrase to derive the key from
  * @deprecated Deriving a backup key from a passphrase is not part of the matrix spec. Instead, a random key is generated and stored/shared via 4S.
+ *   If you need to derive a key from a passphrase, use {@link deriveRecoveryKeyFromPassphrase} directly,
+ *   passing the salt, iterations, and optional bits from the auth data as separate parameters.
  */
 export function keyFromAuthData(authData: IAuthData, passphrase: string): Promise<Uint8Array> {
     if (!authData.private_key_salt || !authData.private_key_iterations) {

@@ -621,12 +621,29 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
 declare module "../client.ts" {
     interface MatrixClient {
         getPresenceManager(): PresenceManager;
+        setPresence(presence: PresenceState, statusMsg?: string): Promise<any>;
+        setPresence(presence: PresenceState, opts?: { status_msg?: string }): Promise<any>;
+        setPresence(opts: { presence: PresenceState; status_msg?: string }): Promise<any>;
     }
 }
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPresenceManager = function (): PresenceManager {
         return getOrCreateManager(this, "presence", () => new PresenceManager(this));
+    };
+
+    MatrixClient.prototype.setPresence = function (
+        this: MatrixClient,
+        presenceOrOpts: PresenceState | { presence: PresenceState; status_msg?: string },
+        statusMsgOrOpts?: string | { status_msg?: string },
+    ): Promise<any> {
+        if (typeof presenceOrOpts === "object") {
+            return this.getPresenceManager().setPresence(presenceOrOpts.presence, presenceOrOpts.status_msg);
+        }
+        if (typeof statusMsgOrOpts === "object") {
+            return this.getPresenceManager().setPresence(presenceOrOpts, statusMsgOrOpts?.status_msg);
+        }
+        return this.getPresenceManager().setPresence(presenceOrOpts, statusMsgOrOpts);
     };
 }
 

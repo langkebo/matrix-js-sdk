@@ -29,9 +29,9 @@ export type SecretStorageKeyResult = [string, string] | null;
 export type SecretStorageKeys = Record<string, string>;
 
 export interface SecretStorageManagerEvents {
-    secret_stored: { name: string };
-    secret_retrieved: { name: string };
-    storage_ready: void;
+    secret_stored: (data: { name: string }) => void;
+    secret_retrieved: (data: { name: string }) => void;
+    storage_ready: () => void;
 }
 
 export class SecretStorageManager extends BaseManager<keyof SecretStorageManagerEvents, SecretStorageManagerEvents> {
@@ -42,43 +42,70 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
     /**
      * Is secret storage enabled
      */
-    public isSecretStorageReady(): boolean {
-        return this.client.isSecretStorageReady();
+    public async isSecretStorageReady(): Promise<boolean> {
+        const crypto = this.client.getCrypto();
+        if (!crypto) return false;
+        return crypto.isSecretStorageReady();
     }
 
     /**
      * Get secret storage key
      */
     public async getSecretStorageKey(keyId: string): Promise<SecretStorageKeyResult> {
-        return this.withRetry(() => this.client.getSecretStorageKey(keyId), "getSecretStorageKey");
+        return this.withRetry(async () => {
+            const keyTuple = await this.client.secretStorage.getKey(keyId);
+            if (!keyTuple) return null;
+            const [id, keyInfo] = keyTuple;
+            // Return the key ID and algorithm name as the string representation
+            return [id, keyInfo.algorithm];
+        }, "getSecretStorageKey");
     }
 
     /**
      * Store secret
      */
     public async storeSecret(name: string, secret: string, keys?: string[]): Promise<void> {
-        return this.withRetry(() => this.client.storeSecret(name, secret, keys ?? []), "storeSecret");
+        return this.withRetry(async () => {
+            await this.client.secretStorage.store(name, secret, keys ?? null);
+            this.emit("secret_stored", { name });
+        }, "storeSecret");
     }
 
     /**
      * Get secret
      */
     public async getSecret(name: string): Promise<string | null> {
-        return this.withRetry(() => this.client.getSecret(name), "getSecret");
+        return this.withRetry(async () => {
+            const result = await this.client.secretStorage.get(name);
+            this.emit("secret_retrieved", { name });
+            return result ?? null;
+        }, "getSecret");
     }
 
     /**
      * Check if secret exists
      */
     public async hasSecret(name: string): Promise<boolean> {
-        return this.client.hasSecret(name);
+        const stored = await this.client.secretStorage.isStored(name as "m.cross_signing.master");
+        return stored !== null;
     }
 
     /**
      * Get secret storage keys
      */
     public async getSecretStorageKeys(): Promise<SecretStorageKeys> {
-        return this.withRetry(() => this.client.getSecretStorageKeys(), "getSecretStorageKeys");
+        return this.withRetry(async () => {
+            const defaultKeyId = await this.client.secretStorage.getDefaultKeyId();
+            const result: SecretStorageKeys = {};
+            if (defaultKeyId) {
+                const keyTuple = await this.client.secretStorage.getKey(defaultKeyId);
+                if (keyTuple) {
+                    const [id, keyInfo] = keyTuple;
+                    result[id] = keyInfo.algorithm;
+                }
+            }
+            return result;
+        }, "getSecretStorageKeys");
     }
 }
 

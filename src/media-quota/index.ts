@@ -117,11 +117,11 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
         try {
             const config = await this.getMediaConfig();
             return (config["m.upload.size"] as number | undefined) ?? 10 * 1024 * 1024;
-            // @swallow-error { owner: "media-quota", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
             }
+            logger.warn("getUploadSizeLimit: failed to fetch media config, using default 10MB limit", e);
             return 10 * 1024 * 1024;
         }
     }
@@ -136,11 +136,11 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
         try {
             const config = await this.getMediaConfig();
             return (config["m.upload.size"] as number | undefined) ?? 10 * 1024 * 1024;
-            // @swallow-error { owner: "media-quota", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
             }
+            logger.warn("getUploadFileSizeLimit: failed to fetch media config, using default 10MB limit", e);
             return 10 * 1024 * 1024;
         }
     }
@@ -208,11 +208,11 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
                 size: stats.storage_bytes ?? 0,
                 ntFiles: stats.media_count ?? 0,
             };
-            // @swallow-error { owner: "media-quota", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
             }
+            logger.warn("getUserStorageUsage: failed to fetch quota stats", e);
             return null;
         }
     }

@@ -22,9 +22,11 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { ClientPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { EmptyObject } from "../@types/common";
 
 export interface ReportResult {
     report_id: string;
@@ -42,17 +44,17 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
         super(client);
     }
 
-    public async reportRoom(roomId: string, reason: string, score?: number): Promise<void> {
+    public async reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, { reason, score });
+            return await this.client.http.authedRequest<EmptyObject>(Method.Post, path, undefined, { reason });
         }, "reportRoom");
     }
 
-    public async reportEvent(roomId: string, eventId: string, reason: string, score?: number): Promise<void> {
+    public async reportEvent(roomId: string, eventId: string, score: number, reason: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report/$eventId", { $roomId: roomId, $eventId: eventId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, { reason, score });
+            return await this.client.http.authedRequest<EmptyObject>(Method.Post, path, undefined, { score, reason });
         }, "reportEvent");
     }
 
@@ -61,6 +63,33 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
             const path = utils.encodeUri("/users/$userId/report", { $userId: userId });
             await this.client.http.authedRequest(Method.Post, path, undefined, { reason });
         }, "reportUser");
+    }
+
+    /**
+     * Score a report
+     * @param roomId - The room ID
+     * @param eventId - The event ID
+     * @param score - The score (-100 to 0)
+     */
+    public async scoreReport(roomId: string, eventId: string, score: number): Promise<void> {
+        const path = utils.encodeUri("/rooms/$roomId/report/$eventId/score", {
+            $roomId: roomId,
+            $eventId: eventId,
+        });
+        await this.client.http.authedRequest(Method.Put, path, undefined, { score }, { prefix: ClientPrefix.V3 });
+    }
+
+    /**
+     * Get scanner info for a report
+     * @param roomId - The room ID
+     * @param eventId - The event ID
+     */
+    public async getScannerInfo(roomId: string, eventId: string): Promise<any> {
+        const path = utils.encodeUri("/rooms/$roomId/report/$eventId/scanner_info", {
+            $roomId: roomId,
+            $eventId: eventId,
+        });
+        return this.client.http.authedRequest(Method.Get, path, undefined, undefined, { prefix: ClientPrefix.V1 });
     }
 }
 

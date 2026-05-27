@@ -58,39 +58,23 @@ export class LifecycleManager extends BaseManager<keyof LifecycleManagerEvents, 
     }
 
     public isClientRunning(): boolean {
-        return (this.client as unknown as { clientRunning?: boolean }).clientRunning ?? false;
+        return this.client.clientRunning ?? false;
     }
 
     public async exit(code?: number): Promise<void> {
-        await (
-            this.client as unknown as {
-                exit: (code?: number) => Promise<void>;
-            }
-        ).exit(code);
+        await this.client.exit(code);
     }
 
     public terminate(): void {
-        (
-            this.client as unknown as {
-                terminate: () => void;
-            }
-        ).terminate();
+        this.client.terminate();
     }
 
     public async reset(): Promise<void> {
-        await (
-            this.client as unknown as {
-                reset: () => Promise<void>;
-            }
-        ).reset();
+        await this.client.reset();
     }
 
     public async prepare(clientOptions?: IClientOptions): Promise<void> {
-        await (
-            this.client as unknown as {
-                prepare: (clientOptions?: IClientOptions) => Promise<void>;
-            }
-        ).prepare(clientOptions);
+        await this.client.prepare(clientOptions);
     }
 }
 

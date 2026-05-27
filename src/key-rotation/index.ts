@@ -27,7 +27,7 @@ limitations under the License.
  * // 获取轮换状态
  * const status = await manager.getStatus();
  * // 手动轮换密钥
- * const result = await manager.rotateKey({ reason: "scheduled" });
+ * const result = await manager.rotateKey({ key_id: "key-v1" });
  * // 吊销密钥
  * await manager.revokeKey({ key_id: "key-1" });
  * ```
@@ -40,32 +40,29 @@ import { ClientPrefix } from "../http-api/prefix";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface KeyRotationStatus {
-    current_key_id: string;
-    rotation_period_ms: number;
-    last_rotation_ts: number;
-    next_rotation_ts: number;
-    auto_rotation_enabled: boolean;
+    enabled: boolean;
+    status: Record<string, unknown>;
+    user_last_rotation: number | null;
 }
 
 export interface RotateKeyRequest {
-    reason?: string;
+    key_id?: string;
 }
 
 export interface RotateKeyResponse {
-    new_key_id: string;
-    rotated_at: number;
+    success: boolean;
+    message: string;
+    has_new_key: boolean;
 }
 
 export interface KeyRotationHistoryEntry {
-    key_id: string;
-    rotated_at: number;
-    reason: string;
-    previous_key_id?: string;
+    key_id: string | null;
+    rotated_ts: number | null;
 }
 
 export interface KeyRotationHistory {
+    device_id: string;
     rotations: KeyRotationHistoryEntry[];
-    next_batch?: string;
 }
 
 export interface GetRotationHistoryOptions {
@@ -79,23 +76,25 @@ export interface RevokeKeyRequest {
 }
 
 export interface RevokeKeyResponse {
-    revoked: boolean;
-    revoked_at: number;
+    success: boolean;
+    revoked: number;
+    message: string;
 }
 
 export interface UpdateRotationConfigRequest {
-    auto_rotation_enabled: boolean;
-    rotation_period_ms: number;
+    enabled?: boolean;
+    interval_ms?: number;
 }
 
 export interface UpdateRotationConfigResponse {
-    updated: boolean;
+    enabled: boolean;
+    interval_ms: number;
 }
 
 export interface KeyCheckResponse {
-    valid: boolean;
-    revoked: boolean;
-    expires_at?: number;
+    needs_rotation: boolean;
+    last_rotation: number | null;
+    interval_ms: number;
 }
 
 interface StatusCacheEntry {
@@ -135,8 +134,8 @@ export class KeyRotationManager extends BaseManager {
     }
 
     public async rotateKey(request: RotateKeyRequest = {}): Promise<RotateKeyResponse> {
-        if (request.reason !== undefined) {
-            this.requireNonEmptyString(request.reason, "reason");
+        if (request.key_id !== undefined) {
+            this.requireNonEmptyString(request.key_id, "key_id");
         }
 
         const result = await this.withRetry(async () => {
@@ -201,11 +200,11 @@ export class KeyRotationManager extends BaseManager {
     }
 
     public async updateConfig(request: UpdateRotationConfigRequest): Promise<UpdateRotationConfigResponse> {
-        if (typeof request.auto_rotation_enabled !== "boolean") {
-            throw new InvalidParamError("auto_rotation_enabled must be a boolean");
+        if (request.enabled !== undefined && typeof request.enabled !== "boolean") {
+            throw new InvalidParamError("enabled must be a boolean");
         }
-        if (!Number.isInteger(request.rotation_period_ms) || request.rotation_period_ms <= 0) {
-            throw new InvalidParamError("rotation_period_ms must be a positive integer");
+        if (request.interval_ms !== undefined && (!Number.isInteger(request.interval_ms) || request.interval_ms <= 0)) {
+            throw new InvalidParamError("interval_ms must be a positive integer");
         }
 
         const result = await this.withRetry(async () => {

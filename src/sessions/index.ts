@@ -53,59 +53,33 @@ export class SessionsManager extends BaseManager<keyof SessionsManagerEvents, Se
     }
 
     public getActiveSessions(): ISessionInfo[] {
-        return (
-            this.client as unknown as {
-                getActiveSessions: () => ISessionInfo[];
-            }
-        ).getActiveSessions();
+        return this.client.getActiveSessions();
     }
 
     public getSessionInfo(): ISessionInfo | null {
-        return (
-            this.client as unknown as {
-                getSessionInfo: () => ISessionInfo | null;
-            }
-        ).getSessionInfo();
+        return this.client.getSessionInfo();
     }
 
     public async refreshSession(): Promise<ISessionInfo> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        refreshSession: () => Promise<ISessionInfo>;
-                    }
-                ).refreshSession(),
+            () => this.client.refreshSession(),
             "refreshSession",
         );
     }
 
     public async revokeSession(deviceId: string): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        revokeSession: (deviceId: string) => Promise<void>;
-                    }
-                ).revokeSession(deviceId),
+            () => this.client.revokeSession(deviceId),
             "revokeSession",
         );
     }
 
     public getLastActiveSession(): ISessionDetail | null {
-        return (
-            this.client as unknown as {
-                getLastActiveSession: () => ISessionDetail | null;
-            }
-        ).getLastActiveSession();
+        return this.client.getLastActiveSession();
     }
 
     public setLastActiveSession(sessionId: string): void {
-        (
-            this.client as unknown as {
-                setLastActiveSession: (sessionId: string) => void;
-            }
-        ).setLastActiveSession(sessionId);
+        this.client.setLastActiveSession(sessionId);
     }
 }
 

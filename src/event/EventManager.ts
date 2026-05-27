@@ -32,7 +32,7 @@ import {
     SendDelayedEventResponse,
 } from "../@types/requests";
 import { type IMessagesResponse, type IThreadedMessagesResponse } from "../client-internal-types";
-import { EventStatus, type IEvent, type MatrixEvent } from "../models/event";
+import { EventStatus, type IEvent, type IContent, MatrixEvent } from "../models/event";
 import { Room } from "../models/room";
 import { Direction } from "../models/event-timeline";
 import { type MatrixScheduler } from "../scheduler";
@@ -112,6 +112,13 @@ interface EventManagerEventMap {
     [EventManagerEvent.EventRedacted]: (roomId: string, eventId: string) => void;
     [EventManagerEvent.StateChanged]: (roomId: string, eventType: string, stateKey: string) => void;
     [EventManagerEvent.Error]: (error: Error) => void;
+}
+
+export function setEventManagerRetryOptions(
+    client: MatrixClient,
+    options: import("../managers/base-manager").RetryOptions,
+): void {
+    client.getEventManager().setRetryOptions(options);
 }
 
 export class EventManager extends BaseManager<EventManagerEvent, EventManagerEventMap> {
@@ -327,13 +334,13 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         return response;
     }
 
-    public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<Record<string, unknown>> {
+    public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<IContent> {
         this.validateRoomId(roomId);
         if (!eventType) {
             throw new InvalidParamError("eventType is required");
         }
 
-        const path = stateKey
+        const path = stateKey !== undefined
             ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
                   $roomId: roomId,
                   $eventType: eventType,
@@ -368,7 +375,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             throw new InvalidParamError("eventType is required");
         }
 
-        const path = stateKey
+        const path = stateKey !== undefined
             ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
                   $roomId: roomId,
                   $eventType: eventType,
@@ -424,7 +431,9 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             ? buildEventContextParams(params.lazyLoadMembers)
             : {};
         if (params?.limit !== undefined) queryParams.limit = params.limit.toString();
-        if (params?.filter) queryParams.filter = JSON.stringify(params.filter);
+        if (params?.filter) {
+            queryParams.filter = typeof params.filter === "string" ? params.filter : JSON.stringify(params.filter);
+        }
 
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<IContextResponse>(
@@ -471,5 +480,136 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
 
         this.emit(EventManagerEvent.EventRedacted, roomId, eventId);
         return response;
+    }
+
+    /**
+     * Resend an event.
+     * @param event - The event to resend
+     * @param room - The room the event belongs to
+     * @param deps - Dependencies from the client
+     */
+    public async resendEvent(
+        event: MatrixEvent,
+        room: Room,
+        deps: {
+            toDeviceMessageQueueSendQueue: () => void;
+            updatePendingEventStatus: (room: Room | null, event: MatrixEvent, status: EventStatus) => void;
+            encryptAndSendEvent: (room: Room | null, event: MatrixEvent) => Promise<ISendEventResponse>;
+        },
+    ): Promise<ISendEventResponse> {
+        deps.toDeviceMessageQueueSendQueue();
+        deps.updatePendingEventStatus(room, event, EventStatus.SENDING);
+        return deps.encryptAndSendEvent(room, event);
+    }
+
+    /**
+     * Cancel a queued or unsent event.
+     * @param event - The event to cancel
+     * @param deps - Dependencies from the client
+     * @throws Error if the event is not in QUEUED, NOT_SENT or ENCRYPTING state
+     */
+    public cancelPendingEvent(
+        event: MatrixEvent,
+        deps: {
+            eventsBeingEncrypted: Set<string>;
+            scheduler?: { removeEventFromQueue(event: MatrixEvent): void };
+            getRoom: (roomId: string) => Room | null;
+            updatePendingEventStatus: (room: Room | null, event: MatrixEvent, status: EventStatus) => void;
+        },
+    ): void {
+        if (![EventStatus.QUEUED, EventStatus.NOT_SENT, EventStatus.ENCRYPTING].includes(event.status!)) {
+            throw new Error("cannot cancel an event with status " + event.status);
+        }
+
+        if (event.status === EventStatus.ENCRYPTING) {
+            deps.eventsBeingEncrypted.delete(event.getId()!);
+        } else if (deps.scheduler && event.status === EventStatus.QUEUED) {
+            deps.scheduler.removeEventFromQueue(event);
+        }
+
+        const roomId = event.getRoomId();
+        const room = roomId ? deps.getRoom(roomId) : null;
+        deps.updatePendingEventStatus(room, event, EventStatus.CANCELLED);
+    }
+
+    /**
+     * Decrypt an event if needed.
+     * @param event - The event to decrypt
+     * @param deps - Dependencies from the client
+     */
+    public async decryptEventIfNeeded(
+        event: MatrixEvent,
+        deps: {
+            enableEncryptedStateEvents: boolean;
+            getCrypto: () => unknown;
+            cryptoBackend: unknown;
+        },
+        options?: import("../models/event").IDecryptOptions,
+    ): Promise<void> {
+        if (event.isState() && !deps.enableEncryptedStateEvents) {
+            return;
+        }
+
+        if (event.shouldAttemptDecryption() && deps.getCrypto()) {
+            event.attemptDecryption(deps.cryptoBackend as any, options);
+        }
+
+        if (event.isBeingDecrypted()) {
+            return event.getDecryptionPromise()!;
+        } else {
+            return;
+        }
+    }
+
+    /**
+     * Send a state event with encryption support.
+     * @param roomId - The room ID
+     * @param eventType - The event type
+     * @param content - The event content
+     * @param stateKey - The state key
+     * @param deps - Dependencies from the client
+     */
+    public async sendStateEventWithEncryption(
+        roomId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+        stateKey = "",
+        deps?: {
+            getRoom: (roomId: string) => Room | null;
+            encryptStateEventIfNeeded: (event: MatrixEvent, room?: Room) => Promise<void>;
+            dispatchStateEventRequest: (params: {
+                roomId: string;
+                eventType: string;
+                content: unknown;
+                stateKey: string;
+                http: unknown;
+                requestOpts: unknown;
+            }) => Promise<ISendEventResponse>;
+            http: unknown;
+            requestOpts: unknown;
+        },
+    ): Promise<ISendEventResponse> {
+        if (deps) {
+            const room = deps.getRoom(roomId);
+            const event = new MatrixEvent({
+                room_id: roomId,
+                type: eventType,
+                state_key: stateKey,
+                content: content as IContent,
+            });
+
+            await deps.encryptStateEventIfNeeded(event, room ?? undefined);
+
+            return deps.dispatchStateEventRequest({
+                roomId,
+                eventType: event.getWireType(),
+                content: event.getWireContent(),
+                stateKey: event.getWireStateKey() ?? stateKey,
+                http: deps.http,
+                requestOpts: deps.requestOpts,
+            });
+        }
+
+        return this.sendStateEvent(roomId, eventType, content, stateKey);
     }
 }

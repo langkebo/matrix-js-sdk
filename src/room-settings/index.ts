@@ -24,6 +24,8 @@ import { MatrixClient } from "../client";
 import type { ISendEventResponse } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { EventType } from "../@types/event";
+import { HistoryVisibility, GuestAccess, JoinRule } from "../@types/partials";
 
 export interface RoomSettingsManagerEvents {
     room_name_changed: { roomId: string; name: string };
@@ -40,51 +42,99 @@ export class RoomSettingsManager extends BaseManager<keyof RoomSettingsManagerEv
     }
 
     public getRoomName(roomId: string): string {
-        return this.client.getRoomName(roomId);
+        return this.client.getRoom(roomId)?.name ?? "";
     }
 
     public async setRoomName(roomId: string, name: string): Promise<ISendEventResponse> {
-        return this.withRetry(() => this.client.setRoomName(roomId, name), "setRoomName");
+        return this.withRetry(
+            () => this.client.sendStateEvent(roomId, EventType.RoomName, { name }, ""),
+            "setRoomName",
+        );
     }
 
     public getRoomTopic(roomId: string): string {
-        return this.client.getRoomTopic(roomId);
+        const room = this.client.getRoom(roomId);
+        if (!room) return "";
+        const content = room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent<{ topic?: string }>();
+        return content?.topic ?? "";
     }
 
     public async setRoomTopic(roomId: string, topic: string): Promise<ISendEventResponse> {
-        return this.withRetry(() => this.client.setRoomTopic(roomId, topic), "setRoomTopic");
+        return this.withRetry(
+            () => this.client.sendStateEvent(roomId, EventType.RoomTopic, { topic }, ""),
+            "setRoomTopic",
+        );
     }
 
     public getRoomAvatarUrl(roomId: string): string {
-        return this.client.getRoomAvatarUrl(roomId);
+        const room = this.client.getRoom(roomId);
+        if (!room) return "";
+        return room.getMxcAvatarUrl() ?? "";
     }
 
     public async setRoomAvatar(roomId: string, avatarUrl: string): Promise<void> {
-        await this.client.setRoomAvatar(roomId, avatarUrl);
+        await this.withRetry(
+            () => this.client.sendStateEvent(roomId, EventType.RoomAvatar, { url: avatarUrl }, ""),
+            "setRoomAvatar",
+        );
     }
 
     public getRoomHistoryVisibility(roomId: string): string {
-        return this.client.getRoomHistoryVisibility(roomId);
+        const room = this.client.getRoom(roomId);
+        if (!room) return HistoryVisibility.Shared;
+        return room.getHistoryVisibility();
     }
 
     public async setRoomHistoryVisibility(roomId: string, visibility: string): Promise<void> {
-        await this.client.setRoomHistoryVisibility(roomId, visibility);
+        await this.withRetry(
+            () =>
+                this.client.sendStateEvent(
+                    roomId,
+                    EventType.RoomHistoryVisibility,
+                    { history_visibility: visibility as HistoryVisibility },
+                    "",
+                ),
+            "setRoomHistoryVisibility",
+        );
     }
 
     public getRoomGuestAccess(roomId: string): string {
-        return this.client.getRoomGuestAccess(roomId);
+        const room = this.client.getRoom(roomId);
+        if (!room) return "";
+        return room.getGuestAccess();
     }
 
     public async setRoomGuestAccess(roomId: string, allow: boolean): Promise<void> {
-        await this.client.setRoomGuestAccess(roomId, allow);
+        const guestAccess = allow ? GuestAccess.CanJoin : GuestAccess.Forbidden;
+        await this.withRetry(
+            () =>
+                this.client.sendStateEvent(
+                    roomId,
+                    EventType.RoomGuestAccess,
+                    { guest_access: guestAccess },
+                    "",
+                ),
+            "setRoomGuestAccess",
+        );
     }
 
     public getRoomJoinRule(roomId: string): string {
-        return this.client.getRoomJoinRule(roomId);
+        const room = this.client.getRoom(roomId);
+        if (!room) return JoinRule.Invite;
+        return room.getJoinRule();
     }
 
     public async setRoomJoinRule(roomId: string, joinRule: string): Promise<void> {
-        await this.client.setRoomJoinRule(roomId, joinRule);
+        await this.withRetry(
+            () =>
+                this.client.sendStateEvent(
+                    roomId,
+                    EventType.RoomJoinRules,
+                    { join_rule: joinRule as JoinRule },
+                    "",
+                ),
+            "setRoomJoinRule",
+        );
     }
 }
 

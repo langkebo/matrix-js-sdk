@@ -18,7 +18,6 @@ import { UnstableValue } from "../NamespacedValue";
 import { type IClientWellKnown } from "../client";
 
 // disable lint because these are wire responses
-/* eslint-disable camelcase */
 
 /**
  * Represents a response to the CSAPI `/refresh` endpoint.
@@ -42,8 +41,6 @@ export interface IRefreshTokenResponse {
      */
     device_id?: string;
 }
-
-/* eslint-enable camelcase */
 
 /**
  * Response to GET login flows as per https://spec.matrix.org/v1.3/client-server-api/#get_matrixclientv3login
@@ -78,7 +75,6 @@ export const DELEGATED_OIDC_COMPATIBILITY = OAUTH_AWARE_PREFERRED_FLOW_FIELD;
  */
 export interface ISSOFlow extends ILoginFlow {
     type: "m.login.sso" | "m.login.cas";
-    // eslint-disable-next-line camelcase
     identity_providers?: IIdentityProvider[];
     [OAUTH_AWARE_PREFERRED_FLOW_FIELD.name]?: boolean;
     [OAUTH_AWARE_PREFERRED_FLOW_FIELD.altName]?: boolean;

@@ -37,41 +37,31 @@ export class StoresManager extends BaseManager<keyof StoresManagerEvents, Stores
     }
 
     public getStore(): IStore | undefined {
-        return (this.client as unknown as { store?: IStore }).store;
+        return this.client.store;
     }
 
     public setStore(store: IStore): void {
-        (this.client as unknown as { store?: IStore }).store = store;
+        this.client.store = store;
     }
 
     public getCryptoStore(): unknown {
-        return (this.client as unknown as { cryptoStore?: unknown }).cryptoStore;
+        return this.client.cryptoStore;
     }
 
     public setCryptoStore(store: unknown): void {
-        (this.client as unknown as { cryptoStore?: unknown }).cryptoStore = store;
+        this.client.cryptoStore = store;
     }
 
     public async storeValue(key: string, value: unknown): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        storeValue: (key: string, value: unknown) => Promise<void>;
-                    }
-                ).storeValue(key, value),
+            () => this.client.storeValue(key, value),
             "storeValue",
         );
     }
 
     public async getStoredValue(key: string): Promise<unknown> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getStoredValue: (key: string) => Promise<unknown>;
-                    }
-                ).getStoredValue(key),
+            () => this.client.getStoredValue(key),
             "getStoredValue",
         );
     }

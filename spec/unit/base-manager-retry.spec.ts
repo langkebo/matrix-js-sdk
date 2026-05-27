@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { BaseManager } from "../../src/managers/base-manager";
 import type { MatrixClient } from "../../src/client";
-import { MatrixError } from "../../src/http-api/errors";
+import { HTTPError, MatrixError } from "../../src/http-api/errors";
 import { RetryableError } from "../../src/errors";
 
 class DummyRetryManager extends BaseManager {
@@ -60,5 +60,20 @@ describe("BaseManager.withRetry", () => {
         ).resolves.toBe("ok");
 
         expect(sleepSpy).toHaveBeenCalledWith(1234);
+    });
+
+    it("retries HTTPError 429 responses with the default delay", async () => {
+        const manager = new DummyRetryManager();
+        const fn = vi
+            .fn<() => Promise<string>>()
+            .mockRejectedValueOnce(new HTTPError("rate limited", 429))
+            .mockResolvedValueOnce("ok");
+
+        const sleepSpy = vi.spyOn(manager as any, "sleep");
+
+        await expect(manager.run(fn, { maxRetries: 1, retryDelay: 10, idempotent: true })).resolves.toBe("ok");
+
+        expect(fn).toHaveBeenCalledTimes(2);
+        expect(sleepSpy).toHaveBeenCalledWith(10);
     });
 });

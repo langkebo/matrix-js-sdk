@@ -1,6 +1,6 @@
 /**
  * E2E 加密完整测试
- * 运行: npx tsx spec/integ/real-backend/e2e-crypto.test.ts
+ * 运行: pnpm run test:real-backend:tsx -- spec/integ/real-backend/e2e-crypto.test.ts
  *
  * 测试内容:
  * - 加密初始化
@@ -15,6 +15,8 @@
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
 import { CrossSigningKey } from "../../../src/crypto-api/index.ts";
+import { MatrixEventEvent, type MatrixEvent } from "../../../src/models/event.ts";
+import { syncPromise } from "../../test-utils/test-utils";
 import { TestConfig } from "./TestConfig";
 
 declare const process: { exit: (code?: number) => never };
@@ -23,6 +25,8 @@ let clientA: MatrixClient | null = null;
 let clientB: MatrixClient | null = null;
 const testResults: { name: string; passed: boolean; error?: string }[] = [];
 let encryptedRoomId: string | null = null;
+let lastEncryptedEventId: string | null = null;
+let lastEncryptedMessageBody: string | null = null;
 
 async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
     try {
@@ -52,6 +56,97 @@ async function login(user: { userId: string; password: string; deviceId?: string
     return testClient;
 }
 
+async function sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function startClientAndSync(client: MatrixClient, label: string): Promise<void> {
+    client.startClient({ initialSyncLimit: 20 });
+    await syncPromise(client);
+    console.log(`   ✅ ${label} 已开始同步: ${client.getSyncState()}`);
+}
+
+async function waitForRoom(client: MatrixClient, roomId: string, timeoutMs = TestConfig.timeout.long): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+        if (client.getRoom(roomId)) {
+            return;
+        }
+        await sleep(500);
+    }
+
+    throw new Error(`房间 ${roomId} 未在 ${timeoutMs}ms 内出现在客户端缓存中`);
+}
+
+function getTimelineEvent(roomId: string, client: MatrixClient, eventId: string): MatrixEvent | null {
+    const room = client.getRoom(roomId);
+    const events = room?.getLiveTimeline().getEvents() ?? [];
+    return events.find((event) => event.getId() === eventId) ?? null;
+}
+
+async function waitForEventDecryption(
+    client: MatrixClient,
+    roomId: string,
+    eventId: string,
+    expectedBody: string,
+    timeoutMs = TestConfig.timeout.long,
+): Promise<MatrixEvent> {
+    const deadline = Date.now() + timeoutMs;
+    let lastObservedType = "missing";
+    let lastObservedBody = "";
+
+    while (Date.now() < deadline) {
+        const event = getTimelineEvent(roomId, client, eventId);
+        if (event) {
+            lastObservedType = event.getType();
+
+            if (event.isBeingDecrypted()) {
+                try {
+                    await Promise.race([event.getDecryptionPromise(), sleep(1000)]);
+                } catch {
+                    // Ignore transient decrypt failures here and keep polling for eventual success.
+                }
+            }
+
+            const clearBody = event.getClearContent()?.body;
+            const contentBody = event.getContent()?.body;
+            const resolvedBody =
+                typeof clearBody === "string" ? clearBody : typeof contentBody === "string" ? contentBody : "";
+
+            lastObservedBody = resolvedBody;
+            if (resolvedBody === expectedBody) {
+                return event;
+            }
+
+            await new Promise<void>((resolve) => {
+                let resolved = false;
+                const onDecrypted = (): void => {
+                    if (resolved) return;
+                    resolved = true;
+                    event.off(MatrixEventEvent.Decrypted, onDecrypted);
+                    resolve();
+                };
+
+                event.on(MatrixEventEvent.Decrypted, onDecrypted);
+                setTimeout(() => {
+                    if (resolved) return;
+                    resolved = true;
+                    event.off(MatrixEventEvent.Decrypted, onDecrypted);
+                    resolve();
+                }, 750);
+            });
+            continue;
+        }
+
+        await sleep(750);
+    }
+
+    throw new Error(
+        `等待第二端解密事件超时: roomId=${roomId}, eventId=${eventId}, lastType=${lastObservedType}, lastBody=${lastObservedBody}`,
+    );
+}
+
 async function main(): Promise<void> {
     console.log("\n========================================");
     console.log("E2E 加密完整测试");
@@ -68,13 +163,18 @@ async function main(): Promise<void> {
     console.log("2. 初始化加密模块...");
     try {
         await clientA.initRustCrypto({ useIndexedDB: false });
-        console.log("   ✅ 加密模块已初始化\n");
+        await clientB.initRustCrypto({ useIndexedDB: false });
+        console.log("   ✅ 双端加密模块已初始化\n");
     } catch (e: any) {
         console.log(`   ⚠️ 加密初始化: ${e.message}\n`);
     }
 
+    console.log("3. 启动真实同步...");
+    await Promise.all([startClientAndSync(clientA, "用户A"), startClientAndSync(clientB, "用户B")]);
+    console.log();
+
     // 2. 加密初始化测试
-    console.log("2. 加密初始化测试...\n");
+    console.log("4. 加密初始化测试...\n");
 
     await runTest("isCryptoEnabled - 检查加密是否启用", async () => {
         const crypto = clientA!.getCrypto();
@@ -94,8 +194,8 @@ async function main(): Promise<void> {
     });
 
     await runTest("getDevices - 获取设备列表", async () => {
-        const result = await clientA!.getDevices();
-        console.log(`      设备数量: ${result.devices?.length || 0}`);
+        const devices = await clientA!.getDeviceManager().getDevices();
+        console.log(`      设备数量: ${devices.length}`);
     });
 
     await runTest("getUserDevices - 获取用户设备", async () => {
@@ -110,7 +210,7 @@ async function main(): Promise<void> {
     });
 
     // 3. 密钥测试
-    console.log("\n3. 密钥测试...\n");
+    console.log("\n5. 密钥测试...\n");
 
     await runTest("getCrossSigningKeyId - 获取交叉签名密钥ID", async () => {
         const crypto = clientA!.getCrypto();
@@ -141,7 +241,7 @@ async function main(): Promise<void> {
     });
 
     // 4. 密钥备份测试
-    console.log("\n4. 密钥备份测试...\n");
+    console.log("\n6. 密钥备份测试...\n");
 
     await runTest("getKeyBackupEnabled - 检查密钥备份是否启用", async () => {
         const crypto = clientA!.getCrypto();
@@ -156,7 +256,7 @@ async function main(): Promise<void> {
 
     await runTest("getKeyBackupVersion - 获取密钥备份版本", async () => {
         try {
-            const version = await clientA!.getKeyBackupVersion();
+            const version = await clientA!.getKeyBackupManager().getLatestBackupVersion();
             console.log(`      密钥备份版本: ${version?.version || "无"}`);
         } catch (e: any) {
             console.log(`      密钥备份: ${e.message}`);
@@ -164,8 +264,14 @@ async function main(): Promise<void> {
     });
 
     await runTest("checkKeyBackupAndEnable - 检查并启用密钥备份", async () => {
+        const crypto = clientA!.getCrypto();
+        if (!crypto?.checkKeyBackupAndEnable) {
+            console.log("      加密模块未初始化或不支持密钥备份检查，跳过");
+            return;
+        }
+
         try {
-            const result = await clientA!.checkKeyBackupAndEnable();
+            const result = await crypto.checkKeyBackupAndEnable();
             console.log(`      密钥备份状态: ${result ? "enabled" : "disabled"}`);
         } catch (e: any) {
             console.log(`      密钥备份: ${e.message}`);
@@ -173,12 +279,13 @@ async function main(): Promise<void> {
     });
 
     // 5. 加密房间测试
-    console.log("\n5. 加密房间测试...\n");
+    console.log("\n7. 加密房间测试...\n");
 
     await runTest("createEncryptedRoom - 创建加密房间", async () => {
         const room = await clientA!.createRoom({
             name: "E2E Test Room",
             topic: "Encrypted room for testing",
+            invite: [TestConfig.secondaryUser.userId],
             initial_state: [
                 {
                     type: "m.room.encryption",
@@ -192,6 +299,16 @@ async function main(): Promise<void> {
         console.log(`      房间ID: ${room.room_id}`);
     });
 
+    await runTest("joinEncryptedRoom - 第二个客户端加入加密房间", async () => {
+        if (!encryptedRoomId) {
+            throw new Error("加密房间未创建");
+        }
+
+        await clientB!.joinRoom(encryptedRoomId);
+        await Promise.all([waitForRoom(clientA!, encryptedRoomId), waitForRoom(clientB!, encryptedRoomId)]);
+        console.log(`      用户B已加入: ${encryptedRoomId}`);
+    });
+
     await runTest("isEncryptionEnabledInRoom - 检查房间加密状态", async () => {
         const crypto = clientA!.getCrypto();
         if (crypto && encryptedRoomId) {
@@ -203,49 +320,49 @@ async function main(): Promise<void> {
     await runTest("getRoomEncryption - 获取房间加密配置", async () => {
         const room = clientA!.getRoom(encryptedRoomId!);
         if (room) {
-            const encryption = room.getEncryption();
+            const encryptionEvent = room.currentState.getStateEvents("m.room.encryption", "");
+            const encryption = encryptionEvent?.getContent<{ algorithm?: string }>();
             console.log(`      加密算法: ${encryption?.algorithm || "无"}`);
         }
     });
 
     // 6. 加密消息测试
-    console.log("\n6. 加密消息测试...\n");
+    console.log("\n8. 加密消息测试...\n");
 
     await runTest("sendEncryptedMessage - 发送加密消息", async () => {
         if (!encryptedRoomId) {
             throw new Error("加密房间未创建");
         }
-        const result = await clientA!.sendTextMessage(encryptedRoomId, "🔐 加密消息测试");
+        const messageBody = `🔐 加密消息测试 ${Date.now()}`;
+        const result = await clientA!.sendTextMessage(encryptedRoomId, messageBody);
+        lastEncryptedEventId = result.event_id;
+        lastEncryptedMessageBody = messageBody;
         console.log(`      事件ID: ${result.event_id}`);
     });
 
-    await runTest("sendEncryptedMessage (second) - 发送第二条加密消息", async () => {
-        if (!encryptedRoomId) {
-            throw new Error("加密房间未创建");
+    await runTest("receiveAndDecryptEncryptedMessage - 第二端完成同步并解密", async () => {
+        if (!encryptedRoomId || !lastEncryptedEventId || !lastEncryptedMessageBody) {
+            throw new Error("缺少待校验的加密事件");
         }
-        const result = await clientA!.sendTextMessage(encryptedRoomId, "第二条加密消息");
-        console.log(`      事件ID: ${result.event_id}`);
+
+        const event = await waitForEventDecryption(clientB!, encryptedRoomId, lastEncryptedEventId, lastEncryptedMessageBody);
+        console.log(
+            `      已解密事件: type=${event.getType()}, body=${event.getClearContent()?.body ?? event.getContent()?.body ?? ""}`,
+        );
     });
 
     await runTest("getEvent - 获取加密事件", async () => {
-        if (!encryptedRoomId) {
+        if (!encryptedRoomId || !lastEncryptedEventId) {
             throw new Error("加密房间未创建");
         }
-        const room = clientA!.getRoom(encryptedRoomId);
-        const events = room?.getLiveTimeline().getEvents();
-        if (events && events.length > 0) {
-            const eventId = events[0].getId();
-            if (eventId) {
-                const event = await clientA!.getEvent(encryptedRoomId, eventId);
-                if (event) {
-                    console.log(`      事件类型: ${event.getType()}`);
-                }
-            }
+        const event = await clientA!.fetchRoomEvent(encryptedRoomId, lastEncryptedEventId);
+        if (event) {
+            console.log(`      事件类型: ${event.type}`);
         }
     });
 
     // 7. 密钥交换测试
-    console.log("\n7. 密钥交换测试...\n");
+    console.log("\n9. 密钥交换测试...\n");
 
     await runTest("getKeyChanges - 获取密钥变化", async () => {
         const result = await clientA!.getKeyChanges("somedevice", "now");
@@ -271,7 +388,7 @@ async function main(): Promise<void> {
     });
 
     // 8. 设备验证测试
-    console.log("\n8. 设备验证测试...\n");
+    console.log("\n10. 设备验证测试...\n");
 
     await runTest("getVerificationRequests - 获取验证请求", async () => {
         const crypto = clientA!.getCrypto();
@@ -296,42 +413,32 @@ async function main(): Promise<void> {
     });
 
     // 9. 密钥导入/导出测试
-    console.log("\n9. 密钥导入/导出测试...\n");
+    console.log("\n11. 密钥导入/导出测试...\n");
 
     await runTest("exportKeys - 导出密钥", async () => {
-        const crypto = clientA!.getCrypto();
-        if (crypto?.exportKeys) {
-            try {
-                // 尝试导出密钥（需要设置密码）
-                const keys = await crypto.exportKeys("test-password");
-                console.log(`      导出密钥数: ${keys?.length || 0}`);
-            } catch (e: any) {
-                console.log(`      导出密钥: 需要会话`);
-            }
+        try {
+            const exportResult = await clientA!.getKeyBackupManager().exportKeys();
+            console.log(`      导出房间数: ${Object.keys(exportResult.room_keys || {}).length}`);
+        } catch (e: any) {
+            console.log(`      导出密钥: ${e.message}`);
         }
     });
 
     await runTest("importKeys - 导入密钥", async () => {
-        const crypto = clientA!.getCrypto();
-        if (crypto?.importKeys) {
-            try {
-                console.log(`      导入密钥: 已尝试`);
-            } catch (e: any) {
-                console.log(`      导入密钥: ${e.message}`);
-            }
+        try {
+            const exportResult = await clientA!.getKeyBackupManager().exportKeys();
+            const importResult = await clientA!.getKeyBackupManager().importKeys(exportResult.room_keys);
+            console.log(`      导入结果: count=${importResult.count}, failed=${importResult.failed}, total=${importResult.total}`);
+        } catch (e: any) {
+            console.log(`      导入密钥: ${e.message}`);
         }
     });
 
     // 10. 密钥轮换测试
-    console.log("\n10. 密钥轮换测试...\n");
+    console.log("\n12. 密钥轮换测试...\n");
 
     await runTest("rotateOlmKeys - 轮换 Olm 密钥", async () => {
-        try {
-            await clientA!.rotateOlmKeys();
-            console.log(`      密钥轮换: 成功`);
-        } catch (e: any) {
-            console.log(`      密钥轮换: ${e.message}`);
-        }
+        console.log("      当前 SDK 未公开 rotateOlmKeys 接口，跳过");
     });
 
     await runTest("getEncryptionAlgorithm - 获取加密算法", async () => {
@@ -345,7 +452,7 @@ async function main(): Promise<void> {
     });
 
     // 11. Secret Storage 测试
-    console.log("\n11. Secret Storage 测试...\n");
+    console.log("\n13. Secret Storage 测试...\n");
 
     await runTest("isSecretStorageReady - 检查 Secret Storage 是否就绪", async () => {
         const crypto = clientA!.getCrypto();
@@ -358,35 +465,25 @@ async function main(): Promise<void> {
     });
 
     await runTest("storeSecret - 存储密钥", async () => {
-        const crypto = clientA!.getCrypto();
-        if (crypto?.storeSecret) {
-            try {
-                await crypto.storeSecret("test_secret", "test_value");
-                console.log(`      密钥存储: 成功`);
-            } catch (e: any) {
-                console.log(`      密钥存储: ${e.message}`);
-            }
-        } else {
-            console.log(`      加密模块未初始化或方法不可用，跳过`);
+        try {
+            await clientA!.storeSecret("test_secret", "test_value");
+            console.log("      密钥存储: 成功");
+        } catch (e: any) {
+            console.log(`      密钥存储: ${e.message}`);
         }
     });
 
     await runTest("getSecret - 获取密钥", async () => {
-        const crypto = clientA!.getCrypto();
-        if (crypto?.getSecret) {
-            try {
-                const secret = await crypto.getSecret("test_secret");
-                console.log(`      密钥获取: ${secret ? "成功" : "未找到"}`);
-            } catch (e: any) {
-                console.log(`      密钥获取: ${e.message}`);
-            }
-        } else {
-            console.log(`      加密模块未初始化或方法不可用，跳过`);
+        try {
+            const secret = await clientA!.getSecret("test_secret");
+            console.log(`      密钥获取: ${secret ? "成功" : "未找到"}`);
+        } catch (e: any) {
+            console.log(`      密钥获取: ${e.message}`);
         }
     });
 
     // 12. 加密房间成员测试
-    console.log("\n12. 加密房间成员测试...\n");
+    console.log("\n14. 加密房间成员测试...\n");
 
     await runTest("getMembersWithProfiles - 获取房间成员", async () => {
         if (!encryptedRoomId) {
@@ -394,7 +491,7 @@ async function main(): Promise<void> {
         }
         const room = clientA!.getRoom(encryptedRoomId);
         if (room) {
-            const members = await room.getMembers();
+            const members = room.getMembers();
             console.log(`      成员数量: ${members?.length || 0}`);
         }
     });
@@ -411,7 +508,7 @@ async function main(): Promise<void> {
     });
 
     // 清理
-    console.log("\n13. 清理...");
+    console.log("\n15. 清理...");
 
     // 删除测试房间
     if (encryptedRoomId) {
@@ -425,8 +522,8 @@ async function main(): Promise<void> {
 
     // 登出
     try {
-        await clientA!.logout();
-        await clientB!.logout();
+        await clientA!.logout(true);
+        await clientB!.logout(true);
         console.log("   ✅ 已登出");
     } catch (e) {
         console.log("   ⚠️ 登出失败");
@@ -456,4 +553,7 @@ async function main(): Promise<void> {
     process.exit(failed > 0 ? 1 : 0);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});

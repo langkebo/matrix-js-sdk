@@ -33,6 +33,7 @@ export enum Feature {
     AccountDataDeletion = "AccountDataDeletion",
     RelationsRecursion = "RelationsRecursion",
     IntentionalMentions = "IntentionalMentions",
+    Location = "Location",
 }
 
 type FeatureSupportCondition = {
@@ -65,6 +66,10 @@ const featureSupportResolver: Record<string, FeatureSupportCondition> = {
     [Feature.IntentionalMentions]: {
         unstablePrefixes: ["org.matrix.msc3952_intentional_mentions"],
         matrixVersion: "v1.7",
+    },
+    [Feature.Location]: {
+        unstablePrefixes: ["org.matrix.msc3488"],
+        matrixVersion: "v1.10",
     },
 };
 

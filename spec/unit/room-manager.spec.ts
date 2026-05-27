@@ -811,9 +811,22 @@ describe("RoomManager", () => {
         });
 
         it("should set guest access successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValue(undefined);
+            mockClient.sendStateEvent.mockResolvedValue({ event_id: "$event" });
             await roomManager.setGuestAccess("!room:example.com", { allowJoin: true, allowRead: true });
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            expect(mockClient.sendStateEvent).toHaveBeenNthCalledWith(
+                1,
+                "!room:example.com",
+                "m.room.guest_access",
+                { guest_access: "can_join" },
+                "",
+            );
+            expect(mockClient.sendStateEvent).toHaveBeenNthCalledWith(
+                2,
+                "!room:example.com",
+                "m.room.history_visibility",
+                { history_visibility: "world_readable" },
+                "",
+            );
         });
     });
 

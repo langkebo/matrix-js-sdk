@@ -15,7 +15,6 @@ export {
 } from "./discovery";
 export { PushManager } from "./push";
 export { QrLoginManager, type QrCodeResponse, type QrLoginStatus } from "./qr-login";
-export { RenderingManager } from "./rendering";
 export { RoomManager } from "./room";
 export { RoomListManager } from "./room-list";
 export { SendingManager } from "./sending";
@@ -39,9 +38,20 @@ export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
 export { KeyVerificationManager } from "./key-verification";
 export { MediaManager } from "./media";
-export { MessageManager } from "./message";
 export { ModuleManager } from "./module";
-export { RoomSummaryManager } from "./room-summary";
+export {
+    RoomSummaryManager,
+    RoomSummaryMemberManager,
+    RoomSummaryMemberEvent,
+    RoomSummaryStateManager,
+    RoomSummaryStatsManager,
+    RoomSummaryStatsEvent,
+    RoomSummaryThreadManager,
+    RoomSummarySearchManager,
+    RoomSummaryKeyManager,
+    RoomSummaryInvitePolicyManager,
+    RoomSummaryEventOperationManager,
+} from "./room-summary";
 export { StickyEventManager } from "./sticky-event";
 export { ThirdPartyManager } from "./third-party";
 export { UserManager } from "./user";
@@ -102,32 +112,18 @@ export {
     type ISetBurnConfigResponse,
 } from "./burn-after-read";
 export { CaptchaManager } from "./captcha";
-export { ContentScanManager } from "./content-scan";
 export { CredentialsManager } from "./credentials";
 export { CrossSigningManager } from "./cross-signing";
-export { CryptoAlgorithmsManager } from "./crypto-algorithms";
 export { CryptoBackupManager } from "./crypto-backup";
 export { CryptoEncryptionManager } from "./crypto-encryption";
 export { CryptoStoreManager } from "./crypto-store";
 export { DeviceKeysManager } from "./device-keys";
 export { DirectoryManager } from "./directory";
-export { EditionsManager } from "./editions";
-export { EncryptionRotationManager } from "./encryption-rotation";
 export { EphemeralManager } from "./ephemeral";
 export { EventManager } from "./event";
 export { EventProcessingManager } from "./event-processing";
 export { EventStatusManager } from "./event-status";
-export { FilteringManager } from "./filtering";
 export { FilterManager, FilterManager as CanonicalFilterManager } from "./filter/index";
-export {
-    FilterManager as LegacyFilterManager,
-    type IFilterInfo,
-    type IFilterManagerDefinition,
-    type IFilterManagerResponse,
-    FilterEvent as LegacyFilterEvent,
-    createFilterDefinition,
-} from "./filter-manager";
-export { GroupCallManager } from "./group-management";
 export { HttpManager } from "./http";
 export { IdentityManager } from "./identity";
 export { InviteListManager } from "./invite-list";
@@ -141,12 +137,7 @@ export { LoggerManager } from "./logger/index";
 export { MediaQuotaManager } from "./media-quota";
 export { MembershipManager } from "./membership";
 export { NotificationsManager } from "./notifications";
-export { NotificationsLegacyManager } from "./notifications-legacy";
-export { OtrManager } from "./otr";
-export { PaginationManager } from "./pagination";
-export { PendingActionsManager } from "./pending-actions";
 export { PinnedMessagesManager } from "./pinned-messages";
-export { PowerLevelsManager } from "./power-levels";
 export { PushNotificationsManager } from "./push-notifications";
 export { PushRulesManager } from "./push-rules";
 export { ReactionsManager } from "./reactions";
@@ -165,7 +156,6 @@ export { RoomSettingsManager } from "./room-settings";
 export { RoomStateManager } from "./room-state";
 export { RoomStateManagementManager } from "./room-state-management";
 export { RoomUpgradesManager } from "./room-upgrades";
-export { ScheduledCallManager } from "./scheduled-call";
 export { ScheduledEventsManager } from "./scheduled-events";
 export { SearchManager } from "./search";
 export { SecretStorageManager } from "./secret-storage/index";
@@ -175,7 +165,6 @@ export { ServerCapabilitiesManager } from "./server-capabilities";
 export { ServerTimeManager } from "./server-time";
 export { SessionManager } from "./session";
 export { SessionsManager } from "./sessions";
-export { SettledManager } from "./settled";
 export { StoresManager } from "./stores";
 export { SyncAccumulatorManager } from "./sync-accumulator/index";
 export { SyncManager } from "./sync-management";

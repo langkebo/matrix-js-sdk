@@ -20,9 +20,24 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export * from "./RoomManager";
 
+export function setRoomManagerRetryOptions(
+    client: MatrixClient,
+    options: import("../managers/base-manager").RetryOptions,
+): void {
+    client.getRoomManager().setRetryOptions(options);
+}
+
 declare module "../client.ts" {
     interface MatrixClient {
         getRoomManager(): RoomManager;
+        getRoom(roomId: string): import("../models/room").Room | null;
+        getRooms(): import("../models/room").Room[];
+        sendStateEvent(
+            roomId: string,
+            eventType: string,
+            content: any,
+            stateKey?: string,
+        ): Promise<{ event_id: string }>;
     }
 }
 
@@ -34,6 +49,14 @@ export function extendMatrixClient(): void {
 
     MatrixClient.prototype.getRoomManager = function (this: MatrixClient): RoomManager {
         return getOrCreateManager(this, "room", () => new RoomManager(this));
+    };
+
+    MatrixClient.prototype.getRoom = function (this: MatrixClient, roomId: string) {
+        return this.getRoomManager().getRoom(roomId);
+    };
+
+    MatrixClient.prototype.getRooms = function (this: MatrixClient) {
+        return this.getRoomManager().getRooms();
     };
 }
 

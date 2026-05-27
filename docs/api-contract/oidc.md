@@ -91,3 +91,53 @@ last_reviewed: 2026-05-03
 | `M_INVALID_PARAM`  | `400`     | `redirectUrl`、`code`、`state` 或 PKCE 参数非法 |
 | `M_FORBIDDEN`      | `403`     | 提供方拒绝授权或当前用户不允许完成绑定          |
 | `M_LIMIT_EXCEEDED` | `429`     | OIDC 登录链路触发限流                           |
+
+## DTO Definitions
+
+> Source: `src/oidc/__generated__/dto.ts`
+
+```typescript
+export interface OidcWellKnownResponse {
+    issuer: string; authorization_endpoint: string; token_endpoint: string;
+    userinfo_endpoint?: string; jwks_uri?: string; registration_endpoint?: string;
+    scopes_supported?: string[]; response_types_supported?: string[];
+    code_challenge_methods_supported?: string[]; revocation_endpoint?: string;
+    grant_types_supported?: string[]; account_management_uri?: string;
+    account_management_actions_supported?: string[]; prompt_values_supported?: string[];
+    device_authorization_endpoint?: string;
+}
+export interface OidcJwks {
+    keys: Array<{ kty: string; kid: string; use?: string; alg?: string; n?: string; e?: string }>;
+}
+export interface OidcAuthRequest {
+    client_id: string; redirect_uri: string; response_type: string; scope: string;
+    state?: string; nonce?: string; code_challenge?: string; code_challenge_method?: string;
+}
+export interface OidcAuthResponse { url?: string; code?: string; }
+export interface OidcTokenRequest {
+    grant_type: string; code?: string; redirect_uri?: string; code_verifier?: string;
+    refresh_token?: string; client_id?: string; client_secret?: string;
+}
+export interface OidcTokenResponse {
+    access_token: string; refresh_token?: string; id_token?: string;
+    token_type: string; expires_in: number;
+}
+export interface OidcUserInfoResponse { sub: string; name?: string; picture?: string; email?: string; }
+export interface OidcRegisterRequest {
+    client_name?: string; redirect_uris: string[]; grant_types?: string[];
+    response_types?: string[]; token_endpoint_auth_method?: string;
+}
+export interface OidcClientRegistration {
+    client_id: string; client_secret?: string; client_name?: string; redirect_uris: string[];
+}
+export interface OidcLoginRequest {
+    client_id: string; redirect_uri: string; scope?: string; state?: string;
+    nonce?: string; code_verifier?: string; username: string; password: string;
+}
+export interface OidcLoginResponse { code: string; }
+export interface OidcLogoutRequest {
+    client_id?: string; post_logout_redirect_uri?: string; id_token_hint?: string;
+}
+export interface OidcCallbackRequest { code: string; state: string; }
+export interface SsoRedirectResponse { url: string; }
+```

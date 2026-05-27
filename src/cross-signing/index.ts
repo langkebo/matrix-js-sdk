@@ -23,6 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { CrossSigningKey } from "../crypto-api";
 
 export interface CrossSigningStatus {
     crossSigningVerified: boolean;
@@ -44,9 +45,9 @@ export interface UserCrossSigningKeys {
 }
 
 export interface CrossSigningManagerEvents {
-    cross_signing_ready: void;
-    cross_signing_updated: { userId: string };
-    cross_signing_trusted: { userId: string };
+    cross_signing_ready: () => void;
+    cross_signing_updated: (data: { userId: string }) => void;
+    cross_signing_trusted: (data: { userId: string }) => void;
 }
 
 export class CrossSigningManager extends BaseManager<keyof CrossSigningManagerEvents, CrossSigningManagerEvents> {
@@ -55,35 +56,78 @@ export class CrossSigningManager extends BaseManager<keyof CrossSigningManagerEv
     }
 
     public async checkCrossSigningStatus(): Promise<CrossSigningStatus> {
-        return this.withRetry(
-            () => this.client.checkCrossSigningStatus() as Promise<CrossSigningStatus>,
-            "checkCrossSigningStatus",
-        );
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) {
+                return {
+                    crossSigningVerified: false,
+                    crossSigningVerifiedBefore: false,
+                    crossSigningTrusted: false,
+                };
+            }
+            const status = await crypto.getCrossSigningStatus();
+            const userId = this.client.getUserId();
+            let crossSigningVerified = false;
+            let crossSigningVerifiedBefore = false;
+            if (userId) {
+                const verificationStatus = await crypto.getUserVerificationStatus(userId);
+                crossSigningVerified = verificationStatus.isCrossSigningVerified();
+                crossSigningVerifiedBefore = verificationStatus.wasCrossSigningVerified();
+            }
+            return {
+                crossSigningVerified,
+                crossSigningVerifiedBefore,
+                crossSigningTrusted: status.publicKeysOnDevice,
+            };
+        }, "checkCrossSigningStatus");
     }
 
     public async getCrossSigningKeys(): Promise<CrossSigningKeys> {
-        return this.withRetry(
-            () => this.client.getCrossSigningKeys() as Promise<CrossSigningKeys>,
-            "getCrossSigningKeys",
-        );
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) {
+                return { masterKey: null, selfSigningKey: null, userSigningKey: null };
+            }
+            const [masterKey, selfSigningKey, userSigningKey] = await Promise.all([
+                crypto.getCrossSigningKeyId(CrossSigningKey.Master),
+                crypto.getCrossSigningKeyId(CrossSigningKey.SelfSigning),
+                crypto.getCrossSigningKeyId(CrossSigningKey.UserSigning),
+            ]);
+            return { masterKey, selfSigningKey, userSigningKey };
+        }, "getCrossSigningKeys");
     }
 
-    public isCrossSigningReady(): boolean {
-        return this.client.isCrossSigningReady();
+    public async isCrossSigningReady(): Promise<boolean> {
+        const crypto = this.client.getCrypto();
+        if (!crypto) return false;
+        return crypto.isCrossSigningReady();
     }
 
     public async getUserCrossSigningKeys(userId: string): Promise<UserCrossSigningKeys> {
-        return this.withRetry(
-            () => this.client.getUserCrossSigningKeys(userId) as Promise<UserCrossSigningKeys>,
-            "getUserCrossSigningKeys",
-        );
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) {
+                return { masterKey: null, selfSigningKey: null, userSigningKey: null, verified: false };
+            }
+            const [hasKeys, verificationStatus] = await Promise.all([
+                crypto.userHasCrossSigningKeys(userId),
+                crypto.getUserVerificationStatus(userId),
+            ]);
+            return {
+                masterKey: hasKeys ? (await crypto.getCrossSigningKeyId(CrossSigningKey.Master)) : null,
+                selfSigningKey: hasKeys ? (await crypto.getCrossSigningKeyId(CrossSigningKey.SelfSigning)) : null,
+                userSigningKey: hasKeys ? (await crypto.getCrossSigningKeyId(CrossSigningKey.UserSigning)) : null,
+                verified: verificationStatus.isCrossSigningVerified(),
+            };
+        }, "getUserCrossSigningKeys");
     }
 
     public async checkAndTrustCrossSigning(): Promise<void> {
-        return this.withRetry(
-            () => this.client.checkAndTrustCrossSigning() as Promise<void>,
-            "checkAndTrustCrossSigning",
-        );
+        return this.withRetry(async () => {
+            const crypto = this.client.getCrypto();
+            if (!crypto) return;
+            await crypto.bootstrapCrossSigning({});
+        }, "checkAndTrustCrossSigning");
     }
 }
 

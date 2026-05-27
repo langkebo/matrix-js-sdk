@@ -15,15 +15,14 @@ describe("ReportingManager", () => {
     });
 
     describe("reportRoom", () => {
-        it("posts the reason and score to /rooms/{roomId}/report", async () => {
+        it("posts the reason to /rooms/{roomId}/report", async () => {
             authedRequest.mockResolvedValueOnce(undefined);
 
-            await manager.reportRoom("!abuse:example.com", "spam", -100);
+            await manager.reportRoom("!abuse:example.com", "spam");
 
             expect(authedRequest).toHaveBeenCalledTimes(1);
             expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/rooms/!abuse%3Aexample.com/report", undefined, {
                 reason: "spam",
-                score: -100,
             });
         });
 
@@ -46,13 +45,13 @@ describe("ReportingManager", () => {
         it("encodes both room and event ids into the path", async () => {
             authedRequest.mockResolvedValueOnce(undefined);
 
-            await manager.reportEvent("!abuse:example.com", "$evt:example.com", "spam", -50);
+            await manager.reportEvent("!abuse:example.com", "$evt:example.com", -50, "spam");
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/rooms/!abuse%3Aexample.com/report/%24evt%3Aexample.com",
                 undefined,
-                { reason: "spam", score: -50 },
+                { score: -50, reason: "spam" },
             );
         });
 
@@ -63,7 +62,7 @@ describe("ReportingManager", () => {
             });
             authedRequest.mockRejectedValueOnce(httpError);
 
-            await expect(manager.reportEvent("!abuse:example.com", "$evt:example.com", "spam")).rejects.toMatchObject({
+            await expect(manager.reportEvent("!abuse:example.com", "$evt:example.com", -100, "spam")).rejects.toMatchObject({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });

@@ -514,7 +514,7 @@ describe("MatrixClient", function () {
             }
         }
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should call stable endpoint", async () => {
             await assertRequestsMade([
                 {
@@ -523,7 +523,7 @@ describe("MatrixClient", function () {
             ]);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should fallback to unstable endpoint when stable endpoint 400s", async () => {
             await assertRequestsMade([
                 {
@@ -540,7 +540,7 @@ describe("MatrixClient", function () {
             ]);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should fallback to unstable endpoint when stable endpoint 404s", async () => {
             await assertRequestsMade([
                 {
@@ -557,7 +557,7 @@ describe("MatrixClient", function () {
             ]);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should fallback to unstable endpoint when stable endpoint 405s", async () => {
             await assertRequestsMade([
                 {
@@ -574,7 +574,7 @@ describe("MatrixClient", function () {
             ]);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not fallback to unstable endpoint when stable endpoint returns an error (500)", async () => {
             await assertRequestsMade(
                 [
@@ -590,7 +590,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not fallback to unstable endpoint when stable endpoint is rate-limiting (429)", async () => {
             await assertRequestsMade(
                 [
@@ -606,7 +606,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should not fallback to unstable endpoint when stable endpoint says bad gateway (502)", async () => {
             await assertRequestsMade(
                 [
@@ -689,7 +689,7 @@ describe("MatrixClient", function () {
         const body = "This is the body";
         const content = { body, msgtype: MsgType.Text } satisfies RoomMessageEventContent;
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("overload without threadId works", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -705,7 +705,7 @@ describe("MatrixClient", function () {
             await client.sendEvent(roomId, EventType.RoomMessage, { ...content }, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("overload with null threadId works", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -721,7 +721,7 @@ describe("MatrixClient", function () {
             await client.sendEvent(roomId, null, EventType.RoomMessage, { ...content }, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("overload with threadId works", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -745,7 +745,7 @@ describe("MatrixClient", function () {
             await client.sendEvent(roomId, threadId, EventType.RoomMessage, { ...content }, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing", async () => {
             const eventId = "$eventId:example.org";
             const threadId = "$threadId:server";
@@ -779,7 +779,7 @@ describe("MatrixClient", function () {
             await client.sendEvent(roomId, threadId, EventType.RoomMessage, { ...content }, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing with reply", async () => {
             const eventId = "$eventId:example.org";
             const threadId = "$threadId:server";
@@ -895,7 +895,7 @@ describe("MatrixClient", function () {
             await expect(client._unstable_sendScheduledDelayedEvent("anyDelayId")).rejects.toThrow(errorMessage);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("works with null threadId", async () => {
             httpLookups = [];
 
@@ -936,7 +936,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("works with non-null threadId", async () => {
             httpLookups = [];
             const threadId = "$threadId:server";
@@ -986,7 +986,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing", async () => {
             httpLookups = [];
             const threadId = "$threadId:server";
@@ -1045,7 +1045,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing with reply", async () => {
             httpLookups = [];
             const threadId = "$threadId:server";
@@ -1114,7 +1114,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("can send a delayed state event", async () => {
             httpLookups = [];
             const content = { topic: "The year 2000" };
@@ -1156,7 +1156,7 @@ describe("MatrixClient", function () {
             const inputs = statuses.flatMap((status) =>
                 delayIds.map((delayId) => [status, delayId] as [(typeof statuses)[0], (typeof delayIds)[0]]),
             );
-            // eslint-disable-next-line @vitest/expect-expect
+            // eslint-disable-next-line vitest/expect-expect
             it.each(inputs)("can look up delayed events (status = %s, delayId = %s)", async (status, delayId) => {
                 httpLookups = [
                     {
@@ -1175,7 +1175,7 @@ describe("MatrixClient", function () {
             });
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it.each([UpdateDelayedEventAction.Cancel, UpdateDelayedEventAction.Restart, UpdateDelayedEventAction.Send])(
             "can %s scheduled delayed events (action in request body)",
             async (action: UpdateDelayedEventAction) => {
@@ -1195,7 +1195,7 @@ describe("MatrixClient", function () {
             },
         );
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it.each([UpdateDelayedEventAction.Cancel, UpdateDelayedEventAction.Restart, UpdateDelayedEventAction.Send])(
             "can %s scheduled delayed events (action in request body fallback when auth required)",
             async (action: UpdateDelayedEventAction) => {
@@ -1225,7 +1225,7 @@ describe("MatrixClient", function () {
             },
         );
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("can cancel scheduled delayed events (action in request path)", async () => {
             const delayId = "id";
             httpLookups = [
@@ -1239,7 +1239,7 @@ describe("MatrixClient", function () {
             await client._unstable_cancelScheduledDelayedEvent(delayId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("can restart scheduled delayed events (action in request path)", async () => {
             const delayId = "id";
             httpLookups = [
@@ -1253,7 +1253,7 @@ describe("MatrixClient", function () {
             await client._unstable_restartScheduledDelayedEvent(delayId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("can send scheduled delayed events (action in request path)", async () => {
             const delayId = "id";
             httpLookups = [
@@ -1362,7 +1362,7 @@ describe("MatrixClient", function () {
             unstableFeatures["org.matrix.msc4354"] = true;
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing", async () => {
             httpLookups = [];
             const threadId = "$threadId:server";
@@ -1405,7 +1405,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing with reply", async () => {
             httpLookups = [];
             const threadId = "$threadId:server";
@@ -1469,7 +1469,7 @@ describe("MatrixClient", function () {
             unstableFeatures["org.matrix.msc4354"] = true;
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing", async () => {
             httpLookups = [];
             const eventId = "$eventId:example.org";
@@ -1512,7 +1512,7 @@ describe("MatrixClient", function () {
             );
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should add thread relation if threadId is passed and the relation is missing with reply", async () => {
             httpLookups = [];
             const eventId = "$eventId:example.org";
@@ -1740,7 +1740,7 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                    /* eslint-disable @vitest/no-conditional-expect */
+                    /* eslint-disable vitest/no-conditional-expect */
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1759,7 +1759,7 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                    /* eslint-enable @vitest/no-conditional-expect */
+                    /* eslint-enable vitest/no-conditional-expect */
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1802,7 +1802,7 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                    /* eslint-disable @vitest/no-conditional-expect */
+                    /* eslint-disable vitest/no-conditional-expect */
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1821,7 +1821,7 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                    /* eslint-enable @vitest/no-conditional-expect */
+                    /* eslint-enable vitest/no-conditional-expect */
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1839,7 +1839,7 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                    /* eslint-disable @vitest/no-conditional-expect */
+                    /* eslint-disable vitest/no-conditional-expect */
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1857,7 +1857,7 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                    /* eslint-enable @vitest/no-conditional-expect */
+                    /* eslint-enable vitest/no-conditional-expect */
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1879,7 +1879,7 @@ describe("MatrixClient", function () {
         const syncPromise = new Promise<void>((resolve, reject) => {
             client.on(ClientEvent.Sync, function syncListener(state) {
                 if (state === "SYNCING") {
-                    // eslint-disable-next-line @vitest/no-conditional-expect
+                    // eslint-disable-next-line vitest/no-conditional-expect
                     expect(httpLookups.length).toEqual(0);
                     client.removeListener(ClientEvent.Sync, syncListener);
                     resolve();
@@ -1893,7 +1893,7 @@ describe("MatrixClient", function () {
     });
 
     describe("sync contract alignment", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("passes the created filter id to /sync", async () => {
             httpLookups = [
                 PUSH_RULES_RESPONSE,
@@ -1915,7 +1915,7 @@ describe("MatrixClient", function () {
             await client.startClient({ filter });
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("forwards set_presence to /sync", async () => {
             httpLookups = [
                 PUSH_RULES_RESPONSE,
@@ -1957,9 +1957,9 @@ describe("MatrixClient", function () {
     });
 
     describe("getOrCreateFilter", function () {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should POST createFilter if no id is present in localStorage", function () {});
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should use an existing filter if id is present in localStorage", function () {});
         it("should handle localStorage filterId missing from the server", async () => {
             function getFilterName(userId: string, suffix?: string) {
@@ -2012,7 +2012,7 @@ describe("MatrixClient", function () {
 
             const wasPreparedPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
-                    /* eslint-disable @vitest/no-conditional-expect */
+                    /* eslint-disable vitest/no-conditional-expect */
                     if (state === "ERROR" && httpLookups.length > 0) {
                         expect(httpLookups.length).toEqual(2);
                         expect(client.retryImmediately()).toBe(true);
@@ -2024,7 +2024,7 @@ describe("MatrixClient", function () {
                         // unexpected state transition!
                         expect(state).toEqual(null);
                     }
-                    /* eslint-enable @vitest/no-conditional-expect */
+                    /* eslint-enable vitest/no-conditional-expect */
                 });
             });
             await client.startClient();
@@ -2046,10 +2046,10 @@ describe("MatrixClient", function () {
             const isSyncingPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
                     if (state === "ERROR" && httpLookups.length > 0) {
-                        /* eslint-disable @vitest/no-conditional-expect */
+                        /* eslint-disable vitest/no-conditional-expect */
                         expect(httpLookups.length).toEqual(1);
                         expect(client.retryImmediately()).toBe(true);
-                        /* eslint-enable @vitest/no-conditional-expect */
+                        /* eslint-enable vitest/no-conditional-expect */
                         vi.advanceTimersByTime(1);
                     } else if (state === "RECONNECTING" && httpLookups.length > 0) {
                         vi.advanceTimersByTime(10000);
@@ -2076,7 +2076,7 @@ describe("MatrixClient", function () {
 
             const wasPreparedPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
-                    /* eslint-disable @vitest/no-conditional-expect */
+                    /* eslint-disable vitest/no-conditional-expect */
                     if (state === "ERROR" && httpLookups.length > 0) {
                         expect(httpLookups.length).toEqual(3);
                         expect(client.retryImmediately()).toBe(true);
@@ -2088,7 +2088,7 @@ describe("MatrixClient", function () {
                         // unexpected state transition!
                         expect(state).toEqual(null);
                     }
-                    /* eslint-enable @vitest/no-conditional-expect */
+                    /* eslint-enable vitest/no-conditional-expect */
                 });
             });
             await client.startClient();
@@ -2116,7 +2116,7 @@ describe("MatrixClient", function () {
             };
         }
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should transition null -> PREPARED after the first /sync", async () => {
             const expectedStates: [string, string | null][] = [];
             expectedStates.push(["PREPARED", null]);
@@ -2127,7 +2127,7 @@ describe("MatrixClient", function () {
             await didSyncPromise;
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should transition null -> ERROR after a failed /filter", async () => {
             const expectedStates: [string, string | null][] = [];
             httpLookups = [];
@@ -2148,7 +2148,7 @@ describe("MatrixClient", function () {
         // Note: ERROR state transition tests removed due to /versions API complexity
         // The existing tests cover the main sync state transitions
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should transition PREPARED -> SYNCING after /sync", async () => {
             const expectedStates: [string, string | null][] = [];
             expectedStates.push(["PREPARED", null]);
@@ -2160,7 +2160,7 @@ describe("MatrixClient", function () {
             await didSyncPromise;
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should transition SYNCING -> SYNCING on subsequent /sync successes", async () => {
             const expectedStates: [string, string | null][] = [];
             httpLookups.push(SYNC_RESPONSE);
@@ -2368,7 +2368,7 @@ describe("MatrixClient", function () {
             };
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("overload without threadId works", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -2383,7 +2383,7 @@ describe("MatrixClient", function () {
             await client.redactEvent(roomId, eventId, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("overload with null threadId works", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -2398,7 +2398,7 @@ describe("MatrixClient", function () {
             await client.redactEvent(roomId, null, eventId, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("overload with threadId works", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -2413,7 +2413,7 @@ describe("MatrixClient", function () {
             await client.redactEvent(roomId, "$threadId:server", eventId, txnId);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("does not get wrongly encrypted", async () => {
             const eventId = "$eventId:example.org";
             const txnId = client.makeTxnId();
@@ -2451,7 +2451,7 @@ describe("MatrixClient", function () {
                 );
             });
 
-            // eslint-disable-next-line @vitest/expect-expect
+            // eslint-disable-next-line vitest/expect-expect
             it("and the server has unstable support for relation based redactions, it should send 'org.matrix.msc3912.with_relations' in the request body", async () => {
                 unstableFeatures["org.matrix.msc3912"] = true;
                 // load supported features
@@ -2521,7 +2521,7 @@ describe("MatrixClient", function () {
             expect(httpLookups.filter((h) => h.path.includes("/send/")).length).toBe(0);
         }
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should cancel an event which is queued", () => {
             event.setStatus(EventStatus.QUEUED);
             client.scheduler?.queueEvent(event);
@@ -2547,7 +2547,7 @@ describe("MatrixClient", function () {
             assertCancelled();
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should cancel an event which is not sent", () => {
             event.setStatus(EventStatus.NOT_SENT);
             client.cancelPendingEvent(event);
@@ -2677,7 +2677,7 @@ describe("MatrixClient", function () {
                 "/rooms/!room%3Aexample.org/typing/%40alice%3Abar",
                 undefined,
                 { typing: true, timeout: 5000 },
-                undefined,
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -3335,9 +3335,8 @@ describe("MatrixClient", function () {
 
         it("sends contract-compliant payload for restoreSecureBackup", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                success: true,
-                key_count: 1,
-                message: "ok",
+                recovered_keys: 1,
+                total_keys: 2,
             });
 
             await client.restoreSecureBackup("backup-1", "plain-passphrase");
@@ -3824,12 +3823,16 @@ describe("MatrixClient", function () {
             client.getRoom = function (roomId) {
                 return rooms.get(roomId);
             };
-            client.joinRoom = async function (roomId) {
+            client.joinRoom = async function (roomId: string) {
                 return this.getRoom(roomId)! || this.createRoom({ _roomId: roomId } as ICreateRoomOpts);
             };
 
             // Mockup state events
-            client.sendStateEvent = function (roomId, type, content) {
+            client.sendStateEvent = function (
+                roomId: string,
+                type: string,
+                content: Record<string, unknown>,
+            ) {
                 const room = this.getRoom(roomId) as WrappedRoom;
                 const state: Map<string, any> = room._state;
                 let store = state.get(type as string);
@@ -4346,6 +4349,7 @@ describe("MatrixClient", function () {
                 `/user/${encodeURIComponent(userId)}/filter`,
                 undefined,
                 definition,
+                { prefix: ClientPrefix.V3 },
             );
             expect(storeFilterSpy).toHaveBeenCalled();
         });
@@ -4362,6 +4366,9 @@ describe("MatrixClient", function () {
             expect(testClient.http.authedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 `/user/${encodeURIComponent(userId)}/filter/f321`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
             );
             expect(storeFilterSpy).toHaveBeenCalled();
         });
@@ -5032,7 +5039,7 @@ describe("MatrixClient", function () {
     describe("notification timeline compatibility helpers", () => {
         it("resetNotifTimelineSet resets the live timeline token to end", () => {
             const resetLiveTimeline = vi.fn();
-            (client as any).notifTimelineSet = { resetLiveTimeline } as any;
+            client.setNotifTimelineSet({ resetLiveTimeline } as any);
 
             client.resetNotifTimelineSet();
 

@@ -879,7 +879,7 @@ describe("crypto", () => {
         await expectSendRoomKey("@bob:xyz", testOlmAccount);
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("Alice sends a megolm message", async () => {
         const homeserverUrl = aliceClient.getHomeserverUrl();
         const keyResponder = new E2EKeyResponder(homeserverUrl);
@@ -907,7 +907,7 @@ describe("crypto", () => {
         ]);
     });
 
-    // eslint-disable-next-line @vitest/expect-expect
+    // eslint-disable-next-line vitest/expect-expect
     it("We should start a new megolm session after forceDiscardSession", async () => {
         const homeserverUrl = aliceClient.getHomeserverUrl();
         const keyResponder = new E2EKeyResponder(homeserverUrl);
@@ -1273,7 +1273,7 @@ describe("crypto", () => {
             });
         }
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("Sending an event initiates a member list sync", async () => {
             const homeserverUrl = aliceClient.getHomeserverUrl();
             const keyResponder = new E2EKeyResponder(homeserverUrl);
@@ -1297,7 +1297,7 @@ describe("crypto", () => {
             await Promise.all([sendPromise, megolmMessagePromise, memberListPromise]);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("loading the membership list inhibits a later load", async () => {
             const homeserverUrl = aliceClient.getHomeserverUrl();
             const keyResponder = new E2EKeyResponder(homeserverUrl);
@@ -2153,7 +2153,7 @@ describe("crypto", () => {
             client2?.stopClient();
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         test("Sending a message in a room where the server is hiding the state event does not send a plaintext event", async () => {
             // Alice is in an encrypted room
             const encryptionState = mkEncryptionEvent({ algorithm: "m.megolm.v1.aes-sha2" });
@@ -2211,7 +2211,7 @@ describe("crypto", () => {
             expect(msg3Content.session_id).not.toEqual(msg1Content.session_id);
         });
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         test("Changes to the rotation period should be ignored after a client restart", async () => {
             // Alice is in an encrypted room, where the rotation period is set to 2 messages
             const encryptionState = mkEncryptionEvent({ algorithm: "m.megolm.v1.aes-sha2", rotation_period_msgs: 2 });

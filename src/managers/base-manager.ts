@@ -25,7 +25,7 @@ limitations under the License.
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
-import { MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
+import { HTTPError, MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, ValidationError } from "../errors";
@@ -75,16 +75,6 @@ export abstract class BaseManager<
     }
 
     /**
-     * Set retry options for this manager.
-     * This is intended for internal use by the SDK to configure retry behavior.
-     * @param options - The retry options to set.
-     * @internal
-     */
-    public setRetryOptions(options: RetryOptions): void {
-        this.retryOptions = options;
-    }
-
-    /**
      * Normalize an error into a standard SdkError
      *
      * @param error - The error to normalize
@@ -125,6 +115,27 @@ export abstract class BaseManager<
             );
         }
 
+        if (error instanceof HTTPError) {
+            if (error.httpStatus === 401) {
+                return new AuthError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            if (error.httpStatus === 404) {
+                return new NotFoundError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            if (error.httpStatus === 429 || error.isRateLimitError()) {
+                return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Rate limited"}`, error);
+            }
+            if (error.httpStatus && error.httpStatus >= 500) {
+                return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            return new ApiError(
+                `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
+                "UNKNOWN",
+                error.httpStatus,
+                error,
+            );
+        }
+
         if (httpStatus === 401 || errcode === "M_UNKNOWN_TOKEN") {
             return new AuthError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error as Error);
         }
@@ -141,6 +152,12 @@ export abstract class BaseManager<
             );
         }
 
+        if (httpStatus === 429 || errcode === "M_LIMIT_EXCEEDED") {
+            return new RetryableError(
+                `${managerName}.${method} failed: ${err?.message ?? "Rate limited"}`,
+                error as Error,
+            );
+        }
         if (typeof httpStatus === "number" && httpStatus >= 500) {
             return new RetryableError(
                 `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
@@ -163,6 +180,10 @@ export abstract class BaseManager<
      * @param optionsOrLabel - Retry options or a label for logging
      * @returns The result of the function
      */
+    public setRetryOptions(options: RetryOptions): void {
+        this.retryOptions = { ...this.retryOptions, ...options };
+    }
+
     protected async withRetry<T>(fn: () => Promise<T>, optionsOrLabel: RetryOptions | string = {}): Promise<T> {
         const options = typeof optionsOrLabel === "string" ? {} : optionsOrLabel;
         const label = typeof optionsOrLabel === "string" ? optionsOrLabel : (options.label ?? "withRetry");
@@ -194,11 +215,11 @@ export abstract class BaseManager<
                     const canRetryRequest = idempotent || retryNonIdempotent;
                     if (
                         (canRetryRequest && normalizedError instanceof RetryableError) ||
-                        (canRetryRequest && error instanceof MatrixError && error.httpStatus && error.httpStatus >= 500)
+                        (canRetryRequest && error instanceof HTTPError && error.httpStatus && error.httpStatus >= 500)
                     ) {
                         this.requestStats.retried++;
                         let delay = currentDelay;
-                        if (error instanceof MatrixError && error.isRateLimitError()) {
+                        if (error instanceof HTTPError && error.isRateLimitError()) {
                             delay = safeGetRetryAfterMs(error, currentDelay);
                         }
                         logger.warn(
@@ -278,7 +299,7 @@ export abstract class BaseManager<
         method: Method,
         path: string,
         queryParams?: Record<string, string | string[]>,
-        body?: Record<string, unknown>,
+        body?: object,
         label?: string,
     ): Promise<T> {
         return await this.withRetry(async () => {

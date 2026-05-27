@@ -23,6 +23,7 @@ import type { ToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
 import { type MatrixEvent, MatrixEventEvent } from "../models/event";
 import { type Room } from "../models/room";
 import { type RoomMember } from "../models/room-member";
+import type { AuthDict } from "../interactive-auth";
 import {
     type BackupDecryptor,
     type CryptoBackend,
@@ -892,6 +893,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
         createSecretStorageKey,
         setupNewSecretStorage,
         setupNewKeyBackup,
+        setupNewKeyBackupAuth,
     }: CreateSecretStorageOpts = {}): Promise<void> {
         // If an AES Key is already stored in the secret storage and setupNewSecretStorage is not set
         // we don't want to create a new key
@@ -937,7 +939,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
         if (!setupNewKeyBackup) {
             await this.saveBackupKeyToStorage();
         } else {
-            await this.resetKeyBackup();
+            await this.resetKeyBackup(setupNewKeyBackupAuth);
         }
     }
 
@@ -1368,8 +1370,8 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
     /**
      * Implementation of {@link CryptoApi#resetKeyBackup}.
      */
-    public async resetKeyBackup(): Promise<void> {
-        const backupInfo = await this.backupManager.setupKeyBackup((o) => this.signObject(o));
+    public async resetKeyBackup(auth?: AuthDict): Promise<void> {
+        const backupInfo = await this.backupManager.setupKeyBackup((o) => this.signObject(o), auth);
 
         // we want to store the private key in 4S
         // need to check if 4S is set up?

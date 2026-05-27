@@ -146,11 +146,11 @@ describe("utils", function () {
     describe("deepCompare", function () {
         const assert = {
             isTrue: function (x: any) {
-                // eslint-disable-next-line @vitest/no-standalone-expect
+                // eslint-disable-next-line vitest/no-standalone-expect
                 expect(x).toBe(true);
             },
             isFalse: function (x: any) {
-                // eslint-disable-next-line @vitest/no-standalone-expect
+                // eslint-disable-next-line vitest/no-standalone-expect
                 expect(x).toBe(false);
             },
         };
@@ -680,7 +680,7 @@ describe("utils", function () {
     });
 
     describe("sleep", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("resolves", async () => {
             await utils.sleep(0);
         });
@@ -693,7 +693,7 @@ describe("utils", function () {
     });
 
     describe("immediate", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("resolves", async () => {
             await utils.immediate();
         });

@@ -19,7 +19,6 @@ limitations under the License.
  * the public classes.
  */
 
-import { type ExtensibleEvent, ExtensibleEvents } from "matrix-events-sdk";
 
 import { logger } from "../logger";
 import {
@@ -73,7 +72,6 @@ export interface IAudioInfo extends IMediaInfo {
 
 export type EventContentInfo = IImageInfo | IVideoInfo | IAudioInfo | IMediaInfo | Record<string, unknown>;
 
-/* eslint-disable camelcase */
 export interface IContent {
     [key: string]: unknown;
     "msgtype"?: MsgType | string;
@@ -191,7 +189,6 @@ export interface IClearEvent {
     content: Omit<IContent, "membership" | "avatar_url" | "displayname" | "m.relates_to">;
     unsigned?: IUnsigned;
 }
-/* eslint-enable camelcase */
 
 interface IKeyRequestRecipient {
     userId: string;
@@ -291,12 +288,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
     Note: We're returning this object, so any value stored here MUST be frozen.
     */
     private visibility: MessageVisibility = MESSAGE_VISIBLE;
-
-    // Not all events will be extensible-event compatible, so cache a flag in
-    // addition to a falsy cached event value. We check the flag later on in
-    // a public getter to decide if the cache is valid.
-    private _hasCachedExtEv = false;
-    private _cachedExtEv?: ExtensibleEvent = undefined;
 
     /** If we failed to decrypt this event, the reason for the failure. Otherwise, `null`. */
     private _decryptionFailureReason: DecryptionFailureCode | null = null;
@@ -495,25 +486,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
                 this.unstableStickyExpiresAt = Math.min(now, this.getTs()) + this.unstableStickyInfo.duration_ms;
             }
         }
-    }
-
-    /**
-     * Unstable getter to try and get an extensible event. Note that this might
-     * return a falsy value if the event could not be parsed as an extensible
-     * event.
-     *
-     * @deprecated Use stable functions where possible.
-     */
-    public get unstableExtensibleEvent(): ExtensibleEvent | undefined {
-        if (!this._hasCachedExtEv) {
-            this._cachedExtEv = ExtensibleEvents.parse(this.getEffectiveEvent()) ?? undefined;
-        }
-        return this._cachedExtEv;
-    }
-
-    private invalidateExtensibleEvent(): void {
-        // just reset the flag - that'll trick the getter into parsing a new event
-        this._hasCachedExtEv = false;
     }
 
     /**
@@ -964,7 +936,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         // `decryptionPromise`).
         await Promise.resolve();
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             this.retryDecryption = false;
 
@@ -1052,7 +1023,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         this.senderCurve25519Key = decryptionResult.senderCurve25519Key ?? null;
         this.claimedEd25519Key = decryptionResult.claimedEd25519Key ?? null;
         this.keyForwardedBy = decryptionResult.keyForwardedBy;
-        this.invalidateExtensibleEvent();
     }
 
     /**
@@ -1070,7 +1040,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         };
         this.senderCurve25519Key = null;
         this.claimedEd25519Key = null;
-        this.invalidateExtensibleEvent();
     }
 
     /**
@@ -1136,28 +1105,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
      */
     public getClaimedEd25519Key(): string | null {
         return this.claimedEd25519Key;
-    }
-
-    /**
-     *  Returns an empty array.
-     *
-     * Previously, this returned the chain of Curve25519 keys through which
-     * this session was forwarded, via `m.forwarded_room_key` events.
-     * However, that is not cryptographically reliable, and clients should not
-     * be using it.
-     *
-     * @see https://github.com/matrix-org/matrix-spec/issues/1089
-     * @deprecated
-     */
-    public getForwardingCurve25519KeyChain(): string[] {
-        return [];
-    }
-
-    /**
-     * @deprecated always returns false
-     */
-    public isKeySourceUntrusted(): false {
-        return false;
     }
 
     /**
@@ -1301,7 +1248,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
             redactionEvent.moveToMainTimeline(room);
         }
 
-        this.invalidateExtensibleEvent();
     }
 
     private moveAllRelatedToMainTimeline(room: Room): void {
@@ -1555,7 +1501,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         if (this._replacingEvent !== newEvent) {
             this._replacingEvent = newEvent ?? null;
             this.emit(MatrixEventEvent.Replaced, this);
-            this.invalidateExtensibleEvent();
         }
     }
 

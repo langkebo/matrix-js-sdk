@@ -91,7 +91,7 @@ export interface RoomSessions {
 
 export interface RoomKeyBackup {
     rooms: Record<string, RoomSessions>;
-    etag: string;
+    etag?: string;
 }
 
 export interface RecoveryProgress {

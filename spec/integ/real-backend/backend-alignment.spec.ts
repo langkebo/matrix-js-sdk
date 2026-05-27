@@ -14,13 +14,14 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createClient, type MatrixClient } from "../../../src/matrix";
+import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient as extendAdminClient } from "../../../src/admin/index";
 import { extendMatrixClient as extendFriendClient } from "../../../src/friend/index";
 import { extendMatrixClient as extendWidgetsClient } from "../../../src/widgets/index";
 import { extendMatrixClient as extendWorkerAdminClient } from "../../../src/worker-admin/index";
 import { extendMatrixClient as extendPresenceClient } from "../../../src/presence/index";
 import { TestConfig } from "./TestConfig";
+import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendAdminClient();
 extendFriendClient();
@@ -29,14 +30,7 @@ extendWorkerAdminClient();
 extendPresenceClient();
 
 async function login(user: { userId: string; password: string } = TestConfig.testUser): Promise<MatrixClient> {
-    const client = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
-    const username = user.userId.replace("@", "").split(":")[0];
-    const result = await client.login("m.login.password", {
-        user: username,
-        password: user.password,
-    });
-    client.setAccessToken(result.access_token);
-    return client;
+    return loginAsConfiguredUser(user);
 }
 
 describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
@@ -118,9 +112,10 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             const resp = await friend.sendFriendRequest(target, "integration test");
             expect(resp).toBeTypeOf("object");
             if (resp) {
-                // eslint-disable-next-line @vitest/no-conditional-expect
-                expect(typeof resp.request_id === "string" || resp.request_id === undefined).toBe(true);
-                // eslint-disable-next-line @vitest/no-conditional-expect
+                // Backend contract: { request_id: number, status: string }
+                // eslint-disable-next-line vitest/no-conditional-expect
+                expect(typeof resp.request_id === "number" || resp.request_id === undefined).toBe(true);
+                // eslint-disable-next-line vitest/no-conditional-expect
                 expect(typeof resp.status === "string" || resp.status === undefined).toBe(true);
             }
             // cleanup — cancel so test is idempotent
@@ -134,10 +129,10 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
         it("createFriendGroup reads {id} from backend response", async () => {
             if (!backendAvailable) return;
             const friend = client.getFriendManager();
-            const gid = await friend.createFriendGroup(`sdk-align-${Date.now()}`);
-            expect(typeof gid).toBe("string");
-            expect(gid.length).toBeGreaterThan(0);
-            await friend.deleteFriendGroup(gid);
+            const group = await friend.createFriendGroup(`sdk-align-${Date.now()}`);
+            expect(typeof group.id).toBe("string");
+            expect(group.id.length).toBeGreaterThan(0);
+            await friend.deleteFriendGroup(group.id);
         });
     });
 

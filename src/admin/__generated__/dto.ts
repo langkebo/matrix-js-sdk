@@ -3,243 +3,48 @@
  * Regenerate via `pnpm run contract:codegen`.
  * Source: docs/api-contract/admin.md
  *
- * NOTE: Contract doc for admin has no DTO definitions yet.
- * The types below are hand-curated from the AdminManager method signatures
- * and the synapse-rust route handlers. When the contract doc is updated,
- * regenerate this file via `pnpm run contract:codegen`.
+ * All types have been consolidated into ../types.ts.
+ * This file re-exports them for backward compatibility.
  */
 
-export interface AdminRoomVersionResponse {
-    room_version: string;
-    room_id?: string;
-}
-
-export interface AdminRoomBlockStatus {
-    block: boolean;
-    room_id: string;
-    user_id?: string;
-}
-
-export interface AdminEventContext {
-    events: Record<string, unknown>[];
-    state?: Record<string, unknown>[];
-    start?: string;
-    end?: string;
-}
-
-export interface AdminForwardExtremity {
-    event_id: string;
-    state_group: number;
-    depth: number;
-    received_ts: number;
-}
-
-export interface AdminTokenSync {
-    stream_ordering: number;
-    room_id: string;
-}
-
-export interface AdminRoomSearchResult {
-    results: Record<string, unknown>[];
-    count: number;
-    next_batch?: string;
-    highlights?: string[];
-}
-
-export interface AdminRoomListings {
-    rooms: Record<string, unknown>[];
-    total?: number;
-    next_batch?: string;
-}
-
-export interface AdminFederationCache {
-    entries: Record<string, unknown>[];
-    total?: number;
-}
-
-export interface AdminFederationDestinationRooms {
-    rooms: Record<string, unknown>[];
-    total: number;
-    next_token?: string;
-}
-
-export interface AdminAccountDetails {
-    user_id: string;
-    [key: string]: unknown;
-}
-
-export interface AdminRegisterResult {
-    access_token?: string;
-    refresh_token?: string;
-    expires_in?: number;
-    device_id?: string;
-    user_id: string;
-    home_server?: string;
-    nonce?: string;
-}
-
-export interface AdminReport {
-    id: string;
-    event_id?: string;
-    room_id?: string;
-    name?: string;
-    score?: number;
-    reason?: string;
-    received_ts?: number;
-    user_id?: string;
-    sender?: string;
-    [key: string]: unknown;
-}
-
-export interface AdminReportPage {
-    reports: AdminReport[];
-    total?: number;
-    next_token?: string;
-}
-
-export interface AdminModuleInfo {
-    module_id: string;
-    module_type?: string;
-    config?: Record<string, unknown>;
-    is_enabled?: boolean;
-    description?: string;
-    [key: string]: unknown;
-}
-
-export interface AdminModulePage {
-    modules: AdminModuleInfo[];
-    total?: number;
-    next_token?: string;
-}
-
-export interface AdminModuleLog {
-    log_id: string;
-    module_id: string;
-    level?: string;
-    message?: string;
-    ts?: number;
-    [key: string]: unknown;
-}
-
-export interface AdminModuleLogPage {
-    logs: AdminModuleLog[];
-    total?: number;
-    next_token?: string;
-}
-
-export interface AdminAccountValidityInfo {
-    user_id: string;
-    expiration_ts?: number;
-    is_valid?: boolean;
-    [key: string]: unknown;
-}
-
-export interface AdminPasswordAuthProvider {
-    provider_name: string;
-    provider_type: string;
-    config?: Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-export interface AdminPasswordAuthProviderPage {
-    providers: AdminPasswordAuthProvider[];
-    total?: number;
-}
-
-export interface AdminPresenceRoute {
-    route_name: string;
-    route_type: string;
-    config?: Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-export interface AdminPresenceRoutePage {
-    routes: AdminPresenceRoute[];
-    total?: number;
-}
-
-export interface AdminMediaCallback {
-    callback_name: string;
-    callback_type: string;
-    url?: string;
-    config?: Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-export interface AdminMediaCallbackPage {
-    callbacks: AdminMediaCallback[];
-    total?: number;
-}
-
-export interface AdminRateLimitCallback {
-    callback_name: string;
-    callback_type: string;
-    config?: Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-export interface AdminRateLimitCallbackPage {
-    callbacks: AdminRateLimitCallback[];
-    total?: number;
-}
-
-export interface AdminAccountDataCallback {
-    callback_name: string;
-    callback_type: string;
-    config?: Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-export interface AdminAccountDataCallbackPage {
-    callbacks: AdminAccountDataCallback[];
-    total?: number;
-}
-
-export interface AdminInviteList {
-    user_ids: string[];
-    [key: string]: unknown;
-}
-
-export interface AdminJitsiConfig {
-    config?: Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-export interface AdminPurgeHistoryResult {
-    purge_id: string;
-    [key: string]: unknown;
-}
-
-export interface AdminShutdownRoomResult {
-    kicked_users?: string[];
-    failed_to_kick_users?: string[];
-    local_aliases?: string[];
-    new_room_id?: string;
-    [key: string]: unknown;
-}
-
-export interface AdminBackupInfo {
-    backup_id: string;
-    room_id?: string;
-    session_count?: number;
-    key_count?: number;
-    created_ts?: number;
-    version?: string;
-    [key: string]: unknown;
-}
-
-export interface AdminBackupPage {
-    backups: AdminBackupInfo[];
-    total: number;
-    total_keys: number;
-    limit: number;
-    offset: number;
-}
-
-export interface AdminExperimentalFeatures {
-    enabled: string[];
-    disabled: string[];
-    total: number;
-    total_flags: number;
-    [key: string]: unknown;
-}
+export type {
+    AdminRoomVersionResponse,
+    AdminRoomBlockStatus,
+    AdminEventContextEvent,
+    AdminEventContext,
+    AdminForwardExtremity,
+    AdminTokenSync,
+    AdminRoomSearchResult,
+    AdminRoomListing,
+    AdminRoomListings,
+    AdminFederationCacheEntry,
+    AdminFederationCache,
+    AdminFederationDestinationRoom,
+    AdminFederationDestinationRooms,
+    AdminAccountDetails,
+    AdminRegisterResult,
+    AdminReport,
+    AdminReportPage,
+    AdminModuleInfo,
+    AdminModulePage,
+    AdminModuleLog,
+    AdminModuleLogPage,
+    AdminAccountValidityInfo,
+    AdminPasswordAuthProvider,
+    AdminPasswordAuthProviderPage,
+    AdminPresenceRoute,
+    AdminPresenceRoutePage,
+    AdminMediaCallback,
+    AdminMediaCallbackPage,
+    AdminRateLimitCallback,
+    AdminRateLimitCallbackPage,
+    AdminAccountDataCallback,
+    AdminAccountDataCallbackPage,
+    AdminInviteList,
+    AdminJitsiConfig,
+    AdminPurgeHistoryResult,
+    AdminShutdownRoomResult,
+    AdminBackupInfo,
+    AdminBackupPage,
+    AdminExperimentalFeatures,
+} from "../types";

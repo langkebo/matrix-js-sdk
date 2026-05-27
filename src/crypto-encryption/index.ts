@@ -70,97 +70,58 @@ export class CryptoEncryptionManager extends BaseManager<
     }
 
     public isCryptoReady(): boolean {
-        return (
-            this.client as unknown as {
-                isCryptoReady: () => boolean;
-            }
-        ).isCryptoReady();
+        return this.client.isCryptoReady();
     }
 
     public getDeviceList(): unknown {
-        return (this.client as unknown as { deviceList?: unknown }).deviceList;
+        return this.client.deviceList;
     }
 
     public async encryptEvent(event: MatrixEvent, room: Room): Promise<IEncryptionResult> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        encryptEvent: (event: MatrixEvent, room: Room) => Promise<IEncryptionResult>;
-                    }
-                ).encryptEvent(event, room),
+            () => this.client.encryptEvent(event, room),
             "encryptEvent",
         );
     }
 
     public async decryptEvent(event: MatrixEvent): Promise<IDecryptionResult> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        decryptEvent: (event: MatrixEvent) => Promise<IDecryptionResult>;
-                    }
-                ).decryptEvent(event),
+            () => this.client.decryptEvent(event),
             "decryptEvent",
         );
     }
 
     public async getUserDevices(userId: string): Promise<Record<string, unknown>> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getUserDevices: (userId: string) => Promise<Record<string, unknown>>;
-                    }
-                ).getUserDevices(userId),
+            () => this.client.getUserDevices(userId),
             "getUserDevices",
         );
     }
 
     public async setDeviceVerified(userId: string, deviceId: string): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        setDeviceVerified: (userId: string, deviceId: string) => Promise<void>;
-                    }
-                ).setDeviceVerified(userId, deviceId),
+            () => this.client.setDeviceVerified(userId, deviceId),
             "setDeviceVerified",
         );
     }
 
     public async markDeviceAsVerified(userId: string, deviceId: string): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        markDeviceAsVerified: (userId: string, deviceId: string) => Promise<void>;
-                    }
-                ).markDeviceAsVerified(userId, deviceId),
+            () => this.client.markDeviceAsVerified(userId, deviceId),
             "markDeviceAsVerified",
         );
     }
 
     public async markAllDevicesAsVerified(userId: string): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        markAllDevicesAsVerified: (userId: string) => Promise<void>;
-                    }
-                ).markAllDevicesAsVerified(userId),
+            () => this.client.markAllDevicesAsVerified(userId),
             "markAllDevicesAsVerified",
         );
     }
 
     public async getEncryptionInfoForRoom(roomId: string): Promise<IEncryptionInfo> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getEncryptionInfoForRoom: (roomId: string) => Promise<IEncryptionInfo>;
-                    }
-                ).getEncryptionInfoForRoom(roomId),
+            () => this.client.getEncryptionInfoForRoom(roomId),
             "getEncryptionInfoForRoom",
         );
     }

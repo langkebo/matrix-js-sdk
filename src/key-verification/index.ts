@@ -34,9 +34,24 @@ import {
     type IDeviceSigningVerificationMacRequest,
     type IDeviceSigningVerificationStartResponse,
     type IDeviceSigningVerificationStartRequest,
+    type IScanQrCodeRequest,
+    type IScanQrCodeResponse,
+    type IShowQrCodeResponse,
     type IVerificationRequestsResponse,
     MatrixClient,
 } from "../client";
+import {
+    startDeviceSigningVerificationRequest,
+    acceptDeviceSigningVerificationRequest,
+    sendDeviceSigningVerificationKeyAgreementRequest,
+    confirmDeviceSigningVerificationMacRequest,
+    completeDeviceSigningVerificationRequest,
+    cancelDeviceSigningVerificationRequest,
+    getVerificationRequestsHttpRequest,
+    showQrCodeHttpRequest,
+    scanQrCodeHttpRequest,
+} from "../client-crypto-requests";
+import { getLegacyClientPrefix } from "../client-internals";
 
 type VerificationApiVersion = "v1" | "r0";
 
@@ -206,6 +221,101 @@ export class KeyVerificationManager extends BaseManager {
                     { prefix },
                 ),
             "scanQrCode",
+        );
+    }
+
+    private getAuthedRequestProxy() {
+        return <T>(
+            method: any,
+            path: string,
+            queryParams?: any,
+            body?: any,
+            requestOpts?: any,
+        ): Promise<T> => this.client.http.authedRequest<T>(method, path, queryParams, body, requestOpts);
+    }
+
+    public startDeviceSigningVerification(
+        request: IDeviceSigningVerificationStartRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationStartResponse> {
+        return startDeviceSigningVerificationRequest<IDeviceSigningVerificationStartResponse>(
+            request,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public acceptDeviceSigningVerification(
+        request: IDeviceSigningVerificationAcceptRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationAcceptResponse> {
+        return acceptDeviceSigningVerificationRequest<IDeviceSigningVerificationAcceptResponse>(
+            request,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public sendDeviceSigningVerificationKeyAgreement(
+        request: IDeviceSigningVerificationKeyAgreementRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationKeyAgreementResponse> {
+        return sendDeviceSigningVerificationKeyAgreementRequest<IDeviceSigningVerificationKeyAgreementResponse>(
+            request,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public confirmDeviceSigningVerificationMac(
+        request: IDeviceSigningVerificationMacRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationMacResponse> {
+        return confirmDeviceSigningVerificationMacRequest<IDeviceSigningVerificationMacResponse>(
+            request,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public completeDeviceSigningVerification(
+        request: IDeviceSigningVerificationDoneRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationDoneResponse> {
+        return completeDeviceSigningVerificationRequest<IDeviceSigningVerificationDoneResponse>(
+            request,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public cancelDeviceSigningVerification(
+        request: any,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IDeviceSigningVerificationCancelResponse> {
+        return cancelDeviceSigningVerificationRequest<IDeviceSigningVerificationCancelResponse>(
+            request,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public getVerificationRequestsHttp(version: VerificationApiVersion = "v1"): Promise<IVerificationRequestsResponse> {
+        return getVerificationRequestsHttpRequest<IVerificationRequestsResponse>(
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
+    }
+
+    public showQrCodeHttp(version: VerificationApiVersion = "v1"): Promise<IShowQrCodeResponse> {
+        return showQrCodeHttpRequest<IShowQrCodeResponse>(getLegacyClientPrefix(version), this.getAuthedRequestProxy());
+    }
+
+    public scanQrCodeHttp(request: IScanQrCodeRequest, version: VerificationApiVersion = "v1"): Promise<IScanQrCodeResponse> {
+        return scanQrCodeHttpRequest<IScanQrCodeResponse>(
+            request as any,
+            getLegacyClientPrefix(version),
+            this.getAuthedRequestProxy(),
         );
     }
 }

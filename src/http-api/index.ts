@@ -127,7 +127,7 @@ export class MatrixHttpApi<O extends IHttpOpts> extends FetchHttpApi<O> {
                 url.searchParams.set("content_type", contentType);
             }
 
-            if (!this.opts.useAuthorizationHeader && this.opts.accessToken) {
+            if (this.opts.useAuthorizationHeader === false && this.opts.accessToken) {
                 url.searchParams.set("access_token", this.opts.accessToken);
             }
 
@@ -186,16 +186,22 @@ export class MatrixHttpApi<O extends IHttpOpts> extends FetchHttpApi<O> {
 
     /**
      * Get the content repository url with query parameters.
+     * SEC-08: access_token is no longer included in params by default to prevent URL leakage.
+     * Use Authorization header for authenticated media requests instead.
+     * If useAuthorizationHeader is explicitly false, access_token is included for compatibility.
      * @returns An object with a 'base', 'path' and 'params' for base URL,
      *          path and query parameters respectively.
      */
     public getContentUri(): IContentUri {
+        const params: Record<string, string> = {};
+        if (this.opts.useAuthorizationHeader === false && this.opts.accessToken) {
+            params.access_token = this.opts.accessToken;
+        }
+
         return {
             base: this.opts.baseUrl,
             path: MediaPrefix.V3 + "/upload",
-            params: {
-                access_token: this.opts.accessToken!,
-            },
+            params,
         };
     }
 }

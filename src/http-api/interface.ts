@@ -156,10 +156,7 @@ export interface IRequestOpts extends BaseRequestOpts {
 export interface IContentUri {
     base: string;
     path: string;
-    params: {
-        // eslint-disable-next-line camelcase
-        access_token: string;
-    };
+    params: Record<string, string>;
 }
 
 export enum HttpApiEvent {
@@ -232,7 +229,6 @@ export interface Upload {
 }
 
 export interface UploadResponse {
-    // eslint-disable-next-line camelcase
     content_uri: string;
 }
 

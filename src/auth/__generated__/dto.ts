@@ -9,6 +9,17 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
+export interface LoginWellKnown {
+    /** Homeserver base URL */
+    "m.homeserver"?: {
+        base_url: string;
+    };
+    /** Identity server base URL */
+    "m.identity_server"?: {
+        base_url: string;
+    };
+}
+
 export interface LoginResponse {
     user_id: string;
     access_token: string;
@@ -16,7 +27,7 @@ export interface LoginResponse {
     device_id: string;
     refresh_token?: string;
     expires_in_ms?: number;
-    well_known?: object;
+    well_known?: LoginWellKnown;
 }
 
 export interface RegisterResponse {
@@ -39,8 +50,13 @@ export interface VersionsResponse {
     unstable_features?: Record<string, boolean>;
 }
 
+export interface CapabilityInfo {
+    enabled?: boolean;
+    [key: string]: unknown;
+}
+
 export interface CapabilitiesResponse {
-    capabilities: Record<string, object>;
+    capabilities: Record<string, CapabilityInfo>;
 }
 
 export interface ProfileResponse {

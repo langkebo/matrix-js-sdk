@@ -30,13 +30,23 @@ import { UserEvent } from "../models/user";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
 import { getHttpUriForMxc } from "../content-repo";
-import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
+import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
+import {
+    getExtendedProfileRequest,
+    getExtendedProfilePropertyRequest,
+    setExtendedProfilePropertyRequest,
+    deleteExtendedProfilePropertyRequest,
+    patchExtendedProfileRequest,
+    setExtendedProfileRequest,
+    selectExtendedProfileRequestPrefix,
+} from "../client-profile-requests";
+import { assertExtendedProfileSupported } from "../client-profile-core";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -45,10 +55,6 @@ type StripAuthPrefix<P extends string> =
     P;
 
 function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
-    return path;
-}
-
-function authPath<P extends AuthPathPattern>(path: P): P {
     return path;
 }
 
@@ -332,7 +338,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ValidationError} 如果用户 ID 格式无效
      * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
-    public async getDisplayName(userId: string, forceRefresh = false, throwOnError = true): Promise<string | null> {
+    public async getDisplayName(userId: string, forceRefresh = false, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
         AdminValidators.validateUserId(userId);
 
         try {
@@ -348,11 +354,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         } catch (error) {
             const normalizedError = this.normalizeError(error, "getDisplayName");
             this.emit(ProfileEvent.ProfileError, normalizedError);
-            if (throwOnError) {
-                throw normalizedError;
-            }
-            logger.warn(`ProfileManager.getDisplayName failed for ${userId}:`, normalizedError);
-            return null;
+            return handleManagerError<string>(normalizedError, options, "getDisplayName");
         }
     }
 
@@ -381,7 +383,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ValidationError} 如果用户 ID 格式无效
      * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
-    public async getAvatarUrl(userId: string, forceRefresh = false, throwOnError = true): Promise<string | null> {
+    public async getAvatarUrl(userId: string, forceRefresh = false, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
         AdminValidators.validateUserId(userId);
 
         try {
@@ -397,11 +399,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         } catch (error) {
             const normalizedError = this.normalizeError(error, "getAvatarUrl");
             this.emit(ProfileEvent.ProfileError, normalizedError);
-            if (throwOnError) {
-                throw normalizedError;
-            }
-            logger.warn(`ProfileManager.getAvatarUrl failed for ${userId}:`, normalizedError);
-            return null;
+            return handleManagerError<string>(normalizedError, options, "getAvatarUrl");
         }
     }
 
@@ -445,22 +443,147 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     }
 
     /**
-     * Extended profiles (MSC4133)
+     * Determine if the server supports extended profiles, as described by MSC4133.
+     *
+     * @returns `true` if supported, otherwise `false`
      */
-    public async getExtendedProfile(userId: string): Promise<IExtendedProfile> {
-        const path = authPath(
-            `/_matrix/client/unstable/uk.tcpip.msc4133/profile/${encodeURIComponent(userId)}` as AuthPathPattern,
+    public async doesServerSupportExtendedProfiles(): Promise<boolean> {
+        return (
+            (await this.client.isVersionSupported("v1.16")) ||
+            (await this.client.doesServerSupportUnstableFeature("uk.tcpip.msc4133")) ||
+            (await this.client.doesServerSupportUnstableFeature("uk.tcpip.msc4133.stable"))
         );
+    }
 
-        try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IExtendedProfile>(Method.Get, path, undefined, undefined, {
-                    prefix: "",
-                });
-            }, "getExtendedProfile");
-        } catch (e) {
-            throw this.normalizeError(e, "getExtendedProfile");
-        }
+    /**
+     * Get the prefix used for extended profile requests.
+     */
+    private async getExtendedProfileRequestPrefix(): Promise<string> {
+        return selectExtendedProfileRequestPrefix(
+            await this.client.isVersionSupported("v1.16"),
+            await this.client.doesServerSupportUnstableFeature("uk.tcpip.msc4133.stable"),
+        );
+    }
+
+    private async assertExtendedProfileSupport(): Promise<void> {
+        assertExtendedProfileSupported(await this.doesServerSupportExtendedProfiles());
+    }
+
+    /**
+     * Fetch a user's *extended* profile, which may include additional keys.
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param userId The user ID to fetch the profile of.
+     * @returns A set of keys to property values.
+     *
+     * @throws An error if the server does not support MSC4133.
+     * @throws A M_NOT_FOUND error if the profile could not be found.
+     */
+    public async getExtendedProfile(userId: string): Promise<Record<string, unknown>> {
+        await this.assertExtendedProfileSupport();
+        return getExtendedProfileRequest(
+            userId,
+            await this.getExtendedProfileRequestPrefix(),
+            this.client.http.authedRequest.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Fetch a specific key from the user's *extended* profile.
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param userId The user ID to fetch the profile of.
+     * @param key The key of the property to fetch.
+     * @returns The property value.
+     *
+     * @throws An error if the server does not support MSC4133.
+     * @throws A M_NOT_FOUND error if the key was not set OR the profile could not be found.
+     */
+    public async getExtendedProfileProperty(userId: string, key: string): Promise<unknown> {
+        await this.assertExtendedProfileSupport();
+        return getExtendedProfilePropertyRequest(
+            userId,
+            key,
+            await this.getExtendedProfileRequestPrefix(),
+            this.client.http.authedRequest.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Set a property on your *extended* profile.
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param key The key of the property to set.
+     * @param value The value to set on the property.
+     *
+     * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
+     */
+    public async setExtendedProfileProperty(key: string, value: unknown): Promise<void> {
+        await this.assertExtendedProfileSupport();
+        return setExtendedProfilePropertyRequest(
+            this.client.getUserId(),
+            key,
+            value,
+            await this.getExtendedProfileRequestPrefix(),
+            this.client.http.authedRequest.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Delete a property on your *extended* profile.
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param key The key of the property to delete.
+     *
+     * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
+     */
+    public async deleteExtendedProfileProperty(key: string): Promise<void> {
+        await this.assertExtendedProfileSupport();
+        return deleteExtendedProfilePropertyRequest(
+            this.client.getUserId(),
+            key,
+            await this.getExtendedProfileRequestPrefix(),
+            this.client.http.authedRequest.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Update multiple properties on your *extended* profile. This will
+     * merge with any existing keys.
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param profile The profile object to merge with the existing profile.
+     * @returns The newly merged profile.
+     *
+     * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
+     */
+    public async patchExtendedProfile(profile: Record<string, unknown>): Promise<Record<string, unknown>> {
+        await this.assertExtendedProfileSupport();
+        return patchExtendedProfileRequest(
+            this.client.getUserId(),
+            profile,
+            await this.getExtendedProfileRequestPrefix(),
+            this.client.http.authedRequest.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Set multiple properties on your *extended* profile. This will completely
+     * replace the existing profile, removing any unspecified keys.
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param profile The profile object to set.
+     *
+     * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
+     */
+    public async setExtendedProfile(profile: Record<string, unknown>): Promise<void> {
+        await this.assertExtendedProfileSupport();
+        await setExtendedProfileRequest(
+            this.client.getUserId(),
+            profile,
+            await this.getExtendedProfileRequestPrefix(),
+            this.client.http.authedRequest.bind(this.client.http),
+        );
     }
 
     public getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
@@ -475,12 +598,26 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 declare module "../client.ts" {
     interface MatrixClient {
         getProfileManager(): ProfileManager;
+        setDisplayName(name: string): Promise<void>;
+        setAvatarUrl(url: string): Promise<void>;
     }
 }
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getProfileManager = function (): ProfileManager {
         return getOrCreateManager(this, "profile", () => new ProfileManager(this));
+    };
+    MatrixClient.prototype.getProfileInfo = function (userId: string): Promise<IProfile> {
+        return this.getProfileManager().getProfileInfo(userId);
+    };
+    MatrixClient.prototype.getUserProfile = function (userId: string): Promise<IProfile> {
+        return this.getProfileManager().getProfileInfo(userId);
+    };
+    MatrixClient.prototype.setDisplayName = async function (name: string): Promise<void> {
+        await this.getProfileManager().setDisplayName(name);
+    };
+    MatrixClient.prototype.setAvatarUrl = async function (url: string): Promise<void> {
+        await this.getProfileManager().setAvatarUrl(url);
     };
 }
 

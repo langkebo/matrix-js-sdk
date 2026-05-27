@@ -19,7 +19,7 @@ import type { IMegolmSessionData } from "../@types/crypto";
 import type { ToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
 import { type Room } from "../models/room";
 import { type DeviceMap } from "../models/device";
-import { type UIAuthCallback } from "../interactive-auth";
+import { type AuthDict, type UIAuthCallback } from "../interactive-auth";
 import { type PassphraseInfo, type SecretStorageKey, type SecretStorageKeyDescription } from "../secret-storage";
 import { type VerificationRequest } from "./verification";
 import {
@@ -615,7 +615,7 @@ export interface CryptoApi {
      *
      * The backup engine will be started using the new backup version (i.e., {@link checkKeyBackupAndEnable} is called).
      */
-    resetKeyBackup(): Promise<void>;
+    resetKeyBackup(auth?: AuthDict): Promise<void>;
 
     /**
      * Disables server-side key storage and deletes server-side backups.
@@ -1195,6 +1195,11 @@ export interface CreateSecretStorageOpts {
      * is supplied.
      */
     setupNewKeyBackup?: boolean;
+
+    /**
+     * Optional UIA auth payload to use when `setupNewKeyBackup` requires interactive authentication.
+     */
+    setupNewKeyBackupAuth?: AuthDict;
 
     /**
      * Reset even if keys already exist.

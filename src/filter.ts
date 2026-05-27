@@ -33,7 +33,6 @@ function setProp(obj: IFilterDefinition, keyNesting: string, val: unknown): void
     currentObj[nestedKeys[nestedKeys.length - 1]] = val;
 }
 
-/* eslint-disable camelcase */
 export interface IFilterDefinition {
     event_fields?: string[];
     event_format?: "client" | "federation";
@@ -67,7 +66,6 @@ interface IRoomFilter {
     timeline?: IRoomEventFilter;
     account_data?: IRoomEventFilter;
 }
-/* eslint-enable camelcase */
 
 export class Filter {
     public static LAZY_LOADING_MESSAGES_FILTER = {

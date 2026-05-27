@@ -9,16 +9,26 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
+export interface SearchResultEvent {
+    event_id: string;
+    type: string;
+    content: Record<string, unknown>;
+    sender: string;
+    origin_server_ts: number;
+    room_id: string;
+    state_key?: string;
+}
+
 export interface SearchRoomEventsResponse {
     search_categories: {
         room_events?: {
             count: number;
             results: Array<{
                 rank?: number;
-                result: Record<string, unknown>;
+                result: SearchResultEvent;
                 context?: {
-                    events_before: Array<Record<string, unknown>>;
-                    events_after: Array<Record<string, unknown>>;
+                    events_before: SearchResultEvent[];
+                    events_after: SearchResultEvent[];
                     profile_info?: Record<string, { displayname?: string; avatar_url?: string }>;
                 };
             }>;
@@ -26,14 +36,25 @@ export interface SearchRoomEventsResponse {
             highlights?: string[];
         };
         users?: {
-            results: Array<Record<string, unknown>>;
+            results: Array<{
+                user_id: string;
+                display_name?: string;
+                avatar_url?: string;
+            }>;
             limited?: boolean;
         };
     };
 }
 
+export interface SearchRecipientsOrRoomsResult {
+    user_id?: string;
+    room_id?: string;
+    display_name?: string;
+    avatar_url?: string;
+}
+
 export interface SearchRecipientsOrRoomsResponse {
-    results: unknown[];
+    results: SearchRecipientsOrRoomsResult[];
     count: number;
     next_batch: string | null;
 }

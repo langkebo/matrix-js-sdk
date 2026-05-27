@@ -1,25 +1,31 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { RoomSettingsManager } from "../../src/room-settings";
+import { EventType } from "../../src/@types/event";
 
 describe("RoomSettingsManager", () => {
     let mockClient: any;
     let manager: RoomSettingsManager;
 
     beforeEach(() => {
+        const room = {
+            name: "name",
+            currentState: {
+                getStateEvents: vi.fn((eventType: string) => ({
+                    getContent: () => {
+                        if (eventType === EventType.RoomTopic) return { topic: "topic" };
+                        return {};
+                    },
+                })),
+            },
+            getMxcAvatarUrl: vi.fn().mockReturnValue("mxc://avatar"),
+            getHistoryVisibility: vi.fn().mockReturnValue("shared"),
+            getGuestAccess: vi.fn().mockReturnValue("can_join"),
+            getJoinRule: vi.fn().mockReturnValue("invite"),
+        };
         mockClient = {
-            getRoomName: vi.fn().mockReturnValue("name"),
-            setRoomName: vi.fn().mockResolvedValue({ event_id: "$1" }),
-            getRoomTopic: vi.fn().mockReturnValue("topic"),
-            setRoomTopic: vi.fn().mockResolvedValue({ event_id: "$2" }),
-            getRoomAvatarUrl: vi.fn().mockReturnValue("mxc://avatar"),
-            setRoomAvatar: vi.fn().mockResolvedValue(undefined),
-            getRoomHistoryVisibility: vi.fn().mockReturnValue("shared"),
-            setRoomHistoryVisibility: vi.fn().mockResolvedValue(undefined),
-            getRoomGuestAccess: vi.fn().mockReturnValue("can_join"),
-            setRoomGuestAccess: vi.fn().mockResolvedValue(undefined),
-            getRoomJoinRule: vi.fn().mockReturnValue("invite"),
-            setRoomJoinRule: vi.fn().mockResolvedValue(undefined),
+            getRoom: vi.fn().mockReturnValue(room),
+            sendStateEvent: vi.fn().mockResolvedValue({ event_id: "$1" }),
         };
         manager = new RoomSettingsManager(mockClient);
     });
@@ -35,21 +41,36 @@ describe("RoomSettingsManager", () => {
 
     it("sets room settings", async () => {
         await manager.setRoomName("!r:hs", "n");
-        expect(mockClient.setRoomName).toHaveBeenCalledWith("!r:hs", "n");
+        expect(mockClient.sendStateEvent).toHaveBeenCalledWith("!r:hs", EventType.RoomName, { name: "n" }, "");
 
         await manager.setRoomTopic("!r:hs", "t");
-        expect(mockClient.setRoomTopic).toHaveBeenCalledWith("!r:hs", "t");
+        expect(mockClient.sendStateEvent).toHaveBeenCalledWith("!r:hs", EventType.RoomTopic, { topic: "t" }, "");
 
         await manager.setRoomAvatar("!r:hs", "mxc://a");
-        expect(mockClient.setRoomAvatar).toHaveBeenCalledWith("!r:hs", "mxc://a");
+        expect(mockClient.sendStateEvent).toHaveBeenCalledWith("!r:hs", EventType.RoomAvatar, { url: "mxc://a" }, "");
 
         await manager.setRoomHistoryVisibility("!r:hs", "world_readable");
-        expect(mockClient.setRoomHistoryVisibility).toHaveBeenCalledWith("!r:hs", "world_readable");
+        expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+            "!r:hs",
+            EventType.RoomHistoryVisibility,
+            { history_visibility: "world_readable" },
+            "",
+        );
 
         await manager.setRoomGuestAccess("!r:hs", true);
-        expect(mockClient.setRoomGuestAccess).toHaveBeenCalledWith("!r:hs", true);
+        expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+            "!r:hs",
+            EventType.RoomGuestAccess,
+            { guest_access: "can_join" },
+            "",
+        );
 
         await manager.setRoomJoinRule("!r:hs", "public");
-        expect(mockClient.setRoomJoinRule).toHaveBeenCalledWith("!r:hs", "public");
+        expect(mockClient.sendStateEvent).toHaveBeenCalledWith(
+            "!r:hs",
+            EventType.RoomJoinRules,
+            { join_rule: "public" },
+            "",
+        );
     });
 });

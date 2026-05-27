@@ -120,10 +120,10 @@ describe("MatrixRTCSession", () => {
                 await flushPromises();
 
                 if (testConfig.listenForMemberStateEvents) {
-                    // eslint-disable-next-line @vitest/no-conditional-expect
+                    // eslint-disable-next-line vitest/no-conditional-expect
                     expect(stateWarningWasLogged()).toBeTruthy();
                 } else {
-                    // eslint-disable-next-line @vitest/no-conditional-expect
+                    // eslint-disable-next-line vitest/no-conditional-expect
                     expect(stateWarningWasLogged()).toBeFalsy();
                 }
             });
@@ -811,7 +811,7 @@ describe("MatrixRTCSession", () => {
         });
 
         // TODO: re-enable this test when expiry is implemented
-        // eslint-disable-next-line @vitest/no-commented-out-tests
+        // eslint-disable-next-line vitest/no-commented-out-tests
         // it("emits an event at the time a membership event expires", () => {
         //     vi.useFakeTimers();
         //     try {

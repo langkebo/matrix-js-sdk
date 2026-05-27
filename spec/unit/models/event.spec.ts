@@ -374,7 +374,7 @@ describe("MatrixEvent", () => {
     });
 
     describe("applyVisibilityEvent", () => {
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should emit VisibilityChange if a change was made", async () => {
             const ev = new MatrixEvent({
                 type: "m.room.message",

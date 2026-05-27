@@ -19,6 +19,8 @@ import { EventTimelineSet } from "../models/event-timeline-set";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
+import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
+import { type EmptyObject } from "../@types/common";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
@@ -33,7 +35,6 @@ function np<P extends StripV3<PushPathPattern>>(path: P): P {
 
 export interface ILocalNotificationSettings {
     is_silenced: boolean;
-    [key: string]: unknown;
 }
 
 export interface INotificationsResponse {
@@ -54,24 +55,31 @@ export interface NotificationsManagerEvents {
 }
 
 export class NotificationsManager extends BaseManager<keyof NotificationsManagerEvents, NotificationsManagerEvents> {
+    private notifTimelineSet: EventTimelineSet | null = null;
+
     constructor(client: MatrixClient) {
         super(client);
     }
 
     public getNotifTimelineSet(): EventTimelineSet | null {
-        return this.client.getNotifTimelineSet();
+        return this.notifTimelineSet;
     }
 
     public setNotifTimelineSet(set: EventTimelineSet): void {
-        this.client.setNotifTimelineSet(set);
+        this.notifTimelineSet = set;
     }
 
     public resetNotifTimelineSet(): void {
-        this.client.resetNotifTimelineSet();
+        if (!this.notifTimelineSet) {
+            return;
+        }
+
+        this.notifTimelineSet.resetLiveTimeline("end");
     }
 
-    public async setLocalNotificationSettings(deviceId: string, settings: LocalNotificationSettings): Promise<void> {
-        await this.client.setLocalNotificationSettings(deviceId, settings);
+    public async setLocalNotificationSettings(deviceId: string, settings: LocalNotificationSettings): Promise<EmptyObject> {
+        const key = `${LOCAL_NOTIFICATION_SETTINGS_PREFIX.name}.${deviceId}` as const;
+        return this.client.setAccountData(key, settings);
     }
 
     /**

@@ -88,6 +88,7 @@ describe("matrix manager extension defaults", () => {
         expect(isManagerExtensionsInitialized()).toBe(false);
     });
 
+    // eslint-disable-next-line vitest/expect-expect
     it("matrix entry should export key manager classes", () => {
         // These managers are typically exported from matrix.ts, not manager-extensions.
         // For this test, we'll mock them or remove the expectation if not relevant.

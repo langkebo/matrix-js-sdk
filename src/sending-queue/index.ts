@@ -43,20 +43,18 @@ export class SendingQueueManager extends BaseManager<keyof SendingQueueManagerEv
     }
 
     public getSendingQueue(): IQueuedEvent[] {
-        return (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue || [];
+        return this.client.sendingQueue || [];
     }
 
     public addToSendingQueue(event: MatrixEvent, priority = 0): void {
-        const clientWithQueue = this.client as unknown as { sendingQueue?: IQueuedEvent[] };
-        if (!clientWithQueue.sendingQueue) {
-            clientWithQueue.sendingQueue = [];
+        if (!this.client.sendingQueue) {
+            this.client.sendingQueue = [];
         }
-        clientWithQueue.sendingQueue.push({ event, priority, retries: 0 });
+        this.client.sendingQueue.push({ event, priority, retries: 0 });
     }
 
     public removeFromSendingQueue(eventId: string): void {
-        const clientWithQueue = this.client as unknown as { sendingQueue?: IQueuedEvent[] };
-        const queue = clientWithQueue.sendingQueue || [];
+        const queue = this.client.sendingQueue || [];
         const index = queue.findIndex((e) => e.event.getId() === eventId);
         if (index > -1) {
             queue.splice(index, 1);
@@ -64,11 +62,11 @@ export class SendingQueueManager extends BaseManager<keyof SendingQueueManagerEv
     }
 
     public clearSendingQueue(): void {
-        (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue = [];
+        this.client.sendingQueue = [];
     }
 
     public isSendingQueueEmpty(): boolean {
-        const queue = (this.client as unknown as { sendingQueue?: IQueuedEvent[] }).sendingQueue;
+        const queue = this.client.sendingQueue;
         return !(queue && queue.length > 0);
     }
 }

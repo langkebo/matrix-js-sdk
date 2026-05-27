@@ -25,9 +25,25 @@ import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { Method } from "../http-api/index";
+import {
+    type ISearchRequestBody,
+    type ISearchResponse,
+    type ISearchResults,
+    SearchOrderBy,
+    type SearchKey,
+} from "../@types/search";
+import type { IEventSearchOpts, ISearchOpts } from "../@types/requests";
+import type { IUserDirectoryResponse } from "../client-internal-types";
+import { buildSearchMessageRequestBody } from "../client-batch-requests";
+import { performSearchRequest } from "../client-crypto-requests";
+import { searchRecipientsRequest } from "../client-secure-backup-requests";
+import { SearchResult } from "../models/search-result";
+import { type EventMapper, eventMapperFor } from "../event-mapper";
 
 export interface ISearchOptions {
     term: string;
+    keys?: SearchKey[];
     room_id?: string;
     limit?: number;
     before_limit?: number;
@@ -39,39 +55,6 @@ export interface ISearchOptions {
         senders?: string[];
         types?: string[];
     };
-}
-
-export interface ISearchResult {
-    rank?: number;
-    result: Record<string, unknown>;
-    context?: {
-        events_before: Array<Record<string, unknown>>;
-        events_after: Array<Record<string, unknown>>;
-        profile_info?: Record<string, { displayname?: string; avatar_url?: string }>;
-    };
-}
-
-export interface ISearchResponse {
-    search_categories: {
-        room_events?: {
-            count: number;
-            results: ISearchResult[];
-            next_batch?: string;
-            highlights?: string[];
-            state?: Array<Record<string, unknown>>;
-        };
-    };
-}
-
-export interface IUserDirectorySearchResult {
-    user_id: string;
-    display_name?: string;
-    avatar_url?: string;
-}
-
-export interface IUserDirectoryResponse {
-    results: IUserDirectorySearchResult[];
-    limited?: boolean;
 }
 
 export interface SearchManagerEvents {
@@ -128,27 +111,40 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         if (opts.limit !== undefined) {
             AdminValidators.validateLimit(opts.limit);
         }
-        return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        searchMessageText: (opts: ISearchOptions) => Promise<ISearchResponse>;
-                    }
-                ).searchMessageText(opts),
-            "searchMessageText",
-        );
+        return this.withRetry(async () => {
+            const body = buildSearchMessageRequestBody({ query: opts.term, keys: opts.keys });
+            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.client.http.authedRequest.bind(this.client.http));
+        }, "searchMessageText");
     }
 
     public async searchRoomEvents(opts: ISearchOptions): Promise<ISearchResponse> {
-        return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        searchRoomEvents: (opts: ISearchOptions) => Promise<ISearchResponse>;
-                    }
-                ).searchRoomEvents(opts),
-            "searchRoomEvents",
-        );
+        return this.withRetry(async () => {
+            const roomEvents: ISearchRequestBody["search_categories"]["room_events"] = {
+                search_term: opts.term,
+                order_by: SearchOrderBy.Recent,
+                event_context: {
+                    before_limit: opts.before_limit ?? 1,
+                    after_limit: opts.after_limit ?? 1,
+                    include_profile: true,
+                },
+            };
+            if (opts.filter) {
+                roomEvents.filter = {
+                    rooms: opts.filter.rooms,
+                    senders: opts.filter.senders,
+                    types: opts.filter.types,
+                };
+            }
+            if (opts.include_state !== undefined) {
+                roomEvents.include_state = opts.include_state;
+            }
+            const body: ISearchRequestBody = {
+                search_categories: {
+                    room_events: roomEvents,
+                },
+            };
+            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.client.http.authedRequest.bind(this.client.http));
+        }, "searchRoomEvents");
     }
 
     /**
@@ -185,18 +181,20 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         if (opts.limit !== undefined) {
             AdminValidators.validateLimit(opts.limit);
         }
-        return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        searchUserDirectory: (opts: {
-                            term: string;
-                            limit?: number;
-                        }) => Promise<IUserDirectoryResponse>;
-                    }
-                ).searchUserDirectory(opts),
-            "searchUserDirectory",
-        );
+        return this.withRetry(async () => {
+            const body: Record<string, unknown> = {
+                search_term: opts.term,
+            };
+            if (opts.limit !== undefined) {
+                body.limit = opts.limit;
+            }
+            return this.client.http.authedRequest<IUserDirectoryResponse>(
+                Method.Post,
+                "/user_directory/search",
+                undefined,
+                body,
+            );
+        }, "searchUserDirectory");
     }
 
     public async searchRecipients(opts: {
@@ -211,29 +209,132 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         }
         return this.withRetry(
             () =>
-                (
-                    this.client as unknown as {
-                        searchRecipients: (searchTerm: string, limit?: number) => Promise<{
-                            results: unknown[];
-                            count: number;
-                            next_batch: string | null;
-                        }>;
-                    }
-                ).searchRecipients(opts.term, opts.limit),
+                searchRecipientsRequest<{ results: unknown[]; count: number; next_batch: string | null }>(
+                    this.client.http.authedRequest.bind(this.client.http),
+                    opts.term,
+                    opts.limit,
+                ),
             "searchRecipients",
         );
     }
 
-    public async search(opts: { room_events?: ISearchOptions }): Promise<ISearchResponse> {
+    public async search(
+        { body, next_batch, abortSignal }: { body: ISearchRequestBody; next_batch?: string; abortSignal?: AbortSignal },
+    ): Promise<ISearchResponse> {
         return this.withRetry(
             () =>
-                (
-                    this.client as unknown as {
-                        search: (opts: { room_events?: ISearchOptions }) => Promise<ISearchResponse>;
-                    }
-                ).search(opts),
+                performSearchRequest<ISearchResponse>(
+                    body,
+                    next_batch,
+                    abortSignal,
+                    this.client.http.authedRequest.bind(this.client.http),
+                ),
             "search",
         );
+    }
+
+    /**
+     * Perform a server-side search for room events, returning processed search results.
+     *
+     * The returned promise resolves to an ISearchResults object containing the fields:
+     * count, next_batch, highlights, results
+     *
+     * @param opts - search options including term and optional filter
+     * @returns Promise which resolves: ISearchResults object
+     */
+    public async searchRoomEventsProcessed(opts: IEventSearchOpts): Promise<ISearchResults> {
+        const body = {
+            search_categories: {
+                room_events: {
+                    search_term: opts.term,
+                    filter: opts.filter,
+                    order_by: SearchOrderBy.Recent,
+                    event_context: {
+                        before_limit: 1,
+                        after_limit: 1,
+                        include_profile: true,
+                    },
+                },
+            },
+        };
+
+        const searchResults: ISearchResults = {
+            _query: body,
+            results: [],
+            highlights: [],
+        };
+
+        const res = await this.searchRoomEvents({ term: opts.term, filter: opts.filter as any });
+        return this.processRoomEventsSearch(searchResults, res);
+    }
+
+    /**
+     * Take a result from an earlier searchRoomEvents call, and backfill results.
+     *
+     * @param searchResults - the results object to be updated
+     * @returns Promise which resolves: updated result object
+     */
+    public backPaginateRoomEventsSearch<T extends ISearchResults>(searchResults: T): Promise<T> {
+        if (!searchResults.next_batch) {
+            return Promise.reject(new Error("Cannot backpaginate event search any further"));
+        }
+
+        if (searchResults.pendingRequest) {
+            return searchResults.pendingRequest as Promise<T>;
+        }
+
+        const searchOpts = {
+            body: searchResults._query!,
+            next_batch: searchResults.next_batch,
+        };
+
+        const promise = this.search({ body: searchOpts.body, next_batch: searchOpts.next_batch, abortSignal: searchResults.abortSignal })
+            .then((res) => this.processRoomEventsSearch(searchResults, res))
+            .finally(() => {
+                searchResults.pendingRequest = undefined;
+            });
+        searchResults.pendingRequest = promise;
+
+        return promise;
+    }
+
+    /**
+     * Helper for searchRoomEvents and backPaginateRoomEventsSearch. Processes the
+     * response from the API call and updates the searchResults.
+     *
+     * @returns searchResults
+     * @internal
+     */
+    public processRoomEventsSearch<T extends ISearchResults>(searchResults: T, response: ISearchResponse): T {
+        const roomEvents = response.search_categories.room_events;
+
+        searchResults.count = roomEvents.count;
+        searchResults.next_batch = roomEvents.next_batch;
+
+        // combine the highlight list with our existing list;
+        const highlights = new Set<string>(roomEvents.highlights);
+        searchResults.highlights.forEach((hl) => {
+            highlights.add(hl);
+        });
+
+        // turn it back into a list.
+        searchResults.highlights = Array.from(highlights);
+
+        const mapper = eventMapperFor(this.client, {});
+
+        // append the new results to our existing results
+        const resultsLength = roomEvents.results?.length ?? 0;
+        for (let i = 0; i < resultsLength; i++) {
+            const sr = SearchResult.fromJson(roomEvents.results![i], mapper);
+            const room = this.client.getRoom(sr.context.getEvent().getRoomId());
+            if (room) {
+                for (const ev of sr.context.getTimeline()) {
+                    ev.setMetadata(room.currentState, false);
+                }
+            }
+            searchResults.results.push(sr);
+        }
+        return searchResults;
     }
 }
 

@@ -269,7 +269,6 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
         const path = encodeUri("/dehydrated_device/$device_id/events", {
             $device_id: dehydratedDeviceResp.device_id,
         });
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const eventResp: DehydratedDeviceEventsResp = await this.http.authedRequest<DehydratedDeviceEventsResp>(
                 Method.Post,

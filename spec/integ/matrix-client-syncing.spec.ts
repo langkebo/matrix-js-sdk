@@ -95,7 +95,7 @@ describe("MatrixClient syncing", () => {
             presence: {},
         };
 
-        // eslint-disable-next-line @vitest/expect-expect
+        // eslint-disable-next-line vitest/expect-expect
         it("should /sync after /pushrules and /filter.", async () => {
             httpBackend!.when("GET", "/sync").respond(200, syncData);
 
@@ -997,7 +997,7 @@ describe("MatrixClient syncing", () => {
                     roomVersion: "org.matrix.msc2716v3",
                 },
             ].forEach((testMeta) => {
-                // eslint-disable-next-line @vitest/valid-title
+                // eslint-disable-next-line vitest/valid-title
                 describe(testMeta.label, () => {
                     const roomCreateEvent = utils.mkEvent({
                         type: "m.room.create",

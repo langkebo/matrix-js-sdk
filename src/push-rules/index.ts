@@ -122,7 +122,7 @@ export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, 
     }
 
     public getPushRulesCached(): IPushRules | null {
-        return (this.client as unknown as { pushRules?: IPushRules }).pushRules ?? null;
+        return this.client.pushRules ?? null;
     }
 }
 

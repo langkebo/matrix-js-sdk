@@ -79,11 +79,18 @@ export interface QueryKeysRequest {
     token?: string;
 }
 
+export interface CrossSigningKey {
+    user_id: string;
+    usage: string[];
+    keys: Record<string, string>;
+    signatures?: Record<string, Record<string, string>>;
+}
+
 export interface QueryKeysResponse {
     device_keys?: Record<string, Record<string, DeviceKeys>>;
-    master_keys?: Record<string, Record<string, unknown>>;
-    self_signing_keys?: Record<string, Record<string, unknown>>;
-    user_signing_keys?: Record<string, Record<string, unknown>>;
+    master_keys?: Record<string, CrossSigningKey>;
+    self_signing_keys?: Record<string, CrossSigningKey>;
+    user_signing_keys?: Record<string, CrossSigningKey>;
     failures?: Record<string, Record<string, string>>;
 }
 
@@ -91,7 +98,10 @@ export interface ClaimKeysRequest {
     one_time_keys: Record<string, Record<string, string>>;
 }
 
-export type OneTimeKeysMap = Record<string, Record<string, Record<string, unknown>>>;
+export type OneTimeKeysMap = Record<string, Record<string, {
+    key: string;
+    signatures?: Record<string, Record<string, string>>;
+}>>;
 
 export interface ClaimKeysResponse {
     one_time_keys?: OneTimeKeysMap;
@@ -155,6 +165,33 @@ export interface SendToDeviceMessage {
     [userId: string]: {
         [deviceId: string]: Record<string, unknown>;
     };
+}
+
+export interface DeviceVerificationStatusResponse {
+    token: string;
+    status: "pending" | "accepted" | "rejected" | "expired";
+    requesting_device_id?: string;
+    expires_at?: number;
+    methods_available?: string[];
+}
+
+export interface DeviceTrustInfo {
+    user_id: string;
+    device_id: string;
+    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
+    verified_at?: number;
+}
+
+export interface SecuritySummaryResponse {
+    devices_total: number;
+    devices_verified: number;
+    devices_unverified: number;
+    cross_signing_ready: boolean;
+    [key: string]: unknown;
+}
+
+export interface SignaturesUploadResponse {
+    failures?: Record<string, Record<string, string>>;
 }
 
 export interface KeyDistributionResponse {
@@ -335,9 +372,9 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     async uploadSignatures(
         signatures: Record<string, Record<string, Record<string, string>>>,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<SignaturesUploadResponse> {
         try {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<SignaturesUploadResponse>(
                 Method.Post,
                 "/keys/signatures",
                 undefined,
@@ -354,9 +391,9 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
      * POST /_matrix/client/r0/keys/device_signing/upload
      */
     async uploadDeviceSigning(keys: {
-        master_key?: Record<string, unknown>;
-        self_signing_key?: Record<string, unknown>;
-        user_signing_key?: Record<string, unknown>;
+        master_key?: CrossSigningKey;
+        self_signing_key?: CrossSigningKey;
+        user_signing_key?: CrossSigningKey;
     }): Promise<void> {
         try {
             await this.client.http.authedRequest(Method.Post, "/keys/device_signing/upload", undefined, keys, {
@@ -482,43 +519,23 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     }
 
     public async getDeviceKeys(userId: string): Promise<Record<string, DeviceKeys>> {
-        return (
-            this.client as unknown as {
-                getDeviceKeys: (userId: string) => Promise<Record<string, DeviceKeys>>;
-            }
-        ).getDeviceKeys(userId);
+        return this.client.getDeviceKeys(userId);
     }
 
     public async uploadDeviceKeys(keys: DeviceKeys): Promise<UploadKeysResponse> {
-        return (
-            this.client as unknown as {
-                uploadDeviceKeys: (keys: DeviceKeys) => Promise<UploadKeysResponse>;
-            }
-        ).uploadDeviceKeys(keys);
+        return this.client.uploadDeviceKeys(keys);
     }
 
     public async getUserDevices(userId: string): Promise<Record<string, DeviceKeys>> {
-        return (
-            this.client as unknown as {
-                getUserDevices: (userId: string) => Promise<Record<string, DeviceKeys>>;
-            }
-        ).getUserDevices(userId);
+        return this.client.getUserDevices(userId) as Promise<Record<string, DeviceKeys>>;
     }
 
     public hasDevice(deviceId: string): boolean {
-        return (
-            this.client as unknown as {
-                hasDevice: (deviceId: string) => boolean;
-            }
-        ).hasDevice(deviceId);
+        return this.client.hasDevice(deviceId);
     }
 
     public getDevice(deviceId: string): DeviceKeys | null {
-        return (
-            this.client as unknown as {
-                getDevice: (deviceId: string) => DeviceKeys | null;
-            }
-        ).getDevice(deviceId);
+        return this.client.getDevice(deviceId) as unknown as DeviceKeys | null;
     }
 
     async requestDeviceVerification(
@@ -564,9 +581,9 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         }
     }
 
-    async getVerificationStatus(token: string): Promise<Record<string, unknown>> {
+    async getVerificationStatus(token: string): Promise<DeviceVerificationStatusResponse> {
         try {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<DeviceVerificationStatusResponse>(
                 Method.Get,
                 `/device_verification/status/${encodeURIComponent(token)}`,
                 undefined,
@@ -578,9 +595,9 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         }
     }
 
-    async getDeviceTrustList(): Promise<Record<string, unknown>> {
+    async getDeviceTrustList(): Promise<Record<string, DeviceTrustInfo>> {
         try {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<Record<string, DeviceTrustInfo>>(
                 Method.Get,
                 "/device_trust",
                 undefined,
@@ -592,9 +609,9 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         }
     }
 
-    async getDeviceTrust(deviceId: string): Promise<Record<string, unknown>> {
+    async getDeviceTrust(deviceId: string): Promise<DeviceTrustInfo> {
         try {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<DeviceTrustInfo>(
                 Method.Get,
                 `/device_trust/${encodeURIComponent(deviceId)}`,
                 undefined,
@@ -606,9 +623,9 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         }
     }
 
-    async getSecuritySummary(): Promise<Record<string, unknown>> {
+    async getSecuritySummary(): Promise<SecuritySummaryResponse> {
         try {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<SecuritySummaryResponse>(
                 Method.Get,
                 "/security/summary",
                 undefined,

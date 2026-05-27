@@ -25,8 +25,8 @@ import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ServerTimeManagerEvents {
-    time_synced: { diff: number };
-    time_updated: { serverTime: number };
+    time_synced: (data: { diff: number }) => void;
+    time_updated: (data: { serverTime: number }) => void;
 }
 
 export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents, ServerTimeManagerEvents> {
@@ -35,19 +35,27 @@ export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents
     }
 
     public getServerClockDiff(): number {
-        return this.client.serverClockDiff ?? 0;
+        return (this.client as any).serverClockDiff ?? 0;
     }
 
     public getLocalTimestampForServerTime(serverTime: number): number {
-        return this.client.getLocalTimestampForServerTime(serverTime);
+        return serverTime - ((this.client as any).serverClockDiff ?? 0);
     }
 
     public getServerTimestamp(): number {
-        return this.client.getServerTimestamp();
+        return Date.now() + ((this.client as any).serverClockDiff ?? 0);
     }
 
     public updateServerTimeInfo(serverTime: number, serverDate: string): void {
-        this.client.updateServerTimeInfo(serverTime, serverDate);
+        let diff: number;
+        if (serverTime) {
+            diff = Date.now() - serverTime;
+        } else {
+            diff = Date.parse(serverDate) - Date.now();
+        }
+        (this.client as any).serverClockDiff = diff;
+        this.emit("time_synced", { diff });
+        this.emit("time_updated", { serverTime });
     }
 }
 

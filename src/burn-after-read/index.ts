@@ -518,7 +518,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             await this.withRetry(
                 () =>
                     this.client.http.authedRequest(
-                        Method.Post,
+                        Method.Put,
                         `/rooms/${encodeURIComponent(message.room_id)}/redact/${encodeURIComponent(eventId)}/${Date.now()}`,
                         undefined,
                         { reason: "Burn after read" },

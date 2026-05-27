@@ -73,7 +73,6 @@ export interface Space {
     created_ts?: number;
     updated_ts?: number;
     parent_space_id?: string;
-    [key: string]: unknown;
 }
 
 export interface SpaceChild {
@@ -84,7 +83,6 @@ export interface SpaceChild {
     is_suggested?: boolean;
     added_ts?: number;
     order?: string;
-    [key: string]: unknown;
 }
 
 export interface SpaceMember {
@@ -92,7 +90,6 @@ export interface SpaceMember {
     user_id: string;
     membership?: string;
     joined_ts?: number;
-    [key: string]: unknown;
 }
 
 export interface SpaceHierarchy {
@@ -108,13 +105,11 @@ export interface SpaceListResponse {
     next_batch?: string;
     prev_batch?: string;
     total_room_count_estimate?: number;
-    [key: string]: unknown;
 }
 
 export interface SpaceHierarchyPage {
     rooms?: unknown[];
     next_batch?: string;
-    [key: string]: unknown;
 }
 
 export interface SpaceStatistics {
@@ -122,7 +117,6 @@ export interface SpaceStatistics {
     public_spaces?: number;
     private_spaces?: number;
     joined_spaces?: number;
-    [key: string]: unknown;
 }
 
 export interface SpaceQueryOptions extends QueryDict {

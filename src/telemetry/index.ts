@@ -252,7 +252,7 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
 
     public getClientInfo(): ClientMetrics {
         return {
-            version: (this.client as unknown as { version?: string }).version || "unknown",
+            version: this.client.version || "unknown",
             platform: this.getPlatform(),
             runtime: this.getRuntime(),
             features: this.getEnabledFeatures(),

@@ -26,6 +26,7 @@ import { LRUCache, CacheRegistry } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { PushPathPattern } from "./__generated__/route-table";
+import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "../client-push-rules";
 
 export type { IPushRules } from "../@types/PushRules";
 export { PUSHER_ENABLED } from "../@types/event";
@@ -557,6 +558,39 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     }
 
     // ==================== Convenience Methods ====================
+
+    /**
+     * Get the room-kind push rule associated with a room.
+     * @param scope - "global" or device-specific.
+     * @param roomId - the id of the room.
+     * @returns the rule or undefined.
+     */
+    getRoomPushRule(scope: "global" | "device", roomId: string): IPushRule | undefined {
+        return getRoomPushRuleRequest(this.client.pushRules, scope, roomId);
+    }
+
+    /**
+     * Set a room-kind muting push rule in a room.
+     * The operation also updates MatrixClient.pushRules at the end.
+     * @param scope - "global" or device-specific.
+     * @param roomId - the id of the room.
+     * @param mute - the mute state.
+     * @returns Promise which resolves: result object
+     * @returns Rejects: with an error response.
+     */
+    setRoomMutePushRule(scope: "global" | "device", roomId: string, mute: boolean): Promise<void> | undefined {
+        const roomPushRule = this.getRoomPushRule(scope, roomId);
+        return setRoomMutePushRuleRequest(
+            scope,
+            roomId,
+            mute,
+            roomPushRule,
+            () => this.client.getPushManager(),
+            (rules) => {
+                this.client.pushRules = rules;
+            },
+        );
+    }
 
     async muteRoom(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);

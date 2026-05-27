@@ -51,12 +51,27 @@ export interface ServerTelemetryAlert {
     metadata?: Record<string, unknown>;
 }
 
+export interface TelemetryHealthCheck {
+    name: string;
+    status: string;
+    message?: string;
+    duration_ms?: number;
+}
+
+export interface TelemetryDatabaseStatus {
+    status: string;
+    latency_ms?: number;
+    connections_active?: number;
+    connections_idle?: number;
+    migrations_pending?: number;
+}
+
 export interface ServerTelemetryHealth {
     status: string;
     service: string;
     trace_enabled: boolean;
     metrics_enabled: boolean;
-    checks: Array<Record<string, unknown>>;
-    database: Record<string, unknown>;
+    checks: TelemetryHealthCheck[];
+    database: TelemetryDatabaseStatus;
     alerts: ServerTelemetryAlert[];
 }

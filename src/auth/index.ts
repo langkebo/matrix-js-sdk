@@ -44,6 +44,13 @@ import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
 import type { AuthPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import {
+    buildEmailTokenRequestParams,
+    buildMsisdnTokenRequestParams,
+    requestTokenFromEndpoint,
+} from "../client-auth";
+import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
+import type { IRefreshTokenResponse } from "../@types/auth";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -501,6 +508,138 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             return { valid: false, error: "Password too short (min 8 characters)" };
         }
         return { valid: true };
+    }
+
+    /**
+     * Requests an email verification token for the purposes of registration.
+     */
+    public requestRegisterEmailToken(
+        email: string,
+        clientSecret: string,
+        sendAttempt: number,
+        nextLink?: string,
+    ): Promise<IRequestTokenResponse> {
+        return requestTokenFromEndpoint(
+            "/register/email/requestToken",
+            buildEmailTokenRequestParams(email, clientSecret, sendAttempt, nextLink),
+            this.client.http.request.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Requests a text message verification token for the purposes of registration.
+     */
+    public requestRegisterMsisdnToken(
+        phoneCountry: string,
+        phoneNumber: string,
+        clientSecret: string,
+        sendAttempt: number,
+        nextLink?: string,
+    ): Promise<IRequestMsisdnTokenResponse> {
+        return requestTokenFromEndpoint(
+            "/register/msisdn/requestToken",
+            buildMsisdnTokenRequestParams(phoneCountry, phoneNumber, clientSecret, sendAttempt, nextLink),
+            this.client.http.request.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Requests an email verification token for the purposes of adding a
+     * third party identifier to an account.
+     */
+    public requestAdd3pidEmailToken(
+        email: string,
+        clientSecret: string,
+        sendAttempt: number,
+        nextLink?: string,
+    ): Promise<IRequestTokenResponse> {
+        return requestTokenFromEndpoint(
+            "/account/3pid/email/requestToken",
+            buildEmailTokenRequestParams(email, clientSecret, sendAttempt, nextLink),
+            this.client.http.request.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Requests a text message verification token for the purposes of adding a
+     * third party identifier to an account.
+     */
+    public requestAdd3pidMsisdnToken(
+        phoneCountry: string,
+        phoneNumber: string,
+        clientSecret: string,
+        sendAttempt: number,
+        nextLink?: string,
+    ): Promise<IRequestMsisdnTokenResponse> {
+        return requestTokenFromEndpoint(
+            "/account/3pid/msisdn/requestToken",
+            buildMsisdnTokenRequestParams(phoneCountry, phoneNumber, clientSecret, sendAttempt, nextLink),
+            this.client.http.request.bind(this.client.http),
+        );
+    }
+
+    /**
+     * Check whether a username is available prior to registration.
+     * @param username - The username to check the availability of.
+     * @returns Promise which resolves to boolean of whether the username is available.
+     */
+    public async isUsernameAvailable(username: string): Promise<boolean> {
+        try {
+            const response = await this.client.http.authedRequest<{ available: true }>(Method.Get, "/register/available", {
+                username,
+            });
+            return response.available;
+            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
+        } catch (error) {
+            const response = error as { errcode?: string };
+            if (response.errcode === "M_USER_IN_USE") {
+                return false;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Make a registration request.
+     * @param data - parameters for registration request
+     * @param kind - type of user to register. may be "guest"
+     * @returns Promise which resolves to the /register response
+     */
+    public registerRequest(data: RegisterRequest, kind?: string): Promise<RegisterResponse> {
+        const params: { kind?: string } = {};
+        if (kind) {
+            params.kind = kind;
+        }
+        return this.client.http.request(Method.Post, "/register", params, data);
+    }
+
+    /**
+     * Refreshes an access token using a provided refresh token.
+     * @param refreshToken - The refresh token.
+     * @returns Promise which resolves to the new token.
+     */
+    public async refreshToken(refreshToken: string): Promise<IRefreshTokenResponse> {
+        const performRefreshRequestWithPrefix = (prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>
+            this.client.http.authedRequest(
+                Method.Post,
+                "/refresh",
+                undefined,
+                { refresh_token: refreshToken },
+                {
+                    prefix,
+                    inhibitLogoutEmit: true,
+                },
+            );
+
+        try {
+            return await performRefreshRequestWithPrefix(ClientPrefix.V3);
+        } catch (e) {
+            const error = e as { errcode?: string };
+            if (error.errcode === "M_UNRECOGNIZED") {
+                return performRefreshRequestWithPrefix(ClientPrefix.V1);
+            }
+            throw e;
+        }
     }
 }
 

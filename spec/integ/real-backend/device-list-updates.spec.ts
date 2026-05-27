@@ -1,37 +1,23 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createClient, type MatrixClient } from "../../../src/matrix";
+import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient } from "../../../src/device/index";
 import { TestConfig } from "./TestConfig";
+import { loginWithDevice, safeLogout } from "./device-test-helpers";
 
 extendMatrixClient();
-
-function localpartFromMxid(userId: string): string {
-    return userId.replace("@", "").split(":")[0];
-}
 
 describe("DeviceManager.getDeviceListUpdates (real-backend)", () => {
     let client: MatrixClient | null = null;
 
     beforeAll(async () => {
-        client = createClient({
-            baseUrl: TestConfig.baseUrl,
-            allowInsecureHttp: true,
-            deviceId: TestConfig.testUser.deviceId,
-        });
-
-        const result = await client.login("m.login.password", {
-            user: localpartFromMxid(TestConfig.testUser.userId),
-            password: TestConfig.testUser.password,
-            device_id: TestConfig.testUser.deviceId,
-        });
-        client.setAccessToken(result.access_token);
+        client = (await loginWithDevice(TestConfig.testUser.deviceId)).client;
     }, TestConfig.timeout.long);
 
     afterAll(async () => {
         if (!client) return;
         try {
-            await client.logout();
+            await safeLogout(client);
         } finally {
             client = null;
         }

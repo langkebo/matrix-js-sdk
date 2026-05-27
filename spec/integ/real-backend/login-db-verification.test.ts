@@ -1,3 +1,5 @@
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+
 /**
  * Login Tests
  *
@@ -9,14 +11,16 @@
 import { createClient, type MatrixClient } from "../../../src/matrix";
 import { DatabaseVerifier } from "./DatabaseVerifier";
 import { TestConfig } from "./TestConfig";
+import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 describe("Login Tests", () => {
     let dbVerifier: DatabaseVerifier;
     let loggedInClient: MatrixClient | null = null;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         dbVerifier = new DatabaseVerifier("docker-postgres");
-    });
+        loggedInClient = await loginAsConfiguredUser();
+    }, TestConfig.timeout.long);
 
     afterAll(async () => {
         if (loggedInClient) {
@@ -30,38 +34,28 @@ describe("Login Tests", () => {
 
     describe("Login Success", () => {
         test("should login successfully with valid credentials", async () => {
-            const client = createClient({
-                baseUrl: TestConfig.baseUrl,
-                allowInsecureHttp: true,
-            });
-
-            const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-
-            const result = await client.login("m.login.password", {
-                user: username,
-                password: TestConfig.testUser.password,
-            });
+            const client = loggedInClient ?? (await loginAsConfiguredUser());
+            const result = {
+                access_token: client.getAccessToken()!,
+                user_id: client.getUserId()!,
+            };
 
             expect(result.access_token).toBeTruthy();
             expect(result.user_id).toBeTruthy();
             expect(result.user_id).toBe(TestConfig.testUser.userId);
 
             loggedInClient = client;
-        });
+        }, TestConfig.timeout.medium);
 
         test("should be able to use access token for authenticated requests", async () => {
             let loginResult;
 
             if (!loggedInClient) {
-                const client = createClient({
-                    baseUrl: TestConfig.baseUrl,
-                    allowInsecureHttp: true,
-                });
-                const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-                loginResult = await client.login("m.login.password", {
-                    user: username,
-                    password: TestConfig.testUser.password,
-                });
+                const client = await loginAsConfiguredUser();
+                loginResult = {
+                    access_token: client.getAccessToken()!,
+                    user_id: client.getUserId()!,
+                };
                 loggedInClient = client;
             }
 
@@ -71,7 +65,7 @@ describe("Login Tests", () => {
 
             const profile = await loggedInClient.getProfileManager().getProfileInfo(TestConfig.testUser.userId);
             expect(profile).toBeTruthy();
-        });
+        }, TestConfig.timeout.medium);
 
         test("should update user updated_ts after login activity", async () => {
             if (!loggedInClient) return;
@@ -97,23 +91,16 @@ describe("Login Tests", () => {
 
     describe("Logout", () => {
         test("should logout successfully", async () => {
-            const client = createClient({
-                baseUrl: TestConfig.baseUrl,
-                allowInsecureHttp: true,
-            });
-
-            const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
-
-            const result = await client.login("m.login.password", {
-                user: username,
-                password: TestConfig.testUser.password,
-            });
+            const client = await loginAsConfiguredUser();
+            const result = {
+                access_token: client.getAccessToken()!,
+            };
 
             const tokenBeforeLogout = result.access_token;
             expect(tokenBeforeLogout).toBeTruthy();
 
             await client.logout();
-        });
+        }, TestConfig.timeout.medium);
     });
 
     describe("Login Failures", () => {

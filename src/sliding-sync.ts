@@ -19,7 +19,7 @@ import { type MatrixClient } from "./client";
 import { type IRoomEvent, type IStateEvent } from "./sync-accumulator";
 import { TypedEventEmitter } from "./models/typed-event-emitter";
 import { sleep } from "./utils";
-import { type HTTPError } from "./http-api/index";
+import { type HTTPError, safeGetRetryAfterMs } from "./http-api/index";
 
 // /sync requests allow you to set a timeout= but the request may continue
 // beyond that and wedge forever, so we need to track how long we are willing
@@ -662,6 +662,12 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                         this.resetup();
                         currentPos = undefined;
                         await sleep(50); // in case the 400 was for something else; don't tightloop
+                        continue;
+                    } else if ((<HTTPError>err).httpStatus === 429) {
+                        // Rate limited: use server's retry_after_ms if available, with exponential backoff
+                        const backoffMs = safeGetRetryAfterMs(err, 5000);
+                        logger.warn(`SlidingSync rate limited (429), backing off for ${backoffMs}ms`);
+                        await sleep(backoffMs);
                         continue;
                     } // else fallthrough to generic error handling
                 } else if (this.needsResend || (<Error>err).name === "AbortError") {
