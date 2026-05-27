@@ -42,7 +42,7 @@ export enum StickyEvent {
 export interface IStickyEventData extends IContent {
     event_id: string;
     event_type: string;
-    content: Record<string, unknown>;
+    content: IContent;
     sender: string;
     ts: number;
 }
@@ -51,7 +51,7 @@ export interface IStickyEventInfo {
     roomId: string;
     eventId: string;
     eventType: string;
-    content: Record<string, unknown>;
+    content: IContent;
     sender: string;
     timestamp: number;
 }
@@ -128,7 +128,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         };
     }
 
-    async setStickyEvent(roomId: string, eventId: string, content?: Record<string, unknown>): Promise<void> {
+    async setStickyEvent(roomId: string, eventId: string, content?: IContent): Promise<void> {
         if (!roomId || !eventId) {
             throw new InvalidParamError("Room ID and event ID are required");
         }
@@ -144,7 +144,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
                         stickyContent = {
                             event_id: eventId,
                             event_type: event.getType(),
-                            content: event.getContent<Record<string, unknown>>(),
+                            content: event.getContent<IContent>(),
                             sender: event.getSender() ?? "",
                             ts: event.getTs(),
                         };
@@ -162,7 +162,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
                 roomId,
                 eventId,
                 eventType: stickyContent.event_type || "m.room.message",
-                content: stickyContent.content || stickyContent,
+                content: stickyContent.content || (stickyContent as IContent),
                 sender: stickyContent.sender || this.client.getUserId() || "",
                 timestamp: stickyContent.ts || Date.now(),
             };
@@ -201,7 +201,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
                 roomId,
                 eventId: typeof content.event_id === "string" ? content.event_id : "",
                 eventType: typeof content.event_type === "string" ? content.event_type : "m.room.message",
-                content: content.content || (content as Record<string, unknown>),
+                content: content.content || (content as IContent),
                 sender: stickyStateEvent.getSender() || "",
                 timestamp: typeof content.ts === "number" ? content.ts : stickyStateEvent.getTs(),
             };
@@ -232,7 +232,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         }
     }
 
-    async updateStickyEvent(roomId: string, eventId: string, content?: Record<string, unknown>): Promise<void> {
+    async updateStickyEvent(roomId: string, eventId: string, content?: IContent): Promise<void> {
         await this.setStickyEvent(roomId, eventId, content);
         const stickyInfo = await this.getStickyEvent(roomId);
         if (stickyInfo) {
@@ -245,7 +245,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         return sticky !== null && sticky.eventId !== "";
     }
 
-    async getStickyEventContent(roomId: string): Promise<Record<string, unknown> | null> {
+    async getStickyEventContent(roomId: string): Promise<IContent | null> {
         const stickyInfo = await this.getStickyEvent(roomId);
         return stickyInfo?.content || null;
     }
@@ -334,7 +334,7 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
                 roomId,
                 eventId: typeof content.event_id === "string" ? content.event_id : "",
                 eventType: typeof content.event_type === "string" ? content.event_type : "m.room.message",
-                content: content.content || (content as Record<string, unknown>),
+                content: content.content || (content as IContent),
                 sender: event.getSender() || "",
                 timestamp: typeof content.ts === "number" ? content.ts : event.getTs(),
             };

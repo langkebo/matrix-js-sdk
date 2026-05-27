@@ -19,6 +19,7 @@ import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { ValidationError } from "../errors";
+import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import type { WorkerBodyPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -39,9 +40,43 @@ export interface WorkerCommandResponse {
     created_ts: number;
 }
 
+export interface WorkerLoadStats {
+    cpu_usage?: number;
+    memory_usage?: number;
+    active_connections?: number;
+    request_rate?: number;
+    [key: string]: unknown;
+}
+
 export interface HeartbeatRequest {
     status: string;
-    load_stats?: Record<string, unknown>;
+    load_stats?: WorkerLoadStats;
+}
+
+export interface HeartbeatResponse {
+    acknowledged: boolean;
+    next_heartbeat_ms?: number;
+    pending_commands?: number;
+    [key: string]: unknown;
+}
+
+export interface ConnectWorkerResponse {
+    connected: boolean;
+    worker_id?: string;
+    [key: string]: unknown;
+}
+
+export interface ReplicationPosition {
+    stream_name: string;
+    position: number;
+    last_update_ts?: number;
+    [key: string]: unknown;
+}
+
+export interface WorkerEventsResponse {
+    events: IEvent[];
+    next_stream_id?: number;
+    [key: string]: unknown;
 }
 
 export class WorkerBodyManager extends BaseManager<string, Record<string, never>> {
@@ -58,7 +93,7 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/heartbeat */
-    async heartbeat(workerId: string, req: HeartbeatRequest): Promise<Record<string, unknown>> {
+    async heartbeat(workerId: string, req: HeartbeatRequest): Promise<HeartbeatResponse> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.request(
             Method.Post,
@@ -69,7 +104,7 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/connect */
-    async connectWorker(workerId: string, address: string): Promise<Record<string, unknown>> {
+    async connectWorker(workerId: string, address: string): Promise<ConnectWorkerResponse> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.request(
             Method.Post,
@@ -142,7 +177,7 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 
     /** GET /_synapse/worker/v1/replication/{worker_id}/position */
-    async getReplicationPosition(workerId: string, streamName: string): Promise<Record<string, unknown>> {
+    async getReplicationPosition(workerId: string, streamName: string): Promise<ReplicationPosition> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.request(
             Method.Get,
@@ -156,7 +191,7 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         workerId: string,
         streamName: string,
         position: number,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<ReplicationPosition> {
         if (!workerId || !streamName) {
             throw new ValidationError("workerId/streamName are required");
         }
@@ -169,7 +204,7 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 
     /** GET /_synapse/worker/v1/events */
-    async getEvents(streamId?: number): Promise<Record<string, unknown>> {
+    async getEvents(streamId?: number): Promise<WorkerEventsResponse> {
         const q = streamId !== undefined ? { stream_id: String(streamId) } : undefined;
         return this.request(Method.Get, wb("/v1/events"), q);
     }

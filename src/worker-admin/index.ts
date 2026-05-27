@@ -58,13 +58,35 @@ export interface WorkerTask {
     assigned_worker_id: string | null;
 }
 
+export interface WorkerConfig {
+    thread_count?: number;
+    cache_size_mb?: number;
+    timeout_ms?: number;
+    [key: string]: unknown;
+}
+
+export interface WorkerStatistics {
+    total_workers: number;
+    active_workers: number;
+    inactive_workers: number;
+    by_type: Record<string, number>;
+    [key: string]: unknown;
+}
+
+export interface WorkerTypeStatistics {
+    worker_type: string;
+    count: number;
+    active: number;
+    [key: string]: unknown;
+}
+
 export interface RegisterWorkerRequest {
     worker_id: string;
     worker_name: string;
     worker_type: string;
     host: string;
     port: number;
-    config?: Record<string, unknown>;
+    config?: WorkerConfig;
     metadata?: Record<string, unknown>;
     version?: string;
 }
@@ -168,12 +190,12 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     // ===== Statistics / Routing =====
 
     /** GET /_synapse/worker/v1/statistics */
-    async getStatistics(): Promise<Record<string, unknown>> {
+    async getStatistics(): Promise<WorkerStatistics> {
         return this.request(Method.Get, wa("/v1/statistics"));
     }
 
     /** GET /_synapse/worker/v1/statistics/types */
-    async getStatisticsByType(): Promise<Record<string, unknown>> {
+    async getStatisticsByType(): Promise<Record<string, WorkerTypeStatistics>> {
         return this.request(Method.Get, wa("/v1/statistics/types"));
     }
 

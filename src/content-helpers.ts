@@ -19,6 +19,7 @@ import { type IMessageRendering } from "./@types/extensible_events";
 import { type MRoomTopicEventContent, type MTopicContent, M_TOPIC, type MTopicEvent } from "./@types/topic";
 import { type RoomMessageEventContent } from "./@types/events";
 import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types/beacon";
+import { type IContent } from "./models/event";
 
 /**
  * Utility to check if a value is provided (not null or undefined)
@@ -165,11 +166,9 @@ export interface BeaconLocationState {
 }
 
 export const parseBeaconInfoContent = (content: MBeaconInfoEventContent): BeaconInfoState => {
-    const ts =
-        (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
-    const asset =
-        (content as Record<string, unknown>)["org.matrix.msc3488.asset"] ??
-        (content as Record<string, unknown>)["m.asset"];
+    const c = content as IContent;
+    const ts = c["org.matrix.msc3488.ts"] ?? c["m.ts"];
+    const asset = c["org.matrix.msc3488.asset"] ?? c["m.asset"];
     return {
         description: content.description,
         timeout: content.timeout,
@@ -180,11 +179,9 @@ export const parseBeaconInfoContent = (content: MBeaconInfoEventContent): Beacon
 };
 
 export const parseBeaconContent = (content: MBeaconEventContent): BeaconLocationState => {
-    const location =
-        (content as Record<string, unknown>)["org.matrix.msc3488.location"] ??
-        (content as Record<string, unknown>)["m.location"];
-    const ts =
-        (content as Record<string, unknown>)["org.matrix.msc3488.ts"] ?? (content as Record<string, unknown>)["m.ts"];
+    const c = content as IContent;
+    const location = c["org.matrix.msc3488.location"] ?? c["m.location"];
+    const ts = c["org.matrix.msc3488.ts"] ?? c["m.ts"];
     return {
         uri: (location as { uri?: string })?.uri,
         description: (location as { description?: string })?.description,

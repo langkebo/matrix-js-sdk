@@ -31,6 +31,14 @@ export interface IImageInfo {
     thumbnail_info?: IImageInfo;
 }
 
+export interface IEncryptedFileKey {
+    alg?: string;
+    k?: string;
+    ext?: boolean;
+    key_ops?: string[];
+    [key: string]: unknown;
+}
+
 export interface IFileContent {
     body: string;
     filename?: string;
@@ -39,7 +47,7 @@ export interface IFileContent {
     url?: string;
     file?: {
         url: string;
-        key: Record<string, unknown>;
+        key: IEncryptedFileKey;
         iv: string;
         hashes: Record<string, string>;
         v: string;
@@ -73,8 +81,8 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
     public async sendEvent(
         roomId: string,
         threadIdOrEventType: string | null | EventType,
-        eventTypeOrContent: string | EventType | Record<string, unknown>,
-        contentOrTxnId?: Record<string, unknown> | string,
+        eventTypeOrContent: string | EventType | IContent,
+        contentOrTxnId?: IContent | string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
         if (typeof threadIdOrEventType === "string" || threadIdOrEventType === null) {
@@ -84,7 +92,7 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
                         roomId,
                         threadIdOrEventType,
                         eventTypeOrContent as string | EventType,
-                        contentOrTxnId as Record<string, unknown>,
+                        contentOrTxnId as IContent,
                         txnId,
                     ),
                 "sendEvent",

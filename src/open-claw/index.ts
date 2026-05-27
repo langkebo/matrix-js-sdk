@@ -108,13 +108,22 @@ export interface UpdateOpenClawConversationRequest {
     is_pinned?: boolean;
 }
 
+export interface ToolCall {
+    id: string;
+    type: "function";
+    function: {
+        name: string;
+        arguments: string;
+    };
+}
+
 export interface OpenClawMessage {
     id: number;
     conversation_id: number;
     role: string;
     content: string;
     token_count?: number;
-    tool_calls?: Record<string, unknown>;
+    tool_calls?: ToolCall[];
     created_ts: number;
 }
 

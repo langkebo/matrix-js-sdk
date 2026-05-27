@@ -6,6 +6,7 @@ import type { EmptyObject } from "./@types/common";
 import type { IThreepid } from "./@types/three-pids";
 import type { IAddThreePidOnlyBody, IBindThreePidBody } from "./@types/requests";
 import type { IdServerUnbindResult } from "./@types/partials";
+import type { IContent } from "./models/event";
 
 export type ProfileField = "displayname" | "avatar_url";
 
@@ -39,7 +40,7 @@ export function buildAvatarUrlBody(avatarUrl: string): { avatar_url: string } {
     return { avatar_url: avatarUrl };
 }
 
-export function buildExtendedProfilePropertyBody(key: string, value: unknown): Record<string, unknown> {
+export function buildExtendedProfilePropertyBody(key: string, value: unknown): IContent {
     return { [key]: value };
 }
 
