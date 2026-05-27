@@ -169,27 +169,39 @@ export interface DeviceVerificationRequest {
 
 /** Response from POST /device_verification/respond */
 export interface DeviceVerificationResponse {
-    /** Verification token / transaction ID */
+    /** Whether the verification was successful */
+    success: boolean;
+    /** Trust level assigned after verification */
+    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
+    /** @deprecated Use success instead */
     transaction_id?: string;
-    /** Verification state */
+    /** @deprecated Use success instead */
     state?: string;
-    /** Verified device info */
+    /** @deprecated Not returned by backend */
     device_id?: string;
-    /** Whether verification succeeded */
+    /** @deprecated Use success instead */
     verified?: boolean;
 }
 
 /** Response from GET /device_verification/status/{token} */
 export interface DeviceVerificationStatusResponse {
+    /** Request token for the verification */
+    request_token: string;
     /** Verification token */
     token: string;
-    /** Current state: pending, verified, cancelled, expired */
-    state: "pending" | "verified" | "cancelled" | "expired";
-    /** Device ID being verified */
+    /** Current status of the verification */
+    status: "pending" | "accepted" | "rejected" | "expired";
+    /** Timestamp when the verification request expires */
+    expires_at: number;
+    /** Available verification methods */
+    methods_available: string[];
+    /** @deprecated Use status instead */
+    state?: "pending" | "verified" | "cancelled" | "expired";
+    /** @deprecated Not returned by backend */
     device_id?: string;
-    /** Timestamp when verification was requested */
+    /** @deprecated Not returned by backend */
     requested_ts?: number;
-    /** Timestamp when verification completed */
+    /** @deprecated Not returned by backend */
     completed_ts?: number;
 }
 
@@ -227,13 +239,21 @@ export interface SecuritySummaryResponse {
     verified_devices: number;
     /** Number of unverified devices */
     unverified_devices: number;
-    /** Whether key backup is configured */
-    key_backup_configured: boolean;
-    /** Whether cross-signing is set up */
-    cross_signing_setup: boolean;
-    /** Number of sessions with key backup */
+    /** Number of blocked devices */
+    blocked_devices: number;
+    /** Whether cross-signing master key is set up */
+    has_cross_signing_master: boolean;
+    /** Security score (0-100) */
+    security_score: number;
+    /** List of security recommendations */
+    recommendations: string[];
+    /** @deprecated Use has_cross_signing_master instead */
+    cross_signing_setup?: boolean;
+    /** @deprecated Use blocked_devices count or recommendations instead */
+    key_backup_configured?: boolean;
+    /** @deprecated Not returned by backend */
     backed_up_sessions?: number;
-    /** Total sessions count */
+    /** @deprecated Not returned by backend */
     total_sessions?: number;
 }
 
@@ -251,19 +271,34 @@ export interface SecurityBackupCreateRequest {
 
 /** Response from POST /keys/backup/secure */
 export interface SecurityBackupCreateResponse {
+    /** Unique backup identifier */
+    backup_id: string;
     /** Version of the created backup */
     version: string;
     /** Algorithm used */
     algorithm: string;
+    /** Algorithm-specific auth data */
+    auth_data: Record<string, unknown>;
+    /** Number of keys currently stored in this backup */
+    key_count: number;
+}
+
+/** Single backup entry in the backup list */
+export interface SecurityBackupEntry {
+    /** Unique backup identifier */
+    backup_id: string;
+    /** Version of the backup */
+    version: string;
+    /** Algorithm used */
+    algorithm: string;
+    /** Algorithm-specific auth data */
+    auth_data: Record<string, unknown>;
 }
 
 /** Response from GET /keys/backup/secure */
 export interface SecurityBackupListResponse {
-    backups: Array<{
-        version: string;
-        algorithm: string;
-        auth_data?: Record<string, unknown>;
-    }>;
+    /** Backups keyed by backup_id */
+    [backup_id: string]: SecurityBackupEntry;
 }
 
 /** Response from GET /keys/backup/secure/{backupId} */

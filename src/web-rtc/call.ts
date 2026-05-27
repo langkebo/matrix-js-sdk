@@ -2527,7 +2527,8 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
             } else {
                 await this.client.sendToDevice(
                     eventType,
-                    new Map<string, any>([[userId, new Map([[this.opponentDeviceId, content]])]]),
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    new Map<string, Map<string, Record<string, any>>>([[userId, new Map([[this.opponentDeviceId, content]])]]),
                 );
             }
         } else {

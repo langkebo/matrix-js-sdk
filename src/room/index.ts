@@ -35,7 +35,7 @@ declare module "../client.ts" {
         sendStateEvent(
             roomId: string,
             eventType: string,
-            content: any,
+            content: Record<string, unknown>,
             stateKey?: string,
         ): Promise<{ event_id: string }>;
     }

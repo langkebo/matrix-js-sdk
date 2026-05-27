@@ -339,7 +339,7 @@ export class SlidingSyncSdk {
 
         this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.onLifecycle.bind(this));
         this.slidingSync.on(SlidingSyncEvent.RoomData, this.onRoomData.bind(this));
-        const extensions: Extension<any, any>[] = [
+        const extensions: Extension<object, object>[] = [
             new ExtensionToDevice(this.client, this.syncOpts.cryptoCallbacks),
             new ExtensionAccountData(this.client),
             new ExtensionTyping(this.client),

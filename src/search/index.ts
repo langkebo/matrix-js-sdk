@@ -33,13 +33,13 @@ import {
     SearchOrderBy,
     type SearchKey,
 } from "../@types/search";
-import type { IEventSearchOpts, ISearchOpts } from "../@types/requests";
+import type { IEventSearchOpts } from "../@types/requests";
 import type { IUserDirectoryResponse } from "../client-internal-types";
 import { buildSearchMessageRequestBody } from "../client-batch-requests";
 import { performSearchRequest } from "../client-crypto-requests";
 import { searchRecipientsRequest } from "../client-secure-backup-requests";
 import { SearchResult } from "../models/search-result";
-import { type EventMapper, eventMapperFor } from "../event-mapper";
+import { eventMapperFor } from "../event-mapper";
 
 export interface ISearchOptions {
     term: string;
@@ -264,7 +264,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             highlights: [],
         };
 
-        const res = await this.searchRoomEvents({ term: opts.term, filter: opts.filter as any });
+        const res = await this.searchRoomEvents({ term: opts.term, filter: opts.filter as unknown as import("../filter").IRoomEventFilter });
         return this.processRoomEventsSearch(searchResults, res);
     }
 

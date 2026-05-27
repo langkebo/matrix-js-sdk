@@ -35,15 +35,15 @@ export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents
     }
 
     public getServerClockDiff(): number {
-        return (this.client as any).serverClockDiff ?? 0;
+        return (this.client as unknown as { serverClockDiff?: number }).serverClockDiff ?? 0;
     }
 
     public getLocalTimestampForServerTime(serverTime: number): number {
-        return serverTime - ((this.client as any).serverClockDiff ?? 0);
+        return serverTime - ((this.client as unknown as { serverClockDiff?: number }).serverClockDiff ?? 0);
     }
 
     public getServerTimestamp(): number {
-        return Date.now() + ((this.client as any).serverClockDiff ?? 0);
+        return Date.now() + ((this.client as unknown as { serverClockDiff?: number }).serverClockDiff ?? 0);
     }
 
     public updateServerTimeInfo(serverTime: number, serverDate: string): void {
@@ -53,7 +53,7 @@ export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents
         } else {
             diff = Date.parse(serverDate) - Date.now();
         }
-        (this.client as any).serverClockDiff = diff;
+        (this.client as unknown as { serverClockDiff: number }).serverClockDiff = diff;
         this.emit("time_synced", { diff });
         this.emit("time_updated", { serverTime });
     }

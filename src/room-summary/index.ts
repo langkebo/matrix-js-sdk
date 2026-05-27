@@ -114,7 +114,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { Body } from "../http-api/interface";
 import { InvalidParamError } from "../common/errors";
-import { encodeUri, type QueryDict } from "../utils";
+import { type QueryDict } from "../utils";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
@@ -193,7 +193,7 @@ function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
-function rsr0<P extends StripClientR0<RoomSummaryPathPattern>>(path: P): P {
+function _rsr0<P extends StripClientR0<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 

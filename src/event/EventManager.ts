@@ -551,7 +551,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         }
 
         if (event.shouldAttemptDecryption() && deps.getCrypto()) {
-            event.attemptDecryption(deps.cryptoBackend as any, options);
+            event.attemptDecryption(deps.cryptoBackend as unknown as import("../common-crypto/CryptoBackend").CryptoBackend, options);
         }
 
         if (event.isBeingDecrypted()) {

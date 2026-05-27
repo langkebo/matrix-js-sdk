@@ -35,7 +35,6 @@ import { EventType, type AccountDataEvents, type WritableAccountDataEvents } fro
 import {
     buildRoomAccountDataPath,
     buildUserAccountDataListPath,
-    buildUserAccountDataPath,
     setUserAccountDataRequest,
     getUserAccountDataRequest,
     deleteUserAccountDataRequest,

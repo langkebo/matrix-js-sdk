@@ -13,7 +13,6 @@
 import type { MatrixClient } from "./client";
 import type { Room } from "./models/room";
 import type { MatrixEvent } from "./models/event";
-import type { IContent } from "./models/event";
 import type { RoomMember } from "./models/room-member";
 import type { ISendEventResponse, IRedactOpts } from "./@types/requests";
 import type { RoomAccountDataEvents } from "./@types/event";
@@ -127,29 +126,29 @@ export interface MatrixClientExtensionMethods {
     getAccountDataManager(): import("./account-data/index").AccountDataManager;
     getRoom(roomId: string): Room | null;
     getRooms(): Room[];
-    getUsers(): any[];
-    getUser(userId: string): any | null;
+    getUsers(): unknown[];
+    getUser(userId: string): unknown | null;
     sendEvent(
         roomId: string,
         eventType: string,
-        content: any,
+        content: Record<string, unknown>,
         txnId?: string,
     ): Promise<{ event_id: string }>;
     sendEvent(
         roomId: string,
         threadId: string | null,
         eventType: string,
-        content: any,
+        content: Record<string, unknown>,
         txnId?: string,
     ): Promise<{ event_id: string }>;
     sendStateEvent(
         roomId: string,
         eventType: string,
-        content: any,
+        content: Record<string, unknown>,
         stateKey?: string,
         opts?: import("./http-api/index").IRequestOpts,
     ): Promise<import("./@types/requests").ISendEventResponse>;
-    sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<any>;
+    sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<import("./@types/common").EmptyObject>;
     getProfileInfo(userId: string): Promise<import("./profile/index").IProfile>;
     getUserProfile(userId: string): Promise<import("./profile/index").IProfile>;
     getDisplayName(userId: string): Promise<string | null>;

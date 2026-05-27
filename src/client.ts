@@ -2967,7 +2967,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         eventId: string,
         params?: { limit?: number; filter?: Record<string, unknown> },
     ): Promise<import("./@types/requests").IContextResponse> {
-        return this.getRoomManager().getEventContext(roomId, eventId, params) as any;
+        return this.getRoomManager().getEventContext(roomId, eventId, params) as unknown as import("./@types/requests").IContextResponse;
     }
 
     /**
@@ -3823,11 +3823,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     public uploadKeysRequest(content: IUploadKeysRequest, _opts?: void): Promise<IKeysUploadResponse> {
-        return this.getCryptoKeysManager().uploadKeys(content as any);
+        return this.getCryptoKeysManager().uploadKeys(content as unknown as import("./crypto-keys/index").IKeysUploadRequest);
     }
 
     public uploadKeySignatures(content: KeySignatures): Promise<IUploadKeySignaturesResponse> {
-        return this.getCryptoKeysManager().uploadKeySignatures(content as any) as unknown as Promise<IUploadKeySignaturesResponse>;
+        return this.getCryptoKeysManager().uploadKeySignatures(content as unknown as import("./crypto-keys/index").IKeySignaturesUploadRequest["signatures"]) as unknown as Promise<IUploadKeySignaturesResponse>;
     }
 
     public downloadKeysForUsers(userIds: string[], { token }: { token?: string } = {}): Promise<IDownloadKeyResult> {
@@ -3847,7 +3847,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     public uploadDeviceSigningKeys(auth?: AuthDict, keys?: CrossSigningKeys): Promise<EmptyObject> {
-        return uploadDeviceSigningKeysHttpRequest<EmptyObject>(auth, keys as any, this.authedRequestProxy);
+        return uploadDeviceSigningKeysHttpRequest<EmptyObject>(auth, keys as unknown as import("./http-api/interface").Body, this.authedRequestProxy);
     }
 
     public requestRoomKey(request: ICreateRoomKeyRequest): Promise<IRoomKeyRequestCreateResponse> {
@@ -4056,7 +4056,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getReportingManager().scoreReport(roomId, eventId, score);
     }
 
-    public async getScannerInfo(roomId: string, eventId: string): Promise<any> {
+    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> {
         return this.getReportingManager().getScannerInfo(roomId, eventId);
     }
 
@@ -4268,7 +4268,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getCryptoBackupManager().getCryptoBackup();
     }
     public restoreCryptoBackup(backup: unknown, passphrase: string): Promise<void> {
-        return this.getCryptoBackupManager().restoreCryptoBackup(backup as any, passphrase);
+        return this.getCryptoBackupManager().restoreCryptoBackup(backup as unknown as import("./crypto-backup/index").CryptoBackupInfo, passphrase);
     }
     public cryptoStore: unknown = undefined;
     public async deleteCryptoStore(): Promise<void> {}
@@ -4396,7 +4396,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomSettingsManager().getRoomGuestAccess(roomId);
     }
     public setRoomGuestAccess(roomId: string, access: string | boolean): Promise<void> {
-        return this.getRoomSettingsManager().setRoomGuestAccess(roomId, access as any);
+        return this.getRoomSettingsManager().setRoomGuestAccess(roomId, access as unknown as boolean);
     }
     public getRoomJoinRule(roomId: string): string {
         return this.getRoomSettingsManager().getRoomJoinRule(roomId);

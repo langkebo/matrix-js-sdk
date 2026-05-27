@@ -118,7 +118,7 @@ export class IndexedDBStore extends MemoryStore {
 
     /** Re-exports `TypedEventEmitter.on` */
     public on<T extends StoreEvent>(event: T, handler: StoreEventHandlerMap[T]): void {
-        this.emitter.on(event as any, handler as any);
+        this.emitter.on(event as unknown as Parameters<typeof this.emitter.on>[0], handler as unknown as Parameters<typeof this.emitter.on>[1]);
     }
 
     /**

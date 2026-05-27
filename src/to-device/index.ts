@@ -32,8 +32,6 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { SendToDeviceContentMap } from "../client-api-types";
 import type { EmptyObject } from "../@types/common";
 import type { ToDeviceBatch as ModelToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
-import { AuthError } from "../errors";
-import { MatrixError } from "../http-api/errors";
 
 export interface ToDeviceMessage {
     [userId: string]: {
@@ -114,7 +112,7 @@ export class ToDeviceManager extends BaseManager {
      * Queue a ToDeviceBatch for batch sending via the client's ToDeviceMessageQueue.
      */
     async queueToDeviceBatch(batch: ModelToDeviceBatch): Promise<void> {
-        return (this.client as any).toDeviceMessageQueue.queueBatch(batch);
+        return (this.client as unknown as { toDeviceMessageQueue: { queueBatch(batch: ModelToDeviceBatch): Promise<void> } }).toDeviceMessageQueue.queueBatch(batch);
     }
 
     /**
@@ -155,7 +153,9 @@ export class ToDeviceManager extends BaseManager {
         devices: { userId: string; deviceId: string }[],
         payload: ToDevicePayload,
     ): Promise<void> {
-        const client = this.client as any;
+        const client = this.client as unknown as {
+            cryptoBackend?: import("../common-crypto/CryptoBackend").CryptoBackend;
+        };
         if (!client.cryptoBackend) {
             throw new Error("Cannot encrypt to device event, your client does not support encryption.");
         }

@@ -39,7 +39,7 @@ export interface FeatureFlagListQuery {
     status?: string;
     limit?: number;
     offset?: number;
-    [key: string]: any;
+    [key: string]: string | number | boolean | string[] | undefined;
 }
 
 export interface FeatureFlagListResponse {

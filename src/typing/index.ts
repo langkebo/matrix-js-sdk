@@ -321,7 +321,7 @@ export class TypingManager extends BaseManager {
 declare module "../client.ts" {
     interface MatrixClient {
         getTypingManager(): TypingManager;
-        sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<any>;
+        sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<import("../@types/common").EmptyObject>;
     }
 }
 
@@ -335,7 +335,7 @@ export function extendMatrixClient(): void {
         roomId: string,
         isTyping: boolean,
         timeoutMs?: number,
-    ): Promise<any> {
+    ): Promise<import("../@types/common").EmptyObject> {
         return this.getTypingManager().sendTyping(roomId, isTyping, timeoutMs ?? 30000);
     };
 }

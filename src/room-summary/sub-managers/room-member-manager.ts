@@ -16,7 +16,6 @@ limitations under the License.
 
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
-import { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../utils";
 import { InvalidParamError } from "../../common/errors";
 import { LRUCache } from "../../utils/lru-cache";

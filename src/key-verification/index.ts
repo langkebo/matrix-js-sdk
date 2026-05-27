@@ -25,6 +25,7 @@ import { BaseManager } from "../managers/base-manager";
 import {
     type IDeviceSigningVerificationAcceptRequest,
     type IDeviceSigningVerificationAcceptResponse,
+    type IDeviceSigningVerificationCancelRequest,
     type IDeviceSigningVerificationCancelResponse,
     type IDeviceSigningVerificationDoneResponse,
     type IDeviceSigningVerificationDoneRequest,
@@ -40,6 +41,10 @@ import {
     type IVerificationRequestsResponse,
     MatrixClient,
 } from "../client";
+import { Method } from "../http-api/method";
+import type { Body } from "../http-api/interface";
+import type { IRequestOpts } from "../http-api/interface";
+import type { QueryDict } from "../utils";
 import {
     startDeviceSigningVerificationRequest,
     acceptDeviceSigningVerificationRequest,
@@ -195,7 +200,7 @@ export class KeyVerificationManager extends BaseManager {
         return this.withRetry(
             async () =>
                 await this.client.http.authedRequest(
-                    "GET" as any,
+                    Method.Get,
                     `/keys/qr_code/show`,
                     { transaction_id: transactionId },
                     undefined,
@@ -214,7 +219,7 @@ export class KeyVerificationManager extends BaseManager {
         return this.withRetry(
             async () =>
                 await this.client.http.authedRequest(
-                    "POST" as any,
+                    Method.Post,
                     `/keys/qr_code/scan`,
                     undefined,
                     { qr_code_data: qrCodeData, transaction_id: transactionId },
@@ -226,11 +231,11 @@ export class KeyVerificationManager extends BaseManager {
 
     private getAuthedRequestProxy() {
         return <T>(
-            method: any,
+            method: Method,
             path: string,
-            queryParams?: any,
-            body?: any,
-            requestOpts?: any,
+            queryParams?: QueryDict,
+            body?: Body,
+            requestOpts?: IRequestOpts,
         ): Promise<T> => this.client.http.authedRequest<T>(method, path, queryParams, body, requestOpts);
     }
 
@@ -290,7 +295,7 @@ export class KeyVerificationManager extends BaseManager {
     }
 
     public cancelDeviceSigningVerification(
-        request: any,
+        request: IDeviceSigningVerificationCancelRequest,
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationCancelResponse> {
         return cancelDeviceSigningVerificationRequest<IDeviceSigningVerificationCancelResponse>(
@@ -313,7 +318,7 @@ export class KeyVerificationManager extends BaseManager {
 
     public scanQrCodeHttp(request: IScanQrCodeRequest, version: VerificationApiVersion = "v1"): Promise<IScanQrCodeResponse> {
         return scanQrCodeHttpRequest<IScanQrCodeResponse>(
-            request as any,
+            request,
             getLegacyClientPrefix(version),
             this.getAuthedRequestProxy(),
         );

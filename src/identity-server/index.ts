@@ -387,7 +387,7 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
     /**
      * Get the terms of service for a service type
      */
-    public getTerms(serviceType: any, baseUrl: string): Promise<any> {
+    public getTerms(serviceType: string, baseUrl: string): Promise<import("../@types/partials").Terms> {
         const url = this.termsUrlForService(serviceType, baseUrl);
         return this.client.http.requestOtherUrl(Method.Get, url);
     }
@@ -395,7 +395,7 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
     /**
      * Agree to the terms of service for a service type
      */
-    public agreeToTerms(serviceType: any, baseUrl: string, accessToken: string, termsUrls: string[]): Promise<EmptyObject> {
+    public agreeToTerms(serviceType: string, baseUrl: string, accessToken: string, termsUrls: string[]): Promise<EmptyObject> {
         const url = this.termsUrlForService(serviceType, baseUrl);
         const headers = {
             Authorization: "Bearer " + accessToken,
@@ -410,7 +410,7 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
         );
     }
 
-    private termsUrlForService(serviceType: any, baseUrl: string): URL {
+    private termsUrlForService(serviceType: string, baseUrl: string): URL {
         const SERVICE_TYPES = {
             IS: "SERVICE_TYPE_IS",
             IM: "SERVICE_TYPE_IM",

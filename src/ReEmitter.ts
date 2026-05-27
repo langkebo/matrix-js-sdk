@@ -77,14 +77,14 @@ export class TypedReEmitter<Events extends string, Arguments extends ListenerMap
     }
 
     public reEmit<ReEmittedEvents extends string, T extends Events & ReEmittedEvents>(
-        source: TypedEventEmitter<ReEmittedEvents, any>,
+        source: TypedEventEmitter<ReEmittedEvents, ListenerMap<ReEmittedEvents>>,
         eventNames: T[],
     ): void {
         super.reEmit(source, eventNames);
     }
 
     public stopReEmitting<ReEmittedEvents extends string, T extends Events & ReEmittedEvents>(
-        source: TypedEventEmitter<ReEmittedEvents, any>,
+        source: TypedEventEmitter<ReEmittedEvents, ListenerMap<ReEmittedEvents>>,
         eventNames: T[],
     ): void {
         super.stopReEmitting(source, eventNames);

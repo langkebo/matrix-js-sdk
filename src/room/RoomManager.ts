@@ -47,6 +47,7 @@ import * as ContentHelpers from "../content-helpers";
 import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
 import type { RoomPathPattern } from "./__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
+import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
 
 export enum RoomEvent {
     RoomCreated = "RoomCreated",
@@ -1110,14 +1111,14 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * Get all rooms for the current user, including join, invite, and leave status.
      * Custom endpoint for synapse-rust.
      */
-    public async getMyRooms(): Promise<{ rooms: any[]; total: number }> {
-        const response = await (this.client as any).authedRequestProxy(
+    public async getMyRooms(): Promise<{ rooms: Record<string, unknown>[]; total: number }> {
+        const response = await this.client.http.authedRequest<{ rooms: Record<string, unknown>[]; total: number }>(
             Method.Get,
             "/_matrix/client/v3/my_rooms",
         );
         return {
             ...response,
-            rooms: response.rooms.map((room: any) => {
+            rooms: response.rooms.map((room: Record<string, unknown>) => {
                 const membership = room.membership ?? room.join_state;
                 const joinState = room.join_state ?? room.membership;
                 if (membership === room.membership && joinState === room.join_state) {
@@ -1155,7 +1156,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         features: Record<string, boolean>;
         defaults: Record<string, unknown>;
     }> {
-        return (this.client as any).authedRequestProxy(
+        return this.client.http.authedRequest(
             Method.Get,
             "/_matrix/client/v1/config/client",
         );
@@ -1171,7 +1172,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         picture?: string;
         email?: string;
     }> {
-        return (this.client as any).authedRequestProxy(
+        return this.client.http.authedRequest(
             Method.Get,
             "/_matrix/client/v3/login/sso/userinfo",
         );
@@ -1185,11 +1186,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * @returns The sliding sync response.
      */
     public async slidingSync(
-        req: any,
+        req: MSC3575SlidingSyncRequest,
         proxyBaseUrl?: string,
         abortSignal?: AbortSignal,
-    ): Promise<any> {
-        const qps: Record<string, any> = {};
+    ): Promise<MSC3575SlidingSyncResponse> {
+        const qps: Record<string, string | number> = {};
         if (req.pos !== undefined) {
             qps.pos = req.pos;
         }

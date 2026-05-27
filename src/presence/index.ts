@@ -621,9 +621,9 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
 declare module "../client.ts" {
     interface MatrixClient {
         getPresenceManager(): PresenceManager;
-        setPresence(presence: PresenceState, statusMsg?: string): Promise<any>;
-        setPresence(presence: PresenceState, opts?: { status_msg?: string }): Promise<any>;
-        setPresence(opts: { presence: PresenceState; status_msg?: string }): Promise<any>;
+        setPresence(presence: PresenceState, statusMsg?: string): Promise<void>;
+        setPresence(presence: PresenceState, opts?: { status_msg?: string }): Promise<void>;
+        setPresence(opts: { presence: PresenceState; status_msg?: string }): Promise<void>;
     }
 }
 
@@ -636,7 +636,7 @@ export function extendMatrixClient(): void {
         this: MatrixClient,
         presenceOrOpts: PresenceState | { presence: PresenceState; status_msg?: string },
         statusMsgOrOpts?: string | { status_msg?: string },
-    ): Promise<any> {
+    ): Promise<void> {
         if (typeof presenceOrOpts === "object") {
             return this.getPresenceManager().setPresence(presenceOrOpts.presence, presenceOrOpts.status_msg);
         }

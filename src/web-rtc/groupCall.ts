@@ -187,13 +187,13 @@ export interface IGroupCallRoomMemberDevice {
     feeds: IGroupCallRoomMemberFeed[];
 }
 
-export interface IGroupCallRoomMemberCallState {
+export interface IGroupCallRoomMemberCallState extends IContent {
     "m.call_id": string;
     "m.foci"?: string[];
     "m.devices": IGroupCallRoomMemberDevice[];
 }
 
-export interface IGroupCallRoomMemberState {
+export interface IGroupCallRoomMemberState extends IContent {
     "m.calls": IGroupCallRoomMemberCallState[];
 }
 
@@ -1466,10 +1466,10 @@ export class GroupCall extends TypedEventEmitter<
 
         for (const e of this.getMemberStateEvents()) {
             const member = this.room.getMember(e.getStateKey()!);
-            const content = e.getContent<Record<any, unknown>>();
-            const calls: Record<any, unknown>[] = Array.isArray(content["m.calls"]) ? content["m.calls"] : [];
+            const content = e.getContent<IGroupCallRoomMemberState>();
+            const calls: IGroupCallRoomMemberCallState[] = Array.isArray(content["m.calls"]) ? content["m.calls"] : [];
             const call = calls.find((call) => call["m.call_id"] === this.groupCallId);
-            const devices: Record<any, unknown>[] = Array.isArray(call?.["m.devices"]) ? call!["m.devices"] : [];
+            const devices: IGroupCallRoomMemberDevice[] = Array.isArray(call?.["m.devices"]) ? call!["m.devices"] : [];
 
             // Filter out invalid and expired devices
             let validDevices = devices.filter(
@@ -1479,7 +1479,7 @@ export class GroupCall extends TypedEventEmitter<
                     typeof d.expires_ts === "number" &&
                     d.expires_ts > now &&
                     Array.isArray(d.feeds),
-            ) as unknown as IGroupCallRoomMemberDevice[];
+            );
 
             // Apply local echo for the unentered case
             if (!entered && member?.userId === this.client.getUserId()!) {
@@ -1537,11 +1537,11 @@ export class GroupCall extends TypedEventEmitter<
         const localUserId = this.client.getUserId()!;
 
         const event = this.getMemberStateEvents(localUserId);
-        const content = event?.getContent<Record<any, unknown>>() ?? {};
-        const calls: Record<any, unknown>[] = Array.isArray(content["m.calls"]) ? content["m.calls"] : [];
+        const content = event?.getContent<IGroupCallRoomMemberState>() ?? ({} as IGroupCallRoomMemberState);
+        const calls: IGroupCallRoomMemberCallState[] = Array.isArray(content["m.calls"]) ? content["m.calls"] : [];
 
-        let call: Record<any, unknown> | null = null;
-        const otherCalls: Record<any, unknown>[] = [];
+        let call: IGroupCallRoomMemberCallState | null = null;
+        const otherCalls: IGroupCallRoomMemberCallState[] = [];
         for (const c of calls) {
             if (c["m.call_id"] === this.groupCallId) {
                 call = c;
@@ -1549,9 +1549,9 @@ export class GroupCall extends TypedEventEmitter<
                 otherCalls.push(c);
             }
         }
-        if (call === null) call = {};
+        if (call === null) call = {} as IGroupCallRoomMemberCallState;
 
-        const devices: Record<any, unknown>[] = Array.isArray(call["m.devices"]) ? call["m.devices"] : [];
+        const devices: IGroupCallRoomMemberDevice[] = Array.isArray(call["m.devices"]) ? call["m.devices"] : [];
 
         // Filter out invalid and expired devices
         const validDevices = devices.filter(
@@ -1561,12 +1561,12 @@ export class GroupCall extends TypedEventEmitter<
                 typeof d.expires_ts === "number" &&
                 d.expires_ts > now &&
                 Array.isArray(d.feeds),
-        ) as unknown as IGroupCallRoomMemberDevice[];
+        );
 
         const newDevices = fn(validDevices);
         if (newDevices === null) return;
 
-        const newCalls = [...(otherCalls as unknown as IGroupCallRoomMemberCallState[])];
+        const newCalls = [...otherCalls];
         if (newDevices.length > 0) {
             newCalls.push({
                 ...call,

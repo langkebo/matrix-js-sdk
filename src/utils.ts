@@ -671,6 +671,7 @@ export function lexicographicCompare(a: string, b: string): number {
  *
  * @returns the target object
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function recursivelyAssign<T1 extends T2, T2 extends Record<string, any>>(
     target: T1,
     source: T2,
@@ -742,10 +743,12 @@ export function recursiveMapToObject(map: Map<unknown, unknown>): Record<string,
     return Object.fromEntries(targetMap.entries()) as Record<string, unknown>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function unsafeProp<K extends keyof any | undefined>(prop: K): boolean {
     return prop === "__proto__" || prop === "prototype" || prop === "constructor";
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function safeSet<O extends Record<any, any>, K extends keyof O>(obj: O, prop: K, value: O[K]): void {
     if (unsafeProp(prop)) {
         throw new Error("Trying to modify prototype or constructor");

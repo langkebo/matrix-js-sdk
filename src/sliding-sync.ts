@@ -299,7 +299,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
     // flag set when resend() is called because we cannot rely on detecting AbortError in JS SDK :(
     private needsResend = false;
     // map of extension name to req/resp handler
-    private extensions: Record<string, Extension<any, any>> = {};
+    private extensions: Record<string, Extension<object, object>> = {};
 
     private desiredRoomSubscriptions = new Set<string>(); // the *desired* room subscriptions
     private confirmedRoomSubscriptions = new Set<string>();
@@ -470,7 +470,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
      * Register an extension to send with the /sync request.
      * @param ext - The extension to register.
      */
-    public registerExtension(ext: Extension<any, any>): void {
+    public registerExtension(ext: Extension<object, object>): void {
         if (this.extensions[ext.name()]) {
             throw new Error(`registerExtension: ${ext.name()} already exists as an extension`);
         }

@@ -17,14 +17,12 @@ limitations under the License.
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
-import type { QueryDict } from "../../utils";
-import { InvalidParamError } from "../../common/errors";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type { InviteBlocklist, InviteAllowlist } from "../types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 

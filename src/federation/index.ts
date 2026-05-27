@@ -377,11 +377,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * 通过联邦获取房间层级
      * @param roomId - 房间 ID
      */
-    async getHierarchy(roomId: string): Promise<any> {
+    async getHierarchy(roomId: string): Promise<unknown> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
-        return this.client.http.request<any>(
+        return this.client.http.request<unknown>(
             Method.Get,
             `/_matrix/federation/v1/hierarchy/${encodeURIComponent(roomId)}`,
             undefined,
@@ -393,19 +393,19 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     /**
      * 获取联邦发现信息
      */
-    async getFederationInfo(): Promise<any> {
-        return this.client.http.request<any>(Method.Get, "/_matrix/federation/v1", undefined, undefined, { prefix: "" });
+    async getFederationInfo(): Promise<unknown> {
+        return this.client.http.request<unknown>(Method.Get, "/_matrix/federation/v1", undefined, undefined, { prefix: "" });
     }
 
     /**
      * 通过联邦查询目的地
      * @param destination - 目标 server name
      */
-    async queryDestination(destination: string): Promise<any> {
+    async queryDestination(destination: string): Promise<unknown> {
         if (!destination) {
             throw new ValidationError("Destination is required");
         }
-        return this.client.http.request<any>(
+        return this.client.http.request<unknown>(
             Method.Get,
             "/_matrix/federation/v1/query/destination",
             { destination },
@@ -419,14 +419,14 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      */
-    async getRoomEvent(roomId: string, eventId: string): Promise<any> {
+    async getRoomEvent(roomId: string, eventId: string): Promise<unknown> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         if (!eventId) {
             throw new ValidationError("Event ID is required");
         }
-        return this.client.http.request<any>(
+        return this.client.http.request<unknown>(
             Method.Get,
             `/_matrix/federation/v1/room/${encodeURIComponent(roomId)}/${encodeURIComponent(eventId)}`,
             undefined,
@@ -440,14 +440,14 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @param serverName - 远端 server name
      * @param mediaId - 媒体 ID
      */
-    async downloadMedia(serverName: string, mediaId: string): Promise<any> {
+    async downloadMedia(serverName: string, mediaId: string): Promise<unknown> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return this.client.http.request<any>(
+        return this.client.http.request<unknown>(
             Method.Get,
             `/_matrix/federation/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
             undefined,
@@ -461,14 +461,14 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @param serverName - 远端 server name
      * @param mediaId - 媒体 ID
      */
-    async getMediaThumbnail(serverName: string, mediaId: string): Promise<any> {
+    async getMediaThumbnail(serverName: string, mediaId: string): Promise<unknown> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return this.client.http.request<any>(
+        return this.client.http.request<unknown>(
             Method.Get,
             `/_matrix/federation/v1/media/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
             undefined,

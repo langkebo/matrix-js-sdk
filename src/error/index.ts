@@ -82,7 +82,7 @@ const DEFAULT_ERROR_OPTIONS: Required<ErrorHandlingOptions> = {
 export function handleManagerError<T = null>(
     error: unknown,
     options: ErrorHandlingOptions | boolean = {},
-    context?: string,
+    _context?: string,
 ): T | null {
     const opts = typeof options === "boolean"
         ? { throwOnError: options, onError: undefined }

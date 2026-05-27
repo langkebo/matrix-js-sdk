@@ -207,7 +207,10 @@ export class ServerCapabilitiesManager extends BaseManager<
      * @returns The server /versions response
      */
     public async getVersions(): Promise<IServerVersions> {
-        const client = this.client as any;
+        const client = this.client as unknown as {
+            serverVersionsPromise?: Promise<IServerVersions>;
+            canSupport: Map<import("../feature").Feature, import("../feature").ServerSupport>;
+        };
         if (client.serverVersionsPromise) {
             return client.serverVersionsPromise;
         }
@@ -289,10 +292,10 @@ export class ServerCapabilitiesManager extends BaseManager<
      * Requires homeserver support for MSC4143.
      * @throws A M_NOT_FOUND error if not supported by the homeserver.
      */
-    public async _unstable_getRTCTransports(): Promise<any[]> {
+    public async _unstable_getRTCTransports(): Promise<Record<string, unknown>[]> {
         return (
             await this.client.http.authedRequest<{
-                rtc_transports: any[];
+                rtc_transports: Record<string, unknown>[];
             }>(Method.Get, "/rtc/transports", undefined, undefined, {
                 prefix: `${ClientPrefix.Unstable}/org.matrix.msc4143`,
             })

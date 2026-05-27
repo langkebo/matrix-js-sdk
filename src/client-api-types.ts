@@ -405,6 +405,7 @@ export type CrossSigningKeyType = "master_key" | "self_signing_key" | "user_sign
 
 export type CrossSigningKeys = Record<CrossSigningKeyType, CrossSigningKeyInfo>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SendToDeviceContentMap = Map<string, Map<string, Record<string, any>>>;
 
 export interface IPreviewUrlResponse {

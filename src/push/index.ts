@@ -161,7 +161,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             if (!supportsRemoteToggle) {
                 pushers = pushers.map((pusher) => {
                     if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
-                        (pusher as any)[PUSHER_ENABLED.name] = true;
+                        (pusher as unknown as Record<string, unknown>)[PUSHER_ENABLED.name] = true;
                     }
                     return pusher;
                 });
@@ -284,7 +284,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!kind) throw new InvalidParamError("kind is required");
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<any>(
+                return await this.client.http.authedRequest<Record<string, IPushRule[]>>(
                     Method.Get,
                     pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`),
                     undefined,
@@ -322,7 +322,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
                 );
             }, "getPushRule");
         } catch (error) {
-            if (!throwOnError && (error as any).httpStatus === 404) return null;
+            if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return null;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRule"));
             throw this.normalizeError(error, "getPushRule");
         }
@@ -437,7 +437,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
             return response?.enabled ?? true;
         } catch (error) {
-            if (!throwOnError && (error as any).httpStatus === 404) return false;
+            if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return false;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRuleEnabled"));
             throw this.normalizeError(error, "getPushRuleEnabled");
         }
@@ -515,7 +515,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      */
     async getNotifications(params?: { limit?: number; from?: string; only?: string }): Promise<INotificationsResponse> {
         try {
-            const query: any = {};
+            const query: Record<string, string> = {};
             if (params?.limit !== undefined) query.limit = String(params.limit);
             if (params?.from) query.from = params.from;
             if (params?.only) query.only = params.only;
@@ -552,7 +552,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
                 );
             }, "ackNotification");
         } catch (error) {
-            if (!throwOnError && (error as any).httpStatus === 404) return;
+            if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return;
             this.emit(PushEvent.PushError, this.normalizeError(error, "ackNotification"));
             throw this.normalizeError(error, "ackNotification");
         }
@@ -619,7 +619,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     async addKeywordHighlight(keyword: string): Promise<void> {
         if (!keyword) throw new InvalidParamError("keyword is required");
         await this.createPushRule("global", PushRuleKind.ContentSpecific, keyword, {
-            actions: [PushRuleActionName.Notify, { set_tweak: "highlight", value: true } as any],
+            actions: [PushRuleActionName.Notify, { set_tweak: "highlight", value: true } as import("../@types/PushRules").TweakHighlight],
             pattern: keyword,
         });
     }

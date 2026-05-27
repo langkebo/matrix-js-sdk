@@ -40,7 +40,7 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 
     public getTurnServers(): ITurnServer[] {
-        return (this.client as any).turnServers || [];
+        return (this.client as unknown as { turnServers?: ITurnServer[] }).turnServers || [];
     }
 
     public async getTurnServerURIs(): Promise<string[]> {
@@ -50,7 +50,7 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
         }
         // No cached servers, fetch from server
         try {
-            const res: ITurnServerResponse = await (this.client as any).turnServer();
+            const res: ITurnServerResponse = await this.client.turnServer();
             if (res.uris) {
                 return res.uris;
             }
@@ -61,7 +61,7 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 
     public getTurnServerExpiry(): number {
-        return (this.client as any).turnServersExpiry ?? 0;
+        return (this.client as unknown as { turnServersExpiry?: number }).turnServersExpiry ?? 0;
     }
 
     /**
@@ -70,7 +70,15 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
      * @returns true if credentials are good, undefined if VoIP not supported.
      */
     public async checkTurnServers(): Promise<boolean | undefined> {
-        const client = this.client as any;
+        const client = this.client as unknown as {
+            supportsVoip?(): boolean;
+            turnServersExpiry: number;
+            turnServers: ITurnServer[];
+            turnServer(): Promise<ITurnServerResponse>;
+            emit(event: string, ...args: unknown[]): boolean;
+            logger?: { debug?(...args: unknown[]): void; error?(...args: unknown[]): void; info?(...args: unknown[]): void };
+            checkTurnServersIntervalID?: ReturnType<typeof setInterval>;
+        };
         if (!client.supportsVoip || !client.supportsVoip()) {
             return;
         }

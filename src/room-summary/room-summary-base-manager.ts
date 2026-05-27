@@ -40,10 +40,12 @@ export type RoomSummaryErrorCallback = (error: Error) => void;
  *
  * 提供 requestV3/requestInternal 请求方法和统一的参数校验。
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export abstract class RoomSummaryBaseManager<
     Events extends string = string,
     EventMap extends Record<Events, any> = Record<Events, any>,
 > extends BaseManager<Events, EventMap> {
+/* eslint-enable @typescript-eslint/no-explicit-any */
     protected readonly onError?: RoomSummaryErrorCallback;
 
     constructor(client: MatrixClient, onError?: RoomSummaryErrorCallback) {

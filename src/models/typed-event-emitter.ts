@@ -23,6 +23,7 @@ export enum EventEmitterEvents {
     Error = "error",
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyListener = (...args: any[]) => any;
 
 /** Base class for types mapping from event name to the type of listeners to that event */

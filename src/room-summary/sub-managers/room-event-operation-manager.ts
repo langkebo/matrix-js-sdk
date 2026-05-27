@@ -82,7 +82,7 @@ import type {
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 

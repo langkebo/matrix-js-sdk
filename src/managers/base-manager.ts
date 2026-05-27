@@ -53,10 +53,12 @@ export interface RequestStats {
  *
  * Provides common functionality like error handling, retry logic, and request statistics.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export abstract class BaseManager<
     Events extends string = string,
     EventMap extends Record<Events, any> = Record<Events, any>,
 > extends TypedEventEmitter<Events, EventMap> {
+/* eslint-enable @typescript-eslint/no-explicit-any */
     protected readonly client: MatrixClient;
     protected retryOptions: RetryOptions = {};
     protected requestStats: RequestStats = {

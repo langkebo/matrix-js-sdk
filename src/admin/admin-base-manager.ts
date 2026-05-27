@@ -54,10 +54,12 @@ export function apu(path: string): string {
  * 提供 adminRequest（继承自 BaseManager）和 v2Request，
  * 以及统一的错误回调机制。
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export abstract class AdminBaseManager<
     Events extends string = string,
     EventMap extends Record<Events, any> = Record<Events, any>,
 > extends BaseManager<Events, EventMap> {
+/* eslint-enable @typescript-eslint/no-explicit-any */
     private readonly onError?: AdminErrorCallback;
 
     constructor(client: MatrixClient, onError?: AdminErrorCallback) {

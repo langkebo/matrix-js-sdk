@@ -17,8 +17,6 @@ limitations under the License.
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
-import type { QueryDict } from "../../utils";
-import { InvalidParamError } from "../../common/errors";
 import type { IRoomSummaryState, RoomSummaryStateContent } from "../types";
 import type { RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import { RoomSummaryBaseManager } from "../room-summary-base-manager";
@@ -26,7 +24,7 @@ import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
-function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
@@ -46,7 +44,7 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
     // ─── Path helpers ──────────────────────────────────────────────────────
 
     private summaryStateCollectionPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
-        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/state`);
+        return _rsv(`/rooms/${encodeURIComponent(roomId)}/summary/state`);
     }
 
     private summaryStatePath(
@@ -54,7 +52,7 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
         eventType: string,
         stateKey: string,
     ): StripClientV3<RoomSummaryPathPattern> {
-        return rsv(
+        return _rsv(
             `/rooms/${encodeURIComponent(roomId)}/summary/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`,
         );
     }

@@ -20,7 +20,7 @@ import type { EmptyObject } from "../@types/common";
 import type { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho, setRoomReadMarkersHttpRequest as setRoomReadMarkersHttpRequestFn } from "../client-receipt-requests";
+import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho } from "../client-receipt-requests";
 import { setRoomReadMarkersRequest } from "../client-batch-requests";
 
 export interface IReadReceipt {
@@ -118,7 +118,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
             this.client,
             this.client.getRoom(roomId),
             { roomId, rmEventId, rrEvent, rpEvent, userId: this.client.credentials.userId! },
-            (this.client as any).setRoomReadMarkersHttpRequest?.bind(this.client) ??
+            (this.client as unknown as { setRoomReadMarkersHttpRequest?: typeof ReadReceiptsManager.prototype.setRoomReadMarkersHttpRequest }).setRoomReadMarkersHttpRequest?.bind(this.client) ??
                 this.setRoomReadMarkersHttpRequest.bind(this),
         );
     }

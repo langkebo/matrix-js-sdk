@@ -88,7 +88,7 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
     }
 
     private getCallList(): MatrixCall[] {
-        const handler = (this.client as any).callEventHandler;
+        const handler = (this.client as unknown as { callEventHandler?: { calls: Map<string, MatrixCall> } }).callEventHandler;
         if (!handler?.calls) return [];
         return Array.from(handler.calls.values()) as MatrixCall[];
     }
@@ -115,7 +115,7 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
         const calls = [...this.getCallList()];
         for (const call of calls) {
             try {
-                call.hangup("user_hangup" as any, true);
+                call.hangup("user_hangup" as import("../web-rtc/call").CallErrorCode, true);
             } catch (e) {
                 logger.warn("VoIPCallsManager.terminateAllCalls: failed to hangup call", e);
             }

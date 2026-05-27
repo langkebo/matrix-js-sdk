@@ -20,6 +20,7 @@ import { type QueryDict } from "../utils";
 
 export type RequestPriority = "high" | "low" | "auto";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Body = Record<string, any> | BodyInit;
 
 /**
