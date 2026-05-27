@@ -55,7 +55,7 @@ export enum EventManagerEvent {
 }
 
 export interface IRoomEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
@@ -248,7 +248,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public async sendEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         txnId?: string,
         workflowContext?: SendEventWorkflowContext,
     ): Promise<ISendEventResponse> {
@@ -367,7 +367,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public async sendStateEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         stateKey = "",
     ): Promise<ISendEventResponse> {
         this.validateRoomId(roomId);
@@ -572,7 +572,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public async sendStateEventWithEncryption(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         stateKey = "",
         deps?: {
             getRoom: (roomId: string) => Room | null;
@@ -595,7 +595,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
                 room_id: roomId,
                 type: eventType,
                 state_key: stateKey,
-                content: content as IContent,
+                content,
             });
 
             await deps.encryptStateEventIfNeeded(event, room ?? undefined);

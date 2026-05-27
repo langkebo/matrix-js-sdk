@@ -32,7 +32,7 @@ import type { RoomMessageEventContent } from "../@types/events";
 import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
 import type { RoomMember } from "../models/room-member";
-import type { MatrixEvent } from "../models/event";
+import type { MatrixEvent, IContent } from "../models/event";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
@@ -115,7 +115,7 @@ export interface UpdateDirectRoomResponse {
 
 export interface UpdateDirectRoomOptions {
     userIds?: string[];
-    content?: Record<string, unknown>;
+    content?: IContent;
 }
 
 interface DirectMessageManagerEventMap {
@@ -702,13 +702,13 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @param content - 消息内容（字符串或对象）
      * @returns 发送的事件 ID
      */
-    async sendDmMessage(roomId: string, content: string | Record<string, unknown>): Promise<string> {
+    async sendDmMessage(roomId: string, content: string | IContent): Promise<string> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
         try {
             return await this.withRetry(async () => {
-                let messageContent: Record<string, unknown>;
+                let messageContent: IContent;
 
                 if (typeof content === "string") {
                     messageContent = {

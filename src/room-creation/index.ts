@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -35,17 +36,17 @@ export interface ICreateRoomOptions {
         address: string;
     }>;
     room_version?: string;
-    creation_content?: Record<string, unknown>;
+    creation_content?: IContent;
     initial_state?: Array<{
         type: string;
         state_key?: string;
-        content: Record<string, unknown>;
+        content: IContent;
     }>;
     preset?: "private_chat" | "public_chat" | "trusted_private_chat";
     is_direct?: boolean;
     name?: string;
     topic?: string;
-    power_level_content_override?: Record<string, unknown>;
+    power_level_content_override?: IContent;
 }
 
 export interface ICreateRoomResponse {

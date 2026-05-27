@@ -19,7 +19,12 @@ limitations under the License.
  */
 
 import { type ISyncStateData, type SetPresence, SyncApi, type SyncApiOptions, SyncState } from "./sync";
-import type { MatrixClientExtensionMethods, MatrixClientInternalMethods } from "./matrix-client-extensions";
+import type {
+    MatrixClientExtensionMethods,
+    MatrixClientInternalMethods,
+    SharedWithUsersMap,
+    WidgetData,
+} from "./matrix-client-extensions";
 import {
     EventStatus,
     type IContent,
@@ -3644,7 +3649,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getEventManager().sendStateEventWithEncryption(
             roomId,
             eventType as string,
-            content as Record<string, unknown>,
+            content as IContent,
             stateKey,
             {
                 getRoom: (id) => this.getRoom(id),
@@ -4357,7 +4362,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public shareRoomKey(_roomId: string, _users: string[]): Promise<unknown> {
         return Promise.resolve(undefined);
     }
-    public getSharedWithUsers(_roomId: string): Promise<Record<string, unknown>> {
+    public getSharedWithUsers(_roomId: string): Promise<SharedWithUsersMap> {
         return Promise.resolve({});
     }
     public hasSharedKeyWithUser(_userId: string): Promise<boolean> {
@@ -4417,8 +4422,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getSecretStorageKeys(): Promise<Record<string, string>> {
         return this.getSecretStorageManager().getSecretStorageKeys();
     }
-    public getServerCapabilities(): Promise<Record<string, unknown>> {
-        return this.getServerCapabilitiesManager().getServerCapabilities() as Promise<Record<string, unknown>>;
+    public getServerCapabilities(): Promise<Capabilities> {
+        return this.getServerCapabilitiesManager().getServerCapabilities();
     }
     public hasServerSupport(feature: string): boolean {
         return this.getServerCapabilitiesManager().hasServerSupport(feature);
@@ -4454,16 +4459,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getTurnServerURIs(): Promise<string[]> {
         return this.getTurnServerManager().getTurnServerURIs();
     }
-    public getUserWidgets(): Promise<Record<string, unknown>> {
+    public getUserWidgets(): Promise<WidgetData> {
         return Promise.resolve({});
     }
-    public getRoomWidgets(_roomId: string): Promise<Record<string, unknown>> {
+    public getRoomWidgets(_roomId: string): Promise<WidgetData> {
         return Promise.resolve({});
     }
-    public setUserWidgets(_widgets: Record<string, unknown>): Promise<void> {
+    public setUserWidgets(_widgets: WidgetData): Promise<void> {
         return Promise.resolve();
     }
-    public setRoomWidgets(_roomId: string, _widgets: Record<string, unknown>): Promise<void> {
+    public setRoomWidgets(_roomId: string, _widgets: WidgetData): Promise<void> {
         return Promise.resolve();
     }
     public getAllWidgetEvents(_roomId: string): Promise<MatrixEvent[]> {

@@ -46,6 +46,7 @@ import { BaseManager, type RequestStats } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError, ValidationError, SdkError } from "../errors";
 import { logger } from "../logger";
+import type { IContent } from "../models/event";
 import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
 
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
@@ -74,7 +75,7 @@ export interface IBurnAfterReadMessage {
     event_id: string;
     room_id: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: IContent;
     sent_at: number;
     read_at?: number;
     burned_at?: number;
@@ -112,7 +113,7 @@ export interface IBurnPendingEvent {
 
 export interface ISendBurnAfterReadMessageRequest {
     room_id: string;
-    content: Record<string, unknown>;
+    content: IContent;
     expires_in?: number;
     msgtype?: string;
     encrypt?: boolean;
@@ -445,7 +446,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         try {
             const shouldEncrypt = request.encrypt ?? this.config.encrypt_content ?? false;
 
-            const burnMetadata: Record<string, unknown> = {
+            const burnMetadata: IContent = {
                 expires_in: expiresIn,
             };
 
@@ -453,7 +454,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 burnMetadata.encrypted = true;
             }
 
-            const content: Record<string, unknown> = {
+            const content: IContent = {
                 ...request.content,
                 "m.burn_after_read": burnMetadata,
             };

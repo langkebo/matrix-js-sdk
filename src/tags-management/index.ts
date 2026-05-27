@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
+import { type IContent } from "../models/event";
 import { buildRoomAccountDataPath, buildRoomTagPath } from "../client-account-data-requests";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -53,17 +54,17 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
         return Object.keys(room.tags);
     }
 
-    public getRoomAccountData(roomId: string, eventType: string): Record<string, unknown> | null {
+    public getRoomAccountData(roomId: string, eventType: string): IContent | null {
         const room = this.client.getRoom(roomId);
         if (!room) return null;
         const event = room.getAccountData(eventType);
-        return (event?.getContent() as Record<string, unknown>) ?? null;
+        return (event?.getContent() as IContent) ?? null;
     }
 
     public async setRoomAccountData(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
     ): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);

@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -35,7 +36,7 @@ export interface IDelayedEvent {
     room_id: string;
     event_type: string;
     state_key?: string;
-    content: Record<string, unknown>;
+    content: IContent;
     delay_ms: number;
     created_at: number;
 }
@@ -59,7 +60,7 @@ export class ScheduledEventsManager extends BaseManager<
     public async sendDelayedEvent(
         eventType: string,
         roomId: string,
-        content: Record<string, unknown>,
+        content: IContent,
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
         const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
@@ -78,7 +79,7 @@ export class ScheduledEventsManager extends BaseManager<
     public async sendStickyDelayedEvent(
         eventType: string,
         roomId: string,
-        content: Record<string, unknown>,
+        content: IContent,
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
         const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
@@ -98,7 +99,7 @@ export class ScheduledEventsManager extends BaseManager<
         roomId: string,
         eventType: string,
         stateKey: string,
-        content: Record<string, unknown>,
+        content: IContent,
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
         const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;

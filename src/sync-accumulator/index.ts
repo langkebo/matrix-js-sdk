@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { SyncAccumulator } from "../sync-accumulator";
+import { type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -33,11 +34,11 @@ export interface ISyncAccumulatedData {
     };
     account_data?: Array<{
         type: string;
-        content: Record<string, unknown>;
+        content: IContent;
     }>;
     presence?: Array<{
         type: string;
-        content: Record<string, unknown>;
+        content: IContent;
     }>;
 }
 

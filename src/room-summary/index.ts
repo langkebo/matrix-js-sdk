@@ -601,7 +601,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async updateSummaryMember(
         roomId: string,
         userId: string,
-        member: Record<string, unknown>,
+        member: Partial<RoomSummaryMember>,
     ): Promise<Record<string, unknown>> {
         return this.members.updateSummaryMember(roomId, userId, member);
     }
@@ -793,7 +793,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async setRoomAccountDataV3(
         roomId: string,
         type: string,
-        content: Record<string, unknown>,
+        content: RoomSummaryStateContent,
     ): Promise<RoomAccountDataResult> {
         return this.eventOps.setRoomAccountDataV3(roomId, type, content);
     }
@@ -931,7 +931,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async setStickyEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: RoomSummaryStateContent,
     ): Promise<StickyEvent> {
         return this.eventOps.setStickyEvent(roomId, eventType, content);
     }

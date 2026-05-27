@@ -21,14 +21,14 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { MatrixEvent } from "../models/event";
+import { MatrixEvent, type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRoomStateEvent {
     type: string;
     state_key: string;
-    content: Record<string, unknown>;
+    content: IContent;
     sender: string;
     event_id: string;
 }
@@ -85,7 +85,7 @@ export class RoomStateManagementManager extends BaseManager<
     public async setRoomAccountData(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
     ): Promise<void> {
         return this.withRetry(
             () =>
@@ -94,7 +94,7 @@ export class RoomStateManagementManager extends BaseManager<
                         setRoomAccountData: (
                             roomId: string,
                             eventType: string,
-                            content: Record<string, unknown>,
+                            content: IContent,
                         ) => Promise<void>;
                     }
                 ).setRoomAccountData(roomId, eventType, content),
@@ -102,10 +102,10 @@ export class RoomStateManagementManager extends BaseManager<
         );
     }
 
-    public getRoomAccountData(roomId: string, eventType: string): Record<string, unknown> | null {
+    public getRoomAccountData(roomId: string, eventType: string): IContent | null {
         return (
             this.client as unknown as {
-                getRoomAccountData: (roomId: string, eventType: string) => Record<string, unknown> | null;
+                getRoomAccountData: (roomId: string, eventType: string) => IContent | null;
             }
         ).getRoomAccountData(roomId, eventType);
     }

@@ -29,6 +29,7 @@ import {
     type IGuestAccessOpts,
 } from "../@types/requests";
 import { type RoomAccountDataEvents, EventType } from "../@types/event";
+import { type IContent } from "../models/event";
 import { InvalidParamError } from "../common/errors";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
@@ -58,13 +59,13 @@ export enum RoomEvent {
 }
 
 export interface IRoomEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
     origin_server_ts: number;
     room_id?: string;
-    unsigned?: Record<string, unknown>;
+    unsigned?: IContent;
 }
 
 export interface IStateEvent extends IRoomEvent {
@@ -637,14 +638,14 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return this.client.getEventManager().getState(roomId, forceRefresh);
     }
 
-    public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<Record<string, unknown>> {
+    public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<IContent> {
         return this.client.getEventManager().getStateEvent(roomId, eventType, stateKey);
     }
 
     public async sendStateEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         stateKey = "",
     ): Promise<ISendEventResponse> {
         return this.client.getEventManager().sendStateEvent(roomId, eventType, content, stateKey);

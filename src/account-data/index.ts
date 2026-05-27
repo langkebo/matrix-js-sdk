@@ -28,7 +28,7 @@ limitations under the License.
  */
 
 import { MatrixClient, ClientEvent } from "../client";
-import { MatrixEvent } from "../models/event";
+import { MatrixEvent, type IContent } from "../models/event";
 import { Method, retryNetworkOperation } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
 import { EventType, type AccountDataEvents, type WritableAccountDataEvents } from "../@types/event";
@@ -84,7 +84,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     /**
      * 验证内容大小
      */
-    private validateContentSize(content: Record<string, unknown>): void {
+    private validateContentSize(content: IContent): void {
         const contentStr = JSON.stringify(content);
         if (contentStr.length > MAX_CONTENT_SIZE) {
             throw new ValidationError(`Account data too large (max ${MAX_CONTENT_SIZE} bytes)`);
@@ -206,11 +206,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      *   }
      * }
      */
-    public async listAccountData(): Promise<{ account_data: Record<string, unknown> }> {
+    public async listAccountData(): Promise<{ account_data: Record<string, IContent> }> {
         const path = buildUserAccountDataListPath(this.client.credentials.userId!);
 
         try {
-            return await this.client.http.authedRequest<{ account_data: Record<string, unknown> }>(Method.Get, path);
+            return await this.client.http.authedRequest<{ account_data: Record<string, IContent> }>(Method.Get, path);
         } catch (e) {
             throw this.normalizeError(e, "listAccountData");
         }
@@ -231,7 +231,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
 
         try {
-            const response = await this.client.http.authedRequest<Record<string, unknown>>(Method.Get, path);
+            const response = await this.client.http.authedRequest<IContent>(Method.Get, path);
             return new MatrixEvent({
                 type: eventType,
                 content: response,
@@ -251,7 +251,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     public async setRoomAccountData<K extends string>(
         roomId: string,
         eventType: K,
-        content: Record<string, unknown>,
+        content: IContent,
     ): Promise<void> {
         this.validateDataType(eventType);
         this.validateContentSize(content);

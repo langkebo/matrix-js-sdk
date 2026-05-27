@@ -25,6 +25,7 @@ import { Thread, THREAD_RELATION_TYPE } from "../models/thread";
 import { EventTimeline, Direction } from "../models/event-timeline";
 import type { EventTimelineSet } from "../models/event-timeline-set";
 import type { MatrixEvent } from "../models/event";
+import type { IContent } from "../models/event";
 import type { IRelationsResponse, IContextResponse } from "../@types/requests";
 import { getRelationsThreadFilter } from "../thread-utils";
 import { ServerSupport, Feature } from "../feature";
@@ -76,11 +77,11 @@ export interface ThreadSummaryResponse {
     thread_id: string;
     root_event_id: string;
     root_sender: string;
-    root_content: Record<string, unknown>;
+    root_content: IContent;
     root_origin_server_ts: number;
     latest_event_id: string | null;
     latest_sender: string | null;
-    latest_content: Record<string, unknown> | null;
+    latest_content: IContent | null;
     latest_origin_server_ts: number | null;
     reply_count: number;
     participants: unknown;
@@ -116,7 +117,7 @@ export interface ThreadReplyResponse {
     thread_id: string;
     room_id: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: IContent;
     origin_server_ts: number;
     in_reply_to_event_id: string | null;
     is_edited: boolean;
@@ -156,14 +157,14 @@ export interface ThreadRootResponse {
 export interface ThreadCreateParams {
     roomId?: string;
     rootEventId: string;
-    content?: Record<string, unknown>;
+    content?: IContent;
     originServerTs?: number;
 }
 
 export interface ThreadReplyCreateParams {
     eventId: string;
     rootEventId: string;
-    content: Record<string, unknown>;
+    content: IContent;
     inReplyToEventId?: string;
     originServerTs?: number;
 }
@@ -198,7 +199,7 @@ export interface SubscribedThreadsResponse {
 export interface ThreadLegacyChunkItem {
     event_id: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: IContent;
     origin_server_ts: number;
 }
 

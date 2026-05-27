@@ -18,6 +18,7 @@ import { MatrixClient } from "../client";
 import { EventType } from "../@types/event";
 import type { ISendEventResponse } from "../@types/requests";
 import type { RoomMessageEventContent } from "../@types/events";
+import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -59,14 +60,14 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
     public async sendEvent(
         roomId: string,
         eventType: string | EventType,
-        content: Record<string, unknown>,
+        content: IContent,
         txnId?: string,
     ): Promise<ISendEventResponse>;
     public async sendEvent(
         roomId: string,
         threadId: string | null,
         eventType: string | EventType,
-        content: Record<string, unknown>,
+        content: IContent,
         txnId?: string,
     ): Promise<ISendEventResponse>;
     public async sendEvent(
