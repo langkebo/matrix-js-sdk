@@ -20,6 +20,34 @@ import { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../utils";
 import { encodeUri } from "../../utils";
 import { InvalidParamError } from "../../common/errors";
+import type { IContent } from "../../models/event";
+
+/** 翻译事件请求体 */
+export interface TranslateEventBody {
+    target_lang?: string;
+    source_lang?: string;
+    text?: string;
+    [key: string]: unknown;
+}
+
+/** 转换事件请求体 */
+export interface ConvertEventBody {
+    format?: string;
+    [key: string]: unknown;
+}
+
+/** 签名事件请求体 */
+export interface SignEventBody {
+    key_id?: string;
+    [key: string]: unknown;
+}
+
+/** 验证事件请求体 */
+export interface VerifyEventBody {
+    signature?: string;
+    [key: string]: unknown;
+}
+
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type {
     RoomNotificationsResult,
@@ -562,7 +590,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async translateRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: TranslateEventBody = {},
     ): Promise<RoomTranslateResult> {
         this.validateRoomId(roomId);
         if (!eventId) {
@@ -591,7 +619,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async convertRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: ConvertEventBody = {},
     ): Promise<RoomConvertResult> {
         this.validateRoomId(roomId);
         if (!eventId) {
@@ -620,7 +648,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async signRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: SignEventBody = {},
     ): Promise<RoomSignResult> {
         this.validateRoomId(roomId);
         if (!eventId) {
@@ -649,7 +677,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async verifyRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: VerifyEventBody = {},
     ): Promise<RoomVerifyResult> {
         this.validateRoomId(roomId);
         if (!eventId) {
@@ -702,7 +730,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async setStickyEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
     ): Promise<StickyEvent> {
         this.validateRoomId(roomId);
         this.validateEventType(eventType);

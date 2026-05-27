@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { type IEvent, type MatrixEvent } from "../models/event";
+import { type IEvent, type IContent, type MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
@@ -60,8 +60,8 @@ export interface RelationAggregationResponse {
 }
 
 export interface SendRelationRequestBody {
-    content?: Record<string, unknown>;
-    "m.new_content"?: Record<string, unknown>;
+    content?: IContent;
+    "m.new_content"?: IContent;
     key?: string;
     type?: string;
 }

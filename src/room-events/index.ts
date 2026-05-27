@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
-import { MatrixEvent } from "../models/event";
+import { MatrixEvent, type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -34,8 +34,8 @@ export interface IRoomEventResponse {
 export interface IMessagesResponse {
     start: string;
     end?: string;
-    chunk: Array<Record<string, unknown>>;
-    state?: Array<Record<string, unknown>>;
+    chunk: IEvent[];
+    state?: IEvent[];
 }
 
 export interface RoomEventsManagerEvents {
@@ -79,13 +79,13 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         return this.client.findEventById(roomId, eventId);
     }
 
-    public async getEvent(roomId: string, eventId: string): Promise<Record<string, unknown>> {
+    public async getEvent(roomId: string, eventId: string): Promise<IEvent> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/event/$eventId", {
                 $roomId: roomId,
                 $eventId: eventId,
             });
-            return this.client.http.authedRequest<Record<string, unknown>>(Method.Get, path);
+            return this.client.http.authedRequest<IEvent>(Method.Get, path);
         }, "getEvent");
     }
 

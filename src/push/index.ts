@@ -21,6 +21,7 @@ import {
     PushRuleCondition,
 } from "../@types/PushRules";
 import { PUSHER_ENABLED } from "../@types/event";
+import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache, CacheRegistry } from "../utils/lru-cache";
 import { AdminValidators } from "../admin/validators";
@@ -89,7 +90,7 @@ export interface INotification {
     ts: number;
     profile_tag?: string;
     read: boolean;
-    event?: Record<string, unknown>;
+    event?: IEvent;
 }
 
 export interface INotificationsResponse {

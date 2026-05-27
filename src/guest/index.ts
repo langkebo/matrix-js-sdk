@@ -104,6 +104,39 @@ export interface IUpgradeGuestResponse {
     device_id?: string;
 }
 
+/** Guest 注册请求体 */
+interface GuestRegisterBody {
+    kind: "guest";
+    device_id?: string;
+    initial_device_display_name?: string;
+}
+
+/** Guest 登录请求体 */
+interface GuestLoginBody {
+    type: "m.login.guest";
+    device_id?: string;
+    initial_device_display_name?: string;
+}
+
+/** Guest 账户升级请求体（旧接口） */
+interface GuestUpgradeBody {
+    password: string;
+    auth?: IAuthDict;
+}
+
+/** Guest 服务器端升级请求体 */
+interface GuestServerUpgradeBody {
+    username: string;
+    password: string;
+    auth?: IAuthDict;
+}
+
+/** Guest 服务器端注册请求体 */
+interface GuestServerRegisterBody {
+    device_id?: string;
+    initial_device_display_name?: string;
+}
+
 interface GuestManagerEventMap {
     [GuestEvent.GuestRegistered]: (guestInfo: IGuestInfo) => void;
     [GuestEvent.GuestLoggedIn]: (guestInfo: IGuestInfo) => void;
@@ -123,7 +156,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
     async registerGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
         try {
-            const body: Record<string, unknown> = {
+            const body: GuestRegisterBody = {
                 kind: "guest",
             };
 
@@ -165,7 +198,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
     async loginGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestLoginResponse> {
         try {
-            const body: Record<string, unknown> = {
+            const body: GuestLoginBody = {
                 type: "m.login.guest",
             };
 
@@ -250,7 +283,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
 
         try {
-            const body: Record<string, unknown> = {
+            const body: GuestUpgradeBody = {
                 password,
             };
 
@@ -390,7 +423,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
 
         try {
-            const body: Record<string, unknown> = {
+            const body: GuestServerUpgradeBody = {
                 username: request.username,
                 password: request.password,
             };
@@ -424,7 +457,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         initialDeviceDisplayName?: string,
     ): Promise<IGuestRegisterResponse> {
         try {
-            const body: Record<string, unknown> = {};
+            const body: GuestServerRegisterBody = {};
 
             if (deviceId) {
                 body.device_id = deviceId;

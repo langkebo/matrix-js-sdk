@@ -143,13 +143,13 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<RoomSummary
     public async updateSummaryMember(
         roomId: string,
         userId: string,
-        member: Record<string, unknown>,
-    ): Promise<Record<string, unknown>> {
+        member: Partial<RoomSummaryMember>,
+    ): Promise<RoomSummaryMember> {
         this.validateRoomId(roomId);
         this.validateUserId(userId);
 
         return this.withRetry(async () => {
-            const updatedMember = await this.requestV3<Record<string, unknown>>(
+            const updatedMember = await this.requestV3<RoomSummaryMember>(
                 Method.Put,
                 this.summaryMemberPath(roomId, userId),
                 undefined,

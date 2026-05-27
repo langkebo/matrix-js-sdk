@@ -21,6 +21,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
 import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
 import { type EmptyObject } from "../@types/common";
+import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
@@ -41,7 +42,7 @@ export interface INotificationsResponse {
     next_token?: string;
     notifications: Array<{
         actions: unknown[];
-        event: Record<string, unknown>;
+        event: IEvent;
         profile_tag?: string;
         read: boolean;
         room_id: string;

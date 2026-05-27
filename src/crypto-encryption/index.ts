@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { MatrixEvent } from "../models/event";
+import { MatrixEvent, type IContent } from "../models/event";
 import { Room } from "../models/room";
 import { CryptoApi } from "../crypto-api";
 import { BaseManager } from "../managers/base-manager";
@@ -29,7 +29,7 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IEncryptionResult {
     event: MatrixEvent;
-    encryptedContent: Record<string, unknown>;
+    encryptedContent: IContent;
 }
 
 export interface IDecryptionResult {

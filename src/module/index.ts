@@ -37,6 +37,7 @@ import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError } from "../errors";
 import { buildPaginationParams } from "../admin/utils";
+import type { IContent } from "../models/event";
 import type { ModulePathPattern } from "./__generated__/route-table";
 
 type StripAdminV1<P extends string> =
@@ -86,7 +87,7 @@ export interface ModuleListResponse {
 export interface SpamCheckRequest {
     event_id: string;
     user_id: string;
-    content: Record<string, unknown>;
+    content: IContent;
     room_id?: string;
 }
 
@@ -100,7 +101,7 @@ export interface ThirdPartyRuleRequest {
     rule_type: string;
     event_id: string;
     user_id: string;
-    content?: Record<string, unknown>;
+    content?: IContent;
 }
 
 export interface ThirdPartyRuleResponse {

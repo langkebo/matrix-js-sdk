@@ -179,7 +179,7 @@ import { RoomSummaryThreadManager } from "./sub-managers/room-thread-manager";
 import { RoomSummarySearchManager } from "./sub-managers/room-search-manager";
 import { RoomSummaryKeyManager } from "./sub-managers/room-key-manager";
 import { RoomSummaryInvitePolicyManager } from "./sub-managers/room-invite-policy-manager";
-import { RoomSummaryEventOperationManager } from "./sub-managers/room-event-operation-manager";
+import { RoomSummaryEventOperationManager, type TranslateEventBody, type ConvertEventBody, type SignEventBody, type VerifyEventBody } from "./sub-managers/room-event-operation-manager";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
@@ -602,7 +602,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         roomId: string,
         userId: string,
         member: Partial<RoomSummaryMember>,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<RoomSummaryMember> {
         return this.members.updateSummaryMember(roomId, userId, member);
     }
 
@@ -891,7 +891,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async translateRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: TranslateEventBody = {},
     ): Promise<RoomTranslateResult> {
         return this.eventOps.translateRoomEvent(roomId, eventId, body);
     }
@@ -899,7 +899,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async convertRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: ConvertEventBody = {},
     ): Promise<RoomConvertResult> {
         return this.eventOps.convertRoomEvent(roomId, eventId, body);
     }
@@ -907,7 +907,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async signRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: SignEventBody = {},
     ): Promise<RoomSignResult> {
         return this.eventOps.signRoomEvent(roomId, eventId, body);
     }
@@ -915,7 +915,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     async verifyRoomEvent(
         roomId: string,
         eventId: string,
-        body: Record<string, unknown> = {},
+        body: VerifyEventBody = {},
     ): Promise<RoomVerifyResult> {
         return this.eventOps.verifyRoomEvent(roomId, eventId, body);
     }
