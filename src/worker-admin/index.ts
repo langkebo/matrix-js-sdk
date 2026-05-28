@@ -65,19 +65,36 @@ export interface WorkerConfig {
     [key: string]: unknown;
 }
 
-export interface WorkerStatistics {
-    total_workers: number;
-    active_workers: number;
-    inactive_workers: number;
-    by_type: Record<string, number>;
-    [key: string]: unknown;
+export interface WorkerStatisticsEntry {
+    id: number;
+    worker_id: string;
+    worker_name: string;
+    worker_type: string;
+    status: string;
+    host: string;
+    port: number;
+    last_heartbeat_ts: number | null;
+    started_ts: number;
+    cpu_usage?: number | null;
+    memory_usage?: number | null;
+    active_connections?: number | null;
+    requests_per_second?: number | null;
+    average_latency_ms?: number | null;
+    queue_depth?: number | null;
+    pending_commands: number;
+    active_tasks: number;
 }
 
 export interface WorkerTypeStatistics {
     worker_type: string;
-    count: number;
-    active: number;
-    [key: string]: unknown;
+    total_count: number;
+    running_count: number;
+    starting_count: number;
+    stopping_count: number;
+    stopped_count: number;
+    avg_cpu_usage?: number | null;
+    avg_memory_usage?: number | null;
+    total_connections?: number | null;
 }
 
 export interface RegisterWorkerRequest {
@@ -96,6 +113,11 @@ export interface SendCommandRequest {
     command_data: unknown;
     priority?: number;
     max_retries?: number;
+}
+
+export interface SelectWorkerResponse {
+    task_type: string;
+    selected_worker: string | null;
 }
 
 export interface AssignTaskRequest {
@@ -190,17 +212,17 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     // ===== Statistics / Routing =====
 
     /** GET /_synapse/worker/v1/statistics */
-    async getStatistics(): Promise<WorkerStatistics> {
+    async getStatistics(): Promise<WorkerStatisticsEntry[]> {
         return this.request(Method.Get, wa("/v1/statistics"));
     }
 
     /** GET /_synapse/worker/v1/statistics/types */
-    async getStatisticsByType(): Promise<Record<string, WorkerTypeStatistics>> {
+    async getStatisticsByType(): Promise<WorkerTypeStatistics[]> {
         return this.request(Method.Get, wa("/v1/statistics/types"));
     }
 
     /** GET /_synapse/worker/v1/select/{task_type} */
-    async selectWorker(taskType: string): Promise<WorkerInfo | null> {
+    async selectWorker(taskType: string): Promise<SelectWorkerResponse> {
         if (!taskType) throw new ValidationError("taskType is required");
         return this.request(Method.Get, wa(`/v1/select/${encodeURIComponent(taskType)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
     }

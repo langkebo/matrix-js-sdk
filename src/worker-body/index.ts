@@ -54,23 +54,19 @@ export interface HeartbeatRequest {
 }
 
 export interface HeartbeatResponse {
-    acknowledged: boolean;
-    next_heartbeat_ms?: number;
-    pending_commands?: number;
+    status: string;
     [key: string]: unknown;
 }
 
 export interface ConnectWorkerResponse {
-    connected: boolean;
-    worker_id?: string;
+    status: string;
     [key: string]: unknown;
 }
 
 export interface ReplicationPosition {
+    worker_id: string;
     stream_name: string;
-    position: number;
-    last_update_ts?: number;
-    [key: string]: unknown;
+    position: number | null;
 }
 
 export interface WorkerEventsResponse {
