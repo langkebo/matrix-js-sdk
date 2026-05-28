@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /** Dynamic configuration object — structure varies by module/provider */
-export type DynamicConfig = Record<string, unknown>;
+export type DynamicConfig = Record<string, unknown>; // Dynamic: configuration shape varies by module
 
 // Room operation payloads
 export interface AdminReasonPayload {
@@ -459,7 +459,7 @@ export interface AdminRoomListings {
 
 export interface AdminFederationCacheEntry {
     key: string;
-    value: Record<string, unknown>;
+    value: Record<string, unknown>; // Dynamic: feature flag value shape varies
     size?: number;
     last_access_ts?: number;
 }
@@ -759,7 +759,7 @@ export class AdminApiError extends Error {
         message: string,
         public readonly code: string,
         public readonly statusCode: number,
-        public readonly details?: Record<string, unknown>,
+        public readonly details?: Record<string, unknown>, // Dynamic: error details shape varies
     ) {
         super(message);
         this.name = "AdminApiError";
@@ -1074,6 +1074,12 @@ export interface SpamCheckResult {
 }
 
 /** Response for GET /modules/third_party_rule/{eventId} — third-party rule result */
+export interface ThirdPartyRuleCheckResult {
+    allowed?: boolean;
+    reason?: string;
+    [key: string]: unknown;
+}
+
 export interface ThirdPartyRuleResult {
     id: number;
     event_id: string;

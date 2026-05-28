@@ -170,7 +170,7 @@ export class OutgoingRequestProcessor {
 
         const parsedBody = JSON.parse(body);
         const makeRequest = async (auth: AuthDict | null): Promise<T> => {
-            const newBody: Record<string, unknown> = {
+            const newBody: Record<string, unknown> = { // Dynamic: request body construction
                 ...parsedBody,
             };
             if (auth !== null) {

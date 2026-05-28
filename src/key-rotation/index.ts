@@ -39,9 +39,16 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
+export interface KeyRotationStatusResponse {
+    current_key_id?: string;
+    next_rotation_at?: number;
+    rotation_enabled?: boolean;
+    [key: string]: unknown;
+}
+
 export interface KeyRotationStatus {
     enabled: boolean;
-    status: Record<string, unknown>;
+    status: KeyRotationStatusResponse;
     user_last_rotation: number | null;
 }
 

@@ -64,6 +64,20 @@ import { type IPushRules } from "./PushRules";
 import { type SecretInfo, type SecretStorageKeyDescription } from "../secret-storage";
 import { type POLICIES_ACCOUNT_EVENT_TYPE } from "../models/invites-ignorer-types";
 
+export interface Policies {
+    [policyType: string]:
+        | {
+            [policyId: string]: {
+                entity: string;
+                recommendation?: string;
+                reason?: string;
+            };
+        }
+        | {
+            [key: string]: unknown;
+        };
+}
+
 export enum EventType {
     // Room state events
     RoomCanonicalAlias = "m.room.canonical_alias",
@@ -423,8 +437,8 @@ export interface AccountDataEvents extends SecretStorageAccountDataEvents {
     [key: `m.secret_storage.key.${string}`]: SecretStorageKeyDescription;
 
     // Invites-ignorer events
-    [POLICIES_ACCOUNT_EVENT_TYPE.name]: Record<string, unknown>;
-    [POLICIES_ACCOUNT_EVENT_TYPE.altName]: Record<string, unknown>;
+    [POLICIES_ACCOUNT_EVENT_TYPE.name]: Policies;
+    [POLICIES_ACCOUNT_EVENT_TYPE.altName]: Policies;
 
     [EventType.InvitePermissionConfig]: { default_action?: string };
 

@@ -80,8 +80,15 @@ export interface IRoomVersionResponse {
     room_version: string;
 }
 
+export interface RoomCapabilities {
+    [capabilityName: string]: {
+        enabled?: boolean;
+        [key: string]: unknown;
+    };
+}
+
 export interface IRoomCapabilitiesResponse {
-    capabilities: Record<string, unknown>;
+    capabilities: RoomCapabilities;
 }
 
 export interface IRoomMetadataResponse {

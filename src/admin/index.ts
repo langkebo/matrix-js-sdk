@@ -159,6 +159,7 @@ import {
     type MediaQuotaResponse,
     type ThirdPartyRuleCheckPayload,
     type SpamCheckResult,
+    type ThirdPartyRuleCheckResult,
     type ThirdPartyRuleResult,
 } from "./types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";
@@ -1035,7 +1036,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getModuleLogs(moduleId, options);
     }
 
-    async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<Record<string, unknown>> {
+    async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<ThirdPartyRuleCheckResult> {
         return this.config.checkModuleThirdPartyRule(payload);
     }
 

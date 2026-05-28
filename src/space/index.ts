@@ -41,7 +41,7 @@ import { ValidationError } from "../errors";
 import type { SpacePathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
-type JsonObject = Record<string, unknown>;
+type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 

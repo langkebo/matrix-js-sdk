@@ -70,7 +70,7 @@ export interface IAudioInfo extends IMediaInfo {
     duration?: number;
 }
 
-export type EventContentInfo = IImageInfo | IVideoInfo | IAudioInfo | IMediaInfo | Record<string, unknown>;
+export type EventContentInfo = IImageInfo | IVideoInfo | IAudioInfo | IMediaInfo | Record<string, unknown> /* Dynamic: media info extensions */;
 
 export interface IContent {
     [key: string]: unknown;

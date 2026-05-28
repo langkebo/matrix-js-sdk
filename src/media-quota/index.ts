@@ -52,12 +52,18 @@ export interface QuotaCheckResponse {
     rule?: string;
 }
 
+export interface MediaQuotaStatistics {
+    media_count?: number;
+    media_length?: number;
+    [key: string]: unknown;
+}
+
 export interface QuotaStatsResponse {
     user_id: string;
     storage_bytes: number;
     media_count: number;
     limit_bytes: number;
-    statistics?: Record<string, unknown>;
+    statistics?: MediaQuotaStatistics;
 }
 
 export interface QuotaAlert {

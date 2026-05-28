@@ -68,9 +68,15 @@ export interface RegisterFlow {
     type?: string;
 }
 
+export interface IAuthParams {
+    type?: string;
+    session?: string;
+    [key: string]: unknown;
+}
+
 export interface RegisterFlowsResponse {
     flows: RegisterFlow[];
-    params: Record<string, unknown>;
+    params: IAuthParams;
     session?: string;
 }
 

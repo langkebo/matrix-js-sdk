@@ -61,8 +61,14 @@ export interface McpToolListResponse {
     tools: McpTool[];
 }
 
+export interface AIConnectionResult {
+    output?: string;
+    error?: string;
+    [key: string]: unknown;
+}
+
 export interface McpToolCallResponse {
-    result: Record<string, unknown>;
+    result: AIConnectionResult;
 }
 
 export interface ConnectionListResponse {

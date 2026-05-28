@@ -185,7 +185,13 @@ interface FriendManagerEventMap {
     [FriendEvent.RequestAccepted]: (userId: string) => void;
     [FriendEvent.RequestRejected]: (userId: string) => void;
     [FriendEvent.RequestCancelled]: (userId: string) => void;
-    [FriendEvent.NotificationReceived]: (notification: { type: string; user_id?: string; data?: Record<string, unknown> }) => void;
+    [FriendEvent.NotificationReceived]: (notification: { type: string; user_id?: string; data?: FriendNotificationData }) => void;
+}
+
+export interface FriendNotificationData {
+    request_id?: string;
+    message?: string;
+    [key: string]: unknown;
 }
 
 interface IFriendListResponse {

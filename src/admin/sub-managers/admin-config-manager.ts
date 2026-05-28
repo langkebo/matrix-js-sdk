@@ -55,6 +55,7 @@ import type {
     AccountValidityRequest,
     AccountValidityRenewRequest,
     ThirdPartyRuleCheckPayload,
+    ThirdPartyRuleCheckResult,
     SpamCheckResult,
     ThirdPartyRuleResult,
 } from "../types";
@@ -214,7 +215,7 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, `/modules/${encodeURIComponent(moduleId)}/logs`, query);
     }
 
-    async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<Record<string, unknown>> {
+    async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<ThirdPartyRuleCheckResult> {
         return await this.adminRequest(Method.Post, "/modules/check_third_party_rule", {}, payload);
     }
 

@@ -98,6 +98,12 @@ export interface BackgroundUpdateQuery {
     from?: string;
 }
 
+export interface BackgroundUpdateMetadata {
+    trace_id?: string;
+    span_id?: string;
+    [key: string]: unknown;
+}
+
 export interface CreateBackgroundUpdateBody {
     job_name: string;
     job_type: string;
@@ -108,7 +114,7 @@ export interface CreateBackgroundUpdateBody {
     batch_size?: number;
     sleep_ms?: number;
     depends_on?: string[];
-    metadata?: Record<string, unknown>;
+    metadata?: BackgroundUpdateMetadata;
 }
 
 export interface UpdateProgressBody {

@@ -20,7 +20,7 @@ import { EventTimeline } from "./event-timeline";
 import { Preset } from "../@types/partials";
 import { globToRegexp } from "../utils";
 import { type Room } from "./room";
-import { EventType, type StateEvents } from "../@types/event";
+import { EventType, type StateEvents, type Policies } from "../@types/event";
 import {
     IGNORE_INVITES_ACCOUNT_EVENT_KEY,
     POLICIES_ACCOUNT_EVENT_TYPE,
@@ -33,10 +33,6 @@ export { IGNORE_INVITES_ACCOUNT_EVENT_KEY, POLICIES_ACCOUNT_EVENT_TYPE, PolicyRe
 interface IgnoreInvitesPolicies {
     target?: string;
     sources?: string[];
-    [key: string]: unknown;
-}
-
-interface Policies {
     [key: string]: unknown;
 }
 
@@ -324,7 +320,7 @@ export class IgnoredInvites {
             }
             const value = this.client.getAccountData(key)?.getContent();
             if (value) {
-                policies = value;
+                policies = value as Policies;
                 break;
             }
         }

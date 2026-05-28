@@ -25,6 +25,12 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
+export interface TaskMetadata {
+    trace_id?: string;
+    priority?: number;
+    [key: string]: unknown;
+}
+
 type StripWorkerPrefix<P extends string> = P extends `/_synapse/worker${infer Rest}` ? Rest : never;
 
 function wa<P extends StripWorkerPrefix<WorkerAdminPathPattern>>(path: P): P {
@@ -104,7 +110,7 @@ export interface RegisterWorkerRequest {
     host: string;
     port: number;
     config?: WorkerConfig;
-    metadata?: Record<string, unknown>;
+    metadata?: TaskMetadata;
     version?: string;
 }
 

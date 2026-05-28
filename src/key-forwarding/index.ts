@@ -63,7 +63,7 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
         roomId: string,
         eventId: string,
         userId: string,
-        key: Record<string, unknown>,
+        key: Record<string, unknown>, // Dynamic: key forwarding data varies by algorithm
     ): Promise<IKeyForwardingResponse> {
         return this.withRetry(
             () => this.client.forwardKey(roomId, eventId, userId, key),

@@ -29,13 +29,17 @@ import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { type WidgetData } from "../matrix-client-extensions";
 
+export interface WidgetMessageData {
+    [key: string]: unknown;
+}
+
 export interface WidgetInfo {
     id: string;
     type: string;
     url: string;
     name: string;
     /** Dynamic: widget data varies by widget type */
-    data?: Record<string, unknown>;
+    data?: WidgetMessageData;
 }
 
 export interface Widget {
@@ -46,7 +50,7 @@ export interface Widget {
     url: string;
     name: string;
     /** Dynamic: widget data varies by widget type */
-    data: Record<string, unknown>;
+    data: WidgetMessageData;
     creator: string;
     active: boolean;
 }
@@ -61,14 +65,14 @@ export interface CreateWidgetBody {
     url: string;
     name: string;
     /** Dynamic: widget data varies by widget type */
-    data?: Record<string, unknown>;
+    data?: WidgetMessageData;
 }
 
 export interface UpdateWidgetBody {
     url?: string;
     name?: string;
     /** Dynamic: widget data varies by widget type */
-    data?: Record<string, unknown>;
+    data?: WidgetMessageData;
 }
 
 /** Response for GET /_matrix/client/v1/widgets/{widgetId}/config */
@@ -78,7 +82,7 @@ export interface WidgetConfigResponse {
     url: string;
     name: string;
     /** Dynamic: widget data varies by widget type */
-    data: Record<string, unknown>;
+    data: WidgetMessageData;
     type: string;
 }
 
