@@ -94,7 +94,7 @@ describe("DeviceKeysManager", () => {
         });
         await expect(manager.getUserDevices("@a:hs")).resolves.toHaveProperty("D1");
         expect(manager.hasDevice("D1")).toBe(true);
-        expect(manager.getDevice("D1")).toHaveProperty("device_id", "D1");
+        await expect(manager.getDevice("D1")).resolves.toHaveProperty("device_id", "D1");
     });
 
     it("sends backend-compatible payloads for device verification helpers", async () => {

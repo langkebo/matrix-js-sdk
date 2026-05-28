@@ -398,6 +398,14 @@ export interface MatrixClientExtensionMethods {
     getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
     getOpenClawManager(): import("./open-claw/index").OpenClawManager;
     getSamlAuthManager(): import("./saml/index").SamlAuthManager;
+    getE2EEManager(): import("./e2ee/index").E2EEManager;
+    getEventReportManager(): import("./event-report/index").EventReportManager;
+    getFeatureFlagManager(): import("./feature-flags/index").FeatureFlagManager;
+    getFilterManager(): import("./filter/index").FilterManager;
+    getModerationManager(): import("./moderation/index").ModerationManager;
+    getModuleManager(): import("./module/index").ModuleManager;
+    getVerificationManager(): import("./verification/index").VerificationManager;
+    getVoiceManager(): import("./voice/index").VoiceManager;
 }
 
 /**

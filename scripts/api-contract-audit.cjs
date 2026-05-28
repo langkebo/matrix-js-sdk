@@ -680,7 +680,7 @@ function scanSourceFile(filePath) {
 }
 
 function scanManagerDeclarations() {
-    const file = path.join(srcRoot, "matrix-client-extensions.d.ts");
+    const file = path.join(srcRoot, "matrix-client-extensions.ts");
     const content = fs.readFileSync(file, "utf8");
     return [...content.matchAll(/^\s*(get[A-Z][A-Za-z0-9]+Manager)\([\s\S]*?\):/gm)].map((match) => match[1]);
 }

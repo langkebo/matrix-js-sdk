@@ -117,7 +117,12 @@ describe("E2EEManager", () => {
         const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
         mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
 
-        await expect(manager.getSecuritySummary()).resolves.toEqual({});
+        await expect(manager.getSecuritySummary()).resolves.toEqual({
+            devices_total: 0,
+            devices_verified: 0,
+            devices_unverified: 0,
+            cross_signing_ready: false,
+        });
         expect(warnSpy).toHaveBeenCalledWith("E2EEManager.getSecuritySummary failed", expect.any(Error));
     });
 });

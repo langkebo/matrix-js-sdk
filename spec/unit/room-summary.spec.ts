@@ -813,7 +813,7 @@ describe("RoomSummaryManager", () => {
                 Method.Post,
                 `/rooms/${encodeURIComponent("!room:example.com")}/keys/claim`,
                 undefined,
-                { timeout: 1000 },
+                { one_time_keys: {} },
                 { prefix: ClientPrefix.V3 },
             );
             expect(result.one_time_keys).toEqual({});

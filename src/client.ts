@@ -216,7 +216,7 @@ import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";
 import { dispatchDelayedStateEventRequest, dispatchStateEventRequest } from "./client-send-state";
 import { prepareSendEventParams, type PreparedSendEventParams } from "./client-send-event";
-import { normalizeRedactEventArgs } from "./client-send-args";
+import { normalizeRedactEventArgs, normalizeThreadHtmlArgs } from "./client-send-args";
 import { buildRedactEventContent } from "./client-send-redaction";
 import { fetchAuthMetadataWithFallback } from "./client-auth";
 import { fixNotificationCountOnDecryption, inMainTimelineForReceipt, threadIdForReceipt } from "./client-receipts";
@@ -2268,6 +2268,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         content?: RoomMessageEventContent | string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
+        if (typeof threadId === "object" && threadId !== null) {
+            return this.sendEvent(roomId, null, EventType.RoomMessage, threadId as RoomMessageEventContent, content as string);
+        }
         return this.sendEvent(roomId, threadId as string | null, EventType.RoomMessage, content as RoomMessageEventContent, txnId);
     }
 
@@ -2284,9 +2287,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        const threadId = bodyOrTxnId !== undefined ? threadIdOrBody : null;
-        const body = bodyOrTxnId !== undefined ? bodyOrTxnId : (threadIdOrBody as string);
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body }, txnId);
+        let threadId: string | null;
+        let body: string;
+        let actualTxnId: string | undefined;
+
+        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
+            threadId = null;
+            body = threadIdOrBody;
+            actualTxnId = bodyOrTxnId;
+        } else {
+            threadId = threadIdOrBody;
+            body = bodyOrTxnId!;
+            actualTxnId = txnId;
+        }
+
+        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body }, actualTxnId);
     }
 
     public sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
@@ -2302,9 +2317,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        const threadId = bodyOrTxnId !== undefined ? threadIdOrBody : null;
-        const body = bodyOrTxnId !== undefined ? bodyOrTxnId : (threadIdOrBody as string);
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body }, txnId);
+        let threadId: string | null;
+        let body: string;
+        let actualTxnId: string | undefined;
+
+        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
+            threadId = null;
+            body = threadIdOrBody;
+            actualTxnId = bodyOrTxnId;
+        } else {
+            threadId = threadIdOrBody;
+            body = bodyOrTxnId!;
+            actualTxnId = txnId;
+        }
+
+        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body }, actualTxnId);
     }
 
     public sendEmoteMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
@@ -2320,9 +2347,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        const threadId = bodyOrTxnId !== undefined ? threadIdOrBody : null;
-        const body = bodyOrTxnId !== undefined ? bodyOrTxnId : (threadIdOrBody as string);
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body }, txnId);
+        let threadId: string | null;
+        let body: string;
+        let actualTxnId: string | undefined;
+
+        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
+            threadId = null;
+            body = threadIdOrBody;
+            actualTxnId = bodyOrTxnId;
+        } else {
+            threadId = threadIdOrBody;
+            body = bodyOrTxnId!;
+            actualTxnId = txnId;
+        }
+
+        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body }, actualTxnId);
     }
 
     public sendImageMessage(
@@ -2347,29 +2386,32 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public sendHtmlMessage(
         roomId: string,
-        threadId: string | null,
-        body: string,
+        threadIdOrBody: string | null,
+        bodyOrHtml: string,
         htmlBody?: string,
     ): Promise<ISendEventResponse> {
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body, format: "org.matrix.custom.html", formatted_body: htmlBody! });
+        const { threadId, body, htmlBody: actualHtmlBody } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
+        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body, format: "org.matrix.custom.html", formatted_body: actualHtmlBody });
     }
 
     public sendHtmlNotice(
         roomId: string,
-        threadId: string | null,
-        body: string,
+        threadIdOrBody: string | null,
+        bodyOrHtml: string,
         htmlBody?: string,
     ): Promise<ISendEventResponse> {
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body, format: "org.matrix.custom.html", formatted_body: htmlBody! });
+        const { threadId, body, htmlBody: actualHtmlBody } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
+        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body, format: "org.matrix.custom.html", formatted_body: actualHtmlBody });
     }
 
     public sendHtmlEmote(
         roomId: string,
-        threadId: string | null,
-        body: string,
+        threadIdOrBody: string | null,
+        bodyOrHtml: string,
         htmlBody?: string,
     ): Promise<ISendEventResponse> {
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body, format: "org.matrix.custom.html", formatted_body: htmlBody! });
+        const { threadId, body, htmlBody: actualHtmlBody } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
+        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body, format: "org.matrix.custom.html", formatted_body: actualHtmlBody });
     }
 
     protected prepareSendEventWithThreadRelation(
