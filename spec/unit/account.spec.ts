@@ -88,18 +88,6 @@ describe("AccountManager", () => {
             const flows = await accountManager.loginFlows();
 
             expect(flows.flows).toHaveLength(1);
-        });
-
-        it("should keep getLoginFlows as a compatibility alias", async () => {
-            mockClient.http.request.mockResolvedValueOnce({
-                flows: [{ type: "m.login.password" }],
-            });
-
-            const flows = await accountManager.getLoginFlows();
-
-            expect(flows.flows).toHaveLength(1);
-            expect(mockClient.http.request).toHaveBeenCalledWith("GET", "/login");
-        });
     });
 
     describe("login", () => {
@@ -130,19 +118,6 @@ describe("AccountManager", () => {
 
             expect(mockClient.credentials.userId).toBe("@user:example.com");
             expect(mockClient.http.opts.accessToken).toBe("new_token");
-        });
-    });
-
-    describe("loginWithPassword", () => {
-        it("should login with password", async () => {
-            mockClient.http.request.mockResolvedValueOnce({
-                access_token: "token",
-                user_id: "@user:example.com",
-            });
-
-            const response = await accountManager.loginWithPassword("@user:example.com", "password");
-
-            expect(response.access_token).toBe("token");
         });
     });
 
@@ -184,19 +159,6 @@ describe("AccountManager", () => {
                 SSOAction.LOGIN,
             );
             expect(url).toContain("action=login");
-        });
-    });
-
-    describe("loginWithToken", () => {
-        it("should login with token", async () => {
-            mockClient.http.request.mockResolvedValueOnce({
-                access_token: "token",
-                user_id: "@user:example.com",
-            });
-
-            const response = await accountManager.loginWithToken("sometoken");
-
-            expect(response.access_token).toBe("token");
         });
     });
 

@@ -434,16 +434,6 @@ export function logDurationSync<T>(logger: BaseLogger, name: string, block: () =
     }
 }
 
-/**
- * Promise/async version of {@link setImmediate}.
- *
- * Implementation is based on `setTimeout` for wider compatibility.
- * @deprecated Use {@link sleep} instead.
- */
-export function immediate(): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve));
-}
-
 export function isNullOrUndefined(val: unknown): boolean {
     return val === null || val === undefined;
 }

@@ -880,7 +880,6 @@ export class UserVerificationStatus {
     public constructor(
         private readonly crossSigningVerified: boolean,
         private readonly crossSigningVerifiedBefore: boolean,
-        private readonly tofu: boolean,
         needsUserApproval: boolean = false,
     ) {
         this.needsUserApproval = needsUserApproval;
@@ -906,15 +905,6 @@ export class UserVerificationStatus {
      */
     public wasCrossSigningVerified(): boolean {
         return this.crossSigningVerifiedBefore;
-    }
-
-    /**
-     * @returns true if this user's key is trusted on first use
-     *
-     * @deprecated No longer supported, with the Rust crypto stack.
-     */
-    public isTofu(): boolean {
-        return this.tofu;
     }
 }
 

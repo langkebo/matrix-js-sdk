@@ -105,14 +105,6 @@ export class AccountManager extends BaseManager {
     }
 
     /**
-     * Get login flows supported by the server
-     * @deprecated Use {@link loginFlows} instead.
-     */
-    public getLoginFlows(): Promise<ILoginFlowsResponse> {
-        return this.loginFlows();
-    }
-
-    /**
      * Login with a specific login type
      * @deprecated Use loginRequest and create a new MatrixClient
      */
@@ -128,17 +120,6 @@ export class AccountManager extends BaseManager {
                 };
             }
             return response;
-        });
-    }
-
-    /**
-     * Login with password
-     * @deprecated Use loginRequest
-     */
-    public loginWithPassword(user: string, password: string): Promise<LoginResponse> {
-        return this.login("m.login.password", {
-            user: user,
-            password: password,
         });
     }
 
@@ -165,16 +146,6 @@ export class AccountManager extends BaseManager {
         };
 
         return this.client.http.getUrl(url, params).href;
-    }
-
-    /**
-     * Login with token
-     * @deprecated Use loginRequest
-     */
-    public loginWithToken(token: string): Promise<LoginResponse> {
-        return this.login("m.login.token", {
-            token: token,
-        });
     }
 
     /**

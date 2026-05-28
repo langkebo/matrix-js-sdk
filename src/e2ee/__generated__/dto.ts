@@ -91,7 +91,7 @@ export interface KeyChangesResponse {
 // ─── Send To Device ────────────────────────────────────────────
 
 /** Messages payload for PUT /sendToDevice/{eventType}/{txnId} */
-export type SendToDeviceMessages = Record<string, Record<string, Record<string, unknown>>>;
+export type SendToDeviceMessages = Record<string, Record<string, import("../../models/event").IContent>>;
 
 /** Request body for PUT /sendToDevice/{eventType}/{txnId} */
 export interface SendToDeviceRequest {

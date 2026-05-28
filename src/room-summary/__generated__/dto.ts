@@ -120,7 +120,7 @@ export interface RoomSummaryState {
     /** Event ID */
     event_id: string;
     /** Event content */
-    content: Record<string, unknown>;
+    content: import("../../models/event").IContent;
 }
 
 /** Room metadata */

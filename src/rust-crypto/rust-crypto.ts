@@ -717,7 +717,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
         const userIdentity: RustSdkCryptoJs.OtherUserIdentity | RustSdkCryptoJs.OwnUserIdentity | undefined =
             await this.getOlmMachineOrThrow().getIdentity(new RustSdkCryptoJs.UserId(userId));
         if (userIdentity === undefined) {
-            return new UserVerificationStatus(false, false, false);
+            return new UserVerificationStatus(false, false);
         }
 
         const verified = userIdentity.isVerified();
@@ -727,7 +727,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
                 ? userIdentity.identityNeedsUserApproval()
                 : false;
         userIdentity.free();
-        return new UserVerificationStatus(verified, wasVerified, false, needsUserApproval);
+        return new UserVerificationStatus(verified, wasVerified, needsUserApproval);
     }
 
     /**

@@ -3555,22 +3555,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountManager().login(loginType, data);
     }
 
-    /** @deprecated Use loginRequest with data.type: "m.login.password" instead */
-    public loginWithPassword(user: string, password: string): Promise<LoginResponse> {
-        return this.getAccountManager().loginWithPassword(user, password);
-    }
-
     public getCasLoginUrl(redirectUrl: string): string {
         return this.getAccountManager().getCasLoginUrl(redirectUrl);
     }
 
     public getSsoLoginUrl(redirectUrl: string, loginType = "sso", idpId?: string, action?: SSOAction): string {
         return this.getAccountManager().getSsoLoginUrl(redirectUrl, loginType, idpId, action);
-    }
-
-    /** @deprecated Use loginRequest with data.type: "m.login.token" instead */
-    public loginWithToken(token: string): Promise<LoginResponse> {
-        return this.getAccountManager().loginWithToken(token);
     }
 
     public loginRequest(data: LoginRequest): Promise<LoginResponse> {

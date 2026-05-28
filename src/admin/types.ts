@@ -57,7 +57,7 @@ export interface PurgeHistoryPayload {
 
 export interface RoomEventSearchPayload {
     search_term?: string;
-    filter?: Record<string, unknown>;
+    filter?: import("../models/event").IContent;
     limit?: number;
     [key: string]: unknown;
 }
@@ -148,7 +148,7 @@ export interface AuditEventCreateRequest {
     resource_id?: string;
     result?: string;
     request_id?: string;
-    details?: Record<string, unknown>;
+    details?: import("../models/event").IContent;
     [key: string]: unknown;
 }
 
@@ -815,7 +815,7 @@ export interface AuditEvent {
     result: string;
     request_id: string;
     ts: number;
-    details?: Record<string, unknown>;
+    details?: import("../models/event").IContent;
 }
 
 export interface AuditEventPage {
@@ -1053,8 +1053,8 @@ export interface ThirdPartyRuleCheckPayload {
     room_id: string;
     sender: string;
     event_type: string;
-    content: Record<string, unknown>;
-    state_events: Record<string, unknown>[];
+    content: import("../models/event").IContent;
+    state_events: import("../models/event").IContent[];
 }
 
 /** Response for GET /modules/spam_check/{eventId} — spam check result */
@@ -1064,7 +1064,7 @@ export interface SpamCheckResult {
     room_id: string;
     sender: string;
     event_type: string;
-    content?: Record<string, unknown>;
+    content?: import("../models/event").IContent;
     result: string;
     score: number;
     reason?: string;
@@ -1083,6 +1083,6 @@ export interface ThirdPartyRuleResult {
     rule_name: string;
     allowed: boolean;
     reason?: string;
-    modified_content?: Record<string, unknown>;
+    modified_content?: import("../models/event").IContent;
     checked_ts: number;
 }

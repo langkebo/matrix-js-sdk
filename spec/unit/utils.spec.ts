@@ -692,13 +692,6 @@ describe("utils", function () {
         });
     });
 
-    describe("immediate", () => {
-        // eslint-disable-next-line vitest/expect-expect
-        it("resolves", async () => {
-            await utils.immediate();
-        });
-    });
-
     describe("escapeRegExp", () => {
         it("should escape XYZ", () => {
             expect(escapeRegExp("[FIT-Connect Zustelldienst \\(Testumgebung\\)]")).toMatchInlineSnapshot(

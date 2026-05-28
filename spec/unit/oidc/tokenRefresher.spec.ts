@@ -170,7 +170,6 @@ describe("OidcTokenRefresher", () => {
                 });
 
             const refresher = new OidcTokenRefresher(authConfig.issuer, clientId, redirectUri, deviceId, idTokenClaims);
-            await refresher.oidcClientReady;
             // reset call counts
             fetchMock.clearHistory();
 
@@ -215,7 +214,6 @@ describe("OidcTokenRefresher", () => {
             });
 
             const refresher = new OidcTokenRefresher(authConfig.issuer, clientId, redirectUri, deviceId, idTokenClaims);
-            await refresher.oidcClientReady;
 
             await expect(refresher.doRefreshAccessToken("refresh-token")).rejects.toThrow();
         });
@@ -239,7 +237,6 @@ describe("OidcTokenRefresher", () => {
                 });
 
             const refresher = new OidcTokenRefresher(authConfig.issuer, clientId, redirectUri, deviceId, idTokenClaims);
-            await refresher.oidcClientReady;
             // reset call counts
             fetchMock.clearHistory();
 
@@ -273,7 +270,6 @@ describe("OidcTokenRefresher", () => {
             });
 
             const refresher = new OidcTokenRefresher(authConfig.issuer, clientId, redirectUri, deviceId, idTokenClaims);
-            await refresher.oidcClientReady;
 
             await expect(refresher.doRefreshAccessToken("refresh-token")).rejects.toThrow(TokenRefreshLogoutError);
         });

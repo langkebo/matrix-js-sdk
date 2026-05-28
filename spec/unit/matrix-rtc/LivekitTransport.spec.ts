@@ -16,9 +16,16 @@ limitations under the License.
 
 import {
     isLivekitTransport,
-    isLivekitFocusSelection,
     isLivekitTransportConfig,
+    type LivekitFocusSelection,
 } from "../../../src/matrix-rtc/LivekitTransport";
+
+const isLivekitFocusSelection = (object: unknown): object is LivekitFocusSelection =>
+    typeof object === "object" &&
+    object !== null &&
+    "type" in object &&
+    (object as Record<string, unknown>).type === "livekit" &&
+    "focus_selection" in object;
 
 describe("LivekitFocus", () => {
     it("isLivekitFocus", () => {

@@ -665,13 +665,6 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         }
     }
 
-    /**
-     * @deprecated Use {@link getSpaceByRoom}. Kept for backward compatibility.
-     */
-    async getRoomSpace(roomId: string): Promise<Space> {
-        return this.getSpaceByRoom(roomId);
-    }
-
     async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {

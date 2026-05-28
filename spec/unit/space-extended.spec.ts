@@ -323,19 +323,6 @@ describe("SpaceManager - Extended Tests", () => {
             expect(space.space_id).toBe("!space:test");
         });
 
-        it("should keep getRoomSpace as a backward-compatible alias", async () => {
-            const getSpaceByRoomSpy = vi.spyOn(spaceManager, "getSpaceByRoom").mockResolvedValue({
-                room_id: "!space:test",
-                space_id: "!space:test",
-                name: "Parent Space",
-            });
-
-            const space = await spaceManager.getRoomSpace("!room:test");
-
-            expect(getSpaceByRoomSpy).toHaveBeenCalledWith("!room:test");
-            expect(space.space_id).toBe("!space:test");
-        });
-
         it("should check if room is space successfully", async () => {
             mockAuthedRequest.mockResolvedValue({
                 room_id: "!space:test",

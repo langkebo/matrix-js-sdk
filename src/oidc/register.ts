@@ -74,13 +74,6 @@ export enum OAuthGrantType {
     DeviceAuthorization = "urn:ietf:params:oauth:grant-type:device_code",
 }
 
-/**
- * The name "scope" is a misnomer here as it is actually a "grant type".
- *
- * @deprecated use `OAuthGrantType.DeviceAuthorization` instead
- */
-export const DEVICE_CODE_SCOPE: string = OAuthGrantType.DeviceAuthorization;
-
 // Check that URIs have a common base, as per the MSC2966 definition
 const urlHasCommonBase = (base: URL, urlStr?: string): boolean => {
     if (!urlStr) return false;

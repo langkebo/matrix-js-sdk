@@ -29,13 +29,6 @@ import { logger } from "../logger";
  *
  */
 export class OidcTokenRefresher {
-    /**
-     * This is now just a resolved promise and will be removed in a future version.
-     * Initialisation is done lazily at token refresh time.
-     * @deprecated Consumers no longer need to wait for this promise.
-     */
-    public readonly oidcClientReady!: Promise<void>;
-
     // If there is a initialisation attempt in progress, we keep track of it here.
     private initPromise?: Promise<void>;
 
@@ -65,7 +58,6 @@ export class OidcTokenRefresher {
          */
         private readonly idTokenClaims: IdTokenClaims,
     ) {
-        this.oidcClientReady = Promise.resolve();
     }
 
     /**

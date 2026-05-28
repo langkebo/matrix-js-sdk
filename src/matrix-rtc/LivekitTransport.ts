@@ -43,12 +43,3 @@ export interface LivekitFocusSelection extends Transport {
     type: "livekit";
     focus_selection: "oldest_membership" | "multi_sfu";
 }
-/**
- * @deprecated see LivekitFocusSelection
- */
-export const isLivekitFocusSelection = (object: unknown): object is LivekitFocusSelection =>
-    typeof object === "object" &&
-    object !== null &&
-    "type" in object &&
-    (object as Record<string, unknown>).type === "livekit" && // Dynamic: type guard casting for unknown object
-    "focus_selection" in object;

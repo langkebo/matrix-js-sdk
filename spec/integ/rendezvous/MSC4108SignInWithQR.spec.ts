@@ -27,7 +27,7 @@ import {
 } from "../../../src/rendezvous";
 import {
     ClientPrefix,
-    DEVICE_CODE_SCOPE,
+    OAuthGrantType,
     type IHttpOpts,
     type IMyDevice,
     type MatrixClient,
@@ -59,7 +59,7 @@ function makeMockClient(opts: { userId: string; deviceId: string; msc4108Enabled
         getDomain: () => "example.com",
         getDevice: vi.fn(),
         getCrypto: vi.fn(() => crypto),
-        getAuthMetadata: vi.fn().mockResolvedValue(makeDelegatedAuthConfig("https://issuer/", [DEVICE_CODE_SCOPE])),
+        getAuthMetadata: vi.fn().mockResolvedValue(makeDelegatedAuthConfig("https://issuer/", [OAuthGrantType.DeviceAuthorization])),
         getDeviceManager: () => deviceManager,
     } as unknown as MatrixClient;
     client.http = new MatrixHttpApi<IHttpOpts & { onlyData: true }>(client, {
