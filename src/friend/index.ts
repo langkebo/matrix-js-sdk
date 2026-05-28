@@ -943,6 +943,80 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         );
     }
 
+    /**
+     * 获取与好友的 DM 房间
+     *
+     * @param userId - 好友用户 ID（格式：@localpart:homeserver）
+     * @returns DM 房间 ID，若无则返回 null
+     *
+     * @example
+     * ```typescript
+     * const { room_id } = await friendManager.getFriendDm("@alice:example.com");
+     * if (room_id) {
+     *     console.log("DM room:", room_id);
+     * } else {
+     *     console.log("No DM room with this friend");
+     * }
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async getFriendDm(userId: string): Promise<{ room_id: string | null }> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+        AdminValidators.validateUserId(userId);
+
+        try {
+            const response = await this.client.http.authedRequest<{ room_id: string | null }>(
+                Method.Get,
+                `/friends/dm/${encodeURIComponent(userId)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+            return response;
+        } catch (e) {
+            throw this.normalizeError(e, "getFriendDm");
+        }
+    }
+
+    /**
+     * 创建与好友的 DM 房间
+     *
+     * @param userId - 好友用户 ID（格式：@localpart:homeserver）
+     * @returns 创建的 DM 房间 ID
+     *
+     * @example
+     * ```typescript
+     * const { room_id } = await friendManager.createFriendDm("@alice:example.com");
+     * console.log("Created DM room:", room_id);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async createFriendDm(userId: string): Promise<{ room_id: string }> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+        AdminValidators.validateUserId(userId);
+
+        try {
+            const response = await this.client.http.authedRequest<{ room_id: string }>(
+                Method.Post,
+                `/friends/dm/${encodeURIComponent(userId)}`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+            return response;
+        } catch (e) {
+            throw this.normalizeError(e, "createFriendDm");
+        }
+    }
+
     async getFriendStatus(userId: string): Promise<string> {
         const response = await this.getFriendStatusInfo(userId);
         return response.status;

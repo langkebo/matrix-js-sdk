@@ -507,6 +507,43 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }, "batchGetRoomSummaries");
     }
 
+    /**
+     * Batch-get room summaries by room IDs (MSC3266).
+     *
+     * Uses the backend `/_synapse/room_summary/v1/summaries/batch` endpoint
+     * to fetch multiple summaries in a single HTTP request.
+     *
+     * @param rooms - Array of room IDs to fetch summaries for
+     * @param isSuggestedOnly - Whether to only return suggested rooms (default: false)
+     * @returns Raw batch response with room summaries
+     *
+     * @example
+     * ```typescript
+     * const result = await roomSummaryManager.batchGetSummaries(
+     *     ["!room1:server.com", "!room2:server.com"],
+     *     true,
+     * );
+     * ```
+     */
+    public async batchGetSummaries(
+        rooms: string[],
+        isSuggestedOnly?: boolean,
+    ): Promise<Record<string, unknown>> {
+        if (!rooms.length) return {};
+
+        return this.withRetry(async () => {
+            return await this.requestInternal<Record<string, unknown>>(
+                Method.Post,
+                rsi("/summaries/batch"),
+                undefined,
+                {
+                    rooms,
+                    is_suggested_only: isSuggestedOnly ?? false,
+                },
+            );
+        }, "batchGetSummaries");
+    }
+
     public async processSummaryUpdates(body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
         return this.withRetry(async () => {
             return await this.requestInternal<Record<string, unknown>>(

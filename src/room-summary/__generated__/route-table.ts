@@ -33,6 +33,7 @@ export const ROOM_SUMMARY_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary/unread/clear" },
     { method: "GET", path: "/_synapse/room_summary/v1/summaries" },
     { method: "POST", path: "/_synapse/room_summary/v1/summaries" },
+    { method: "POST", path: "/_synapse/room_summary/v1/summaries/batch" },
     { method: "POST", path: "/_synapse/room_summary/v1/updates/process" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
