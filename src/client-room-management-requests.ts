@@ -3,7 +3,6 @@ import { Method } from "./http-api/index";
 import type { Body, IRequestOpts } from "./http-api/index";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
-import type { IContent } from "./models/event";
 
 type AuthedRequestFn = <T>(
     method: Method,

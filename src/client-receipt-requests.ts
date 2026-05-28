@@ -97,7 +97,7 @@ export interface SetRoomReadMarkersFullOptions {
 }
 
 export async function setRoomReadMarkersWithLocalEcho(
-    client: MatrixClient,
+    _client: MatrixClient,
     room: Room | null,
     options: SetRoomReadMarkersFullOptions,
     httpHandler: (roomId: string, rmEventId: string, rrEventId?: string, rpEventId?: string) => Promise<EmptyObject>,

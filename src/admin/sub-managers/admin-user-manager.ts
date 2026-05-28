@@ -21,7 +21,7 @@ import { logger } from "../../logger";
 import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
-import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, DeactivateUserResponse, UserStatsResponse, UserStatsListResponse, UserRoomsResponse, UserNotificationResponse, UserNotificationPayload } from "../types";
+import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, UserStatsResponse, UserStatsListResponse, UserRoomsResponse, UserNotificationResponse, UserNotificationPayload } from "../types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../../@types/synapse";
 import { MatrixClient } from "../../client";
 

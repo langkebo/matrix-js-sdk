@@ -74,32 +74,14 @@ export interface IKeysQueryRequest {
     token?: string;
 }
 
-export interface IKeysQueryResponse {
-    device_keys: Record<string, Record<string, IDeviceKeys>>;
-    failures: Record<string, { errcode: string; error: string }>;
-}
-
 export interface IKeysClaimRequest {
     one_time_keys: Record<string, Record<string, string>>;
     timeout?: number;
 }
 
-export interface IKeysClaimResponse {
-    one_time_keys: Record<string, Record<string, IOneTimeKey | string>>;
-    failures: Record<string, { errcode: string; error: string }>;
-}
-
 export interface IKeysChangesResponse {
     changed: string[];
     left: string[];
-}
-
-export interface IKeySignaturesUploadRequest {
-    signatures: Record<string, Record<string, Record<string, string>>>;
-}
-
-export interface IKeySignaturesUploadResponse {
-    failures: Record<string, { errcode: string; error: string }>;
 }
 
 export interface IDeviceSigningUploadRequest {

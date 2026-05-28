@@ -16,7 +16,6 @@ import type { MatrixEvent } from "./models/event";
 import type { IContent } from "./models/event";
 import type { RoomMember } from "./models/room-member";
 import type { ISendEventResponse, IRedactOpts } from "./@types/requests";
-import type { RoomAccountDataEvents } from "./@types/event";
 import type { IdServerUnbindResult } from "./@types/partials";
 import type { IIdentityServerProvider } from "./@types/IIdentityServerProvider";
 import type { ITurnServer } from "./client-api-types";

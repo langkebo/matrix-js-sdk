@@ -138,7 +138,6 @@ import {
     type AdminRefreshToken,
     type AdminLogoutRequest,
     type AdminEvictRequest,
-    type DeactivateUserResponse,
     type AdminRegisterRequest,
     type PurgeHistoryRequest,
     type ShutdownRoomRequest,

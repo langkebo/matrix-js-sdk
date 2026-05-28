@@ -21,7 +21,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
 import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
 import { type EmptyObject } from "../@types/common";
-import { type IEvent, type IContent } from "../models/event";
+import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
