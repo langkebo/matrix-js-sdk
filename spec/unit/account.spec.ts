@@ -88,6 +88,7 @@ describe("AccountManager", () => {
             const flows = await accountManager.loginFlows();
 
             expect(flows.flows).toHaveLength(1);
+        });
     });
 
     describe("login", () => {

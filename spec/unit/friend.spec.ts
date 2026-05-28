@@ -441,19 +441,19 @@ describe("FriendManager", () => {
 
     describe("checkFriendship", () => {
         it("should return true for a friend", async () => {
-            mockAuthedRequest.mockResolvedValue({ status: "normal" });
+            mockAuthedRequest.mockResolvedValue({ user_id: "@bob:example.com", is_friend: true, are_friends: true });
 
             const result = await friendManager.checkFriendship("@bob:example.com");
 
-            expect(result).toBe(true);
+            expect(result.is_friend).toBe(true);
         });
 
         it("should return false for non-friend", async () => {
-            mockAuthedRequest.mockResolvedValue({ status: "none" });
+            mockAuthedRequest.mockResolvedValue({ user_id: "@bob:example.com", is_friend: false, are_friends: false });
 
             const result = await friendManager.checkFriendship("@bob:example.com");
 
-            expect(result).toBe(false);
+            expect(result.is_friend).toBe(false);
         });
     });
 
