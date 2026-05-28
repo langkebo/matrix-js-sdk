@@ -31,7 +31,7 @@ limitations under the License.
  * ```
  */
 import { MatrixClient } from "../client";
-import { MatrixEvent } from "../models/event";
+import { MatrixEvent, type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -50,7 +50,7 @@ export class RoomAccountDataManager extends BaseManager<
     public async setRoomAccountData(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
     ): Promise<void> {
         await this.client.setRoomAccountData(roomId, eventType as never, content as never);
     }

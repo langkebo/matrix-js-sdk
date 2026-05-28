@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export type ToDevicePayload = Record<string, unknown>;
+import type { IContent } from "./event";
+
+export type ToDevicePayload = IContent;
 
 export interface ToDeviceMessage {
     userId: string;

@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { type IContent } from "../models/event";
+import type { ICreateRoomOpts } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -69,7 +70,7 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
     }
 
     public async createRoom(options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
-        return this.withRetry(() => this.client.createRoom(options as Record<string, unknown>), "createRoom");
+        return this.withRetry(() => this.client.createRoom(options as ICreateRoomOpts), "createRoom");
     }
 
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {

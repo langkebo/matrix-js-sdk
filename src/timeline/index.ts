@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { EventTimeline, Direction } from "../models/event-timeline";
 import { EventTimelineSet } from "../models/event-timeline-set";
-import { MatrixEvent } from "../models/event";
+import { MatrixEvent, type IContent } from "../models/event";
 import { Thread, THREAD_RELATION_TYPE, ThreadFilterType } from "../models/thread";
 import { BaseManager } from "../managers/base-manager";
 import type { IContextResponse } from "../@types/requests";
@@ -47,7 +47,7 @@ type ClientInternals = {
     getEventContext(
         roomId: string,
         eventId: string,
-        params?: { limit?: number; filter?: Record<string, unknown> | string },
+        params?: { limit?: number; filter?: IContent | string },
     ): Promise<IContextResponse>;
     getEventMapper(): (e: unknown) => MatrixEvent;
     logger: { warn(msg: string): void };

@@ -22,6 +22,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import type { IContent } from "../models/event";
 import { Method } from "../http-api";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
@@ -84,7 +85,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
 
     public async sendCaptcha(captchaType: string, target: string, templateName?: string): Promise<CaptchaSendResponse> {
         try {
-            const body: Record<string, unknown> = {
+            const body: IContent = {
                 captcha_type: captchaType,
                 target,
             };

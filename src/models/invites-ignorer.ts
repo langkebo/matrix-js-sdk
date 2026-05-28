@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { type MatrixClient } from "../client";
-import { type IContent, type MatrixEvent } from "./event";
+import { type MatrixEvent } from "./event";
 import { EventTimeline } from "./event-timeline";
 import { Preset } from "../@types/partials";
 import { globToRegexp } from "../utils";
@@ -29,6 +29,16 @@ import {
 } from "./invites-ignorer-types";
 
 export { IGNORE_INVITES_ACCOUNT_EVENT_KEY, POLICIES_ACCOUNT_EVENT_TYPE, PolicyRecommendation, PolicyScope };
+
+interface IgnoreInvitesPolicies {
+    target?: string;
+    sources?: string[];
+    [key: string]: unknown;
+}
+
+interface Policies {
+    [key: string]: unknown;
+}
 
 const scopeToEventTypeMap: Record<PolicyScope, keyof StateEvents> = {
     [PolicyScope.User]: EventType.PolicyRuleUser,
@@ -283,7 +293,7 @@ export class IgnoredInvites {
      *
      * @returns A non-null object.
      */
-    private getIgnoreInvitesPolicies(): Record<string, unknown> { // Dynamic: account data policies object
+    private getIgnoreInvitesPolicies(): IgnoreInvitesPolicies {
         return this.getPoliciesAndIgnoreInvitesPolicies().ignoreInvitesPolicies;
     }
 
@@ -291,7 +301,7 @@ export class IgnoredInvites {
      * Modify in place the `IGNORE_INVITES_POLICIES` object from account data.
      */
     private async withIgnoreInvitesPolicies(
-        cb: (ignoreInvitesPolicies: Record<string, unknown>) => void, // Dynamic: account data policies object
+        cb: (ignoreInvitesPolicies: IgnoreInvitesPolicies) => void,
     ): Promise<void> {
         const { policies, ignoreInvitesPolicies } = this.getPoliciesAndIgnoreInvitesPolicies();
         cb(ignoreInvitesPolicies);
@@ -304,10 +314,10 @@ export class IgnoredInvites {
      * object.
      */
     private getPoliciesAndIgnoreInvitesPolicies(): {
-        policies: Record<string, unknown>; // Dynamic: account data policies object
-        ignoreInvitesPolicies: Record<string, unknown>; // Dynamic: account data policies object
+        policies: Policies;
+        ignoreInvitesPolicies: IgnoreInvitesPolicies;
     } {
-        let policies: IContent = {};
+        let policies: Policies = {};
         for (const key of [POLICIES_ACCOUNT_EVENT_TYPE.name, POLICIES_ACCOUNT_EVENT_TYPE.altName]) {
             if (!key) {
                 continue;
@@ -319,7 +329,7 @@ export class IgnoredInvites {
             }
         }
 
-        let ignoreInvitesPolicies = {};
+        let ignoreInvitesPolicies: IgnoreInvitesPolicies = {};
         let hasIgnoreInvitesPolicies = false;
         for (const key of [IGNORE_INVITES_ACCOUNT_EVENT_KEY.name, IGNORE_INVITES_ACCOUNT_EVENT_KEY.altName]) {
             if (!key) {
@@ -327,7 +337,7 @@ export class IgnoredInvites {
             }
             const value = policies[key];
             if (value && typeof value == "object") {
-                ignoreInvitesPolicies = value;
+                ignoreInvitesPolicies = value as IgnoreInvitesPolicies;
                 hasIgnoreInvitesPolicies = true;
                 break;
             }

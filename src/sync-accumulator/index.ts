@@ -21,16 +21,16 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { SyncAccumulator } from "../sync-accumulator";
+import { SyncAccumulator, type IJoinedRoom, type IInvitedRoom, type ILeftRoom, type ISyncResponse } from "../sync-accumulator";
 import { type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISyncAccumulatedData {
     rooms?: {
-        join?: Record<string, unknown>; // Dynamic: raw sync join data
-        invite?: Record<string, unknown>; // Dynamic: raw sync invite data
-        leave?: Record<string, unknown>; // Dynamic: raw sync leave data
+        join?: Record<string, IJoinedRoom>;
+        invite?: Record<string, IInvitedRoom>;
+        leave?: Record<string, ILeftRoom>;
     };
     account_data?: Array<{
         type: string;
@@ -63,7 +63,7 @@ export class SyncAccumulatorManager extends BaseManager<
         this.client.syncAccumulator = accumulator;
     }
 
-    public async accumulateSyncData(data: Record<string, unknown>): Promise<void> { // Dynamic: raw sync response data
+    public async accumulateSyncData(data: ISyncResponse): Promise<void> {
         return this.withRetry(
             () => this.client.accumulateSyncData(data),
             "accumulateSyncData",

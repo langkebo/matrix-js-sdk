@@ -27,7 +27,7 @@ export interface IReadReceipt {
     eventId: string;
     ts: number;
     userId: string;
-    data?: Record<string, unknown>;
+    data?: Receipt;
 }
 
 export interface IReadMarkers {
@@ -179,7 +179,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
             eventId: (r.data as Receipt & { event_id?: string }).event_id || eventId,
             ts: (r.data as Receipt).ts || 0,
             userId: r.userId,
-            data: r.data as unknown as Record<string, unknown>,
+            data: r.data,
         }));
     }
 

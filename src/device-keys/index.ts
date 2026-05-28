@@ -49,7 +49,7 @@ export interface DeviceKeys {
     algorithms: string[];
     keys: Record<string, string>;
     signatures: Record<string, Record<string, string>>;
-    unsigned?: Record<string, unknown>; // Dynamic: may contain device_display_name etc.
+    unsigned?: IContent; // Dynamic: may contain device_display_name etc.
 }
 
 export interface OneTimeKeys {

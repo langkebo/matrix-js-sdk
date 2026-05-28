@@ -22,6 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
+import type { IJoinRoomOpts } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -48,7 +49,7 @@ export class RoomJoiningManager extends BaseManager<keyof RoomJoiningManagerEven
     }
 
     public async joinRoom(roomIdOrAlias: string, opts?: IJoinRoomOptions): Promise<Room> {
-        return this.withRetry(() => this.client.joinRoom(roomIdOrAlias, opts as Record<string, unknown>), "joinRoom");
+        return this.withRetry(() => this.client.joinRoom(roomIdOrAlias, opts as IJoinRoomOpts), "joinRoom");
     }
 
     public async leaveRoom(roomId: string, _opts?: ILeaveRoomOptions): Promise<{}> {

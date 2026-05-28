@@ -22,6 +22,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { type IPreviewUrlResponse } from "../client-api-types";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export class UrlPreviewManager {
@@ -36,7 +37,7 @@ export class UrlPreviewManager {
      * @param url - The URL to preview
      * @param timestamp - Optional timestamp for scrying
      */
-    public async getUrlPreview(url: string, timestamp?: number): Promise<Record<string, unknown>> {
+    public async getUrlPreview(url: string, timestamp?: number): Promise<IPreviewUrlResponse> {
         return this.client.getUrlPreview(url, timestamp ?? 0);
     }
 

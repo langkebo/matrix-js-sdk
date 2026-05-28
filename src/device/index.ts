@@ -37,6 +37,7 @@ import { NotFoundError, ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
 import type { DevicePathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { IAuthData } from "../interactive-auth";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -110,27 +111,19 @@ interface DeviceManagerEventMap {
     [DeviceEvent.DeviceError]: (error: Error) => void;
 }
 
-interface IUIAErrorData {
-    error?: string;
-    flows?: unknown[];
-    session?: string;
-    params?: Record<string, unknown>; // Dynamic: UIA params vary per auth type
-    [key: string]: unknown;
-}
-
 export class UIAError extends Error {
-    public readonly data: IUIAErrorData;
+    public readonly data: IAuthData;
 
-    constructor(data: IUIAErrorData) {
-        super(data.error || "User-Interactive Authentication required");
+    constructor(data: IAuthData) {
+        super(typeof data.error === "string" ? data.error : "User-Interactive Authentication required");
         this.name = "UIAError";
         this.data = data;
     }
 }
 
-function extractUiaErrorData(error: unknown): IUIAErrorData | null {
+function extractUiaErrorData(error: unknown): IAuthData | null {
     const candidates = [error];
-    let fallback: IUIAErrorData | null = null;
+    let fallback: IAuthData | null = null;
 
     if (error && typeof error === "object" && "cause" in error) {
         candidates.push((error as { cause?: unknown }).cause);
@@ -150,12 +143,12 @@ function extractUiaErrorData(error: unknown): IUIAErrorData | null {
                 "params" in nestedData ||
                 record.errcode === "M_UIA_REQUIRED"
             ) {
-                return record.data as IUIAErrorData;
+                return record.data as IAuthData;
             }
         }
 
         if ("flows" in record || "session" in record || "params" in record) {
-            return record as IUIAErrorData;
+            return record as IAuthData;
         }
 
         if (record.errcode === "M_UIA_REQUIRED" || record.errorCode === "M_UIA_REQUIRED") {
@@ -184,6 +177,14 @@ type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? R
 
 function dp<P extends StripV3<DevicePathPattern>>(path: P): P {
     return path;
+}
+
+interface DeviceMetricData {
+    duration?: number;
+    success?: boolean;
+    errorType?: string;
+    deviceId?: string;
+    [key: string]: unknown;
 }
 
 export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMap> {
@@ -629,7 +630,7 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         return "UnknownError";
     }
 
-    private emitMetric(type: string, method: string, data: Record<string, unknown>): void { // Dynamic: metric data varies by type
+    private emitMetric(type: string, method: string, data: DeviceMetricData): void {
         try {
             this.emit(DeviceEvent.DeviceError, new Error(`Metric: ${type}.${method}`));
             logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });

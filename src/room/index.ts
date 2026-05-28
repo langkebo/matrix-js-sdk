@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { MatrixClient } from "../client";
+import type { IContent } from "../models/event";
 import { RoomManager } from "./RoomManager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -35,7 +36,7 @@ declare module "../client.ts" {
         sendStateEvent(
             roomId: string,
             eventType: string,
-            content: Record<string, unknown>,
+            content: IContent,
             stateKey?: string,
         ): Promise<{ event_id: string }>;
     }

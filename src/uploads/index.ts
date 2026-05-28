@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import type { UploadOpts } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -53,7 +54,7 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
     }
 
     public async uploadContent(file: File | Blob | string, opts?: IUploadOptions): Promise<IUploadResponse> {
-        return this.withRetry(() => this.client.uploadContent(file, opts as Record<string, unknown>), "uploadContent");
+        return this.withRetry(() => this.client.uploadContent(file, opts as UploadOpts), "uploadContent");
     }
 
     public async uploadFile(file: File | Blob, opts?: IUploadOptions): Promise<IUploadResponse> {

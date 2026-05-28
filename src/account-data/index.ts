@@ -146,7 +146,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
         return setUserAccountDataRequest(
             this.client.credentials.userId,
             eventType as string,
-            content as Record<string, unknown>,
+            content as IContent,
             this.client.http.authedRequest.bind(this.client.http),
         );
     }

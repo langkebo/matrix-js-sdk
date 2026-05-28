@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import { ValidationError } from "../errors";
@@ -182,7 +183,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             AdminValidators.validateLimit(opts.limit);
         }
         return this.withRetry(async () => {
-            const body: Record<string, unknown> = {
+            const body: IContent = {
                 search_term: opts.term,
             };
             if (opts.limit !== undefined) {

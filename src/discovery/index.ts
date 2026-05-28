@@ -32,7 +32,7 @@ import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
 import type { IRoomDirectoryOptions } from "../@types/requests";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
-import type { IServerVersions } from "../client-api-types";
+import type { IClientWellKnown, IServerVersions } from "../client-api-types";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> =
@@ -130,11 +130,11 @@ export class DiscoveryManager extends BaseManager {
         return this.client.baseUrl;
     }
 
-    public getClientWellKnown(): Record<string, unknown> | undefined { // Dynamic: delegates to client which returns untyped well-known
+    public getClientWellKnown(): IClientWellKnown | undefined {
         if (this.client.getClientWellKnown) {
             return this.client.getClientWellKnown();
         }
-        return (this.client as unknown as { clientWellKnown?: Record<string, unknown> }).clientWellKnown; // Dynamic: client internal
+        return (this.client as unknown as { clientWellKnown?: IClientWellKnown }).clientWellKnown;
     }
 
     public async getServerDiscoveryInfo(): Promise<ClientWellKnownResponse> {

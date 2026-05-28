@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import { type Logger } from "../../logger";
+import { type IContent } from "../../models/event";
 import { type CrossSigningKeyInfo } from "../../crypto-api/index";
 import { type AESEncryptedSecretStoragePayload } from "../../@types/AESEncryptedSecretStoragePayload";
 import { type ISignatures } from "../../@types/signed";
@@ -370,7 +371,7 @@ interface IDevice {
     algorithms: string[];
     verified: DeviceVerification;
     known: boolean;
-    unsigned?: Record<string, unknown>;
+    unsigned?: IContent;
     signatures?: ISignatures;
 }
 

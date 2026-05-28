@@ -695,7 +695,7 @@ export interface MatrixClientInternalMethods {
 
     // ============ Sync Accumulator (sync-accumulator/index.ts) ============
     syncAccumulator?: import("./sync-accumulator").SyncAccumulator;
-    accumulateSyncData(data: IContent /* raw sync response */): Promise<void>;
+    accumulateSyncData(data: import("./sync-accumulator").ISyncResponse): Promise<void>;
     getAccumulatedData(): import("./sync-accumulator/index").ISyncAccumulatedData | null;
     resetAccumulator(): void;
 

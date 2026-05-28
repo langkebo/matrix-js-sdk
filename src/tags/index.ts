@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { BaseManager } from "../managers/base-manager";
+import type { IContent } from "../models/event";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -111,7 +112,7 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
             if (!userId) {
                 throw new ValidationError("User ID is required");
             }
-            const body: Record<string, unknown> = {};
+            const body: IContent = {};
 
             if (order !== undefined) {
                 body.order = order;

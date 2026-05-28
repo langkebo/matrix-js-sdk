@@ -25,6 +25,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
@@ -104,7 +105,7 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
             }
 
             const path = encodeUri("/presence/$userId/status", { $userId: userId });
-            const body: Record<string, unknown> = { presence };
+            const body: IContent = { presence };
             if (statusMsg !== undefined) {
                 body.status_msg = statusMsg;
             }

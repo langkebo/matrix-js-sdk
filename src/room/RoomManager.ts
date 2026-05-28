@@ -31,6 +31,7 @@ import {
 } from "../@types/requests";
 import { type RoomAccountDataEvents, EventType } from "../@types/event";
 import { type IContent } from "../models/event";
+import { type IRoomEventFilter } from "../filter";
 import { InvalidParamError } from "../common/errors";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
@@ -697,7 +698,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async getEventContext(
         roomId: string,
         eventId: string,
-        params?: { limit?: number; filter?: Record<string, unknown> }, // Dynamic: Matrix filter objects are spec-defined but arbitrarily shaped
+        params?: { limit?: number; filter?: IRoomEventFilter },
     ): Promise<IContextResponse> {
         this.validateRoomId(roomId);
         if (!eventId) {

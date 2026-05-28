@@ -91,9 +91,9 @@ export class ToDeviceManager extends BaseManager {
         const path = `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`;
 
         // Convert Map<string, Map<string, Record<string, any>>> to plain object
-        const messages: Record<string, Record<string, unknown>> = {};
+        const messages: Record<string, Record<string, IContent>> = {};
         for (const [userId, deviceMessages] of contentMap) {
-            const perUserMessages: Record<string, unknown> = {};
+            const perUserMessages: Record<string, IContent> = {};
             for (const [deviceId, content] of deviceMessages) {
                 perUserMessages[deviceId] = content;
             }

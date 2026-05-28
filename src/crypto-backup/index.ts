@@ -23,11 +23,13 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { Curve25519AuthData, Aes256AuthData } from "../crypto-api/keybackup";
+import type { ISigned } from "../@types/signed";
 
 export interface CryptoBackupInfo {
     version: string;
     algorithm: string;
-    auth_data: Record<string, unknown>; // Dynamic: backup auth data varies by algorithm
+    auth_data: ISigned & (Curve25519AuthData | Aes256AuthData);
     etag: string;
     count: number;
     hash: string;
@@ -89,7 +91,7 @@ export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEv
             return {
                 version: keyBackupInfo.version ?? "",
                 algorithm: keyBackupInfo.algorithm,
-                auth_data: { ...keyBackupInfo.auth_data } as Record<string, unknown>,
+                auth_data: { ...keyBackupInfo.auth_data },
                 etag: keyBackupInfo.etag ?? "",
                 count: keyBackupInfo.count ?? 0,
                 hash: "",

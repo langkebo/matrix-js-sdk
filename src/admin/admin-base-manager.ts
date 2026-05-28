@@ -24,6 +24,7 @@ limitations under the License.
  */
 
 import { Method } from "../http-api/method";
+import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 
@@ -98,7 +99,7 @@ export abstract class AdminBaseManager<
         method: Method,
         path: string,
         queryParams?: Record<string, string | string[]>,
-        body?: Record<string, unknown>,
+        body?: IContent,
         label?: string,
     ): Promise<T> {
         try {

@@ -24,6 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { MediaPrefix, ClientPrefix } from "../http-api/prefix";
 import type { UploadResponse } from "../http-api/interface";
+import type { UploadOpts } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { MediaPathPattern } from "./__generated__/route-table";
@@ -158,7 +159,7 @@ export class MediaManager extends BaseManager {
         if (!file) {
             throw new ValidationError("File content is required");
         }
-        return this.client.http.uploadContent(file as Blob, opts as Record<string, unknown>);
+        return this.client.http.uploadContent(file as Blob, opts as UploadOpts);
     }
 
     /**

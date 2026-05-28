@@ -3,6 +3,7 @@ import { Method } from "./http-api/index";
 import type { Body, IRequestOpts } from "./http-api/index";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
+import type { IContent } from "./models/event";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -51,8 +52,8 @@ export function getStateEventRequest(
     stateKey: string,
     buildStateEventPath: (roomId: string, eventType: string, stateKey?: string) => string,
     authedRequest: AuthedRequestFn,
-): Promise<Record<string, unknown>> {
-    return authedRequest<Record<string, unknown>>(Method.Get, buildStateEventPath(roomId, eventType, stateKey));
+): Promise<IContent> {
+    return authedRequest<IContent>(Method.Get, buildStateEventPath(roomId, eventType, stateKey));
 }
 
 export function reportEventRequest(

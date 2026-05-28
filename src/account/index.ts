@@ -36,6 +36,7 @@ import { type IdServerUnbindResult } from "../@types/partials";
 import { ClientPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
+import type { IContent } from "../models/event";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -45,7 +46,7 @@ function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
     return path;
 }
 
-type Body = Record<string, unknown>;
+type Body = IContent;
 type UIARequest<T> = T & {
     auth?: AuthDict;
 };

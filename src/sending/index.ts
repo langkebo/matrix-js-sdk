@@ -103,7 +103,7 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
                 this.client.sendEvent(
                     roomId,
                     eventTypeOrContent as string | EventType,
-                    contentOrTxnId as Record<string, unknown>,
+                    contentOrTxnId as IContent,
                     txnId,
                 ),
             "sendEvent",

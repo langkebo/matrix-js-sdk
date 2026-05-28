@@ -33,6 +33,8 @@ import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
 import type { RoomMember } from "../models/room-member";
 import type { MatrixEvent, IContent } from "../models/event";
+import type { ICreateRoomOpts } from "../@types/requests";
+import { Preset } from "../@types/partials";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
@@ -201,10 +203,10 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
             return existingDm;
         }
 
-        const createOptions: Record<string, unknown> = {
+        const createOptions: ICreateRoomOpts = {
             is_direct: true,
             invite: opts.userIds,
-            preset: opts.isEncrypted === false ? "private_chat" : "trusted_private_chat",
+            preset: opts.isEncrypted === false ? Preset.PrivateChat : Preset.TrustedPrivateChat,
         };
 
         if (opts.name) {

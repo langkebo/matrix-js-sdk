@@ -4,6 +4,7 @@ import type { Body, IRequestOpts } from "./http-api/index";
 import { ServerSupport } from "./feature";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
+import type { IContent } from "./models/event";
 import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -78,7 +79,7 @@ type AuthedRequestFn = <T>(
 export function setUserAccountDataRequest(
     userId: string | null,
     eventType: string,
-    content: Record<string, unknown>,
+    content: IContent,
     authedRequest: AuthedRequestFn,
 ): Promise<EmptyObject> {
     return authedRequest(Method.Put, buildUserAccountDataPath(userId, eventType), undefined, content);

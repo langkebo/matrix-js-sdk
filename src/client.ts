@@ -43,7 +43,7 @@ import {
     type MatrixCall,
     supportsMatrixCall,
 } from "./web-rtc/call";
-import { Filter, type IFilterDefinition } from "./filter";
+import { Filter, type IFilterDefinition, type IRoomEventFilter } from "./filter";
 import {
     CallEventHandler,
     type CallEventHandlerEvent,
@@ -3007,7 +3007,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public async getEventContext(
         roomId: string,
         eventId: string,
-        params?: { limit?: number; filter?: Record<string, unknown> }, // Dynamic: Matrix filter objects are spec-defined but arbitrarily shaped
+        params?: { limit?: number; filter?: IRoomEventFilter },
     ): Promise<import("./@types/requests").IContextResponse> {
         return this.getRoomManager().getEventContext(roomId, eventId, params);
     }

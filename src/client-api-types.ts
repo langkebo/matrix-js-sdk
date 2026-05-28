@@ -3,9 +3,9 @@ import type { RoomType } from "./@types/event";
 import type { Membership } from "./@types/membership";
 import type { JoinRule, Visibility } from "./@types/partials";
 import type { IEventWithRoomId, IStateEventWithRoomId } from "./@types/search";
-import type { ISignatures } from "./@types/signed";
+import type { ISignatures, ISigned } from "./@types/signed";
 import type { QueryDict } from "./utils";
-import type { CrossSigningKeyInfo } from "./crypto-api/index";
+import type { CrossSigningKeyInfo, Curve25519AuthData, Aes256AuthData } from "./crypto-api/index";
 import type { AutoDiscoveryAction } from "./autodiscovery";
 import type { IEvent } from "./models/event";
 import type { IMinimalEvent } from "./sync-accumulator";
@@ -352,7 +352,7 @@ export interface ISecureBackupInfo {
     backup_id: string;
     version: string;
     algorithm: string;
-    auth_data: Record<string, unknown>;
+    auth_data: ISigned & (Curve25519AuthData | Aes256AuthData);
     key_count: number;
 }
 

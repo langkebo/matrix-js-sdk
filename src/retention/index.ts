@@ -31,6 +31,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { InvalidParamError } from "../common/errors";
@@ -141,7 +142,7 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
     }
 
     public async runRetention(roomId?: string): Promise<IRetentionRunResult> {
-        const body: Record<string, unknown> = {};
+        const body: IContent = {};
         if (roomId) {
             body.room_id = roomId;
         }

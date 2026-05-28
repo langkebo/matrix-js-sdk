@@ -1,5 +1,6 @@
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
+import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import { Method } from "../http-api";
@@ -68,7 +69,7 @@ export class TypingManager extends BaseManager {
             throw new ValidationError("User ID is required");
         }
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
-        const data: Record<string, unknown> = { typing: isTyping };
+        const data: IContent = { typing: isTyping };
         if (isTyping) {
             data.timeout = timeoutMs ? timeoutMs : 20000;
         }
