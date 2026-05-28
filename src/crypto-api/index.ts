@@ -1053,8 +1053,6 @@ export type ImportRoomKeyProgressData = ImportRoomKeyFetchProgress | ImportRoomK
 export interface ImportRoomKeysOpts {
     /** Reports ongoing progress of the import process. Can be used for feedback. */
     progressCallback?: (stage: ImportRoomKeyProgressData) => void;
-    /** @deprecated not useful externally */
-    source?: string;
 }
 
 /**
@@ -1285,23 +1283,6 @@ export enum EventShieldReason {
      * ie: the key has been forwarded, or retrieved from an insecure backup.
      */
     AUTHENTICITY_NOT_GUARANTEED,
-
-    /**
-     * The (deprecated) sender_key field in the event does not match the Ed25519 key of the device that sent us the
-     * decryption keys.
-     *
-     * @deprecated The sender_key field is not checked by matrix-sdk-crypto, and this value is therefore unused since
-     * the migration to matrix-sdk-crypto in v37.0.0.
-     */
-    MISMATCHED_SENDER_KEY,
-
-    /**
-     * The event was sent unencrypted in an encrypted room.
-     *
-     * @deprecated This has never been used. The fact it is here was due to a misunderstanding of the behaviour of
-     * `matrix-sdk-crypto`.
-     */
-    SENT_IN_CLEAR,
 
     /**
      * The sender was previously verified but changed their identity.

@@ -82,10 +82,10 @@ export class ThirdPartyManager extends BaseManager {
     getThirdpartyLocation(
         protocol: string,
         params?: { searchFields?: string[] },
-    ): Promise<IThirdPartyLocation[]> {
+    ): Promise<ThirdPartyLocation[]> {
         const path = utils.encodeUri("/thirdparty/location/$protocol", { $protocol: protocol });
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<IThirdPartyLocation[]>(
+            return await this.client.http.authedRequest<ThirdPartyLocation[]>(
                 Method.Get,
                 path,
                 params as QueryDict,
@@ -99,10 +99,10 @@ export class ThirdPartyManager extends BaseManager {
      * Get third party users for a protocol.
      * GET /_matrix/client/v3/thirdparty/user/{protocol}
      */
-    getThirdpartyUser(protocol: string, params?: QueryDict): Promise<IThirdPartyUser[]> {
+    getThirdpartyUser(protocol: string, params?: QueryDict): Promise<ThirdPartyUser[]> {
         const path = utils.encodeUri("/thirdparty/user/$protocol", { $protocol: protocol });
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<IThirdPartyUser[]>(
+            return await this.client.http.authedRequest<ThirdPartyUser[]>(
                 Method.Get,
                 path,
                 params,
@@ -155,7 +155,7 @@ export class ThirdPartyManager extends BaseManager {
         throwOnError = true,
     ): Promise<ThirdPartyLocation[]> {
         try {
-            return await this.getThirdpartyLocation(protocol, params) as unknown as ThirdPartyLocation[];
+            return await this.getThirdpartyLocation(protocol, params);
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -172,7 +172,7 @@ export class ThirdPartyManager extends BaseManager {
         throwOnError = true,
     ): Promise<ThirdPartyUser[]> {
         try {
-            return await this.getThirdpartyUser(protocol, params) as unknown as ThirdPartyUser[];
+            return await this.getThirdpartyUser(protocol, params);
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {

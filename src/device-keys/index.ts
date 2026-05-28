@@ -41,6 +41,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
+import type { IDevice } from "../device/index";
 
 export interface DeviceKeys {
     user_id: string;
@@ -527,16 +528,16 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         return this.client.uploadDeviceKeys(keys);
     }
 
-    public async getUserDevices(userId: string): Promise<Record<string, DeviceKeys>> {
-        return this.client.getUserDevices(userId) as unknown as Promise<Record<string, DeviceKeys>>;
+    public async getUserDevices(userId: string): Promise<Record<string, IContent>> {
+        return this.client.getUserDevices(userId);
     }
 
     public hasDevice(deviceId: string): boolean {
         return this.client.hasDevice(deviceId);
     }
 
-    public getDevice(deviceId: string): DeviceKeys | null {
-        return this.client.getDevice(deviceId) as unknown as DeviceKeys | null;
+    public async getDevice(deviceId: string): Promise<IDevice | null> {
+        return this.client.getDevice(deviceId);
     }
 
     async requestDeviceVerification(

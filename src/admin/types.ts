@@ -508,9 +508,6 @@ export interface AdminRegisterResult {
     nonce?: string;
 }
 
-/** @deprecated Use AdminRegisterResult instead — fields are optional in practice */
-export type AdminRegisterResponse = AdminRegisterResult;
-
 export interface WhoisResponse {
     user_id: string;
     devices: Record<

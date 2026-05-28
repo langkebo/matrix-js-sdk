@@ -162,6 +162,7 @@ import {
     type SpamCheckResult,
     type ThirdPartyRuleResult,
 } from "./types";
+import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";
 
 // 子 Manager 导入
 import { AdminUserManager, AdminUserEvent } from "./sub-managers/admin-user-manager";
@@ -482,11 +483,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.isSynapseAdministrator(userId);
     }
 
-    async whoisSynapseUser(userId: string): Promise<WhoisResponse> {
+    async whoisSynapseUser(userId: string): Promise<ISynapseAdminWhoisResponse> {
         return this.users.whoisSynapseUser(userId);
     }
 
-    async deactivateSynapseUser(userId: string): Promise<DeactivateUserResponse> {
+    async deactivateSynapseUser(userId: string): Promise<ISynapseAdminDeactivateResponse> {
         return this.users.deactivateSynapseUser(userId);
     }
 

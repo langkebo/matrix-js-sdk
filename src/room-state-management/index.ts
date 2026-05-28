@@ -48,38 +48,20 @@ export class RoomStateManagementManager extends BaseManager<
 
     public async getRoomState(roomId: string): Promise<IRoomStateEvent[]> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getRoomState: (roomId: string) => Promise<IRoomStateEvent[]>;
-                    }
-                ).getRoomState(roomId),
+            () => this.client.getRoomState(roomId),
             "getRoomState",
         );
     }
 
     public async getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getRoomStateEvents: (
-                            roomId: string,
-                            eventType: string,
-                            stateKey?: string,
-                        ) => Promise<MatrixEvent[]>;
-                    }
-                ).getRoomStateEvents(roomId, eventType, stateKey),
+            () => this.client.getRoomStateEvents(roomId, eventType, stateKey),
             "getRoomStateEvents",
         );
     }
 
     public getStateEvents(eventType: string, stateKey: string): MatrixEvent[] {
-        return (
-            this.client as unknown as {
-                getStateEvents: (eventType: string, stateKey: string) => MatrixEvent[];
-            }
-        ).getStateEvents(eventType, stateKey);
+        return this.client.getStateEvents(eventType, stateKey);
     }
 
     public async setRoomAccountData(
@@ -87,15 +69,14 @@ export class RoomStateManagementManager extends BaseManager<
         eventType: string,
         content: IContent,
     ): Promise<void> {
+        // Type assertion needed: real MatrixClient.setRoomAccountData has generic signature
+        // <K extends keyof RoomAccountDataEvents>(roomId, eventType: K, content): Promise<EmptyObject>
+        // which doesn't accept arbitrary string for eventType
         return this.withRetry(
             () =>
                 (
                     this.client as unknown as {
-                        setRoomAccountData: (
-                            roomId: string,
-                            eventType: string,
-                            content: IContent,
-                        ) => Promise<void>;
+                        setRoomAccountData: (roomId: string, eventType: string, content: IContent) => Promise<void>;
                     }
                 ).setRoomAccountData(roomId, eventType, content),
             "setRoomAccountData",
@@ -103,11 +84,7 @@ export class RoomStateManagementManager extends BaseManager<
     }
 
     public getRoomAccountData(roomId: string, eventType: string): IContent | null {
-        return (
-            this.client as unknown as {
-                getRoomAccountData: (roomId: string, eventType: string) => IContent | null;
-            }
-        ).getRoomAccountData(roomId, eventType);
+        return this.client.getRoomAccountData(roomId, eventType);
     }
 }
 

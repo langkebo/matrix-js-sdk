@@ -63,60 +63,35 @@ export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, 
 
     public async getPushRules(): Promise<IPushRules> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getPushRules: () => Promise<IPushRules>;
-                    }
-                ).getPushRules(),
+            () => this.client.getPushRules(),
             "getPushRules",
         );
     }
 
     public async getPushRule(kind: string, ruleId: string): Promise<IPushRule | null> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        getPushRule: (kind: string, ruleId: string) => Promise<IPushRule | null>;
-                    }
-                ).getPushRule(kind, ruleId),
+            () => this.client.getPushRule(kind, ruleId),
             "getPushRule",
         );
     }
 
     public async setPushRule(kind: string, ruleId: string, body: ISetPushRuleBody): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        setPushRule: (kind: string, ruleId: string, body: ISetPushRuleBody) => Promise<void>;
-                    }
-                ).setPushRule(kind, ruleId, body),
+            () => this.client.setPushRule(kind, ruleId, body),
             "setPushRule",
         );
     }
 
     public async deletePushRule(kind: string, ruleId: string): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        deletePushRule: (kind: string, ruleId: string) => Promise<void>;
-                    }
-                ).deletePushRule(kind, ruleId),
+            () => this.client.deletePushRule(kind, ruleId),
             "deletePushRule",
         );
     }
 
     public async enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<void> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        enablePushRule: (kind: string, ruleId: string, enabled: boolean) => Promise<void>;
-                    }
-                ).enablePushRule(kind, ruleId, enabled),
+            () => this.client.enablePushRule(kind, ruleId, enabled),
             "enablePushRule",
         );
     }

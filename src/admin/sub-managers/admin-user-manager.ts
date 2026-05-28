@@ -22,6 +22,7 @@ import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
 import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, DeactivateUserResponse, UserStatsResponse, UserStatsListResponse, UserRoomsResponse, UserNotificationResponse, UserNotificationPayload } from "../types";
+import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../../@types/synapse";
 import { MatrixClient } from "../../client";
 
 export enum AdminUserEvent {
@@ -609,9 +610,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * @param userId - the User ID to look up.
      * @returns the whois response - see Synapse docs for information.
      */
-    async whoisSynapseUser(userId: string): Promise<WhoisResponse> {
+    async whoisSynapseUser(userId: string): Promise<ISynapseAdminWhoisResponse> {
         const path = `/v1/whois/${encodeURIComponent(userId)}`;
-        return this.client.http.authedRequest(Method.Get, path, undefined, undefined, {
+        return this.client.http.authedRequest<ISynapseAdminWhoisResponse>(Method.Get, path, undefined, undefined, {
             prefix: "/_synapse/admin",
         });
     }
@@ -622,9 +623,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * @param userId - the User ID to deactivate.
      * @returns the deactivate response - see Synapse docs for information.
      */
-    async deactivateSynapseUser(userId: string): Promise<DeactivateUserResponse> {
+    async deactivateSynapseUser(userId: string): Promise<ISynapseAdminDeactivateResponse> {
         const path = `/v1/deactivate/${encodeURIComponent(userId)}`;
-        return this.client.http.authedRequest(Method.Post, path, undefined, undefined, {
+        return this.client.http.authedRequest<ISynapseAdminDeactivateResponse>(Method.Post, path, undefined, undefined, {
             prefix: "/_synapse/admin",
         });
     }

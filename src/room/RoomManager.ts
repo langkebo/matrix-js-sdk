@@ -27,6 +27,7 @@ import {
     type InviteOpts,
     type ITagsResponse,
     type IGuestAccessOpts,
+    type IContextResponse,
 } from "../@types/requests";
 import { type RoomAccountDataEvents, EventType } from "../@types/event";
 import { type IContent } from "../models/event";
@@ -251,8 +252,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const cacheKey = `capabilities:${roomId}`;
         if (!forceRefresh) {
             const cached = this.roomInfoCache.get(cacheKey);
-            if (cached) {
-                return cached as unknown as IRoomCapabilitiesResponse;
+            if (cached && "capabilities" in cached) {
+                return cached;
             }
         }
 
@@ -275,8 +276,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const cacheKey = `metadata:${roomId}`;
         if (!forceRefresh) {
             const cached = this.roomInfoCache.get(cacheKey);
-            if (cached) {
-                return cached as unknown as IRoomMetadataResponse;
+            if (cached && "room_id" in cached) {
+                return cached;
             }
         }
 
@@ -476,8 +477,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const cacheKey = `joined_members:${roomId}`;
         if (!forceRefresh) {
             const cached = this.roomInfoCache.get(cacheKey);
-            if (cached) {
-                return cached as unknown as IJoinedMembersResponse;
+            if (cached && "joined" in cached) {
+                return cached;
             }
         }
 
@@ -697,7 +698,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         roomId: string,
         eventId: string,
         params?: { limit?: number; filter?: Record<string, unknown> }, // Dynamic: Matrix filter objects are spec-defined but arbitrarily shaped
-    ): Promise<IEventContextResponse> {
+    ): Promise<IContextResponse> {
         this.validateRoomId(roomId);
         if (!eventId) {
             throw new InvalidParamError("eventId is required");
@@ -708,7 +709,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         if (params?.filter) queryParams.filter = JSON.stringify(params.filter);
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IEventContextResponse>(
+            return await this.client.http.authedRequest<IContextResponse>(
                 Method.Get,
                 rp(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`),
                 Object.keys(queryParams).length > 0 ? queryParams : undefined,

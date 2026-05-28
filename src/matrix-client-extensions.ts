@@ -246,6 +246,9 @@ export interface MatrixClientExtensionMethods {
     // ⚠️ Push Manager - 提供完整的推送规则和 pusher 管理
     getPushManager(): import("./push/index").PushManager;
     getPushRules(): Promise<import("./push/index").IPushRules>;
+    // Overloads for PushRulesManager (2-arg/3-arg signatures) - must come before PushManager signatures
+    setPushRule(kind: string, ruleId: string, body: import("./push-rules/index").ISetPushRuleBody): Promise<void>;
+    // PushManager signature (4-6 args)
     setPushRule(
         scope: string,
         kind: import("./@types/PushRules").PushRuleKind,
@@ -260,6 +263,9 @@ export interface MatrixClientExtensionMethods {
         ruleId: string,
         body: import("./push/index").IUpdatePushRuleRequest,
     ): Promise<void>;
+    // Overload for PushRulesManager (2-arg signature) - must come before PushManager signature
+    deletePushRule(kind: string, ruleId: string): Promise<void>;
+    // PushManager signature (3 args)
     deletePushRule(scope: string, kind: import("./@types/PushRules").PushRuleKind, ruleId: string): Promise<void>;
     setPusher(pusher: import("./push/index").IPusherRequest): Promise<void>;
     getPushRulesManager(): import("./push-rules/index").PushRulesManager;
@@ -443,11 +449,6 @@ export interface MatrixClientInternalMethods {
     // ============ Room Setters (implemented but not in interface) ============
     setRoomName(roomId: string, name: string): Promise<ISendEventResponse>;
     setRoomTopic(roomId: string, topic?: string, htmlTopic?: string): Promise<ISendEventResponse>;
-    setRoomAccountData<K extends keyof RoomAccountDataEvents>(
-        roomId: string,
-        eventType: K,
-        content: RoomAccountDataEvents[K] | Record<string, never>,
-    ): Promise<EmptyObject>;
 
     // ============ Message Sending (implemented but not in interface) ============
     sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
@@ -510,7 +511,6 @@ export interface MatrixClientInternalMethods {
     // ============ Event Management (phantom methods used by EventManager) ============
     getEvent(roomId: string, eventId: string): Promise<MatrixEvent>;
     getRoomEvents(roomId: string, start: string, limit: number): Promise<MatrixEvent[]>;
-    getStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]>;
     fetchEvent(roomId: string, eventId: string): Promise<MatrixEvent>;
 
     // ============ Server Time & Turn Servers ============
@@ -641,15 +641,18 @@ export interface MatrixClientInternalMethods {
     getEncryptionInfoForRoom(roomId: string): Promise<import("./crypto-encryption/index").IEncryptionInfo>;
 
     // ============ Scheduled Events (scheduled-events/index.ts) ============
-    // Note: _unstable_* methods have incompatible signatures with MatrixClient's actual methods
-    // Access via (client as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>)["_unstable_*"]
-    // _unstable_sendDelayedEvent(...): Promise<IDelayedEventResponse>;
-    // _unstable_sendStickyDelayedEvent(...): Promise<IDelayedEventResponse>;
-    // _unstable_sendDelayedStateEvent(...): Promise<IDelayedEventResponse>;
-    // _unstable_getDelayedEvents(): Promise<IDelayedEvent[]>;
-    // _unstable_updateDelayedEvent(...): Promise<IDelayedEventResponse>;
-    // _unstable_restartScheduledDelayedEvent(...): Promise<IDelayedEventResponse>;
-    // _unstable_sendScheduledDelayedEvent(...): Promise<IDelayedEventResponse>;
+    // Note: _unstable_* methods have incompatible signatures with MatrixClient's actual methods.
+    // Real MatrixClient signatures use different param types/counts and return types
+    // (SendDelayedEventResponse, EmptyObject, DelayedEventInfo vs IDelayedEventResponse/IDelayedEvent[]).
+    // These cannot be declared here because the real class methods would fail the interface check.
+    // Access via type assertion in ScheduledEventsManager.
+    // _unstable_sendDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
+    // _unstable_sendStickyDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
+    // _unstable_sendDelayedStateEvent(roomId: string, eventType: string, stateKey: string, content: IContent, delayMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
+    // _unstable_getDelayedEvents(): Promise<import("./scheduled-events/index").IDelayedEvent[]>;
+    // _unstable_updateDelayedEvent(eventId: string, timeoutMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
+    // _unstable_restartScheduledDelayedEvent(eventId: string): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
+    // _unstable_sendScheduledDelayedEvent(eventId: string): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
 
     // ============ Sessions (sessions/index.ts) ============
     getActiveSessions(): import("./sessions/index").ISessionInfo[];
@@ -669,6 +672,15 @@ export interface MatrixClientInternalMethods {
 
     // ============ Room State Management (room-state-management/index.ts) ============
     getRoomState(roomId: string): Promise<import("./room-state-management/index").IRoomStateEvent[]>;
+    getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]>;
+    getStateEvents(eventType: string, stateKey: string): MatrixEvent[];
+    // Note: setRoomAccountData has incompatible signature with MatrixClient's actual method.
+    // Real: setRoomAccountData<K extends keyof RoomAccountDataEvents>(roomId, eventType: K, content): Promise<EmptyObject>
+    // Manager expects: setRoomAccountData(roomId, eventType: string, content: IContent): Promise<void>
+    // Cannot be declared because the real class method's generic K is not assignable from string.
+    // Access via type assertion in RoomStateManagementManager.
+    // setRoomAccountData(roomId: string, eventType: string, content: IContent): Promise<void>;
+    getRoomAccountData(roomId: string, eventType: string): IContent | null;
     getRoomAccountDataSync(roomId: string, eventType: string): import("./models/event").IContent | null;
 
     // ============ Sending Queue (sending-queue/index.ts) ============
@@ -719,16 +731,16 @@ export interface MatrixClientInternalMethods {
     getForwardedKeys(roomId: string): import("./key-forwarding/index").IForwardedKey[];
 
     // ============ Invites (invites/index.ts) ============
-    // Note: invite methods have different signatures than MatrixClient's actual implementations
-    // inviteByThreePid on MatrixClient: (roomId, medium, address) => Promise<EmptyObject>
-    // inviteUserToRoom, acceptInvite, declineInvite are phantom methods
-    // getInviteEvents, hasInvite are phantom methods
+    // Note: inviteByThreePid has incompatible signature with MatrixClient's actual method
+    // Real: inviteByThreePid(roomId, medium, address): Promise<EmptyObject>
+    // Manager expects: inviteByThreePid(medium, address, roomId): Promise<IInviteResponse>
+    // Access via type assertion in InvitesManager
     // inviteByThreePid(medium: string, address: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
-    // inviteUserToRoom(userId: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
-    // getInviteEvents(): import("./invites/index").IInviteEvent[];
-    // hasInvite(roomId: string): boolean;
-    // acceptInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
-    // declineInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    inviteUserToRoom(userId: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    getInviteEvents(): import("./invites/index").IInviteEvent[];
+    hasInvite(roomId: string): boolean;
+    acceptInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    declineInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
 
     // ============ HTTP (http/index.ts) ============
     createRequest(options: import("./http/index").IRequestOptions): Promise<unknown>;

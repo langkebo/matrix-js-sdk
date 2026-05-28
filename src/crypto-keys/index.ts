@@ -39,14 +39,18 @@ import { NotFoundError } from "../errors";
 import { logger } from "../logger";
 import { LRUCache } from "../utils/lru-cache";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { KeySignatures, IUploadKeySignaturesResponse, IDownloadKeyResult, IClaimOTKsResult } from "../client-api-types";
 
 export interface IDeviceKeys {
     user_id: string;
     device_id: string;
     algorithms: string[];
     keys: Record<string, string>;
-    signatures: Record<string, Record<string, string>>;
-    unsigned?: Record<string, unknown>;
+    signatures?: Record<string, Record<string, string>>;
+    unsigned?: {
+        device_display_name: string;
+        [key: string]: unknown;
+    };
 }
 
 export interface IOneTimeKey {
@@ -57,6 +61,7 @@ export interface IOneTimeKey {
 export interface IKeysUploadRequest {
     device_keys?: IDeviceKeys;
     one_time_keys?: Record<string, IOneTimeKey | string>;
+    "org.matrix.msc2732.fallback_keys"?: Record<string, IOneTimeKey | string>;
 }
 
 export interface IKeysUploadResponse {
@@ -138,7 +143,7 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
-    async queryKeys(userIds: string[], opts: { token?: string; timeout?: number } = {}): Promise<IKeysQueryResponse> {
+    async queryKeys(userIds: string[], opts: { token?: string; timeout?: number } = {}): Promise<IDownloadKeyResult> {
         const cacheKey = `query:${userIds.join(",")}`;
         const cached = this.deviceKeysCache.get(cacheKey);
         if (cached && !opts.token) {
@@ -165,7 +170,7 @@ export class CryptoKeysManager extends BaseManager {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IKeysQueryResponse>(
+                return await this.client.http.authedRequest<IDownloadKeyResult>(
                     Method.Post,
                     "/keys/query",
                     undefined,
@@ -190,7 +195,7 @@ export class CryptoKeysManager extends BaseManager {
         devices: [string, string][],
         keyAlgorithm = "signed_curve25519",
         timeout?: number,
-    ): Promise<IKeysClaimResponse> {
+    ): Promise<IClaimOTKsResult> {
         const queries: Record<string, Record<string, string>> = {};
         for (const [userId, deviceId] of devices) {
             if (!queries[userId]) {
@@ -206,7 +211,7 @@ export class CryptoKeysManager extends BaseManager {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IKeysClaimResponse>(
+                return await this.client.http.authedRequest<IClaimOTKsResult>(
                     Method.Post,
                     "/keys/claim",
                     undefined,
@@ -256,11 +261,11 @@ export class CryptoKeysManager extends BaseManager {
     }
 
     async uploadKeySignatures(
-        signatures: IKeySignaturesUploadRequest["signatures"],
-    ): Promise<IKeySignaturesUploadResponse> {
+        signatures: KeySignatures,
+    ): Promise<IUploadKeySignaturesResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IKeySignaturesUploadResponse>(
+                return await this.client.http.authedRequest<IUploadKeySignaturesResponse>(
                     Method.Post,
                     "/keys/signatures/upload",
                     undefined,

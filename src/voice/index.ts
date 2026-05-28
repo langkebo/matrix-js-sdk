@@ -5,10 +5,7 @@
  * 对接后端: synapse-rust/src/web/routes/voice.rs
  * API 前缀: /_matrix/client/v3/voice（v3）和 /_matrix/client/v1/voice（v1）
  *
- * 注意：MSC3245 协议规定语音转码/转录/优化在客户端完成，以下方法已标记 @deprecated：
- * - convertVoiceMessage → 使用客户端 Web Audio API
- * - optimizeVoiceMessage → 使用客户端音频处理
- * - transcribeVoiceMessage → 使用客户端 Web Speech API
+ * 注意：MSC3245 协议规定语音转码/转录/优化在客户端完成
  *
  * 使用方式:
  * ```typescript
@@ -65,22 +62,6 @@ export interface IVoiceUploadResponse {
     content_type: string;
     size_bytes: number;
     duration_ms: number;
-}
-
-export interface IVoiceConvertRequest {
-    message_id: string;
-    target_content_type: string;
-}
-
-export interface IVoiceOptimizeRequest {
-    message_id: string;
-    target_bitrate?: number;
-    target_sample_rate?: number;
-}
-
-export interface IVoiceTranscriptionRequest {
-    message_id: string;
-    language?: string;
 }
 
 export interface IVoiceTranscriptionResponse {
@@ -251,21 +232,6 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         } catch (e) {
             throw this.normalizeError(e, "deleteVoiceMessage");
         }
-    }
-
-    /** @deprecated MSC3245 does not define server-side audio conversion. Use client-side AudioContext/Web Audio API instead. */
-    public async convertVoiceMessage(_request: IVoiceConvertRequest, _prefix: ClientPrefix = ClientPrefix.V3): Promise<never> {
-        throw new Error("Server-side voice conversion is not supported per MSC3245. Use client-side Web Audio API for audio format conversion.");
-    }
-
-    /** @deprecated MSC3245 does not define server-side audio optimization. Use client-side AudioContext/Web Audio API instead. */
-    public async optimizeVoiceMessage(_request: IVoiceOptimizeRequest, _prefix: ClientPrefix = ClientPrefix.V3): Promise<never> {
-        throw new Error("Server-side voice optimization is not supported per MSC3245. Use client-side Web Audio API for audio processing.");
-    }
-
-    /** @deprecated MSC3245 does not define server-side transcription. Use client-side Web Speech API or a third-party service instead. */
-    public async transcribeVoiceMessage(_request: IVoiceTranscriptionRequest, _prefix: ClientPrefix = ClientPrefix.V3): Promise<never> {
-        throw new Error("Server-side voice transcription is not supported per MSC3245. Use client-side Web Speech API or a third-party transcription service.");
     }
 
     public getCachedConfig(): IVoiceConfig | null {

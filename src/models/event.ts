@@ -208,11 +208,6 @@ export interface IDecryptOptions {
      * @internal
      */
     isRetry?: boolean;
-
-    /**
-     * @deprecated does nothing
-     */
-    forceRedecryptIfUntrusted?: boolean;
 }
 
 /**

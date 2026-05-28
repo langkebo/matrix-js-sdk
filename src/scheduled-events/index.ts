@@ -47,8 +47,6 @@ export interface ScheduledEventsManagerEvents {
     event_cancelled: { eventId: string };
 }
 
-type DelayedEventClientMethodInvoker = (...args: unknown[]) => Promise<unknown>;
-
 export class ScheduledEventsManager extends BaseManager<
     keyof ScheduledEventsManagerEvents,
     ScheduledEventsManagerEvents
@@ -57,21 +55,29 @@ export class ScheduledEventsManager extends BaseManager<
         super(client);
     }
 
+    // Type assertion helper: _unstable_* methods on real MatrixClient have incompatible signatures
+    // (different param types/counts and return types). We cast to a local interface that matches
+    // what this manager expects.
+    private get delayedEventClient(): {
+        _unstable_sendDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<IDelayedEventResponse>;
+        _unstable_sendStickyDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<IDelayedEventResponse>;
+        _unstable_sendDelayedStateEvent(roomId: string, eventType: string, stateKey: string, content: IContent, delayMs: number): Promise<IDelayedEventResponse>;
+        _unstable_getDelayedEvents(): Promise<IDelayedEvent[]>;
+        _unstable_updateDelayedEvent(eventId: string, timeoutMs: number): Promise<IDelayedEventResponse>;
+        _unstable_restartScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse>;
+        _unstable_sendScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse>;
+    } {
+        return this.client as unknown as typeof this.delayedEventClient;
+    }
+
     public async sendDelayedEvent(
         eventType: string,
         roomId: string,
         content: IContent,
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () =>
-                client["_unstable_sendDelayedEvent"](
-                    eventType,
-                    roomId,
-                    content,
-                    delayMs,
-                ) as Promise<IDelayedEventResponse>,
+            () => this.delayedEventClient._unstable_sendDelayedEvent(eventType, roomId, content, delayMs),
             "sendDelayedEvent",
         );
     }
@@ -82,15 +88,8 @@ export class ScheduledEventsManager extends BaseManager<
         content: IContent,
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () =>
-                client["_unstable_sendStickyDelayedEvent"](
-                    eventType,
-                    roomId,
-                    content,
-                    delayMs,
-                ) as Promise<IDelayedEventResponse>,
+            () => this.delayedEventClient._unstable_sendStickyDelayedEvent(eventType, roomId, content, delayMs),
             "sendStickyDelayedEvent",
         );
     }
@@ -102,48 +101,36 @@ export class ScheduledEventsManager extends BaseManager<
         content: IContent,
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () =>
-                client["_unstable_sendDelayedStateEvent"](
-                    roomId,
-                    eventType,
-                    stateKey,
-                    content,
-                    delayMs,
-                ) as Promise<IDelayedEventResponse>,
+            () => this.delayedEventClient._unstable_sendDelayedStateEvent(roomId, eventType, stateKey, content, delayMs),
             "sendDelayedStateEvent",
         );
     }
 
     public async getDelayedEvents(): Promise<IDelayedEvent[]> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () => client["_unstable_getDelayedEvents"]() as Promise<IDelayedEvent[]>,
+            () => this.delayedEventClient._unstable_getDelayedEvents(),
             "getDelayedEvents",
         );
     }
 
     public async updateDelayedEvent(eventId: string, timeoutMs: number): Promise<IDelayedEventResponse> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () => client["_unstable_updateDelayedEvent"](eventId, timeoutMs) as Promise<IDelayedEventResponse>,
+            () => this.delayedEventClient._unstable_updateDelayedEvent(eventId, timeoutMs),
             "updateDelayedEvent",
         );
     }
 
     public async restartScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () => client["_unstable_restartScheduledDelayedEvent"](eventId) as Promise<IDelayedEventResponse>,
+            () => this.delayedEventClient._unstable_restartScheduledDelayedEvent(eventId),
             "restartScheduledDelayedEvent",
         );
     }
 
     public async sendScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse> {
-        const client = this.client as unknown as Record<string, DelayedEventClientMethodInvoker>;
         return this.withRetry(
-            () => client["_unstable_sendScheduledDelayedEvent"](eventId) as Promise<IDelayedEventResponse>,
+            () => this.delayedEventClient._unstable_sendScheduledDelayedEvent(eventId),
             "sendScheduledDelayedEvent",
         );
     }

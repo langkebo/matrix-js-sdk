@@ -429,20 +429,6 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     }
 
     /**
-     * @deprecated Use {@link getDisplayName}
-     */
-    public async getStateDisplayName(userId: string, forceRefresh = false): Promise<string | null> {
-        return this.getDisplayName(userId, forceRefresh, false);
-    }
-
-    /**
-     * @deprecated Use {@link getAvatarUrl}
-     */
-    public async getStateAvatarUrl(userId: string, forceRefresh = false): Promise<string | null> {
-        return this.getAvatarUrl(userId, forceRefresh, false);
-    }
-
-    /**
      * Determine if the server supports extended profiles, as described by MSC4133.
      *
      * @returns `true` if supported, otherwise `false`

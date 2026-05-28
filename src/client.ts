@@ -2967,7 +2967,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         eventId: string,
         params?: { limit?: number; filter?: Record<string, unknown> }, // Dynamic: Matrix filter objects are spec-defined but arbitrarily shaped
     ): Promise<import("./@types/requests").IContextResponse> {
-        return this.getRoomManager().getEventContext(roomId, eventId, params) as unknown as import("./@types/requests").IContextResponse;
+        return this.getRoomManager().getEventContext(roomId, eventId, params);
     }
 
     /**
@@ -3262,11 +3262,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     public whoisSynapseUser(userId: string): Promise<ISynapseAdminWhoisResponse> {
-        return this.getAdminManager().whoisSynapseUser(userId) as unknown as Promise<ISynapseAdminWhoisResponse>;
+        return this.getAdminManager().whoisSynapseUser(userId);
     }
 
     public deactivateSynapseUser(userId: string): Promise<ISynapseAdminDeactivateResponse> {
-        return this.getAdminManager().deactivateSynapseUser(userId) as unknown as Promise<ISynapseAdminDeactivateResponse>;
+        return this.getAdminManager().deactivateSynapseUser(userId);
     }
 
     protected async fetchClientWellKnown(): Promise<void> {
@@ -3823,15 +3823,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     public uploadKeysRequest(content: IUploadKeysRequest, _opts?: void): Promise<IKeysUploadResponse> {
-        return this.getCryptoKeysManager().uploadKeys(content as unknown as import("./crypto-keys/index").IKeysUploadRequest);
+        return this.getCryptoKeysManager().uploadKeys(content);
     }
 
     public uploadKeySignatures(content: KeySignatures): Promise<IUploadKeySignaturesResponse> {
-        return this.getCryptoKeysManager().uploadKeySignatures(content as unknown as import("./crypto-keys/index").IKeySignaturesUploadRequest["signatures"]) as unknown as Promise<IUploadKeySignaturesResponse>;
+        return this.getCryptoKeysManager().uploadKeySignatures(content);
     }
 
     public downloadKeysForUsers(userIds: string[], { token }: { token?: string } = {}): Promise<IDownloadKeyResult> {
-        return this.getCryptoKeysManager().queryKeys(userIds, { token }) as unknown as Promise<IDownloadKeyResult>;
+        return this.getCryptoKeysManager().queryKeys(userIds, { token });
     }
 
     public claimOneTimeKeys(
@@ -3839,7 +3839,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         keyAlgorithm = "signed_curve25519",
         timeout?: number,
     ): Promise<IClaimOTKsResult> {
-        return this.getCryptoKeysManager().claimKeys(devices, keyAlgorithm, timeout) as unknown as Promise<IClaimOTKsResult>;
+        return this.getCryptoKeysManager().claimKeys(devices, keyAlgorithm, timeout);
     }
 
     public getKeyChanges(oldToken: string, newToken: string): Promise<{ changed: string[]; left: string[] }> {
@@ -3847,7 +3847,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     public uploadDeviceSigningKeys(auth?: AuthDict, keys?: CrossSigningKeys): Promise<EmptyObject> {
-        return uploadDeviceSigningKeysHttpRequest<EmptyObject>(auth, keys as unknown as import("./http-api/interface").Body, this.authedRequestProxy);
+        return uploadDeviceSigningKeysHttpRequest<EmptyObject>(auth, keys, this.authedRequestProxy);
     }
 
     public requestRoomKey(request: ICreateRoomKeyRequest): Promise<IRoomKeyRequestCreateResponse> {
@@ -4267,8 +4267,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getCryptoBackup(): Promise<unknown> {
         return this.getCryptoBackupManager().getCryptoBackup();
     }
-    public restoreCryptoBackup(backup: unknown, passphrase: string): Promise<void> {
-        return this.getCryptoBackupManager().restoreCryptoBackup(backup as unknown as import("./crypto-backup/index").CryptoBackupInfo, passphrase);
+    public restoreCryptoBackup(backup: import("./crypto-backup/index").CryptoBackupInfo | string, passphrase: string): Promise<void> {
+        return this.getCryptoBackupManager().restoreCryptoBackup(backup, passphrase);
     }
     public cryptoStore: unknown = undefined;
     public async deleteCryptoStore(): Promise<void> {}
@@ -4396,7 +4396,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomSettingsManager().getRoomGuestAccess(roomId);
     }
     public setRoomGuestAccess(roomId: string, access: string | boolean): Promise<void> {
-        return this.getRoomSettingsManager().setRoomGuestAccess(roomId, access as unknown as boolean);
+        return this.getRoomSettingsManager().setRoomGuestAccess(roomId, access);
     }
     public getRoomJoinRule(roomId: string): string {
         return this.getRoomSettingsManager().getRoomJoinRule(roomId);

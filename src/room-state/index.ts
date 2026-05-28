@@ -41,6 +41,7 @@ export interface ISendStateEventResponse {
 }
 
 export interface IEncryptionConfig {
+    [key: string]: unknown;
     algorithm: string;
     rotation_period_ms?: number;
     rotation_period_msgs?: number;
@@ -122,7 +123,7 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
     }
 
     public async setRoomEncryption(roomId: string, config: IEncryptionConfig): Promise<ISendStateEventResponse> {
-        return this.sendStateEvent(roomId, "m.room.encryption", config as unknown as IContent);
+        return this.sendStateEvent(roomId, "m.room.encryption", config);
     }
 }
 

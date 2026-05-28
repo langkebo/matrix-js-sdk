@@ -48,6 +48,8 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
     }
 
     public async inviteByThreePid(medium: string, address: string, roomId: string): Promise<IInviteResponse> {
+        // Type assertion needed: real MatrixClient.inviteByThreePid has different param order (roomId, medium, address)
+        // and return type (Promise<EmptyObject>), but this manager expects (medium, address, roomId) => Promise<IInviteResponse>
         return this.withRetry(
             () =>
                 (
@@ -61,52 +63,29 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
 
     public async inviteUserToRoom(userId: string, roomId: string): Promise<IInviteResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        inviteUserToRoom: (userId: string, roomId: string) => Promise<IInviteResponse>;
-                    }
-                ).inviteUserToRoom(userId, roomId),
+            () => this.client.inviteUserToRoom(userId, roomId),
             "inviteUserToRoom",
         );
     }
 
     public getInviteEvents(): IInviteEvent[] {
-        return (
-            this.client as unknown as {
-                getInviteEvents: () => IInviteEvent[];
-            }
-        ).getInviteEvents();
+        return this.client.getInviteEvents();
     }
 
     public hasInvite(roomId: string): boolean {
-        return (
-            this.client as unknown as {
-                hasInvite: (roomId: string) => boolean;
-            }
-        ).hasInvite(roomId);
+        return this.client.hasInvite(roomId);
     }
 
     public async acceptInvite(roomId: string): Promise<IInviteResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        acceptInvite: (roomId: string) => Promise<IInviteResponse>;
-                    }
-                ).acceptInvite(roomId),
+            () => this.client.acceptInvite(roomId),
             "acceptInvite",
         );
     }
 
     public async declineInvite(roomId: string): Promise<IInviteResponse> {
         return this.withRetry(
-            () =>
-                (
-                    this.client as unknown as {
-                        declineInvite: (roomId: string) => Promise<IInviteResponse>;
-                    }
-                ).declineInvite(roomId),
+            () => this.client.declineInvite(roomId),
             "declineInvite",
         );
     }

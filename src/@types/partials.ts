@@ -33,10 +33,6 @@ export type IdServerUnbindResult = "no-support" | "success";
 export enum JoinRule {
     Public = "public",
     Invite = "invite",
-    /**
-     * @deprecated Reserved keyword. Should not be used. Not yet implemented.
-     */
-    Private = "private",
     Knock = "knock",
     Restricted = "restricted",
 }

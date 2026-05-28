@@ -62,13 +62,7 @@ export interface IPasswordFlow extends ILoginFlow {
 export const OAUTH_AWARE_PREFERRED_FLOW_FIELD = new UnstableValue(
     "oauth_aware_preferred",
     "org.matrix.msc3824.delegated_oidc_compatibility",
-);
-
-/**
- * @alias
- * @deprecated use `OAUTH_AWARE_PREFERRED_FLOW_FIELD` instead.
- */
-export const DELEGATED_OIDC_COMPATIBILITY = OAUTH_AWARE_PREFERRED_FLOW_FIELD;
+)
 
 /**
  * Representation of SSO flow as per https://spec.matrix.org/v1.3/client-server-api/#client-login-via-sso

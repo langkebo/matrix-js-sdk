@@ -104,8 +104,9 @@ export class RoomSettingsManager extends BaseManager<keyof RoomSettingsManagerEv
         return room.getGuestAccess();
     }
 
-    public async setRoomGuestAccess(roomId: string, allow: boolean): Promise<void> {
-        const guestAccess = allow ? GuestAccess.CanJoin : GuestAccess.Forbidden;
+    public async setRoomGuestAccess(roomId: string, allow: boolean | string): Promise<void> {
+        const isAllowed = typeof allow === "string" ? allow === "can_join" || allow === "true" : allow;
+        const guestAccess = isAllowed ? GuestAccess.CanJoin : GuestAccess.Forbidden;
         await this.withRetry(
             () =>
                 this.client.sendStateEvent(
