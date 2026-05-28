@@ -140,7 +140,6 @@ describe("MatrixRTCSession", () => {
                 await flushPromises();
                 expect(sess?.memberships.length).toEqual(1);
                 expect(sess?.memberships[0].slotDescription.id).toEqual("ROOM");
-                expect(sess?.memberships[0].scope).toEqual("m.room");
                 expect(sess?.memberships[0].application).toEqual("m.call");
                 expect(sess?.memberships[0].deviceId).toEqual("AAAAAAA");
                 expect(sess?.memberships[0].isExpired()).toEqual(false);
@@ -387,7 +386,6 @@ describe("MatrixRTCSession", () => {
             await flushPromises();
             expect(sess?.memberships.length).toEqual(1);
             expect(sess?.memberships[0].slotDescription.id).toEqual("ROOM");
-            expect(sess?.memberships[0].scope).toEqual("m.room");
             expect(sess?.memberships[0].application).toEqual("m.call");
             expect(sess?.memberships[0].deviceId).toEqual("AAAAAAA");
             expect(sess?.memberships[0].isExpired()).toEqual(false);
@@ -419,15 +417,14 @@ describe("MatrixRTCSession", () => {
 
             const memberships = sess.memberships;
             expect(memberships.length).toEqual(2);
-            expect(memberships[0].sender).toEqual(stickyUserId);
+            expect(memberships[0].userId).toEqual(stickyUserId);
             expect(memberships[0].slotDescription.id).toEqual("ROOM");
-            expect(memberships[0].scope).toEqual("m.room");
             expect(memberships[0].application).toEqual("m.call");
             expect(memberships[0].deviceId).toEqual("AAAAAAA");
             expect(memberships[0].isExpired()).toEqual(false);
 
             // Then state
-            expect(memberships[1].sender).toEqual(membershipTemplate.user_id);
+            expect(memberships[1].userId).toEqual(membershipTemplate.user_id);
 
             expect(sess?.slotDescription.id).toEqual("ROOM");
         });
@@ -458,7 +455,7 @@ describe("MatrixRTCSession", () => {
 
             const memberships = sess.memberships;
             expect(memberships.length).toEqual(1);
-            expect(memberships[0].sender).toEqual(stickyUserId);
+            expect(memberships[0].userId).toEqual(stickyUserId);
             expect(memberships[0].application).toEqual("m.call");
             expect(memberships[0].isExpired()).toEqual(false);
         });
@@ -1236,7 +1233,7 @@ describe("MatrixRTCSession", () => {
                         expect.any(String),
                         1,
                         sess.memberships.map((m) => ({
-                            userId: m.sender,
+                            userId: m.userId,
                             deviceId: m.deviceId,
                             membershipTs: m.createdTs(),
                         })),
@@ -1248,7 +1245,7 @@ describe("MatrixRTCSession", () => {
                         expect.any(String),
                         1,
                         sess.memberships.map((m) => ({
-                            userId: m.sender,
+                            userId: m.userId,
                             deviceId: m.deviceId,
                             membershipTs: m.createdTs(),
                         })),

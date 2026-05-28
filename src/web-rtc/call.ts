@@ -140,8 +140,6 @@ export enum CallEvent {
     LocalHoldUnhold = "local_hold_unhold",
     // The value of isRemoteOnHold() has changed
     RemoteHoldUnhold = "remote_hold_unhold",
-    // backwards compat alias for LocalHoldUnhold: remove in a major version bump
-    HoldUnhold = "hold_unhold",
     // Feeds have changed
     FeedsChanged = "feeds_changed",
 
@@ -338,8 +336,6 @@ export type CallEventHandlerMap = {
     [CallEvent.State]: (state: CallState, oldState: CallState, call: MatrixCall) => void;
     [CallEvent.Hangup]: (call: MatrixCall) => void;
     [CallEvent.AssertedIdentityChanged]: (call: MatrixCall) => void;
-    /* @deprecated */
-    [CallEvent.HoldUnhold]: (onHold: boolean) => void;
     [CallEvent.SendVoipEvent]: (event: VoipEvent, call: MatrixCall) => void;
     [CallEvent.PeerConnectionCreated]: (peerConn: RTCPeerConnection, call: MatrixCall) => void;
 };
@@ -2039,8 +2035,6 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         const newLocalOnHold = this.isLocalOnHold();
         if (prevLocalOnHold !== newLocalOnHold) {
             this.emit(CallEvent.LocalHoldUnhold, newLocalOnHold, this);
-            // also this one for backwards compat
-            this.emit(CallEvent.HoldUnhold, newLocalOnHold);
         }
     }
 

@@ -25,10 +25,6 @@ export enum ServerSupport {
 export enum Feature {
     Thread = "Thread",
     ThreadUnreadNotifications = "ThreadUnreadNotifications",
-    /**
-     * @deprecated this is now exposed as a capability not a feature
-     */
-    LoginTokenRequest = "LoginTokenRequest",
     RelationBasedRedactions = "RelationBasedRedactions",
     AccountDataDeletion = "AccountDataDeletion",
     RelationsRecursion = "RelationsRecursion",
@@ -49,9 +45,6 @@ const featureSupportResolver: Record<string, FeatureSupportCondition> = {
     [Feature.ThreadUnreadNotifications]: {
         unstablePrefixes: ["org.matrix.msc3771", "org.matrix.msc3773"],
         matrixVersion: "v1.4",
-    },
-    [Feature.LoginTokenRequest]: {
-        unstablePrefixes: ["org.matrix.msc3882"],
     },
     [Feature.RelationBasedRedactions]: {
         unstablePrefixes: ["org.matrix.msc3912"],

@@ -95,7 +95,6 @@ import { OutgoingRequestsManager } from "./OutgoingRequestsManager";
 import { PerSessionKeyBackupDownloader } from "./PerSessionKeyBackupDownloader";
 import { DehydratedDeviceManager } from "./DehydratedDeviceManager";
 import { VerificationMethod } from "../types";
-import { keyFromAuthData } from "../common-crypto/key-passphrase";
 import { type UIAuthCallback } from "../interactive-auth";
 import { getHttpUriForMxc } from "../content-repo";
 
@@ -1441,7 +1440,20 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, CryptoEventH
             throw new Error("No backup info available");
         }
 
-        const privateKey = await keyFromAuthData(backupInfo.auth_data, passphrase);
+        const authData = backupInfo.auth_data as {
+            private_key_salt?: string;
+            private_key_iterations?: number;
+            private_key_bits?: number;
+        };
+        if (!authData?.private_key_salt || !authData?.private_key_iterations) {
+            throw new Error("Salt and/or iterations not found: this backup cannot be restored with a passphrase");
+        }
+        const privateKey = await deriveRecoveryKeyFromPassphrase(
+            passphrase,
+            authData.private_key_salt,
+            authData.private_key_iterations,
+            authData.private_key_bits,
+        );
 
         // Cache the key
         await this.storeSessionBackupPrivateKey(privateKey, backupInfo.version);

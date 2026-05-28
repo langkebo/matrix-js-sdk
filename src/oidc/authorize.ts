@@ -69,7 +69,7 @@ const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
 };
 
 /**
- * Generate authorization params to pass to {@link generateAuthorizationUrl}.
+ * Generate authorization params to pass to {@link generateOidcAuthorizationUrl}.
  *
  * Used as part of an authorization code OIDC flow: see https://openid.net/specs/openid-connect-basic-1_0.html#CodeFlow.
  *
@@ -83,35 +83,6 @@ export const generateAuthorizationParams = ({ redirectUri }: { redirectUri: stri
     nonce: secureRandomString(8),
     codeVerifier: secureRandomString(64), // https://tools.ietf.org/html/rfc7636#section-4.1 length needs to be 43-128 characters
 });
-
-/**
- * @deprecated use generateOidcAuthorizationUrl
- * Generate a URL to attempt authorization with the OP
- * See https://openid.net/specs/openid-connect-basic-1_0.html#CodeRequest
- * @param authorizationUrl - endpoint to attempt authorization with the OP
- * @param clientId - id of this client as registered with the OP
- * @param authorizationParams - params to be used in the url
- * @returns a Promise with the url as a string
- */
-export const generateAuthorizationUrl = async (
-    authorizationUrl: string,
-    clientId: string,
-    { scope, redirectUri, state, nonce, codeVerifier }: AuthorizationParams,
-): Promise<string> => {
-    const url = new URL(authorizationUrl);
-    url.searchParams.append("response_mode", "query");
-    url.searchParams.append("response_type", "code");
-    url.searchParams.append("redirect_uri", redirectUri);
-    url.searchParams.append("client_id", clientId);
-    url.searchParams.append("state", state);
-    url.searchParams.append("scope", scope);
-    url.searchParams.append("nonce", nonce);
-
-    url.searchParams.append("code_challenge_method", "S256");
-    url.searchParams.append("code_challenge", await generateCodeChallenge(codeVerifier));
-
-    return url.toString();
-};
 
 /**
  * @experimental

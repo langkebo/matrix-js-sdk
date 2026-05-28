@@ -50,8 +50,8 @@ import {
     UIAError,
 } from "../../../src";
 import { emitPromise, mkEvent, waitFor } from "../../test-utils/test-utils";
-import { type CryptoBackend } from "../../../src/common-crypto/CryptoBackend";
-import { type IEventDecryptionResult, type IMegolmSessionData } from "../../../src/@types/crypto";
+import { type CryptoBackend, type EventDecryptionResult } from "../../../src/common-crypto/CryptoBackend";
+import { type IMegolmSessionData } from "../../../src/@types/crypto";
 import { type OutgoingRequestProcessor } from "../../../src/rust-crypto/OutgoingRequestProcessor";
 import {
     type AccountDataClient,
@@ -1194,7 +1194,7 @@ describe("RustCrypto", () => {
                 decryptEvent: () =>
                     ({
                         clearEvent: { content: { body: "1234" } },
-                    }) as unknown as IEventDecryptionResult,
+                    }) as unknown as EventDecryptionResult,
             } as unknown as CryptoBackend;
             await encryptedEvent.attemptDecryption(mockCryptoBackend);
             return encryptedEvent;

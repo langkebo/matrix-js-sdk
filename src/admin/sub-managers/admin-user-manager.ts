@@ -45,20 +45,6 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     }
 
     /**
-     * 获取用户列表（支持分页）
-     *
-     * @deprecated Use {@link getUsersPaginated} for consistent pagination format
-     */
-    async getUsers(from?: string, limit?: number): Promise<{ users: AdminAccountDetails[]; next_token?: string; total?: number }> {
-        const paginated = await this.getUsersPaginated({ from, limit });
-        return {
-            users: paginated.items,
-            next_token: paginated.nextToken,
-            total: paginated.total,
-        };
-    }
-
-    /**
      * 获取用户列表（统一分页格式）
      */
     async getUsersPaginated(options?: { from?: string; limit?: number }): Promise<PaginatedResponse<AdminAccountDetails>> {
@@ -164,11 +150,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         return user;
     }
 
-    /**
-     * 停用用户
-     * @deprecated `erase` 参数当前被后端忽略，仅保留签名稳定性
-     */
-    async deactivateUser(userId: string, _erase?: boolean): Promise<void> {
+    async deactivateUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
 
         await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/deactivate`);

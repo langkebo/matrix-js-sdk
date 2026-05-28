@@ -27,7 +27,7 @@ describe("AdminManager", () => {
                 users: [],
             });
 
-            await adminManager.getUsers();
+            await adminManager.getUsersPaginated();
 
             // 验证 authedRequest 被调用
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe("AdminManager", () => {
                 rooms: [],
             });
 
-            await adminManager.getRooms(undefined, 10, "test");
+            await adminManager.getRoomsPaginated({ limit: 10, search: "test" });
 
             const call = mockClient.http.authedRequest.mock.calls[0];
             expect(call[1]).toBe("/rooms");
@@ -305,16 +305,16 @@ describe("AdminManager", () => {
         });
 
         it("应该拒绝无效的 limit 值", async () => {
-            await expect(adminManager.getUsers(undefined, 0)).rejects.toThrow(ValidationError);
-            await expect(adminManager.getUsers(undefined, -1)).rejects.toThrow(ValidationError);
-            await expect(adminManager.getUsers(undefined, 10001)).rejects.toThrow(ValidationError);
-            await expect(adminManager.getUsers(undefined, 1.5 as any)).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsersPaginated({ limit: 0 })).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsersPaginated({ limit: -1 })).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsersPaginated({ limit: 10001 })).rejects.toThrow(ValidationError);
+            await expect(adminManager.getUsersPaginated({ limit: 1.5 as any })).rejects.toThrow(ValidationError);
         });
 
         it("应该接受有效的 limit 值", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({ users: [] });
 
-            await adminManager.getUsers(undefined, 100);
+            await adminManager.getUsersPaginated({ limit: 100 });
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
         });
 
@@ -522,16 +522,16 @@ describe("AdminManager", () => {
                 next_token: "next",
             });
 
-            const result = await adminManager.getUsers();
+            const result = await adminManager.getUsersPaginated();
 
-            expect(result.users).toHaveLength(2);
-            expect(result.next_token).toBe("next");
+            expect(result.items).toHaveLength(2);
+            expect(result.nextToken).toBe("next");
         });
 
         it("should handle pagination parameters", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({ users: [] });
 
-            await adminManager.getUsers("from123", 50);
+            await adminManager.getUsersPaginated({ from: "from123", limit: 50 });
 
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
             const call = mockClient.http.authedRequest.mock.calls[0];
@@ -587,15 +587,15 @@ describe("AdminManager", () => {
                 ],
             });
 
-            const result = await adminManager.getRooms();
+            const result = await adminManager.getRoomsPaginated();
 
-            expect(result.rooms).toHaveLength(2);
+            expect(result.items).toHaveLength(2);
         });
 
         it("should handle search term", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({ rooms: [] });
 
-            await adminManager.getRooms(undefined, 10, "test");
+            await adminManager.getRoomsPaginated({ limit: 10, search: "test" });
 
             const call = mockClient.http.authedRequest.mock.calls[0];
             expect(call[2]).toHaveProperty("search_term", "test");
@@ -647,9 +647,9 @@ describe("AdminManager", () => {
 
         it("should have correct prototype methods", () => {
             const manager = new AdminManager({ http: { authedRequest: async () => ({}) } } as any);
-            expect(typeof manager.getUsers).toBe("function");
+            expect(typeof manager.getUsersPaginated).toBe("function");
             expect(typeof manager.getUser).toBe("function");
-            expect(typeof manager.getRooms).toBe("function");
+            expect(typeof manager.getRoomsPaginated).toBe("function");
         });
     });
 
@@ -689,7 +689,7 @@ describe("AdminManager", () => {
                 users: [],
             });
 
-            await adminManager.getUsers();
+            await adminManager.getUsersPaginated();
 
             const call = mockClient.http.authedRequest.mock.calls[0];
             const path = call[1];
@@ -787,8 +787,8 @@ describe("AdminManager", () => {
     describe("URL 拼接完整性", () => {
         it("所有 API 方法都应该传递正确的 prefix", async () => {
             const methodsToTest = [
-                { name: "getUsers", call: () => adminManager.getUsers(), expectedPrefix: "/_synapse/admin" },
-                { name: "getRooms", call: () => adminManager.getRooms(), expectedPrefix: "/_synapse/admin/v1" },
+                { name: "getUsersPaginated", call: () => adminManager.getUsersPaginated(), expectedPrefix: "/_synapse/admin" },
+                { name: "getRoomsPaginated", call: () => adminManager.getRoomsPaginated(), expectedPrefix: "/_synapse/admin/v1" },
                 { name: "getServerVersion", call: () => adminManager.getServerVersion(), expectedPrefix: "/_synapse/admin/v1" },
                 { name: "getServerStats", call: () => adminManager.getServerStats(), expectedPrefix: "/_synapse/admin/v1" },
             ];
@@ -810,7 +810,7 @@ describe("AdminManager", () => {
         it("authedRequest 应该接收正确数量的参数", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({ users: [] });
 
-            await adminManager.getUsers();
+            await adminManager.getUsersPaginated();
 
             const callArgs = mockClient.http.authedRequest.mock.calls[0];
             // method, path, queryParams, body, opts = 5 个参数

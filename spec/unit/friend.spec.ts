@@ -439,34 +439,19 @@ describe("FriendManager", () => {
         });
     });
 
-    describe("isFriend", () => {
-        it("should return true for cached friend", async () => {
-            mockAuthedRequest.mockResolvedValue({
-                friends: [{ user_id: "@bob:example.com", status: "normal" }],
-            });
+    describe("checkFriendship", () => {
+        it("should return true for a friend", async () => {
+            mockAuthedRequest.mockResolvedValue({ status: "normal" });
 
-            await friendManager.getFriends();
-
-            const result = await friendManager.isFriend("@bob:example.com");
+            const result = await friendManager.checkFriendship("@bob:example.com");
 
             expect(result).toBe(true);
-        });
-
-        it("should fetch friends if not in cache", async () => {
-            mockAuthedRequest.mockResolvedValue({
-                friends: [{ user_id: "@bob:example.com", status: "normal" }],
-            });
-
-            const result = await friendManager.isFriend("@bob:example.com");
-
-            expect(result).toBe(true);
-            expect(mockAuthedRequest).toHaveBeenCalled();
         });
 
         it("should return false for non-friend", async () => {
-            mockAuthedRequest.mockResolvedValue({ friends: [] });
+            mockAuthedRequest.mockResolvedValue({ status: "none" });
 
-            const result = await friendManager.isFriend("@bob:example.com");
+            const result = await friendManager.checkFriendship("@bob:example.com");
 
             expect(result).toBe(false);
         });
@@ -582,7 +567,7 @@ describe("FriendManager", () => {
             });
 
             await friendManager.getFriends();
-            await friendManager.isFriend("@bob:example.com");
+            await friendManager.checkFriendship("@bob:example.com");
 
             const stats = friendManager.getCacheStats();
 

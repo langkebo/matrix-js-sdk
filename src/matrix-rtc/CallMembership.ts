@@ -355,10 +355,6 @@ export class CallMembership {
         }
     }
 
-    /** @deprecated use userId instead */
-    public get sender(): string {
-        return this.userId;
-    }
     public get userId(): string {
         const { kind, data } = this.membershipData;
         switch (kind) {
@@ -485,25 +481,6 @@ export class CallMembership {
                 return { "type": data.application, "m.call.intent": data["m.call.intent"] };
         }
     }
-
-    /** @deprecated scope is not used and will be removed in future versions. replaced by application specific types.*/
-    public get scope(): CallScope | undefined {
-        const { kind, data } = this.membershipData;
-        switch (kind) {
-            case "rtc":
-                return undefined;
-            case "session":
-            default:
-                return data.scope;
-        }
-    }
-    /**
-     * @deprecated renamed to `memberId`
-     */
-    public get membershipID(): string {
-        return this.memberId;
-    }
-
     /**
      * This computes the membership ID for the membership.
      * For the sticky event based rtcSessionData this is trivial it is `member.id`.
@@ -628,16 +605,6 @@ export class CallMembership {
                         break;
                 }
         }
-        return undefined;
-    }
-
-    /**
-     * The focus_active filed of the session membership (m.call.member).
-     * @deprecated focus_active is not used and will be removed in future versions.
-     */
-    public getFocusActive(): LivekitFocusSelection | undefined {
-        const { kind, data } = this.membershipData;
-        if (kind === "session") return data.focus_active;
         return undefined;
     }
     /**

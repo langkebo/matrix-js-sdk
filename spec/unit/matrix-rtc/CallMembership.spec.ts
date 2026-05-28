@@ -151,8 +151,8 @@ describe("CallMembership", () => {
         });
         describe("correct values from computed fields", () => {
             const membership = createCallMembership(makeMockEvent(), membershipTemplate);
-            it("returns correct sender", () => {
-                expect(membership.sender).toBe("@alice:example.org");
+            it("returns correct userId", () => {
+                expect(membership.userId).toBe("@alice:example.org");
             });
             it("returns correct eventId", () => {
                 expect(membership.eventId).toBe("$eventid");
@@ -200,11 +200,8 @@ describe("CallMembership", () => {
             it("returns correct applicationData", () => {
                 expect(membership.applicationData).toStrictEqual({ "type": "m.call", "m.call.intent": "voice" });
             });
-            it("returns correct scope", () => {
-                expect(membership.scope).toBe("m.room");
-            });
-            it("returns correct membershipID", () => {
-                expect(membership.membershipID).toBe("@alice:example.org:AAAAAAA");
+            it("returns correct memberId", () => {
+                expect(membership.memberId).toBe("@alice:example.org:AAAAAAA");
             });
             it("returns correct unused fields", () => {
                 expect(membership.getAbsoluteExpiry()).toBe(DEFAULT_EXPIRE_DURATION);
@@ -354,8 +351,8 @@ describe("CallMembership", () => {
         });
         describe("correct values from computed fields", () => {
             const membership = createCallMembership(makeMockEvent(), membershipTemplate);
-            it("returns correct sender", () => {
-                expect(membership.sender).toBe("@alice:example.org");
+            it("returns correct userId", () => {
+                expect(membership.userId).toBe("@alice:example.org");
             });
             it("returns correct eventId", () => {
                 expect(membership.eventId).toBe("$eventid");
@@ -380,11 +377,8 @@ describe("CallMembership", () => {
                     "m.call.intent": "voice",
                 });
             });
-            it("returns correct scope", () => {
-                expect(membership.scope).toBe(undefined);
-            });
-            it("returns correct membershipID", () => {
-                expect(membership.membershipID).toBe("xyzHASHxyz");
+            it("returns correct memberId", () => {
+                expect(membership.memberId).toBe("xyzHASHxyz");
             });
             it("returns correct unused fields", () => {
                 expect(membership.getAbsoluteExpiry()).toBe(undefined);

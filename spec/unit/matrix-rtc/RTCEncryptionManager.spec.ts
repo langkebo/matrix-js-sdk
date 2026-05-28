@@ -113,7 +113,7 @@ describe("RTCEncryptionManager", () => {
                 expect.any(String),
                 // It is the first key
                 0,
-                members.map((m) => ({ userId: m.sender, deviceId: m.deviceId, membershipTs: m.createdTs() })),
+                members.map((m) => ({ userId: m.userId, deviceId: m.deviceId, membershipTs: m.createdTs() })),
             );
             await vi.runOnlyPendingTimersAsync();
             // The key should have been rolled out immediately
@@ -201,7 +201,7 @@ describe("RTCEncryptionManager", () => {
                 expect.any(String),
                 // It is the first key
                 0,
-                members.map((m) => ({ userId: m.sender, deviceId: m.deviceId, membershipTs: m.createdTs() })),
+                members.map((m) => ({ userId: m.userId, deviceId: m.deviceId, membershipTs: m.createdTs() })),
             );
             onEncryptionKeysChanged.mockClear();
             mockTransport.sendKey.mockClear();
@@ -368,7 +368,7 @@ describe("RTCEncryptionManager", () => {
                     0,
                     // And send it to the new joiners only
                     expect.arrayContaining([
-                        expect.objectContaining({ userId: newJoiner.sender, deviceId: newJoiner.deviceId }),
+                        expect.objectContaining({ userId: newJoiner.userId, deviceId: newJoiner.deviceId }),
                     ]),
                 );
             }
@@ -425,7 +425,7 @@ describe("RTCEncryptionManager", () => {
                 expect.any(String),
                 // It is the first key
                 0,
-                members.map((m) => ({ userId: m.sender, deviceId: m.deviceId, membershipTs: m.createdTs() })),
+                members.map((m) => ({ userId: m.userId, deviceId: m.deviceId, membershipTs: m.createdTs() })),
             );
             // initial rollout
             expect(mockTransport.sendKey).toHaveBeenCalled();
@@ -447,7 +447,7 @@ describe("RTCEncryptionManager", () => {
                 // It should have incremented the key index
                 1,
                 // And send it to the updated members
-                updatedMembers.map((m) => ({ userId: m.sender, deviceId: m.deviceId, membershipTs: m.createdTs() })),
+                updatedMembers.map((m) => ({ userId: m.userId, deviceId: m.deviceId, membershipTs: m.createdTs() })),
             );
 
             expect(onEncryptionKeysChanged).not.toHaveBeenCalled();

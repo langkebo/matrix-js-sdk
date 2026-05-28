@@ -191,7 +191,7 @@ export type Statistics = {
 };
 
 export const isMyMembership = (m: CallMembership, userId: string, deviceId: string): boolean =>
-    m.sender === userId && m.deviceId === deviceId;
+    m.userId === userId && m.deviceId === deviceId;
 
 /**
  *  A RTC transport is a JSON object that describes how to connect to a RTC member.

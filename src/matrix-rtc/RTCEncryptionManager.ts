@@ -340,11 +340,11 @@ export class RTCEncryptionManager implements IEncryptionManager {
         // get current memberships
         const toShareWith: ParticipantDeviceInfo[] = this.getMemberships()
             .filter((membership) => {
-                return membership.sender != undefined;
+                return membership.userId != undefined;
             })
             .map((membership) => {
                 return {
-                    userId: membership.sender!,
+                    userId: membership.userId!,
                     deviceId: membership.deviceId,
                     membershipTs: membership.createdTs(),
                 };

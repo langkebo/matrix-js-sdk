@@ -275,11 +275,6 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 
     // ----- 用户管理（委托 → users） -----
 
-    /** @deprecated Use {@link getUsersPaginated} for consistent pagination format */
-    async getUsers(from?: string, limit?: number): Promise<{ users: AdminAccountDetails[]; next_token?: string; total?: number }> {
-        return this.users.getUsers(from, limit);
-    }
-
     async getUsersPaginated(options?: { from?: string; limit?: number }): Promise<PaginatedResponse<AdminAccountDetails>> {
         return this.users.getUsersPaginated(options);
     }
@@ -295,9 +290,8 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.createUser(userId, options);
     }
 
-    /** @deprecated `erase` 参数当前被后端忽略，仅保留签名稳定性 */
-    async deactivateUser(userId: string, _erase?: boolean): Promise<void> {
-        return this.users.deactivateUser(userId, _erase);
+    async deactivateUser(userId: string): Promise<void> {
+        return this.users.deactivateUser(userId);
     }
 
     async deleteUser(userId: string): Promise<void> {
@@ -491,17 +485,6 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
     }
 
     // ----- 房间管理（委托 → rooms） -----
-
-    /** @deprecated Use {@link getRoomsPaginated} for consistent pagination format */
-    async getRooms(
-        from?: string,
-        limit?: number,
-        search?: string,
-        order_by?: string,
-        sort_order?: "asc" | "desc",
-    ): Promise<{ rooms: RoomInfo[]; next_token?: string; total?: number }> {
-        return this.rooms.getRooms(from, limit, search, order_by, sort_order);
-    }
 
     async getRoomsPaginated(options?: {
         from?: string;

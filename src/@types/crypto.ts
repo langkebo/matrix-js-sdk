@@ -15,12 +15,6 @@ limitations under the License.
 */
 
 import type { ISignatures } from "./signed";
-import type { EventDecryptionResult } from "../common-crypto/CryptoBackend";
-
-// Backwards compatible re-export
-/** @deprecated This is an internal type and should not be used. */
-type IEventDecryptionResult = EventDecryptionResult;
-export type { IEventDecryptionResult };
 
 interface Extensible {
     [key: string]: unknown;

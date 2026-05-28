@@ -27,7 +27,6 @@ import { logger } from "../../../src/logger";
 import {
     completeAuthorizationCodeGrant,
     generateAuthorizationParams,
-    generateAuthorizationUrl,
     generateOidcAuthorizationUrl,
 } from "../../../src/oidc/authorize";
 import { OidcError } from "../../../src/oidc/error";
@@ -76,42 +75,6 @@ describe("oidc authorization", () => {
         expect(result.scope.startsWith(expectedScope)).toBeTruthy();
         // deviceId of 10 characters is appended to the device scope
         expect(result.scope.length).toEqual(expectedScope.length + 10);
-    });
-
-    describe("generateAuthorizationUrl()", () => {
-        it("should generate url with correct parameters", async () => {
-            const authorizationParams = generateAuthorizationParams({ redirectUri: baseUrl });
-            authorizationParams.codeVerifier = "test-code-verifier";
-            const authUrl = new URL(
-                await generateAuthorizationUrl(authorizationEndpoint, clientId, authorizationParams),
-            );
-
-            expect(authUrl.searchParams.get("response_mode")).toEqual("query");
-            expect(authUrl.searchParams.get("response_type")).toEqual("code");
-            expect(authUrl.searchParams.get("client_id")).toEqual(clientId);
-            expect(authUrl.searchParams.get("code_challenge_method")).toEqual("S256");
-            expect(authUrl.searchParams.get("scope")).toEqual(authorizationParams.scope);
-            expect(authUrl.searchParams.get("state")).toEqual(authorizationParams.state);
-            expect(authUrl.searchParams.get("nonce")).toEqual(authorizationParams.nonce);
-            expect(authUrl.searchParams.get("code_challenge")).toEqual("0FLIKahrX7kqxncwhV5WD82lu_wi5GA8FsRSLubaOpU");
-        });
-
-        it("should log a warning if crypto is not available", async () => {
-            // test the no crypto case here
-            // @ts-ignore mocking
-            globalThis.crypto.subtle = undefined;
-
-            const authorizationParams = generateAuthorizationParams({ redirectUri: baseUrl });
-            const authUrl = new URL(
-                await generateAuthorizationUrl(authorizationEndpoint, clientId, authorizationParams),
-            );
-
-            // crypto not available, plain text code_challenge is used
-            expect(authUrl.searchParams.get("code_challenge")).toEqual(authorizationParams.codeVerifier);
-            expect(logger.warn).toHaveBeenCalledWith(
-                "A secure context is required to generate code challenge. Using plain text code challenge",
-            );
-        });
     });
 
     describe("generateOidcAuthorizationUrl()", () => {

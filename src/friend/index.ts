@@ -723,7 +723,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
      * @example
      * ```typescript
      * // 检查是否为好友
-     * const isFriend = await friendManager.isFriend("@alice:example.com");
+     * const isFriend = await friendManager.checkFriendship("@alice:example.com");
      * if (isFriend) {
      *     console.log("Already friends");
      * } else {
@@ -733,21 +733,6 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
      *
      * @throws {ValidationError} 如果用户 ID 格式无效
      */
-    /**
-     * @deprecated 使用 {@link checkFriendship}（单次 GET `/friends/check/{id}`）。
-     * `isFriend` 需要先拉整张好友列表，代价高。保留兼容性，不会被删除。
-     */
-    async isFriend(userId: string): Promise<boolean> {
-        logger.warn("FriendManager.isFriend() is deprecated, use checkFriendship() instead");
-        AdminValidators.validateUserId(userId);
-        if (this.friends.has(userId)) {
-            return true;
-        }
-
-        await this.getFriends();
-        return this.friends.has(userId);
-    }
-
     /**
      * 本地缓存快速命中检查（仅在已同步的缓存上工作，不触发网络请求）
      */

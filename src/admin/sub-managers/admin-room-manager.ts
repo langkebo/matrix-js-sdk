@@ -70,36 +70,6 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     /**
      * 获取房间列表（支持分页）
      *
-     * @param from - 分页起点 token
-     * @param limit - 返回房间数量限制
-     * @param search - 房间名称或别名搜索关键词
-     * @param order_by - 排序字段 (e.g., "name", "joined_members")
-     * @param sort_order - 排序顺序 ("asc" 或 "desc")
-     * @returns 房间列表和下一页 token
-     *
-     * @deprecated Use {@link getRoomsPaginated} for consistent pagination format
-     */
-    async getRooms(
-        from?: string,
-        limit?: number,
-        search?: string,
-        order_by?: string,
-        sort_order?: "asc" | "desc",
-    ): Promise<{ rooms: RoomInfo[]; next_token?: string; total?: number }> {
-        const paginated = await this.getRoomsPaginated({
-            from,
-            limit,
-            search,
-            order_by,
-            sort_order,
-        });
-        return {
-            rooms: paginated.items,
-            next_token: paginated.nextToken,
-            total: paginated.total,
-        };
-    }
-
     /**
      * 获取房间列表（统一分页格式）
      *

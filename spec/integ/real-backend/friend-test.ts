@@ -93,8 +93,8 @@ async function main(): Promise<void> {
     });
 
     // 3.7 检查是否是好友
-    await runTest("isFriend - 检查是否是好友", async () => {
-        const isFriend = await friendManager.isFriend(TestConfig.secondaryUser.userId);
+    await runTest("checkFriendship - 检查是否是好友", async () => {
+        const isFriend = await friendManager.checkFriendship(TestConfig.secondaryUser.userId);
         console.log(`      是否是好友: ${isFriend}`);
     });
 

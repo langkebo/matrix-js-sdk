@@ -22,7 +22,7 @@ describe("types", () => {
         it("returns false if userId is different", () => {
             expect(
                 isMyMembership(
-                    { sender: "@alice:example.org", deviceId: "DEVICE" } as CallMembership,
+                    { userId: "@alice:example.org", deviceId: "DEVICE" } as unknown as CallMembership,
                     "@bob:example.org",
                     "DEVICE",
                 ),
@@ -31,7 +31,7 @@ describe("types", () => {
         it("returns true if userId and device is the same", () => {
             expect(
                 isMyMembership(
-                    { sender: "@alice:example.org", deviceId: "DEVICE" } as CallMembership,
+                    { userId: "@alice:example.org", deviceId: "DEVICE" } as unknown as CallMembership,
                     "@alice:example.org",
                     "DEVICE",
                 ),

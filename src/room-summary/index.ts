@@ -372,7 +372,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             if (throwOnError) {
                 throw this.normalizeError(e, "getRoomSummary");
             }
-            this.handleError("getRoomSummary", e);
+            const sdkError = this.normalizeError(e, "getRoomSummary");
+            logger.warn(sdkError.message);
+            this.emit(RoomSummaryEvent.Error, sdkError);
             return null;
         }
     }
@@ -1067,15 +1069,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         };
     }
 
-    /**
-     * 处理错误（保留用于向后兼容，但建议使用 normalizeError）
-     * @deprecated 使用 normalizeError 替代
-     */
-    private handleError(method: string, error: unknown): void {
-        const sdkError = this.normalizeError(error, method);
-        logger.warn(sdkError.message);
-        this.emit(RoomSummaryEvent.Error, sdkError);
-    }
 }
 
 // Type declaration for MatrixClient extension

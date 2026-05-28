@@ -37,7 +37,7 @@ describe("AdminManager - Extended Tests", () => {
             mockClient.http.authedRequest.mockResolvedValue();
 
             const emitSpy = vi.spyOn(adminManager, "emit");
-            await adminManager.deactivateUser("@user:example.com", true);
+            await adminManager.deactivateUser("@user:example.com");
 
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
             expect(emitSpy).toHaveBeenCalledWith(AdminEvent.UserDeactivated, "@user:example.com");
