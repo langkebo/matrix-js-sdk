@@ -17,6 +17,154 @@ limitations under the License.
 /** Dynamic configuration object — structure varies by module/provider */
 export type DynamicConfig = Record<string, unknown>;
 
+// Room operation payloads
+export interface AdminReasonPayload {
+    reason?: string;
+}
+
+export interface AdminBanKickPayload {
+    user_id?: string;
+    reason?: string;
+}
+
+export interface AdminMakeRoomAdminPayload {
+    user_id?: string;
+}
+
+export interface RoomSearchPayload {
+    search_term?: string;
+    limit?: number;
+    order_by?: string;
+    from?: number;
+    direction?: "f" | "b";
+    [key: string]: unknown;
+}
+
+export interface RoomDeletePayload {
+    block?: boolean;
+    purge?: boolean;
+    force_purge?: boolean;
+    reason?: string;
+    [key: string]: unknown;
+}
+
+export interface PurgeHistoryPayload {
+    purge_up_to_event_id?: string;
+    purge_up_to_ts?: number;
+    delete_local_events?: boolean;
+    [key: string]: unknown;
+}
+
+export interface RoomEventSearchPayload {
+    search_term?: string;
+    filter?: Record<string, unknown>;
+    limit?: number;
+    [key: string]: unknown;
+}
+
+export interface SpaceStats {
+    joined_members: number;
+    rooms_count: number;
+    [key: string]: unknown;
+}
+
+// User payloads
+export interface AdminToken {
+    id: number;
+    device_id: string;
+    user_id: string;
+    name?: string;
+    [key: string]: unknown;
+}
+
+export interface AdminRefreshToken {
+    id: number;
+    user_id: string;
+    device_id: string;
+    token: string;
+    [key: string]: unknown;
+}
+
+export interface AdminLogoutRequest {
+    devices?: string[];
+    revoke_all?: boolean;
+}
+
+export interface AdminEvictRequest {
+    reason?: string;
+}
+
+export interface DeactivateUserResponse {
+    id_server_unbind_result?: string;
+}
+
+// Server payloads
+export interface AdminRegisterRequest {
+    username: string;
+    password: string;
+    nonce?: string;
+    admin?: boolean;
+    displayname?: string;
+    [key: string]: unknown;
+}
+
+export interface PurgeHistoryRequest {
+    room_id?: string;
+    purge_up_to_event_id?: string;
+    purge_up_to_ts?: number;
+    delete_local_events?: boolean;
+    [key: string]: unknown;
+}
+
+export interface ShutdownRoomRequest {
+    room_id: string;
+    new_room_name?: string;
+    new_room_topic?: string;
+    message?: string;
+    block?: boolean;
+    purge?: boolean;
+    force_purge?: boolean;
+    [key: string]: unknown;
+}
+
+export interface CleanupRoomsRequest {
+    room_id?: string;
+    [key: string]: unknown;
+}
+
+// Config payloads
+export interface FeatureFlagUpdatePayload {
+    target_scope?: string;
+    rollout_percent?: number;
+    [key: string]: unknown;
+}
+
+export interface AuditEventCreateRequest {
+    action: string;
+    target_type?: string;
+    target_id?: string;
+    actor_id?: string;
+    resource_type?: string;
+    resource_id?: string;
+    result?: string;
+    request_id?: string;
+    details?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface AccountValidityRequest {
+    user_id: string;
+    expiration_ts?: number;
+    enable_renewal_emails?: boolean;
+    [key: string]: unknown;
+}
+
+export interface AccountValidityRenewRequest {
+    expiration_ts?: number;
+    enable_renewal_emails?: boolean;
+    [key: string]: unknown;
+}
+
 export interface LoginWellKnown {
     /** The homeserver's base URL */
     "m.homeserver"?: { base_url: string };

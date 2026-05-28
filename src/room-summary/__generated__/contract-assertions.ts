@@ -6,10 +6,10 @@
 
 import { ROOM_SUMMARY_ROUTES } from "./route-table";
 
-export const ROOM_SUMMARY_ROUTES_ENTRY_COUNT = 23 as const;
+export const ROOM_SUMMARY_ROUTES_ENTRY_COUNT = 24 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _RoomSummaryEntryCountAssertion: 23 = ROOM_SUMMARY_ROUTES.length;
+const _RoomSummaryEntryCountAssertion: 24 = ROOM_SUMMARY_ROUTES.length;
 void _RoomSummaryEntryCountAssertion;
 
 export const ROOM_SUMMARY_ROUTES_STATUS_SCENARIOS = [

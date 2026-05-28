@@ -126,6 +126,27 @@ import {
     type AdminEvictResponse,
     type UserSession,
     type DynamicConfig,
+    type RoomSearchPayload,
+    type RoomDeletePayload,
+    type PurgeHistoryPayload,
+    type AdminReasonPayload,
+    type AdminBanKickPayload,
+    type AdminMakeRoomAdminPayload,
+    type RoomEventSearchPayload,
+    type SpaceStats,
+    type AdminToken,
+    type AdminRefreshToken,
+    type AdminLogoutRequest,
+    type AdminEvictRequest,
+    type DeactivateUserResponse,
+    type AdminRegisterRequest,
+    type PurgeHistoryRequest,
+    type ShutdownRoomRequest,
+    type CleanupRoomsRequest,
+    type FeatureFlagUpdatePayload,
+    type AuditEventCreateRequest,
+    type AccountValidityRequest,
+    type AccountValidityRenewRequest,
 } from "./types";
 
 // 子 Manager 导入
@@ -297,7 +318,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.deleteUserDevice(userId, deviceId);
     }
 
-    async getUserTokens(userId: string): Promise<{ tokens: Record<string, unknown>[] }> {
+    async getUserTokens(userId: string): Promise<{ tokens: AdminToken[] }> {
         return this.users.getUserTokens(userId);
     }
 
@@ -305,7 +326,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.deleteUserToken(userId, tokenId);
     }
 
-    async getUserRefreshTokens(userId: string): Promise<{ refresh_tokens: Record<string, unknown>[] }> {
+    async getUserRefreshTokens(userId: string): Promise<{ refresh_tokens: AdminRefreshToken[] }> {
         return this.users.getUserRefreshTokens(userId);
     }
 
@@ -337,11 +358,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.loginAsUser(userId, payload);
     }
 
-    async logoutUser(userId: string, payload?: Record<string, unknown>): Promise<AdminLogoutResponse> {
+    async logoutUser(userId: string, payload?: AdminLogoutRequest): Promise<AdminLogoutResponse> {
         return this.users.logoutUser(userId, payload);
     }
 
-    async evictUser(userId: string, payload?: Record<string, unknown>): Promise<AdminEvictResponse> {
+    async evictUser(userId: string, payload?: AdminEvictRequest): Promise<AdminEvictResponse> {
         return this.users.evictUser(userId, payload);
     }
 
@@ -451,7 +472,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.whoisSynapseUser(userId);
     }
 
-    async deactivateSynapseUser(userId: string): Promise<Record<string, unknown>> {
+    async deactivateSynapseUser(userId: string): Promise<DeactivateUserResponse> {
         return this.users.deactivateSynapseUser(userId);
     }
 
@@ -482,7 +503,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.searchRooms(options);
     }
 
-    async searchRoomsPost(payload: Record<string, unknown>): Promise<AdminRoomSearchResult> {
+    async searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchResult> {
         return this.rooms.searchRoomsPost(payload);
     }
 
@@ -499,11 +520,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.deleteRoom(roomId, blockOrOptions, purge, reason);
     }
 
-    async deleteRoomAdmin(roomId: string, payload?: Record<string, unknown>): Promise<void> {
+    async deleteRoomAdmin(roomId: string, payload?: RoomDeletePayload): Promise<void> {
         return this.rooms.deleteRoomAdmin(roomId, payload);
     }
 
-    async purgeRoomHistory(roomId: string, payload?: Record<string, unknown>): Promise<AdminPurgeHistoryResult> {
+    async purgeRoomHistory(roomId: string, payload?: PurgeHistoryPayload): Promise<AdminPurgeHistoryResult> {
         return this.rooms.purgeRoomHistory(roomId, payload);
     }
 
@@ -511,7 +532,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.blockRoom(roomId, block, reason);
     }
 
-    async unblockRoom(roomId: string, payload?: Record<string, unknown>): Promise<void> {
+    async unblockRoom(roomId: string, payload?: AdminReasonPayload): Promise<void> {
         return this.rooms.unblockRoom(roomId, payload);
     }
 
@@ -519,7 +540,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.getRoomMembers(roomId);
     }
 
-    async addRoomMember(roomId: string, userId: string, payload?: Record<string, unknown>): Promise<void> {
+    async addRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         return this.rooms.addRoomMember(roomId, userId, payload);
     }
 
@@ -527,27 +548,27 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.removeRoomMember(roomId, userId);
     }
 
-    async banRoomMember(roomId: string, userId: string, payload?: Record<string, unknown>): Promise<void> {
+    async banRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         return this.rooms.banRoomMember(roomId, userId, payload);
     }
 
-    async kickRoomMember(roomId: string, userId: string, payload?: Record<string, unknown>): Promise<void> {
+    async kickRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         return this.rooms.kickRoomMember(roomId, userId, payload);
     }
 
-    async unbanRoomMember(roomId: string, userId: string, payload?: Record<string, unknown>): Promise<void> {
+    async unbanRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         return this.rooms.unbanRoomMember(roomId, userId, payload);
     }
 
-    async banRoom(roomId: string, payload: Record<string, unknown>): Promise<void> {
+    async banRoom(roomId: string, payload: AdminBanKickPayload): Promise<void> {
         return this.rooms.banRoom(roomId, payload);
     }
 
-    async kickRoom(roomId: string, payload: Record<string, unknown>): Promise<void> {
+    async kickRoom(roomId: string, payload: AdminBanKickPayload): Promise<void> {
         return this.rooms.kickRoom(roomId, payload);
     }
 
-    async makeRoomAdmin(roomId: string, payload: Record<string, unknown>): Promise<void> {
+    async makeRoomAdmin(roomId: string, payload: AdminMakeRoomAdminPayload): Promise<void> {
         return this.rooms.makeRoomAdmin(roomId, payload);
     }
 
@@ -591,7 +612,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.getRoomTokenSync(roomId);
     }
 
-    async searchRoomEvents(roomId: string, payload: Record<string, unknown>): Promise<AdminRoomSearchResult> {
+    async searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomSearchResult> {
         return this.rooms.searchRoomEvents(roomId, payload);
     }
 
@@ -655,7 +676,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.getSpaceRooms(spaceId, from, limit);
     }
 
-    async getSpaceStats(spaceId: string): Promise<Record<string, unknown>> {
+    async getSpaceStats(spaceId: string): Promise<SpaceStats> {
         return this.rooms.getSpaceStats(spaceId);
     }
 
@@ -768,7 +789,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.server.getRegisterNonce();
     }
 
-    async registerAdmin(payload: Record<string, unknown>): Promise<AdminRegisterResult> {
+    async registerAdmin(payload: AdminRegisterRequest): Promise<AdminRegisterResult> {
         return this.server.registerAdmin(payload);
     }
 
@@ -784,15 +805,15 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.server.getExperimentalFeatures();
     }
 
-    async purgeRoom(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async purgeRoom(payload: { room_id: string }): Promise<Record<string, unknown>> {
         return this.server.purgeRoom(payload);
     }
 
-    async purgeHistory(payload: Record<string, unknown>): Promise<AdminPurgeHistoryResult> {
+    async purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult> {
         return this.server.purgeHistory(payload);
     }
 
-    async shutdownRoom(payload: Record<string, unknown>): Promise<AdminShutdownRoomResult> {
+    async shutdownRoom(payload: ShutdownRoomRequest): Promise<AdminShutdownRoomResult> {
         return this.server.shutdownRoom(payload);
     }
 
@@ -800,7 +821,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.server.cleanupAll();
     }
 
-    async cleanupRooms(payload?: Record<string, unknown>): Promise<AdminCleanupResponse> {
+    async cleanupRooms(payload?: CleanupRoomsRequest): Promise<AdminCleanupResponse> {
         return this.server.cleanupRooms(payload);
     }
 
@@ -993,7 +1014,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.listFeatureFlags(options);
     }
 
-    async updateFeatureFlag(flagId: string, payload: Record<string, unknown>): Promise<FeatureFlag> {
+    async updateFeatureFlag(flagId: string, payload: FeatureFlagUpdatePayload): Promise<FeatureFlag> {
         return this.config.updateFeatureFlag(flagId, payload);
     }
 
@@ -1057,7 +1078,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getRegistrationToken(token);
     }
 
-    async createAccountValidity(payload: Record<string, unknown>): Promise<AdminAccountValidityInfo> {
+    async createAccountValidity(payload: AccountValidityRequest): Promise<AdminAccountValidityInfo> {
         return this.config.createAccountValidity(payload);
     }
 
@@ -1065,7 +1086,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getAccountValidity(userId);
     }
 
-    async renewAccountValidity(userId: string, payload: Record<string, unknown>): Promise<AdminAccountValidityInfo> {
+    async renewAccountValidity(userId: string, payload: AccountValidityRenewRequest): Promise<AdminAccountValidityInfo> {
         return this.config.renewAccountValidity(userId, payload);
     }
 
@@ -1133,7 +1154,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getAuditEvent(eventId);
     }
 
-    async createAuditEvent(payload: Record<string, unknown>): Promise<AuditEvent> {
+    async createAuditEvent(payload: AuditEventCreateRequest): Promise<AuditEvent> {
         return this.config.createAuditEvent(payload);
     }
 

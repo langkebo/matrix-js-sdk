@@ -50,6 +50,10 @@ import type {
     AdminReport,
     AdminReportPage,
     DynamicConfig,
+    FeatureFlagUpdatePayload,
+    AuditEventCreateRequest,
+    AccountValidityRequest,
+    AccountValidityRenewRequest,
 } from "../types";
 import type { MatrixClient } from "../../client";
 
@@ -175,7 +179,7 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, "/feature-flags", query);
     }
 
-    async updateFeatureFlag(flagId: string, payload: Record<string, unknown>): Promise<FeatureFlag> {
+    async updateFeatureFlag(flagId: string, payload: FeatureFlagUpdatePayload): Promise<FeatureFlag> {
         return await this.adminRequest(Method.Patch, `/feature-flags/${encodeURIComponent(flagId)}`, {}, payload);
     }
 
@@ -259,7 +263,7 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, `/audit/events/${encodeURIComponent(eventId)}`);
     }
 
-    async createAuditEvent(payload: Record<string, unknown>): Promise<AuditEvent> {
+    async createAuditEvent(payload: AuditEventCreateRequest): Promise<AuditEvent> {
         return await this.adminRequest(Method.Post, "/audit/events", {}, payload);
     }
 
@@ -313,7 +317,7 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Account Validity =====
 
-    async createAccountValidity(payload: Record<string, unknown>): Promise<AdminAccountValidityInfo> {
+    async createAccountValidity(payload: AccountValidityRequest): Promise<AdminAccountValidityInfo> {
         return await this.adminRequest(Method.Post, "/account_validity", {}, payload);
     }
 
@@ -321,7 +325,7 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, `/account_validity/${encodeURIComponent(userId)}`);
     }
 
-    async renewAccountValidity(userId: string, payload: Record<string, unknown>): Promise<AdminAccountValidityInfo> {
+    async renewAccountValidity(userId: string, payload: AccountValidityRenewRequest): Promise<AdminAccountValidityInfo> {
         return await this.adminRequest(Method.Post, `/account_validity/${encodeURIComponent(userId)}/renew`, {}, payload);
     }
 

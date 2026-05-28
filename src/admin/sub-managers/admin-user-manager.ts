@@ -21,7 +21,7 @@ import { logger } from "../../logger";
 import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
-import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession } from "../types";
+import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, DeactivateUserResponse } from "../types";
 import { MatrixClient } from "../../client";
 
 export enum AdminUserEvent {
@@ -276,9 +276,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         }
     }
 
-    async getUserTokens(userId: string): Promise<{ tokens: Record<string, unknown>[] }> {
+    async getUserTokens(userId: string): Promise<{ tokens: AdminToken[] }> {
         AdminValidators.validateUserId(userId);
-        const response = await this.adminRequest<{ tokens?: Record<string, unknown>[] }>(
+        const response = await this.adminRequest<{ tokens?: AdminToken[] }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/tokens`,
         );
@@ -294,9 +294,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
     }
 
-    async getUserRefreshTokens(userId: string): Promise<{ refresh_tokens: Record<string, unknown>[] }> {
+    async getUserRefreshTokens(userId: string): Promise<{ refresh_tokens: AdminRefreshToken[] }> {
         AdminValidators.validateUserId(userId);
-        const response = await this.adminRequest<{ refresh_tokens?: Record<string, unknown>[] }>(
+        const response = await this.adminRequest<{ refresh_tokens?: AdminRefreshToken[] }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/refresh_tokens`,
         );
@@ -343,12 +343,12 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/login`, {}, payload ?? {});
     }
 
-    async logoutUser(userId: string, payload?: Record<string, unknown>): Promise<AdminLogoutResponse> {
+    async logoutUser(userId: string, payload?: AdminLogoutRequest): Promise<AdminLogoutResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/logout`, {}, payload ?? {});
     }
 
-    async evictUser(userId: string, payload?: Record<string, unknown>): Promise<AdminEvictResponse> {
+    async evictUser(userId: string, payload?: AdminEvictRequest): Promise<AdminEvictResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/evict`, {}, payload ?? {});
     }
@@ -622,7 +622,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * @param userId - the User ID to deactivate.
      * @returns the deactivate response - see Synapse docs for information.
      */
-    async deactivateSynapseUser(userId: string): Promise<Record<string, unknown>> {
+    async deactivateSynapseUser(userId: string): Promise<DeactivateUserResponse> {
         const path = `/v1/deactivate/${encodeURIComponent(userId)}`;
         return this.client.http.authedRequest(Method.Post, path, undefined, undefined, {
             prefix: "/_synapse/admin",

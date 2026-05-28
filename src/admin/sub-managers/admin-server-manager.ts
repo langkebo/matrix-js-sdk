@@ -36,6 +36,10 @@ import type {
     AdminServerConfig,
     AdminInfoResponse,
     DynamicConfig,
+    AdminRegisterRequest,
+    PurgeHistoryRequest,
+    ShutdownRoomRequest,
+    CleanupRoomsRequest,
 } from "../types";
 import { MatrixClient } from "../../client";
 
@@ -382,7 +386,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 注册信息
      * @returns 注册结果
      */
-    async registerAdmin(payload: Record<string, unknown>): Promise<AdminRegisterResult> {
+    async registerAdmin(payload: AdminRegisterRequest): Promise<AdminRegisterResult> {
         return await this.adminRequest(Method.Post, "/register", {}, payload);
     }
 
@@ -438,7 +442,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 清除选项
      * @returns 清除结果
      */
-    async purgeRoom(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async purgeRoom(payload: { room_id: string }): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/purge_room", {}, payload);
     }
 
@@ -448,7 +452,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 清除选项
      * @returns 清除结果
      */
-    async purgeHistory(payload: Record<string, unknown>): Promise<AdminPurgeHistoryResult> {
+    async purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult> {
         return await this.adminRequest(Method.Post, "/purge_history", {}, payload);
     }
 
@@ -458,7 +462,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 关闭选项
      * @returns 关闭结果
      */
-    async shutdownRoom(payload: Record<string, unknown>): Promise<AdminShutdownRoomResult> {
+    async shutdownRoom(payload: ShutdownRoomRequest): Promise<AdminShutdownRoomResult> {
         return await this.adminRequest(Method.Post, "/shutdown_room", {}, payload);
     }
 
@@ -486,7 +490,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 清理选项
      * @returns 清理结果
      */
-    async cleanupRooms(payload?: Record<string, unknown>): Promise<AdminCleanupResponse> {
+    async cleanupRooms(payload?: CleanupRoomsRequest): Promise<AdminCleanupResponse> {
         try {
             return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
         } catch (e) {
