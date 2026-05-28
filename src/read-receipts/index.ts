@@ -58,7 +58,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     public async sendReceipt(
         event: MatrixEvent,
         receiptType: ReceiptType,
-        body?: Record<string, unknown>,
+        body?: Record<string, unknown>, // Dynamic: receipt body may contain arbitrary keys like thread_id
         unthreaded = false,
     ): Promise<EmptyObject> {
         return sendReceiptRequest(this.client, {

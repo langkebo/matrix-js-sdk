@@ -18,6 +18,7 @@ import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../utils";
+import type { IContent } from "../../models/event";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type {
     RoomKeyClaimResult,
@@ -26,6 +27,7 @@ import type {
     RoomForwardKeysResult,
     EncryptedEventsResult,
 } from "../types";
+import type { ClaimKeysRequest } from "../../device-keys/index";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -51,7 +53,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      * @param body - 申领请求体
      * @returns 申领结果
      */
-    public async claimRoomKeys(roomId: string, body: Record<string, unknown>): Promise<RoomKeyClaimResult> {
+    public async claimRoomKeys(roomId: string, body: ClaimKeysRequest): Promise<RoomKeyClaimResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
             return await this.requestV3<RoomKeyClaimResult>(
@@ -102,7 +104,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      * @param body - 转发请求体
      * @returns 转发结果
      */
-    public async forwardRoomKeys(roomId: string, body: Record<string, unknown>): Promise<RoomForwardKeysResult> {
+    public async forwardRoomKeys(roomId: string, body: IContent): Promise<RoomForwardKeysResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
             return await this.requestV3<RoomForwardKeysResult>(

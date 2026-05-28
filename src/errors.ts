@@ -23,7 +23,7 @@ export enum InvalidCryptoStoreState {
 // Type-safe helpers to extract fields from unknown error causes without `as any`
 function extractStringField(cause: unknown, field: string): string | undefined {
     if (cause && typeof cause === "object" && field in cause) {
-        const value = (cause as Record<string, unknown>)[field];
+        const value = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */)[field];
         return typeof value === "string" ? value : undefined;
     }
     return undefined;
@@ -31,7 +31,7 @@ function extractStringField(cause: unknown, field: string): string | undefined {
 
 function extractNumberField(cause: unknown, field: string): number | undefined {
     if (cause && typeof cause === "object" && field in cause) {
-        const value = (cause as Record<string, unknown>)[field];
+        const value = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */)[field];
         return typeof value === "number" ? value : undefined;
     }
     return undefined;
@@ -39,9 +39,9 @@ function extractNumberField(cause: unknown, field: string): number | undefined {
 
 function extractNestedField(cause: unknown, parentField: string, childField: string): unknown {
     if (cause && typeof cause === "object" && parentField in cause) {
-        const parent = (cause as Record<string, unknown>)[parentField];
-        if (parent && typeof parent === "object" && childField in (parent as Record<string, unknown>)) {
-            return (parent as Record<string, unknown>)[childField];
+        const parent = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */)[parentField];
+        if (parent && typeof parent === "object" && childField in (parent as Record<string, unknown> /* Dynamic: nested error field */)) {
+            return (parent as Record<string, unknown> /* Dynamic: nested error field */)[childField];
         }
     }
     return undefined;
@@ -49,8 +49,8 @@ function extractNestedField(cause: unknown, parentField: string, childField: str
 
 function extractHeaderField(cause: unknown, headerName: string): string | undefined {
     if (cause && typeof cause === "object" && "httpHeaders" in cause) {
-        const headers = (cause as Record<string, unknown>).httpHeaders;
-        if (headers && typeof headers === "object" && "get" in (headers as Record<string, unknown>)) {
+        const headers = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */).httpHeaders;
+        if (headers && typeof headers === "object" && "get" in (headers as Record<string, unknown> /* Dynamic: httpHeaders shape is unknown */)) {
             return (headers as { get: (name: string) => string | null }).get(headerName) ?? undefined;
         }
     }

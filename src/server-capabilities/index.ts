@@ -292,10 +292,10 @@ export class ServerCapabilitiesManager extends BaseManager<
      * Requires homeserver support for MSC4143.
      * @throws A M_NOT_FOUND error if not supported by the homeserver.
      */
-    public async _unstable_getRTCTransports(): Promise<Record<string, unknown>[]> {
+    public async _unstable_getRTCTransports(): Promise<Record<string, unknown>[]> { // Dynamic: RTC transport configs vary by transport type
         return (
             await this.client.http.authedRequest<{
-                rtc_transports: Record<string, unknown>[];
+                rtc_transports: Record<string, unknown>[]; // Dynamic: RTC transport configs vary by transport type
             }>(Method.Get, "/rtc/transports", undefined, undefined, {
                 prefix: `${ClientPrefix.Unstable}/org.matrix.msc4143`,
             })

@@ -18,7 +18,7 @@ import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
-import type { MediaInfo } from "../types";
+import type { MediaInfo, MediaQuotaResponse } from "../types";
 import { MatrixClient } from "../../client";
 
 export class AdminMediaManager extends AdminBaseManager {
@@ -85,7 +85,7 @@ export class AdminMediaManager extends AdminBaseManager {
      *
      * @returns 媒体配额信息
      */
-    async getMediaQuota(): Promise<Record<string, unknown>> {
+    async getMediaQuota(): Promise<MediaQuotaResponse> {
         return await this.adminRequest(Method.Get, "/media/quota");
     }
 

@@ -13,6 +13,7 @@
 import type { MatrixClient } from "./client";
 import type { Room } from "./models/room";
 import type { MatrixEvent } from "./models/event";
+import type { IContent } from "./models/event";
 import type { RoomMember } from "./models/room-member";
 import type { ISendEventResponse, IRedactOpts } from "./@types/requests";
 import type { RoomAccountDataEvents } from "./@types/event";
@@ -27,8 +28,8 @@ import type { SyncApiOptions } from "./sync";
 
 // ============ 类型定义 ============
 
-/** User-Interactive Authentication data — structure varies by auth stage */
-export type UiaAuthData = Record<string, unknown>;
+/** User-Interactive Authentication data — structure varies by auth stage // Dynamic: shape depends on auth type (password, token, etc.) */
+export type UiaAuthData = IContent;
 
 /** OIDC UserInfo response — standard claims from OpenID Connect */
 export interface OidcUserInfo {
@@ -92,14 +93,14 @@ export interface ServerCapabilities {
     [key: string]: unknown;
 }
 
-/** Map of user_id → device_id → session_id indicating key sharing status */
-export type SharedWithUsersMap = Record<string, unknown>;
+/** Map of user_id → device_id → session_id indicating key sharing status // Dynamic: structure varies by crypto backend */
+export type SharedWithUsersMap = IContent;
 
-/** Widget data — structure varies by widget type */
-export type WidgetData = Record<string, unknown>;
+/** Widget data — structure varies by widget type // Dynamic: shape depends on widget */
+export type WidgetData = IContent;
 
-/** Map of device_id → device info for a user */
-export type UserDeviceMap = Record<string, unknown>;
+/** Map of device_id → device info for a user // Dynamic: device info structure varies */
+export type UserDeviceMap = Record<string, IContent>;
 
 /** Ephemeral event data (typing receipts, read receipts, etc.) */
 export type EphemeralEventData = import("./ephemeral/index").IEphemeralEventData;
@@ -131,20 +132,20 @@ export interface MatrixClientExtensionMethods {
     sendEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         txnId?: string,
     ): Promise<{ event_id: string }>;
     sendEvent(
         roomId: string,
         threadId: string | null,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         txnId?: string,
     ): Promise<{ event_id: string }>;
     sendStateEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         stateKey?: string,
         opts?: import("./http-api/index").IRequestOpts,
     ): Promise<import("./@types/requests").ISendEventResponse>;
@@ -675,7 +676,7 @@ export interface MatrixClientInternalMethods {
 
     // ============ Sync Accumulator (sync-accumulator/index.ts) ============
     syncAccumulator?: import("./sync-accumulator").SyncAccumulator;
-    accumulateSyncData(data: Record<string, unknown> /* raw sync response */): Promise<void>;
+    accumulateSyncData(data: IContent /* raw sync response */): Promise<void>;
     getAccumulatedData(): import("./sync-accumulator/index").ISyncAccumulatedData | null;
     resetAccumulator(): void;
 

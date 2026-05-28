@@ -35,6 +35,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import type { TelemetryPathPattern } from "./__generated__/route-table";
+import type { TelemetryHealthCheck, TelemetryDatabaseStatus } from "./__generated__/dto";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
@@ -47,7 +48,7 @@ function tp<P extends StripAdminV1<TelemetryPathPattern>>(path: P): P {
 export interface TelemetryEvent {
     event: string;
     timestamp: number;
-    data?: Record<string, unknown>;
+    data?: Record<string, unknown>; // Dynamic: client-side event payload
 }
 
 export interface TelemetryConfig {
@@ -111,7 +112,7 @@ export interface ServerTelemetryAlert {
     updated_at_ms?: number;
     acknowledged_by?: string | null;
     acknowledged_at_ms?: number | null;
-    metadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown>; // Dynamic: alert metadata from backend
 }
 
 export interface ServerTelemetryAlertsResponse {
@@ -123,8 +124,8 @@ export interface ServerTelemetryHealth {
     service: string;
     trace_enabled: boolean;
     metrics_enabled: boolean;
-    checks: Array<Record<string, unknown>>;
-    database: Record<string, unknown>;
+    checks: TelemetryHealthCheck[];
+    database: TelemetryDatabaseStatus;
     alerts: ServerTelemetryAlert[];
 }
 
@@ -180,7 +181,7 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         return this.config.enabled;
     }
 
-    public track(event: string, data?: Record<string, unknown>): void {
+    public track(event: string, data?: Record<string, unknown> /* Dynamic: arbitrary event payload */): void {
         if (!this.config.enabled) return;
 
         if (Math.random() > (this.config.sampleRate ?? 1.0)) return;
@@ -242,7 +243,7 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         });
     }
 
-    public trackError(error: Error, context?: Record<string, unknown>): void {
+    public trackError(error: Error, context?: Record<string, unknown> /* Dynamic: arbitrary error context */): void {
         this.track("error", {
             message: error.message,
             stack: error.stack,

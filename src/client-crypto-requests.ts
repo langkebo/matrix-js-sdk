@@ -44,7 +44,7 @@ export function queryKeysForUsersRequest<T>(
     token: string | undefined,
     authedRequest: AuthedRequestFn,
 ): Promise<T> {
-    const content: Record<string, unknown> = {
+    const content: Record<string, unknown> = { // Dynamic: key query request body
         device_keys: {},
     };
     if (token !== undefined) {
@@ -75,7 +75,7 @@ export function claimOneTimeKeysHttpRequest<T>(
         utils.safeSet(queries, userId, query);
         utils.safeSet(query, deviceId, keyAlgorithm);
     }
-    const content: Record<string, unknown> = { one_time_keys: queries };
+    const content: Record<string, unknown> = { one_time_keys: queries }; // Dynamic: key claim request body
     if (timeout) {
         content.timeout = timeout;
     }

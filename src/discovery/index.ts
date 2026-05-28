@@ -130,11 +130,11 @@ export class DiscoveryManager extends BaseManager {
         return this.client.baseUrl;
     }
 
-    public getClientWellKnown(): Record<string, unknown> | undefined {
+    public getClientWellKnown(): Record<string, unknown> | undefined { // Dynamic: delegates to client which returns untyped well-known
         if (this.client.getClientWellKnown) {
             return this.client.getClientWellKnown();
         }
-        return (this.client as unknown as { clientWellKnown?: Record<string, unknown> }).clientWellKnown;
+        return (this.client as unknown as { clientWellKnown?: Record<string, unknown> }).clientWellKnown; // Dynamic: client internal
     }
 
     public async getServerDiscoveryInfo(): Promise<ClientWellKnownResponse> {
@@ -155,7 +155,7 @@ export class DiscoveryManager extends BaseManager {
         push: { enabled: boolean };
         email: { enabled: boolean };
         features: Record<string, boolean>;
-        defaults: Record<string, unknown>;
+        defaults: Record<string, unknown>; // Dynamic: client config defaults vary by deployment
     }> {
         return this.client.getClientConfig();
     }

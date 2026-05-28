@@ -54,7 +54,7 @@ export type McpToolCallRequest = McpToolCallRequestDto;
 export interface McpTool {
     name: string;
     description?: string;
-    input_schema?: Record<string, unknown>;
+    input_schema?: Record<string, unknown>; // Dynamic: JSON Schema for MCP tool input
 }
 
 export interface McpToolListResponse {

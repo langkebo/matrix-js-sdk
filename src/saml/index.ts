@@ -128,7 +128,7 @@ export class SamlAuthManager extends BaseManager {
 
     async handleLogoutCallback(): Promise<void> {
         await this.withRetry(async () => {
-            await this.client.http.authedRequest<Record<string, unknown>>(
+            await this.client.http.authedRequest<Record<string, unknown>>( // Dynamic: SAML callback response is opaque
                 Method.Get,
                 cp("/logout/saml/callback"),
                 undefined,
@@ -212,7 +212,7 @@ export class SamlAuthManager extends BaseManager {
         method: Method,
         path: string,
         queryParams?: Record<string, string | number>,
-        body?: Record<string, unknown>,
+        body?: Record<string, unknown>, // Dynamic: admin request body varies by endpoint
     ): Promise<T> {
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<T>(

@@ -25,7 +25,7 @@ export const isLivekitTransportConfig = (object: unknown): object is LivekitTran
     typeof object === "object" &&
     object !== null &&
     "type" in object &&
-    (object as Record<string, unknown>).type === "livekit" &&
+    (object as Record<string, unknown>).type === "livekit" && // Dynamic: type guard casting for unknown object
     "livekit_service_url" in object;
 
 export interface LivekitTransport extends LivekitTransportConfig {
@@ -50,5 +50,5 @@ export const isLivekitFocusSelection = (object: unknown): object is LivekitFocus
     typeof object === "object" &&
     object !== null &&
     "type" in object &&
-    (object as Record<string, unknown>).type === "livekit" &&
+    (object as Record<string, unknown>).type === "livekit" && // Dynamic: type guard casting for unknown object
     "focus_selection" in object;

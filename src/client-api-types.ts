@@ -275,7 +275,7 @@ export interface IDeviceSigningVerificationKeyAgreementRequest {
 export interface IDeviceSigningVerificationKeyAgreementResponse {
     transaction_id: string;
     confirmed: boolean;
-    short_authentication_string?: Record<string, unknown>;
+    short_authentication_string?: Record<string, unknown>; // Dynamic: SAS verification methods vary
 }
 
 export interface IDeviceSigningVerificationMacRequest {

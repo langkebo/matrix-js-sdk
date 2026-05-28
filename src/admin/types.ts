@@ -955,3 +955,137 @@ export interface PaginatedResponse<T> {
     nextToken?: string;
     total?: number;
 }
+
+// ===== User stats types =====
+
+/** Response for GET /users/{userId}/stats — single user statistics */
+export interface UserStatsResponse {
+    user_id: string;
+    rooms_joined: number;
+    messages_sent: number;
+    last_seen_ts: number | null;
+    creation_ts?: number;
+    is_admin?: boolean;
+    dashboard?: {
+        total_rooms: number;
+        total_messages: number;
+        last_seen: number | null;
+    };
+}
+
+/** Response for GET /user_stats — aggregated user statistics list */
+export interface UserStatsListResponse {
+    total_users: number;
+    active_users: number;
+    admin_users: number;
+    deactivated_users: number;
+    guest_users: number;
+    average_rooms_per_user: number;
+    user_registration_enabled: boolean;
+}
+
+/** Response for GET /users/{userId}/rooms — user's joined rooms */
+export interface UserRoomsResponse {
+    rooms: string[];
+}
+
+// ===== User notification types =====
+
+/** Response for GET /users/{userId}/notification — user notification setting */
+export interface UserNotificationResponse {
+    enabled: boolean;
+}
+
+/** Payload for PUT /users/{userId}/notification — set user notification setting */
+export interface UserNotificationPayload {
+    enabled: boolean;
+}
+
+// ===== Server operation types =====
+
+/** Payload for POST /restart — restart server options */
+export interface RestartServerPayload {
+    [key: string]: unknown;
+}
+
+/** Response for POST /restart — restart server result */
+export interface RestartServerResponse {
+    [key: string]: unknown;
+}
+
+/** Response for POST /purge_room — purge room result */
+export interface PurgeRoomResponse {
+    [key: string]: unknown;
+}
+
+// ===== Federation resolve/rewrite types =====
+
+/** Response for POST /federation/resolve — federation resolve result */
+export interface FederationResolveResponse {
+    server_name: string;
+    resolved: boolean;
+    blacklisted: boolean;
+    in_destinations: boolean;
+    resolved_by?: string;
+}
+
+/** Response for POST /federation/rewrite — federation rewrite result */
+export interface FederationRewriteResponse {
+    from: string;
+    to: string;
+    rewritten: boolean;
+    rooms_affected: number;
+    rewritten_by?: string;
+}
+
+// ===== Media quota type =====
+
+/** Response for GET /media/quota — media storage quota info */
+export interface MediaQuotaResponse {
+    total_size: number;
+    total_count: number;
+    default_size_limit: number;
+    default_count_limit: number;
+}
+
+// ===== Module check types =====
+
+/** Payload for POST /modules/check_third_party_rule — third-party rule check request */
+export interface ThirdPartyRuleCheckPayload {
+    event_id: string;
+    room_id: string;
+    sender: string;
+    event_type: string;
+    content: Record<string, unknown>;
+    state_events: Record<string, unknown>[];
+}
+
+/** Response for GET /modules/spam_check/{eventId} — spam check result */
+export interface SpamCheckResult {
+    id: number;
+    event_id: string;
+    room_id: string;
+    sender: string;
+    event_type: string;
+    content?: Record<string, unknown>;
+    result: string;
+    score: number;
+    reason?: string;
+    checker_module: string;
+    checked_ts: number;
+    action_taken?: string;
+}
+
+/** Response for GET /modules/third_party_rule/{eventId} — third-party rule result */
+export interface ThirdPartyRuleResult {
+    id: number;
+    event_id: string;
+    room_id: string;
+    sender: string;
+    event_type: string;
+    rule_name: string;
+    allowed: boolean;
+    reason?: string;
+    modified_content?: Record<string, unknown>;
+    checked_ts: number;
+}

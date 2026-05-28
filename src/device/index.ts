@@ -114,7 +114,7 @@ interface IUIAErrorData {
     error?: string;
     flows?: unknown[];
     session?: string;
-    params?: Record<string, unknown>;
+    params?: Record<string, unknown>; // Dynamic: UIA params vary per auth type
     [key: string]: unknown;
 }
 
@@ -141,9 +141,9 @@ function extractUiaErrorData(error: unknown): IUIAErrorData | null {
             continue;
         }
 
-        const record = candidate as Record<string, unknown>;
+        const record = candidate as Record<string, unknown>; // Dynamic: error object inspection
         if (record.data && typeof record.data === "object") {
-            const nestedData = record.data as Record<string, unknown>;
+            const nestedData = record.data as Record<string, unknown>; // Dynamic: error object inspection
             if (
                 "flows" in nestedData ||
                 "session" in nestedData ||
@@ -629,7 +629,7 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         return "UnknownError";
     }
 
-    private emitMetric(type: string, method: string, data: Record<string, unknown>): void {
+    private emitMetric(type: string, method: string, data: Record<string, unknown>): void { // Dynamic: metric data varies by type
         try {
             this.emit(DeviceEvent.DeviceError, new Error(`Metric: ${type}.${method}`));
             logger.debug(`Metric: ${type}.${method}`, { type, method, ...data, timestamp: Date.now() });

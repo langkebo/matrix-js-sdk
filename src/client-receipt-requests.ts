@@ -10,7 +10,7 @@ import * as utils from "./utils";
 export interface SendReceiptOptions {
     event: MatrixEvent;
     receiptType: ReceiptType;
-    body?: Record<string, unknown>;
+    body?: Record<string, unknown>; // Dynamic: receipt body may contain arbitrary keys like thread_id
     unthreaded: boolean;
     isGuest: boolean;
     supportsThreads: boolean;
@@ -26,11 +26,11 @@ export function buildReceiptPath(event: MatrixEvent, receiptType: ReceiptType): 
 }
 
 export function buildReceiptBody(
-    body: Record<string, unknown> | undefined,
+    body: Record<string, unknown> | undefined, // Dynamic: receipt body may contain arbitrary keys like thread_id
     event: MatrixEvent,
     unthreaded: boolean,
     supportsThreads: boolean,
-): Record<string, unknown> | undefined {
+): Record<string, unknown> | undefined { // Dynamic: receipt body may contain arbitrary keys
     const shouldAddThreadId = !unthreaded && supportsThreads;
     return shouldAddThreadId ? { ...body, thread_id: threadIdForReceipt(event) } : body;
 }
@@ -59,6 +59,12 @@ export interface SetRoomReadMarkersOptions {
     rpEventId?: string;
 }
 
+export interface ReadMarkersBody {
+    "m.fully_read": string;
+    "m.read"?: string;
+    "m.read.private"?: string;
+}
+
 export async function setRoomReadMarkersHttpRequest(
     client: MatrixClient,
     options: SetRoomReadMarkersOptions,
@@ -67,7 +73,7 @@ export async function setRoomReadMarkersHttpRequest(
         $roomId: options.roomId,
     });
 
-    const body: Record<string, unknown> = {
+    const body: ReadMarkersBody = {
         "m.fully_read": options.rmEventId,
     };
 

@@ -78,7 +78,7 @@ import {
     type UploadResponse,
 } from "./http-api/index";
 import { User, UserEvent, type UserEventHandlerMap } from "./models/user";
-import { ProfileManager } from "./profile/index";
+import { ProfileManager, type IExtendedProfile } from "./profile/index";
 
 import { type IIdentityServerProvider } from "./@types/IIdentityServerProvider";
 import { type MatrixScheduler } from "./scheduler";
@@ -2704,7 +2704,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public async sendReceipt(
         event: MatrixEvent,
         receiptType: ReceiptType,
-        body?: Record<string, unknown>,
+        body?: Record<string, unknown>, // Dynamic: receipt body may contain arbitrary keys like thread_id
         unthreaded = false,
     ): Promise<EmptyObject> {
         return this.getReadReceiptsManager().sendReceipt(event, receiptType, body, unthreaded);
@@ -2965,7 +2965,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public async getEventContext(
         roomId: string,
         eventId: string,
-        params?: { limit?: number; filter?: Record<string, unknown> },
+        params?: { limit?: number; filter?: Record<string, unknown> }, // Dynamic: Matrix filter objects are spec-defined but arbitrarily shaped
     ): Promise<import("./@types/requests").IContextResponse> {
         return this.getRoomManager().getEventContext(roomId, eventId, params) as unknown as import("./@types/requests").IContextResponse;
     }
@@ -3301,7 +3301,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             .filter(([, value]) => {
                 return primTypes.includes(typeof value);
             })
-            .reduce<Record<string, unknown>>((obj, [key, value]) => {
+            .reduce<Record<string, unknown>>((obj, [key, value]) => { // Dynamic: accumulates arbitrary client option key-value pairs
                 obj[key] = value;
                 return obj;
             }, {});
@@ -3749,7 +3749,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getProfileManager().doesServerSupportExtendedProfiles();
     }
 
-    public async getExtendedProfile(userId: string): Promise<Record<string, unknown>> {
+    public async getExtendedProfile(userId: string): Promise<IExtendedProfile> {
         return this.getProfileManager().getExtendedProfile(userId);
     }
 
@@ -3765,11 +3765,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getProfileManager().deleteExtendedProfileProperty(key);
     }
 
-    public async patchExtendedProfile(profile: Record<string, unknown>): Promise<Record<string, unknown>> {
+    public async patchExtendedProfile(profile: IExtendedProfile): Promise<IExtendedProfile> {
         return this.getProfileManager().patchExtendedProfile(profile);
     }
 
-    public async setExtendedProfile(profile: Record<string, unknown>): Promise<void> {
+    public async setExtendedProfile(profile: IExtendedProfile): Promise<void> {
         return this.getProfileManager().setExtendedProfile(profile);
     }
 
@@ -4056,7 +4056,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getReportingManager().scoreReport(roomId, eventId, score);
     }
 
-    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> {
+    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> { // Dynamic: scanner info shape is server-defined
         return this.getReportingManager().getScannerInfo(roomId, eventId);
     }
 
@@ -4135,7 +4135,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         push: { enabled: boolean };
         email: { enabled: boolean };
         features: Record<string, boolean>;
-        defaults: Record<string, unknown>;
+        defaults: Record<string, unknown>; // Dynamic: server-defined default configuration values
     }> {
         return getClientConfigRequest(this.authedRequestProxy);
     }

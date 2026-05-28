@@ -25,11 +25,12 @@ import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { IContent } from "../models/event";
 
 export interface IStateEvent {
     type: string;
     state_key: string;
-    content: Record<string, unknown>;
+    content: IContent;
     sender: string;
     event_id: string;
     origin_server_ts: number;
@@ -100,7 +101,7 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
     public async sendStateEvent(
         roomId: string,
         eventType: string,
-        content: Record<string, unknown>,
+        content: IContent,
         stateKey?: string,
     ): Promise<ISendStateEventResponse> {
         return this.withRetry(async () => {
@@ -121,7 +122,7 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
     }
 
     public async setRoomEncryption(roomId: string, config: IEncryptionConfig): Promise<ISendStateEventResponse> {
-        return this.sendStateEvent(roomId, "m.room.encryption", config as unknown as Record<string, unknown>);
+        return this.sendStateEvent(roomId, "m.room.encryption", config as unknown as IContent);
     }
 }
 

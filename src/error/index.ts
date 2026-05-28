@@ -178,8 +178,8 @@ export function toErrorInfo(error: unknown): SDKErrorInfo {
             statusCode: error.statusCode,
             details: error.details,
             isRetryable: error.code === ErrorCodes.RATE_LIMITED || error.code === ErrorCodes.SERVICE_UNAVAILABLE,
-            retryAfter: error.details && typeof error.details === "object" && "retry_after_ms" in (error.details as Record<string, unknown>)
-                ? (error.details as Record<string, unknown>).retry_after_ms
+            retryAfter: error.details && typeof error.details === "object" && "retry_after_ms" in (error.details as Record<string, unknown>) // Dynamic: inspecting error details
+                ? (error.details as Record<string, unknown>).retry_after_ms // Dynamic: inspecting error details
                 : undefined,
         };
     }

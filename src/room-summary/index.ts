@@ -96,6 +96,11 @@ export type {
     InviteAllowlist,
     HeroesRecalcResult,
     UnreadClearResult,
+    BatchSummaryResponse,
+    UpdateSummaryBody,
+    SyncSummaryResult,
+    ProcessUpdatesResult,
+    RoomVaultDataResult,
 } from "./types";
 
 // 重新导出子 Manager 类型，供直接使用
@@ -119,6 +124,8 @@ import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types";
+import type { IContent } from "../models/event";
+import type { ClaimKeysRequest } from "../device-keys/index";
 import type { RoomSummaryPathPattern } from "./__generated__/route-table";
 
 import type {
@@ -173,6 +180,11 @@ import type {
     InviteAllowlist,
     HeroesRecalcResult,
     UnreadClearResult,
+    BatchSummaryResponse,
+    UpdateSummaryBody,
+    SyncSummaryResult,
+    ProcessUpdatesResult,
+    RoomVaultDataResult,
 } from "./types";
 
 // 子 Manager 导入
@@ -367,7 +379,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     public async createOrRefreshSummary(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<RoomSummary | null> {
         this.validateRoomId(roomId);
 
@@ -391,7 +403,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
     }
 
-    public async updateSummary(roomId: string, body: Record<string, unknown>): Promise<RoomSummary | null> {
+    public async updateSummary(roomId: string, body: UpdateSummaryBody): Promise<RoomSummary | null> {
         this.validateRoomId(roomId);
 
         try {
@@ -425,11 +437,11 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }, "deleteSummary");
     }
 
-    public async syncSummary(roomId: string, body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    public async syncSummary(roomId: string, body: IContent = {}): Promise<SyncSummaryResult> {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            return await this.requestV3<Record<string, unknown>>(
+            return await this.requestV3<SyncSummaryResult>(
                 Method.Post,
                 rsv(`/rooms/${encodeURIComponent(roomId)}/summary/sync`),
                 undefined,
@@ -456,13 +468,13 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }, "listUserSummaries");
     }
 
-    public async createInternalSummary(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    public async createInternalSummary(body: IContent): Promise<RoomSummary> {
         if (!body || typeof body !== "object") {
             throw new InvalidParamError("Body must be an object");
         }
 
         return this.withRetry(async () => {
-            return await this.requestInternal<Record<string, unknown>>(
+            return await this.requestInternal<RoomSummary>(
                 Method.Post,
                 this.internalSummaryPath("/summaries"),
                 undefined,
@@ -528,11 +540,11 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public async batchGetSummaries(
         rooms: string[],
         isSuggestedOnly?: boolean,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<BatchSummaryResponse> {
         if (!rooms.length) return {};
 
         return this.withRetry(async () => {
-            return await this.requestInternal<Record<string, unknown>>(
+            return await this.requestInternal<BatchSummaryResponse>(
                 Method.Post,
                 rsi("/summaries/batch"),
                 undefined,
@@ -544,9 +556,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }, "batchGetSummaries");
     }
 
-    public async processSummaryUpdates(body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+    public async processSummaryUpdates(body: { limit?: number } = {}): Promise<ProcessUpdatesResult> {
         return this.withRetry(async () => {
-            return await this.requestInternal<Record<string, unknown>>(
+            return await this.requestInternal<ProcessUpdatesResult>(
                 Method.Post,
                 this.internalSummaryPath("/updates/process"),
                 undefined,
@@ -693,21 +705,21 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     async recalculateSummaryStats(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<RoomStats | null> {
         return this.stats.recalculateSummaryStats(roomId, body);
     }
 
     async recalculateSummaryHeroes(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<HeroesRecalcResult> {
         return this.stats.recalculateSummaryHeroes(roomId, body);
     }
 
     async clearSummaryUnread(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<UnreadClearResult> {
         return this.stats.clearSummaryUnread(roomId, body);
     }
@@ -766,7 +778,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     // ----- 密钥管理（委托 → keys） -----
 
-    async claimRoomKeys(roomId: string, body: Record<string, unknown>): Promise<RoomKeyClaimResult> {
+    async claimRoomKeys(roomId: string, body: ClaimKeysRequest): Promise<RoomKeyClaimResult> {
         return this.keys.claimRoomKeys(roomId, body);
     }
 
@@ -778,7 +790,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.keys.getRoomKeysVersion(roomId);
     }
 
-    async forwardRoomKeys(roomId: string, body: Record<string, unknown>): Promise<RoomForwardKeysResult> {
+    async forwardRoomKeys(roomId: string, body: IContent): Promise<RoomForwardKeysResult> {
         return this.keys.forwardRoomKeys(roomId, body);
     }
 
@@ -862,11 +874,11 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.eventOps.getRoomMetadata(roomId);
     }
 
-    async getRoomVaultData(roomId: string): Promise<Record<string, unknown> | null> {
+    async getRoomVaultData(roomId: string): Promise<RoomVaultDataResult | null> {
         return this.eventOps.getRoomVaultData(roomId);
     }
 
-    async setRoomVaultData(roomId: string, data: Record<string, unknown>): Promise<void> {
+    async setRoomVaultData(roomId: string, data: IContent): Promise<void> {
         return this.eventOps.setRoomVaultData(roomId, data);
     }
 

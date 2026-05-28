@@ -54,6 +54,9 @@ import type {
     AuditEventCreateRequest,
     AccountValidityRequest,
     AccountValidityRenewRequest,
+    ThirdPartyRuleCheckPayload,
+    SpamCheckResult,
+    ThirdPartyRuleResult,
 } from "../types";
 import type { MatrixClient } from "../../client";
 
@@ -211,21 +214,21 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, `/modules/${encodeURIComponent(moduleId)}/logs`, query);
     }
 
-    async checkModuleThirdPartyRule(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<Record<string, unknown>> {
         return await this.adminRequest(Method.Post, "/modules/check_third_party_rule", {}, payload);
     }
 
-    async getModuleSpamCheckResult(eventId: string): Promise<Record<string, unknown>> {
+    async getModuleSpamCheckResult(eventId: string): Promise<SpamCheckResult> {
         return await this.adminRequest(Method.Get, `/modules/spam_check/${encodeURIComponent(eventId)}`);
     }
 
-    async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<Record<string, unknown>[]> {
+    async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<SpamCheckResult[]> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         return await this.adminRequest(Method.Get, `/modules/spam_check/sender/${encodeURIComponent(sender)}`, query);
     }
 
-    async getModuleThirdPartyRuleResults(eventId: string): Promise<Record<string, unknown>> {
+    async getModuleThirdPartyRuleResults(eventId: string): Promise<ThirdPartyRuleResult[]> {
         return await this.adminRequest(Method.Get, `/modules/third_party_rule/${encodeURIComponent(eventId)}`);
     }
 

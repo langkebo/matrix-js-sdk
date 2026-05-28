@@ -57,7 +57,7 @@ export interface RendezvousSession {
     session_id: string;
     intent: RendezvousSessionIntent;
     transport: RendezvousSessionTransport;
-    transport_data?: Record<string, unknown>;
+    transport_data?: Record<string, unknown>; // Dynamic: transport-specific data
     status: RendezvousSessionStatus;
     created_ts: number;
     expires_at?: number;
@@ -84,7 +84,7 @@ export interface UpdateSessionResponse {
 
 export interface RendezvousMessage {
     type: string;
-    content: Record<string, unknown>;
+    content: Record<string, unknown>; // Dynamic: message content varies by type
 }
 
 export interface SendMessageResponse {
@@ -153,7 +153,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     async createSession(options: {
         intent: RendezvousSessionIntent;
         transport: RendezvousSessionTransport;
-        transport_data?: Record<string, unknown>;
+        transport_data?: Record<string, unknown>; // Dynamic: transport-specific data
         expires_in_ms?: number;
     }): Promise<CreateSessionResponse> {
         const response = await this.rendezvousRequest<CreateSessionResponse>(

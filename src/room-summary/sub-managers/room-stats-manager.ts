@@ -17,6 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import type { RoomStats, HeroesRecalcResult, UnreadClearResult } from "../types";
+import type { IContent } from "../../models/event";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import { LRUCache } from "../../utils/lru-cache";
 import { logger } from "../../logger";
@@ -91,7 +92,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
 
     public async recalculateSummaryStats(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<RoomStats | null> {
         this.validateRoomId(roomId);
 
@@ -117,7 +118,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
 
     public async recalculateSummaryHeroes(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<HeroesRecalcResult> {
         this.validateRoomId(roomId);
 
@@ -135,7 +136,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
 
     public async clearSummaryUnread(
         roomId: string,
-        body: Record<string, unknown> = {},
+        body: IContent = {},
     ): Promise<UnreadClearResult> {
         this.validateRoomId(roomId);
 

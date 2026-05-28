@@ -68,7 +68,7 @@ export interface IAuthData {
      * For each login type presented, that type may be present as a key in this dictionary.
      * For example, the public part of an OAuth client ID could be given here.
      */
-    params?: Record<string, Record<string, unknown>>;
+    params?: Record<string, Record<string, unknown>>; // Dynamic: UIA params vary per auth type
     // Allow additional properties for extensibility
     [key: string]: unknown;
 }
@@ -382,7 +382,7 @@ export class InteractiveAuth<T> {
      * @param loginType - login type for the stage
      * @returns any parameters from the server for this stage
      */
-    public getStageParams(loginType: string): Record<string, unknown> | undefined {
+    public getStageParams(loginType: string): Record<string, unknown> | undefined { // Dynamic: UIA stage params vary per type
         return (this.data as IAuthData)?.params?.[loginType];
     }
 

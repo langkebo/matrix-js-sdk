@@ -27,7 +27,7 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 export interface CryptoBackupInfo {
     version: string;
     algorithm: string;
-    auth_data: Record<string, unknown>;
+    auth_data: Record<string, unknown>; // Dynamic: backup auth data varies by algorithm
     etag: string;
     count: number;
     hash: string;

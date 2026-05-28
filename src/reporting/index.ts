@@ -84,7 +84,7 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
      * @param roomId - The room ID
      * @param eventId - The event ID
      */
-    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> {
+    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> { // Dynamic: scanner info shape is server-defined
         const path = utils.encodeUri("/rooms/$roomId/report/$eventId/scanner_info", {
             $roomId: roomId,
             $eventId: eventId,

@@ -53,7 +53,7 @@ export interface IPusher {
     device_display_name: string;
     profile_tag?: string;
     lang: string;
-    data?: Record<string, unknown>;
+    data?: Record<string, unknown>; // Dynamic: pusher data varies by kind (e.g. http, email)
     enabled?: boolean;
     device_id?: string;
 }
@@ -66,7 +66,7 @@ export interface IPusherRequest {
     device_display_name: string;
     profile_tag?: string;
     lang: string;
-    data?: Record<string, unknown>;
+    data?: Record<string, unknown>; // Dynamic: pusher data varies by kind
     append?: boolean;
 }
 

@@ -447,7 +447,7 @@ export interface RoomAccountDataResult {
     /** The event type of the account data */
     type?: string;
     /** The account data content (varies by type) */
-    content?: Record<string, unknown> /* varies by account data type */;
+    content?: import("../models/event").IContent;
     // Common convenience fields that appear in various account data types:
     /** Whether a feature is enabled (used by flag-type account data) */
     enabled?: boolean;
@@ -862,4 +862,33 @@ export interface InviteAllowlist {
         allowed_by: string;
         allowed_at: number;
     }>;
+}
+
+/** POST /_synapse/room_summary/v1/summaries/batch — raw batch response */
+export interface BatchSummaryResponse {
+    rooms?: ClientRoomSummary[];
+    total_room_count_estimate?: number;
+    next_batch?: string;
+}
+
+/** PUT /_matrix/client/v3/rooms/{room_id}/summary — update body */
+export interface UpdateSummaryBody {
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+}
+
+/** POST /_matrix/client/v3/rooms/{room_id}/summary/sync — sync result */
+export interface SyncSummaryResult extends RoomSummary {}
+
+/** POST /_synapse/room_summary/v1/updates/process — process updates result */
+export interface ProcessUpdatesResult {
+    processed: number;
+}
+
+/** GET /_matrix/client/v3/rooms/{room_id}/vault_data — vault data result */
+export interface RoomVaultDataResult {
+    room_id: string;
+    vault_data: import("../models/event").IContent;
+    updated_ts?: number | null;
 }

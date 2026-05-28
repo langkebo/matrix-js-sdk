@@ -18,15 +18,15 @@ export interface DelayedEventsHttpClient {
     request<T>(
         method: Method,
         path: string,
-        queryParams?: Record<string, unknown>,
-        body?: Record<string, unknown>,
+        queryParams?: Record<string, unknown>, // Dynamic: HTTP query parameters
+        body?: Record<string, unknown>, // Dynamic: HTTP request body
         opts?: IRequestOpts,
     ): Promise<T>;
     authedRequest<T>(
         method: Method,
         path: string,
-        queryParams?: Record<string, unknown>,
-        body?: Record<string, unknown>,
+        queryParams?: Record<string, unknown>, // Dynamic: HTTP query parameters
+        body?: Record<string, unknown>, // Dynamic: HTTP request body
         opts?: IRequestOpts,
     ): Promise<T>;
 }

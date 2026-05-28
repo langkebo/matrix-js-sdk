@@ -479,7 +479,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws An error if the server does not support MSC4133.
      * @throws A M_NOT_FOUND error if the profile could not be found.
      */
-    public async getExtendedProfile(userId: string): Promise<Record<string, unknown>> {
+    public async getExtendedProfile(userId: string): Promise<IExtendedProfile> {
         await this.assertExtendedProfileSupport();
         return getExtendedProfileRequest(
             userId,
@@ -557,7 +557,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
-    public async patchExtendedProfile(profile: Record<string, unknown>): Promise<Record<string, unknown>> {
+    public async patchExtendedProfile(profile: IExtendedProfile): Promise<IExtendedProfile> {
         await this.assertExtendedProfileSupport();
         return patchExtendedProfileRequest(
             this.client.getUserId(),
@@ -576,7 +576,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
-    public async setExtendedProfile(profile: Record<string, unknown>): Promise<void> {
+    public async setExtendedProfile(profile: IExtendedProfile): Promise<void> {
         await this.assertExtendedProfileSupport();
         await setExtendedProfileRequest(
             this.client.getUserId(),

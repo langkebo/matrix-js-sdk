@@ -147,6 +147,20 @@ import {
     type AuditEventCreateRequest,
     type AccountValidityRequest,
     type AccountValidityRenewRequest,
+    type UserStatsResponse,
+    type UserStatsListResponse,
+    type UserRoomsResponse,
+    type UserNotificationResponse,
+    type UserNotificationPayload,
+    type RestartServerPayload,
+    type RestartServerResponse,
+    type PurgeRoomResponse,
+    type FederationResolveResponse,
+    type FederationRewriteResponse,
+    type MediaQuotaResponse,
+    type ThirdPartyRuleCheckPayload,
+    type SpamCheckResult,
+    type ThirdPartyRuleResult,
 } from "./types";
 
 // 子 Manager 导入
@@ -338,15 +352,15 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.getUserSession(userId);
     }
 
-    async getUserRooms(userId: string, from?: string, limit?: number): Promise<Record<string, unknown>> {
+    async getUserRooms(userId: string, from?: string, limit?: number): Promise<UserRoomsResponse> {
         return this.users.getUserRooms(userId, from, limit);
     }
 
-    async getUserStats(userId: string): Promise<Record<string, unknown>> {
+    async getUserStats(userId: string): Promise<UserStatsResponse> {
         return this.users.getUserStats(userId);
     }
 
-    async listUserStats(from?: string, limit?: number): Promise<Record<string, unknown>> {
+    async listUserStats(from?: string, limit?: number): Promise<UserStatsListResponse> {
         return this.users.listUserStats(from, limit);
     }
 
@@ -438,11 +452,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.deleteUserMedia(userId);
     }
 
-    async getUserNotification(userId: string): Promise<Record<string, unknown>> {
+    async getUserNotification(userId: string): Promise<UserNotificationResponse> {
         return this.users.getUserNotification(userId);
     }
 
-    async setUserNotification(userId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationResponse> {
         return this.users.setUserNotification(userId, payload);
     }
 
@@ -749,7 +763,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.server.listNotifications(from, limit);
     }
 
-    async createNotification(payload: Record<string, unknown>): Promise<SystemNotificationInfo> {
+    async createNotification(payload: DynamicConfig): Promise<SystemNotificationInfo> {
         return this.server.createNotification(payload);
     }
 
@@ -793,7 +807,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.server.registerAdmin(payload);
     }
 
-    async restartServer(payload?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async restartServer(payload?: RestartServerPayload): Promise<RestartServerResponse> {
         return this.server.restartServer(payload);
     }
 
@@ -805,7 +819,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.server.getExperimentalFeatures();
     }
 
-    async purgeRoom(payload: { room_id: string }): Promise<Record<string, unknown>> {
+    async purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse> {
         return this.server.purgeRoom(payload);
     }
 
@@ -902,11 +916,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.federation.getPendingFederationServers(from, limit);
     }
 
-    async resolveFederation(serverName: string): Promise<Record<string, unknown>> {
+    async resolveFederation(serverName: string): Promise<FederationResolveResponse> {
         return this.federation.resolveFederation(serverName);
     }
 
-    async rewriteFederation(from: string, to: string): Promise<Record<string, unknown>> {
+    async rewriteFederation(from: string, to: string): Promise<FederationRewriteResponse> {
         return this.federation.rewriteFederation(from, to);
     }
 
@@ -931,7 +945,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.media.deleteMedia(mediaId);
     }
 
-    async getMediaQuota(): Promise<Record<string, unknown>> {
+    async getMediaQuota(): Promise<MediaQuotaResponse> {
         return this.media.getMediaQuota();
     }
 
@@ -1038,19 +1052,19 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getModuleLogs(moduleId, options);
     }
 
-    async checkModuleThirdPartyRule(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<Record<string, unknown>> {
         return this.config.checkModuleThirdPartyRule(payload);
     }
 
-    async getModuleSpamCheckResult(eventId: string): Promise<Record<string, unknown>> {
+    async getModuleSpamCheckResult(eventId: string): Promise<SpamCheckResult> {
         return this.config.getModuleSpamCheckResult(eventId);
     }
 
-    async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<Record<string, unknown>[]> {
+    async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<SpamCheckResult[]> {
         return this.config.listModuleSpamChecksBySender(sender, options);
     }
 
-    async getModuleThirdPartyRuleResults(eventId: string): Promise<Record<string, unknown>> {
+    async getModuleThirdPartyRuleResults(eventId: string): Promise<ThirdPartyRuleResult[]> {
         return this.config.getModuleThirdPartyRuleResults(eventId);
     }
 

@@ -113,8 +113,8 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
 
     public async sendEphemeralEvent(roomId: string, type: string, content: IContent): Promise<void> {
         const userId = this.client.getUserId() ?? "";
-        const contentMap = new Map<string, Map<string, Record<string, unknown>>>();
-        const roomMap = new Map<string, Record<string, unknown>>();
+        const contentMap = new Map<string, Map<string, IContent>>();
+        const roomMap = new Map<string, IContent>();
         roomMap.set(userId, content);
         contentMap.set(roomId, roomMap);
         await this.client.sendToDevice(type, contentMap);
@@ -196,7 +196,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
             const receiptEvent = events.find((e) => e.type === "m.receipt");
             if (receiptEvent?.content) {
                 for (const [eventId, data] of Object.entries(receiptEvent.content)) {
-                    const readData = (data as Record<string, Record<string, unknown>>)?.["m.read"];
+                    const readData = (data as Record<string, Record<string, unknown>>)?.["m.read"]; // Dynamic: receipt data with variable structure
                     if (readData) for (const userId of Object.keys(readData)) receipts.set(userId, eventId);
                 }
             }

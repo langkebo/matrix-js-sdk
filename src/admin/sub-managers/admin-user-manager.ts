@@ -21,7 +21,7 @@ import { logger } from "../../logger";
 import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
-import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, DeactivateUserResponse } from "../types";
+import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, DeactivateUserResponse, UserStatsResponse, UserStatsListResponse, UserRoomsResponse, UserNotificationResponse, UserNotificationPayload } from "../types";
 import { MatrixClient } from "../../client";
 
 export enum AdminUserEvent {
@@ -317,18 +317,18 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         return await this.adminRequest(Method.Get, `/user_sessions/${encodeURIComponent(userId)}`);
     }
 
-    async getUserRooms(userId: string, from?: string, limit?: number): Promise<Record<string, unknown>> {
+    async getUserRooms(userId: string, from?: string, limit?: number): Promise<UserRoomsResponse> {
         AdminValidators.validateUserId(userId);
         const query = buildPaginationParams(from, limit);
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rooms`, query);
     }
 
-    async getUserStats(userId: string): Promise<Record<string, unknown>> {
+    async getUserStats(userId: string): Promise<UserStatsResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/stats`);
     }
 
-    async listUserStats(from?: string, limit?: number): Promise<Record<string, unknown>> {
+    async listUserStats(from?: string, limit?: number): Promise<UserStatsListResponse> {
         const query = buildPaginationParams(from, limit);
         return await this.adminRequest(Method.Get, "/user_stats", query);
     }
@@ -546,12 +546,12 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/media`);
     }
 
-    async getUserNotification(userId: string): Promise<Record<string, unknown>> {
+    async getUserNotification(userId: string): Promise<UserNotificationResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/notification`);
     }
 
-    async setUserNotification(userId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/notification`, {}, payload);
     }

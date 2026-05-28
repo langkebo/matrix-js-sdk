@@ -71,9 +71,9 @@ function extractUiaErrorData(error: unknown): IAuthData | null {
             continue;
         }
 
-        const record = candidate as Record<string, unknown>;
+        const record = candidate as Record<string, unknown>; // Dynamic: error object inspection
         if (record.data && typeof record.data === "object") {
-            const nestedData = record.data as Record<string, unknown>;
+            const nestedData = record.data as Record<string, unknown>; // Dynamic: error object inspection
             if ("flows" in nestedData || "session" in nestedData || "params" in nestedData) {
                 return record.data as IAuthData;
             }

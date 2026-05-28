@@ -100,10 +100,10 @@ export class SecureBackupManager extends BaseManager {
      * 列出所有安全备份
      * GET /_matrix/client/v3/keys/backup/secure
      */
-    async listSecureBackups(): Promise<Record<string, unknown>> {
+    async listSecureBackups(): Promise<Record<string, unknown>> { // Dynamic: backup list structure varies by algorithm
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<Record<string, unknown>>(
+                return await this.client.http.authedRequest<Record<string, unknown>>( // Dynamic: backup list structure varies by algorithm
                     Method.Get,
                     sb("/keys/backup/secure"),
                     undefined,

@@ -36,7 +36,7 @@ export interface IPushRule {
         pattern?: string;
         is?: string;
     }>;
-    actions?: Array<string | Record<string, unknown>>;
+    actions?: Array<string | Record<string, unknown>>; // Dynamic: push rule actions can be tweaks
 }
 
 export interface ISetPushRuleBody {
@@ -47,7 +47,7 @@ export interface ISetPushRuleBody {
         pattern?: string;
         is?: string;
     }>;
-    actions?: Array<string | Record<string, unknown>>;
+    actions?: Array<string | Record<string, unknown>>; // Dynamic: push rule actions can be tweaks
 }
 
 export interface PushRulesManagerEvents {

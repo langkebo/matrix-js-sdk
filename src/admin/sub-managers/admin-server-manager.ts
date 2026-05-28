@@ -40,6 +40,9 @@ import type {
     PurgeHistoryRequest,
     ShutdownRoomRequest,
     CleanupRoomsRequest,
+    RestartServerPayload,
+    RestartServerResponse,
+    PurgeRoomResponse,
 } from "../types";
 import { MatrixClient } from "../../client";
 
@@ -396,7 +399,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 重启选项
      * @returns 重启结果
      */
-    async restartServer(payload?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    async restartServer(payload?: RestartServerPayload): Promise<RestartServerResponse> {
         return await this.adminRequest(Method.Post, "/restart", {}, payload ?? {});
     }
 
@@ -442,7 +445,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 清除选项
      * @returns 清除结果
      */
-    async purgeRoom(payload: { room_id: string }): Promise<Record<string, unknown>> {
+    async purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse> {
         return await this.adminRequest(Method.Post, "/purge_room", {}, payload);
     }
 

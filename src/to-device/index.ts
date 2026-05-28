@@ -32,10 +32,11 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { SendToDeviceContentMap } from "../client-api-types";
 import type { EmptyObject } from "../@types/common";
 import type { ToDeviceBatch as ModelToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
+import type { IContent } from "../models/event";
 
 export interface ToDeviceMessage {
     [userId: string]: {
-        [deviceId: string]: Record<string, unknown>;
+        [deviceId: string]: IContent;
     };
 }
 

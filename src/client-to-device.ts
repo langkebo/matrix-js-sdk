@@ -27,14 +27,14 @@ export function buildSendToDevicePath(eventType: string, txnId: string): string 
 }
 
 export function buildSendToDeviceBody(contentMap: SendToDeviceContentMap): {
-    body: { messages: Record<string, Record<string, unknown>> };
+    body: { messages: Record<string, Record<string, unknown>> }; // Dynamic: to-device message content varies by event type
     targets: Map<string, string[]>;
 } {
-    const messages: Record<string, Record<string, unknown>> = {};
+    const messages: Record<string, Record<string, unknown>> = {}; // Dynamic: to-device message content varies by event type
 
     const targets = new Map<string, string[]>();
     for (const [userId, deviceMessages] of contentMap) {
-        const perUserMessages: Record<string, unknown> = {};
+        const perUserMessages: Record<string, unknown> = {}; // Dynamic: per-device message content
         for (const [deviceId, content] of deviceMessages) {
             perUserMessages[deviceId] = content;
         }

@@ -7,6 +7,7 @@ import type { IThreepid } from "./@types/three-pids";
 import type { IAddThreePidOnlyBody, IBindThreePidBody } from "./@types/requests";
 import type { IdServerUnbindResult } from "./@types/partials";
 import type { IContent } from "./models/event";
+import type { IExtendedProfile } from "./profile/index";
 
 export type ProfileField = "displayname" | "avatar_url";
 
@@ -56,8 +57,8 @@ export function getExtendedProfileRequest(
     userId: string,
     requestPrefix: string,
     authedRequest: AuthedRequestFn,
-): Promise<Record<string, unknown>> {
-    return authedRequest<Record<string, unknown>>(Method.Get, buildProfilePath(userId), undefined, undefined, {
+): Promise<IExtendedProfile> {
+    return authedRequest<IExtendedProfile>(Method.Get, buildProfilePath(userId), undefined, undefined, {
         prefix: requestPrefix,
     });
 }
@@ -68,7 +69,7 @@ export async function getExtendedProfilePropertyRequest(
     requestPrefix: string,
     authedRequest: AuthedRequestFn,
 ): Promise<unknown> {
-    const profile = await authedRequest<Record<string, unknown>>(
+    const profile = await authedRequest<IExtendedProfile>(
         Method.Get,
         buildExtendedProfilePropertyPath(userId, key),
         undefined,
@@ -111,18 +112,18 @@ export function deleteExtendedProfilePropertyRequest(
 
 export function patchExtendedProfileRequest(
     userId: string | null,
-    profile: Record<string, unknown>,
+    profile: IExtendedProfile,
     requestPrefix: string,
     authedRequest: AuthedRequestFn,
-): Promise<Record<string, unknown>> {
-    return authedRequest<Record<string, unknown>>(Method.Patch, buildProfilePath(userId), {}, profile, {
+): Promise<IExtendedProfile> {
+    return authedRequest<IExtendedProfile>(Method.Patch, buildProfilePath(userId), {}, profile, {
         prefix: requestPrefix,
     });
 }
 
 export function setExtendedProfileRequest(
     userId: string | null,
-    profile: Record<string, unknown>,
+    profile: IExtendedProfile,
     requestPrefix: string,
     authedRequest: AuthedRequestFn,
 ): Promise<void> {

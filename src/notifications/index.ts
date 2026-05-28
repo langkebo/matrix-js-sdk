@@ -21,7 +21,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
 import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
 import { type EmptyObject } from "../@types/common";
-import { type IEvent } from "../models/event";
+import { type IEvent, type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { AdminValidators } from "../admin/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
@@ -122,14 +122,14 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      * @param notificationId - 通知 ID (event_id)
      * @returns 成功返回空对象
      */
-    public async ackNotification(notificationId: string): Promise<Record<string, unknown>> {
+    public async ackNotification(notificationId: string): Promise<EmptyObject> {
         if (!notificationId) {
             throw new ValidationError("notificationId is required");
         }
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<Record<string, unknown>>(
+                this.client.http.authedRequest<EmptyObject>(
                     Method.Post,
                     np(`/notifications/${encodeURIComponent(notificationId)}/ack` as StripV3<PushPathPattern>),
                     undefined,

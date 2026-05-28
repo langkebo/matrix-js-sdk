@@ -102,7 +102,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
         content: AccountDataEvents[K] | Record<string, never>,
     ): Promise<EmptyObject> {
         this.validateDataType(eventType as string);
-        this.validateContentSize(content as Record<string, unknown>);
+        this.validateContentSize(content as IContent);
 
         // If the sync loop is not running, fall back to setAccountDataRaw.
         if (!this.client.clientRunning) {

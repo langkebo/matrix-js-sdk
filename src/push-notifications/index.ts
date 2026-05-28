@@ -31,7 +31,7 @@ export interface IPusher {
     device_display_name: string;
     profile_tag?: string;
     lang: string;
-    data: Record<string, unknown>;
+    data: Record<string, unknown>; // Dynamic: pusher data varies by kind
 }
 
 export interface IPushersResponse {
@@ -41,7 +41,7 @@ export interface IPushersResponse {
 export interface IPusherData {
     url?: string;
     format?: string;
-    default_payload?: Record<string, unknown>;
+    default_payload?: Record<string, unknown>; // Dynamic: push notification payload varies by pusher
 }
 
 export class PushNotificationsManager {

@@ -32,7 +32,7 @@ import {
     SendDelayedEventResponse,
 } from "../@types/requests";
 import { type IMessagesResponse, type IThreadedMessagesResponse } from "../client-internal-types";
-import { EventStatus, type IEvent, type IContent, MatrixEvent } from "../models/event";
+import { EventStatus, type IEvent, type IContent, type IUnsigned, MatrixEvent } from "../models/event";
 import { Room } from "../models/room";
 import { Direction } from "../models/event-timeline";
 import { type MatrixScheduler } from "../scheduler";
@@ -61,7 +61,7 @@ export interface IRoomEvent {
     sender: string;
     origin_server_ts: number;
     room_id?: string;
-    unsigned?: Record<string, unknown>;
+    unsigned?: IUnsigned;
 }
 
 export interface IStateEvent extends IRoomEvent {
@@ -158,7 +158,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             dir: "f" | "b";
             to?: string;
             limit?: number;
-            filter?: Record<string, unknown>;
+            filter?: IRoomEventFilter;
         },
     ): Promise<IGetMessagesResponse> {
         this.validateRoomId(roomId);
@@ -352,7 +352,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
               });
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<IContent>(
                 Method.Get,
                 path,
                 undefined,
@@ -422,7 +422,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public async getEventContext(
         roomId: string,
         eventId: string,
-        params?: { limit?: number; filter?: Record<string, unknown>; lazyLoadMembers?: boolean },
+        params?: { limit?: number; filter?: IRoomEventFilter; lazyLoadMembers?: boolean },
     ): Promise<NormalizedContextResponse> {
         this.validateRoomId(roomId);
         this.validateEventId(eventId);
@@ -451,7 +451,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public async redactEvent(
         roomId: string,
         eventId: string,
-        reasonOrContent?: string | Record<string, unknown>,
+        reasonOrContent?: string | IContent,
         txnId?: string,
     ): Promise<ISendEventResponse> {
         this.validateRoomId(roomId);

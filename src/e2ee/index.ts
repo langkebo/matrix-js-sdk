@@ -26,6 +26,8 @@ import type {
     DeviceListUpdateEntry,
     DeviceListDeletedEntry,
 } from "../device-keys/index";
+import type { UploadDeviceSigningRequest } from "./__generated__/dto";
+import type { IContent } from "../models/event";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -108,7 +110,8 @@ export interface SecuritySummaryResponse {
 export interface SecureBackupInfo {
     backup_id: string;
     algorithm: string;
-    auth_data: Record<string, unknown>;
+    /** Algorithm-specific auth data (shape varies by backup algorithm) */
+    auth_data: IContent;
     version: string;
     count?: number;
     etag?: string;
@@ -121,7 +124,9 @@ export interface SecureBackupKeysResponse {
 }
 
 export interface SecureBackupRestoreResponse {
-    rooms: Record<string, Record<string, unknown>>;
+    /** Number of keys recovered */
+    recovered_keys: number;
+    /** Total keys in backup */
     total: number;
 }
 
@@ -133,7 +138,8 @@ export interface RoomKeyRequestBody {
     room_id: string;
     session_id: string;
     algorithm: string;
-    body?: Record<string, unknown>;
+    /** Additional key request data (varies by algorithm) */
+    body?: IContent;
 }
 
 export interface RoomKeyRequestResponse {
@@ -159,13 +165,14 @@ export interface SignaturesUploadResponse {
 
 export interface SecurityBackupCreateBody {
     algorithm?: string;
-    auth_data?: Record<string, unknown>;
+    /** Algorithm-specific auth data (shape varies by backup algorithm) */
+    auth_data?: IContent;
     passphrase?: string;
 }
 
 export interface StoreSecureBackupKeysBody {
     passphrase: string;
-    session_keys?: Array<{ session_id: string; session_data: Record<string, unknown> }>;
+    session_keys?: Array<{ session_id: string; session_data: IContent }>;
 }
 
 export interface RestoreSecureBackupBody {
@@ -178,7 +185,27 @@ export interface VerifySecureBackupPassphraseBody {
     passphrase: string;
 }
 
-export type SendToDeviceMessages = Record<string, Record<string, unknown>>;
+/** Messages for send-to-device: user_id → device_id → event content // Dynamic: content shape varies by event type */
+export type SendToDeviceMessages = Record<string, Record<string, IContent>>;
+
+export interface DeviceSigningUploadResponse {
+    failures?: Record<string, Record<string, string>>;
+}
+
+export interface SendToDeviceResponse {
+    failures?: Record<string, Record<string, string>>;
+}
+
+export interface DeviceVerificationRequestResponse {
+    token: string;
+    expires_at?: number;
+    [key: string]: unknown;
+}
+
+export interface DeviceVerificationRespondResponse {
+    success?: boolean;
+    [key: string]: unknown;
+}
 
 export class E2EEManager extends BaseManager {
     public constructor(client: MatrixClient) {
@@ -227,7 +254,7 @@ export class E2EEManager extends BaseManager {
         return this.post(ep("/keys/signatures/upload"), body, "uploadSignaturesAlt");
     }
 
-    public async uploadDeviceSigning(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    public async uploadDeviceSigning(body: UploadDeviceSigningRequest): Promise<DeviceSigningUploadResponse> {
         return this.post(ep("/keys/device_signing/upload"), body, "uploadDeviceSigning");
     }
 
@@ -277,11 +304,11 @@ export class E2EEManager extends BaseManager {
         eventType: string,
         transactionId: string,
         messages: SendToDeviceMessages,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<SendToDeviceResponse> {
         this.requireNonEmptyString(eventType, "eventType");
         this.requireNonEmptyString(transactionId, "transactionId");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<SendToDeviceResponse>(
                 Method.Put,
                 ep(
                     `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}` as StripV3<E2eePathPattern>,
@@ -297,14 +324,14 @@ export class E2EEManager extends BaseManager {
 
     public async requestDeviceVerification(
         body: DeviceVerificationRequestBody,
-    ): Promise<Record<string, unknown>> {
+    ): Promise<DeviceVerificationRequestResponse> {
         if (!body.device_id && !body.new_device_id) {
             throw new InvalidParamError("device_id or new_device_id is required");
         }
         return this.post(ep("/device_verification/request"), body, "requestDeviceVerification");
     }
 
-    public async respondDeviceVerification(body: DeviceVerificationRespondBody): Promise<Record<string, unknown>> {
+    public async respondDeviceVerification(body: DeviceVerificationRespondBody): Promise<DeviceVerificationRespondResponse> {
         return this.post(ep("/device_verification/respond"), body, "respondDeviceVerification");
     }
 
@@ -449,7 +476,7 @@ export class E2EEManager extends BaseManager {
 
     // -------- helpers ----------
 
-    private async post<T = Record<string, unknown>>(
+    private async post<T = IContent>(
         path: string,
         body: object,
         label: string,

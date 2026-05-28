@@ -45,6 +45,7 @@ import { InflightRequestCache } from "../utils/inflight-request-cache";
 import { Visibility, GuestAccess, HistoryVisibility } from "../@types/partials";
 import * as ContentHelpers from "../content-helpers";
 import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
+import type { InviteRequest } from "./__generated__/dto";
 import type { RoomPathPattern } from "./__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
@@ -124,6 +125,17 @@ export interface IEventContextResponse {
     start: string;
     end: string;
     state: IStateEvent[];
+}
+
+export interface IMyRoom {
+    membership?: string;
+    join_state?: string;
+    [key: string]: unknown;
+}
+
+export interface IMyRoomsResponse {
+    rooms: IMyRoom[];
+    total: number;
 }
 
 interface RoomManagerEventMap {
@@ -531,7 +543,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             await this.client.getCrypto()?.shareRoomHistoryWithUser(roomId, userId);
         }
 
-        const body: Record<string, unknown> = {
+        const body: InviteRequest = {
             user_id: userId,
             ...(normalizedOpts.reason ? { reason: normalizedOpts.reason } : {}),
         };
@@ -684,7 +696,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async getEventContext(
         roomId: string,
         eventId: string,
-        params?: { limit?: number; filter?: Record<string, unknown> },
+        params?: { limit?: number; filter?: Record<string, unknown> }, // Dynamic: Matrix filter objects are spec-defined but arbitrarily shaped
     ): Promise<IEventContextResponse> {
         this.validateRoomId(roomId);
         if (!eventId) {
@@ -1111,14 +1123,14 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * Get all rooms for the current user, including join, invite, and leave status.
      * Custom endpoint for synapse-rust.
      */
-    public async getMyRooms(): Promise<{ rooms: Record<string, unknown>[]; total: number }> {
-        const response = await this.client.http.authedRequest<{ rooms: Record<string, unknown>[]; total: number }>(
+    public async getMyRooms(): Promise<IMyRoomsResponse> {
+        const response = await this.client.http.authedRequest<IMyRoomsResponse>(
             Method.Get,
             "/_matrix/client/v3/my_rooms",
         );
         return {
             ...response,
-            rooms: response.rooms.map((room: Record<string, unknown>) => {
+            rooms: response.rooms.map((room: IMyRoom) => {
                 const membership = room.membership ?? room.join_state;
                 const joinState = room.join_state ?? room.membership;
                 if (membership === room.membership && joinState === room.join_state) {
@@ -1154,7 +1166,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         push: { enabled: boolean };
         email: { enabled: boolean };
         features: Record<string, boolean>;
-        defaults: Record<string, unknown>;
+        defaults: Record<string, unknown>; // Dynamic: server-defined default configuration values
     }> {
         return this.client.http.authedRequest(
             Method.Get,

@@ -807,7 +807,7 @@ describe("RoomSummaryManager", () => {
         it("should claim room keys via v3 endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ one_time_keys: {} });
 
-            const result = await summaryManager.claimRoomKeys("!room:example.com", { timeout: 1000 });
+            const result = await summaryManager.claimRoomKeys("!room:example.com", { one_time_keys: {} });
 
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Post,

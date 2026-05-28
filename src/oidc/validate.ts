@@ -49,23 +49,23 @@ export type ValidatedAuthMetadata = Partial<OidcMetadata> &
         device_authorization_endpoint?: string;
     };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isRecord = (value: unknown): value is Record<string, unknown> /* Dynamic: generic object type guard */ =>
     !!value && typeof value === "object" && !Array.isArray(value);
-const requiredStringProperty = (wellKnown: Record<string, unknown>, key: string): boolean => {
+const requiredStringProperty = (wellKnown: Record<string, unknown> /* Dynamic: unvalidated OIDC metadata */, key: string): boolean => {
     if (!wellKnown[key] || !optionalStringProperty(wellKnown, key)) {
         logger.error(`Missing or invalid property: ${key}`);
         return false;
     }
     return true;
 };
-const optionalStringProperty = (wellKnown: Record<string, unknown>, key: string): boolean => {
+const optionalStringProperty = (wellKnown: Record<string, unknown> /* Dynamic: unvalidated OIDC metadata */, key: string): boolean => {
     if (!!wellKnown[key] && typeof wellKnown[key] !== "string") {
         logger.error(`Invalid property: ${key}`);
         return false;
     }
     return true;
 };
-const optionalStringArrayProperty = (wellKnown: Record<string, unknown>, key: string): boolean => {
+const optionalStringArrayProperty = (wellKnown: Record<string, unknown> /* Dynamic: unvalidated OIDC metadata */, key: string): boolean => {
     if (
         !!wellKnown[key] &&
         (!Array.isArray(wellKnown[key]) || !(<unknown[]>wellKnown[key]).every((v) => typeof v === "string"))
@@ -75,7 +75,7 @@ const optionalStringArrayProperty = (wellKnown: Record<string, unknown>, key: st
     }
     return true;
 };
-const requiredArrayValue = (wellKnown: Record<string, unknown>, key: string, value: unknown): boolean => {
+const requiredArrayValue = (wellKnown: Record<string, unknown> /* Dynamic: unvalidated OIDC metadata */, key: string, value: unknown): boolean => {
     const array = wellKnown[key];
     if (!array || !Array.isArray(array) || !array.includes(value)) {
         logger.error(`Invalid property: ${key}. ${value} is required.`);
@@ -101,7 +101,7 @@ const isSecureUrl = (value: string, { allowQuery }: { allowQuery?: boolean } = {
     }
 };
 const requiredUrlProperty = (
-    wellKnown: Record<string, unknown>,
+    wellKnown: Record<string, unknown> /* Dynamic: unvalidated OIDC metadata */,
     key: string,
     options?: { allowQuery?: boolean },
 ): boolean => {
@@ -115,7 +115,7 @@ const requiredUrlProperty = (
     return true;
 };
 const optionalUrlProperty = (
-    wellKnown: Record<string, unknown>,
+    wellKnown: Record<string, unknown> /* Dynamic: unvalidated OIDC metadata */,
     key: string,
     options?: { allowQuery?: boolean },
 ): boolean => {

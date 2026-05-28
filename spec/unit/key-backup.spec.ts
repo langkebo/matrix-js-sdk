@@ -71,7 +71,7 @@ describe("KeyBackupManager", () => {
             };
 
             const result = await manager.createBackupVersion("m.megolm_backup.v1.curve25519-aes-sha2", {
-                key: "value",
+                public_key: "value",
             }, auth);
 
             expect(mockHttp.authedRequest).toHaveBeenCalledWith(
@@ -80,7 +80,7 @@ describe("KeyBackupManager", () => {
                 undefined,
                 {
                     algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
-                    auth_data: { key: "value" },
+                    auth_data: { public_key: "value" },
                     auth,
                 },
                 { prefix: ClientPrefix.V3 },
@@ -287,7 +287,7 @@ describe("KeyBackupManager", () => {
                 {
                     room_id: "!room:abc",
                     session_id: "s1",
-                    session_data: {},
+                    session_data: { ciphertext: "c", ephemeral: "e", mac: "m" },
                     first_message_index: 0,
                     forwarded_count: 0,
                     is_verified: true,

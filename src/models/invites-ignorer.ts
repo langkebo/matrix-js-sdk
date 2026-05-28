@@ -283,7 +283,7 @@ export class IgnoredInvites {
      *
      * @returns A non-null object.
      */
-    private getIgnoreInvitesPolicies(): Record<string, unknown> {
+    private getIgnoreInvitesPolicies(): Record<string, unknown> { // Dynamic: account data policies object
         return this.getPoliciesAndIgnoreInvitesPolicies().ignoreInvitesPolicies;
     }
 
@@ -291,7 +291,7 @@ export class IgnoredInvites {
      * Modify in place the `IGNORE_INVITES_POLICIES` object from account data.
      */
     private async withIgnoreInvitesPolicies(
-        cb: (ignoreInvitesPolicies: Record<string, unknown>) => void,
+        cb: (ignoreInvitesPolicies: Record<string, unknown>) => void, // Dynamic: account data policies object
     ): Promise<void> {
         const { policies, ignoreInvitesPolicies } = this.getPoliciesAndIgnoreInvitesPolicies();
         cb(ignoreInvitesPolicies);
@@ -304,8 +304,8 @@ export class IgnoredInvites {
      * object.
      */
     private getPoliciesAndIgnoreInvitesPolicies(): {
-        policies: Record<string, unknown>;
-        ignoreInvitesPolicies: Record<string, unknown>;
+        policies: Record<string, unknown>; // Dynamic: account data policies object
+        ignoreInvitesPolicies: Record<string, unknown>; // Dynamic: account data policies object
     } {
         let policies: IContent = {};
         for (const key of [POLICIES_ACCOUNT_EVENT_TYPE.name, POLICIES_ACCOUNT_EVENT_TYPE.altName]) {

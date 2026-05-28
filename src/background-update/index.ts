@@ -51,7 +51,7 @@ export interface BackgroundUpdateRecord {
     description?: string | null;
     table_name?: string | null;
     status: string;
-    progress: Record<string, unknown> | number | null;
+    progress: Record<string, unknown> | number | null; // Dynamic: progress shape varies by job type
     total_items: number;
     processed_items: number;
     created_ts: number;

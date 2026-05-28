@@ -109,6 +109,25 @@ export interface UserAppservicesResponse {
     }>;
 }
 
+export interface ApplicationServiceQueryUserResult {
+    user_id: string;
+    application_service: string | null;
+    exists: boolean;
+}
+
+export interface ApplicationServiceQueryAliasResult {
+    alias: string;
+    application_service: string | null;
+    exists: boolean;
+}
+
+export interface ApplicationServiceStateEntry {
+    as_id: string;
+    state_key: string;
+    state_value: string;
+    updated_ts: number;
+}
+
 export interface PingResult {
     duration: number;
 }
@@ -415,7 +434,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     async getProtocols(): Promise<string[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<Record<string, unknown>>(
+                return await this.client.http.authedRequest<Record<string, ApplicationServiceProtocol>>(
                     Method.Get,
                     "/thirdparty/protocols",
                     undefined,
@@ -482,7 +501,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     // events, statistics, query/user, query/alias) that were previously unreachable
     // from the SDK.
 
-    async getApplicationServiceState(asId: string): Promise<Record<string, unknown>> {
+    async getApplicationServiceState(asId: string): Promise<ApplicationServiceStateEntry[]> {
         return this.withRetry(async () => {
             return await this.client.http.authedRequest(
                 Method.Get,
@@ -518,7 +537,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "listApplicationServiceUsers");
     }
 
-    async getApplicationServiceNamespaces(asId: string): Promise<Record<string, unknown>> {
+    async getApplicationServiceNamespaces(asId: string): Promise<Record<string, unknown> /* Dynamic: namespaces stored as raw JSON */> {
         return this.withRetry(async () => {
             return await this.client.http.authedRequest(
                 Method.Get,
@@ -548,7 +567,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "listApplicationServiceEvents");
     }
 
-    async getApplicationServiceStatistics(asId: string): Promise<Record<string, unknown>> {
+    async getApplicationServiceStatistics(asId: string): Promise<Record<string, unknown> /* Dynamic: statistics shape varies by backend version */> {
         return this.withRetry(async () => {
             return await this.client.http.authedRequest(
                 Method.Get,
@@ -560,7 +579,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "getApplicationServiceStatistics");
     }
 
-    async queryApplicationServiceUser(asId: string, userId: string): Promise<Record<string, unknown>> {
+    async queryApplicationServiceUser(asId: string, userId: string): Promise<ApplicationServiceQueryUserResult> {
         return this.withRetry(async () => {
             return await this.client.http.authedRequest(
                 Method.Get,
@@ -572,7 +591,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "queryApplicationServiceUser");
     }
 
-    async queryApplicationServiceAlias(asId: string, alias: string): Promise<Record<string, unknown>> {
+    async queryApplicationServiceAlias(asId: string, alias: string): Promise<ApplicationServiceQueryAliasResult> {
         return this.withRetry(async () => {
             return await this.client.http.authedRequest(
                 Method.Get,

@@ -91,7 +91,7 @@ export class CryptoEncryptionManager extends BaseManager<
         );
     }
 
-    public async getUserDevices(userId: string): Promise<Record<string, unknown>> {
+    public async getUserDevices(userId: string): Promise<Record<string, unknown>> { // Dynamic: device info structure varies
         return this.withRetry(
             () => this.client.getUserDevices(userId),
             "getUserDevices",

@@ -27,6 +27,8 @@ import type {
     PendingFederationList,
     AdminFederationCache,
     AdminFederationDestinationRooms,
+    FederationResolveResponse,
+    FederationRewriteResponse,
 } from "../types";
 import type { MatrixClient } from "../../client";
 
@@ -263,7 +265,7 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param serverName - 服务器名称
      * @returns 解析结果
      */
-    async resolveFederation(serverName: string): Promise<Record<string, unknown>> {
+    async resolveFederation(serverName: string): Promise<FederationResolveResponse> {
         return await this.adminRequest(Method.Post, "/federation/resolve", {}, { server_name: serverName });
     }
 
@@ -274,7 +276,7 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param to - 目标服务器名称
      * @returns 重写结果
      */
-    async rewriteFederation(from: string, to: string): Promise<Record<string, unknown>> {
+    async rewriteFederation(from: string, to: string): Promise<FederationRewriteResponse> {
         if (!from || !to) throw new ValidationError("from and to are required");
         return await this.adminRequest(Method.Post, "/federation/rewrite", {}, { from, to });
     }

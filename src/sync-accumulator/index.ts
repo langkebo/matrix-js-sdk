@@ -28,9 +28,9 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISyncAccumulatedData {
     rooms?: {
-        join?: Record<string, unknown>;
-        invite?: Record<string, unknown>;
-        leave?: Record<string, unknown>;
+        join?: Record<string, unknown>; // Dynamic: raw sync join data
+        invite?: Record<string, unknown>; // Dynamic: raw sync invite data
+        leave?: Record<string, unknown>; // Dynamic: raw sync leave data
     };
     account_data?: Array<{
         type: string;
@@ -63,7 +63,7 @@ export class SyncAccumulatorManager extends BaseManager<
         this.client.syncAccumulator = accumulator;
     }
 
-    public async accumulateSyncData(data: Record<string, unknown>): Promise<void> {
+    public async accumulateSyncData(data: Record<string, unknown>): Promise<void> { // Dynamic: raw sync response data
         return this.withRetry(
             () => this.client.accumulateSyncData(data),
             "accumulateSyncData",

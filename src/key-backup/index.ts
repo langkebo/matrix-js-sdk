@@ -32,6 +32,8 @@ import { BaseManager } from "../managers/base-manager";
 import type { KeyBackupPathPattern } from "./__generated__/route-table";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { Aes256AuthData } from "../crypto-api/keybackup";
+import type { AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -66,13 +68,13 @@ export interface SessionData {
     first_message_index: number;
     forwarded_count: number;
     is_verified: boolean;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData | AESEncryptedSecretStoragePayload;
 }
 
 export interface BackupVersionInfo {
     version: string;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData | Aes256AuthData;
     count?: number;
     etag?: string;
 }
@@ -80,7 +82,7 @@ export interface BackupVersionInfo {
 export interface BackupVersion {
     version: string;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData | Aes256AuthData;
     count?: number;
     etag?: string;
 }
@@ -115,7 +117,7 @@ export interface ExportResult {
     room_keys: Array<{
         room_id: string;
         session_id: string;
-        session_data: EncryptedData | Record<string, unknown>;
+        session_data: EncryptedData | AESEncryptedSecretStoragePayload;
         first_message_index: number;
         forwarded_count: number;
         is_verified: boolean;
@@ -132,7 +134,7 @@ export interface ImportResult {
 export interface VerifyResult {
     valid: boolean;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData | Aes256AuthData;
     key_count: number;
     signatures?: Record<string, Record<string, string>>;
 }
@@ -164,7 +166,7 @@ export interface RecoverRoomKeysResult {
 export interface RecoverSessionKeyResult {
     room_id: string;
     session_id: string;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData | AESEncryptedSecretStoragePayload;
 }
 
 export interface KeyBackupAuthData {
@@ -233,7 +235,7 @@ export class KeyBackupManager extends BaseManager {
 
     async createBackupVersion(
         algorithm: string = "m.megolm_backup.v1.curve25519-aes-sha2",
-        authData?: AuthData | Record<string, unknown>,
+        authData?: AuthData | Aes256AuthData,
         auth?: KeyBackupAuthData,
     ): Promise<{ version: string }> {
         if (!algorithm || algorithm.trim().length === 0) {
@@ -288,7 +290,7 @@ export class KeyBackupManager extends BaseManager {
 
     async updateBackupVersion(
         version: string,
-        authData: AuthData | Record<string, unknown>,
+        authData: AuthData | Aes256AuthData,
     ): Promise<{ version: string }> {
         try {
             const result = await this.withRetry(async () => {
@@ -428,10 +430,10 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
-    async getSessionKey(version: string, roomId: string, sessionId: string): Promise<EncryptedData | Record<string, unknown>> {
+    async getSessionKey(version: string, roomId: string, sessionId: string): Promise<EncryptedData | AESEncryptedSecretStoragePayload> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<EncryptedData | Record<string, unknown>>(
+                return await this.client.http.authedRequest<EncryptedData | AESEncryptedSecretStoragePayload>(
                     Method.Get,
                     kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
                     { version },

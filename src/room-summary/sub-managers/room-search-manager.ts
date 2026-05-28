@@ -18,6 +18,7 @@ import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
 import { EventType } from "../../@types/event";
+import type { IContent } from "../../models/event";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type { RoomSummaryOptions, RoomSummary, RoomSearchResult } from "../types";
 import type { IPublicRoomsResponse, IPublicRoomsChunkRoom } from "../../client-api-types";
@@ -30,7 +31,7 @@ export interface RoomSearchBody {
     limit?: number;
     order_by?: string;
     direction?: "f" | "b";
-    filter?: Record<string, unknown>;
+    filter?: IContent;
     [key: string]: unknown;
 }
 

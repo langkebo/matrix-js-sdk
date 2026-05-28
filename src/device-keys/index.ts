@@ -40,6 +40,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { IContent } from "../models/event";
 
 export interface DeviceKeys {
     user_id: string;
@@ -47,7 +48,7 @@ export interface DeviceKeys {
     algorithms: string[];
     keys: Record<string, string>;
     signatures: Record<string, Record<string, string>>;
-    unsigned?: Record<string, unknown>;
+    unsigned?: Record<string, unknown>; // Dynamic: may contain device_display_name etc.
 }
 
 export interface OneTimeKeys {
@@ -163,7 +164,7 @@ export interface RoomKeyRequestsResponse {
 
 export interface SendToDeviceMessage {
     [userId: string]: {
-        [deviceId: string]: Record<string, unknown>;
+        [deviceId: string]: IContent;
     };
 }
 
@@ -230,7 +231,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
      */
     async uploadKeys(options: UploadKeysOptions): Promise<UploadKeysResponse> {
         try {
-            const body: Record<string, unknown> = {};
+            const body: { device_keys?: DeviceKeys; one_time_keys?: OneTimeKeys; fallback_keys?: FallbackKeys } = {};
 
             if (options.deviceKeys) {
                 body.device_keys = options.deviceKeys;
@@ -346,7 +347,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         since?: string,
     ): Promise<DeviceListUpdateResponse> {
         try {
-            const body: Record<string, unknown> = { users };
+            const body: { users: string[]; since?: string } = { users };
 
             if (since) {
                 body.since = since;
@@ -527,7 +528,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     }
 
     public async getUserDevices(userId: string): Promise<Record<string, DeviceKeys>> {
-        return this.client.getUserDevices(userId) as Promise<Record<string, DeviceKeys>>;
+        return this.client.getUserDevices(userId) as unknown as Promise<Record<string, DeviceKeys>>;
     }
 
     public hasDevice(deviceId: string): boolean {

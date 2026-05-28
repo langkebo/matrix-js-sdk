@@ -23,12 +23,12 @@ import { type MatrixEvent } from "./models/event";
  */
 function setProp(obj: IFilterDefinition, keyNesting: string, val: unknown): void {
     const nestedKeys = keyNesting.split(".") as [keyof typeof obj];
-    let currentObj: Record<string, unknown> = obj as unknown as Record<string, unknown>;
+    let currentObj: Record<string, unknown> = obj as unknown as Record<string, unknown>; // Dynamic: traversing nested filter definition
     for (let i = 0; i < nestedKeys.length - 1; i++) {
         if (!currentObj[nestedKeys[i]]) {
             currentObj[nestedKeys[i]] = {};
         }
-        currentObj = currentObj[nestedKeys[i]] as Record<string, unknown>;
+        currentObj = currentObj[nestedKeys[i]] as Record<string, unknown>; // Dynamic: traversing nested filter definition
     }
     currentObj[nestedKeys[nestedKeys.length - 1]] = val;
 }

@@ -296,7 +296,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         });
 
         it("covers module checks and module-adjacent callback routes", async () => {
-            await manager.checkModuleThirdPartyRule({ event_id: "$e1" });
+            await manager.checkModuleThirdPartyRule({ event_id: "$e1", room_id: "!r:x", sender: "@a:x", event_type: "m.room.message", content: {}, state_events: [] });
             await manager.getModuleSpamCheckResult("$e2");
             await manager.listModuleSpamChecksBySender("@alice:x", { limit: 5 });
             await manager.getModuleThirdPartyRuleResults("$e3");
@@ -467,11 +467,11 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
 
         it("getUserNotification/setUserNotification use user route", async () => {
             await manager.getUserNotification("@u:x");
-            await manager.setUserNotification("@u:x", { muted: true });
+            await manager.setUserNotification("@u:x", { enabled: false });
             expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/notification");
             expect(req.mock.calls[1][0]).toBe("PUT");
             expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/notification");
-            expect(req.mock.calls[1][3]).toEqual({ muted: true });
+            expect(req.mock.calls[1][3]).toEqual({ enabled: false });
         });
 
         it("getUserPushers/deleteUserPusher use pusher routes", async () => {

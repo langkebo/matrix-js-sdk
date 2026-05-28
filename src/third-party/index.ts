@@ -26,7 +26,7 @@ export interface ThirdPartyProtocol extends IProtocol {
 export interface ThirdPartyLocation {
     alias: string;
     protocol: string;
-    fields: Record<string, unknown> | object;
+    fields: Record<string, string>;
     info?: {
         [key: string]: unknown;
     };
@@ -35,7 +35,7 @@ export interface ThirdPartyLocation {
 export interface ThirdPartyUser {
     userid: string;
     protocol: string;
-    fields: Record<string, unknown> | object;
+    fields: Record<string, string>;
     display_name?: string;
     avatar_url?: string;
 }
@@ -155,7 +155,7 @@ export class ThirdPartyManager extends BaseManager {
         throwOnError = true,
     ): Promise<ThirdPartyLocation[]> {
         try {
-            return await this.getThirdpartyLocation(protocol, params);
+            return await this.getThirdpartyLocation(protocol, params) as unknown as ThirdPartyLocation[];
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -172,7 +172,7 @@ export class ThirdPartyManager extends BaseManager {
         throwOnError = true,
     ): Promise<ThirdPartyUser[]> {
         try {
-            return await this.getThirdpartyUser(protocol, params);
+            return await this.getThirdpartyUser(protocol, params) as unknown as ThirdPartyUser[];
             // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -279,7 +279,7 @@ export class ThirdPartyManager extends BaseManager {
     async parseMatrixUri(uri: string): Promise<{
         type: "user" | "room" | "event";
         id: string;
-        fields?: Record<string, unknown>;
+        fields?: Record<string, unknown>; // Dynamic: parsed URI fields vary by type
     } | null> {
         try {
             // 简单解析 matrix: URIs

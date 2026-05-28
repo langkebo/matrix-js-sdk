@@ -16,6 +16,7 @@ import { ValidationError } from "../errors";
 import { AdminValidators } from "../admin/validators";
 import type { EventReportPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import type { IContent } from "../models/event";
 
 type StripAdminPrefix<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 type EventReportAdminPathPattern = StripAdminPrefix<EventReportPathPattern>;
@@ -30,7 +31,7 @@ export interface CreateReportBody {
     event_id: string;
     room_id: string;
     reported_user_id?: string;
-    event_json?: Record<string, unknown>;
+    event_json?: IContent;
     reason?: string;
     description?: string;
     score?: number;
@@ -56,7 +57,7 @@ export interface ReportResponse {
     resolved_by?: string;
     resolution_reason?: string;
     canonical_alias?: string;
-    event_json?: Record<string, unknown>;
+    event_json?: IContent;
     sender?: string;
 }
 

@@ -78,6 +78,7 @@ import type {
     RoomVerifyResult,
     TurnServerConfig,
     StickyEvent,
+    RoomVaultDataResult,
 } from "../types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
@@ -205,7 +206,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async setRoomAccountDataV3(
         roomId: string,
         type: string,
-        content: Record<string, unknown>,
+        content: IContent,
     ): Promise<RoomAccountDataResult> {
         this.validateRoomId(roomId);
         if (!type) throw new InvalidParamError("type is required");
@@ -330,10 +331,10 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      */
-    public async getRoomVaultData(roomId: string): Promise<Record<string, unknown> | null> {
+    public async getRoomVaultData(roomId: string): Promise<RoomVaultDataResult | null> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/vault_data", roomId));
+            return await this.requestV3<RoomVaultDataResult>(Method.Get, this.roomSummaryPath("/rooms/$roomId/vault_data", roomId));
         }, "getRoomVaultData");
     }
 
@@ -343,7 +344,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param data - vault 数据
      */
-    public async setRoomVaultData(roomId: string, data: Record<string, unknown>): Promise<void> {
+    public async setRoomVaultData(roomId: string, data: IContent): Promise<void> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
             await this.requestV3(

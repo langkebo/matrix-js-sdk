@@ -74,7 +74,7 @@ export interface ModuleInfo {
     name: string;
     type: string;
     enabled: boolean;
-    config?: Record<string, unknown>;
+    config?: IContent;
     version?: string;
     description?: string;
 }
@@ -82,7 +82,7 @@ export interface ModuleInfo {
 export interface CreateModuleRequest {
     name: string;
     type: string;
-    config?: Record<string, unknown>;
+    config?: IContent;
     enabled?: boolean;
     [key: string]: unknown;
 }
@@ -121,7 +121,7 @@ export interface CallbackInfo {
     id: string;
     module_name: string;
     callback_type: string;
-    config?: Record<string, unknown>;
+    config?: IContent;
     enabled: boolean;
 }
 
@@ -130,7 +130,7 @@ export interface PasswordAuthProviderInfo {
     name: string;
     type: string;
     enabled: boolean;
-    config?: Record<string, unknown>;
+    config?: IContent;
 }
 
 export interface PresenceRouteInfo {
@@ -144,7 +144,7 @@ export interface RateLimitCallbackInfo {
     id: string;
     module_name: string;
     enabled: boolean;
-    config?: Record<string, unknown>;
+    config?: IContent;
 }
 
 export interface AccountValidityInfo {
@@ -170,7 +170,7 @@ interface ModuleManagerEventMap {
     [ModuleEvent.ModulesListed]: (modules: ModuleListResponse) => void;
     [ModuleEvent.ModuleCreated]: (module: ModuleInfo) => void;
     [ModuleEvent.ModuleDeleted]: (moduleName: string) => void;
-    [ModuleEvent.ModuleConfigUpdated]: (moduleName: string, config: Record<string, unknown>) => void;
+    [ModuleEvent.ModuleConfigUpdated]: (moduleName: string, config: IContent) => void;
     [ModuleEvent.ModuleEnabled]: (moduleName: string) => void;
     [ModuleEvent.ModuleDisabled]: (moduleName: string) => void;
     [ModuleEvent.ModuleLogsReceived]: (logs: ModuleLogResponse) => void;
@@ -257,7 +257,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         this.emit(ModuleEvent.ModuleDeleted, moduleName);
     }
 
-    async updateModuleConfig(moduleName: string, config: Record<string, unknown>): Promise<ModuleInfo> {
+    async updateModuleConfig(moduleName: string, config: IContent): Promise<ModuleInfo> {
         const result = await this.adminRequest<ModuleInfo>(
             Method.Put,
             mp(`/modules/${encodeURIComponent(moduleName)}/config`),
@@ -437,13 +437,13 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     async registerPasswordAuthProvider(provider: {
         name: string;
         type: string;
-        config?: Record<string, unknown>;
+        config?: IContent;
     }): Promise<PasswordAuthProviderInfo> {
         const result = await this.adminRequest<PasswordAuthProviderInfo>(
             Method.Post,
             mp("/password_auth_providers"),
             undefined,
-            provider as unknown as Record<string, unknown>,
+            provider as object,
         );
         this.emit(ModuleEvent.PasswordAuthProviderRegistered, result);
         return result;

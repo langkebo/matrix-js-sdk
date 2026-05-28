@@ -27,12 +27,14 @@ import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { type WidgetData } from "../matrix-client-extensions";
 
 export interface WidgetInfo {
     id: string;
     type: string;
     url: string;
     name: string;
+    /** Dynamic: widget data varies by widget type */
     data?: Record<string, unknown>;
 }
 
@@ -43,6 +45,7 @@ export interface Widget {
     type: string;
     url: string;
     name: string;
+    /** Dynamic: widget data varies by widget type */
     data: Record<string, unknown>;
     creator: string;
     active: boolean;
@@ -57,13 +60,76 @@ export interface CreateWidgetBody {
     widget_type: string;
     url: string;
     name: string;
+    /** Dynamic: widget data varies by widget type */
     data?: Record<string, unknown>;
 }
 
 export interface UpdateWidgetBody {
     url?: string;
     name?: string;
+    /** Dynamic: widget data varies by widget type */
     data?: Record<string, unknown>;
+}
+
+/** Response for GET /_matrix/client/v1/widgets/{widgetId}/config */
+export interface WidgetConfigResponse {
+    widget_id: string;
+    room_id: string | null;
+    url: string;
+    name: string;
+    /** Dynamic: widget data varies by widget type */
+    data: Record<string, unknown>;
+    type: string;
+}
+
+/** Response for GET /_matrix/client/v1/rooms/{roomId}/widgets/jitsi/config */
+export interface WidgetJitsiConfigResponse {
+    conf_id: string;
+    name: string;
+    domain: string;
+    app_id: string | null;
+    jwt: string | null;
+}
+
+/** Response for POST /_matrix/client/v1/widgets/{widgetId}/permissions */
+export interface SetWidgetPermissionResponse {
+    success: boolean;
+    permission_id: number;
+}
+
+/** Response for GET /_matrix/client/v1/widgets/{widgetId}/permissions */
+export interface GetWidgetPermissionsResponse {
+    permissions: WidgetPermissionItem[];
+}
+
+/** A single widget permission entry */
+export interface WidgetPermissionItem {
+    id: number;
+    widget_id: string;
+    user_id: string;
+    permissions: string[];
+    created_ts: number;
+    updated_ts: number | null;
+}
+
+/** A widget session */
+export interface WidgetSession {
+    session_id: string;
+    widget_id: string;
+    device_id: string | null;
+    created_ts: number;
+    expires_ts: number | null;
+}
+
+/** Response for POST/GET widget sessions (single session) */
+export interface WidgetSessionResponse {
+    session: WidgetSession;
+}
+
+/** Response for GET /_matrix/client/v1/widgets/{widgetId}/sessions */
+export interface WidgetSessionsListResponse {
+    sessions: WidgetSession[];
+    total: number;
 }
 
 export interface WidgetsManagerEvents {
@@ -113,9 +179,9 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     /** GET /_matrix/client/v1/widgets/{widget_id}/config */
-    public async getWidgetConfig(widgetId: string): Promise<Record<string, unknown>> {
+    public async getWidgetConfig(widgetId: string): Promise<WidgetConfigResponse> {
         return this.withRetry(
-            () => this.request<Record<string, unknown>>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/config`),
+            () => this.request<WidgetConfigResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/config`),
             "getWidgetConfig",
         );
     }
@@ -129,10 +195,10 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     /** GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config */
-    public async getJitsiConfig(roomId: string): Promise<Record<string, unknown>> {
+    public async getJitsiConfig(roomId: string): Promise<WidgetJitsiConfigResponse> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(
+                this.request<WidgetJitsiConfigResponse>(
                     Method.Get,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`,
                 ),
@@ -144,10 +210,10 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async setWidgetPermission(
         widgetId: string,
         body: { user_id: string; permissions: string[] },
-    ): Promise<Record<string, unknown>> {
+    ): Promise<SetWidgetPermissionResponse> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(
+                this.request<SetWidgetPermissionResponse>(
                     Method.Post,
                     `/widgets/${encodeURIComponent(widgetId)}/permissions`,
                     body,
@@ -157,10 +223,10 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     /** GET /_matrix/client/v1/widgets/{widget_id}/permissions */
-    public async getWidgetPermissions(widgetId: string): Promise<Record<string, unknown>> {
+    public async getWidgetPermissions(widgetId: string): Promise<GetWidgetPermissionsResponse> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(
+                this.request<GetWidgetPermissionsResponse>(
                     Method.Get,
                     `/widgets/${encodeURIComponent(widgetId)}/permissions`,
                 ),
@@ -184,10 +250,10 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async createWidgetSession(
         widgetId: string,
         body: { widget_id?: string; device_id?: string; expires_in_ms?: number } = {},
-    ): Promise<Record<string, unknown>> {
+    ): Promise<WidgetSessionResponse> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(
+                this.request<WidgetSessionResponse>(
                     Method.Post,
                     `/widgets/${encodeURIComponent(widgetId)}/sessions`,
                     body,
@@ -197,19 +263,19 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     /** GET /_matrix/client/v1/widgets/{widget_id}/sessions */
-    public async listWidgetSessions(widgetId: string): Promise<Record<string, unknown>> {
+    public async listWidgetSessions(widgetId: string): Promise<WidgetSessionsListResponse> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/sessions`),
+                this.request<WidgetSessionsListResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/sessions`),
             "listWidgetSessions",
         );
     }
 
     /** GET /_matrix/client/v1/widgets/sessions/{session_id} */
-    public async getWidgetSession(sessionId: string): Promise<Record<string, unknown>> {
+    public async getWidgetSession(sessionId: string): Promise<WidgetSessionResponse> {
         return this.withRetry(
             () =>
-                this.request<Record<string, unknown>>(Method.Get, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
+                this.request<WidgetSessionResponse>(Method.Get, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "getWidgetSession",
         );
     }
@@ -223,19 +289,19 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     // Legacy helpers kept for backward compatibility — account-data based.
-    public async getUserWidgets(): Promise<Record<string, unknown>> {
+    public async getUserWidgets(): Promise<WidgetData> {
         return this.withRetry(() => this.client.getUserWidgets(), "getUserWidgets");
     }
 
-    public async getRoomWidgets(roomId: string): Promise<Record<string, unknown>> {
+    public async getRoomWidgets(roomId: string): Promise<WidgetData> {
         return this.withRetry(() => this.client.getRoomWidgets(roomId), "getRoomWidgets");
     }
 
-    public async setUserWidgets(widgets: Record<string, unknown>): Promise<void> {
+    public async setUserWidgets(widgets: WidgetData): Promise<void> {
         return this.withRetry(() => this.client.setUserWidgets(widgets), "setUserWidgets");
     }
 
-    public async setRoomWidgets(roomId: string, widgets: Record<string, unknown>): Promise<void> {
+    public async setRoomWidgets(roomId: string, widgets: WidgetData): Promise<void> {
         return this.withRetry(() => this.client.setRoomWidgets(roomId, widgets), "setRoomWidgets");
     }
 

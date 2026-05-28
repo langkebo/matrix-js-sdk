@@ -39,6 +39,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { OpenclawPathPattern } from "./__generated__/route-table";
+import type { OpenClawConnectionConfig } from "./__generated__/dto";
 
 export interface OpenClawConnection {
     id: number;
@@ -46,7 +47,7 @@ export interface OpenClawConnection {
     provider: string;
     base_url: string;
     has_api_key: boolean;
-    config?: Record<string, unknown>;
+    config?: OpenClawConnectionConfig;
     is_default: boolean;
     is_active: boolean;
     created_ts: number;
@@ -58,7 +59,7 @@ export interface CreateOpenClawConnectionRequest {
     provider: string;
     base_url: string;
     api_key?: string;
-    config?: Record<string, unknown>;
+    config?: OpenClawConnectionConfig;
     is_default?: boolean;
 }
 
@@ -66,7 +67,7 @@ export interface UpdateOpenClawConnectionRequest {
     name?: string;
     base_url?: string;
     api_key?: string;
-    config?: Record<string, unknown>;
+    config?: OpenClawConnectionConfig;
     is_default?: boolean;
     is_active?: boolean;
 }
@@ -130,7 +131,7 @@ export interface OpenClawMessage {
 export interface SendMessageRequest {
     content: string;
     role?: string;
-    metadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown>; // Dynamic: arbitrary message metadata
 }
 
 export interface OpenClawGeneration {
@@ -147,7 +148,7 @@ export interface CreateGenerationRequest {
     type: string;
     prompt: string;
     model_id?: string;
-    parameters?: Record<string, unknown>;
+    parameters?: Record<string, unknown>; // Dynamic: generation parameters vary by type
 }
 
 export interface OpenClawChatRole {
