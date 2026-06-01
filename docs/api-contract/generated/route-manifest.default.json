@@ -1,7 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-18T08:32:24Z",
-  "synapse_rust_commit": "ef9bd5d4d22c35afba65b2b5452278f6a0a28115",
+  "generated_at": "2026-05-30T03:34:40Z",
   "state_profile": "default",
   "profile_flags": {
     "oidc_enabled": false,
@@ -9,7 +8,7 @@
     "saml_enabled": false,
     "openclaw_enabled": false
   },
-  "entry_count": 1322,
+  "entry_count": 1292,
   "entries": [
     {
       "method": "GET",
@@ -783,6 +782,14 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/r0/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/r0/presence/{user_id}/status",
       "registered_by": "presence",
@@ -1038,18 +1045,6 @@
       "path_params": []
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/r0/room_keys/export",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/room_keys/export",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/r0/room_keys/export/{version}",
       "registered_by": "key_backup",
@@ -1141,19 +1136,7 @@
       ]
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/r0/room_keys/recover",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "POST",
-      "path": "/_matrix/client/r0/room_keys/recover",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "PUT",
       "path": "/_matrix/client/r0/room_keys/recover",
       "registered_by": "key_backup",
       "path_params": []
@@ -1659,6 +1642,16 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}",
+      "registered_by": "room",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "txn_id"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}",
       "registered_by": "room",
@@ -1861,55 +1854,12 @@
       "path_params": []
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/r0/secure_backup",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "POST",
-      "path": "/_matrix/client/r0/secure_backup",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/secure_backup/{backup_id}",
-      "registered_by": "key_backup",
+      "path": "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}",
+      "registered_by": "e2ee_routes",
       "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/secure_backup/{backup_id}",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/secure_backup/{backup_id}/keys",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/secure_backup/{backup_id}/restore",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/secure_backup/{backup_id}/verify",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
+        "event_type",
+        "transaction_id"
       ]
     },
     {
@@ -2545,46 +2495,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/ai/connections",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/ai/connections",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/ai/connections/{id}",
-      "registered_by": "ai_connection",
-      "path_params": [
-        "id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/ai/connections/{id}",
-      "registered_by": "ai_connection",
-      "path_params": [
-        "id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/ai/mcp/tools",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/ai/mcp/tools/call",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v1/config/client",
       "registered_by": "assembly::create_router",
       "path_params": []
@@ -2898,6 +2808,18 @@
       "path_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v1/keys/rotation/check",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/keys/rotation/config",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/v1/keys/rotation/config",
       "registered_by": "key_rotation",
@@ -2925,6 +2847,12 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/v1/keys/rotation/status",
+      "registered_by": "key_rotation",
+      "path_params": []
+    },
+    {
+      "method": "POST",
       "path": "/_matrix/client/v1/keys/rotation/status",
       "registered_by": "key_rotation",
       "path_params": []
@@ -3050,6 +2978,14 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v1/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/v1/presence/{user_id}/status",
       "registered_by": "presence",
@@ -3156,18 +3092,6 @@
       "path_params": []
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/v1/room_keys/export",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/room_keys/export",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/v1/room_keys/export/{version}",
       "registered_by": "key_backup",
@@ -3259,19 +3183,7 @@
       ]
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v1/room_keys/recover",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "POST",
-      "path": "/_matrix/client/v1/room_keys/recover",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "PUT",
       "path": "/_matrix/client/v1/room_keys/recover",
       "registered_by": "key_backup",
       "path_params": []
@@ -3761,55 +3673,12 @@
       ]
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v1/secure_backup",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "POST",
-      "path": "/_matrix/client/v1/secure_backup",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/secure_backup/{backup_id}",
-      "registered_by": "key_backup",
+      "path": "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}",
+      "registered_by": "e2ee_routes",
       "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/secure_backup/{backup_id}",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/secure_backup/{backup_id}/keys",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/secure_backup/{backup_id}/restore",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/secure_backup/{backup_id}/verify",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
+        "event_type",
+        "transaction_id"
       ]
     },
     {
@@ -4271,46 +4140,6 @@
       "method": "GET",
       "path": "/_matrix/client/v3/account/whoami",
       "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/ai/connections",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/ai/connections",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/ai/connections/{id}",
-      "registered_by": "ai_connection",
-      "path_params": [
-        "id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/ai/connections/{id}",
-      "registered_by": "ai_connection",
-      "path_params": [
-        "id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/ai/mcp/tools",
-      "registered_by": "ai_connection",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/ai/mcp/tools/call",
-      "registered_by": "ai_connection",
       "path_params": []
     },
     {
@@ -4794,6 +4623,14 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v3/presence/{user_id}/status",
+      "registered_by": "presence",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/v3/presence/{user_id}/status",
       "registered_by": "presence",
@@ -5049,18 +4886,6 @@
       "path_params": []
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/v3/room_keys/export",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/room_keys/export",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/v3/room_keys/export/{version}",
       "registered_by": "key_backup",
@@ -5152,19 +4977,7 @@
       ]
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v3/room_keys/recover",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
       "method": "POST",
-      "path": "/_matrix/client/v3/room_keys/recover",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "PUT",
       "path": "/_matrix/client/v3/room_keys/recover",
       "registered_by": "key_backup",
       "path_params": []
@@ -6005,6 +5818,16 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}",
+      "registered_by": "room",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "txn_id"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}",
       "registered_by": "room",
@@ -6348,6 +6171,15 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v3/rooms/{room_id}/typing/{user_id}",
+      "registered_by": "typing",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/client/v3/rooms/{room_id}/typing/{user_id}",
       "registered_by": "typing",
@@ -6460,61 +6292,18 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/secure_backup",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/secure_backup",
-      "registered_by": "key_backup",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/secure_backup/{backup_id}",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/secure_backup/{backup_id}",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/secure_backup/{backup_id}/keys",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/secure_backup/{backup_id}/restore",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/secure_backup/{backup_id}/verify",
-      "registered_by": "key_backup",
-      "path_params": [
-        "backup_id"
-      ]
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/security/summary",
       "registered_by": "e2ee_routes",
       "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}",
+      "registered_by": "e2ee_routes",
+      "path_params": [
+        "event_type",
+        "transaction_id"
+      ]
     },
     {
       "method": "PUT",
@@ -6755,6 +6544,12 @@
       "path_params": [
         "protocol"
       ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/translate",
+      "registered_by": "room",
+      "path_params": []
     },
     {
       "method": "PUT",
@@ -7562,6 +7357,36 @@
     {
       "method": "POST",
       "path": "/_matrix/media/v1/upload",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/media/v1/upload/chunk",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/media/v1/upload/chunk/cancel",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/media/v1/upload/chunk/complete",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/media/v1/upload/chunk/progress",
+      "registered_by": "media",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/media/v1/upload/chunk/start",
       "registered_by": "media",
       "path_params": []
     },
@@ -8619,18 +8444,6 @@
       "path_params": []
     },
     {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/presence_routes",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/presence_routes",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
       "method": "POST",
       "path": "/_synapse/admin/v1/purge_history",
       "registered_by": "admin::room",
@@ -8658,18 +8471,6 @@
       "method": "POST",
       "path": "/_synapse/admin/v1/push/process",
       "registered_by": "push_notification",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/rate_limit_callbacks",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/rate_limit_callbacks",
-      "registered_by": "module",
       "path_params": []
     },
     {
@@ -9644,6 +9445,12 @@
     {
       "method": "POST",
       "path": "/_synapse/room_summary/v1/summaries",
+      "registered_by": "room_summary",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/room_summary/v1/summaries/batch",
       "registered_by": "room_summary",
       "path_params": []
     },

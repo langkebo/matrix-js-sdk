@@ -40,6 +40,19 @@ describe("FriendManager", () => {
         friendManager = new FriendManager(client);
     });
 
+    describe("isSupported", () => {
+        it("defaults to supported for clients without centralized discovery", async () => {
+            await expect(friendManager.isSupported()).resolves.toBe(true);
+        });
+
+        it("uses centralized synapse-rust friends discovery when available", async () => {
+            (client as any).doesServerAdvertiseSynapseRustFeature = vi.fn().mockResolvedValue(false);
+
+            await expect(friendManager.isSupported()).resolves.toBe(false);
+            expect((client as any).doesServerAdvertiseSynapseRustFeature).toHaveBeenCalledWith("io.hula.friends");
+        });
+    });
+
     describe("sendFriendRequest", () => {
         it("should send a friend request successfully", async () => {
             mockAuthedRequest.mockResolvedValue({});

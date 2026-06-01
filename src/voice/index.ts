@@ -21,6 +21,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
 export interface IVoiceStats {
     total_messages: number;
@@ -86,6 +87,49 @@ export interface IVoiceDeleteResponse {
     deleted: boolean;
 }
 
+export interface IVoiceRoomInfo {
+    room_id: string;
+    [key: string]: unknown;
+}
+
+export interface IVoiceUserInfo {
+    user_id: string;
+    [key: string]: unknown;
+}
+
+export interface IVoiceConvertOptions {
+    format?: string;
+    [key: string]: unknown;
+}
+
+export interface IVoiceConvertResponse {
+    media_id: string;
+    [key: string]: unknown;
+}
+
+export interface IVoiceOptimizeOptions {
+    bitrate?: number;
+    [key: string]: unknown;
+}
+
+export interface IVoiceOptimizeResponse {
+    media_id: string;
+    [key: string]: unknown;
+}
+
+export interface IVoiceTranscribeOptions {
+    language?: string;
+    [key: string]: unknown;
+}
+
+export interface IVoiceTranscribeResponse {
+    media_id: string;
+    text: string;
+    language?: string;
+    confidence?: number;
+    [key: string]: unknown;
+}
+
 export enum VoiceEvent {
     StatsUpdated = "StatsUpdated",
     ConfigUpdated = "ConfigUpdated",
@@ -107,6 +151,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
 
     constructor(client: MatrixClient) {
         super(client);
+    }
+
+    public async isSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Voice, true);
     }
 
     public async getVoiceStats(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceStats> {
@@ -231,6 +279,103 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return response;
         } catch (e) {
             throw this.normalizeError(e, "deleteVoiceMessage");
+        }
+    }
+
+    public async getRoomVoice(roomId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomInfo> {
+        this.requireNonEmptyString(roomId, "Room ID");
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IVoiceRoomInfo>(
+                    Method.Get,
+                    `/voice/room/${encodeURIComponent(roomId)}`,
+                    undefined,
+                    undefined,
+                    { prefix },
+                );
+            }, "getRoomVoice");
+        } catch (e) {
+            throw this.normalizeError(e, "getRoomVoice");
+        }
+    }
+
+    public async getUserVoice(userId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserInfo> {
+        this.requireNonEmptyString(userId, "User ID");
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IVoiceUserInfo>(
+                    Method.Get,
+                    `/voice/user/${encodeURIComponent(userId)}`,
+                    undefined,
+                    undefined,
+                    { prefix },
+                );
+            }, "getUserVoice");
+        } catch (e) {
+            throw this.normalizeError(e, "getUserVoice");
+        }
+    }
+
+    public async convertVoiceMessage(
+        mediaId: string,
+        options?: IVoiceConvertOptions,
+        prefix: ClientPrefix = ClientPrefix.V3,
+    ): Promise<IVoiceConvertResponse> {
+        this.requireNonEmptyString(mediaId, "Media ID");
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IVoiceConvertResponse>(
+                    Method.Post,
+                    `/voice/${encodeURIComponent(mediaId)}/convert`,
+                    undefined,
+                    options ?? {},
+                    { prefix },
+                );
+            }, "convertVoiceMessage");
+        } catch (e) {
+            throw this.normalizeError(e, "convertVoiceMessage");
+        }
+    }
+
+    public async optimizeVoiceMessage(
+        mediaId: string,
+        options?: IVoiceOptimizeOptions,
+        prefix: ClientPrefix = ClientPrefix.V3,
+    ): Promise<IVoiceOptimizeResponse> {
+        this.requireNonEmptyString(mediaId, "Media ID");
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IVoiceOptimizeResponse>(
+                    Method.Post,
+                    `/voice/${encodeURIComponent(mediaId)}/optimize`,
+                    undefined,
+                    options ?? {},
+                    { prefix },
+                );
+            }, "optimizeVoiceMessage");
+        } catch (e) {
+            throw this.normalizeError(e, "optimizeVoiceMessage");
+        }
+    }
+
+    public async transcribeVoiceMessage(
+        mediaId: string,
+        options?: IVoiceTranscribeOptions,
+        prefix: ClientPrefix = ClientPrefix.V3,
+    ): Promise<IVoiceTranscribeResponse> {
+        this.requireNonEmptyString(mediaId, "Media ID");
+        try {
+            return await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IVoiceTranscribeResponse>(
+                    Method.Post,
+                    `/voice/${encodeURIComponent(mediaId)}/transcription`,
+                    undefined,
+                    options ?? {},
+                    { prefix },
+                );
+            }, "transcribeVoiceMessage");
+        } catch (e) {
+            throw this.normalizeError(e, "transcribeVoiceMessage");
         }
     }
 

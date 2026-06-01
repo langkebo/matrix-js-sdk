@@ -31,6 +31,7 @@ import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { AdminValidators } from "../admin/validators";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { FriendPathPattern } from "./__generated__/route-table";
 
 export enum FriendEvent {
@@ -114,6 +115,14 @@ export interface FriendSearchResult {
     created_ts?: number;
     match_score?: number;
     match_type?: string;
+}
+
+export interface FriendSearchQuery {
+    q?: string;
+    query?: string;
+    mode?: "exact" | "fuzzy";
+    limit?: number;
+    filters?: Record<string, unknown> /* Dynamic: arbitrary filter fields */;
 }
 
 export interface FriendSearchResponse {
@@ -273,6 +282,10 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         this.friends = new LRUCache<Friend>(500, 5 * 60 * 1000);
     }
 
+    public async isSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Friends, true);
+    }
+
     private async ensureFriendListRoom(): Promise<string> {
         if (this.friendListRoomId) {
             return this.friendListRoomId;
@@ -355,6 +368,62 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         this.emit(FriendEvent.Invited, userId, request);
         this.emit(FriendEvent.RequestSent, userId);
         return { request_id: response?.request_id, status: response?.status };
+    }
+
+    /**
+     * 直接添加好友（不经过请求流程）
+     *
+     * 与 sendFriendRequest 不同，此方法直接将对方添加为好友，
+     * 无需对方确认即可建立好友关系。
+     *
+     * @param userId - 目标用户 ID（格式：@localpart:homeserver）
+     * @param opts - 可选参数
+     * @param opts.reason - 添加理由
+     * @returns 添加结果
+     *
+     * @example
+     * ```typescript
+     * // 直接添加好友
+     * await friendManager.addFriend("@alice:example.com", { reason: "We met at the conference" });
+     *
+     * // 不带理由直接添加
+     * await friendManager.addFriend("@bob:example.com");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空或尝试添加自己
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async addFriend(userId: string, opts?: { reason?: string }): Promise<{ user_id?: string; status?: string }> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+        AdminValidators.validateUserId(userId);
+
+        if (userId === this.client.getUserId()) {
+            throw new InvalidParamError("Cannot add yourself as a friend");
+        }
+
+        const response = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<{ user_id?: string; status?: string }>(
+                Method.Post,
+                "/friends",
+                undefined,
+                { user_id: userId, reason: opts?.reason },
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "addFriend");
+
+        const friendObj: Friend = {
+            user_id: userId,
+            reason: opts?.reason,
+            since: Date.now(),
+            status: FriendRelationshipStatus.Normal,
+        };
+        this.friends.set(userId, friendObj);
+        this.emit(FriendEvent.FriendAdded, friendObj);
+        this.emit(FriendEvent.ListUpdated);
+
+        return { user_id: response?.user_id, status: response?.status };
     }
 
     /**
@@ -721,6 +790,54 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 
     /**
+     * 高级好友搜索（POST 方式）
+     *
+     * 与 searchUsers（GET 方式）不同，此方法使用 POST 请求体传递搜索参数，
+     * 支持更复杂的搜索条件和过滤选项。
+     *
+     * @param query - 搜索参数对象，可包含 q、mode、limit、filters 等字段
+     * @returns 搜索结果
+     *
+     * @example
+     * ```typescript
+     * // 基本搜索
+     * const results = await friendManager.searchFriendsAdvanced({ q: "alice" });
+     *
+     * // 带过滤条件的搜索
+     * const filtered = await friendManager.searchFriendsAdvanced({
+     *     q: "bob",
+     *     mode: "fuzzy",
+     *     limit: 10,
+     *     filters: { online_only: true },
+     * });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果搜索参数为空
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async searchFriendsAdvanced(query: FriendSearchQuery): Promise<FriendSearchResponse> {
+        if (!query || Object.keys(query).length === 0) {
+            throw new InvalidParamError("Search query cannot be empty");
+        }
+
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<FriendSearchResponse>(
+                    Method.Post,
+                    "/friends/search",
+                    undefined,
+                    query,
+                    { prefix: ClientPrefix.V3 },
+                );
+            }, "searchFriendsAdvanced");
+
+            return response;
+        } catch (e) {
+            throw this.normalizeError(e, "searchFriendsAdvanced");
+        }
+    }
+
+    /**
      * 检查是否为好友
      *
      * @param userId - 用户 ID（格式：@localpart:homeserver）
@@ -893,6 +1010,84 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
             return response;
         } catch (e) {
             throw this.normalizeError(e, "checkFriendship");
+        }
+    }
+
+    /**
+     * 获取好友关系列表（r0 版本）
+     *
+     * 通过 r0 版本的 friendships 端点获取好友关系列表。
+     * 此为旧版 API，可能在某些部署环境中仍然可用。
+     *
+     * @returns 好友关系列表
+     *
+     * @example
+     * ```typescript
+     * const friendships = await friendManager.getFriendships();
+     * friendships.forEach(f => {
+     *     console.log(`Friendship with ${f.user_id}: ${f.status}`);
+     * });
+     * ```
+     *
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async getFriendships(): Promise<Friend[]> {
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<IFriendsResponse>(
+                    Method.Get,
+                    "/friendships",
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "getFriendships");
+
+            const friends = (response.friends || response.items || []).map(normalizeFriend);
+            return friends;
+        } catch (e) {
+            throw this.normalizeError(e, "getFriendships");
+        }
+    }
+
+    /**
+     * 创建好友关系（r0 版本）
+     *
+     * 通过 r0 版本的 friendships 端点直接创建好友关系。
+     * 此为旧版 API，推荐使用 addFriend（v3 版本）替代。
+     *
+     * @param userId - 目标用户 ID（格式：@localpart:homeserver）
+     * @returns 创建结果
+     *
+     * @example
+     * ```typescript
+     * const result = await friendManager.createFriendship("@alice:example.com");
+     * console.log("Friendship created:", result.user_id);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空
+     * @throws {ApiError} 如果 API 调用失败
+     */
+    async createFriendship(userId: string): Promise<{ user_id?: string; status?: string }> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+        AdminValidators.validateUserId(userId);
+
+        try {
+            const response = await this.withRetry(async () => {
+                return await this.client.http.authedRequest<{ user_id?: string; status?: string }>(
+                    Method.Post,
+                    "/friendships",
+                    undefined,
+                    { user_id: userId },
+                    { prefix: ClientPrefix.R0 },
+                );
+            }, "createFriendship");
+
+            return { user_id: response?.user_id, status: response?.status };
+        } catch (e) {
+            throw this.normalizeError(e, "createFriendship");
         }
     }
 

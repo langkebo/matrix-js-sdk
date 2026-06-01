@@ -195,6 +195,27 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
         );
     }
 
+    public async getCallTracking(roomId: string, callId: string): Promise<ICallSessionResponse> {
+        if (!roomId) {
+            throw new InvalidParamError("roomId is required");
+        }
+        if (!callId) {
+            throw new InvalidParamError("callId is required");
+        }
+
+        return this.withRetry(
+            () =>
+                this.client.http.authedRequest<ICallSessionResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`,
+                    undefined,
+                    undefined,
+                    { prefix: ClientPrefix.V3 },
+                ),
+            "getCallTracking",
+        );
+    }
+
     public invalidateTurnServerCache(): void {
         this.cachedTurnServers = null;
         this.turnServerExpiry = 0;

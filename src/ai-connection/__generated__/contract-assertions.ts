@@ -6,10 +6,10 @@
 
 import { AI_CONNECTION_ROUTES } from "./route-table";
 
-export const AI_CONNECTION_ROUTES_ENTRY_COUNT = 18 as const;
+export const AI_CONNECTION_ROUTES_ENTRY_COUNT = 12 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _AiConnectionEntryCountAssertion: 18 = AI_CONNECTION_ROUTES.length;
+const _AiConnectionEntryCountAssertion: 12 = AI_CONNECTION_ROUTES.length;
 void _AiConnectionEntryCountAssertion;
 
 export const AI_CONNECTION_ROUTES_STATUS_SCENARIOS = [

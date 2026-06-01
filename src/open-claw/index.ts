@@ -38,6 +38,7 @@ import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { OpenclawPathPattern } from "./__generated__/route-table";
 import type { OpenClawConnectionConfig } from "./__generated__/dto";
 
@@ -253,6 +254,10 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         super(client);
     }
 
+    public async isSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.OpenClaw, true);
+    }
+
     private request<T>(
         method: Method,
         path: string,
@@ -396,6 +401,10 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         );
         this.emit(OpenClawEvent.MessageSent, result);
         return result;
+    }
+
+    async sendConversationMessage(conversationId: number, message: string): Promise<OpenClawMessage> {
+        return this.sendMessage(conversationId, { content: message });
     }
 
     async deleteMessage(id: number): Promise<void> {

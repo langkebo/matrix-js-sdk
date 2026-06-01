@@ -6,10 +6,10 @@
 
 import { KEY_BACKUP_ROUTES } from "./route-table";
 
-export const KEY_BACKUP_ROUTES_ENTRY_COUNT = 132 as const;
+export const KEY_BACKUP_ROUTES_ENTRY_COUNT = 99 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _KeyBackupEntryCountAssertion: 132 = KEY_BACKUP_ROUTES.length;
+const _KeyBackupEntryCountAssertion: 99 = KEY_BACKUP_ROUTES.length;
 void _KeyBackupEntryCountAssertion;
 
 export const KEY_BACKUP_ROUTES_STATUS_SCENARIOS = [

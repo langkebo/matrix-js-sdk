@@ -47,6 +47,7 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError, ValidationError, SdkError } from "../errors";
 import { logger } from "../logger";
 import type { IContent } from "../models/event";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
 
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
@@ -668,6 +669,10 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
     }
 
     public async isBurnEnabled(roomId: string): Promise<boolean> {
+        if (!(await this.isSupported())) {
+            return false;
+        }
+
         const cached = this.roomSettings.get(roomId);
         if (cached !== undefined) {
             return cached.enabled;
@@ -680,6 +685,15 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             logger.debug("BurnAfterReadManager.isEnabled fallback to config default", e);
             return this.config.enabled;
         }
+    }
+
+    public async isSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(
+            this.client,
+            SynapseRustFeature.BurnAfterRead,
+            this.config.enabled,
+            (e) => logger.debug("BurnAfterReadManager.isSupported fallback to config default", e),
+        );
     }
 
     public async getPendingLocalBurns(roomId: string): Promise<IBurnAfterReadMessage[]> {

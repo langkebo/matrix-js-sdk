@@ -6,18 +6,20 @@
  * Source:        docs/api-contract/generated/modules/presence.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `presence` module. */
 export const PRESENCE_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/presence/{user_id}/status" },
+    { method: "POST", path: "/_matrix/client/r0/presence/{user_id}/status" },
     { method: "PUT", path: "/_matrix/client/r0/presence/{user_id}/status" },
     { method: "GET", path: "/_matrix/client/v1/presence/{user_id}/status" },
+    { method: "POST", path: "/_matrix/client/v1/presence/{user_id}/status" },
     { method: "PUT", path: "/_matrix/client/v1/presence/{user_id}/status" },
     { method: "POST", path: "/_matrix/client/v3/presence/list" },
     { method: "GET", path: "/_matrix/client/v3/presence/list/{user_id}" },
     { method: "GET", path: "/_matrix/client/v3/presence/{user_id}/status" },
+    { method: "POST", path: "/_matrix/client/v3/presence/{user_id}/status" },
     { method: "PUT", path: "/_matrix/client/v3/presence/{user_id}/status" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 

@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/ai_connection.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `ai_connection` module. */
@@ -23,12 +22,6 @@ export const AI_CONNECTION_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/ai/connections/{id}" },
     { method: "GET", path: "/_matrix/client/v3/ai/mcp/tools" },
     { method: "POST", path: "/_matrix/client/v3/ai/mcp/tools/call" },
-    { method: "GET", path: "/connections" },
-    { method: "POST", path: "/connections" },
-    { method: "DELETE", path: "/connections/{id}" },
-    { method: "GET", path: "/connections/{id}" },
-    { method: "GET", path: "/mcp/tools" },
-    { method: "POST", path: "/mcp/tools/call" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `AI_CONNECTION_ROUTES`. */

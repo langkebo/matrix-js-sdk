@@ -6,10 +6,10 @@
 
 import { TYPING_ROUTES } from "./route-table";
 
-export const TYPING_ROUTES_ENTRY_COUNT = 4 as const;
+export const TYPING_ROUTES_ENTRY_COUNT = 5 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _TypingEntryCountAssertion: 4 = TYPING_ROUTES.length;
+const _TypingEntryCountAssertion: 5 = TYPING_ROUTES.length;
 void _TypingEntryCountAssertion;
 
 export const TYPING_ROUTES_STATUS_SCENARIOS = [

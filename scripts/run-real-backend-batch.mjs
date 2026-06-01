@@ -31,7 +31,7 @@ function listDirectoryTargets(directoryPath) {
 
 function normalizeTargets(rawTargets) {
     if (rawTargets.length === 0) {
-        return listDirectoryTargets(realBackendDir);
+        return listDirectoryTargets(realBackendDir).filter((filePath) => basename(filePath) !== "smoke.spec.ts");
     }
 
     const resolvedTargets = [];

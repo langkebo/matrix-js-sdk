@@ -85,6 +85,36 @@ export class TypingManager extends BaseManager {
     }
 
     /**
+     * POST variant of sendTyping.
+     * Convenience method that uses POST instead of PUT for the same endpoint.
+     *
+     * @param roomId - The room ID
+     * @param userId - The user ID
+     * @param isTyping - Whether the user is typing
+     * @param timeoutMs - The length of time in milliseconds to mark this user as typing
+     * @returns Promise which resolves to an empty object if successful
+     */
+    async postTyping(roomId: string, userId: string, isTyping: boolean, timeoutMs?: number): Promise<EmptyObject> {
+        if (this.client.isGuest()) {
+            return {};
+        }
+        const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
+        const data: IContent = { typing: isTyping };
+        if (isTyping) {
+            data.timeout = timeoutMs ? timeoutMs : 20000;
+        }
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<EmptyObject>(
+                Method.Post,
+                path,
+                undefined,
+                data,
+                { prefix: ClientPrefix.V3 },
+            );
+        }, "postTyping");
+    }
+
+    /**
      * 开始打字提示
      *
      * @param roomId - 房间 ID（格式：!localpart:homeserver）

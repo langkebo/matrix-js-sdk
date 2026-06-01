@@ -1,7 +1,7 @@
 ---
 module: dm
 generated_from: docs/api-contract/generated/modules/dm.json
-generated_hash: sha256-530e34898089de2126bca02b9b573e90987751b1d6065b802e47960b48d408a3
+generated_hash: sha256-05da393bb9f3d0bd44c2ced18560252a37cd888f9ff36e0061c7f5a2c2b6a56e
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---

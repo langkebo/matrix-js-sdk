@@ -391,6 +391,14 @@ export interface RoomTranslateResult {
     provider: string;
 }
 
+export interface TranslateResult {
+    source_text: string;
+    translated_text: string;
+    detected_source_lang?: string;
+    target_lang: string;
+    provider: string;
+}
+
 /** POST /_matrix/client/v3/rooms/{room_id}/convert/{event_id} */
 export interface RoomConvertResult {
     /** The room ID */

@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/room.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `room` module. */
@@ -38,6 +37,7 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/receipts/{receipt_type}/{event_id}" },
     { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/redact/{event_id}/{txn_id}" },
     { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/search" },
+    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}" },
     { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/m.room.power_levels/" },
@@ -115,6 +115,7 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/retention" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/room_keys/keys" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/search" },
+    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/service_types" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/sign/{event_id}" },
@@ -144,6 +145,7 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/vault_data" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/verify/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/version" },
+    { method: "POST", path: "/_matrix/client/v3/translate" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 

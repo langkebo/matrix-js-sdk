@@ -16,7 +16,7 @@ limitations under the License.
 
 import { LRUCache } from "./lru-cache";
 
-function isObject(value: unknown): value is Record<string, unknown> {
+function isObject(value: unknown): value is Record<string, unknown> /* Dynamic: generic object type guard */ {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

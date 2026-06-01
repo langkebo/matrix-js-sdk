@@ -24,6 +24,19 @@ describe("WidgetsManager", () => {
         });
     });
 
+    describe("isSupported", () => {
+        it("defaults to supported for clients without centralized discovery", async () => {
+            await expect(widgetsManager.isSupported()).resolves.toBe(true);
+        });
+
+        it("uses centralized synapse-rust widget discovery when available", async () => {
+            mockClient.doesServerAdvertiseSynapseRustFeature = vi.fn().mockResolvedValue(false);
+
+            await expect(widgetsManager.isSupported()).resolves.toBe(false);
+            expect(mockClient.doesServerAdvertiseSynapseRustFeature).toHaveBeenCalledWith("org.matrix.msc4261.widget");
+        });
+    });
+
     describe("getUserWidgets", () => {
         it("should call client.getUserWidgets", async () => {
             await widgetsManager.getUserWidgets();

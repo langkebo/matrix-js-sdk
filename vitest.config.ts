@@ -68,6 +68,13 @@ export default defineConfig({
         setupFiles: "spec/setupTests.ts",
         globals: true,
         pool: "threads",
+        poolOptions: {
+            threads: {
+                maxThreads: 4,
+                minThreads: 1,
+                memoryLimit: 4096,
+            },
+        },
         exclude: ["**/node_modules/**", "**/dist/**", "**/spec/integ/real-backend/**"],
     },
 });

@@ -60,6 +60,8 @@ export interface RotateKeyResponse {
     success: boolean;
     message: string;
     has_new_key: boolean;
+    key_id?: string;
+    rotated_at?: number;
 }
 
 export interface KeyRotationHistoryEntry {
@@ -102,6 +104,13 @@ export interface KeyCheckResponse {
     needs_rotation: boolean;
     last_rotation: number | null;
     interval_ms: number;
+}
+
+export interface PostCheckResponse {
+    enabled?: boolean;
+    interval_ms?: number;
+    last_rotation?: number | null;
+    needs_rotation?: boolean;
 }
 
 interface StatusCacheEntry {
@@ -228,6 +237,55 @@ export class KeyRotationManager extends BaseManager {
         return result;
     }
 
+    /**
+     * POST variant of updateConfig.
+     * Convenience method that uses POST instead of PUT for the same endpoint.
+     */
+    public async postConfig(request: UpdateRotationConfigRequest): Promise<UpdateRotationConfigResponse> {
+        if (request.enabled !== undefined && typeof request.enabled !== "boolean") {
+            throw new InvalidParamError("enabled must be a boolean");
+        }
+        if (request.interval_ms !== undefined && (!Number.isInteger(request.interval_ms) || request.interval_ms <= 0)) {
+            throw new InvalidParamError("interval_ms must be a positive integer");
+        }
+
+        const result = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<UpdateRotationConfigResponse>(
+                Method.Post,
+                "/keys/rotation/config",
+                undefined,
+                request,
+                { prefix: ClientPrefix.V1 },
+            );
+        }, "postConfig");
+
+        this.clearStatusCache();
+        return result;
+    }
+
+    /**
+     * POST variant of getStatus.
+     * Convenience method that uses POST instead of GET for the same endpoint.
+     */
+    public async postStatus(): Promise<KeyRotationStatus> {
+        const result = await this.withRetry(async () => {
+            return await this.client.http.authedRequest<KeyRotationStatus>(
+                Method.Post,
+                "/keys/rotation/status",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        }, "postStatus");
+
+        this.statusCache = {
+            value: result,
+            expiresAt: Date.now() + this.statusCacheTtlMs,
+        };
+
+        return result;
+    }
+
     public async checkKeyValidity(keyId: string): Promise<KeyCheckResponse> {
         this.requireNonEmptyString(keyId, "keyId");
 
@@ -240,6 +298,18 @@ export class KeyRotationManager extends BaseManager {
                 { prefix: ClientPrefix.V1 },
             );
         }, "checkKeyValidity");
+    }
+
+    public async postCheck(): Promise<PostCheckResponse> {
+        return await this.withRetry(async () => {
+            return await this.client.http.authedRequest<PostCheckResponse>(
+                Method.Post,
+                "/keys/rotation/check",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V1 },
+            );
+        }, "postCheck");
     }
 
     public clearStatusCache(): void {

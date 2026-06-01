@@ -207,6 +207,8 @@ export interface DeviceVerificationRespondResponse {
     [key: string]: unknown;
 }
 
+export type SendToDeviceVersion = "r0" | "v1" | "v3";
+
 export class E2EEManager extends BaseManager {
     public constructor(client: MatrixClient) {
         super(client);
@@ -304,20 +306,40 @@ export class E2EEManager extends BaseManager {
         eventType: string,
         transactionId: string,
         messages: SendToDeviceMessages,
+        version: SendToDeviceVersion = "v3",
     ): Promise<SendToDeviceResponse> {
         this.requireNonEmptyString(eventType, "eventType");
         this.requireNonEmptyString(transactionId, "transactionId");
+        const prefixMap: Record<SendToDeviceVersion, ClientPrefix> = {
+            r0: ClientPrefix.R0,
+            v1: ClientPrefix.V1,
+            v3: ClientPrefix.V3,
+        };
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<SendToDeviceResponse>(
                 Method.Put,
-                ep(
-                    `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}` as StripV3<E2eePathPattern>,
-                ),
+                `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
                 undefined,
                 { messages },
-                { prefix: ClientPrefix.V3 },
+                { prefix: prefixMap[version] },
             );
         }, "sendToDevice");
+    }
+
+    public async sendToDeviceV1(
+        eventType: string,
+        transactionId: string,
+        messages: SendToDeviceMessages,
+    ): Promise<SendToDeviceResponse> {
+        return this.sendToDevice(eventType, transactionId, messages, "v1");
+    }
+
+    public async sendToDeviceR0(
+        eventType: string,
+        transactionId: string,
+        messages: SendToDeviceMessages,
+    ): Promise<SendToDeviceResponse> {
+        return this.sendToDevice(eventType, transactionId, messages, "r0");
     }
 
     // -------- v3-only ----------

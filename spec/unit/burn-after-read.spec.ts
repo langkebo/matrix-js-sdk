@@ -7,9 +7,11 @@ import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
 import { getOrCreateManager } from "../../src/client-infra/manager-registry";
 
-function createMockClient(authedRequest?: any) {
+function createMockClient(authedRequest?: any, burnAfterReadSupported?: boolean) {
     return {
         getUserId: vi.fn().mockReturnValue("@alice:test"),
+        doesServerAdvertiseSynapseRustFeature:
+            burnAfterReadSupported === undefined ? undefined : vi.fn().mockResolvedValue(burnAfterReadSupported),
         http: {
             authedRequest: authedRequest ?? vi.fn().mockResolvedValue({}),
         },
@@ -672,6 +674,27 @@ describe("BurnAfterReadManager", () => {
     });
 
     describe("isBurnEnabled", () => {
+        it("returns false without probing room settings when the server does not advertise burn-after-read", async () => {
+            manager = new BurnAfterReadManager(createMockClient(authedRequest, false));
+
+            const result = await manager.isBurnEnabled("!room:test");
+
+            expect(result).toBe(false);
+            expect(authedRequest).not.toHaveBeenCalled();
+        });
+
+        it("checks room settings when the server advertises burn-after-read", async () => {
+            manager = new BurnAfterReadManager(createMockClient(authedRequest, true));
+            authedRequest.mockResolvedValue({ enabled: true, burn_after_ms: 60000 });
+
+            const result = await manager.isBurnEnabled("!room:test");
+
+            expect(result).toBe(true);
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/rooms/!room%3Atest/burn", undefined, undefined, {
+                prefix: ClientPrefix.V1,
+            });
+        });
+
         it("returns cached settings when available", async () => {
             authedRequest.mockResolvedValue({ enabled: true, burn_after_ms: 60000 });
             await manager.enableBurn("!room:test");
@@ -690,6 +713,17 @@ describe("BurnAfterReadManager", () => {
         });
 
         it("falls back to config.enabled on API error", async () => {
+            authedRequest.mockRejectedValue(new Error("Network error"));
+
+            const result = await manager.isBurnEnabled("!room:test");
+
+            expect(result).toBe(true);
+        });
+
+        it("falls back to config.enabled when feature discovery fails", async () => {
+            const client = createMockClient(authedRequest, true);
+            client.doesServerAdvertiseSynapseRustFeature.mockRejectedValue(new Error("versions unavailable"));
+            manager = new BurnAfterReadManager(client);
             authedRequest.mockRejectedValue(new Error("Network error"));
 
             const result = await manager.isBurnEnabled("!room:test");

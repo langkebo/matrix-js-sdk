@@ -108,7 +108,7 @@ const checkRtcMembershipData = (
     } else {
         // validate that each transport has at least a string 'type'
         for (const t of data.rtc_transports) {
-            if (typeof t !== "object" || t === null || typeof (t as Record<string, unknown>).type !== "string") {
+            if (typeof t !== "object" || t === null || typeof (t as Record<string, unknown> /* Dynamic: validating untyped transport object */).type !== "string") {
                 errors.push(prefix + "rtc_transports entries must be objects with a string type");
                 break;
             }

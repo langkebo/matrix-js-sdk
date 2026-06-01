@@ -14,7 +14,7 @@ export interface IdentityLookupResult {
 }
 
 export interface IdServerRequestFn {
-    <T extends object = Record<string, unknown>>(
+    <T extends object = Record<string, unknown> /* Dynamic: generic ID server response */>(
         method: Method,
         path: string,
         params: Record<string, string | string[]> | undefined,

@@ -9,10 +9,6 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface ModuleConfig {
-    [key: string]: unknown;
-}
-
 export interface CreateModuleBody {
     module_name: string;
     module_type: string;
@@ -20,27 +16,18 @@ export interface CreateModuleBody {
     description?: string;
     is_enabled?: boolean;
     priority?: number;
-    config?: ModuleConfig;
+    config?: Record<string, unknown>;
 }
 
 export interface UpdateModuleConfigBody {
-    config: ModuleConfig;
+    config: Record<string, unknown>;
 }
 
 export interface EnableModuleBody {
     is_enabled: boolean;
 }
 
-export interface ModuleListItem {
-    name: string;
-    type: string;
-    enabled: boolean;
-    version?: string;
-    description?: string;
-    config?: ModuleConfig;
-}
-
 export interface ListModulesResponse {
-    modules: ModuleListItem[];
+    modules: Array<Record<string, unknown>>;
     next_batch: string | null;
 }

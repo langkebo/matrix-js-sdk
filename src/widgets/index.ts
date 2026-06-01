@@ -28,6 +28,7 @@ import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { type WidgetData } from "../matrix-client-extensions";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
 export interface WidgetMessageData {
     [key: string]: unknown;
@@ -136,6 +137,36 @@ export interface WidgetSessionsListResponse {
     total: number;
 }
 
+export interface WidgetCapabilitiesResponse {
+    widget_id: string;
+    room_id: string;
+    capabilities: string[];
+    [key: string]: unknown;
+}
+
+export interface UpdateWidgetCapabilitiesBody {
+    capabilities: string[];
+    [key: string]: unknown;
+}
+
+export interface WidgetMessageResponse {
+    event_id: string;
+    [key: string]: unknown;
+}
+
+export interface CreateWidgetV3Body {
+    room_id?: string;
+    widget_type: string;
+    url: string;
+    name: string;
+    data?: WidgetMessageData;
+}
+
+export interface CreateWidgetV3Response {
+    widget: Widget;
+    [key: string]: unknown;
+}
+
 export interface WidgetsManagerEvents {
     widget_added: { widgetId: string; roomId?: string };
     widget_removed: { widgetId: string; roomId?: string };
@@ -147,9 +178,19 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         super(client);
     }
 
+    public async isSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Widget, true);
+    }
+
     private request<T>(method: Method, path: string, body?: unknown): Promise<T> {
         return this.client.http.authedRequest(method, path, undefined, body as Body | undefined, {
             prefix: ClientPrefix.V1,
+        }) as Promise<T>;
+    }
+
+    private requestV3<T>(method: Method, path: string, body?: unknown): Promise<T> {
+        return this.client.http.authedRequest(method, path, undefined, body as Body | undefined, {
+            prefix: ClientPrefix.V3,
         }) as Promise<T>;
     }
 
@@ -289,6 +330,70 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         await this.withRetry(
             () => this.request<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "terminateWidgetSession",
+        );
+    }
+
+    /** DELETE /_matrix/client/v1/widgets/sessions/{session_id} (alias for terminateWidgetSession) */
+    public async deleteWidgetSession(sessionId: string): Promise<void> {
+        await this.withRetry(
+            () => this.request<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
+            "deleteWidgetSession",
+        );
+    }
+
+    /** GET /_matrix/client/v3/rooms/{roomId}/widgets/{widgetId}/capabilities */
+    public async getWidgetCapabilities(roomId: string, widgetId: string): Promise<WidgetCapabilitiesResponse> {
+        this.requireNonEmptyString(roomId, "roomId");
+        this.requireNonEmptyString(widgetId, "widgetId");
+        return this.withRetry(
+            () =>
+                this.requestV3<WidgetCapabilitiesResponse>(
+                    Method.Get,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
+                ),
+            "getWidgetCapabilities",
+        );
+    }
+
+    /** PUT /_matrix/client/v3/rooms/{roomId}/widgets/{widgetId}/capabilities */
+    public async updateWidgetCapabilities(
+        roomId: string,
+        widgetId: string,
+        capabilities: UpdateWidgetCapabilitiesBody,
+    ): Promise<WidgetCapabilitiesResponse> {
+        this.requireNonEmptyString(roomId, "roomId");
+        this.requireNonEmptyString(widgetId, "widgetId");
+        return this.withRetry(
+            () =>
+                this.requestV3<WidgetCapabilitiesResponse>(
+                    Method.Put,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
+                    capabilities,
+                ),
+            "updateWidgetCapabilities",
+        );
+    }
+
+    /** POST /_matrix/client/v3/rooms/{roomId}/widgets/{widgetId}/send */
+    public async sendWidgetMessage(roomId: string, widgetId: string, message: unknown): Promise<WidgetMessageResponse> {
+        this.requireNonEmptyString(roomId, "roomId");
+        this.requireNonEmptyString(widgetId, "widgetId");
+        return this.withRetry(
+            () =>
+                this.requestV3<WidgetMessageResponse>(
+                    Method.Post,
+                    `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
+                    message,
+                ),
+            "sendWidgetMessage",
+        );
+    }
+
+    /** POST /_matrix/client/v3/widgets/create */
+    public async createWidgetV3(body: CreateWidgetV3Body): Promise<CreateWidgetV3Response> {
+        return this.withRetry(
+            () => this.requestV3<CreateWidgetV3Response>(Method.Post, "/widgets/create", body),
+            "createWidgetV3",
         );
     }
 

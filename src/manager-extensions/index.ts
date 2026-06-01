@@ -89,6 +89,9 @@ export interface ManagerExtensionsOptions {
     includeVoice?: boolean;
     includeSamlAuth?: boolean;
     includeCredentials?: boolean;
+    includeCas?: boolean;
+    includeExternalService?: boolean;
+    includeDehydratedDevice?: boolean;
 
     includeServerCapabilities?: boolean;
     includeSyncManagement?: boolean;
@@ -184,6 +187,9 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeVoice: true,
     includeSamlAuth: true,
     includeCredentials: true,
+    includeCas: true,
+    includeExternalService: true,
+    includeDehydratedDevice: true,
 
     includeServerCapabilities: true,
     includeSyncManagement: true,
@@ -274,6 +280,9 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml" },
     { option: "includeCredentials", module: "credentials" },
+    { option: "includeCas", module: "cas" },
+    { option: "includeExternalService", module: "external-service" },
+    { option: "includeDehydratedDevice", module: "dehydrated-device" },
 
     { option: "includeServerCapabilities", module: "server-capabilities" },
     { option: "includeSyncManagement", module: "sync-management" },
@@ -580,6 +589,18 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeCredentials || all) {
                 promises.push(safeDynamicImport(import("../credentials/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeCas || all) {
+                promises.push(safeDynamicImport(import("../cas/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeExternalService || all) {
+                promises.push(safeDynamicImport(import("../external-service/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeDehydratedDevice || all) {
+                promises.push(safeDynamicImport(import("../dehydrated-device/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeServerCapabilities || all) {

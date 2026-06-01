@@ -161,6 +161,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         super(client);
     }
 
+    /**
+     * @deprecated The .well-known/openid-configuration route is now deprecated in the Ledger.
+     */
     async discover(): Promise<IOidcDiscovery> {
         return this.withRetry(async () => {
             const response = await this.client.http.request<IOidcDiscovery>(
@@ -177,6 +180,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         }, "discover");
     }
 
+    /**
+     * @deprecated The .well-known/jwks.json route is now deprecated in the Ledger.
+     */
     async getJwks(): Promise<IOidcJwks> {
         return this.withRetry(
             () =>
@@ -349,6 +355,10 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                 ),
             "builtinLogin",
         );
+    }
+
+    async oidcLogin(body: IOidcLoginRequest): Promise<IOidcLoginResponse> {
+        return this.builtinLogin(body);
     }
 
     async ssoRedirect(redirectUrl?: string): Promise<string> {

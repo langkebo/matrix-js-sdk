@@ -82,7 +82,7 @@ export class FetchHttpApi<O extends IHttpOpts> {
         this.opts.idBaseUrl = url;
     }
 
-    public idServerRequest<T extends object = Record<string, unknown>>(
+    public idServerRequest<T extends object = Record<string, unknown> /* Dynamic: generic ID server response */>(
         method: Method,
         path: string,
         params: Record<string, string | string[]> | undefined,

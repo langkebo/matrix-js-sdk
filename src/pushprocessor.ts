@@ -749,7 +749,7 @@ export class PushProcessor {
             }
 
             const thisPart = parts[currentIndex];
-            val = (val as Record<string, unknown>)[thisPart];
+            val = (val as Record<string, unknown> /* Dynamic: dynamic path traversal */)[thisPart];
         }
         return val;
     }

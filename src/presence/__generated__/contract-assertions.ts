@@ -6,10 +6,10 @@
 
 import { PRESENCE_ROUTES } from "./route-table";
 
-export const PRESENCE_ROUTES_ENTRY_COUNT = 8 as const;
+export const PRESENCE_ROUTES_ENTRY_COUNT = 11 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _PresenceEntryCountAssertion: 8 = PRESENCE_ROUTES.length;
+const _PresenceEntryCountAssertion: 11 = PRESENCE_ROUTES.length;
 void _PresenceEntryCountAssertion;
 
 export const PRESENCE_ROUTES_STATUS_SCENARIOS = [

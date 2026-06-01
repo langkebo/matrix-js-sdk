@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/module.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `module` module. */
@@ -34,10 +33,6 @@ export const MODULE_ROUTES = [
     { method: "POST", path: "/_synapse/admin/v1/modules/{module_name}/enable" },
     { method: "GET", path: "/_synapse/admin/v1/password_auth_providers" },
     { method: "POST", path: "/_synapse/admin/v1/password_auth_providers" },
-    { method: "GET", path: "/_synapse/admin/v1/presence_routes" },
-    { method: "POST", path: "/_synapse/admin/v1/presence_routes" },
-    { method: "GET", path: "/_synapse/admin/v1/rate_limit_callbacks" },
-    { method: "POST", path: "/_synapse/admin/v1/rate_limit_callbacks" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `MODULE_ROUTES`. */

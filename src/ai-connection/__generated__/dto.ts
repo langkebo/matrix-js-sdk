@@ -9,20 +9,11 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface AIConnectionConfig {
-    api_key?: string;
-    model_id?: string;
-    base_url?: string;
-    max_tokens?: number;
-    temperature?: number;
-    [key: string]: unknown;
-}
-
 export interface AIConnection {
     id: string;
     user_id: string;
     provider: string;
-    config: AIConnectionConfig | null;
+    config: Record<string, unknown> | null;
     is_active: boolean;
     created_ts: number;
     updated_ts: number | null;
@@ -30,11 +21,11 @@ export interface AIConnection {
 
 export interface CreateConnectionOptions {
     provider: string;
-    config?: AIConnectionConfig;
+    config?: Record<string, unknown>;
 }
 
 export interface McpToolCallRequest {
     provider: string;
     tool_name: string;
-    arguments: Record<string, string | number | boolean | null>;
+    arguments: Record<string, unknown>;
 }

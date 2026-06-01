@@ -6,10 +6,10 @@
 
 import { KEY_ROTATION_ROUTES } from "./route-table";
 
-export const KEY_ROTATION_ROUTES_ENTRY_COUNT = 6 as const;
+export const KEY_ROTATION_ROUTES_ENTRY_COUNT = 9 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _KeyRotationEntryCountAssertion: 6 = KEY_ROTATION_ROUTES.length;
+const _KeyRotationEntryCountAssertion: 9 = KEY_ROTATION_ROUTES.length;
 void _KeyRotationEntryCountAssertion;
 
 export const KEY_ROTATION_ROUTES_STATUS_SCENARIOS = [
@@ -20,6 +20,7 @@ export const KEY_ROTATION_ROUTES_STATUS_SCENARIOS = [
     { status: 429, note: "M_LIMIT_EXCEEDED | 轮换频率过高" },
     { status: 202, note: "初版 | -" },
     { status: 202, note: "新增 KeyRotationManager SDK 封装并补齐单元测试 | SDK 封装覆盖率提升至 100%" },
+    { status: 202, note: "修正类型定义以对齐后端实际响应 | 修正所有端点的请求/响应类型" },
 ] as const;
 
 export type KeyRotationStatusScenario = (typeof KEY_ROTATION_ROUTES_STATUS_SCENARIOS)[number];

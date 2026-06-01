@@ -113,6 +113,44 @@ export class SamlAuthManager extends BaseManager {
         }, "handleCallback");
     }
 
+    /**
+     * GET variant of handleCallback.
+     * Convenience method that uses GET instead of POST for the SAML callback endpoint.
+     *
+     * @param params - Optional query parameters to include in the callback request
+     */
+    async getLoginCallback(params?: Record<string, string>): Promise<SamlAuthResult> {
+        return await this.withRetry(async () => {
+            return await this.client.http.authedRequest<SamlAuthResult>(
+                Method.Get,
+                cp("/login/saml/callback"),
+                params,
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+        }, "getLoginCallback");
+    }
+
+    /**
+     * GET variant for SSO redirect.
+     * Convenience method that uses GET to retrieve the SAML SSO redirect URL.
+     *
+     * @param redirectUrl - Optional redirect URL after SSO completion
+     */
+    async getSsoRedirect(redirectUrl?: string): Promise<string> {
+        return await this.withRetry(async () => {
+            const queryParams = redirectUrl ? { redirectUrl } : undefined;
+            const response = await this.client.http.authedRequest<SamlLoginResponse>(
+                Method.Get,
+                cp("/login/sso/redirect/saml"),
+                queryParams,
+                undefined,
+                { prefix: ClientPrefix.R0 },
+            );
+            return response.redirect_url;
+        }, "getSsoRedirect");
+    }
+
     async logout(redirectUrl?: string): Promise<SamlLogoutResponse> {
         return await this.withRetry(async () => {
             const params = redirectUrl ? { redirectUrl } : undefined;

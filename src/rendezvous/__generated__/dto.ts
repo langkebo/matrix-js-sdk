@@ -15,16 +15,11 @@ export type RendezvousSessionTransport = "http.v1" | "http.v2";
 
 export type RendezvousSessionStatus = "created" | "connected" | "completed" | "expired" | "cancelled";
 
-export interface RendezvousTransportData {
-    uri?: string;
-    [key: string]: unknown;
-}
-
 export interface RendezvousSession {
     session_id: string;
     intent: RendezvousSessionIntent;
     transport: RendezvousSessionTransport;
-    transport_data?: RendezvousTransportData;
+    transport_data?: Record<string, unknown>;
     status: RendezvousSessionStatus;
     created_ts: number;
     expires_at?: number;
@@ -49,14 +44,9 @@ export interface UpdateSessionResponse {
     };
 }
 
-export interface RendezvousMessageContent {
-    type: string;
-    [key: string]: unknown;
-}
-
 export interface RendezvousMessage {
     type: string;
-    content: RendezvousMessageContent;
+    content: Record<string, unknown>;
 }
 
 export interface SendMessageResponse {

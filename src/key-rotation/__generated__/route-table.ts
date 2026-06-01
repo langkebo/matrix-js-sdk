@@ -6,17 +6,19 @@
  * Source:        docs/api-contract/generated/modules/key_rotation.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `key_rotation` module. */
 export const KEY_ROTATION_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/keys/rotation/check" },
+    { method: "POST", path: "/_matrix/client/v1/keys/rotation/check" },
+    { method: "POST", path: "/_matrix/client/v1/keys/rotation/config" },
     { method: "PUT", path: "/_matrix/client/v1/keys/rotation/config" },
     { method: "GET", path: "/_matrix/client/v1/keys/rotation/history/{device_id}" },
     { method: "POST", path: "/_matrix/client/v1/keys/rotation/revoke" },
     { method: "POST", path: "/_matrix/client/v1/keys/rotation/rotate" },
     { method: "GET", path: "/_matrix/client/v1/keys/rotation/status" },
+    { method: "POST", path: "/_matrix/client/v1/keys/rotation/status" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `KEY_ROTATION_ROUTES`. */

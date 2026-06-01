@@ -403,20 +403,26 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result.callbacks;
     }
 
+    /**
+     * @deprecated Functionality moved to the rate-limit module.
+     */
     async getRateLimitCallbacks(): Promise<RateLimitCallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: RateLimitCallbackInfo[] }>(
             Method.Get,
-            mp("/rate_limit_callbacks"),
+            "/rate_limit_callbacks",
         );
         return result.callbacks;
     }
 
+    /**
+     * @deprecated Functionality moved to the rate-limit module.
+     */
     async registerRateLimitCallback(callback: {
         module_name: string;
     }): Promise<RateLimitCallbackInfo> {
         const result = await this.adminRequest<RateLimitCallbackInfo>(
             Method.Post,
-            mp("/rate_limit_callbacks"),
+            "/rate_limit_callbacks",
             undefined,
             callback,
         );
@@ -451,21 +457,27 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== 在线状态路由 ====================
 
+    /**
+     * @deprecated Functionality moved to the presence module.
+     */
     async getPresenceRoutes(): Promise<PresenceRouteInfo[]> {
         const result = await this.adminRequest<{ routes: PresenceRouteInfo[] }>(
             Method.Get,
-            mp("/presence_routes"),
+            "/presence_routes",
         );
         return result.routes;
     }
 
+    /**
+     * @deprecated Functionality moved to the presence module.
+     */
     async registerPresenceRoute(route: {
         module_name: string;
         route_type: string;
     }): Promise<PresenceRouteInfo> {
         const result = await this.adminRequest<PresenceRouteInfo>(
             Method.Post,
-            mp("/presence_routes"),
+            "/presence_routes",
             undefined,
             route,
         );

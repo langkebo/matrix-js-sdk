@@ -64,6 +64,7 @@ export type {
     RoomDeviceResult,
     RoomEventUrlResult,
     RoomTranslateResult,
+    TranslateResult,
     RoomConvertResult,
     RoomSignResult,
     RoomVerifyResult,
@@ -155,6 +156,7 @@ import type {
     RoomDeviceResult,
     RoomEventUrlResult,
     RoomTranslateResult,
+    TranslateResult,
     RoomConvertResult,
     RoomSignResult,
     RoomVerifyResult,
@@ -949,6 +951,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         body: TranslateEventBody = {},
     ): Promise<RoomTranslateResult> {
         return this.eventOps.translateRoomEvent(roomId, eventId, body);
+    }
+
+    async translate(
+        content: string,
+        sourceLang?: string,
+        targetLang?: string,
+    ): Promise<TranslateResult> {
+        return this.eventOps.translate(content, sourceLang, targetLang);
     }
 
     async convertRoomEvent(

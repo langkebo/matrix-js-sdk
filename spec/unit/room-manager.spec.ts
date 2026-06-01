@@ -61,6 +61,21 @@ describe("RoomManager", () => {
         });
     });
 
+    describe("isSlidingSyncSupported", () => {
+        it("defaults to supported for clients without centralized discovery", async () => {
+            await expect(roomManager.isSlidingSyncSupported()).resolves.toBe(true);
+        });
+
+        it("uses centralized synapse-rust sliding-sync discovery when available", async () => {
+            mockClient.doesServerAdvertiseSynapseRustFeature = vi.fn().mockResolvedValue(false);
+
+            await expect(roomManager.isSlidingSyncSupported()).resolves.toBe(false);
+            expect(mockClient.doesServerAdvertiseSynapseRustFeature).toHaveBeenCalledWith(
+                "org.matrix.msc3886.sliding_sync",
+            );
+        });
+    });
+
     describe("getRoom", () => {
         it("should return room from store", () => {
             const room = roomManager.getRoom("!room:example.com");

@@ -73,6 +73,7 @@ import type {
     RoomDeviceResult,
     RoomEventUrlResult,
     RoomTranslateResult,
+    TranslateResult,
     RoomConvertResult,
     RoomSignResult,
     RoomVerifyResult,
@@ -778,5 +779,25 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
                 this.roomSummaryPath("/rooms/$roomId/state/m.room.power_levels/", roomId),
             );
         }, "getRoomPowerLevels");
+    }
+
+    public async translate(
+        content: string,
+        sourceLang?: string,
+        targetLang?: string,
+    ): Promise<TranslateResult> {
+        this.requireNonEmptyString(content, "content");
+        return await this.withRetry(async () => {
+            return await this.requestV3<TranslateResult>(
+                Method.Post,
+                "/translate",
+                undefined,
+                {
+                    content,
+                    source_lang: sourceLang,
+                    target_lang: targetLang,
+                } as Body,
+            );
+        }, "translate");
     }
 }

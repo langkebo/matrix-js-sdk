@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "module",
-  "synapse_rust_commit": "ef9bd5d4d22c35afba65b2b5452278f6a0a28115",
-  "generated_at": "2026-05-18T08:38:43Z",
+  "synapse_rust_commit": null,
+  "generated_at": "2026-05-30T03:34:30Z",
   "source_profile": "all",
-  "entry_count": 27,
+  "entry_count": 23,
   "entries": [
     {
       "method": "GET",
@@ -166,30 +166,6 @@
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/password_auth_providers",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/presence_routes",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/presence_routes",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/rate_limit_callbacks",
-      "registered_by": "module",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/rate_limit_callbacks",
       "registered_by": "module",
       "path_params": []
     }

@@ -57,11 +57,26 @@ import {
     scanQrCodeHttpRequest,
 } from "../client-crypto-requests";
 import { getLegacyClientPrefix } from "../client-internals";
+import { ClientPrefix } from "../http-api/prefix";
 
-type VerificationApiVersion = "v1" | "r0";
+type VerificationApiVersion = "v1" | "r0" | "v3";
+
+function resolveVerificationPrefix(version: VerificationApiVersion): string {
+    if (version === "v3") return ClientPrefix.V3;
+    return getLegacyClientPrefix(version);
+}
 
 const DEFAULT_CANCEL_CODE = "m.user";
 const DEFAULT_CANCEL_REASON = "Cancelled by user";
+
+export interface IVerificationStatusResponse {
+    transaction_id: string;
+    state: string;
+    from_device?: string;
+    method?: string;
+    created_ts?: number;
+    updated_ts?: number;
+}
 
 export class KeyVerificationManager extends BaseManager {
     constructor(client: MatrixClient) {
@@ -185,7 +200,7 @@ export class KeyVerificationManager extends BaseManager {
         _userIdOrVersion?: string,
         version: VerificationApiVersion = "v1",
     ): Promise<IVerificationRequestsResponse> {
-        if (_userIdOrVersion === "v1" || _userIdOrVersion === "r0") {
+        if (_userIdOrVersion === "v1" || _userIdOrVersion === "r0" || _userIdOrVersion === "v3") {
             return this.client.getVerificationRequests(_userIdOrVersion);
         }
 
@@ -196,7 +211,6 @@ export class KeyVerificationManager extends BaseManager {
         transactionId: string,
         version: VerificationApiVersion = "v1",
     ): Promise<{ qr_code_data: string; transaction_id: string }> {
-        const prefix = version === "r0" ? "/_matrix/client/r0" : "/_matrix/client/v1";
         return this.withRetry(
             async () =>
                 await this.client.http.authedRequest(
@@ -204,7 +218,7 @@ export class KeyVerificationManager extends BaseManager {
                     `/keys/qr_code/show`,
                     { transaction_id: transactionId },
                     undefined,
-                    { prefix },
+                    { prefix: resolveVerificationPrefix(version) },
                 ),
             "showQrCode",
         );
@@ -215,7 +229,6 @@ export class KeyVerificationManager extends BaseManager {
         transactionId?: string,
         version: VerificationApiVersion = "v1",
     ): Promise<{ transaction_id: string; verified: boolean }> {
-        const prefix = version === "r0" ? "/_matrix/client/r0" : "/_matrix/client/v1";
         return this.withRetry(
             async () =>
                 await this.client.http.authedRequest(
@@ -223,7 +236,7 @@ export class KeyVerificationManager extends BaseManager {
                     `/keys/qr_code/scan`,
                     undefined,
                     { qr_code_data: qrCodeData, transaction_id: transactionId },
-                    { prefix },
+                    { prefix: resolveVerificationPrefix(version) },
                 ),
             "scanQrCode",
         );
@@ -245,7 +258,7 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IDeviceSigningVerificationStartResponse> {
         return startDeviceSigningVerificationRequest<IDeviceSigningVerificationStartResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
@@ -256,7 +269,7 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IDeviceSigningVerificationAcceptResponse> {
         return acceptDeviceSigningVerificationRequest<IDeviceSigningVerificationAcceptResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
@@ -267,7 +280,7 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IDeviceSigningVerificationKeyAgreementResponse> {
         return sendDeviceSigningVerificationKeyAgreementRequest<IDeviceSigningVerificationKeyAgreementResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
@@ -278,7 +291,7 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IDeviceSigningVerificationMacResponse> {
         return confirmDeviceSigningVerificationMacRequest<IDeviceSigningVerificationMacResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
@@ -289,7 +302,7 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IDeviceSigningVerificationDoneResponse> {
         return completeDeviceSigningVerificationRequest<IDeviceSigningVerificationDoneResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
@@ -300,28 +313,44 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IDeviceSigningVerificationCancelResponse> {
         return cancelDeviceSigningVerificationRequest<IDeviceSigningVerificationCancelResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
 
     public getVerificationRequestsHttp(version: VerificationApiVersion = "v1"): Promise<IVerificationRequestsResponse> {
         return getVerificationRequestsHttpRequest<IVerificationRequestsResponse>(
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
     }
 
     public showQrCodeHttp(version: VerificationApiVersion = "v1"): Promise<IShowQrCodeResponse> {
-        return showQrCodeHttpRequest<IShowQrCodeResponse>(getLegacyClientPrefix(version), this.getAuthedRequestProxy());
+        return showQrCodeHttpRequest<IShowQrCodeResponse>(resolveVerificationPrefix(version), this.getAuthedRequestProxy());
     }
 
     public scanQrCodeHttp(request: IScanQrCodeRequest, version: VerificationApiVersion = "v1"): Promise<IScanQrCodeResponse> {
         return scanQrCodeHttpRequest<IScanQrCodeResponse>(
             request,
-            getLegacyClientPrefix(version),
+            resolveVerificationPrefix(version),
             this.getAuthedRequestProxy(),
         );
+    }
+
+    public async getVerificationStatus(
+        transactionId: string,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IVerificationStatusResponse> {
+        this.requireNonEmptyString(transactionId, "transactionId");
+        return await this.withRetry(async () => {
+            return await this.client.http.authedRequest<IVerificationStatusResponse>(
+                Method.Get,
+                `/keys/verification/${encodeURIComponent(transactionId)}`,
+                undefined,
+                undefined,
+                { prefix: resolveVerificationPrefix(version) },
+            );
+        }, "getVerificationStatus");
     }
 }
 

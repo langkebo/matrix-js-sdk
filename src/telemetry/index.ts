@@ -35,7 +35,6 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import type { TelemetryPathPattern } from "./__generated__/route-table";
-import type { TelemetryHealthCheck, TelemetryDatabaseStatus } from "./__generated__/dto";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
@@ -119,13 +118,45 @@ export interface ServerTelemetryAlertsResponse {
     alerts: ServerTelemetryAlert[];
 }
 
+export interface TelemetryCheckResult {
+    status: string;
+    message: string;
+    duration_ms: number;
+}
+
+export interface ConnectionPoolTelemetry {
+    total_connections: number;
+    idle_connections: number;
+    busy_connections: number;
+    max_connections: number;
+    connection_utilization: number;
+}
+
+export interface DatabasePerformanceMetrics {
+    average_query_time_ms: number;
+    slow_queries_count: number;
+    total_queries: number;
+    transactions_per_second: number;
+    cache_hit_ratio: number;
+    deadlock_count: number;
+    redis_latency_ms: number;
+    redis_slow_commands_count: number;
+}
+
+export interface DatabaseTelemetry {
+    is_healthy: boolean;
+    connection_pool_status: ConnectionPoolTelemetry;
+    performance_metrics: DatabasePerformanceMetrics;
+    last_checked: string;
+}
+
 export interface ServerTelemetryHealth {
     status: string;
     service: string;
     trace_enabled: boolean;
     metrics_enabled: boolean;
-    checks: TelemetryHealthCheck[];
-    database: TelemetryDatabaseStatus;
+    checks: Record<string, TelemetryCheckResult>;
+    database: DatabaseTelemetry;
     alerts: ServerTelemetryAlert[];
 }
 

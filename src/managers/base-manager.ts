@@ -86,7 +86,7 @@ export abstract class BaseManager<
     protected normalizeError(error: unknown, method: string): SdkError {
         const managerName = this.constructor.name;
         const err = error as Error;
-        const plain = error as Record<string, unknown>;
+        const plain = error as Record<string, unknown> /* Dynamic: error shape varies by source */;
         const httpStatus = plain?.httpStatus as number | undefined;
         const errcode = plain?.errcode as string | undefined;
         const code = plain?.code as string | undefined;

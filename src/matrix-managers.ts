@@ -37,6 +37,9 @@ export { FriendManager } from "./friend";
 export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
 export { KeyVerificationManager } from "./key-verification";
+export type { IVerificationStatusResponse } from "./key-verification";
+export { CasManager, type CasApiPrefix, type CasService, type CasServiceListResponse, type CasServiceCreateRequest, type CasServiceCreateResponse, type CasServiceDeleteResponse, type CasUserAttributes, type CasUserAttributesResponse, type CasServiceValidateResponse, type CasProxyResponse } from "./cas";
+export { ExternalServiceManager, type ExternalServiceApiPrefix, type ExternalServiceItem, type ExternalServiceListResponse, type ExternalServiceCreateRequest, type ExternalServiceCreateResponse, type ExternalServiceUpdateRequest, type ExternalServiceUpdateResponse, type ExternalServiceDeleteResponse, type ExternalServiceHealthResponse, type ExternalServiceSingleHealthResponse, type ExternalServiceHealthCheckResponse, type ExternalServiceWebhookResponse } from "./external-service";
 export { MediaManager } from "./media";
 export { ModuleManager } from "./module";
 export {
@@ -130,6 +133,7 @@ export { InviteListManager } from "./invite-list";
 export { InvitesManager } from "./invites";
 export { KeyBackupManager } from "./key-backup";
 export { KeyRotationManager } from "./key-rotation";
+export { DehydratedDeviceManager, type DehydratedDeviceData, type CreateDehydratedDeviceRequest, type CreateDehydratedDeviceResponse, type DeviceInfo, type GetDevicesResponse, type RehydrateData, type ClaimDehydratedDeviceRequest, type ClaimDehydratedDeviceResponse, type UpdateDehydratedDeviceRequest, type UpdateDehydratedDeviceResponse } from "./dehydrated-device";
 export { KeyClaimManager } from "./key-claim";
 export { KeyForwardingManager } from "./key-forwarding";
 export { LifecycleManager } from "./lifecycle";
@@ -161,7 +165,17 @@ export { SearchManager } from "./search";
 export { SecretStorageManager } from "./secret-storage/index";
 export { SecureBackupManager } from "./secure-backup";
 export { SendingQueueManager } from "./sending-queue";
-export { ServerCapabilitiesManager } from "./server-capabilities";
+export {
+    doesClientAdvertiseSynapseRustFeature,
+    isCapabilityEnabled,
+    isUnstableFeatureEnabled,
+    resolveSynapseRustFeatureSupport,
+    ServerCapabilitiesManager,
+    SynapseRustFeature,
+    type SynapseRustFeatureDiscoveryClient,
+    type SynapseRustFeatureName,
+    type SynapseRustFeatureSupport,
+} from "./server-capabilities";
 export { ServerTimeManager } from "./server-time";
 export { SessionManager } from "./session";
 export { SessionsManager } from "./sessions";

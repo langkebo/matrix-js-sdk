@@ -1640,7 +1640,7 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         const snapshotProperties = Object.fromEntries(
             Object.entries(this).filter(([property]) => property !== "event"),
         );
-        Object.assign(ev as unknown as Record<string, unknown>, snapshotProperties);
+        Object.assign(ev as unknown as Record<string, unknown> /* Dynamic: restoring snapshot properties */, snapshotProperties);
         return ev;
     }
 

@@ -171,6 +171,55 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     }
 
     /**
+     * POST variant of setPresence.
+     * Convenience method that uses POST instead of PUT for the same endpoint.
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @param state - 在线状态（online, offline, unavailable, away, busy）
+     * @param statusMsg - 状态消息（可选）
+     */
+    async postPresence(userId: string, state: PresenceState, statusMsg?: string): Promise<void> {
+        if (!userId) {
+            throw new InvalidParamError("User ID is required");
+        }
+        const allowed: PresenceState[] = ["online", "offline", "unavailable", "away", "busy"];
+        if (!allowed.includes(state)) {
+            throw new InvalidParamError(`Invalid presence state. Must be one of: ${allowed.join(", ")}`);
+        }
+
+        try {
+            await this.withRetry(
+                () =>
+                    this.client.http.authedRequest(
+                        Method.Post,
+                        pp(`/presence/${encodeURIComponent(userId)}/status`),
+                        {},
+                        {
+                            presence: state,
+                            status_msg: statusMsg,
+                        },
+                        { prefix: PRESENCE_PREFIX, priority: undefined },
+                    ),
+                "postPresence",
+            );
+
+            const newState: IPresenceState = {
+                presence: state,
+                status_msg: statusMsg,
+                last_active_ago: 0,
+                currently_active: state === "online",
+            };
+
+            this.presenceCache.set(userId, newState);
+            this.emit(PresenceEvent.PresenceUpdated, userId, newState);
+        } catch (e) {
+            const error = this.normalizeError(e, "postPresence");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
+        }
+    }
+
+    /**
      * 获取用户在线状态
      *
      * @param userId - 用户 ID（格式：@localpart:homeserver）

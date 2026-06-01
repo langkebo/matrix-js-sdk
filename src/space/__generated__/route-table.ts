@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/space.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `space` module. */

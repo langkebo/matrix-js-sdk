@@ -161,7 +161,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             if (!supportsRemoteToggle) {
                 pushers = pushers.map((pusher) => {
                     if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
-                        (pusher as unknown as Record<string, unknown>)[PUSHER_ENABLED.name] = true;
+                        (pusher as unknown as Record<string, unknown> /* Dynamic: adding unstable feature property */)[PUSHER_ENABLED.name] = true;
                     }
                     return pusher;
                 });

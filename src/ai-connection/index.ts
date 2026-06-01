@@ -40,6 +40,7 @@ import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { AiConnectionPathPattern } from "./__generated__/route-table";
 import type {
     AIConnection as AIConnectionDto,
@@ -105,6 +106,10 @@ export type AiApiVersion = "v1" | "v3";
 export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnectionManagerEventMap> {
     constructor(client: MatrixClient) {
         super(client);
+    }
+
+    public async isSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.AIConnection, true);
     }
 
     private getPrefix(version: AiApiVersion): string {

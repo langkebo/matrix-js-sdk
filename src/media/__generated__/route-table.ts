@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/media.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `media` module. */
@@ -28,6 +27,11 @@ export const MEDIA_ROUTES = [
     { method: "GET", path: "/_matrix/media/v1/quota/check" },
     { method: "GET", path: "/_matrix/media/v1/quota/stats" },
     { method: "POST", path: "/_matrix/media/v1/upload" },
+    { method: "POST", path: "/_matrix/media/v1/upload/chunk" },
+    { method: "POST", path: "/_matrix/media/v1/upload/chunk/cancel" },
+    { method: "POST", path: "/_matrix/media/v1/upload/chunk/complete" },
+    { method: "GET", path: "/_matrix/media/v1/upload/chunk/progress" },
+    { method: "POST", path: "/_matrix/media/v1/upload/chunk/start" },
     { method: "GET", path: "/_matrix/media/v3/config" },
     { method: "POST", path: "/_matrix/media/v3/delete/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/v3/download/{server_name}/{media_id}" },

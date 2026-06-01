@@ -64,6 +64,7 @@ describe("verification_routes contract acceptance", () => {
         for (const code of errcodes) {
             const hasHandling = errorScenarios.some(s => s.httpOrErrcode.includes(code.errcode));
             if (!hasHandling) {
+                // console.warn(`No specific error scenario handling for errcode ${code.errcode} in verification_routes`);
             }
         }
     });

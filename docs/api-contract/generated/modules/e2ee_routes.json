@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "e2ee_routes",
-  "synapse_rust_commit": "ef9bd5d4d22c35afba65b2b5452278f6a0a28115",
-  "generated_at": "2026-05-18T08:38:43Z",
+  "synapse_rust_commit": null,
+  "generated_at": "2026-05-30T03:34:30Z",
   "source_profile": "all",
-  "entry_count": 52,
+  "entry_count": 55,
   "entries": [
     {
       "method": "GET",
@@ -81,6 +81,15 @@
       "registered_by": "e2ee_routes",
       "path_params": [
         "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}",
+      "registered_by": "e2ee_routes",
+      "path_params": [
+        "event_type",
+        "transaction_id"
       ]
     },
     {
@@ -166,6 +175,15 @@
       "registered_by": "e2ee_routes",
       "path_params": [
         "room_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}",
+      "registered_by": "e2ee_routes",
+      "path_params": [
+        "event_type",
+        "transaction_id"
       ]
     },
     {
@@ -344,6 +362,15 @@
       "path": "/_matrix/client/v3/security/summary",
       "registered_by": "e2ee_routes",
       "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}",
+      "registered_by": "e2ee_routes",
+      "path_params": [
+        "event_type",
+        "transaction_id"
+      ]
     },
     {
       "method": "PUT",

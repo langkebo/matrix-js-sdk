@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/e2ee_routes.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  ef9bd5d4d22c35afba65b2b5452278f6a0a28115
  */
 
 /** Routes served by the synapse-rust `e2ee_routes` module. */
@@ -19,13 +18,12 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/keys/signatures" },
     { method: "POST", path: "/_matrix/client/r0/keys/signatures/upload" },
     { method: "POST", path: "/_matrix/client/r0/keys/upload" },
-    { method: "POST", path: "/_matrix/client/r0/keys/upload/{device_id}" },
     { method: "GET", path: "/_matrix/client/r0/room_keys/request" },
     { method: "POST", path: "/_matrix/client/r0/room_keys/request" },
     { method: "DELETE", path: "/_matrix/client/r0/room_keys/request/{request_id}" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/keys/distribution" },
-    { method: "PUT", path: "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}" },
     { method: "POST", path: "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}" },
+    { method: "PUT", path: "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}" },
     { method: "GET", path: "/_matrix/client/v1/keys/changes" },
     { method: "POST", path: "/_matrix/client/v1/keys/claim" },
     { method: "POST", path: "/_matrix/client/v1/keys/device_list/update" },
@@ -34,13 +32,12 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/keys/signatures" },
     { method: "POST", path: "/_matrix/client/v1/keys/signatures/upload" },
     { method: "POST", path: "/_matrix/client/v1/keys/upload" },
-    { method: "POST", path: "/_matrix/client/v1/keys/upload/{device_id}" },
     { method: "GET", path: "/_matrix/client/v1/room_keys/request" },
     { method: "POST", path: "/_matrix/client/v1/room_keys/request" },
     { method: "DELETE", path: "/_matrix/client/v1/room_keys/request/{request_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/keys/distribution" },
-    { method: "PUT", path: "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}" },
     { method: "POST", path: "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}" },
+    { method: "PUT", path: "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}" },
     { method: "GET", path: "/_matrix/client/v3/device_trust" },
     { method: "GET", path: "/_matrix/client/v3/device_trust/{device_id}" },
     { method: "POST", path: "/_matrix/client/v3/device_verification/request" },
@@ -61,14 +58,13 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/keys/signatures" },
     { method: "POST", path: "/_matrix/client/v3/keys/signatures/upload" },
     { method: "POST", path: "/_matrix/client/v3/keys/upload" },
-    { method: "POST", path: "/_matrix/client/v3/keys/upload/{device_id}" },
     { method: "GET", path: "/_matrix/client/v3/room_keys/request" },
     { method: "POST", path: "/_matrix/client/v3/room_keys/request" },
     { method: "DELETE", path: "/_matrix/client/v3/room_keys/request/{request_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/keys/distribution" },
     { method: "GET", path: "/_matrix/client/v3/security/summary" },
-    { method: "PUT", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
     { method: "POST", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
+    { method: "PUT", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `E2EE_ROUTES`. */

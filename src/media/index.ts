@@ -72,6 +72,51 @@ export interface MediaThumbnailUrlOptions {
     animated?: boolean;
 }
 
+export interface ChunkUploadStartRequest {
+    filename: string;
+    content_type: string;
+    total_size?: number;
+}
+
+export interface ChunkUploadStartResponse {
+    upload_id: string;
+    [key: string]: unknown;
+}
+
+export interface ChunkUploadRequest {
+    upload_id: string;
+    chunk_index: number;
+    data: ArrayBuffer | Blob;
+}
+
+export interface ChunkUploadResponse {
+    upload_id: string;
+    chunk_index: number;
+    received_bytes: number;
+    [key: string]: unknown;
+}
+
+export interface ChunkUploadCompleteResponse {
+    upload_id: string;
+    content_uri: string;
+    [key: string]: unknown;
+}
+
+export interface ChunkUploadCancelResponse {
+    upload_id: string;
+    cancelled: boolean;
+    [key: string]: unknown;
+}
+
+export interface ChunkUploadProgressResponse {
+    upload_id: string;
+    total_chunks: number;
+    received_chunks: number;
+    bytes_received: number;
+    total_bytes: number;
+    [key: string]: unknown;
+}
+
 function parseMxcUri(mxc?: string): { serverName: string; mediaId: string } | null {
     if (typeof mxc !== "string" || !mxc) {
         return null;
@@ -296,6 +341,82 @@ export class MediaManager extends BaseManager {
         }
 
         return url.href;
+    }
+
+    public async startChunkUpload(
+        filename: string,
+        contentType: string,
+        totalSize?: number,
+    ): Promise<ChunkUploadStartResponse> {
+        this.requireNonEmptyString(filename, "filename");
+        this.requireNonEmptyString(contentType, "contentType");
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<ChunkUploadStartResponse>(
+                Method.Post,
+                "/upload/chunk/start",
+                undefined,
+                { filename, content_type: contentType, total_size: totalSize },
+                { prefix: MediaPrefix.V1 },
+            );
+        }, "startChunkUpload");
+    }
+
+    public async uploadChunk(uploadId: string, chunkIndex: number, data: ArrayBuffer | Blob): Promise<ChunkUploadResponse> {
+        this.requireNonEmptyString(uploadId, "uploadId");
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<ChunkUploadResponse>(
+                Method.Post,
+                `/upload/chunk`,
+                undefined,
+                data,
+                {
+                    prefix: MediaPrefix.V1,
+                    headers: {
+                        "X-Upload-Id": uploadId,
+                        "X-Chunk-Index": String(chunkIndex),
+                    },
+                },
+            );
+        }, "uploadChunk");
+    }
+
+    public async completeChunkUpload(uploadId: string): Promise<ChunkUploadCompleteResponse> {
+        this.requireNonEmptyString(uploadId, "uploadId");
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<ChunkUploadCompleteResponse>(
+                Method.Post,
+                `/upload/chunk/complete`,
+                undefined,
+                { upload_id: uploadId },
+                { prefix: MediaPrefix.V1 },
+            );
+        }, "completeChunkUpload");
+    }
+
+    public async cancelChunkUpload(uploadId: string): Promise<ChunkUploadCancelResponse> {
+        this.requireNonEmptyString(uploadId, "uploadId");
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<ChunkUploadCancelResponse>(
+                Method.Post,
+                `/upload/chunk/cancel`,
+                undefined,
+                { upload_id: uploadId },
+                { prefix: MediaPrefix.V1 },
+            );
+        }, "cancelChunkUpload");
+    }
+
+    public async getChunkUploadProgress(uploadId: string): Promise<ChunkUploadProgressResponse> {
+        this.requireNonEmptyString(uploadId, "uploadId");
+        return this.withRetry(async () => {
+            return await this.client.http.authedRequest<ChunkUploadProgressResponse>(
+                Method.Get,
+                `/upload/chunk/progress`,
+                { upload_id: uploadId },
+                undefined,
+                { prefix: MediaPrefix.V1 },
+            );
+        }, "getChunkUploadProgress");
     }
 
     public getThumbnailUrl(mxcUrl: string, options: MediaThumbnailUrlOptions = {}): string {

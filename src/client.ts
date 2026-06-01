@@ -202,6 +202,7 @@ import { MatrixRTCSessionManager } from "./matrix-rtc/MatrixRTCSessionManager";
 import { type RoomMessageEventContent } from "./@types/events";
 import { type ImageInfo } from "./@types/media";
 import { type Capabilities, ServerCapabilities } from "./serverCapabilities";
+import { type SynapseRustFeatureName, type SynapseRustFeatureSupport } from "./server-capabilities";
 import { type OidcClientConfig } from "./oidc/index";
 import { type EmptyObject } from "./@types/common";
 import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors";
@@ -3386,6 +3387,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getServerCapabilitiesManager().doesServerSupportUnstableFeature(feature);
     }
 
+    public async doesServerAdvertiseSynapseRustFeature(feature: SynapseRustFeatureName): Promise<boolean> {
+        return this.getServerCapabilitiesManager().doesServerAdvertiseSynapseRustFeature(feature);
+    }
+
+    public async getSynapseRustFeatureSupport(): Promise<SynapseRustFeatureSupport> {
+        return this.getServerCapabilitiesManager().getSynapseRustFeatureSupport();
+    }
+
     public async doesServerForceEncryptionForPreset(presetName: Preset): Promise<boolean> {
         return this.getServerCapabilitiesManager().doesServerForceEncryptionForPreset(presetName);
     }
@@ -3896,55 +3905,55 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public startDeviceSigningVerification(
         request: IDeviceSigningVerificationStartRequest,
-        version: "v1" | "r0" = "v1",
+        version: "v1" | "r0" | "v3" = "v1",
     ): Promise<IDeviceSigningVerificationStartResponse> {
         return this.getKeyVerificationManager().startDeviceSigningVerification(request, version);
     }
 
     public acceptDeviceSigningVerification(
         request: IDeviceSigningVerificationAcceptRequest,
-        version: "v1" | "r0" = "v1",
+        version: "v1" | "r0" | "v3" = "v1",
     ): Promise<IDeviceSigningVerificationAcceptResponse> {
         return this.getKeyVerificationManager().acceptDeviceSigningVerification(request, version);
     }
 
     public sendDeviceSigningVerificationKeyAgreement(
         request: IDeviceSigningVerificationKeyAgreementRequest,
-        version: "v1" | "r0" = "v1",
+        version: "v1" | "r0" | "v3" = "v1",
     ): Promise<IDeviceSigningVerificationKeyAgreementResponse> {
         return this.getKeyVerificationManager().sendDeviceSigningVerificationKeyAgreement(request, version);
     }
 
     public confirmDeviceSigningVerificationMac(
         request: IDeviceSigningVerificationMacRequest,
-        version: "v1" | "r0" = "v1",
+        version: "v1" | "r0" | "v3" = "v1",
     ): Promise<IDeviceSigningVerificationMacResponse> {
         return this.getKeyVerificationManager().confirmDeviceSigningVerificationMac(request, version);
     }
 
     public completeDeviceSigningVerification(
         request: IDeviceSigningVerificationDoneRequest,
-        version: "v1" | "r0" = "v1",
+        version: "v1" | "r0" | "v3" = "v1",
     ): Promise<IDeviceSigningVerificationDoneResponse> {
         return this.getKeyVerificationManager().completeDeviceSigningVerification(request, version);
     }
 
     public cancelDeviceSigningVerification(
         request: IDeviceSigningVerificationCancelRequest,
-        version: "v1" | "r0" = "v1",
+        version: "v1" | "r0" | "v3" = "v1",
     ): Promise<IDeviceSigningVerificationCancelResponse> {
         return this.getKeyVerificationManager().cancelDeviceSigningVerification(request, version);
     }
 
-    public getVerificationRequests(version: "v1" | "r0" = "v1"): Promise<IVerificationRequestsResponse> {
+    public getVerificationRequests(version: "v1" | "r0" | "v3" = "v1"): Promise<IVerificationRequestsResponse> {
         return this.getKeyVerificationManager().getVerificationRequestsHttp(version);
     }
 
-    public showQrCode(version: "v1" | "r0" = "v1"): Promise<IShowQrCodeResponse> {
+    public showQrCode(version: "v1" | "r0" | "v3" = "v1"): Promise<IShowQrCodeResponse> {
         return this.getKeyVerificationManager().showQrCodeHttp(version);
     }
 
-    public scanQrCode(request: IScanQrCodeRequest, version: "v1" | "r0" = "v1"): Promise<IScanQrCodeResponse> {
+    public scanQrCode(request: IScanQrCodeRequest, version: "v1" | "r0" | "v3" = "v1"): Promise<IScanQrCodeResponse> {
         return this.getKeyVerificationManager().scanQrCodeHttp(request, version);
     }
 
@@ -4129,6 +4138,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         abortSignal?: AbortSignal,
     ): Promise<MSC3575SlidingSyncResponse> {
         return this.getRoomManager().slidingSync(req, proxyBaseUrl, abortSignal) as Promise<MSC3575SlidingSyncResponse>;
+    }
+
+    public async isSlidingSyncSupported(): Promise<boolean> {
+        return this.getRoomManager().isSlidingSyncSupported();
     }
 
     public supportsThreads(): boolean {

@@ -533,6 +533,11 @@ export interface MatrixClientInternalMethods {
     getServerCapabilities(): Promise<ServerCapabilities>;
     hasServerSupport(feature: string): boolean;
     getServerVersion(): Promise<string>;
+    doesServerAdvertiseSynapseRustFeature(
+        feature: import("./server-capabilities/index").SynapseRustFeatureName,
+    ): Promise<boolean>;
+    getSynapseRustFeatureSupport(): Promise<import("./server-capabilities/index").SynapseRustFeatureSupport>;
+    isSlidingSyncSupported(): Promise<boolean>;
     supportsThreads(): boolean;
     supportsLocation(): boolean;
 

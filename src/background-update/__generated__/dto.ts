@@ -9,17 +9,6 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface BackgroundUpdateMetadata {
-    [key: string]: unknown;
-}
-
-export interface BackgroundUpdateProgress {
-    items_processed: number;
-    total_items?: number;
-    percentage?: number;
-    [key: string]: unknown;
-}
-
 export interface CreateBackgroundUpdateBody {
     job_name: string;
     job_type: string;
@@ -30,7 +19,7 @@ export interface CreateBackgroundUpdateBody {
     batch_size?: number;
     sleep_ms?: number;
     depends_on?: string[];
-    metadata?: BackgroundUpdateMetadata;
+    metadata?: Record<string, unknown>;
 }
 
 export interface BackgroundUpdateRecord {
@@ -39,7 +28,7 @@ export interface BackgroundUpdateRecord {
     description?: string | null;
     table_name?: string | null;
     status: string;
-    progress: BackgroundUpdateProgress | number | null;
+    progress: Record<string, unknown> | number | null;
     total_items: number;
     processed_items: number;
     created_ts: number;

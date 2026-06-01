@@ -45,11 +45,13 @@ import { searchRoomsRequest } from "../client-secure-backup-requests";
 import { LRUCache } from "../utils/lru-cache";
 import { InflightRequestCache } from "../utils/inflight-request-cache";
 import { Visibility, GuestAccess, HistoryVisibility } from "../@types/partials";
+import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import * as ContentHelpers from "../content-helpers";
 import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
 import type { InviteRequest } from "./__generated__/dto";
 import type { RoomPathPattern } from "./__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
+import type { SlidingSyncPathPattern } from "../sliding-sync/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
 
 export enum RoomEvent {
@@ -166,10 +168,13 @@ type RoomInfoCacheEntry =
 type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+type StripSimplifiedSlidingSync<P extends string> =
+    P extends `/_matrix/client/unstable/org.matrix.simplified_msc3575${infer Rest}` ? Rest : never;
 type RoomManagerPathPattern =
     | StripR0<RoomPathPattern | TagsPathPattern>
     | StripV1<RoomPathPattern>
-    | StripV3<RoomPathPattern | TagsPathPattern>;
+    | StripV3<RoomPathPattern | TagsPathPattern>
+    | StripSimplifiedSlidingSync<SlidingSyncPathPattern>;
 
 function rp<P extends RoomManagerPathPattern>(path: P): P {
     return path;
@@ -531,7 +536,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             if (throwOnError) {
                 throw error;
             }
-            const err = error as Record<string, unknown>;
+            const err = error as Record<string, unknown> /* Dynamic: error shape varies by source */;
             const httpStatus = err?.httpStatus as number | undefined;
             if (httpStatus === 404) {
                 return null;
@@ -1200,6 +1205,16 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     /**
+     * Check whether the homeserver advertises the synapse-rust sliding-sync surface.
+     *
+     * Falls back to true for clients that do not expose centralized feature discovery
+     * so existing proxy-based sliding-sync deployments keep working.
+     */
+    public async isSlidingSyncSupported(): Promise<boolean> {
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.SlidingSync, true);
+    }
+
+    /**
      * Perform a single MSC3575 sliding sync request.
      * @param req - The request to make.
      * @param proxyBaseUrl - The base URL for the sliding sync proxy.
@@ -1222,7 +1237,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const { pos: _pos, timeout: _timeout, clientTimeout: _clientTimeout, ...body } = req;
         return this.client.http.authedRequest(
             Method.Post,
-            "/sync",
+            rp("/sync"),
             qps,
             body,
             {

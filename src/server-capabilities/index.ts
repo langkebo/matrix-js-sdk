@@ -42,6 +42,113 @@ const UNSTABLE_MSC2666_QUERY_MUTUAL_ROOMS = "uk.half-shot.msc2666.query_mutual_r
 // 6 hours - an arbitrary value, but they should change very infrequently.
 const CAPABILITIES_CACHE_MS = 6 * 60 * 60 * 1000;
 
+export const SynapseRustFeature = {
+    ExtendedProfile: "uk.tcpip.msc4133",
+    SlidingSync: "org.matrix.msc3886.sliding_sync",
+    DehydratedDevice: "org.matrix.msc3814",
+    Widget: "org.matrix.msc4261.widget",
+    BurnAfterRead: "io.hula.burn_after_read",
+    Friends: "io.hula.friends",
+    Voice: "org.matrix.msc3245",
+    OpenClaw: "openclaw",
+    AIConnection: "ai_connection",
+} as const;
+
+export type SynapseRustFeatureName = (typeof SynapseRustFeature)[keyof typeof SynapseRustFeature];
+
+export interface SynapseRustFeatureDiscoveryClient {
+    doesServerAdvertiseSynapseRustFeature?: (feature: SynapseRustFeatureName) => Promise<boolean>;
+}
+
+export interface SynapseRustFeatureSupport {
+    extendedProfile: boolean;
+    slidingSync: boolean;
+    dehydratedDevice: boolean;
+    widget: boolean;
+    burnAfterRead: boolean;
+    friends: boolean;
+    voice: boolean;
+    openClaw: boolean;
+    aiConnection: boolean;
+}
+
+const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, SynapseRustFeatureName> = {
+    extendedProfile: SynapseRustFeature.ExtendedProfile,
+    slidingSync: SynapseRustFeature.SlidingSync,
+    dehydratedDevice: SynapseRustFeature.DehydratedDevice,
+    widget: SynapseRustFeature.Widget,
+    burnAfterRead: SynapseRustFeature.BurnAfterRead,
+    friends: SynapseRustFeature.Friends,
+    voice: SynapseRustFeature.Voice,
+    openClaw: SynapseRustFeature.OpenClaw,
+    aiConnection: SynapseRustFeature.AIConnection,
+};
+
+const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, string[]>> = {
+    [SynapseRustFeature.SlidingSync]: ["io.hula.sliding_sync"],
+    [SynapseRustFeature.Widget]: ["io.hula.widget"],
+    [SynapseRustFeature.BurnAfterRead]: ["io.hula.burn_after_read"],
+    [SynapseRustFeature.Friends]: ["io.hula.friends"],
+    [SynapseRustFeature.Voice]: ["m.voice", "io.hula.voice_extended"],
+    [SynapseRustFeature.OpenClaw]: ["openclaw"],
+    [SynapseRustFeature.AIConnection]: ["ai_connection"],
+};
+
+function capabilityEnabled(value: unknown): boolean {
+    if (typeof value === "boolean") {
+        return value;
+    }
+    if (value && typeof value === "object" && "enabled" in value) {
+        return (value as { enabled?: unknown }).enabled === true;
+    }
+    return false;
+}
+
+export function isUnstableFeatureEnabled(versions: IServerVersions | undefined, feature: string): boolean {
+    return versions?.unstable_features?.[feature] === true;
+}
+
+export function isCapabilityEnabled(capabilities: Capabilities | undefined, capability: string): boolean {
+    return capabilityEnabled(capabilities?.[capability]);
+}
+
+export async function doesClientAdvertiseSynapseRustFeature(
+    client: SynapseRustFeatureDiscoveryClient,
+    feature: SynapseRustFeatureName,
+    fallback: boolean,
+    onError?: (error: unknown) => void,
+): Promise<boolean> {
+    const checker = client.doesServerAdvertiseSynapseRustFeature;
+    if (!checker) {
+        return fallback;
+    }
+
+    try {
+        return await checker.call(client, feature);
+    } catch (e) {
+        onError?.(e);
+        return fallback;
+    }
+}
+
+export function resolveSynapseRustFeatureSupport(
+    versions: IServerVersions | undefined,
+    capabilities?: Capabilities,
+): SynapseRustFeatureSupport {
+    const support = {} as SynapseRustFeatureSupport;
+
+    for (const [key, feature] of Object.entries(SYNAPSE_RUST_FEATURE_KEYS) as Array<
+        [keyof SynapseRustFeatureSupport, SynapseRustFeatureName]
+    >) {
+        const capabilityAliases = SYNAPSE_RUST_CAPABILITY_ALIASES[feature] ?? [];
+        support[key] =
+            isUnstableFeatureEnabled(versions, feature) ||
+            capabilityAliases.some((capability) => isCapabilityEnabled(capabilities, capability));
+    }
+
+    return support;
+}
+
 export interface ServerCapabilities {}
 
 export interface ServerCapabilitiesManagerEvents {
@@ -70,7 +177,10 @@ export class ServerCapabilitiesManager extends BaseManager<
         return this.withRetry(async () => {
             const resp = await this.client.http.authedRequest<{ capabilities: Capabilities }>(
                 Method.Get,
-                "/_matrix/client/v3/capabilities",
+                "/capabilities",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
             );
             this.cachedCapabilities = resp["capabilities"];
             this.capabilitiesFetchedAt = Date.now();
@@ -109,8 +219,28 @@ export class ServerCapabilitiesManager extends BaseManager<
     public async doesServerSupportUnstableFeature(feature: string): Promise<boolean> {
         const response = await this.client.getVersions();
         if (!response) return false;
-        const unstableFeatures = response["unstable_features"];
-        return unstableFeatures && !!unstableFeatures[feature];
+        return isUnstableFeatureEnabled(response, feature);
+    }
+
+    public async doesServerAdvertiseSynapseRustFeature(feature: SynapseRustFeatureName): Promise<boolean> {
+        const [versions, capabilities] = await Promise.all([
+            this.client.getVersions(),
+            this.getServerCapabilities().catch(() => undefined),
+        ]);
+        return (
+            isUnstableFeatureEnabled(versions, feature) ||
+            (SYNAPSE_RUST_CAPABILITY_ALIASES[feature] ?? []).some((capability) =>
+                isCapabilityEnabled(capabilities, capability),
+            )
+        );
+    }
+
+    public async getSynapseRustFeatureSupport(): Promise<SynapseRustFeatureSupport> {
+        const [versions, capabilities] = await Promise.all([
+            this.client.getVersions(),
+            this.getServerCapabilities().catch(() => undefined),
+        ]);
+        return resolveSynapseRustFeatureSupport(versions, capabilities);
     }
 
     /**
