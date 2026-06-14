@@ -4,8 +4,15 @@ import { CaptchaManager } from "../../src/captcha/index";
 import { Method } from "../../src/http-api/method";
 import { AdminPrefix, ClientPrefix } from "../../src/http-api/prefix";
 
+type MockCaptchaClient = {
+    http: {
+        authedRequest: ReturnType<typeof vi.fn>;
+        request: ReturnType<typeof vi.fn>;
+    };
+};
+
 describe("CaptchaManager", () => {
-    let mockClient: any;
+    let mockClient: MockCaptchaClient;
     let manager: CaptchaManager;
     let authedRequest: ReturnType<typeof vi.fn>;
     let request: ReturnType<typeof vi.fn>;
@@ -14,7 +21,7 @@ describe("CaptchaManager", () => {
         authedRequest = vi.fn().mockResolvedValue({});
         request = vi.fn().mockResolvedValue({});
         mockClient = { http: { authedRequest, request } };
-        manager = new CaptchaManager(mockClient);
+        manager = new CaptchaManager(mockClient as unknown as ConstructorParameters<typeof CaptchaManager>[0]);
     });
 
     it("sendCaptcha POSTs a public captcha challenge on v3", async () => {
@@ -56,6 +63,19 @@ describe("CaptchaManager", () => {
             { prefix: ClientPrefix.V3 },
         );
         expect(authedRequest).not.toHaveBeenCalled();
+    });
+
+    it("allows callers to select the r0 public captcha route explicitly", async () => {
+        request.mockResolvedValue({ verified: true });
+        await manager.verifyCaptcha("c1", "1234", "r0");
+
+        expect(request).toHaveBeenCalledWith(
+            Method.Post,
+            "/register/captcha/verify",
+            undefined,
+            { captcha_id: "c1", code: "1234" },
+            { prefix: ClientPrefix.R0 },
+        );
     });
 
     it("cleanupExpiredCaptchas uses the admin v1 route", async () => {

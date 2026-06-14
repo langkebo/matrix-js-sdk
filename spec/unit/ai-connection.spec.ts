@@ -4,8 +4,15 @@ import { AIConnectionManager, AIConnectionEvent } from "../../src/ai-connection/
 import type { AiApiVersion } from "../../src/ai-connection/index";
 import { AI_CONNECTION_ROUTES } from "../../src/ai-connection/__generated__/route-table";
 
+type MockAIConnectionClient = {
+    http: {
+        authedRequest: ReturnType<typeof vi.fn>;
+    };
+    doesServerAdvertiseSynapseRustFeature?: ReturnType<typeof vi.fn>;
+};
+
 describe("AIConnectionManager", () => {
-    let mockClient: any;
+    let mockClient: MockAIConnectionClient;
     let manager: AIConnectionManager;
 
     beforeEach(() => {
@@ -14,7 +21,7 @@ describe("AIConnectionManager", () => {
                 authedRequest: vi.fn(),
             },
         };
-        manager = new AIConnectionManager(mockClient);
+        manager = new AIConnectionManager(mockClient as unknown as ConstructorParameters<typeof AIConnectionManager>[0]);
     });
 
     afterEach(() => {
@@ -22,19 +29,15 @@ describe("AIConnectionManager", () => {
     });
 
     describe("route table alignment", () => {
-        it("should have 18 routes in the generated route table", () => {
-            expect(AI_CONNECTION_ROUTES).toHaveLength(18);
+        it("should have 12 routes in the generated route table", () => {
+            expect(AI_CONNECTION_ROUTES).toHaveLength(12);
         });
 
-        it("should cover v1, v3, and short paths", () => {
+        it("should cover v1 and v3 paths", () => {
             const v1Paths = AI_CONNECTION_ROUTES.filter((r) => r.path.startsWith("/_matrix/client/v1/ai"));
             const v3Paths = AI_CONNECTION_ROUTES.filter((r) => r.path.startsWith("/_matrix/client/v3/ai"));
-            const shortPaths = AI_CONNECTION_ROUTES.filter(
-                (r) => !r.path.startsWith("/_matrix/client"),
-            );
             expect(v1Paths).toHaveLength(6);
             expect(v3Paths).toHaveLength(6);
-            expect(shortPaths).toHaveLength(6);
         });
     });
 
@@ -232,5 +235,36 @@ describe("AIConnectionManager", () => {
                 });
             });
         }
+
+        it("prefers the v3 route when centralized discovery advertises ai-connection support", async () => {
+            mockClient.doesServerAdvertiseSynapseRustFeature = vi.fn().mockResolvedValue(true);
+            mockClient.http.authedRequest.mockResolvedValue([]);
+
+            await manager.listConnections();
+
+            expect(mockClient.doesServerAdvertiseSynapseRustFeature).toHaveBeenCalledWith("ai_connection");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/connections",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3/ai" },
+            );
+        });
+
+        it("keeps the v1 route when discovery is unavailable or not advertised", async () => {
+            mockClient.doesServerAdvertiseSynapseRustFeature = vi.fn().mockResolvedValue(false);
+            mockClient.http.authedRequest.mockResolvedValue([]);
+
+            await manager.listConnections();
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/connections",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v1/ai" },
+            );
+        });
     });
 });

@@ -14,7 +14,7 @@ void _DeviceEntryCountAssertion;
 
 export const DEVICE_ROUTES_STATUS_SCENARIOS = [
     { status: 200, note: "请求成功" },
-    { status: 400, note: "缺少 display_name 或 device_ids/users 格式错误" },
+    { status: 400, note: "缺少 display_name 或 device_ids/users 格式错误，display_name 长度超过 100 字符（m-13）" },
     { status: 404, note: "设备不存在" },
 ] as const;
 

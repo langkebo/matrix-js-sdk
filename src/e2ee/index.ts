@@ -66,6 +66,26 @@ function ep<P extends StripV3<E2eePathPattern>>(path: P): P {
  *   - POST   /keys/backup/secure/{backup_id}/restore
  *   - POST   /keys/backup/secure/{backup_id}/verify
  *
+ * ## vodozemac 后端对齐（synapse-rust C-5，2026-06）
+ *
+ * 后端 Megolm 已收敛到 vodozemac（Phase 1 MegolmProvider ◆ Phase 2 双写
+ * PickleFormat::Dual ◆ Phase 3 互操作测试进行中）。
+ *
+ * SDK 通过 `@matrix-org/matrix-sdk-crypto-wasm`（基于同一 vodozemac 库）
+ * 管理客户端 Megolm session。重要兼容性说明：
+ *
+ * - **session import/export**: SDK 使用 WASM `importRoomKeys()`/`exportRoomKeys()`
+ *   导出 Megolm session。后端 vodozemac 格式与此兼容（同一 pickle 格式）。
+ *
+ * - **m.room_key to-device 事件**: 消息格式由 Matrix 协议规范定义，vodozemac
+ *   不改变线格式。
+ *
+ * - **key backup**: 后端 v10 使用 vodozemac 格式存储备份密钥。
+ *   SDK 的 `backup.ts` 通过 WASM `BackupDecryptor` 解密，格式兼容。
+ *
+ * - **配置**: 后端 `E2EE_USE_VODOZEMAC_MEGOLM` 环境变量控制服务器端路径选择。
+ *   SDK 客户端始终使用 vodozemac（WASM），无需额外配置。
+ *
  * @remarks
  * 对绝大多数应用：使用 `MatrixClient.initRustCrypto()` 提供的高层 API，
  * 而不是直接调用此 Manager。本 Manager 只为需要绕过 Rust crypto 直接驱动

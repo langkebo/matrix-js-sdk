@@ -51,6 +51,7 @@ import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../se
 import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
 
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
+type BurnAfterReadApiVersion = "v1" | "v3";
 
 function bp<P extends StripV1<BurnAfterReadPathPattern>>(path: P): P {
     return path;
@@ -171,7 +172,28 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         };
     }
 
-    public async enableBurn(roomId: string, burnAfterMs?: number): Promise<IBurnSettings> {
+    private async resolveBurnPrefix(version?: BurnAfterReadApiVersion): Promise<ClientPrefix.V1 | ClientPrefix.V3> {
+        if (version === "v3") {
+            return ClientPrefix.V3;
+        }
+        if (version === "v1") {
+            return ClientPrefix.V1;
+        }
+
+        const serverPrefersV3 = await doesClientAdvertiseSynapseRustFeature(
+            this.client,
+            SynapseRustFeature.BurnAfterRead,
+            false,
+            (e) => logger.debug("BurnAfterReadManager.resolveBurnPrefix fallback to v1", e),
+        );
+        return serverPrefersV3 ? ClientPrefix.V3 : ClientPrefix.V1;
+    }
+
+    public async enableBurn(
+        roomId: string,
+        burnAfterMs?: number,
+        version?: BurnAfterReadApiVersion,
+    ): Promise<IBurnSettings> {
         if (!roomId) {
             throw new ValidationError("BurnAfterReadManager.enableBurn: roomId is required");
         }
@@ -180,6 +202,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         this.validateBurnTime(burnMs);
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<IBurnSettings>(
@@ -187,7 +210,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         { enabled: true, burn_after_ms: burnMs },
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "enableBurn",
             );
@@ -206,12 +229,13 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async disableBurn(roomId: string): Promise<IBurnSettings> {
+    public async disableBurn(roomId: string, version?: BurnAfterReadApiVersion): Promise<IBurnSettings> {
         if (!roomId) {
             throw new ValidationError("BurnAfterReadManager.disableBurn: roomId is required");
         }
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<IBurnSettings>(
@@ -219,7 +243,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         { enabled: false },
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "disableBurn",
             );
@@ -238,12 +262,13 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async getBurnSettings(roomId: string): Promise<IBurnSettings> {
+    public async getBurnSettings(roomId: string, version?: BurnAfterReadApiVersion): Promise<IBurnSettings> {
         if (!roomId) {
             throw new ValidationError("BurnAfterReadManager.getBurnSettings: roomId is required");
         }
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<IBurnSettings>(
@@ -251,7 +276,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         undefined,
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "getBurnSettings",
             );
@@ -269,12 +294,13 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async getPendingBurns(roomId: string): Promise<IBurnPendingEvent[]> {
+    public async getPendingBurns(roomId: string, version?: BurnAfterReadApiVersion): Promise<IBurnPendingEvent[]> {
         if (!roomId) {
             throw new ValidationError("BurnAfterReadManager.getPendingBurns: roomId is required");
         }
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<{ events?: IBurnPendingEvent[] }>(
@@ -282,7 +308,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         bp(`/rooms/${encodeURIComponent(roomId)}/burn/pending` as StripV1<BurnAfterReadPathPattern>),
                         undefined,
                         undefined,
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "getPendingBurns",
             );
@@ -293,7 +319,11 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async markBurnRead(roomId: string, eventId: string): Promise<IMarkBurnReadResponse> {
+    public async markBurnRead(
+        roomId: string,
+        eventId: string,
+        version?: BurnAfterReadApiVersion,
+    ): Promise<IMarkBurnReadResponse> {
         if (!roomId) {
             throw new ValidationError("BurnAfterReadManager.markBurnRead: roomId is required");
         }
@@ -302,6 +332,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<IMarkBurnReadResponse>(
@@ -311,7 +342,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         ),
                         undefined,
                         undefined,
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "markBurnRead",
             );
@@ -340,7 +371,11 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async cancelBurn(roomId: string, eventId: string): Promise<ICancelBurnResponse> {
+    public async cancelBurn(
+        roomId: string,
+        eventId: string,
+        version?: BurnAfterReadApiVersion,
+    ): Promise<ICancelBurnResponse> {
         if (!roomId) {
             throw new ValidationError("BurnAfterReadManager.cancelBurn: roomId is required");
         }
@@ -349,6 +384,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<ICancelBurnResponse>(
@@ -358,7 +394,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         ),
                         undefined,
                         undefined,
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "cancelBurn",
             );
@@ -375,10 +411,14 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async setBurnConfig(defaultBurnMs: number): Promise<ISetBurnConfigResponse> {
+    public async setBurnConfig(
+        defaultBurnMs: number,
+        version?: BurnAfterReadApiVersion,
+    ): Promise<ISetBurnConfigResponse> {
         this.validateBurnTime(defaultBurnMs);
 
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<ISetBurnConfigResponse>(
@@ -386,7 +426,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         bp("/user/burn/config"),
                         undefined,
                         { default_burn_ms: defaultBurnMs },
-                        { prefix: ClientPrefix.V1 },
+                        { prefix },
                     ),
                 "setBurnConfig",
             );
@@ -402,8 +442,9 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         }
     }
 
-    public async getBurnStats(): Promise<IBurnStats> {
+    public async getBurnStats(version?: BurnAfterReadApiVersion): Promise<IBurnStats> {
         try {
+            const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
                     this.client.http.authedRequest<IBurnStats>(
@@ -412,7 +453,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                         undefined,
                         undefined,
                         {
-                            prefix: ClientPrefix.V1,
+                            prefix,
                         },
                     ),
                 "getBurnStats",

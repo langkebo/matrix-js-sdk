@@ -62,7 +62,7 @@ last_reviewed: 2026-05-11
 | POST/GET   | `/_synapse/admin/v1/rooms/{room_id}/block`                    | 封禁 / 查询封禁状态 |
 | POST       | `/_synapse/admin/v1/rooms/{room_id}/unblock`                  | 解封房间            |
 | POST/PUT   | `/_synapse/admin/v1/rooms/{room_id}/make_admin`               | 设置房间管理员      |
-| POST       | `/_synapse/admin/v1/purge_history`                            | 清理历史            |
+| POST       | `/_synapse/admin/v1/purge_history`                            | 清理历史；响应含 `purge_id` 和可选 `audit_id`（v10 审计字段） |
 | POST       | `/_synapse/admin/v1/purge_room`                               | 清空房间            |
 | POST       | `/_synapse/admin/v1/shutdown_room`                            | 关闭房间            |
 | GET        | `/_synapse/admin/v1/spaces`                                   | space 列表          |

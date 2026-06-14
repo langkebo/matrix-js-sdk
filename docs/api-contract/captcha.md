@@ -3,7 +3,7 @@ module: captcha
 generated_from: docs/api-contract/generated/modules/captcha.json
 generated_hash: sha256-fd591da3deb692947bef7c65af4edfdae7783e9cdcdec068ad16a61bce9baaff
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-06-01
 ---
 
 # CAPTCHA API 契约文档
@@ -27,20 +27,20 @@ last_reviewed: 2026-05-03
 
 | 端点 | SDK Manager | 方法 | 状态 |
 | ---- | ----------- | ---- | ---- |
-| `POST /v3/register/captcha/send` | `CaptchaManager` | `sendCaptcha()` | ✅ |
-| `GET /v3/register/captcha/status` | `CaptchaManager` | `getCaptchaStatus()` | ✅ |
-| `POST /v3/register/captcha/verify` | `CaptchaManager` | `verifyCaptcha()` | ✅ |
+| `POST /{r0,v3}/register/captcha/send` | `CaptchaManager` | `sendCaptcha(..., version?)` | ✅ |
+| `GET /{r0,v3}/register/captcha/status` | `CaptchaManager` | `getCaptchaStatus(..., version?)` | ✅ |
+| `POST /{r0,v3}/register/captcha/verify` | `CaptchaManager` | `verifyCaptcha(..., version?)` | ✅ |
 | `POST /_synapse/admin/v1/captcha/cleanup` | `CaptchaManager` | `cleanupExpiredCaptchas()` | ✅ |
 
 ## 覆盖率口径
 
 - **后端 Ledger 路由总数**: 7
-- **SDK 已封装路由数**: 4
-- **已绑定生成路由模板**: 4
+- **SDK 已封装路由数**: 7
+- **已绑定生成路由模板**: 7
 - **契约覆盖率**: 100%
 - **说明**:
-    - `CaptchaManager` 选择 `v3` 作为 canonical 封装面。
-    - 后端保留的 3 条 `r0` 路径与 `v3` 逻辑一致，SDK 不再额外暴露重复方法，视为逻辑覆盖 100%。
+    - `CaptchaManager` 默认选择 `v3` 作为 canonical 封装面。
+    - 后端保留的 3 条 `r0` 路径与 `v3` 逻辑一致，SDK 通过可选 `version: "r0" | "v3"` 参数显式覆盖历史入口，不额外暴露重复方法。
     - 客户端 `captcha` 路由属于注册流程公开端点，应走 `request()` 而非 `authedRequest()`。
 
 ## 常见状态码

@@ -349,6 +349,11 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
             throw new InvalidParamError("No updates provided");
         }
 
+        // 设备名称长度校验（m-13 后端要求 ≤100 字符）
+        if (updates.display_name && updates.display_name.length > 100) {
+            throw new ValidationError(`Device display name must be ≤ 100 characters (current: ${updates.display_name.length})`);
+        }
+
         try {
             await this.withRetry(async () => {
                 return await this.client.http.authedRequest(

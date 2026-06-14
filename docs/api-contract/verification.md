@@ -3,12 +3,12 @@ module: verification_routes
 generated_from: docs/api-contract/generated/modules/verification_routes.json
 generated_hash: sha256-6cc7a6cbcf957cfb76ad6fabcf65ac79cc432d5fe226cc1deed837f258ca976d
 ledger_schema: 1
-last_reviewed: 2026-05-03
+last_reviewed: 2026-06-01
 ---
 
 # Verification 契约
 
-> **审计状态**: ✅ `VerificationManager` 全部 9 条兼容端点已绑定生成 `VerificationPathPattern`，并补齐专用路径单测
+> **审计状态**: ✅ `VerificationManager` 全部 9 条兼容端点已绑定生成 `VerificationPathPattern`，默认保持 v1，支持调用方显式选择 r0/v3，并补齐专用路径单测
 >
 > 审查来源: `synapse-rust/src/web/routes/verification_routes.rs`
 >
@@ -20,8 +20,7 @@ last_reviewed: 2026-05-03
 | -------------------- | ------------------------------ |
 | `/_matrix/client/v1` | 支持全部 verification 兼容路由 |
 | `/_matrix/client/r0` | 支持全部 verification 兼容路由 |
-
-> 当前 `verification_routes.rs` 没有挂到 `/_matrix/client/v3`。
+| `/_matrix/client/v3` | 支持全部 verification 兼容路由 |
 
 ## 认证与通用约定
 
@@ -34,20 +33,20 @@ last_reviewed: 2026-05-03
 
 | 方法 | 路径                                                               | 版本  | 主要请求参数                                                     | 主要响应字段                                                                                         |
 | ---- | ------------------------------------------------------------------ | ----- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_start`         | v1/r0 | `from_device` `to_user` `to_device?` `transaction_id?` `method?` | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string`              |
-| PUT  | `/_matrix/client/{v1,r0}/keys/device_signing/verify_accept`        | v1/r0 | `transaction_id` `key_agreement_protocol` `hash` `commitment?`   | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string` `commitment` |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_key_agreement` | v1/r0 | `transaction_id` `pubkey`                                        | `transaction_id` `confirmed` `short_authentication_string`                                           |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_mac`           | v1/r0 | `transaction_id` `mac`                                           | `transaction_id` `verified`                                                                          |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_done`          | v1/r0 | `transaction_id`                                                 | `transaction_id`                                                                                     |
-| POST | `/_matrix/client/{v1,r0}/keys/device_signing/verify_cancel`        | v1/r0 | `transaction_id` `reason?`                                       | `transaction_id` `cancelled`                                                                         |
-| GET  | `/_matrix/client/{v1,r0}/keys/device_signing/requests`             | v1/r0 | 无                                                               | `requests`                                                                                           |
+| POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_start`         | v1/r0/v3 | `from_device` `to_user` `to_device?` `transaction_id?` `method?` | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string`              |
+| PUT  | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_accept`        | v1/r0/v3 | `transaction_id` `key_agreement_protocol` `hash` `commitment?`   | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string` `commitment` |
+| POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_key_agreement` | v1/r0/v3 | `transaction_id` `pubkey`                                        | `transaction_id` `confirmed` `short_authentication_string`                                           |
+| POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_mac`           | v1/r0/v3 | `transaction_id` `mac`                                           | `transaction_id` `verified`                                                                          |
+| POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_done`          | v1/r0/v3 | `transaction_id`                                                 | `transaction_id`                                                                                     |
+| POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_cancel`        | v1/r0/v3 | `transaction_id` `reason?`                                       | `transaction_id` `cancelled`                                                                         |
+| GET  | `/_matrix/client/{v1,r0,v3}/keys/device_signing/requests`             | v1/r0/v3 | 无                                                               | `requests`                                                                                           |
 
 ## 二维码校验
 
 | 方法 | 路径                                        | 版本  | 主要请求参数                                                                                      | 主要响应字段                                                                                      |
 | ---- | ------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| GET  | `/_matrix/client/{v1,r0}/keys/qr_code/show` | v1/r0 | 无                                                                                                | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` |
-| POST | `/_matrix/client/{v1,r0}/keys/qr_code/scan` | v1/r0 | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` | `transaction_id` `state`                                                                          |
+| GET  | `/_matrix/client/{v1,r0,v3}/keys/qr_code/show` | v1/r0/v3 | 无                                                                                                | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` |
+| POST | `/_matrix/client/{v1,r0,v3}/keys/qr_code/scan` | v1/r0/v3 | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` | `transaction_id` `state`                                                                          |
 
 ## 典型请求/响应
 
@@ -93,19 +92,19 @@ last_reviewed: 2026-05-03
 | `GET  .../keys/qr_code/show`                         | `showQrCode()`               |
 | `POST .../keys/qr_code/scan`                         | `scanQrCode()`               |
 
-> SDK 用 `ClientPrefix.V1` 前缀，与本契约的 v1/r0 挂载一致；v3 命名空间归 `e2ee_routes`。
+> SDK 默认用 `ClientPrefix.V1` 保持兼容；调用方可在 `VerificationManager` 方法上传入 `"r0"` 或 `"v3"`，显式绑定生成契约中的对应前缀。`device_verification/*` 仍归 `e2ee_routes`。
 
 ## SDK 对齐结论
 
 - `src/verification/index.ts` 现已将 `verify_start`、`verify_accept`、`verify_key_agreement`、`verify_mac`、`verify_done`、`verify_cancel`、`requests`、`qr_code/show`、`qr_code/scan` 全部绑定到生成的 `VerificationPathPattern`。
-- `VerificationManager` 继续默认走 `ClientPrefix.V1` 主路径；`r0` 兼容前缀由同一份后端 handler 承接，不再视为人工封装缺口。
+- `VerificationManager` 继续默认走 `ClientPrefix.V1` 主路径；`r0` 与 `v3` 兼容前缀由同一份后端 handler 承接，不再视为人工封装缺口。
 - `spec/unit/verification-manager.spec.ts` 新增专用断言，覆盖主 HTTP 路径、参数校验和 `listPendingVerifications()` 的失败回退分支。
 
 ## 覆盖率口径
 
-- **Ledger 契约端点数**: 18
-- **SDK 主路径覆盖**: 18/18
-- **已绑定生成路由模板**: 18/18
+- **Ledger 契约端点数**: 36
+- **SDK 主路径覆盖**: 36/36
+- **已绑定生成路由模板**: 36/36
 - **契约覆盖率**: 100%
 
 ## DTO Definitions

@@ -24,8 +24,8 @@ last_reviewed: 2026-05-03
 | 方法 | 路径                                  | 主要请求参数                                                                                | 主要响应字段           |
 | ---- | ------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------- |
 | GET  | `/_matrix/client/{r0,v3}/pushers`     | 无                                                                                          | `{ "pushers": [...] }` |
-| POST | `/_matrix/client/{r0,v3}/pushers`     | `pushkey` `kind` `app_id` `app_display_name` `device_display_name` `lang` `data?` `append?` | 空对象                 |
-| POST | `/_matrix/client/{r0,v3}/pushers/set` | 同上，`kind: null` 时删除                                                                   | 空对象                 |
+| POST | `/_matrix/client/{r0,v3}/pushers`     | `pushkey` `kind` `app_id` `app_display_name` `device_display_name` `device_id` `lang` `data?` `append?` | 空对象                 |
+| POST | `/_matrix/client/{r0,v3}/pushers/set` | 同上，`kind: null` 时删除；**device_id 必填（P2 #32 鉴权要求）**                           | 空对象                 |
 
 ## Push Rules
 
@@ -95,6 +95,7 @@ last_reviewed: 2026-05-03
   `createPushRule()`、`updatePushRule()`、`deletePushRule()`、`getPushRuleEnabled()`、`setPushRuleEnabled()`、
   `setPushRuleActions()` 均已受 codegen 路径模板约束。
 - `muteRoom()`、`unmuteRoom()`、`addKeywordHighlight()`、`ignoreSender()` 等便捷方法继续复用上述 REST 主路径，不额外引入未审计的接口面。
+- **v10 对齐 (2026-06-09)**: `setPusher()` 新增 `device_id` 必填校验（P2 #32），缺少时抛出 `InvalidParamError`；`IPusherRequest` 新增 `device_id?: string` 字段。
 
 ## 覆盖率口径
 

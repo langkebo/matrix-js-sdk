@@ -60,6 +60,8 @@ export interface MediaDownloadUrlOptions {
     allowRedirects?: boolean;
     useAuthentication?: boolean;
     version?: "v1" | "v3" | "r1";
+    signature?: string; // m-30: HMAC-SHA256 signature for authenticated media URLs
+    timestamp?: number; // m-30: timestamp for signature verification
 }
 
 export interface MediaThumbnailUrlOptions {
@@ -70,6 +72,8 @@ export interface MediaThumbnailUrlOptions {
     allowRedirects?: boolean;
     useAuthentication?: boolean;
     animated?: boolean;
+    signature?: string; // m-30: HMAC-SHA256 signature for authenticated media URLs
+    timestamp?: number; // m-30: timestamp for signature verification
 }
 
 export interface ChunkUploadStartRequest {
@@ -340,6 +344,12 @@ export class MediaManager extends BaseManager {
             url.searchParams.set("allow_redirect", JSON.stringify(options.allowRedirects));
         }
 
+        // m-30: 添加签名参数（HMAC-SHA256 认证媒体 URL）
+        if (options.signature) {
+            url.searchParams.set("signature", options.signature);
+            url.searchParams.set("ts", (options.timestamp ?? Date.now()).toString());
+        }
+
         return url.href;
     }
 
@@ -452,6 +462,12 @@ export class MediaManager extends BaseManager {
         }
         if (typeof options.allowRedirects === "boolean") {
             url.searchParams.set("allow_redirect", JSON.stringify(options.allowRedirects));
+        }
+
+        // m-30: 添加签名参数（HMAC-SHA256 认证媒体 URL）
+        if (options.signature) {
+            url.searchParams.set("signature", options.signature);
+            url.searchParams.set("ts", (options.timestamp ?? Date.now()).toString());
         }
 
         return url.href;

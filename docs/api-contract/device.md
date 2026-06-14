@@ -53,7 +53,7 @@ last_reviewed: 2026-05-03
 | 状态码 | 说明                                               |
 | ------ | -------------------------------------------------- |
 | `200`  | 请求成功                                           |
-| `400`  | 缺少 `display_name` 或 `device_ids/users` 格式错误 |
+| `400`  | 缺少 `display_name` 或 `device_ids/users` 格式错误，`display_name` 长度超过 100 字符（m-13） |
 | `404`  | 设备不存在                                         |
 
 ## 代码定位
@@ -109,6 +109,7 @@ console.log("Left:", updates.left);
 - 已绑定入口包括 `getDevices()`、`getDevice()`、`updateDevice()`、`deleteDevice()`、`deleteDevices()`、`getDeviceListUpdates()`。
 - `setDeviceDetails()` 与 `renameDevice()` 继续复用 `updateDevice()`，不单独引入额外契约面。
 - SDK 默认收敛到 `/_matrix/client/v3` 主路径；`r0` 兼容前缀由后端共享处理器承接，不再视为人工封装缺口。
+- **v10 对齐 (2026-06-09)**: `updateDevice()` 新增 `display_name` ≤100 字符前端校验（m-13），超长时抛出 `ValidationError`。
 
 ## 覆盖率口径
 

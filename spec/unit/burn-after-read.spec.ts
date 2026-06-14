@@ -7,7 +7,18 @@ import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
 import { getOrCreateManager } from "../../src/client-infra/manager-registry";
 
-function createMockClient(authedRequest?: any, burnAfterReadSupported?: boolean) {
+type MockBurnAfterReadClient = {
+    getUserId: ReturnType<typeof vi.fn>;
+    doesServerAdvertiseSynapseRustFeature?: ReturnType<typeof vi.fn>;
+    http: {
+        authedRequest: ReturnType<typeof vi.fn>;
+    };
+};
+
+function createMockClient(
+    authedRequest?: ReturnType<typeof vi.fn>,
+    burnAfterReadSupported?: boolean,
+): MockBurnAfterReadClient & ConstructorParameters<typeof BurnAfterReadManager>[0] {
     return {
         getUserId: vi.fn().mockReturnValue("@alice:test"),
         doesServerAdvertiseSynapseRustFeature:
@@ -15,7 +26,7 @@ function createMockClient(authedRequest?: any, burnAfterReadSupported?: boolean)
         http: {
             authedRequest: authedRequest ?? vi.fn().mockResolvedValue({}),
         },
-    } as any;
+    } as MockBurnAfterReadClient & ConstructorParameters<typeof BurnAfterReadManager>[0];
 }
 
 function createMatrixError(status: number, errcode: string, message: string): MatrixError {
@@ -23,7 +34,7 @@ function createMatrixError(status: number, errcode: string, message: string): Ma
 }
 
 describe("BurnAfterReadManager", () => {
-    let authedRequest: any;
+    let authedRequest: ReturnType<typeof vi.fn>;
     let manager: BurnAfterReadManager;
 
     beforeEach(() => {
@@ -102,6 +113,34 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: true, burn_after_ms: 30000 },
+                { prefix: ClientPrefix.V1 },
+            );
+        });
+
+        it("prefers v3 when centralized discovery advertises burn-after-read support", async () => {
+            manager = new BurnAfterReadManager(createMockClient(authedRequest, true));
+
+            await manager.enableBurn("!room:test");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/rooms/!room%3Atest/burn",
+                undefined,
+                { enabled: true, burn_after_ms: 60000 },
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("respects an explicit v1 version even when burn-after-read support is advertised", async () => {
+            manager = new BurnAfterReadManager(createMockClient(authedRequest, true));
+
+            await manager.enableBurn("!room:test", undefined, "v1");
+
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/rooms/!room%3Atest/burn",
+                undefined,
+                { enabled: true, burn_after_ms: 60000 },
                 { prefix: ClientPrefix.V1 },
             );
         });
@@ -478,7 +517,7 @@ describe("BurnAfterReadManager", () => {
             await expect(
                 manager.sendMessage({
                     room_id: "!room:test",
-                    content: null as any,
+                    content: null as unknown as Parameters<typeof manager.sendMessage>[0]["content"],
                 }),
             ).rejects.toThrow(ValidationError);
         });
@@ -691,7 +730,7 @@ describe("BurnAfterReadManager", () => {
 
             expect(result).toBe(true);
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/rooms/!room%3Atest/burn", undefined, undefined, {
-                prefix: ClientPrefix.V1,
+                prefix: ClientPrefix.V3,
             });
         });
 
@@ -849,7 +888,6 @@ describe("BurnAfterReadManager", () => {
             for (const call of calls) {
                 const prefixArg = call[4];
                 if (typeof prefixArg === "object" && prefixArg !== null) {
-                    // eslint-disable-next-line vitest/no-conditional-expect
                     expect([ClientPrefix.V1, ClientPrefix.V3]).toContain(prefixArg.prefix);
                 }
             }

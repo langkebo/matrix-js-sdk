@@ -4,8 +4,14 @@ import { ValidationError } from "../../src/errors";
 import { logger } from "../../src/logger";
 import { VerificationManager } from "../../src/verification/index";
 
+type MockVerificationClient = {
+    http: {
+        authedRequest: ReturnType<typeof vi.fn>;
+    };
+};
+
 describe("VerificationManager", () => {
-    let mockClient: any;
+    let mockClient: MockVerificationClient;
     let manager: VerificationManager;
 
     beforeEach(() => {
@@ -16,7 +22,7 @@ describe("VerificationManager", () => {
         };
 
         vi.spyOn(logger, "warn").mockImplementation(() => undefined);
-        manager = new VerificationManager(mockClient);
+        manager = new VerificationManager(mockClient as unknown as ConstructorParameters<typeof VerificationManager>[0]);
     });
 
     it("routes verification start to the generated-compatible v1 contract path", async () => {
@@ -38,6 +44,43 @@ describe("VerificationManager", () => {
                 method: "m.sas.v1",
             },
             expect.objectContaining({ prefix: "/_matrix/client/v1" }),
+        );
+    });
+
+    it("allows callers to select generated-compatible v3 and r0 contract paths explicitly", async () => {
+        mockClient.http.authedRequest
+            .mockResolvedValueOnce({ transaction_id: "txn-v3" })
+            .mockResolvedValueOnce({ transaction_id: "txn-r0" });
+
+        await manager.startVerification(
+            {
+                from_device: "DEVICE",
+                to_user: "@alice:example.org",
+                method: "m.sas.v1",
+            },
+            "v3",
+        );
+        await manager.showQrCode("r0");
+
+        expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+            1,
+            "POST",
+            "/keys/device_signing/verify_start",
+            undefined,
+            {
+                from_device: "DEVICE",
+                to_user: "@alice:example.org",
+                method: "m.sas.v1",
+            },
+            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+        );
+        expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
+            2,
+            "GET",
+            "/keys/qr_code/show",
+            undefined,
+            undefined,
+            expect.objectContaining({ prefix: "/_matrix/client/r0" }),
         );
     });
 

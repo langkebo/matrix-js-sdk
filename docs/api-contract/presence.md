@@ -95,6 +95,7 @@ last_reviewed: 2026-05-03
   通过请求体区分 `subscribe`、`unsubscribe` 和空载荷查询。
 - `getPresenceList(targetUserId)` 直连 `GET /presence/list/{user_id}`。
 - 当前 `r0` / `v1` presence 状态路由被视为兼容别名，SDK 默认使用 `v3` 主路径。
+- **v10 对齐 (2026-06-09)**: `setPresence()` 新增前端校验，仅接受 `online`/`offline`/`unavailable` 三种状态，其他状态值抛出 `InvalidParamError`。
 
 ## DTO Definitions
 

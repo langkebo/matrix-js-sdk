@@ -36,3 +36,20 @@ export interface ISynapseAdminWhoisResponse {
 export interface ISynapseAdminDeactivateResponse {
     id_server_unbind_result: IdServerUnbindResult;
 }
+
+/**
+ * 清理历史记录响应（v10 新增 audit_id 审计字段）
+ */
+export interface ISynapseAdminPurgeHistoryResponse {
+    purge_id: string;
+    audit_id?: string; // v10: audit trail identifier
+}
+
+/**
+ * 健康检查结果（v10 新增 Redis 状态检查）
+ */
+export interface IHealthCheckResult {
+    database: { ok: boolean; message?: string };
+    redis: { ok: boolean; message?: string }; // v10: Redis connectivity check
+    federation: { ok: boolean; message?: string };
+}

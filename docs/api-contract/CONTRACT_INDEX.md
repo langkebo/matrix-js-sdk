@@ -88,7 +88,7 @@
 | CAS 认证   | [cas.md](cas.md)                       | 16     | 100%       | ✅ 完善 (含协议端点 URL helper) |
 | SAML       | [saml.md](saml.md)                     | 16     | 100%       | ✅ 完善 |
 | OIDC       | [oidc.md](oidc.md)                     | 19     | 100%       | ✅ 完善 (以 v3 为 canonical 封装面) |
-| 验证码     | [captcha.md](captcha.md)               | 7      | 100%       | ✅ 完善 (以 v3 为 canonical 封装面) |
+| 验证码     | [captcha.md](captcha.md)               | 7      | 100%       | ✅ 完善 (默认 v3，显式 r0 兼容) |
 | AI 连接    | [ai-connection.md](ai-connection.md)   | 6      | 100%       | ✅ 完善 |
 | 阅后即焚   | [burn-after-read.md](burn-after-read.md) | 7    | 100%       | ✅ 完善 |
 | 模块管理   | [module.md](module.md)                 | 27     | 100%       | ✅ 完善 |

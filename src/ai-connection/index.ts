@@ -112,36 +112,50 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.AIConnection, true);
     }
 
+    private async resolveApiVersion(version?: AiApiVersion): Promise<AiApiVersion> {
+        if (version) {
+            return version;
+        }
+
+        const serverPrefersV3 = await doesClientAdvertiseSynapseRustFeature(
+            this.client,
+            SynapseRustFeature.AIConnection,
+            false,
+        );
+        return serverPrefersV3 ? "v3" : "v1";
+    }
+
     private getPrefix(version: AiApiVersion): string {
         return version === "v3" ? AI_V3_PREFIX : AI_V1_PREFIX;
     }
 
-    private request<T>(
+    private async request<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string>,
         body?: unknown,
-        version: AiApiVersion = "v1",
+        version?: AiApiVersion,
     ): Promise<T> {
+        const resolvedVersion = await this.resolveApiVersion(version);
         return this.withRetry(async () => {
             return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
-                prefix: this.getPrefix(version),
+                prefix: this.getPrefix(resolvedVersion),
             }) as Promise<T>;
         }, "request");
     }
 
-    async listConnections(version: AiApiVersion = "v1"): Promise<AIConnection[]> {
+    async listConnections(version?: AiApiVersion): Promise<AIConnection[]> {
         return this.request<AIConnection[]>(Method.Get, ai("/connections"), undefined, undefined, version);
     }
 
-    async createConnection(req: CreateConnectionOptions, version: AiApiVersion = "v1"): Promise<AIConnection> {
+    async createConnection(req: CreateConnectionOptions, version?: AiApiVersion): Promise<AIConnection> {
         this.requireNonEmptyString(req.provider, "provider");
         const result = await this.request<AIConnection>(Method.Post, ai("/connections"), undefined, req, version);
         this.emit(AIConnectionEvent.ConnectionCreated, result);
         return result;
     }
 
-    async getConnection(id: string, version: AiApiVersion = "v1"): Promise<AIConnection> {
+    async getConnection(id: string, version?: AiApiVersion): Promise<AIConnection> {
         this.requireNonEmptyString(id, "id");
         return this.request<AIConnection>(
             Method.Get,
@@ -152,7 +166,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         );
     }
 
-    async deleteConnection(id: string, version: AiApiVersion = "v1"): Promise<void> {
+    async deleteConnection(id: string, version?: AiApiVersion): Promise<void> {
         this.requireNonEmptyString(id, "id");
         await this.request<void>(
             Method.Delete,
@@ -164,7 +178,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         this.emit(AIConnectionEvent.ConnectionDeleted, id);
     }
 
-    async listMcpTools(provider: string, version: AiApiVersion = "v1"): Promise<McpToolListResponse> {
+    async listMcpTools(provider: string, version?: AiApiVersion): Promise<McpToolListResponse> {
         this.requireNonEmptyString(provider, "provider");
         return this.request<McpToolListResponse>(
             Method.Get,
@@ -175,7 +189,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         );
     }
 
-    async callMcpTool(req: McpToolCallRequest, version: AiApiVersion = "v1"): Promise<McpToolCallResponse> {
+    async callMcpTool(req: McpToolCallRequest, version?: AiApiVersion): Promise<McpToolCallResponse> {
         this.requireNonEmptyString(req.provider, "provider");
         this.requireNonEmptyString(req.tool_name, "tool_name");
         const result = await this.request<McpToolCallResponse>(

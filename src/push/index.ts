@@ -68,6 +68,7 @@ export interface IPusherRequest {
     lang: string;
     data?: Record<string, unknown>; // Dynamic: pusher data varies by kind
     append?: boolean;
+    device_id?: string; // P2 #32: required for pusher authentication
 }
 
 export interface ICreatePushRuleRequest {
@@ -183,6 +184,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     async setPusher(pusher: IPusherRequest): Promise<void> {
         if (!pusher.pushkey) throw new InvalidParamError("pushkey is required");
         if (!pusher.app_id) throw new InvalidParamError("app_id is required");
+        if (!pusher.device_id) throw new InvalidParamError("device_id is required for pusher authentication (P2 #32)");
 
         try {
             await this.withRetry(async () => {
@@ -203,7 +205,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      * 移除推送器
      * 对应 POST /_matrix/client/v3/pushers/set (kind=null)
      */
-    async removePusher(pushkey: string, appId: string): Promise<void> {
+    async removePusher(pushkey: string, appId: string, deviceId?: string): Promise<void> {
         if (!pushkey) throw new InvalidParamError("pushkey is required");
         if (!appId) throw new InvalidParamError("appId is required");
 
@@ -214,6 +216,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             app_display_name: "",
             device_display_name: "",
             lang: "",
+            device_id: deviceId || "",
         });
     }
 

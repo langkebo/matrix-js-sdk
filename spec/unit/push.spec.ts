@@ -147,6 +147,7 @@ describe("PushManager", () => {
                 app_id: "com.test.app",
                 app_display_name: "Test",
                 device_display_name: "Device",
+                device_id: "test-device",
                 lang: "en",
                 kind: "http",
             });
@@ -184,7 +185,7 @@ describe("PushManager", () => {
 
     describe("removePusher", () => {
         it("should remove pusher successfully", async () => {
-            await pushManager.removePusher("key1", "com.example.app");
+            await pushManager.removePusher("key1", "com.example.app", "test-device");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "POST",
                 "/pushers/set",
@@ -193,6 +194,7 @@ describe("PushManager", () => {
                     pushkey: "key1",
                     app_id: "com.example.app",
                     kind: null,
+                    device_id: "test-device",
                 }),
                 { prefix: "/_matrix/client/v3" },
             );
@@ -634,6 +636,7 @@ describe("PushManager", () => {
                     app_display_name: "Test",
                     device_display_name: "Device",
                     lang: "en",
+                    device_id: "test-device",
                 }),
             ).rejects.toThrow(NotFoundError);
         });

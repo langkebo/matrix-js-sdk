@@ -139,11 +139,11 @@ last_reviewed: 2026-05-11
 
 - 语音相关路由已从本文件拆分到 `voice.md`，避免继续混写 Media 与 Voice 两组契约。
 - `getWaveform()` 已收敛为本地计算能力，不再暗示后端存在独立波形接口。
-- 媒体删除、预览、带自定义内容 ID 上传、下载/缩略图 URL helper、配额告警均已纳入当前 SDK 封装。
 - `PUT /_matrix/media/v3/upload/{server_name}/{media_id}` 现已真正使用路径参数，非本机 `server_name` 返回 `400`，重复 `media_id` 返回 `409`。
 - `/_matrix/media/{v1,r1}/download/...` 失败时现已返回匹配的 `404` 等错误状态码，不再出现 `200 + JSON 错误体`。
 - `/_matrix/client/v1/media/config` authenticated media 配置入口已通过 `MediaQuotaManager.getMediaConfig(true)` 显式暴露。
 - `quota/check` 与 `quota/stats` 已有端点级 wrapper，不再只是派生 helper。
+- **v10 对齐 (2026-06-09)**: `getDownloadUrl()` / `getThumbnailUrl()` 支持 `signature`/`timestamp` 参数（m-30 HMAC-SHA256 签名 URL），传递时将 `signature` 和 `ts` 添加到 URL query string。
 
 ---
 
@@ -169,10 +169,12 @@ export interface UrlPreview {
 export interface MediaDownloadUrlOptions {
     filename?: string; allowDirectLinks?: boolean; allowRedirects?: boolean;
     useAuthentication?: boolean; version?: "v1" | "v3" | "r1";
+    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 export interface MediaThumbnailUrlOptions {
     width?: number; height?: number; method?: "crop" | "scale";
     allowDirectLinks?: boolean; allowRedirects?: boolean;
     useAuthentication?: boolean; animated?: boolean;
+    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 ```

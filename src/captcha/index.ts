@@ -30,14 +30,21 @@ import type { CaptchaPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+type CaptchaClientPath = StripClientV3<CaptchaPathPattern> | StripClientR0<CaptchaPathPattern>;
+export type CaptchaApiVersion = "r0" | "v3";
 
-function cp<P extends StripClientV3<CaptchaPathPattern>>(path: P): P {
+function cp<P extends CaptchaClientPath>(path: P): P {
     return path;
 }
 
 function ap<P extends StripAdminV1<CaptchaPathPattern>>(path: P): P {
     return path;
+}
+
+function captchaPrefix(version: CaptchaApiVersion = "v3"): ClientPrefix.R0 | ClientPrefix.V3 {
+    return version === "r0" ? ClientPrefix.R0 : ClientPrefix.V3;
 }
 
 export interface CaptchaSendResponse {
@@ -83,7 +90,12 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         super(client);
     }
 
-    public async sendCaptcha(captchaType: string, target: string, templateName?: string): Promise<CaptchaSendResponse> {
+    public async sendCaptcha(
+        captchaType: string,
+        target: string,
+        templateName?: string,
+        version?: CaptchaApiVersion,
+    ): Promise<CaptchaSendResponse> {
         try {
             const body: IContent = {
                 captcha_type: captchaType,
@@ -99,7 +111,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                     cp("/register/captcha/send"),
                     undefined,
                     body,
-                    { prefix: ClientPrefix.V3 },
+                    { prefix: captchaPrefix(version) },
                 );
             }, "sendCaptcha");
 
@@ -115,7 +127,11 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         }
     }
 
-    public async verifyCaptcha(captchaId: string, code: string): Promise<CaptchaVerifyResponse> {
+    public async verifyCaptcha(
+        captchaId: string,
+        code: string,
+        version?: CaptchaApiVersion,
+    ): Promise<CaptchaVerifyResponse> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.client.http.request<CaptchaVerifyResponse>(
@@ -123,7 +139,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                     cp("/register/captcha/verify"),
                     undefined,
                     { captcha_id: captchaId, code },
-                    { prefix: ClientPrefix.V3 },
+                    { prefix: captchaPrefix(version) },
                 );
             }, "verifyCaptcha");
 
@@ -137,7 +153,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         }
     }
 
-    public async getCaptchaStatus(captchaId: string): Promise<CaptchaStatusResponse> {
+    public async getCaptchaStatus(captchaId: string, version?: CaptchaApiVersion): Promise<CaptchaStatusResponse> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.request<CaptchaStatusResponse>(
@@ -145,7 +161,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                     cp("/register/captcha/status"),
                     { captcha_id: captchaId },
                     undefined,
-                    { prefix: ClientPrefix.V3 },
+                    { prefix: captchaPrefix(version) },
                 );
             }, "getCaptchaStatus");
         } catch (error) {

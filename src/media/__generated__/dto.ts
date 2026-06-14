@@ -23,10 +23,12 @@ export interface UrlPreview {
 export interface MediaDownloadUrlOptions {
     filename?: string; allowDirectLinks?: boolean; allowRedirects?: boolean;
     useAuthentication?: boolean; version?: "v1" | "v3" | "r1";
+    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 
 export interface MediaThumbnailUrlOptions {
     width?: number; height?: number; method?: "crop" | "scale";
     allowDirectLinks?: boolean; allowRedirects?: boolean;
     useAuthentication?: boolean; animated?: boolean;
+    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }

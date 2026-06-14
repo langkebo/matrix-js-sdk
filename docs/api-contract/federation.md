@@ -80,9 +80,10 @@ last_reviewed: 2026-05-03
 ## SDK 契约对齐
 
 - **后端 Ledger 路由总数**: 52
-- **SDK 已封装路由数**: 18
-- **契约覆盖率**: 35%
+- **SDK 已封装路由数**: 19
+- **契约覆盖率**: 37%
 - **说明**: `FederationManager` 已补齐联邦发现、目的地查询、跨服事件与跨服媒体读接口，手写路径漂移面继续收敛；大量 Protected Federation 路由、Key 相关的 V2 路由主要用于服务器间交互，SDK 仅保留最核心的客户端可见面。
+- **v10 对齐 (2026-06-09)**: 新增 `toCanonicalJson()` 静态方法（转义 U+2028/U+2029/U+FFFD 字符，对齐后端 C-2 Canonical JSON 修复）；新增 `sendFederationEvent()` 方法（使用 Canonical JSON 序列化发送联邦事件）。
 
 ### 已封装方法
 
@@ -105,3 +106,4 @@ last_reviewed: 2026-05-03
 | `getRoomEvent()`            | `GET /_matrix/federation/v1/room/{roomId}/{eventId}` | 无     |
 | `downloadMedia()`           | `GET /_matrix/federation/v1/media/download/{serverName}/{mediaId}` | 无 |
 | `getMediaThumbnail()`       | `GET /_matrix/federation/v1/media/thumbnail/{serverName}/{mediaId}` | 无 |
+| `sendFederationEvent()`     | `PUT /_matrix/federation/v1/send/{txnId}`     | 联邦签名  |

@@ -206,11 +206,47 @@ const SDK_SNIPPET_LINE_CAP = 400;
  * block is replaced with a stub explaining the missing mapping so the
  * reviewer can add it.
  */
+/**
+ * Keep in sync with `MODULE_TO_SDK_DIR` in scripts/sdk-contract-codegen.mjs.
+ * Modules not listed here still get a draft, but the `current_sdk_snippet`
+ * block is replaced with a stub explaining the missing mapping so the
+ * reviewer can add it.
+ *
+ * Updated 2026-06-09: expanded to cover all SDK API modules for Phase 1
+ * synapse-rust v10 alignment.
+ */
 const MODULE_TO_SDK_DIR = {
+    auth: "auth",
+    device: "device",
+    e2ee: "e2ee",
+    federation: "federation",
     key_backup: "key-backup",
+    key_rotation: "key-rotation",
     friend_room: "friend",
     dm: "dm",
+    push: "push",
+    presence: "presence",
+    media: "media",
+    search: "search",
+    room: "room",
+    sync: "sync",
+    admin: "admin",
     typing: "typing",
+    account_data: "account-data",
+    guest: "guest",
+    moderation: "moderation",
+    notifications: "notifications",
+    profile: "profile",
+    reactions: "reactions",
+    relations: "relations",
+    room_alias: "room-alias",
+    room_member: "room-member",
+    room_upgrades: "room-upgrades",
+    room_summary: "room-summary",
+    thirdparty: "third-party",
+    thread: "thread",
+    voip: "voip",
+    widget: "widget",
 };
 
 function entryKey(entry) {

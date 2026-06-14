@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 import { beforeAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import type { Capabilities } from "../../../src/serverCapabilities";
 import type { IServerVersions } from "../../../src/client-api-types";
@@ -33,6 +35,19 @@ type FeatureProbe = {
     label: string;
     feature: SynapseRustFeatureName;
     capabilityAliases: string[];
+    routeRegisteredBy?: string;
+};
+
+type RouteManifestEntry = {
+    method: string;
+    path: string;
+    registered_by?: string;
+};
+
+type RouteManifest = {
+    state_profile: string;
+    entry_count: number;
+    entries: RouteManifestEntry[];
 };
 
 const CORE_HULA_FEATURES: FeatureProbe[] = [
@@ -47,6 +62,7 @@ const CORE_HULA_FEATURES: FeatureProbe[] = [
         label: "sliding-sync",
         feature: SynapseRustFeature.SlidingSync,
         capabilityAliases: ["io.hula.sliding_sync"],
+        routeRegisteredBy: "sliding_sync",
     },
     {
         key: "dehydratedDevice",
@@ -59,36 +75,42 @@ const CORE_HULA_FEATURES: FeatureProbe[] = [
         label: "widget",
         feature: SynapseRustFeature.Widget,
         capabilityAliases: ["io.hula.widget"],
+        routeRegisteredBy: "widget",
     },
     {
         key: "burnAfterRead",
         label: "burn-after-read",
         feature: SynapseRustFeature.BurnAfterRead,
         capabilityAliases: ["io.hula.burn_after_read"],
+        routeRegisteredBy: "burn_after_read",
     },
     {
         key: "friends",
         label: "friends",
         feature: SynapseRustFeature.Friends,
         capabilityAliases: ["io.hula.friends"],
+        routeRegisteredBy: "friend_room",
     },
     {
         key: "voice",
         label: "voice",
         feature: SynapseRustFeature.Voice,
         capabilityAliases: ["m.voice", "io.hula.voice_extended"],
+        routeRegisteredBy: "voice",
     },
     {
         key: "openClaw",
         label: "openclaw",
         feature: SynapseRustFeature.OpenClaw,
         capabilityAliases: ["openclaw"],
+        routeRegisteredBy: "openclaw",
     },
     {
         key: "aiConnection",
         label: "ai-connection",
         feature: SynapseRustFeature.AIConnection,
         capabilityAliases: ["ai_connection"],
+        routeRegisteredBy: "ai_connection",
     },
 ];
 
@@ -181,6 +203,32 @@ function buildFeatureMatrix(versions: IServerVersions, capabilities: Capabilitie
     });
 }
 
+function readRouteManifest(profile: "default" | "all"): RouteManifest {
+    const manifestPath = join(process.cwd(), "docs/api-contract/generated", `route-manifest.${profile}.json`);
+    return JSON.parse(readFileSync(manifestPath, "utf8")) as RouteManifest;
+}
+
+function countRoutesForRegisteredBy(manifest: RouteManifest, registeredBy: string | undefined): number {
+    if (!registeredBy) {
+        return 0;
+    }
+    return manifest.entries.filter((entry) => entry.registered_by === registeredBy).length;
+}
+
+function buildRouteEvidenceMatrix(): Record<string, unknown>[] {
+    const defaultManifest = readRouteManifest("default");
+    const allManifest = readRouteManifest("all");
+
+    return CORE_HULA_FEATURES.map((probe) => {
+        return {
+            feature: probe.label,
+            registered_by: probe.routeRegisteredBy ?? null,
+            default_profile_routes: countRoutesForRegisteredBy(defaultManifest, probe.routeRegisteredBy),
+            all_profile_routes: countRoutesForRegisteredBy(allManifest, probe.routeRegisteredBy),
+        };
+    });
+}
+
 function writeDiagnostic(label: string, value: unknown): void {
     process.stdout.write(`[real-backend smoke] ${label} ${JSON.stringify(value, null, 2)}\n`);
 }
@@ -195,6 +243,18 @@ function writeFeatureMatrix(rows: ReturnType<typeof buildFeatureMatrix>): void {
         const capabilities = String(row.capabilities).padEnd(12);
         const resolved = String(row.resolved).padEnd(8);
         process.stdout.write(`${feature} ${versions}  ${capabilities}  ${resolved}  ${row.unstable_feature}\n`);
+    }
+}
+
+function writeRouteEvidenceMatrix(rows: ReturnType<typeof buildRouteEvidenceMatrix>): void {
+    process.stdout.write("[real-backend smoke] core Hula route manifest evidence\n");
+    process.stdout.write("feature             registered_by     default  all\n");
+    process.stdout.write("--------------------------------------------------\n");
+    for (const row of rows) {
+        const feature = String(row.feature).padEnd(19);
+        const registeredBy = String(row.registered_by ?? "-").padEnd(15);
+        const defaultRoutes = String(row.default_profile_routes).padEnd(7);
+        process.stdout.write(`${feature} ${registeredBy} ${defaultRoutes} ${row.all_profile_routes}\n`);
     }
 }
 
@@ -231,6 +291,7 @@ describe("real-backend smoke diagnostics", () => {
         writeDiagnostic("/_matrix/client/versions", summarizeVersions(versions));
         writeDiagnostic("/_matrix/client/v3/capabilities", summarizeCapabilities(capabilities));
         writeFeatureMatrix(buildFeatureMatrix(versions, capabilities));
+        writeRouteEvidenceMatrix(buildRouteEvidenceMatrix());
 
         expect(versions.versions).toEqual(expect.any(Array));
     });

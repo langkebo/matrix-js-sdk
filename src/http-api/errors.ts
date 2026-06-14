@@ -137,6 +137,53 @@ export class MatrixError extends HTTPError {
         );
     }
 
+    /**
+     * @returns whether this error is an `M_UNRECOGNIZED` (endpoint not implemented).
+     * In Matrix Spec v1.11+ this uses HTTP 404 instead of 400.
+     */
+    public isUnrecognizedError(): boolean {
+        return this.errcode === "M_UNRECOGNIZED";
+    }
+
+    /**
+     * @returns whether this error is an `M_SERVER_NOT_TRUSTED` (federation: server not trusted).
+     * This indicates a remote server is not in the trusted federation list.
+     */
+    public isServerNotTrustedError(): boolean {
+        return this.errcode === "M_SERVER_NOT_TRUSTED";
+    }
+
+    /**
+     * @returns whether this error is an `M_REQUEST_TIMEOUT` (request timed out).
+     */
+    public isRequestTimeoutError(): boolean {
+        return this.errcode === "M_REQUEST_TIMEOUT";
+    }
+
+    /**
+     * @returns whether this error is an `M_CANNOT_LEAVE_SERVER_NOTICE_ROOM`.
+     * This indicates the user cannot leave a server notice room, which
+     * requires special UI treatment.
+     */
+    public isCannotLeaveServerNoticeRoomError(): boolean {
+        return this.errcode === "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM";
+    }
+
+    /**
+     * @returns whether the token is expired or invalid (requires re-login).
+     * Covers M_UNKNOWN_TOKEN, M_MISSING_TOKEN, and M_UNAUTHORIZED.
+     *
+     * Note: As of synapse-rust C-6, old JWT tokens are rejected by default
+     * (`is_legacy_token_window_open` defaults to false).
+     */
+    public isTokenInvalidError(): boolean {
+        return (
+            this.errcode === "M_UNKNOWN_TOKEN" ||
+            this.errcode === "M_MISSING_TOKEN" ||
+            this.errcode === "M_UNAUTHORIZED"
+        );
+    }
+
     public getRetryAfterMs(): number | null {
         const headerValue = super.getRetryAfterMs();
         if (headerValue !== null) {
@@ -233,8 +280,17 @@ export class TokenRefreshError extends Error {
 }
 
 /**
- * Construct a TokenRefreshError. This indicates that a request failed due to the token being expired,
+ * Construct a TokenRefreshLogoutError. This indicates that a request failed due to the token being expired,
  * and attempting to refresh said token failed in a way indicative of token invalidation.
+ *
+ * This includes:
+ * - The server rejecting the refresh token (M_UNKNOWN_TOKEN on /refresh)
+ * - Matrix errors thrown during refresh (MatrixError)
+ *
+ * Note (C-6): As of synapse-rust v10, the server rejects old-format JWT tokens by default
+ * (`is_legacy_token_window_open` defaults to `false`). This means that expired legacy tokens
+ * will result in a TokenRefreshLogoutError rather than a refreshable TokenRefreshError,
+ * requiring the user to re-login.
  */
 export class TokenRefreshLogoutError extends Error {
     public constructor(cause?: Error) {

@@ -216,6 +216,7 @@ last_reviewed: 2026-05-03
 - `logout`、profile 写操作、3PID 写操作: 返回空对象
 - 目录查询: 返回列表或对象，字段由处理器构造的 `Json<Value>` 决定
 - 公开发现端点: 返回 JSON 对象，无用户态鉴权
+- **v10 对齐 (2026-06-09)**: C-6 JWT 旧 token 默认拒绝（`is_legacy_token_window_open=false`），token 刷新失败需区分「过期」与「已撤销」；`TokenRefresh` 遇到 `M_UNKNOWN_TOKEN` 时触发 `Session.logged_out` 事件而不再自动重试。
 
 ## 代码定位
 

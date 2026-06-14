@@ -17,10 +17,25 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
-type VerificationManagerPathPattern = StripR0<VerificationPathPattern> | StripV1<VerificationPathPattern>;
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+type VerificationManagerPathPattern =
+    | StripR0<VerificationPathPattern>
+    | StripV1<VerificationPathPattern>
+    | StripV3<VerificationPathPattern>;
+type VerificationApiVersion = "r0" | "v1" | "v3";
 
 function vp<P extends VerificationManagerPathPattern>(path: P): P {
     return path;
+}
+
+function verificationPrefix(version: VerificationApiVersion = "v1"): ClientPrefix.R0 | ClientPrefix.V1 | ClientPrefix.V3 {
+    if (version === "r0") {
+        return ClientPrefix.R0;
+    }
+    if (version === "v3") {
+        return ClientPrefix.V3;
+    }
+    return ClientPrefix.V1;
 }
 
 /**
@@ -37,7 +52,7 @@ function vp<P extends VerificationManagerPathPattern>(path: P): P {
  *   - GET  /keys/qr_code/show
  *   - POST /keys/qr_code/scan
  *
- * 后端只挂在 `/_matrix/client/v1` 与 `/_matrix/client/r0` 两个前缀下（v3 留给 e2ee_routes）。
+ * 默认使用 `/_matrix/client/v1` 保持兼容；调用方可显式传入 `v3` 使用生成契约中的新版路径。
  */
 
 export interface VerificationStartRequest {
@@ -160,7 +175,10 @@ export class VerificationManager extends BaseManager {
         super(client);
     }
 
-    public async startVerification(request: VerificationStartRequest): Promise<VerificationStartResponse> {
+    public async startVerification(
+        request: VerificationStartRequest,
+        version?: VerificationApiVersion,
+    ): Promise<VerificationStartResponse> {
         this.requireNonEmptyString(request.from_device, "from_device");
         this.requireNonEmptyString(request.to_user, "to_user");
         return await this.withRetry(async () => {
@@ -169,12 +187,15 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/device_signing/verify_start"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "startVerification");
     }
 
-    public async acceptVerification(request: VerificationAcceptRequest): Promise<VerificationAcceptResponse> {
+    public async acceptVerification(
+        request: VerificationAcceptRequest,
+        version?: VerificationApiVersion,
+    ): Promise<VerificationAcceptResponse> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.key_agreement_protocol, "key_agreement_protocol");
         this.requireNonEmptyString(request.hash, "hash");
@@ -184,13 +205,14 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/device_signing/verify_accept"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "acceptVerification");
     }
 
     public async exchangeKeys(
         request: VerificationKeyAgreementRequest,
+        version?: VerificationApiVersion,
     ): Promise<VerificationKeyAgreementResponse> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.pubkey, "pubkey");
@@ -200,12 +222,15 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/device_signing/verify_key_agreement"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "exchangeKeys");
     }
 
-    public async confirmMac(request: VerificationMacRequest): Promise<VerificationMacResponse> {
+    public async confirmMac(
+        request: VerificationMacRequest,
+        version?: VerificationApiVersion,
+    ): Promise<VerificationMacResponse> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.mac, "mac");
         return await this.withRetry(async () => {
@@ -214,12 +239,15 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/device_signing/verify_mac"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "confirmMac");
     }
 
-    public async completeVerification(request: VerificationDoneRequest): Promise<{ transaction_id: string }> {
+    public async completeVerification(
+        request: VerificationDoneRequest,
+        version?: VerificationApiVersion,
+    ): Promise<{ transaction_id: string }> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.mac, "mac");
         return await this.withRetry(async () => {
@@ -228,12 +256,15 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/device_signing/verify_done"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "completeVerification");
     }
 
-    public async cancelVerification(request: VerificationCancelRequest): Promise<VerificationCancelResponse> {
+    public async cancelVerification(
+        request: VerificationCancelRequest,
+        version?: VerificationApiVersion,
+    ): Promise<VerificationCancelResponse> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.code, "code");
         this.requireNonEmptyString(request.reason, "reason");
@@ -243,12 +274,12 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/device_signing/verify_cancel"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "cancelVerification");
     }
 
-    public async listPendingVerifications(): Promise<ListVerificationRequestsResponse> {
+    public async listPendingVerifications(version?: VerificationApiVersion): Promise<ListVerificationRequestsResponse> {
         try {
             return await this.withRetry(async () => {
                 return await this.client.http.authedRequest<ListVerificationRequestsResponse>(
@@ -256,7 +287,7 @@ export class VerificationManager extends BaseManager {
                     vp("/keys/device_signing/requests"),
                     undefined,
                     undefined,
-                    { prefix: ClientPrefix.V1 },
+                    { prefix: verificationPrefix(version) },
                 );
             }, "listPendingVerifications");
         } catch (e) {
@@ -265,19 +296,22 @@ export class VerificationManager extends BaseManager {
         }
     }
 
-    public async showQrCode(): Promise<QrCodeShowResponse> {
+    public async showQrCode(version?: VerificationApiVersion): Promise<QrCodeShowResponse> {
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<QrCodeShowResponse>(
                 Method.Get,
                 vp("/keys/qr_code/show"),
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "showQrCode");
     }
 
-    public async scanQrCode(request: ScanQrCodeRequest): Promise<ScanQrCodeResponse> {
+    public async scanQrCode(
+        request: ScanQrCodeRequest,
+        version?: VerificationApiVersion,
+    ): Promise<ScanQrCodeResponse> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.server_name, "server_name");
         this.requireNonEmptyString(request.user_id, "user_id");
@@ -290,7 +324,7 @@ export class VerificationManager extends BaseManager {
                 vp("/keys/qr_code/scan"),
                 undefined,
                 request,
-                { prefix: ClientPrefix.V1 },
+                { prefix: verificationPrefix(version) },
             );
         }, "scanQrCode");
     }

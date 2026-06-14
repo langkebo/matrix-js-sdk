@@ -17,7 +17,19 @@ limitations under the License.
 /**
  * Federation Manager - 联邦管理
  *
- * 提供联邦服务器管理、黑名单管理功能
+ * 提供联邦服务器管理、黑名单管理功能。
+ *
+ * ## 后端对齐说明（synapse-rust v10，2026-06）
+ *
+ * - **C-1 X-Matrix 时间戳校验**: 后端已实现 ±30s 滑动窗口 + nonce 缓存校验。
+ *   当通过本 manager 代理 federation 请求时，后端会自动处理 `X-Matrix-Origin` /
+ *   `X-Matrix-Timestamp` 请求头，SDK 客户端无需额外设置。
+ *
+ * - **C-2 Canonical JSON 修复**: 后端已修复 U+2028 (行分隔符) / U+2029 (段落分隔符) /
+ *   U+FFFD (替换字符) 的转义处理。SDK 端 JSON 序列化保持不变。
+ *
+ * - **M_SERVER_NOT_TRUSTED**: 当目标服务器不在信任列表中时，后端返回此错误
+ *   (HTTP 502)。调用方可通过 `MatrixError.isServerNotTrustedError()` 检测。
  */
 
 import { BaseManager } from "../managers/base-manager";
@@ -28,6 +40,7 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
 import { IUserProfile } from "../user-directory/index";
 import { ValidationError } from "../errors";
+import { type IEvent } from "../models/event";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -487,6 +500,47 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     getCachedServers(): IFederationServer[] {
         return Array.from(this.serverCache.values());
+    }
+
+    /**
+     * Canonical JSON 序列化：将 U+2028（行分隔符）、U+2029（段落分隔符）、
+     * U+FFFD（替换字符）转义为对应的 JSON 转义序列，确保与后端 C-2 修复对齐。
+     *
+     * 注意：在 JSON.stringify 之后替换，避免 replacer 导致的双重转义问题。
+     */
+    static toCanonicalJson(value: unknown): string {
+        return JSON.stringify(value)
+            .replace(/\u2028/g, "\\u2028")
+            .replace(/\u2029/g, "\\u2029")
+            .replace(/\ufffd/g, "\\ufffd");
+    }
+
+    /**
+     * 发送联邦事件（使用 Canonical JSON 序列化，对齐后端 C-2 修复）
+     * 对应 PUT /_matrix/federation/v1/send/{txnId}
+     */
+    async sendFederationEvent(txnId: string, event: IEvent): Promise<void> {
+        if (!txnId) throw new ValidationError("Transaction ID is required");
+        if (!event) throw new ValidationError("Event is required");
+
+        const canonicalJson = FederationManager.toCanonicalJson(event);
+
+        try {
+            await this.client.http.requestOtherUrl(
+                Method.Put,
+                `${this.client.baseUrl}/_matrix/federation/v1/send/${encodeURIComponent(txnId)}`,
+                canonicalJson,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "sendFederationEvent");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
     }
 
     clearCache(): void {
