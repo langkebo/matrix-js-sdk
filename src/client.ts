@@ -533,16 +533,7 @@ export enum ClientEvent {
      * ```
      */
     Event = "event",
-    /** @deprecated Use {@link ReceivedToDeviceMessage}.
-     * Fires whenever the SDK receives a new to-device event.
-     * The payload is the matrix event ({@link MatrixEvent}) which caused this event to fire.
-     * @example
-     * ```
-     * matrixClient.on("toDeviceEvent", function(event){
-     *   var sender = event.getSender();
-     * });
-     * ```
-     */
+    /** @deprecated Use {@link ReceivedToDeviceMessage}. */
     ToDeviceEvent = "toDeviceEvent",
     /**
      * Fires whenever the SDK receives a new (potentially decrypted) to-device message.
@@ -1629,14 +1620,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.buildSyncApiOptions();
     }
 
-    /**
-     * Whether encryption is enabled for a room.
-     * @param roomId - the room id to query.
-     * @returns whether encryption is enabled.
-     *
-     * @deprecated Not correctly supported for Rust Cryptography. Use {@link CryptoApi.isEncryptionEnabledInRoom} and/or
-     *    {@link Room.hasEncryptionStateEvent}.
-     */
+    /** @deprecated Not correctly supported for Rust Cryptography. Use {@link CryptoApi.isEncryptionEnabledInRoom} and/or {@link Room.hasEncryptionStateEvent}. */
     public isRoomEncrypted(roomId: string): boolean {
         const room = this.getRoom(roomId);
         if (!room) {
@@ -2631,17 +2615,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         });
     }
 
-    /**
-     * Manage a delayed event associated with the given delay_id.
-     *
-     * Note: This endpoint is unstable, and can throw an `Error`.
-     *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
-     *
-     * @deprecated Instead use one of:
-     * - {@link _unstable_cancelScheduledDelayedEvent}
-     * - {@link _unstable_restartScheduledDelayedEvent}
-     * - {@link _unstable_sendScheduledDelayedEvent}
-     */
+    /** @deprecated Instead use one of: {@link _unstable_cancelScheduledDelayedEvent}, {@link _unstable_restartScheduledDelayedEvent}, {@link _unstable_sendScheduledDelayedEvent} */
     public async _unstable_updateDelayedEvent(
         delayId: string,
         action: UpdateDelayedEventAction,
@@ -2715,11 +2689,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
-    /**
-     * @deprecated Present for backwards compatibility with an older version of MSC4140
-     * which had a single, authenticated endpoint for updating a delayed event, instead
-     * of one unauthenticated endpoint per update action.
-     */
+    /** @deprecated Present for backwards compatibility with an older version of MSC4140. */
     private async updateScheduledDelayedEventWithActionInBody(
         delayId: string,
         action: UpdateDelayedEventAction,
@@ -2734,16 +2704,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
-    /**
-     * Send a receipt.
-     * @param event - The event being acknowledged
-     * @param receiptType - The kind of receipt e.g. "m.read". Other than
-     * ReceiptType.Read are experimental!
-     * @param body - Additional content to send alongside the receipt.
-     * @param unthreaded - An unthreaded receipt will clear room+thread notifications
-     * @returns Promise which resolves: to an empty object `{}`
-     * @returns Rejects: with an error response.
-     */
+    /** @deprecated Use client.getReadReceiptsManager().sendReceipt() instead */
     public async sendReceipt(
         event: MatrixEvent,
         receiptType: ReceiptType,
@@ -2753,13 +2714,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getReadReceiptsManager().sendReceipt(event, receiptType, body, unthreaded);
     }
 
-    /**
-     * Send a read receipt.
-     * @param event - The event that has been read.
-     * @param receiptType - other than ReceiptType.Read are experimental! Optional.
-     * @returns Promise which resolves: to an empty object `{}`
-     * @returns Rejects: with an error response.
-     */
+    /** @deprecated Use client.getReadReceiptsManager().sendReadReceipt() instead */
     public async sendReadReceipt(
         event: MatrixEvent | null,
         receiptType = ReceiptType.Read,
@@ -2768,20 +2723,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getReadReceiptsManager().sendReadReceipt(event, receiptType, unthreaded);
     }
 
-    /**
-     * Set a marker to indicate the point in a room before which the user has read every
-     * event. This can be retrieved from room account data (the event type is `m.fully_read`)
-     * and displayed as a horizontal line in the timeline that is visually distinct to the
-     * position of the user's own read receipt.
-     * @param roomId - ID of the room that has been read
-     * @param rmEventId - ID of the event that has been read
-     * @param rrEvent - the event tracked by the read receipt. This is here for
-     * convenience because the RR and the RM are commonly updated at the same time as each
-     * other. The local echo of this receipt will be done if set. Optional.
-     * @param rpEvent - the m.read.private read receipt event for when we don't
-     * want other users to see the read receipts. This is experimental. Optional.
-     * @returns Promise which resolves: the empty object, `{}`.
-     */
+    /** @deprecated Use client.getReadReceiptsManager().setRoomReadMarkers() instead */
     public async setRoomReadMarkers(
         roomId: string,
         rmEventId: string,
@@ -3502,19 +3444,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getCredentialsManager().getBaseUrl();
     }
 
-    /**
-     * Get the identity server URL of this client
-     * @param stripProto - whether or not to strip the protocol from the URL
-     * @returns Identity server URL of this client
-     */
+    /** @deprecated Use client.getIdentityServerManager().getIdentityServerUrl() instead */
     public getIdentityServerUrl(stripProto = false): string | undefined {
         return this.getIdentityServerManager().getIdentityServerUrl(stripProto);
     }
 
-    /**
-     * Set the identity server URL of this client
-     * @param url - New identity server URL
-     */
+    /** @deprecated Use client.getIdentityServerManager().setIdentityServerUrl() instead */
     public setIdentityServerUrl(url?: string): void {
         this.getIdentityServerManager().setIdentityServerUrl(url);
     }
@@ -3718,6 +3653,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().roomInitialSync(roomId);
     }
 
+    /** @deprecated Use client.getReadReceiptsManager().setRoomReadMarkersHttpRequest() instead */
     public async setRoomReadMarkersHttpRequest(
         roomId: string,
         rmEventId: string,
@@ -3814,14 +3750,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getProfileManager().setExtendedProfile(profile);
     }
 
+    /** @deprecated Use client.getThreePidsManager().getThreePids() instead */
     public getThreePids(): Promise<{ threepids: IThreepid[] }> {
         return this.getThreePidsManager().getThreePids();
     }
 
+    /** @deprecated Use client.getThreePidsManager().addThreePidOnly() instead */
     public async addThreePidOnly(data: IAddThreePidOnlyBody): Promise<EmptyObject> {
         return this.getThreePidsManager().addThreePidOnly(data.client_secret, data.sid);
     }
 
+    /** @deprecated Use client.getThreePidsManager().bindThreePid() instead */
     public async bindThreePid(data: IBindThreePidBody): Promise<EmptyObject> {
         return this.getThreePidsManager().bindThreePid(
             data.client_secret,
@@ -3831,6 +3770,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /** @deprecated Use client.getThreePidsManager().unbindThreePid() instead */
     public async unbindThreePid(
         medium: string,
         address: string,
@@ -3838,6 +3778,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getThreePidsManager().unbindThreePid(medium, address, this.getIdentityServerUrl(true) ?? undefined);
     }
 
+    /** @deprecated Use client.getThreePidsManager().deleteThreePid() instead */
     public deleteThreePid(
         medium: string,
         address: string,
@@ -3903,6 +3844,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return deleteRoomKeyRequestHttpRequest<EmptyObject>(requestId, this.authedRequestProxy);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().startDeviceSigningVerification() instead */
     public startDeviceSigningVerification(
         request: IDeviceSigningVerificationStartRequest,
         version: "v1" | "r0" | "v3" = "v1",
@@ -3910,6 +3852,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getKeyVerificationManager().startDeviceSigningVerification(request, version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().acceptDeviceSigningVerification() instead */
     public acceptDeviceSigningVerification(
         request: IDeviceSigningVerificationAcceptRequest,
         version: "v1" | "r0" | "v3" = "v1",
@@ -3917,6 +3860,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getKeyVerificationManager().acceptDeviceSigningVerification(request, version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().sendDeviceSigningVerificationKeyAgreement() instead */
     public sendDeviceSigningVerificationKeyAgreement(
         request: IDeviceSigningVerificationKeyAgreementRequest,
         version: "v1" | "r0" | "v3" = "v1",
@@ -3924,6 +3868,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getKeyVerificationManager().sendDeviceSigningVerificationKeyAgreement(request, version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().confirmDeviceSigningVerificationMac() instead */
     public confirmDeviceSigningVerificationMac(
         request: IDeviceSigningVerificationMacRequest,
         version: "v1" | "r0" | "v3" = "v1",
@@ -3931,6 +3876,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getKeyVerificationManager().confirmDeviceSigningVerificationMac(request, version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().completeDeviceSigningVerification() instead */
     public completeDeviceSigningVerification(
         request: IDeviceSigningVerificationDoneRequest,
         version: "v1" | "r0" | "v3" = "v1",
@@ -3938,6 +3884,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getKeyVerificationManager().completeDeviceSigningVerification(request, version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().cancelDeviceSigningVerification() instead */
     public cancelDeviceSigningVerification(
         request: IDeviceSigningVerificationCancelRequest,
         version: "v1" | "r0" | "v3" = "v1",
@@ -3945,18 +3892,22 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getKeyVerificationManager().cancelDeviceSigningVerification(request, version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().getVerificationRequestsHttp() instead */
     public getVerificationRequests(version: "v1" | "r0" | "v3" = "v1"): Promise<IVerificationRequestsResponse> {
         return this.getKeyVerificationManager().getVerificationRequestsHttp(version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().showQrCodeHttp() instead */
     public showQrCode(version: "v1" | "r0" | "v3" = "v1"): Promise<IShowQrCodeResponse> {
         return this.getKeyVerificationManager().showQrCodeHttp(version);
     }
 
+    /** @deprecated Use client.getKeyVerificationManager().scanQrCodeHttp() instead */
     public scanQrCode(request: IScanQrCodeRequest, version: "v1" | "r0" | "v3" = "v1"): Promise<IScanQrCodeResponse> {
         return this.getKeyVerificationManager().scanQrCodeHttp(request, version);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().registerWithIdentityServer() instead */
     public registerWithIdentityServer(hsOpenIdToken: IOpenIDToken): Promise<{
         access_token: string;
         token: string;
@@ -3964,6 +3915,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().registerWithIdentityServer(hsOpenIdToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().requestEmailToken() instead */
     public requestEmailToken(
         email: string,
         clientSecret: string,
@@ -3974,6 +3926,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().requestEmailToken(email, clientSecret, sendAttempt, nextLink, identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().requestMsisdnToken() instead */
     public requestMsisdnToken(
         phoneCountry: string,
         phoneNumber: string,
@@ -3985,6 +3938,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().requestMsisdnToken(phoneCountry, phoneNumber, clientSecret, sendAttempt, nextLink, identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().submitMsisdnToken() instead */
     public submitMsisdnToken(
         sid: string,
         clientSecret: string,
@@ -3994,6 +3948,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().submitMsisdnToken(sid, clientSecret, msisdnToken, identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().submitMsisdnTokenOtherUrl() instead */
     public submitMsisdnTokenOtherUrl(
         url: string,
         sid: string,
@@ -4003,6 +3958,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().submitMsisdnTokenOtherUrl(url, sid, clientSecret, msisdnToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().getIdentityHashDetails() instead */
     public getIdentityHashDetails(identityAccessToken: string): Promise<{
         algorithms: string[];
         lookup_pepper: string;
@@ -4010,6 +3966,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().getIdentityHashDetails(identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().identityHashedLookup() instead */
     public async identityHashedLookup(
         addressPairs: [string, string][],
         identityAccessToken: string,
@@ -4017,6 +3974,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().identityHashedLookup(addressPairs, identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().lookupThreePid() instead */
     public async lookupThreePid(
         medium: string,
         address: string,
@@ -4032,6 +3990,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().lookupThreePid(medium, address, identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().bulkLookupThreePids() instead */
     public async bulkLookupThreePids(
         query: [string, string][],
         identityAccessToken: string,
@@ -4041,14 +4000,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().bulkLookupThreePids(query, identityAccessToken);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().getIdentityAccount() instead */
     public getIdentityAccount(identityAccessToken: string): Promise<{ user_id: string }> {
         return this.getIdentityServerManager().getIdentityAccount(identityAccessToken);
     }
 
+    /** @deprecated Use client.getToDeviceManager().sendToDeviceFromContentMap() instead */
     public sendToDevice(eventType: string, contentMap: SendToDeviceContentMap, txnId?: string): Promise<EmptyObject> {
         return this.getToDeviceManager().sendToDeviceFromContentMap(eventType, contentMap, txnId);
     }
 
+    /** @deprecated Use client.getToDeviceManager().encryptAndSendToDevice() instead */
     public async encryptAndSendToDevice(
         eventType: string,
         devices: { userId: string; deviceId: string }[],
@@ -4057,6 +4019,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getToDeviceManager().encryptAndSendToDevice(eventType, devices, payload);
     }
 
+    /** @deprecated Use client.getToDeviceManager().queueToDeviceBatch() instead */
     public queueToDevice(batch: ToDeviceBatch): Promise<void> {
         return this.getToDeviceManager().queueToDeviceBatch(batch);
     }
@@ -4076,10 +4039,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getThirdPartyManager().getThirdpartyUser(protocol, params);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().getTerms() instead */
     public getTerms(serviceType: SERVICE_TYPES, baseUrl: string): Promise<Terms> {
         return this.getIdentityServerManager().getTerms(serviceType, baseUrl);
     }
 
+    /** @deprecated Use client.getIdentityServerManager().agreeToTerms() instead */
     public agreeToTerms(
         serviceType: SERVICE_TYPES,
         baseUrl: string,
@@ -4089,18 +4054,22 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getIdentityServerManager().agreeToTerms(serviceType, baseUrl, accessToken, termsUrls);
     }
 
+    /** @deprecated Use client.getReportingManager().reportEvent() instead */
     public reportEvent(roomId: string, eventId: string, score: number, reason: string): Promise<EmptyObject> {
         return this.getReportingManager().reportEvent(roomId, eventId, score, reason);
     }
 
+    /** @deprecated Use client.getReportingManager().scoreReport() instead */
     public async scoreReport(roomId: string, eventId: string, score: number): Promise<void> {
         return this.getReportingManager().scoreReport(roomId, eventId, score);
     }
 
+    /** @deprecated Use client.getReportingManager().getScannerInfo() instead */
     public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> { // Dynamic: scanner info shape is server-defined
         return this.getReportingManager().getScannerInfo(roomId, eventId);
     }
 
+    /** @deprecated Use client.getReportingManager().reportRoom() instead */
     public reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
         return this.getReportingManager().reportRoom(roomId, reason);
     }
@@ -4276,18 +4245,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return fetchAuthMetadataWithFallback(this.http.request.bind(this.http), this.isVersionSupported.bind(this));
     }
 
+    /** @deprecated Use client.getCrossSigningManager().checkCrossSigningStatus() instead */
     public checkCrossSigningStatus(): Promise<unknown> {
         return this.getCrossSigningManager().checkCrossSigningStatus();
     }
+    /** @deprecated Use client.getCrossSigningManager().getCrossSigningKeys() instead */
     public getCrossSigningKeys(): Promise<unknown> {
         return this.getCrossSigningManager().getCrossSigningKeys();
     }
+    /** @deprecated Use client.getCrossSigningManager().isCrossSigningReady() instead */
     public isCrossSigningReady(): Promise<boolean> {
         return this.getCrossSigningManager().isCrossSigningReady();
     }
+    /** @deprecated Use client.getCrossSigningManager().getUserCrossSigningKeys() instead */
     public getUserCrossSigningKeys(userId: string): Promise<unknown> {
         return this.getCrossSigningManager().getUserCrossSigningKeys(userId);
     }
+    /** @deprecated Use client.getCrossSigningManager().checkAndTrustCrossSigning() instead */
     public checkAndTrustCrossSigning(): Promise<void> {
         return this.getCrossSigningManager().checkAndTrustCrossSigning();
     }
@@ -4300,18 +4274,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
     public async initCrypto(): Promise<void> {}
     public stopCrypto(): void {}
+    /** @deprecated Use client.getCryptoBackupManager().isCryptoBackupEnabled() instead */
     public isCryptoBackupEnabled(): Promise<boolean> {
         return this.getCryptoBackupManager().isCryptoBackupEnabled();
     }
+    /** @deprecated Use client.getCryptoBackupManager().enableCryptoBackup() instead */
     public enableCryptoBackup(passphrase: string): Promise<void> {
         return this.getCryptoBackupManager().enableCryptoBackup(passphrase);
     }
+    /** @deprecated Use client.getCryptoBackupManager().disableCryptoBackup() instead */
     public disableCryptoBackup(): Promise<void> {
         return this.getCryptoBackupManager().disableCryptoBackup();
     }
+    /** @deprecated Use client.getCryptoBackupManager().getCryptoBackup() instead */
     public getCryptoBackup(): Promise<unknown> {
         return this.getCryptoBackupManager().getCryptoBackup();
     }
+    /** @deprecated Use client.getCryptoBackupManager().restoreCryptoBackup() instead */
     public restoreCryptoBackup(backup: import("./crypto-backup/index").CryptoBackupInfo | string, passphrase: string): Promise<void> {
         return this.getCryptoBackupManager().restoreCryptoBackup(backup, passphrase);
     }
@@ -4419,33 +4398,43 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public importRoomKeys(_keys: unknown[], _options?: unknown): Promise<unknown> {
         return Promise.resolve(undefined);
     }
+    /** @deprecated Use client.getRoomSettingsManager().getRoomName() instead */
     public getRoomName(roomId: string): string {
         return this.getRoomSettingsManager().getRoomName(roomId);
     }
+    /** @deprecated Use client.getRoomSettingsManager().getRoomTopic() instead */
     public getRoomTopic(roomId: string): string {
         return this.getRoomSettingsManager().getRoomTopic(roomId);
     }
+    /** @deprecated Use client.getRoomSettingsManager().getRoomAvatarUrl() instead */
     public getRoomAvatarUrl(roomId: string): string {
         return this.getRoomSettingsManager().getRoomAvatarUrl(roomId);
     }
+    /** @deprecated Use client.getRoomSettingsManager().setRoomAvatar() instead */
     public setRoomAvatar(roomId: string, avatarUrl: string): Promise<void> {
         return this.getRoomSettingsManager().setRoomAvatar(roomId, avatarUrl);
     }
+    /** @deprecated Use client.getRoomSettingsManager().getRoomHistoryVisibility() instead */
     public getRoomHistoryVisibility(roomId: string): string {
         return this.getRoomSettingsManager().getRoomHistoryVisibility(roomId);
     }
+    /** @deprecated Use client.getRoomSettingsManager().setRoomHistoryVisibility() instead */
     public setRoomHistoryVisibility(roomId: string, visibility: string): Promise<void> {
         return this.getRoomSettingsManager().setRoomHistoryVisibility(roomId, visibility);
     }
+    /** @deprecated Use client.getRoomSettingsManager().getRoomGuestAccess() instead */
     public getRoomGuestAccess(roomId: string): string {
         return this.getRoomSettingsManager().getRoomGuestAccess(roomId);
     }
+    /** @deprecated Use client.getRoomSettingsManager().setRoomGuestAccess() instead */
     public setRoomGuestAccess(roomId: string, access: string | boolean): Promise<void> {
         return this.getRoomSettingsManager().setRoomGuestAccess(roomId, access);
     }
+    /** @deprecated Use client.getRoomSettingsManager().getRoomJoinRule() instead */
     public getRoomJoinRule(roomId: string): string {
         return this.getRoomSettingsManager().getRoomJoinRule(roomId);
     }
+    /** @deprecated Use client.getRoomSettingsManager().setRoomJoinRule() instead */
     public setRoomJoinRule(roomId: string, rule: string): Promise<void> {
         return this.getRoomSettingsManager().setRoomJoinRule(roomId, rule);
     }
