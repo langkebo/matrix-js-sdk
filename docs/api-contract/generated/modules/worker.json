@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "worker",
   "synapse_rust_commit": null,
-  "generated_at": "2026-05-30T03:34:30Z",
+  "generated_at": "2026-06-15T01:47:10Z",
   "source_profile": "all",
-  "entry_count": 13,
+  "entry_count": 15,
   "entries": [
     {
       "method": "POST",
@@ -61,6 +61,18 @@
         "task_id",
         "worker_id"
       ]
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/topology",
+      "registered_by": "worker",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/worker/v1/topology/validate",
+      "registered_by": "worker",
+      "path_params": []
     },
     {
       "method": "GET",

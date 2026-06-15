@@ -6,10 +6,10 @@
 
 import { WORKER_ADMIN_ROUTES } from "./route-table";
 
-export const WORKER_ADMIN_ROUTES_ENTRY_COUNT = 13 as const;
+export const WORKER_ADMIN_ROUTES_ENTRY_COUNT = 15 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _WorkerAdminEntryCountAssertion: 13 = WORKER_ADMIN_ROUTES.length;
+const _WorkerAdminEntryCountAssertion: 15 = WORKER_ADMIN_ROUTES.length;
 void _WorkerAdminEntryCountAssertion;
 
 export const WORKER_ADMIN_ROUTES_STATUS_SCENARIOS = [

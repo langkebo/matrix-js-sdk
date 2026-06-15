@@ -6,10 +6,10 @@
 
 import { MEDIA_ROUTES } from "./route-table";
 
-export const MEDIA_ROUTES_ENTRY_COUNT = 30 as const;
+export const MEDIA_ROUTES_ENTRY_COUNT = 32 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _MediaEntryCountAssertion: 30 = MEDIA_ROUTES.length;
+const _MediaEntryCountAssertion: 32 = MEDIA_ROUTES.length;
 void _MediaEntryCountAssertion;
 
 export const MEDIA_ROUTES_STATUS_SCENARIOS = [

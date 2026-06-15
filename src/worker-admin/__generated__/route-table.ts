@@ -18,6 +18,8 @@ export const WORKER_ADMIN_ROUTES = [
     { method: "POST", path: "/_synapse/worker/v1/tasks" },
     { method: "POST", path: "/_synapse/worker/v1/tasks/claim/{worker_id}" },
     { method: "POST", path: "/_synapse/worker/v1/tasks/{task_id}/claim/{worker_id}" },
+    { method: "GET", path: "/_synapse/worker/v1/topology" },
+    { method: "GET", path: "/_synapse/worker/v1/topology/validate" },
     { method: "GET", path: "/_synapse/worker/v1/workers" },
     { method: "GET", path: "/_synapse/worker/v1/workers/type/{worker_type}" },
     { method: "DELETE", path: "/_synapse/worker/v1/workers/{worker_id}" },

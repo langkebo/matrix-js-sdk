@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "media",
   "synapse_rust_commit": null,
-  "generated_at": "2026-05-30T03:34:30Z",
+  "generated_at": "2026-06-15T01:47:10Z",
   "source_profile": "all",
-  "entry_count": 30,
+  "entry_count": 32,
   "entries": [
     {
       "method": "GET",
@@ -193,6 +193,25 @@
     {
       "method": "GET",
       "path": "/_matrix/media/v3/download/{server_name}/{media_id}/{filename}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id",
+        "filename"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/media/v3/download_signed/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/media/v3/download_signed/{server_name}/{media_id}/{filename}",
       "registered_by": "media",
       "path_params": [
         "server_name",

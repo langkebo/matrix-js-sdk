@@ -36,6 +36,8 @@ export const MEDIA_ROUTES = [
     { method: "POST", path: "/_matrix/media/v3/delete/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/v3/download/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/v3/download/{server_name}/{media_id}/{filename}" },
+    { method: "GET", path: "/_matrix/media/v3/download_signed/{server_name}/{media_id}" },
+    { method: "GET", path: "/_matrix/media/v3/download_signed/{server_name}/{media_id}/{filename}" },
     { method: "GET", path: "/_matrix/media/v3/preview_url" },
     { method: "GET", path: "/_matrix/media/v3/thumbnail/{server_name}/{media_id}" },
     { method: "POST", path: "/_matrix/media/v3/upload" },

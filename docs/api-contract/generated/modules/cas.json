@@ -3,7 +3,7 @@
   "ledger_schema": "1",
   "module": "cas",
   "synapse_rust_commit": null,
-  "generated_at": "2026-05-30T03:34:30Z",
+  "generated_at": "2026-06-15T01:47:10Z",
   "source_profile": "all",
   "entry_count": 16,
   "entries": [
