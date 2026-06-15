@@ -68,19 +68,14 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/aliases" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/ban" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/capabilities" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/convert/{event_id}" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/device/{device_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/encrypted_events" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/event/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/event/{event_id}/url" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/event_perspective" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/external_ids" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/forget" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/initialSync" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/invite" },
@@ -114,9 +109,7 @@ export const ROOM_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/receipt/{receipt_type}/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/receipts/{receipt_type}/{event_id}" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/reduced_events" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/rendered/" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/resolve" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/retention" },
@@ -124,7 +117,6 @@ export const ROOM_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/search" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/service_types" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/sign/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/spaces" },
@@ -144,15 +136,12 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/thread/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/timeline" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/translate/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/turn_server" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/unban" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/unread_count" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/upgrade" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/vault_data" },
-    /** @deprecated Backend returns 404 NOT_FOUND - route removed from route tree */
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/vault_data" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/verify/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/version" },
