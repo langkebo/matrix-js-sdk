@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "admin",
   "synapse_rust_commit": null,
-  "generated_at": "2026-06-15T04:01:19Z",
+  "generated_at": "2026-06-21T02:34:45Z",
   "source_profile": "all",
-  "entry_count": 114,
+  "entry_count": 116,
   "entries": [
     {
       "method": "GET",
@@ -306,6 +306,14 @@
       "path_params": []
     },
     {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/quarantine_media/{media_id}/changes",
+      "registered_by": "admin::media",
+      "path_params": [
+        "media_id"
+      ]
+    },
+    {
       "method": "POST",
       "path": "/_synapse/admin/v1/register",
       "registered_by": "admin::register",
@@ -427,6 +435,15 @@
       "registered_by": "admin::report",
       "path_params": [
         "room_id"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/reports/{report_id}",
+      "registered_by": "admin::report",
+      "path_params": [
+        "room_id",
+        "report_id"
       ]
     },
     {

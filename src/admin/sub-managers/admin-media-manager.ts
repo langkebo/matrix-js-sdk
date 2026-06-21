@@ -18,7 +18,7 @@ import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
-import type { MediaInfo, MediaQuotaResponse } from "../types";
+import type { MediaInfo, MediaQuotaResponse, MediaQuarantineChange, MediaQuarantineChangesResponse } from "../types";
 import { MatrixClient } from "../../client";
 
 export class AdminMediaManager extends AdminBaseManager {
@@ -128,5 +128,48 @@ export class AdminMediaManager extends AdminBaseManager {
         const body = beforeTs !== undefined ? { before_ts: beforeTs } : {};
         const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/purge_media_cache", {}, body);
         return { deleted: result.deleted ?? 0 };
+    }
+
+    /**
+     * 获取媒体隔离变更历史
+     *
+     * 调用 `GET /_synapse/admin/v1/quarantine_media/{media_id}/changes` 端点，
+     * 返回指定媒体的隔离（quarantine / unquarantine）变更记录列表。
+     *
+     * @param mediaId - 媒体 ID
+     * @param options - 可选分页参数
+     * @param options.from - 分页起点 token
+     * @param options.limit - 返回条数上限
+     * @returns 媒体隔离变更历史
+     *
+     * @example
+     * ```typescript
+     * const history = await adminManager.media.getMediaQuarantineChanges("abc123", {
+     *     limit: 50,
+     * });
+     * console.log(history.changes);
+     * ```
+     *
+     * @throws {ValidationError} 如果 mediaId 为空
+     */
+    async getMediaQuarantineChanges(
+        mediaId: string,
+        options?: { from?: string; limit?: number },
+    ): Promise<MediaQuarantineChangesResponse> {
+        if (!mediaId) {
+            throw new ValidationError("Media ID is required");
+        }
+        const queryParams = buildPaginationParams(options?.from, options?.limit);
+        const response = await this.adminRequest<MediaQuarantineChangesResponse>(
+            Method.Get,
+            `/quarantine_media/${encodeURIComponent(mediaId)}/changes`,
+            queryParams,
+        );
+        return {
+            media_id: response.media_id ?? mediaId,
+            changes: response.changes ?? [],
+            total: response.total,
+            next_token: response.next_token,
+        };
     }
 }

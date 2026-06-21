@@ -879,6 +879,16 @@ export interface BatchSummaryResponse {
     next_batch?: string;
 }
 
+/** POST /_synapse/room_summary/v1/summaries/batch — batch fetch request body (MSC3266) */
+export interface BatchSummaryRequest {
+    /** Room IDs to fetch summaries for */
+    rooms: string[];
+    /** Whether to only return suggested rooms (default: false) */
+    is_suggested_only?: boolean;
+    /** Alias for is_suggested_only supported by some server implementations */
+    suggested_only?: boolean;
+}
+
 /** PUT /_matrix/client/v3/rooms/{room_id}/summary — update body */
 export interface UpdateSummaryBody {
     name?: string;

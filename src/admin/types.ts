@@ -1092,3 +1092,31 @@ export interface ThirdPartyRuleResult {
     modified_content?: import("../models/event").IContent;
     checked_ts: number;
 }
+
+// ===== Media quarantine change types =====
+
+/** Response item for GET /quarantine_media/{media_id}/changes — single quarantine change record */
+export interface MediaQuarantineChange {
+    /** The media ID the change applies to */
+    media_id: string;
+    /** The quarantine action taken: "quarantine" or "unquarantine" */
+    action: "quarantine" | "unquarantine";
+    /** The user who performed the change */
+    changed_by?: string;
+    /** Timestamp (in milliseconds) when the change occurred */
+    changed_ts?: number;
+    /** Optional reason for the change */
+    reason?: string;
+}
+
+/** Response for GET /quarantine_media/{media_id}/changes — quarantine change history */
+export interface MediaQuarantineChangesResponse {
+    /** The media ID the changes belong to */
+    media_id: string;
+    /** List of quarantine change records, oldest-first */
+    changes: MediaQuarantineChange[];
+    /** Total number of change records (may exceed `changes.length` when paginated) */
+    total?: number;
+    /** Pagination token for the next page, if more results are available */
+    next_token?: string;
+}

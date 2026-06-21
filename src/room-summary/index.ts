@@ -98,6 +98,7 @@ export type {
     HeroesRecalcResult,
     UnreadClearResult,
     BatchSummaryResponse,
+    BatchSummaryRequest,
     UpdateSummaryBody,
     SyncSummaryResult,
     ProcessUpdatesResult,
@@ -183,6 +184,7 @@ import type {
     HeroesRecalcResult,
     UnreadClearResult,
     BatchSummaryResponse,
+    BatchSummaryRequest,
     UpdateSummaryBody,
     SyncSummaryResult,
     ProcessUpdatesResult,
@@ -558,6 +560,50 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 },
             );
         }, "batchGetSummaries");
+    }
+
+    /**
+     * Fetch room summaries in batch (MSC3266 route-surface driven capability).
+     *
+     * Uses the backend `POST /_synapse/room_summary/v1/summaries/batch` endpoint
+     * to fetch multiple summaries in a single HTTP request, returning the raw
+     * batch response without converting or caching individual summaries.
+     *
+     * @param request - Batch fetch request body
+     * @param request.rooms - Array of room IDs to fetch summaries for
+     * @param request.is_suggested_only - Whether to only return suggested rooms (default: false)
+     * @returns Raw batch response with room summaries
+     *
+     * @example
+     * ```typescript
+     * const result = await roomSummaryManager.fetchBatchSummaries({
+     *     rooms: ["!room1:server.com", "!room2:server.com"],
+     *     is_suggested_only: true,
+     * });
+     * console.log(result.rooms?.length);
+     * ```
+     *
+     * @throws {InvalidParamError} If the request body is missing or `rooms` is empty
+     */
+    public async fetchBatchSummaries(request: BatchSummaryRequest): Promise<BatchSummaryResponse> {
+        if (!request || typeof request !== "object") {
+            throw new InvalidParamError("Request body must be an object");
+        }
+        if (!Array.isArray(request.rooms) || !request.rooms.length) {
+            throw new InvalidParamError("request.rooms must be a non-empty array");
+        }
+
+        return this.withRetry(async () => {
+            return await this.requestInternal<BatchSummaryResponse>(
+                Method.Post,
+                rsi("/summaries/batch"),
+                undefined,
+                {
+                    rooms: request.rooms,
+                    is_suggested_only: request.is_suggested_only ?? false,
+                },
+            );
+        }, "fetchBatchSummaries");
     }
 
     public async processSummaryUpdates(body: { limit?: number } = {}): Promise<ProcessUpdatesResult> {

@@ -161,6 +161,8 @@ import {
     type SpamCheckResult,
     type ThirdPartyRuleCheckResult,
     type ThirdPartyRuleResult,
+    type MediaQuarantineChange,
+    type MediaQuarantineChangesResponse,
 } from "./types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";
 
@@ -943,6 +945,37 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 
     async purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }> {
         return this.media.purgeMediaCache(beforeTs);
+    }
+
+    /**
+     * 获取媒体隔离变更历史
+     *
+     * 调用 `GET /_synapse/admin/v1/quarantine_media/{media_id}/changes` 端点，
+     * 返回指定媒体的隔离（quarantine / unquarantine）变更记录列表。
+     *
+     * @param mediaId - 媒体 ID
+     * @param options - 可选分页参数
+     * @param options.from - 分页起点 token
+     * @param options.limit - 返回条数上限
+     * @returns 媒体隔离变更历史
+     *
+     * @example
+     * ```typescript
+     * const history = await adminManager.getMediaQuarantineChanges("abc123", {
+     *     limit: 50,
+     * });
+     * for (const change of history.changes) {
+     *     console.log(change.action, change.changed_by, change.changed_ts);
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果 mediaId 为空
+     */
+    async getMediaQuarantineChanges(
+        mediaId: string,
+        options?: { from?: string; limit?: number },
+    ): Promise<MediaQuarantineChangesResponse> {
+        return this.media.getMediaQuarantineChanges(mediaId, options);
     }
 
     // ----- 配置管理（委托 → config） -----
