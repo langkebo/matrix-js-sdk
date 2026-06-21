@@ -9,6 +9,7 @@ import { TYPING_ROUTES } from "./route-table";
 import { TYPING_ROUTES_STATUS_SCENARIOS, TYPING_ROUTES_ERROR_SCENARIOS, TYPING_ROUTES_ERRCODES } from "./contract-assertions";
 
 describe("typing contract acceptance", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -48,6 +49,7 @@ describe("typing contract acceptance", () => {
         mockClient.http.authedRequest.mockRejectedValue({ httpStatus: expectedStatus, errcode: expectedErrcode });
         try {
             await mockClient.http.authedRequest({});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             expect(e.httpStatus).toBe(expectedStatus);
             expect(e.errcode).toBe(expectedErrcode);

@@ -9,6 +9,7 @@ import { EVENT_REPORT_ROUTES } from "./route-table";
 import { EVENT_REPORT_ROUTES_STATUS_SCENARIOS, EVENT_REPORT_ROUTES_ERROR_SCENARIOS, EVENT_REPORT_ROUTES_ERRCODES } from "./contract-assertions";
 
 describe("event_report contract acceptance", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -48,6 +49,7 @@ describe("event_report contract acceptance", () => {
         mockClient.http.authedRequest.mockRejectedValue({ httpStatus: expectedStatus, errcode: expectedErrcode });
         try {
             await mockClient.http.authedRequest({});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             expect(e.httpStatus).toBe(expectedStatus);
             expect(e.errcode).toBe(expectedErrcode);

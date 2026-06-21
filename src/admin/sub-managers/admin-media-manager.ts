@@ -18,7 +18,7 @@ import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
-import type { MediaInfo, MediaQuotaResponse, MediaQuarantineChange, MediaQuarantineChangesResponse } from "../types";
+import type { MediaInfo, MediaQuotaResponse, MediaQuarantineChangesResponse } from "../types";
 import { MatrixClient } from "../../client";
 
 export class AdminMediaManager extends AdminBaseManager {

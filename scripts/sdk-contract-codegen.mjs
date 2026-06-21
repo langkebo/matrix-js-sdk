@@ -740,6 +740,7 @@ function renderAcceptanceTest(module) {
     );
     lines.push("");
     lines.push(`describe("${module.ledgerModule} contract acceptance", () => {`);
+    lines.push(`    // eslint-disable-next-line @typescript-eslint/no-explicit-any`);
     lines.push(`    let mockClient: any;`);
     lines.push("");
     lines.push(`    beforeEach(() => {`);
@@ -791,6 +792,7 @@ function renderAcceptanceTest(module) {
     );
     lines.push(`        try {`);
     lines.push(`            await mockClient.http.authedRequest({});`);
+    lines.push(`        // eslint-disable-next-line @typescript-eslint/no-explicit-any`);
     lines.push(`        } catch (e: any) {`);
     lines.push(`            expect(e.httpStatus).toBe(expectedStatus);`);
     lines.push(`            expect(e.errcode).toBe(expectedErrcode);`);

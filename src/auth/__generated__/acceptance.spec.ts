@@ -9,6 +9,7 @@ import { AUTH_ROUTES } from "./route-table";
 import { AUTH_ROUTES_STATUS_SCENARIOS, AUTH_ROUTES_ERROR_SCENARIOS, AUTH_ROUTES_ERRCODES } from "./contract-assertions";
 
 describe("assembly contract acceptance", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -52,6 +53,7 @@ describe("assembly contract acceptance", () => {
         mockClient.http.authedRequest.mockRejectedValue({ httpStatus: expectedStatus, errcode: expectedErrcode });
         try {
             await mockClient.http.authedRequest({});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             expect(e.httpStatus).toBe(expectedStatus);
             expect(e.errcode).toBe(expectedErrcode);

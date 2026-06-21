@@ -9,6 +9,7 @@ import { KEY_ROTATION_ROUTES } from "./route-table";
 import { KEY_ROTATION_ROUTES_STATUS_SCENARIOS, KEY_ROTATION_ROUTES_ERROR_SCENARIOS, KEY_ROTATION_ROUTES_ERRCODES } from "./contract-assertions";
 
 describe("key_rotation contract acceptance", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -48,6 +49,7 @@ describe("key_rotation contract acceptance", () => {
         mockClient.http.authedRequest.mockRejectedValue({ httpStatus: expectedStatus, errcode: expectedErrcode });
         try {
             await mockClient.http.authedRequest({});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             expect(e.httpStatus).toBe(expectedStatus);
             expect(e.errcode).toBe(expectedErrcode);

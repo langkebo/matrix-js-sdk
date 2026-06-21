@@ -6,7 +6,6 @@ import { ClientPrefix } from "../http-api/prefix";
 import type { ThirdpartyPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
-import type { IThirdPartyLocation, IThirdPartyUser } from "../client-internal-types";
 import type { QueryDict } from "../utils";
 import * as utils from "../utils";
 /*

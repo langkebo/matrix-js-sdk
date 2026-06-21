@@ -161,7 +161,6 @@ import {
     type SpamCheckResult,
     type ThirdPartyRuleCheckResult,
     type ThirdPartyRuleResult,
-    type MediaQuarantineChange,
     type MediaQuarantineChangesResponse,
 } from "./types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";

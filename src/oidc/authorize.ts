@@ -27,8 +27,6 @@ import {
     validateIdToken,
     validateStoredUserState,
 } from "./validate";
-import { sha256 } from "../digest";
-import { encodeUnpaddedBase64Url } from "../base64";
 
 // reexport for backwards compatibility
 export type { BearerTokenResponse };
@@ -54,18 +52,6 @@ export type AuthorizationParams = {
 export const generateScope = (deviceId?: string): string => {
     const safeDeviceId = deviceId ?? secureRandomString(10);
     return `openid urn:matrix:org.matrix.msc2967.client:api:* urn:matrix:org.matrix.msc2967.client:device:${safeDeviceId}`;
-};
-
-// https://www.rfc-editor.org/rfc/rfc7636
-const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
-    if (!globalThis.crypto.subtle) {
-        // Known limitation: plaintext code challenge fallback is currently unconditional in insecure contexts.
-        logger.warn("A secure context is required to generate code challenge. Using plain text code challenge");
-        return codeVerifier;
-    }
-
-    const hashBuffer = await sha256(codeVerifier);
-    return encodeUnpaddedBase64Url(hashBuffer);
 };
 
 /**

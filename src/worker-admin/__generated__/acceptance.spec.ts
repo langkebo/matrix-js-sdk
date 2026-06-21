@@ -9,6 +9,7 @@ import { WORKER_ADMIN_ROUTES } from "./route-table";
 import { WORKER_ADMIN_ROUTES_STATUS_SCENARIOS, WORKER_ADMIN_ROUTES_ERROR_SCENARIOS, WORKER_ADMIN_ROUTES_ERRCODES } from "./contract-assertions";
 
 describe("worker contract acceptance", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -48,6 +49,7 @@ describe("worker contract acceptance", () => {
         mockClient.http.authedRequest.mockRejectedValue({ httpStatus: expectedStatus, errcode: expectedErrcode });
         try {
             await mockClient.http.authedRequest({});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             expect(e.httpStatus).toBe(expectedStatus);
             expect(e.errcode).toBe(expectedErrcode);

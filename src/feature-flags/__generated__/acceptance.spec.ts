@@ -9,6 +9,7 @@ import { FEATURE_FLAGS_ROUTES } from "./route-table";
 import { FEATURE_FLAGS_ROUTES_STATUS_SCENARIOS, FEATURE_FLAGS_ROUTES_ERROR_SCENARIOS, FEATURE_FLAGS_ROUTES_ERRCODES } from "./contract-assertions";
 
 describe("feature_flags contract acceptance", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -48,6 +49,7 @@ describe("feature_flags contract acceptance", () => {
         mockClient.http.authedRequest.mockRejectedValue({ httpStatus: expectedStatus, errcode: expectedErrcode });
         try {
             await mockClient.http.authedRequest({});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             expect(e.httpStatus).toBe(expectedStatus);
             expect(e.errcode).toBe(expectedErrcode);

@@ -28,11 +28,6 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import type { ExternalServicePathPattern } from "./__generated__/route-table";
-import type {
-    ExternalServicesResponse,
-    ExternalServiceAdminRequestDto,
-    ExternalServiceAdminResponseDto,
-} from "./__generated__/dto";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripSynapseAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
