@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "assembly",
   "synapse_rust_commit": null,
-  "generated_at": "2026-06-21T02:34:45Z",
+  "generated_at": "2026-06-23T11:23:18Z",
   "source_profile": "all",
-  "entry_count": 153,
+  "entry_count": 154,
   "entries": [
     {
       "method": "GET",
@@ -422,6 +422,12 @@
       "method": "GET",
       "path": "/_matrix/client/r0/voip/turnServer/guest",
       "registered_by": "assembly::voip_compat",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc2965/auth_issuer",
+      "registered_by": "assembly::create_router",
       "path_params": []
     },
     {

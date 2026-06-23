@@ -46,6 +46,10 @@ function tp<P extends StripV3<TypingPathPattern>>(path: P): P {
 
 export class TypingManager extends BaseManager {
     private typingTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+    // 节流：记录每个房间最近一次发送 typing=true 的时间戳
+    // Matrix 协议建议 typing 通知发送间隔不少于 ~10 秒
+    private lastTypingSendTime: Map<string, number> = new Map();
+    private readonly TYPING_THROTTLE_MS = 10000;
 
     constructor(client: MatrixClient) {
         super(client);
@@ -68,6 +72,21 @@ export class TypingManager extends BaseManager {
         if (!userId) {
             throw new ValidationError("User ID is required");
         }
+
+        // 节流：如果是 typing=true 且距上次发送不足 TYPING_THROTTLE_MS，跳过本次请求
+        // typing=false（停止打字）始终立即发送，不受节流限制
+        if (isTyping) {
+            const now = Date.now();
+            const lastSend = this.lastTypingSendTime.get(roomId) ?? 0;
+            if (now - lastSend < this.TYPING_THROTTLE_MS) {
+                logger.debug(`TypingManager.sendTyping throttled for room ${roomId}, skipping`);
+                return {};
+            }
+            this.lastTypingSendTime.set(roomId, now);
+        } else {
+            this.lastTypingSendTime.delete(roomId);
+        }
+
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
         const data: IContent = { typing: isTyping };
         if (isTyping) {

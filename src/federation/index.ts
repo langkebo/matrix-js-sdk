@@ -490,6 +490,295 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         );
     }
 
+    /**
+     * 获取事件授权链
+     *
+     * 对应 GET /_synapse/federation/v1/event_auth
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @param eventId - 事件 ID (e.g., "$event:example.com")
+     * @returns 事件授权链
+     *
+     * @example
+     * ```typescript
+     * const authChain = await manager.getEventAuth("!room:example.com", "$event:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID or event ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getEventAuth(roomId: string, eventId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        if (!eventId) {
+            throw new ValidationError("Event ID is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Get,
+                "/_synapse/federation/v1/event_auth",
+                { room_id: roomId, event_id: eventId },
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getEventAuth");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取房间加入规则
+     *
+     * 对应 GET /_synapse/federation/v1/get_joining_rules/{room_id}
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @returns 房间加入规则
+     *
+     * @example
+     * ```typescript
+     * const rules = await manager.getJoiningRules("!room:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getJoiningRules(roomId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Get,
+                `/_synapse/federation/v1/get_joining_rules/${encodeURIComponent(roomId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getJoiningRules");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 申领联邦密钥
+     *
+     * 对应 POST /_synapse/federation/v1/keys/claim
+     *
+     * @param body - 申领密钥请求体
+     * @returns 申领密钥响应
+     *
+     * @example
+     * ```typescript
+     * const result = await manager.claimKeys({
+     *   one_time_keys: { "@user:example.com": { "device_id": "signed_curve25519" } },
+     * });
+     * ```
+     *
+     * @throws {ValidationError} If body is empty
+     * @throws {Error} If the request fails
+     */
+    async claimKeys(body: Record<string, unknown>): Promise<unknown> {
+        if (!body) {
+            throw new ValidationError("Body is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Post,
+                "/_synapse/federation/v1/keys/claim",
+                undefined,
+                body,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "claimKeys");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 查询联邦密钥
+     *
+     * 对应 POST /_synapse/federation/v1/keys/query
+     *
+     * @param body - 查询密钥请求体
+     * @returns 查询密钥响应
+     *
+     * @example
+     * ```typescript
+     * const result = await manager.queryKeys({
+     *   device_keys: { "@user:example.com": ["*"] },
+     * });
+     * ```
+     *
+     * @throws {ValidationError} If body is empty
+     * @throws {Error} If the request fails
+     */
+    async queryKeys(body: Record<string, unknown>): Promise<unknown> {
+        if (!body) {
+            throw new ValidationError("Body is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Post,
+                "/_synapse/federation/v1/keys/query",
+                undefined,
+                body,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "queryKeys");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 上传联邦密钥
+     *
+     * 对应 POST /_synapse/federation/v1/keys/upload
+     *
+     * @param body - 上传密钥请求体
+     * @returns 上传密钥响应
+     *
+     * @example
+     * ```typescript
+     * const result = await manager.uploadKeys({
+     *   device_keys: { user_id: "@user:example.com", device_id: "DEVICE", keys: {} },
+     *   one_time_keys: {},
+     * });
+     * ```
+     *
+     * @throws {ValidationError} If body is empty
+     * @throws {Error} If the request fails
+     */
+    async uploadKeys(body: Record<string, unknown>): Promise<unknown> {
+        if (!body) {
+            throw new ValidationError("Body is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Post,
+                "/_synapse/federation/v1/keys/upload",
+                undefined,
+                body,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "uploadKeys");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 查询联邦授权
+     *
+     * 对应 GET /_synapse/federation/v1/query/auth
+     *
+     * @returns 联邦授权信息
+     *
+     * @example
+     * ```typescript
+     * const auth = await manager.queryAuth();
+     * ```
+     *
+     * @throws {Error} If the request fails
+     */
+    async queryAuth(): Promise<unknown> {
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Get,
+                "/_synapse/federation/v1/query/auth",
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "queryAuth");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取房间联邦授权
+     *
+     * 对应 GET /_synapse/federation/v1/room_auth/{room_id}
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @returns 房间联邦授权信息
+     *
+     * @example
+     * ```typescript
+     * const auth = await manager.getRoomAuth("!room:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getRoomAuth(roomId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Get,
+                `/_synapse/federation/v1/room_auth/${encodeURIComponent(roomId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getRoomAuth");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 克隆联邦密钥（v2）
+     *
+     * 对应 POST /_synapse/federation/v2/key/clone
+     *
+     * @param body - 克隆密钥请求体
+     * @returns 克隆密钥响应
+     *
+     * @example
+     * ```typescript
+     * const result = await manager.cloneKey({
+     *   server_name: "example.com",
+     *   key_id: "ed25519:0",
+     * });
+     * ```
+     *
+     * @throws {ValidationError} If body is empty
+     * @throws {Error} If the request fails
+     */
+    async cloneKey(body: Record<string, unknown>): Promise<unknown> {
+        if (!body) {
+            throw new ValidationError("Body is required");
+        }
+        try {
+            return await this.client.http.authedRequest<unknown>(
+                Method.Post,
+                "/_synapse/federation/v2/key/clone",
+                undefined,
+                body,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "cloneKey");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
     getCachedBlacklist(): IBlacklistEntry[] {
         return Array.from(this.blacklist.values());
     }

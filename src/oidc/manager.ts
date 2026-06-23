@@ -245,7 +245,7 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
             () =>
                 this.client.http.request<IOidcClientRegistration>(
                     Method.Post,
-                    op("/oidc/register"),
+                    "/oidc/register",
                     undefined,
                     {
                         client_name: request.client_name,

@@ -17,7 +17,6 @@ export const OIDC_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/oidc/authorize" },
     { method: "GET", path: "/_matrix/client/r0/oidc/callback" },
     { method: "POST", path: "/_matrix/client/r0/oidc/logout" },
-    { method: "POST", path: "/_matrix/client/r0/oidc/register" },
     { method: "POST", path: "/_matrix/client/r0/oidc/token" },
     { method: "GET", path: "/_matrix/client/r0/oidc/userinfo" },
     { method: "GET", path: "/_matrix/client/v3/login/sso/redirect" },
@@ -26,7 +25,6 @@ export const OIDC_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/oidc/callback" },
     { method: "POST", path: "/_matrix/client/v3/oidc/login" },
     { method: "POST", path: "/_matrix/client/v3/oidc/logout" },
-    { method: "POST", path: "/_matrix/client/v3/oidc/register" },
     { method: "POST", path: "/_matrix/client/v3/oidc/token" },
     { method: "GET", path: "/_matrix/client/v3/oidc/userinfo" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];

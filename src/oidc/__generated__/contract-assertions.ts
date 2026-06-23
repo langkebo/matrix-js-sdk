@@ -6,10 +6,10 @@
 
 import { OIDC_ROUTES } from "./route-table";
 
-export const OIDC_ROUTES_ENTRY_COUNT = 19 as const;
+export const OIDC_ROUTES_ENTRY_COUNT = 17 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _OidcEntryCountAssertion: 19 = OIDC_ROUTES.length;
+const _OidcEntryCountAssertion: 17 = OIDC_ROUTES.length;
 void _OidcEntryCountAssertion;
 
 export const OIDC_ROUTES_STATUS_SCENARIOS = [

@@ -41,6 +41,13 @@ export interface ReadReceiptsManagerEvents {
 }
 
 export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEvents, ReadReceiptsManagerEvents> {
+    // 防抖：按房间合并短时间内的多次已读回执请求，只发送最新的一条
+    // 避免快速滚动时产生大量 HTTP 请求
+    private pendingReceiptTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+    private pendingReceiptData: Map<string, { event: MatrixEvent; receiptType: ReceiptType; body?: Record<string, unknown>; unthreaded: boolean }> = new Map();
+    private pendingReceiptResolvers: Map<string, { resolve: (v: EmptyObject) => void; reject: (e: unknown) => void }[]> = new Map();
+    private readonly RECEIPT_DEBOUNCE_MS = 500;
+
     constructor(client: MatrixClient) {
         super(client);
     }
@@ -61,14 +68,66 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
         body?: Record<string, unknown>, // Dynamic: receipt body may contain arbitrary keys like thread_id
         unthreaded = false,
     ): Promise<EmptyObject> {
-        return sendReceiptRequest(this.client, {
-            event,
-            receiptType,
-            body,
-            unthreaded,
-            isGuest: this.client.isGuest(),
-            supportsThreads: this.client.supportsThreads(),
-            userId: this.client.credentials.userId,
+        const roomId = event.getRoomId();
+        // 如果无法获取 roomId，直接发送不做防抖
+        if (!roomId) {
+            return sendReceiptRequest(this.client, {
+                event,
+                receiptType,
+                body,
+                unthreaded,
+                isGuest: this.client.isGuest(),
+                supportsThreads: this.client.supportsThreads(),
+                userId: this.client.credentials.userId,
+            });
+        }
+
+        // 防抖：同一房间 500ms 内的多次回执请求合并为最后一次
+        return new Promise<EmptyObject>((resolve, reject) => {
+            // 清除之前的定时器
+            const existingTimer = this.pendingReceiptTimers.get(roomId);
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+            }
+
+            // 存储最新的回执数据
+            this.pendingReceiptData.set(roomId, { event, receiptType, body, unthreaded });
+
+            // 追加 resolver（之前的调用者也会被 resolve）
+            const resolvers = this.pendingReceiptResolvers.get(roomId) ?? [];
+            resolvers.push({ resolve, reject });
+            this.pendingReceiptResolvers.set(roomId, resolvers);
+
+            // 设置新的定时器
+            const timer = setTimeout(async () => {
+                this.pendingReceiptTimers.delete(roomId);
+                const latestData = this.pendingReceiptData.get(roomId);
+                const pendingResolvers = this.pendingReceiptResolvers.get(roomId) ?? [];
+                this.pendingReceiptData.delete(roomId);
+                this.pendingReceiptResolvers.delete(roomId);
+
+                if (!latestData) {
+                    pendingResolvers.forEach(({ resolve: r }) => r({}));
+                    return;
+                }
+
+                try {
+                    const result = await sendReceiptRequest(this.client, {
+                        event: latestData.event,
+                        receiptType: latestData.receiptType,
+                        body: latestData.body,
+                        unthreaded: latestData.unthreaded,
+                        isGuest: this.client.isGuest(),
+                        supportsThreads: this.client.supportsThreads(),
+                        userId: this.client.credentials.userId,
+                    });
+                    pendingResolvers.forEach(({ resolve: r }) => r(result));
+                } catch (err) {
+                    pendingResolvers.forEach(({ reject: rj }) => rj(err));
+                }
+            }, this.RECEIPT_DEBOUNCE_MS);
+
+            this.pendingReceiptTimers.set(roomId, timer);
         });
     }
 

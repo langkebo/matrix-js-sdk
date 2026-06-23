@@ -3,9 +3,9 @@
   "ledger_schema": "1",
   "module": "oidc",
   "synapse_rust_commit": null,
-  "generated_at": "2026-06-21T02:34:45Z",
+  "generated_at": "2026-06-23T11:23:18Z",
   "source_profile": "all",
-  "entry_count": 19,
+  "entry_count": 17,
   "entries": [
     {
       "method": "GET",
@@ -46,12 +46,6 @@
     {
       "method": "POST",
       "path": "/_matrix/client/r0/oidc/logout",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/oidc/register",
       "registered_by": "oidc",
       "path_params": []
     },
@@ -100,12 +94,6 @@
     {
       "method": "POST",
       "path": "/_matrix/client/v3/oidc/logout",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/oidc/register",
       "registered_by": "oidc",
       "path_params": []
     },

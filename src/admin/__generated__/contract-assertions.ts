@@ -6,10 +6,10 @@
 
 import { ADMIN_ROUTES } from "./route-table";
 
-export const ADMIN_ROUTES_ENTRY_COUNT = 116 as const;
+export const ADMIN_ROUTES_ENTRY_COUNT = 160 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _AdminEntryCountAssertion: 116 = ADMIN_ROUTES.length;
+const _AdminEntryCountAssertion: 160 = ADMIN_ROUTES.length;
 void _AdminEntryCountAssertion;
 
 export const ADMIN_ROUTES_STATUS_SCENARIOS = [
