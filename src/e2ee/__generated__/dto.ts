@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `e2ee_routes`.
+ * DTO snippets extracted from the contract doc for `e2ee`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

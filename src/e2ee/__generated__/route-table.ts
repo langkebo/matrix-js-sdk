@@ -3,12 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        E2EE
- * Source:        docs/api-contract/generated/modules/e2ee_routes.json
+ * Source:        docs/api-contract/generated/modules/e2ee.json
  * Ledger schema: 1
  * Source profile: all
  */
 
-/** Routes served by the synapse-rust `e2ee_routes` module. */
+/** Routes served by the synapse-rust `e2ee` module. */
 export const E2EE_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/keys/changes" },
     { method: "POST", path: "/_matrix/client/r0/keys/claim" },

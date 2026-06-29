@@ -131,6 +131,10 @@ export {
 
 export { SyncState, SetPresence } from "./sync";
 export type { ISyncStateData as SyncStateData } from "./sync";
+// Re-export with alias for frontend compatibility
+export type { ISearchResponse as SearchResponse } from "./@types/search";
+// Re-export device management types not covered by models/device
+export type { IDeviceUpdateRequest, IDeviceDeleteRequest } from "./device";
 export { SlidingSyncEvent, SlidingSyncState, SlidingSync } from "./sliding-sync";
 export type {
     MSC3575SlidingSyncResponse,

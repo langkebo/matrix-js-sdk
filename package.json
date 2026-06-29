@@ -255,6 +255,18 @@
         "./device": {
             "import": "./lib/device/index.js",
             "types": "./lib/device/index.d.ts"
+        },
+        "./device-keys": {
+            "import": "./lib/device-keys/index.js",
+            "types": "./lib/device-keys/index.d.ts"
+        },
+        "./key-backup": {
+            "import": "./lib/key-backup/index.js",
+            "types": "./lib/key-backup/index.d.ts"
+        },
+        "./key-verification": {
+            "import": "./lib/key-verification/index.js",
+            "types": "./lib/key-verification/index.d.ts"
         }
     },
     "sideEffects": false,
