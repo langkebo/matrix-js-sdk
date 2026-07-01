@@ -397,6 +397,65 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, "/invite/blocklist");
     }
 
+    /**
+     * 添加用户到邀请黑名单
+     *
+     * @param userId - 被添加用户的 Matrix ID
+     * @param reason - 添加原因（可选）
+     */
+    async addToInviteBlocklist(userId: string, reason?: string): Promise<void> {
+        if (!userId) throw new ValidationError("User ID is required");
+        const body: Record<string, unknown> = { user_id: userId };
+        if (reason) body.reason = reason;
+        await this.adminRequest(
+            Method.Post,
+            `/invite/blocklist/${encodeURIComponent(userId)}`,
+            {},
+            body,
+        );
+    }
+
+    /**
+     * 从邀请黑名单移除用户
+     *
+     * @param userId - 被移除用户的 Matrix ID
+     */
+    async removeFromInviteBlocklist(userId: string): Promise<void> {
+        if (!userId) throw new ValidationError("User ID is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/invite/blocklist/${encodeURIComponent(userId)}`,
+        );
+    }
+
+    /**
+     * 添加用户到邀请白名单
+     *
+     * @param userId - 被添加用户的 Matrix ID
+     */
+    async addToInviteAllowlist(userId: string): Promise<void> {
+        if (!userId) throw new ValidationError("User ID is required");
+        await this.adminRequest(
+            Method.Post,
+            `/invite/allowlist/${encodeURIComponent(userId)}`,
+            {},
+            { user_id: userId },
+        );
+    }
+
+    /**
+     * 从邀请白名单移除用户
+     *
+     * @param userId - 被移除用户的 Matrix ID
+     */
+    async removeFromInviteAllowlist(userId: string): Promise<void> {
+        if (!userId) throw new ValidationError("User ID is required");
+        await this.adminRequest(
+            Method.Delete,
+            `/invite/allowlist/${encodeURIComponent(userId)}`,
+        );
+    }
+
     // ===== Jitsi =====
 
     async getJitsiConfig(): Promise<AdminJitsiConfig> {
