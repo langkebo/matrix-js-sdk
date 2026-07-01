@@ -1172,6 +1172,22 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getInviteBlocklist();
     }
 
+    async addToInviteBlocklist(userId: string, reason?: string): Promise<void> {
+        return this.config.addToInviteBlocklist(userId, reason);
+    }
+
+    async removeFromInviteBlocklist(userId: string): Promise<void> {
+        return this.config.removeFromInviteBlocklist(userId);
+    }
+
+    async addToInviteAllowlist(userId: string): Promise<void> {
+        return this.config.addToInviteAllowlist(userId);
+    }
+
+    async removeFromInviteAllowlist(userId: string): Promise<void> {
+        return this.config.removeFromInviteAllowlist(userId);
+    }
+
     async getJitsiConfig(): Promise<AdminJitsiConfig> {
         return this.config.getJitsiConfig();
     }
