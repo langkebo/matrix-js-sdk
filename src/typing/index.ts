@@ -6,7 +6,7 @@ import { validateUserId, validateRoomId } from "../common/validators";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { TypingPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 import type { EmptyObject } from "../@types/common";
 /*
@@ -368,16 +368,11 @@ export class TypingManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getTypingManager(): TypingManager;
-        sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<import("../@types/common").EmptyObject>;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTypingManager = function (): TypingManager {
-        return getOrCreateManager(this, "typing", () => new TypingManager(this));
+        registerManagerClass("typing", TypingManager);
+    return getOrCreateManager(this, "typing", () => new TypingManager(this));
     };
 
     MatrixClient.prototype.sendTyping = function (

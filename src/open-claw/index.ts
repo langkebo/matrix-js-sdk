@@ -37,7 +37,7 @@ import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { OpenclawPathPattern } from "./__generated__/route-table";
 
@@ -502,11 +502,6 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getOpenClawManager(): OpenClawManager;
-    }
-}
 
 export function createOpenClawManager(client: MatrixClient): OpenClawManager {
     return getOrCreateManager(client, "OpenClawManager", () => new OpenClawManager(client));
@@ -514,7 +509,8 @@ export function createOpenClawManager(client: MatrixClient): OpenClawManager {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getOpenClawManager = function (): OpenClawManager {
-        return getOrCreateManager(this, "openclaw", () => new OpenClawManager(this));
+        registerManagerClass("openclaw", OpenClawManager);
+    return getOrCreateManager(this, "openclaw", () => new OpenClawManager(this));
     };
 }
 

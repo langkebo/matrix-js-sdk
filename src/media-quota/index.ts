@@ -28,7 +28,7 @@ import { MediaPrefix } from "../http-api/prefix";
 import { validateRoomId } from "../common/validators";
 import { ValidationError } from "../errors";
 import { logger } from "../logger";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface MediaQuotaConfig {
     "m.upload.size"?: number;
@@ -353,15 +353,11 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getMediaQuotaManager(): MediaQuotaManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMediaQuotaManager = function (): MediaQuotaManager {
-        return getOrCreateManager(this, "mediaQuota", () => new MediaQuotaManager(this));
+        registerManagerClass("mediaQuota", MediaQuotaManager);
+    return getOrCreateManager(this, "mediaQuota", () => new MediaQuotaManager(this));
     };
 }
 

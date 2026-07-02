@@ -22,7 +22,7 @@ import { ValidationError } from "../errors";
 import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import type { WorkerBodyPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
@@ -206,14 +206,10 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getWorkerBodyManager(): WorkerBodyManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWorkerBodyManager = function (): WorkerBodyManager {
-        return getOrCreateManager(this, "workerBody", () => new WorkerBodyManager(this));
+        registerManagerClass("workerBody", WorkerBodyManager);
+    return getOrCreateManager(this, "workerBody", () => new WorkerBodyManager(this));
     };
 }

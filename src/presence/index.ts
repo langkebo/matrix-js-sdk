@@ -26,7 +26,7 @@ import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import { validateUserId } from "../common/validators";
 import { AuthError, ValidationError } from "../errors";
@@ -667,18 +667,11 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getPresenceManager(): PresenceManager;
-        setPresence(presence: PresenceState, statusMsg?: string): Promise<void>;
-        setPresence(presence: PresenceState, opts?: { status_msg?: string }): Promise<void>;
-        setPresence(opts: { presence: PresenceState; status_msg?: string }): Promise<void>;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPresenceManager = function (): PresenceManager {
-        return getOrCreateManager(this, "presence", () => new PresenceManager(this));
+        registerManagerClass("presence", PresenceManager);
+    return getOrCreateManager(this, "presence", () => new PresenceManager(this));
     };
 
     MatrixClient.prototype.setPresence = function (

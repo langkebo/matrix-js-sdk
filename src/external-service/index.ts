@@ -28,7 +28,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import type { ExternalServicePathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripSynapseAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 type StripMatrixAdminV1<P extends string> = P extends `/_matrix/admin/v1${infer Rest}` ? Rest : never;
@@ -297,15 +297,11 @@ export class ExternalServiceManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getExternalServiceManager(): ExternalServiceManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getExternalServiceManager = function (): ExternalServiceManager {
-        return getOrCreateManager(this, "external-service", () => new ExternalServiceManager(this));
+        registerManagerClass("external-service", ExternalServiceManager);
+    return getOrCreateManager(this, "external-service", () => new ExternalServiceManager(this));
     };
 }
 

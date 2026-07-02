@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export class RoomListManager {
     constructor(private client: MatrixClient) {}
@@ -61,15 +61,11 @@ export class RoomListManager {
 }
 
 // Declare prototype extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomListManager(): RoomListManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomListManager = function (): RoomListManager {
-        return getOrCreateManager(this, "roomList", () => new RoomListManager(this));
+        registerManagerClass("roomList", RoomListManager);
+    return getOrCreateManager(this, "roomList", () => new RoomListManager(this));
     };
 }
 

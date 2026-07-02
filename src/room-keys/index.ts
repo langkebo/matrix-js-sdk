@@ -29,7 +29,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RoomKeyRequest {
     request_id: string;
@@ -123,15 +123,11 @@ export class RoomKeysManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomKeysManager(): RoomKeysManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomKeysManager = function (): RoomKeysManager {
-        return getOrCreateManager(this, "roomKeys", () => new RoomKeysManager(this));
+        registerManagerClass("roomKeys", RoomKeysManager);
+    return getOrCreateManager(this, "roomKeys", () => new RoomKeysManager(this));
     };
 }
 

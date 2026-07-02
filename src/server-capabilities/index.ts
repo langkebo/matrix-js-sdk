@@ -25,7 +25,7 @@ import { Preset } from "../@types/partials";
 import { determineFeatureSupport, FeatureSupport } from "../models/thread";
 import { Feature, ServerSupport } from "../feature";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { type Capabilities } from "../serverCapabilities";
@@ -433,15 +433,11 @@ export class ServerCapabilitiesManager extends BaseManager<
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getServerCapabilitiesManager(): ServerCapabilitiesManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getServerCapabilitiesManager = function (): ServerCapabilitiesManager {
-        return getOrCreateManager(this, "serverCapabilities", () => new ServerCapabilitiesManager(this));
+        registerManagerClass("serverCapabilities", ServerCapabilitiesManager);
+    return getOrCreateManager(this, "serverCapabilities", () => new ServerCapabilitiesManager(this));
     };
 }
 

@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { EventStatus } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface EventStatusManagerEvents {
     status_changed: { roomId: string; eventId: string; status: EventStatus | null };
@@ -65,15 +65,11 @@ export class EventStatusManager extends BaseManager<keyof EventStatusManagerEven
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getEventStatusManager(): EventStatusManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventStatusManager = function (): EventStatusManager {
-        return getOrCreateManager(this, "eventStatus", () => new EventStatusManager(this));
+        registerManagerClass("eventStatus", EventStatusManager);
+    return getOrCreateManager(this, "eventStatus", () => new EventStatusManager(this));
     };
 }
 

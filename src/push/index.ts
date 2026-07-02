@@ -25,7 +25,7 @@ import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache, CacheRegistry } from "../utils/lru-cache";
 import { validateRoomId } from "../common/validators";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { PushPathPattern } from "./__generated__/route-table";
 import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "../client-push-rules";
 
@@ -581,15 +581,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getPushManager(): PushManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPushManager = function (): PushManager {
-        return getOrCreateManager(this, "push", () => new PushManager(this));
+        registerManagerClass("push", PushManager);
+    return getOrCreateManager(this, "push", () => new PushManager(this));
     };
 }
 

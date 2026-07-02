@@ -31,7 +31,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum InviteBlocklistEvent {
     BlocklistUpdated = "BlocklistUpdated",
@@ -305,15 +305,11 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getInviteBlocklistManager(): InviteBlocklistManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getInviteBlocklistManager = function (): InviteBlocklistManager {
-        return getOrCreateManager(this, "inviteBlocklist", () => new InviteBlocklistManager(this));
+        registerManagerClass("inviteBlocklist", InviteBlocklistManager);
+    return getOrCreateManager(this, "inviteBlocklist", () => new InviteBlocklistManager(this));
     };
 }
 

@@ -29,7 +29,7 @@ import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { WidgetPathPattern } from "./__generated__/route-table";
 
 const WIDGET_PREFIX_V1 = "/_matrix/client/v1";
@@ -586,15 +586,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
 // ============ MatrixClient extension ============
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getWidgetManager(): WidgetManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWidgetManager = function (): WidgetManager {
-        return getOrCreateManager(this, "widget", () => new WidgetManager(this));
+        registerManagerClass("widget", WidgetManager);
+    return getOrCreateManager(this, "widget", () => new WidgetManager(this));
     };
 }
 

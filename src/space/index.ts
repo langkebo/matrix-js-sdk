@@ -39,7 +39,7 @@ import { LRUCache } from "../utils/lru-cache";
 import { validateRoomId } from "../common/validators";
 import { ValidationError } from "../errors";
 import type { SpacePathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
 
@@ -804,15 +804,11 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSpaceManager(): SpaceManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSpaceManager = function (): SpaceManager {
-        return getOrCreateManager(this, "space", () => new SpaceManager(this));
+        registerManagerClass("space", SpaceManager);
+    return getOrCreateManager(this, "space", () => new SpaceManager(this));
     };
 }
 

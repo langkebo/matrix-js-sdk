@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IInviteEvent {
     roomId: string;
@@ -91,15 +91,11 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getInvitesManager(): InvitesManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getInvitesManager = function (): InvitesManager {
-        return getOrCreateManager(this, "invites", () => new InvitesManager(this));
+        registerManagerClass("invites", InvitesManager);
+    return getOrCreateManager(this, "invites", () => new InvitesManager(this));
     };
 }
 

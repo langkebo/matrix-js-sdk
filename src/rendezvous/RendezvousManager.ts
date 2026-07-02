@@ -36,7 +36,7 @@ import { Body, type IRequestOpts } from "../http-api/interface";
 import { NotFoundError } from "../errors";
 import { logger } from "../logger";
 import type { RendezvousPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 const RENDEZVOUS_PREFIX = "/_matrix/client/v1";
 const RENDEZVOUS_KEY_HEADER = "X-Matrix-Rendezvous-Key";
@@ -341,15 +341,11 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRendezvousManager(): RendezvousManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRendezvousManager = function (): RendezvousManager {
-        return getOrCreateManager(this, "rendezvous", () => new RendezvousManager(this));
+        registerManagerClass("rendezvous", RendezvousManager);
+    return getOrCreateManager(this, "rendezvous", () => new RendezvousManager(this));
     };
 }
 

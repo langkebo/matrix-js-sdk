@@ -36,7 +36,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { AdminBaseManager, type AdminErrorCallback } from "./admin-base-manager";
 import {
     AdminEvent,
@@ -1211,7 +1211,8 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAdminManager = function (): AdminManager {
-        return getOrCreateManager(this, "admin", () => new AdminManager(this));
+        registerManagerClass("admin", AdminManager);
+    return getOrCreateManager(this, "admin", () => new AdminManager(this));
     };
 
     // 子 Manager 便捷访问方法（通过 AdminManager 的组合属性获取）

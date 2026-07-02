@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
 import { RoomManager } from "./RoomManager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export * from "./RoomManager";
 
@@ -28,19 +28,6 @@ export function setRoomManagerRetryOptions(
     client.getRoomManager().setRetryOptions(options);
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomManager(): RoomManager;
-        getRoom(roomId: string): import("../models/room").Room | null;
-        getRooms(): import("../models/room").Room[];
-        sendStateEvent(
-            roomId: string,
-            eventType: string,
-            content: IContent,
-            stateKey?: string,
-        ): Promise<{ event_id: string }>;
-    }
-}
 
 /**
  * 为 MatrixClient 扩展 RoomManager 相关能力
@@ -49,7 +36,8 @@ export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getRoomManager")) return;
 
     MatrixClient.prototype.getRoomManager = function (this: MatrixClient): RoomManager {
-        return getOrCreateManager(this, "room", () => new RoomManager(this));
+        registerManagerClass("room", RoomManager);
+    return getOrCreateManager(this, "room", () => new RoomManager(this));
     };
 
     MatrixClient.prototype.getRoom = function (this: MatrixClient, roomId: string) {

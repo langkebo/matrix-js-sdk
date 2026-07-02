@@ -19,7 +19,7 @@ import { CachedReceipt, Receipt, ReceiptType } from "../@types/read_receipts";
 import type { EmptyObject } from "../@types/common";
 import type { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho, type ReceiptBody } from "../client-receipt-requests";
 import { setRoomReadMarkersRequest } from "../client-batch-requests";
 
@@ -258,15 +258,11 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getReadReceiptsManager(): ReadReceiptsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReadReceiptsManager = function (): ReadReceiptsManager {
-        return getOrCreateManager(this, "readReceipts", () => new ReadReceiptsManager(this));
+        registerManagerClass("readReceipts", ReadReceiptsManager);
+    return getOrCreateManager(this, "readReceipts", () => new ReadReceiptsManager(this));
     };
 }
 

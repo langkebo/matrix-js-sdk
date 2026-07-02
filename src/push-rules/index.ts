@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { IPushRules } from "../@types/PushRules";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IPushRule {
     rule_id: string;
@@ -101,15 +101,11 @@ export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getPushRulesManager(): PushRulesManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPushRulesManager = function (): PushRulesManager {
-        return getOrCreateManager(this, "pushRules", () => new PushRulesManager(this));
+        registerManagerClass("pushRules", PushRulesManager);
+    return getOrCreateManager(this, "pushRules", () => new PushRulesManager(this));
     };
 }
 

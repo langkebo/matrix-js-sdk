@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import type { IJoinRoomOpts } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IJoinRoomOptions {
     syncRoom?: boolean;
@@ -77,15 +77,11 @@ export class RoomJoiningManager extends BaseManager<keyof RoomJoiningManagerEven
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomJoiningManager(): RoomJoiningManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomJoiningManager = function (): RoomJoiningManager {
-        return getOrCreateManager(this, "roomJoining", () => new RoomJoiningManager(this));
+        registerManagerClass("roomJoining", RoomJoiningManager);
+    return getOrCreateManager(this, "roomJoining", () => new RoomJoiningManager(this));
     };
 }
 

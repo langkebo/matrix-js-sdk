@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IDelayedEventResponse {
     event_id: string;
@@ -136,15 +136,11 @@ export class ScheduledEventsManager extends BaseManager<
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getScheduledEventsManager(): ScheduledEventsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getScheduledEventsManager = function (): ScheduledEventsManager {
-        return getOrCreateManager(this, "scheduledEvents", () => new ScheduledEventsManager(this));
+        registerManagerClass("scheduledEvents", ScheduledEventsManager);
+    return getOrCreateManager(this, "scheduledEvents", () => new ScheduledEventsManager(this));
     };
 }
 

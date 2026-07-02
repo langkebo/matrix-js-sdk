@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import type { ISendEventResponse } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { EventType } from "../@types/event";
 import { HistoryVisibility, GuestAccess, JoinRule } from "../@types/partials";
 
@@ -139,15 +139,11 @@ export class RoomSettingsManager extends BaseManager<keyof RoomSettingsManagerEv
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomSettingsManager(): RoomSettingsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomSettingsManager = function (): RoomSettingsManager {
-        return getOrCreateManager(this, "roomSettings", () => new RoomSettingsManager(this));
+        registerManagerClass("roomSettings", RoomSettingsManager);
+    return getOrCreateManager(this, "roomSettings", () => new RoomSettingsManager(this));
     };
 }
 

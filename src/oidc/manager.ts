@@ -38,7 +38,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import type { OidcPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -410,15 +410,11 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getOidcManager(): OidcManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getOidcManager = function (): OidcManager {
-        return getOrCreateManager(this, "oidc", () => new OidcManager(this));
+        registerManagerClass("oidc", OidcManager);
+    return getOrCreateManager(this, "oidc", () => new OidcManager(this));
     };
 }
 

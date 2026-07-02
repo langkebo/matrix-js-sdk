@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import type { UploadOpts } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IUploadOptions {
     name?: string;
@@ -77,15 +77,11 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getUploadsManager(): UploadsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUploadsManager = function (): UploadsManager {
-        return getOrCreateManager(this, "uploads", () => new UploadsManager(this));
+        registerManagerClass("uploads", UploadsManager);
+    return getOrCreateManager(this, "uploads", () => new UploadsManager(this));
     };
 }
 

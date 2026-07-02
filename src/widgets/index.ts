@@ -26,7 +26,7 @@ import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { type WidgetData } from "../matrix-client-extensions";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
@@ -419,15 +419,11 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getWidgetsManager(): WidgetsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWidgetsManager = function (): WidgetsManager {
-        return getOrCreateManager(this, "widgets", () => new WidgetsManager(this));
+        registerManagerClass("widgets", WidgetsManager);
+    return getOrCreateManager(this, "widgets", () => new WidgetsManager(this));
     };
 }
 

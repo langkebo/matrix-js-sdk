@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { MatrixHttpApi, IHttpOpts } from "../http-api";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRequestOptions {
     method?: string;
@@ -81,15 +81,11 @@ export class HttpManager extends BaseManager<keyof HttpManagerEvents, HttpManage
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getHttpManager(): HttpManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getHttpManager = function (): HttpManager {
-        return getOrCreateManager(this, "http", () => new HttpManager(this));
+        registerManagerClass("http", HttpManager);
+    return getOrCreateManager(this, "http", () => new HttpManager(this));
     };
 }
 

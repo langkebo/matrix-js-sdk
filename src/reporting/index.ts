@@ -25,7 +25,7 @@ import { Method } from "../http-api/index";
 import { ClientPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { EmptyObject } from "../@types/common";
 
 export interface ReportResult {
@@ -93,15 +93,11 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getReportingManager(): ReportingManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReportingManager = function (): ReportingManager {
-        return getOrCreateManager(this, "reporting", () => new ReportingManager(this));
+        registerManagerClass("reporting", ReportingManager);
+    return getOrCreateManager(this, "reporting", () => new ReportingManager(this));
     };
 }
 

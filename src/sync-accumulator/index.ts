@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { SyncAccumulator, type IJoinedRoom, type IInvitedRoom, type ILeftRoom, type ISyncResponse } from "../sync-accumulator";
 import { type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISyncAccumulatedData {
     rooms?: {
@@ -79,15 +79,11 @@ export class SyncAccumulatorManager extends BaseManager<
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSyncAccumulatorManager(): SyncAccumulatorManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSyncAccumulatorManager = function (): SyncAccumulatorManager {
-        return getOrCreateManager(this, "syncAccumulator", () => new SyncAccumulatorManager(this));
+        registerManagerClass("syncAccumulator", SyncAccumulatorManager);
+    return getOrCreateManager(this, "syncAccumulator", () => new SyncAccumulatorManager(this));
     };
 }
 

@@ -17,17 +17,14 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { EventManager } from "./EventManager";
 import type { RetryOptions } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export * from "./EventManager";
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getEventManager(): EventManager;
-    }
-}
 
 export function extendMatrixClient(): void {
+    registerManagerClass("event", EventManager);
+
     if (MatrixClient.prototype.hasOwnProperty("getEventManager")) return;
 
     MatrixClient.prototype.getEventManager = function (this: MatrixClient): EventManager {

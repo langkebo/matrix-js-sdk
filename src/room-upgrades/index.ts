@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRoomUpgradeHistory {
     roomId: string;
@@ -68,15 +68,11 @@ export class RoomUpgradesManager extends BaseManager<keyof RoomUpgradesManagerEv
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomUpgradesManager(): RoomUpgradesManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomUpgradesManager = function (): RoomUpgradesManager {
-        return getOrCreateManager(this, "roomUpgrades", () => new RoomUpgradesManager(this));
+        registerManagerClass("roomUpgrades", RoomUpgradesManager);
+    return getOrCreateManager(this, "roomUpgrades", () => new RoomUpgradesManager(this));
     };
 }
 

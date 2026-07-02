@@ -33,7 +33,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { MatrixEvent, type IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RoomAccountDataManagerEvents {
     account_data_updated: { roomId: string; eventType: string; event: MatrixEvent };
@@ -83,15 +83,11 @@ export class RoomAccountDataManager extends BaseManager<
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomAccountDataManager(): RoomAccountDataManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomAccountDataManager = function (): RoomAccountDataManager {
-        return getOrCreateManager(this, "roomAccountData", () => new RoomAccountDataManager(this));
+        registerManagerClass("roomAccountData", RoomAccountDataManager);
+    return getOrCreateManager(this, "roomAccountData", () => new RoomAccountDataManager(this));
     };
 }
 

@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IPublicRoom {
     room_id: string;
@@ -126,15 +126,11 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getDirectoryManager(): DirectoryManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDirectoryManager = function (): DirectoryManager {
-        return getOrCreateManager(this, "directory", () => new DirectoryManager(this));
+        registerManagerClass("directory", DirectoryManager);
+    return getOrCreateManager(this, "directory", () => new DirectoryManager(this));
     };
 }
 

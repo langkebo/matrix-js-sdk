@@ -41,7 +41,7 @@ import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { MatrixError } from "../http-api/errors";
 import { NotFoundError } from "../errors";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { validateUserId, validateRoomId } from "../common/validators";
 
 export enum DMEvent {
@@ -1075,11 +1075,6 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 }
 
 // Type declaration for MatrixClient extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getDirectMessageManager(): DirectMessageManager;
-    }
-}
 
 /**
  * 扩展 MatrixClient 原型
@@ -1089,7 +1084,8 @@ export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getDirectMessageManager")) return;
 
     MatrixClient.prototype.getDirectMessageManager = function (): DirectMessageManager {
-        return getOrCreateManager(this, "dm", () => new DirectMessageManager(this));
+        registerManagerClass("dm", DirectMessageManager);
+    return getOrCreateManager(this, "dm", () => new DirectMessageManager(this));
     };
 }
 

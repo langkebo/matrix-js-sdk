@@ -35,7 +35,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -272,15 +272,11 @@ export class SecureBackupManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSecureBackupManager(): SecureBackupManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecureBackupManager = function (): SecureBackupManager {
-        return getOrCreateManager(this, "secureBackup", () => new SecureBackupManager(this));
+        registerManagerClass("secureBackup", SecureBackupManager);
+    return getOrCreateManager(this, "secureBackup", () => new SecureBackupManager(this));
     };
 }
 

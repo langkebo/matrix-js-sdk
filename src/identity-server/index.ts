@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { IdentityPrefix, Method } from "../http-api/index";
 import type { EmptyObject } from "../@types/common";
 import type { IOpenIDToken, IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
@@ -433,17 +433,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getIdentityServerManager(): IdentityServerManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getIdentityServerManager")) return;
 
     MatrixClient.prototype.getIdentityServerManager = function (this: MatrixClient): IdentityServerManager {
-        return getOrCreateManager(this, "identityServer", () => new IdentityServerManager(this));
+        registerManagerClass("identityServer", IdentityServerManager);
+    return getOrCreateManager(this, "identityServer", () => new IdentityServerManager(this));
     };
 }
 

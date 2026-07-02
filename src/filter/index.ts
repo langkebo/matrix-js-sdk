@@ -38,7 +38,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { buildCreateFilterPath, buildFilterPath } from "../client-account-data-requests";
 import { BaseManager } from "../managers/base-manager";
 import { ApiError, NotFoundError, ValidationError } from "../errors";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export class FilterManager extends BaseManager {
     constructor(client: MatrixClient) {
@@ -135,15 +135,11 @@ export class FilterManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getFilterManager(): FilterManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFilterManager = function (): FilterManager {
-        return getOrCreateManager(this, "filter", () => new FilterManager(this));
+        registerManagerClass("filter", FilterManager);
+    return getOrCreateManager(this, "filter", () => new FilterManager(this));
     };
 }
 

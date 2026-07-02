@@ -43,7 +43,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { BaseManager, type RequestStats } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError, ValidationError, SdkError } from "../errors";
 import { logger } from "../logger";
 import type { IContent } from "../models/event";
@@ -811,15 +811,11 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getBurnAfterReadManager(): BurnAfterReadManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getBurnAfterReadManager = function (): BurnAfterReadManager {
-        return getOrCreateManager(this, "BurnAfterReadManager", () => new BurnAfterReadManager(this));
+        registerManagerClass("BurnAfterReadManager", BurnAfterReadManager);
+    return getOrCreateManager(this, "BurnAfterReadManager", () => new BurnAfterReadManager(this));
     };
 }
 

@@ -27,7 +27,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import type { CasPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
@@ -255,15 +255,11 @@ export class CasManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCasManager(): CasManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCasManager = function (): CasManager {
-        return getOrCreateManager(this, "cas", () => new CasManager(this));
+        registerManagerClass("cas", CasManager);
+    return getOrCreateManager(this, "cas", () => new CasManager(this));
     };
 }
 

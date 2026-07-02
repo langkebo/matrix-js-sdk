@@ -33,7 +33,7 @@ import type { IRelationsResponse } from "../@types/requests";
 import { Filter } from "../filter";
 import { noUnsafeEventProps, sleep } from "../utils";
 import { mapStateAndChunkFromMessages, deriveBackPaginationTokenFromMessages } from "../client-timeline-core";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TimelineManagerEvents {
     timelineFetched: (data: { roomId: string; eventId: string }) => void;
@@ -426,17 +426,13 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getTimelineManager(): TimelineManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getTimelineManager")) return;
 
     MatrixClient.prototype.getTimelineManager = function (this: MatrixClient): TimelineManager {
-        return getOrCreateManager(this, "timeline", () => new TimelineManager(this));
+        registerManagerClass("timeline", TimelineManager);
+    return getOrCreateManager(this, "timeline", () => new TimelineManager(this));
     };
 }
 

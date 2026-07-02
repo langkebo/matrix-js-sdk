@@ -37,7 +37,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import type { BackgroundUpdatePathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
@@ -291,15 +291,11 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getBackgroundUpdateManager(): BackgroundUpdateManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getBackgroundUpdateManager = function (): BackgroundUpdateManager {
-        return getOrCreateManager(this, "backgroundUpdate", () => new BackgroundUpdateManager(this));
+        registerManagerClass("backgroundUpdate", BackgroundUpdateManager);
+    return getOrCreateManager(this, "backgroundUpdate", () => new BackgroundUpdateManager(this));
     };
 }
 

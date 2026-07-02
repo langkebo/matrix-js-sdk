@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { type IContent } from "../models/event";
 import type { ICreateRoomOpts } from "../@types/requests";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ICreateRoomOptions {
     room_alias_name?: string;
@@ -96,15 +96,11 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomCreationManager(): RoomCreationManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomCreationManager = function (): RoomCreationManager {
-        return getOrCreateManager(this, "roomCreation", () => new RoomCreationManager(this));
+        registerManagerClass("roomCreation", RoomCreationManager);
+    return getOrCreateManager(this, "roomCreation", () => new RoomCreationManager(this));
     };
 }
 

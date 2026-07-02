@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export type ClaimedKeys = Record<string, Record<string, string>>;
 
@@ -67,15 +67,11 @@ export class KeyClaimManager extends BaseManager<keyof KeyClaimManagerEvents, Ke
 }
 
 // Declare prototype extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getKeyClaimManager(): KeyClaimManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyClaimManager = function (): KeyClaimManager {
-        return getOrCreateManager(this, "keyClaim", () => new KeyClaimManager(this));
+        registerManagerClass("keyClaim", KeyClaimManager);
+    return getOrCreateManager(this, "keyClaim", () => new KeyClaimManager(this));
     };
 }
 

@@ -43,7 +43,7 @@ import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
 import type { AuthPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import {
     buildEmailTokenRequestParams,
     buildMsisdnTokenRequestParams,
@@ -642,15 +642,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getAuthManager(): AuthManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAuthManager = function (): AuthManager {
-        return getOrCreateManager(this, "auth", () => new AuthManager(this));
+        registerManagerClass("auth", AuthManager);
+    return getOrCreateManager(this, "auth", () => new AuthManager(this));
     };
 }
 

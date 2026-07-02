@@ -28,7 +28,7 @@ import type { UploadOpts } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { MediaPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IMediaConfig } from "../client-internal-types";
 
 type StripMediaPrefix<P extends string> =
@@ -475,15 +475,11 @@ export class MediaManager extends BaseManager {
 }
 
 // Declare prototype extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getMediaManager(): MediaManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMediaManager = function (): MediaManager {
-        return getOrCreateManager(this, "media", () => new MediaManager(this));
+        registerManagerClass("media", MediaManager);
+    return getOrCreateManager(this, "media", () => new MediaManager(this));
     };
 }
 

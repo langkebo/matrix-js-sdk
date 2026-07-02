@@ -1,7 +1,7 @@
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
 const MSC3814_PREFIX = "/_matrix/client/unstable/org.matrix.msc3814.v1";
@@ -168,15 +168,11 @@ export class DehydratedDeviceManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getDehydratedDeviceManager(): DehydratedDeviceManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDehydratedDeviceManager = function (): DehydratedDeviceManager {
-        return getOrCreateManager(this, "dehydratedDevice", () => new DehydratedDeviceManager(this));
+        registerManagerClass("dehydratedDevice", DehydratedDeviceManager);
+    return getOrCreateManager(this, "dehydratedDevice", () => new DehydratedDeviceManager(this));
     };
 }
 

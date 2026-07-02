@@ -25,7 +25,7 @@ import { type ITurnServer, type ITurnServerResponse } from "../client";
 import { ClientEvent } from "../client";
 import { type HTTPError } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 const TURN_CHECK_INTERVAL = 30 * 1000;
 
@@ -123,15 +123,11 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getTurnServerManager(): TurnServerManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTurnServerManager = function (): TurnServerManager {
-        return getOrCreateManager(this, "turnServer", () => new TurnServerManager(this));
+        registerManagerClass("turnServer", TurnServerManager);
+    return getOrCreateManager(this, "turnServer", () => new TurnServerManager(this));
     };
 }
 

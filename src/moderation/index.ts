@@ -11,7 +11,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ReportEventBody {
     reason?: string;
@@ -110,15 +110,11 @@ export class ModerationManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getModerationManager(): ModerationManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getModerationManager = function (): ModerationManager {
-        return getOrCreateManager(this, "moderation", () => new ModerationManager(this));
+        registerManagerClass("moderation", ModerationManager);
+    return getOrCreateManager(this, "moderation", () => new ModerationManager(this));
     };
 }
 

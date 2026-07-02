@@ -36,7 +36,7 @@ import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { EphemeralPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -225,15 +225,11 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getEphemeralManager(): EphemeralManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEphemeralManager = function (): EphemeralManager {
-        return getOrCreateManager(this, "ephemeral", () => new EphemeralManager(this));
+        registerManagerClass("ephemeral", EphemeralManager);
+    return getOrCreateManager(this, "ephemeral", () => new EphemeralManager(this));
     };
 }
 

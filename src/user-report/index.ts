@@ -26,7 +26,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -60,15 +60,11 @@ export class UserReportManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getUserReportManager(): UserReportManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserReportManager = function (): UserReportManager {
-        return getOrCreateManager(this, "userReport", () => new UserReportManager(this));
+        registerManagerClass("userReport", UserReportManager);
+    return getOrCreateManager(this, "userReport", () => new UserReportManager(this));
     };
 }
 

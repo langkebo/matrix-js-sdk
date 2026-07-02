@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ServerTimeManagerEvents {
     time_synced: (data: { diff: number }) => void;
@@ -59,15 +59,11 @@ export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getServerTimeManager(): ServerTimeManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getServerTimeManager = function (): ServerTimeManager {
-        return getOrCreateManager(this, "serverTime", () => new ServerTimeManager(this));
+        registerManagerClass("serverTime", ServerTimeManager);
+    return getOrCreateManager(this, "serverTime", () => new ServerTimeManager(this));
     };
 }
 

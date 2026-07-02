@@ -26,7 +26,7 @@ import { Method } from "../http-api/method";
 import type { IThreepid } from "../@types/three-pids";
 import type { IdServerUnbindResult } from "../@types/partials";
 import type { EmptyObject } from "../@types/common";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export type ThreePidsManagerEvents = Record<
     "threepid_bound" | "threepid_unbound" | "threepid_deleted",
@@ -123,17 +123,13 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getThreePidsManager(): ThreePidsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getThreePidsManager")) return;
 
     MatrixClient.prototype.getThreePidsManager = function (this: MatrixClient): ThreePidsManager {
-        return getOrCreateManager(this, "threepids", () => new ThreePidsManager(this));
+        registerManagerClass("threepids", ThreePidsManager);
+    return getOrCreateManager(this, "threepids", () => new ThreePidsManager(this));
     };
 }
 

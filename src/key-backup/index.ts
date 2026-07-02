@@ -31,7 +31,7 @@ import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
 import type { KeyBackupPathPattern } from "./__generated__/route-table";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { Aes256AuthData } from "../crypto-api/keybackup";
 import type { AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 
@@ -643,15 +643,11 @@ export class KeyBackupManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getKeyBackupManager(): KeyBackupManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyBackupManager = function (): KeyBackupManager {
-        return getOrCreateManager(this, "keyBackup", () => new KeyBackupManager(this));
+        registerManagerClass("keyBackup", KeyBackupManager);
+    return getOrCreateManager(this, "keyBackup", () => new KeyBackupManager(this));
     };
 }
 

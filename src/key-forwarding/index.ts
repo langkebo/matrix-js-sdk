@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IForwardedKey {
     roomId: string;
@@ -80,15 +80,11 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getKeyForwardingManager(): KeyForwardingManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyForwardingManager = function (): KeyForwardingManager {
-        return getOrCreateManager(this, "keyForwarding", () => new KeyForwardingManager(this));
+        registerManagerClass("keyForwarding", KeyForwardingManager);
+    return getOrCreateManager(this, "keyForwarding", () => new KeyForwardingManager(this));
     };
 }
 

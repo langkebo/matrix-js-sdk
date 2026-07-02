@@ -35,7 +35,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import type { TelemetryPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
@@ -408,14 +408,10 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getTelemetryManager(config?: Partial<TelemetryConfig>): TelemetryManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTelemetryManager = function (config?: Partial<TelemetryConfig>): TelemetryManager {
+        registerManagerFactory("telemetry", (client) => new TelemetryManager(client));
         return getOrCreateManager(this, "telemetry", () => new TelemetryManager(this, config));
     };
 }

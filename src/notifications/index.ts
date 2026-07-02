@@ -25,7 +25,7 @@ import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { validateLimit } from "../common/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -143,15 +143,11 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getNotificationsManager(): NotificationsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getNotificationsManager = function (): NotificationsManager {
-        return getOrCreateManager(this, "notifications", () => new NotificationsManager(this));
+        registerManagerClass("notifications", NotificationsManager);
+    return getOrCreateManager(this, "notifications", () => new NotificationsManager(this));
     };
 }
 

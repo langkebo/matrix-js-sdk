@@ -49,7 +49,7 @@ import { Feature } from "../feature";
 import { deepCompare } from "../utils";
 import { logger } from "../logger";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
 export enum AccountDataEvent {
@@ -336,15 +336,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
 }
 
 // Declare prototype extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getAccountDataManager(): AccountDataManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAccountDataManager = function (): AccountDataManager {
-        return getOrCreateManager(this, "accountData", () => new AccountDataManager(this));
+        registerManagerClass("accountData", AccountDataManager);
+    return getOrCreateManager(this, "accountData", () => new AccountDataManager(this));
     };
 }
 

@@ -35,7 +35,7 @@ import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { InvalidParamError } from "../common/errors";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RetentionPolicy {
     max_lifetime?: number;
@@ -230,15 +230,11 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRetentionManager(): RetentionManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRetentionManager = function (): RetentionManager {
-        return getOrCreateManager(this, "retention", () => new RetentionManager(this));
+        registerManagerClass("retention", RetentionManager);
+    return getOrCreateManager(this, "retention", () => new RetentionManager(this));
     };
 }
 

@@ -39,7 +39,7 @@ import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { AiConnectionPathPattern } from "./__generated__/route-table";
 import type {
@@ -204,15 +204,11 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getAIConnectionManager(): AIConnectionManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAIConnectionManager = function (): AIConnectionManager {
-        return getOrCreateManager(this, "aiConnection", () => new AIConnectionManager(this));
+        registerManagerClass("aiConnection", AIConnectionManager);
+    return getOrCreateManager(this, "aiConnection", () => new AIConnectionManager(this));
     };
 }
 

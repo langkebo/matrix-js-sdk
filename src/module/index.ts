@@ -437,11 +437,6 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 /**
  * 声明 MatrixClient 上的模块管理器访问器
  */
-declare module "../client.ts" {
-    interface MatrixClient {
-        getModuleManager(): ModuleManager;
-    }
-}
 
 /**
  * 将 ModuleManager 注册为客户端实例上的惰性单例

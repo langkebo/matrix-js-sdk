@@ -115,6 +115,7 @@ export interface ManagerExtensionsOptions {
     includeRoomAccountData?: boolean;
     includeBackgroundUpdate?: boolean;
     includeUserDirectory?: boolean;
+    includeManagerAccessor?: boolean;
     includeAll?: boolean;
 }
 
@@ -370,6 +371,10 @@ export async function extendMatrixClientWithManagers(
         const promises: Promise<void | undefined>[] = [];
 
         try {
+            // manager() accessor — must load first so the prototype method exists
+            // before any registerManagerClass calls from other extendMatrixClient functions
+            promises.push(safeDynamicImport(import("../client-infra/manager-accessor.js").then((m) => m?.extendMatrixClient())));
+
             if (currentOptions.includeAdmin || all) {
                 promises.push(safeDynamicImport(import("../admin/index.js").then((m) => m?.extendMatrixClient())));
                 promises.push(safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())));

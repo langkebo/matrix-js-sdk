@@ -21,7 +21,7 @@ import { MatrixClient } from "../client";
 import { ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import type { WorkerAdminPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
@@ -234,14 +234,10 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getWorkerAdminManager(): WorkerAdminManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWorkerAdminManager = function (): WorkerAdminManager {
-        return getOrCreateManager(this, "workerAdmin", () => new WorkerAdminManager(this));
+        registerManagerClass("workerAdmin", WorkerAdminManager);
+    return getOrCreateManager(this, "workerAdmin", () => new WorkerAdminManager(this));
     };
 }

@@ -20,7 +20,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
 export interface IVoiceStats {
@@ -384,15 +384,11 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getVoiceManager(): VoiceManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVoiceManager = function (): VoiceManager {
-        return getOrCreateManager(this, "voice", () => new VoiceManager(this));
+        registerManagerClass("voice", VoiceManager);
+    return getOrCreateManager(this, "voice", () => new VoiceManager(this));
     };
 }
 

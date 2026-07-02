@@ -37,7 +37,7 @@ import { MatrixClient } from "../client";
 import { NotFoundError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { FriendPathPattern } from "./__generated__/route-table";
@@ -636,15 +636,11 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getFriendManager(): FriendManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFriendManager = function (): FriendManager {
-        return getOrCreateManager(this, "friend", () => new FriendManager(this));
+        registerManagerClass("friend", FriendManager);
+    return getOrCreateManager(this, "friend", () => new FriendManager(this));
     };
 }
 

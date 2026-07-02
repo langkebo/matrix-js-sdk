@@ -25,7 +25,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { BaseManager } from "../managers/base-manager";
 import { logger } from "../logger";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 const ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
 
@@ -149,15 +149,11 @@ export class SecurityManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSecurityManager(): SecurityManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecurityManager = function (): SecurityManager {
-        return getOrCreateManager(this, "security", () => new SecurityManager(this));
+        registerManagerClass("security", SecurityManager);
+    return getOrCreateManager(this, "security", () => new SecurityManager(this));
     };
 }
 

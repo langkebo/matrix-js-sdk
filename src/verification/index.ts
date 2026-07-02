@@ -13,7 +13,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import type { VerificationPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
@@ -331,15 +331,11 @@ export class VerificationManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getVerificationManager(): VerificationManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVerificationManager = function (): VerificationManager {
-        return getOrCreateManager(this, "verification", () => new VerificationManager(this));
+        registerManagerClass("verification", VerificationManager);
+    return getOrCreateManager(this, "verification", () => new VerificationManager(this));
     };
 }
 

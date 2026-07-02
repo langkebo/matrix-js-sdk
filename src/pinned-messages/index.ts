@@ -35,6 +35,7 @@ import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
+import { getOrCreateManager, registerManagerClass } from "../client-infra/manager-registry";
 
 export enum PinnedEvent {
     Pinned = "Pinned",
@@ -209,16 +210,11 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getPinnedMessagesManager(): PinnedMessagesManager;
-    }
-}
 
 export function extendMatrixClient(): void {
-    const { getOrCreateManager } = require("../client-infra/manager-registry.ts");
+    registerManagerClass("pinnedMessages", PinnedMessagesManager);
     MatrixClient.prototype.getPinnedMessagesManager = function (): PinnedMessagesManager {
-        return getOrCreateManager(this, "pinnedMessages", PinnedMessagesManager);
+        return getOrCreateManager(this, "pinnedMessages", () => new PinnedMessagesManager(this));
     };
 }
 

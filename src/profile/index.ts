@@ -32,7 +32,7 @@ import { type EmptyObject } from "../@types/common";
 import { getHttpUriForMxc } from "../content-repo";
 import { BaseManager } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import { validateUserId } from "../common/validators";
 import { ValidationError } from "../errors";
@@ -581,17 +581,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getProfileManager(): ProfileManager;
-        setDisplayName(name: string): Promise<void>;
-        setAvatarUrl(url: string): Promise<void>;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getProfileManager = function (): ProfileManager {
-        return getOrCreateManager(this, "profile", () => new ProfileManager(this));
+        registerManagerClass("profile", ProfileManager);
+    return getOrCreateManager(this, "profile", () => new ProfileManager(this));
     };
     MatrixClient.prototype.getProfileInfo = function (userId: string): Promise<IProfile> {
         return this.getProfileManager().getProfileInfo(userId);

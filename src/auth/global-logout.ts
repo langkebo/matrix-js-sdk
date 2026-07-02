@@ -23,7 +23,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { BaseManager } from "../managers/base-manager";
 
 export class GlobalLogoutManager extends BaseManager {
@@ -89,15 +89,11 @@ interface Device {
     lastSeenTs?: number;
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getGlobalLogoutManager(): GlobalLogoutManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getGlobalLogoutManager = function (): GlobalLogoutManager {
-        return getOrCreateManager(this, "authGlobalLogout", () => new GlobalLogoutManager(this));
+        registerManagerClass("authGlobalLogout", GlobalLogoutManager);
+    return getOrCreateManager(this, "authGlobalLogout", () => new GlobalLogoutManager(this));
     };
 }
 

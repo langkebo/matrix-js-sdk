@@ -25,7 +25,7 @@ import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { validateRoomId, validateLimit } from "../common/validators";
 import { ValidationError } from "../errors";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/index";
 import {
     type ISearchRequestBody,
@@ -339,15 +339,11 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSearchManager(): SearchManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSearchManager = function (): SearchManager {
-        return getOrCreateManager(this, "search", () => new SearchManager(this));
+        registerManagerClass("search", SearchManager);
+    return getOrCreateManager(this, "search", () => new SearchManager(this));
     };
 }
 

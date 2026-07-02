@@ -38,7 +38,7 @@ import { BaseManager } from "../managers/base-manager";
 import { NotFoundError } from "../errors";
 import { logger } from "../logger";
 import { LRUCache } from "../utils/lru-cache";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { KeySignatures, IUploadKeySignaturesResponse, IDownloadKeyResult, IClaimOTKsResult } from "../client-api-types";
 
 export interface IDeviceKeys {
@@ -329,15 +329,11 @@ export class CryptoKeysManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCryptoKeysManager(): CryptoKeysManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoKeysManager = function (): CryptoKeysManager {
-        return getOrCreateManager(this, "cryptoKeys", () => new CryptoKeysManager(this));
+        registerManagerClass("cryptoKeys", CryptoKeysManager);
+    return getOrCreateManager(this, "cryptoKeys", () => new CryptoKeysManager(this));
     };
 }
 

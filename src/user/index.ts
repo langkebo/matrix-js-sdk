@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { type EmptyObject } from "../@types/common";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
 export interface UserManagerEvents {
@@ -97,17 +97,11 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getUserManager(): UserManager;
-        getUser(userId: string): User | null;
-        getUsers(): User[];
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserManager = function (): UserManager {
-        return getOrCreateManager(this, "user", () => new UserManager(this));
+        registerManagerClass("user", UserManager);
+    return getOrCreateManager(this, "user", () => new UserManager(this));
     };
 
     MatrixClient.prototype.getUser = function (this: MatrixClient, userId: string): User | null {

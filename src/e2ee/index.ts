@@ -14,7 +14,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import type { E2eePathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type {
     UploadKeysOptions,
     UploadKeysResponse,
@@ -552,15 +552,11 @@ export class E2EEManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getE2EEManager(): E2EEManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getE2EEManager = function (): E2EEManager {
-        return getOrCreateManager(this, "e2ee", () => new E2EEManager(this));
+        registerManagerClass("e2ee", E2EEManager);
+    return getOrCreateManager(this, "e2ee", () => new E2EEManager(this));
     };
 }
 

@@ -28,7 +28,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { SendToDeviceContentMap } from "../client-api-types";
 import type { EmptyObject } from "../@types/common";
 import type { ToDeviceBatch as ModelToDeviceBatch, ToDevicePayload } from "../models/ToDeviceMessage";
@@ -180,15 +180,11 @@ export class ToDeviceManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getToDeviceManager(): ToDeviceManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getToDeviceManager = function (): ToDeviceManager {
-        return getOrCreateManager(this, "toDevice", () => new ToDeviceManager(this));
+        registerManagerClass("toDevice", ToDeviceManager);
+    return getOrCreateManager(this, "toDevice", () => new ToDeviceManager(this));
     };
 }
 

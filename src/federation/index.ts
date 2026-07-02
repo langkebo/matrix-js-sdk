@@ -36,7 +36,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
 import { IUserProfile } from "../user-directory/index";
 import { ValidationError } from "../errors";
@@ -1056,7 +1056,8 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFederationManager = function (): FederationManager {
-        return getOrCreateManager(this, "federation", () => new FederationManager(this));
+        registerManagerClass("federation", FederationManager);
+    return getOrCreateManager(this, "federation", () => new FederationManager(this));
     };
 }
 

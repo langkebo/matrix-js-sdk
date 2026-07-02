@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TokenInfo {
     accessToken: string | undefined;
@@ -88,15 +88,11 @@ export class TokenManager extends BaseManager<keyof TokenManagerEvents, TokenMan
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getTokenManager(): TokenManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTokenManager = function (): TokenManager {
-        return getOrCreateManager(this, "tokenManagement", () => new TokenManager(this));
+        registerManagerClass("tokenManagement", TokenManager);
+    return getOrCreateManager(this, "tokenManagement", () => new TokenManager(this));
     };
 }
 

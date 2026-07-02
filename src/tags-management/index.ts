@@ -25,7 +25,7 @@ import { Method } from "../http-api/index";
 import { type IContent } from "../models/event";
 import { buildRoomAccountDataPath, buildRoomTagPath } from "../client-account-data-requests";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ITagContent {
     order?: number;
@@ -89,15 +89,11 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
 
 interface EmptyObject {}
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getTagsManager(): TagsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTagsManager = function (): TagsManager {
-        return getOrCreateManager(this, "tagsManagement", () => new TagsManager(this));
+        registerManagerClass("tagsManagement", TagsManager);
+    return getOrCreateManager(this, "tagsManagement", () => new TagsManager(this));
     };
 }
 

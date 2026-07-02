@@ -30,7 +30,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { BaseManager } from "../managers/base-manager";
 
 type StripAuthPrefix<P extends string> =
@@ -179,15 +179,11 @@ export class QrLoginManager extends BaseManager {
     }
 }
 
-declare module "../client" {
-    interface MatrixClient {
-        getQrLoginManager(): QrLoginManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getQrLoginManager = function (): QrLoginManager {
-        return getOrCreateManager(this, "qrLogin", () => new QrLoginManager(this));
+        registerManagerClass("qrLogin", QrLoginManager);
+    return getOrCreateManager(this, "qrLogin", () => new QrLoginManager(this));
     };
 }
 

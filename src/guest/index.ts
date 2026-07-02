@@ -32,7 +32,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
 import type { GuestPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -498,14 +498,10 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getGuestManager(): GuestManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getGuestManager = function (): GuestManager {
+        registerManagerFactory("guest", (client) => new GuestManager(client, client.getHomeserverUrl()));
         return getOrCreateManager(this, "guest", () => new GuestManager(this, this.getHomeserverUrl()));
     };
 }

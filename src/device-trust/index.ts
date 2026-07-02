@@ -35,7 +35,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
 import { InvalidParamError } from "../common/errors";
 import { LRUCache } from "../utils/lru-cache";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum DeviceTrustEvent {
     VerificationRequested = "VerificationRequested",
@@ -303,15 +303,11 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getDeviceTrustManager(): DeviceTrustManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceTrustManager = function (): DeviceTrustManager {
-        return getOrCreateManager(this, "deviceTrust", () => new DeviceTrustManager(this));
+        registerManagerClass("deviceTrust", DeviceTrustManager);
+    return getOrCreateManager(this, "deviceTrust", () => new DeviceTrustManager(this));
     };
 }
 

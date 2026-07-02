@@ -36,7 +36,7 @@ import { BaseManager } from "../managers/base-manager";
 import { NotFoundError, ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
 import type { DevicePathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IAuthData } from "../interactive-auth";
 
 export enum DeviceEvent {
@@ -645,15 +645,11 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getDeviceManager(): DeviceManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceManager = function (): DeviceManager {
-        return getOrCreateManager(this, "device", () => new DeviceManager(this));
+        registerManagerClass("device", DeviceManager);
+    return getOrCreateManager(this, "device", () => new DeviceManager(this));
     };
 }
 

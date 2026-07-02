@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface CryptoStoreInfo {
     type: string;
@@ -57,15 +57,11 @@ export class CryptoStoreManager extends BaseManager<keyof CryptoStoreManagerEven
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCryptoStoreManager(): CryptoStoreManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoStoreManager = function (): CryptoStoreManager {
-        return getOrCreateManager(this, "cryptoStore", () => new CryptoStoreManager(this));
+        registerManagerClass("cryptoStore", CryptoStoreManager);
+    return getOrCreateManager(this, "cryptoStore", () => new CryptoStoreManager(this));
     };
 }
 

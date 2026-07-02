@@ -30,7 +30,7 @@ import {
     type SamlUserMappingPage,
     type SamlRefreshResult,
 } from "./__generated__/dto";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 /**
  * SAML Auth Manager - SAML 认证管理 API 封装
@@ -264,15 +264,11 @@ export class SamlAuthManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSamlAuthManager(): SamlAuthManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSamlAuthManager = function (): SamlAuthManager {
-        return getOrCreateManager(this, "saml-auth", () => new SamlAuthManager(this));
+        registerManagerClass("saml-auth", SamlAuthManager);
+    return getOrCreateManager(this, "saml-auth", () => new SamlAuthManager(this));
     };
 }
 

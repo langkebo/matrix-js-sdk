@@ -23,7 +23,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { type IPreviewUrlResponse } from "../client-api-types";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export class UrlPreviewManager {
     private client: MatrixClient;
@@ -49,15 +49,11 @@ export class UrlPreviewManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getUrlPreviewManager(): UrlPreviewManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUrlPreviewManager = function (): UrlPreviewManager {
-        return getOrCreateManager(this, "urlPreview", () => new UrlPreviewManager(this));
+        registerManagerClass("urlPreview", UrlPreviewManager);
+    return getOrCreateManager(this, "urlPreview", () => new UrlPreviewManager(this));
     };
 }
 

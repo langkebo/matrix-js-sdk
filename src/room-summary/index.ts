@@ -123,7 +123,7 @@ import { Body } from "../http-api/interface";
 import { InvalidParamError } from "../common/errors";
 import { type QueryDict } from "../utils";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types";
 import type { IContent } from "../models/event";
@@ -1128,11 +1128,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 }
 
 // Type declaration for MatrixClient extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomSummaryManager(): RoomSummaryManager;
-    }
-}
 
 /**
  * 扩展 MatrixClient 原型
@@ -1140,7 +1135,8 @@ declare module "../client.ts" {
 export function extendMatrixClient(): void {
     if (typeof MatrixClient === "undefined") return;
     MatrixClient.prototype.getRoomSummaryManager = function (): RoomSummaryManager {
-        return getOrCreateManager(this, "roomSummary", () => new RoomSummaryManager(this));
+        registerManagerClass("roomSummary", RoomSummaryManager);
+    return getOrCreateManager(this, "roomSummary", () => new RoomSummaryManager(this));
     };
 }
 

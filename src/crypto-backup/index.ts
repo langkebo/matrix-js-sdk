@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { Curve25519AuthData, Aes256AuthData } from "../crypto-api/keybackup";
 import type { ISigned } from "../@types/signed";
 
@@ -110,15 +110,11 @@ export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEv
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCryptoBackupManager(): CryptoBackupManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoBackupManager = function (): CryptoBackupManager {
-        return getOrCreateManager(this, "cryptoBackup", () => new CryptoBackupManager(this));
+        registerManagerClass("cryptoBackup", CryptoBackupManager);
+    return getOrCreateManager(this, "cryptoBackup", () => new CryptoBackupManager(this));
     };
 }
 

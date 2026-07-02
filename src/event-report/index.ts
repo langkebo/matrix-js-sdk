@@ -15,7 +15,7 @@ import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import type { EventReportPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
 
 type StripAdminPrefix<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
@@ -479,15 +479,11 @@ export class EventReportManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getEventReportManager(): EventReportManager;
-    }
-}
 
 /** @internal */
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventReportManager = function (): EventReportManager {
-        return getOrCreateManager(this, "eventReport", () => new EventReportManager(this));
+        registerManagerClass("eventReport", EventReportManager);
+    return getOrCreateManager(this, "eventReport", () => new EventReportManager(this));
     };
 }

@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IPusher {
     pushkey: string;
@@ -65,15 +65,11 @@ export class PushNotificationsManager {
 }
 
 // Declare prototype extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getPushNotificationsManager(): PushNotificationsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPushNotificationsManager = function (): PushNotificationsManager {
-        return getOrCreateManager(this, "pushNotifications", () => new PushNotificationsManager(this));
+        registerManagerClass("pushNotifications", PushNotificationsManager);
+    return getOrCreateManager(this, "pushNotifications", () => new PushNotificationsManager(this));
     };
 }
 

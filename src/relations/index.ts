@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { type IEvent, type IContent, type MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { Direction } from "../models/event-timeline";
@@ -366,15 +366,11 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
 }
 
 // Declare prototype extension
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRelationsManager(): RelationsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRelationsManager = function (): RelationsManager {
-        return getOrCreateManager(this, "relations", () => new RelationsManager(this));
+        registerManagerClass("relations", RelationsManager);
+    return getOrCreateManager(this, "relations", () => new RelationsManager(this));
     };
 }
 

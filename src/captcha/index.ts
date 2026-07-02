@@ -27,7 +27,7 @@ import { Method } from "../http-api";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { BaseManager } from "../managers/base-manager";
 import type { CaptchaPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
@@ -186,15 +186,11 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCaptchaManager(): CaptchaManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCaptchaManager = function (): CaptchaManager {
-        return getOrCreateManager(this, "captcha", () => new CaptchaManager(this));
+        registerManagerClass("captcha", CaptchaManager);
+    return getOrCreateManager(this, "captcha", () => new CaptchaManager(this));
     };
 }
 

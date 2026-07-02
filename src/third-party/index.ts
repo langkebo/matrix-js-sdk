@@ -4,7 +4,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { ThirdpartyPathPattern } from "./__generated__/route-table";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
 import type { QueryDict } from "../utils";
 import * as utils from "../utils";
@@ -333,15 +333,11 @@ export class ThirdPartyManager extends BaseManager {
 
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getThirdPartyManager(): ThirdPartyManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getThirdPartyManager = function (): ThirdPartyManager {
-        return getOrCreateManager(this, "thirdparty", () => new ThirdPartyManager(this));
+        registerManagerClass("thirdparty", ThirdPartyManager);
+    return getOrCreateManager(this, "thirdparty", () => new ThirdPartyManager(this));
     };
 }
 

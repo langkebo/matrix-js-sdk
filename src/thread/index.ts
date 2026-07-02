@@ -26,7 +26,7 @@ import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { ThreadPathPattern } from "./__generated__/route-table";
 
 const THREAD_PREFIX_V1 = "/_matrix/client/v1";
@@ -612,15 +612,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
 
 // ============ MatrixClient extension ============
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getThreadManager(): ThreadManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getThreadManager = function (): ThreadManager {
-        return getOrCreateManager(this, "thread", () => new ThreadManager(this));
+        registerManagerClass("thread", ThreadManager);
+    return getOrCreateManager(this, "thread", () => new ThreadManager(this));
     };
 }
 

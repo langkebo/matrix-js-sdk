@@ -26,7 +26,7 @@ import * as utils from "../utils";
 import { MatrixEvent, type IEvent } from "../models/event";
 import { type IEphemeralEventData } from "../ephemeral/index";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRoomEventResponse {
     event_id: string;
@@ -130,15 +130,11 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getRoomEventsManager(): RoomEventsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomEventsManager = function (): RoomEventsManager {
-        return getOrCreateManager(this, "roomEvents", () => new RoomEventsManager(this));
+        registerManagerClass("roomEvents", RoomEventsManager);
+    return getOrCreateManager(this, "roomEvents", () => new RoomEventsManager(this));
     };
 }
 

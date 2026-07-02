@@ -37,7 +37,7 @@ import { InvalidParamError } from "../common/errors";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface KeyRotationStatusResponse {
     current_key_id?: string;
@@ -317,15 +317,11 @@ export class KeyRotationManager extends BaseManager {
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getKeyRotationManager(): KeyRotationManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyRotationManager = function (): KeyRotationManager {
-        return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
+        registerManagerClass("keyRotation", KeyRotationManager);
+    return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
     };
 }
 

@@ -26,7 +26,7 @@ import { Method } from "../http-api/method";
 import type { EmptyObject } from "../@types/common";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { AuthDict } from "../interactive-auth";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import {
     buildEmailTokenRequestParams,
     buildMsisdnTokenRequestParams,
@@ -97,17 +97,13 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getPasswordResetManager(): PasswordResetManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getPasswordResetManager")) return;
 
     MatrixClient.prototype.getPasswordResetManager = function (this: MatrixClient): PasswordResetManager {
-        return getOrCreateManager(this, "passwordReset", () => new PasswordResetManager(this));
+        registerManagerClass("passwordReset", PasswordResetManager);
+    return getOrCreateManager(this, "passwordReset", () => new PasswordResetManager(this));
     };
 }
 

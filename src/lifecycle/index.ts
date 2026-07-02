@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IClientOptions {
     baseUrl?: string;
@@ -78,15 +78,11 @@ export class LifecycleManager extends BaseManager<keyof LifecycleManagerEvents, 
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getLifecycleManager(): LifecycleManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getLifecycleManager = function (): LifecycleManager {
-        return getOrCreateManager(this, "lifecycle", () => new LifecycleManager(this));
+        registerManagerClass("lifecycle", LifecycleManager);
+    return getOrCreateManager(this, "lifecycle", () => new LifecycleManager(this));
     };
 }
 

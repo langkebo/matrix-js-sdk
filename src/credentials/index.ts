@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface CredentialsInfo {
     userId: string | null;
@@ -87,15 +87,11 @@ export class CredentialsManager extends BaseManager<keyof CredentialsManagerEven
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCredentialsManager(): CredentialsManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCredentialsManager = function (): CredentialsManager {
-        return getOrCreateManager(this, "credentials", () => new CredentialsManager(this));
+        registerManagerClass("credentials", CredentialsManager);
+    return getOrCreateManager(this, "credentials", () => new CredentialsManager(this));
     };
 }
 

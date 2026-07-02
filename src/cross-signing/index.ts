@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { CrossSigningKey } from "../crypto-api";
 
 export interface CrossSigningStatus {
@@ -131,15 +131,11 @@ export class CrossSigningManager extends BaseManager<keyof CrossSigningManagerEv
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getCrossSigningManager(): CrossSigningManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCrossSigningManager = function (): CrossSigningManager {
-        return getOrCreateManager(this, "crossSigning", () => new CrossSigningManager(this));
+        registerManagerClass("crossSigning", CrossSigningManager);
+    return getOrCreateManager(this, "crossSigning", () => new CrossSigningManager(this));
     };
 }
 

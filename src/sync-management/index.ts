@@ -19,7 +19,7 @@ import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { SyncApi, SyncState, type ISyncStateData, type SyncApiOptions } from "../sync";
 import { BaseManager } from "../managers/base-manager";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
 
 export interface SyncManagerEvents {
@@ -105,15 +105,11 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 }
 
-declare module "../client.ts" {
-    interface MatrixClient {
-        getSyncManager(): SyncManager;
-    }
-}
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSyncManager = function (): SyncManager {
-        return getOrCreateManager(this, "syncManagement", () => new SyncManager(this));
+        registerManagerClass("syncManagement", SyncManager);
+    return getOrCreateManager(this, "syncManagement", () => new SyncManager(this));
     };
 }
 
