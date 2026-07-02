@@ -668,8 +668,8 @@ describe("Thread", () => {
                 await thread.addEvent(editEvent, false);
 
                 // Then both events end up in the timeline
-                const lastEvent = thread.timeline.at(-1)!;
-                const secondLastEvent = thread.timeline.at(-2)!;
+                const lastEvent = thread.events.at(-1)!;
+                const secondLastEvent = thread.events.at(-2)!;
                 expect(lastEvent).toBe(editEvent);
                 expect(secondLastEvent).toBe(messageToEdit);
 
@@ -700,8 +700,8 @@ describe("Thread", () => {
                 await thread.addEvent(messageToEdit, false);
 
                 // Then both events end up in the timeline
-                const lastEvent = thread.timeline.at(-1)!;
-                const secondLastEvent = thread.timeline.at(-2)!;
+                const lastEvent = thread.events.at(-1)!;
+                const secondLastEvent = thread.events.at(-2)!;
                 expect(lastEvent).toBe(editEvent);
                 expect(secondLastEvent).toBe(messageToEdit);
 
@@ -730,7 +730,7 @@ describe("Thread", () => {
                 const user = "@alice:matrix.org";
                 const room = "!room:z";
                 const thread = await createThread(client, user, room);
-                const prevNumEvents = thread.timeline.length;
+                const prevNumEvents = thread.events.length;
 
                 // When two messages come in but the later one has an older timestamp
                 const message1 = createThreadMessage(thread.id, user, room, "message1");
@@ -741,9 +741,9 @@ describe("Thread", () => {
                 await thread.addEvent(message2, false);
 
                 // Then both events end up in the timeline
-                expect(thread.timeline.length - prevNumEvents).toEqual(2);
-                const lastEvent = thread.timeline.at(-1)!;
-                const secondLastEvent = thread.timeline.at(-2)!;
+                expect(thread.events.length - prevNumEvents).toEqual(2);
+                const lastEvent = thread.events.at(-1)!;
+                const secondLastEvent = thread.events.at(-2)!;
                 expect(lastEvent).toBe(message2);
                 expect(secondLastEvent).toBe(message1);
             });
@@ -754,7 +754,7 @@ describe("Thread", () => {
                 const user = "@alice:matrix.org";
                 const room = "!room:z";
                 const thread = await createThread(client, user, room);
-                const prevNumEvents = thread.timeline.length;
+                const prevNumEvents = thread.events.length;
 
                 // When two messages come in but the later one has an older timestamp
                 const message1 = createThreadMessage(thread.id, user, room, "message1");
@@ -765,9 +765,9 @@ describe("Thread", () => {
                 await thread.addEvent(message2, true);
 
                 // Then both events end up in the timeline
-                expect(thread.timeline.length - prevNumEvents).toEqual(2);
-                const lastEvent = thread.timeline.at(-1)!;
-                const firstEvent = thread.timeline.at(0)!;
+                expect(thread.events.length - prevNumEvents).toEqual(2);
+                const lastEvent = thread.events.at(-1)!;
+                const firstEvent = thread.events.at(0)!;
                 expect(lastEvent).toBe(message1);
                 expect(firstEvent).toBe(message2);
             });

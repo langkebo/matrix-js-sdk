@@ -238,7 +238,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
     private onRedaction = async (event: MatrixEvent, room: Room, threadRootId?: string): Promise<void> => {
         if (threadRootId !== this.id) return; // ignore redactions for other timelines
         if (this.replyCount <= 0) {
-            for (const threadEvent of this.timeline) {
+            for (const threadEvent of this.events) {
                 this.clearEventMetadata(threadEvent);
             }
             this.lastEvent = this.rootEvent;
@@ -712,8 +712,8 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
     public lastReply(
         matches: (ev: MatrixEvent) => boolean = (ev): boolean => ev.isRelation(THREAD_RELATION_TYPE.name),
     ): MatrixEvent | null {
-        for (let i = this.timeline.length - 1; i >= 0; i--) {
-            const event = this.timeline[i];
+        for (let i = this.events.length - 1; i >= 0; i--) {
+            const event = this.events[i];
             if (matches(event)) {
                 return event;
             }
@@ -740,16 +740,6 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
      */
     public get replyToEvent(): MatrixEvent | null {
         return this.lastPendingEvent ?? this.lastEvent ?? this.lastReply();
-    }
-
-    /**
-     * The live event timeline for this thread.
-     * @deprecated Present for backwards compatibility.
-     *             Use this.events instead
-     * @returns The live event timeline for this thread.
-     */
-    public get timeline(): MatrixEvent[] {
-        return this.events;
     }
 
     public get events(): MatrixEvent[] {
@@ -808,7 +798,7 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
         // --- andyb
 
         const isCurrentUser = userId === this.client.getUserId();
-        const lastReply = this.timeline[this.timeline.length - 1];
+        const lastReply = this.events[this.events.length - 1];
         if (isCurrentUser && lastReply) {
             // If the last activity in a thread is prior to the first threaded read receipt
             // sent in the room (suggesting that it was sent before the user started
@@ -832,8 +822,8 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
                 return readUpToId;
             }
 
-            for (let i = this.timeline?.length - 1; i >= 0; --i) {
-                const ev = this.timeline[i];
+            for (let i = this.events?.length - 1; i >= 0; --i) {
+                const ev = this.events[i];
                 // If we encounter the `readUpToId` we do not need to look further
                 // there is no "more recent" unthreaded read receipt
                 if (ev.getId() === readUpToId) return readUpToId;

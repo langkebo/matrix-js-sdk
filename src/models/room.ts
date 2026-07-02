@@ -2179,7 +2179,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
             Array.from(this.threads).forEach(([, thread]) => {
                 if (thread.length === 0) return;
-                const currentUserParticipated = thread.timeline.some((event) => {
+                const currentUserParticipated = thread.events.some((event) => {
                     return event.getSender() === this.client.getUserId();
                 });
                 if (filterType !== ThreadFilterType.My || currentUserParticipated) {
