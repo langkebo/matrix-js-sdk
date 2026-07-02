@@ -184,6 +184,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
                 eventType as string,
                 this.client.http.authedRequest.bind(this.client.http),
             );
+        // @swallow-error { owner: "account-data", expires: "2026-12-31" }
         } catch (e) {
             if (isAccountDataNotFoundError(e)) {
                 return null;

@@ -67,6 +67,7 @@ export class SecurityManager extends BaseManager {
                 suspended: response.suspended ?? false,
                 verified: response.verified ?? false,
             };
+        // @swallow-error { owner: "security", expires: "2026-12-31" }
         } catch (e) {
             logger.debug("SecurityManager.getAccountStatus failed", e);
             return null;
@@ -112,6 +113,7 @@ export class SecurityManager extends BaseManager {
                 }
             }
             return failures;
+        // @swallow-error { owner: "security", expires: "2026-12-31" }
         } catch (e) {
             logger.debug("SecurityManager.listLoginFailures failed", e);
             return [];

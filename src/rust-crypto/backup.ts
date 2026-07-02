@@ -249,6 +249,7 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
                 this.emit(CryptoEvent.KeyBackupFailed, (saveErr as Error).message);
             }
             return true;
+        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;

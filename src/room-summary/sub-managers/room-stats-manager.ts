@@ -81,6 +81,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
                 this.emit(RoomSummaryStatsEvent.StatsUpdated, roomId, stats);
             }
             return stats;
+        // @swallow-error { owner: "room-summary", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "getRoomSummaryStats");

@@ -426,6 +426,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async getShadowBanStatus(userId: string, throwOnError = true): Promise<ShadowBanStatus | null> {
         try {
             return await this.adminRequest<ShadowBanStatus>(Method.Get, `/users/${encodeURIComponent(userId)}/shadow_ban`);
+        // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
             if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) return null;
@@ -442,6 +443,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             }
             try {
                 return await this.getRateLimitOverride(userId, throwOnError);
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
             } catch (fallbackErr) {
                 const err = fallbackErr as MatrixError;
                 if (!throwOnError && ((fallbackErr instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) {

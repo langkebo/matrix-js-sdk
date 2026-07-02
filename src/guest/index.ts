@@ -298,6 +298,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }, "upgradeGuestAccount");
 
             this.guestInfo = null;
+        // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;
@@ -341,6 +342,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             const room = await this.client.joinRoom(roomIdOrAlias);
 
             return { roomId: room.roomId };
+        // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;

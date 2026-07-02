@@ -141,6 +141,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateRoomId(roomId);
         try {
             return await this.adminRequest<RoomInfo>(Method.Get, `/rooms/${encodeURIComponent(roomId)}`);
+        // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
             if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) {

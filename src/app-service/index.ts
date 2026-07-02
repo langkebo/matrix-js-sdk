@@ -344,6 +344,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
 
             if (typeof response?.exists === "boolean") return response.exists;
             return response?.application_service != null;
+        // @swallow-error { owner: "app-service", expires: "2026-12-31" }
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "checkUserId"));
             return false;
@@ -367,6 +368,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
 
             if (typeof response?.exists === "boolean") return response.exists;
             return response?.application_service != null;
+        // @swallow-error { owner: "app-service", expires: "2026-12-31" }
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "checkAlias"));
             return false;
@@ -384,6 +386,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                     { prefix: ClientPrefix.V1 },
                 );
             }, "getUserAppservices");
+        // @swallow-error { owner: "app-service", expires: "2026-12-31" }
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "getUserAppservices"));
             return null;

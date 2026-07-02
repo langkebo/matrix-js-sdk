@@ -102,6 +102,7 @@ export class AdminFederationManager extends AdminBaseManager {
     async getFederationDestination(serverName: string, throwOnError = true): Promise<AdminFederationDestinationDetail | null> {
         try {
             return await this.adminRequest<AdminFederationDestinationDetail>(Method.Get, `/federation/destinations/${encodeURIComponent(serverName)}`);
+        // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
             if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) return null;

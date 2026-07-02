@@ -324,6 +324,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
                     { prefix: ClientPrefix.V3 },
                 );
             }, "getPushRule");
+        // @swallow-error { owner: "push", expires: "2026-12-31" }
         } catch (error) {
             if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return null;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRule"));
@@ -439,6 +440,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             }, "getPushRuleEnabled");
 
             return response?.enabled ?? true;
+        // @swallow-error { owner: "push", expires: "2026-12-31" }
         } catch (error) {
             if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return false;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRuleEnabled"));

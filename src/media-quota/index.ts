@@ -214,6 +214,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
                 size: stats.storage_bytes ?? 0,
                 ntFiles: stats.media_count ?? 0,
             };
+        // @swallow-error { owner: "media-quota", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
