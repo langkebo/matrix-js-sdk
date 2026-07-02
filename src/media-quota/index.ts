@@ -93,24 +93,22 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
         return this.withRetry(() => this.client.getMediaConfig(useAuthenticatedMedia), "getMediaConfig");
     }
 
-    public async checkQuota(): Promise<QuotaCheckResponse> {
-        return this.withRetry(
-            () =>
-                this.client.http.authedRequest<QuotaCheckResponse>(Method.Get, "/quota/check", undefined, undefined, {
-                    prefix: MediaPrefix.V1,
-                }),
-            "checkQuota",
-        );
+    public checkQuota(): Promise<QuotaCheckResponse> {
+        return this.request<QuotaCheckResponse>({
+            method: Method.Get,
+            path: "/quota/check",
+            prefix: MediaPrefix.V1,
+            retry: { label: "checkQuota" },
+        });
     }
 
-    public async getQuotaStats(): Promise<QuotaStatsResponse> {
-        return this.withRetry(
-            () =>
-                this.client.http.authedRequest<QuotaStatsResponse>(Method.Get, "/quota/stats", undefined, undefined, {
-                    prefix: MediaPrefix.V1,
-                }),
-            "getQuotaStats",
-        );
+    public getQuotaStats(): Promise<QuotaStatsResponse> {
+        return this.request<QuotaStatsResponse>({
+            method: Method.Get,
+            path: "/quota/stats",
+            prefix: MediaPrefix.V1,
+            retry: { label: "getQuotaStats" },
+        });
     }
 
     /**
@@ -340,16 +338,13 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
     }
 
     public async getQuotaAlerts(): Promise<QuotaAlert[]> {
-        return this.withRetry(async () => {
-            const response = await this.client.http.authedRequest<{ alerts: QuotaAlert[] }>(
-                Method.Get,
-                "/quota/alerts",
-                undefined,
-                undefined,
-                { prefix: MediaPrefix.V1 },
-            );
-            return response.alerts || [];
-        }, "getQuotaAlerts");
+        const response = await this.request<{ alerts: QuotaAlert[] }>({
+            method: Method.Get,
+            path: "/quota/alerts",
+            prefix: MediaPrefix.V1,
+            retry: { label: "getQuotaAlerts" },
+        });
+        return response.alerts || [];
     }
 }
 

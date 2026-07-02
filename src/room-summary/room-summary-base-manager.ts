@@ -27,7 +27,7 @@ limitations under the License.
 
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { Body } from "../http-api/interface";
+
 import { InvalidParamError } from "../common/errors";
 import { encodeUri, type QueryDict } from "../utils";
 import { BaseManager } from "../managers/base-manager";
@@ -120,18 +120,14 @@ export abstract class RoomSummaryBaseManager<
     /**
      * 发送 v3 前缀请求
      */
-    protected async requestV3<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
-            prefix: ClientPrefix.V3,
-        });
+    protected requestV3<T>(method: Method, path: string, queryParams?: QueryDict, body?: unknown): Promise<T> {
+        return this.request<T>({ method, path, queryParams, body, prefix: ClientPrefix.V3 });
     }
 
     /**
      * 发送内部 API 请求
      */
-    protected async requestInternal<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
-            prefix: "/_synapse/room_summary/v1",
-        });
+    protected requestInternal<T>(method: Method, path: string, queryParams?: QueryDict, body?: unknown): Promise<T> {
+        return this.request<T>({ method, path, queryParams, body, prefix: "/_synapse/room_summary/v1" });
     }
 }

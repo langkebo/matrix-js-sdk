@@ -34,7 +34,7 @@ limitations under the License.
  */
 
 import { Method } from "../http-api/method";
-import { type Body } from "../http-api/interface";
+
 import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -266,14 +266,14 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     private doRequest<T>(
         method: Method,
         path: string,
-        queryParams?: Record<string, string>,
+        queryParams?: Record<string, string | string[]>,
         body?: unknown,
     ): Promise<T> {
-        return this.withRetry(async () => {
-            return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
-                prefix: OPENCLAW_PREFIX,
-            }) as Promise<T>;
-        }, "request");
+        return this.request<T>({
+            method, path, queryParams, body,
+            prefix: OPENCLAW_PREFIX,
+            retry: { label: "openclaw-request" },
+        });
     }
 
     async listConnections(): Promise<OpenClawConnection[]> {

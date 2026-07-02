@@ -115,18 +115,14 @@ export class QrLoginManager extends BaseManager {
         );
     }
 
-    public async confirmQrLogin(request: QrLoginConfirmRequest): Promise<QrLoginConfirmResponse> {
-        return this.withRetry(
-            async () =>
-                await this.client.http.authedRequest<QrLoginConfirmResponse>(
-                    Method.Post,
-                    ap("/login/qr/confirm"),
-                    undefined,
-                    request,
-                    { prefix: ClientPrefix.V1 },
-                ),
-            "confirmQrLogin",
-        );
+    public confirmQrLogin(request: QrLoginConfirmRequest): Promise<QrLoginConfirmResponse> {
+        return this.request<QrLoginConfirmResponse>({
+            method: Method.Post,
+            path: ap("/login/qr/confirm"),
+            body: request,
+            prefix: ClientPrefix.V1,
+            retry: { label: "confirmQrLogin" },
+        });
     }
 
     public async getQrStatus(transactionId: string): Promise<QrLoginStatusResponse> {

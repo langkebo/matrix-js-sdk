@@ -60,7 +60,7 @@ export interface RequestSpec {
     method: Method;
     path: string;
     prefix?: string;
-    queryParams?: Record<string, string | string[]>;
+    queryParams?: QueryDict;
     body?: unknown;
     retry?: RetryOptions;
     /** 用于日志和错误消息的标签，默认使用 `path` */
