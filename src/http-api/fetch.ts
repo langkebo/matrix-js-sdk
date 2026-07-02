@@ -318,8 +318,7 @@ export class FetchHttpApi<O extends IHttpOpts> {
                 credentials: "omit", // we send credentials via headers
                 keepalive: keepAlive,
                 priority: opts.priority,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
+            });
 
             this.opts.logger?.debug(
                 `FetchHttpApi: <-- ${method} ${urlForLogs} [${Date.now() - start}ms ${res.status}]`,
