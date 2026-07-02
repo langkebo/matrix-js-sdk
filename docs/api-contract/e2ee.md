@@ -1,7 +1,7 @@
 ---
-module: e2ee_routes
-generated_from: docs/api-contract/generated/modules/e2ee_routes.json
-generated_hash: sha256-5a31c6fb130b7d25041a8c7c2fad590ec57db7576aaf5547b66b1ebb1bffc394
+module: e2ee
+generated_from: docs/api-contract/generated/modules/e2ee.json
+generated_hash: sha256-bd6964a05f36ff3b6f96b1a33778a4c51bd0972ddccb96bb7aaa63bf8fa9b65d
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---

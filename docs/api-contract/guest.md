@@ -1,7 +1,7 @@
 ---
 module: guest
 generated_from: docs/api-contract/generated/modules/guest.json
-generated_hash: sha256-5e02c1e11362ac41cc5c54de0066cb7b7f126bd566832836632cb2bf841cf071
+generated_hash: sha256-50ed4241d4246faf0666f2485b0e74ea5413d2d199e2434437eef7e851e26429
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---
