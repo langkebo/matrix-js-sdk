@@ -23,6 +23,7 @@ export * from "./error";
 export * from "./register";
 export * from "./tokenRefresher";
 export * from "./validate";
+export { OidcManager } from "./manager";
 
 /**
  * Validated config for native OIDC authentication, as returned by {@link discoverAndValidateOIDCIssuerWellKnown}.
