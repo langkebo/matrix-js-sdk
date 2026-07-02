@@ -285,6 +285,7 @@ export interface MatrixClientExtensionMethods {
     getSecurityManager(): import("./security/index").SecurityManager;
     getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
     getDeviceTrustManager(): import("./device-trust/index").DeviceTrustManager;
+    getDehydratedDeviceManager(): import("./dehydrated-device/index").DehydratedDeviceManager;
     getVerificationRequestsToDevice(userId: string): import("./crypto-api/verification").VerificationRequest[];
     requestAdd3pidEmailToken(
         email: string,
@@ -319,6 +320,7 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Server & Network ============
     getCapabilitiesManager(): import("./capabilities/index").CapabilitiesManager;
+    getCasManager(): import("./cas/index").CasManager;
     getDiscoveryManager(): import("./discovery/index").DiscoveryManager;
     getDirectoryManager(): import("./directory/index").DirectoryManager;
     getFederationManager(): import("./federation/index").FederationManager;
@@ -403,6 +405,7 @@ export interface MatrixClientExtensionMethods {
     getSamlAuthManager(): import("./saml/index").SamlAuthManager;
     getE2EEManager(): import("./e2ee/index").E2EEManager;
     getEventReportManager(): import("./event-report/index").EventReportManager;
+    getExternalServiceManager(): import("./external-service/index").ExternalServiceManager;
     getFeatureFlagManager(): import("./feature-flags/index").FeatureFlagManager;
     getFilterManager(): import("./filter/index").FilterManager;
     getModerationManager(): import("./moderation/index").ModerationManager;
