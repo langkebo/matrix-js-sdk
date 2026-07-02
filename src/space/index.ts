@@ -36,7 +36,7 @@ import { NotFoundError } from "../errors";
 import { type QueryDict } from "../utils";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
-import { AdminValidators } from "../admin/validators";
+import { validateRoomId } from "../common/validators";
 import { ValidationError } from "../errors";
 import type { SpacePathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -226,7 +226,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         if (!options.room_id) {
             throw new ValidationError("Space room_id is required");
         }
-        AdminValidators.validateRoomId(options.room_id);
+        validateRoomId(options.room_id);
         if (options.name && options.name.length > 255) {
             throw new ValidationError("Space name too long (max 255 characters)");
         }
@@ -279,7 +279,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
      * @throws {ApiError} 如果 API 调用失败
      */
     async getSpace(spaceId: string): Promise<Space> {
-        AdminValidators.validateRoomId(spaceId);
+        validateRoomId(spaceId);
         const cached = this.spaceCache.get(spaceId);
         if (cached) return cached;
 
@@ -442,8 +442,8 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
      * @throws {ApiError} 如果 API 调用失败
      */
     async addChild(spaceId: string, options: AddChildOptions): Promise<void> {
-        AdminValidators.validateRoomId(spaceId);
-        AdminValidators.validateRoomId(options.room_id);
+        validateRoomId(spaceId);
+        validateRoomId(options.room_id);
         try {
             await this.withRetry(async () => {
                 await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {

@@ -25,7 +25,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId, validateRoomId } from "../common/validators";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { ThreadPathPattern } from "./__generated__/route-table";
 
@@ -120,7 +120,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         roomId: string,
         params?: { from?: string; limit?: number; include?: string },
     ): Promise<IThreadListResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads`);
         return this.withRetry(
             () =>
@@ -143,7 +143,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         roomId: string,
         body: { event_id: string; name?: string },
     ): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!body.event_id) {
             throw new InvalidParamError("event_id is required");
         }
@@ -169,7 +169,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         roomId: string,
         params: { term: string; limit?: number; from?: string },
     ): Promise<IThreadListResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!params.term) {
             throw new InvalidParamError("search term is required");
         }
@@ -192,7 +192,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * GET /_matrix/client/v1/rooms/{room_id}/threads/unread
      */
     async getUnreadRoomThreads(roomId: string): Promise<IThreadListResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/unread`);
         return this.withRetry(
             () =>
@@ -214,7 +214,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}
      */
     async getThread(roomId: string, threadId: string): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`);
         return this.withRetry(
@@ -235,7 +235,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * DELETE /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}
      */
     async deleteThread(roomId: string, threadId: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`);
         await this.withRetry(
@@ -256,7 +256,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/freeze
      */
     async freezeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`);
         return this.withRetry(
@@ -277,7 +277,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unfreeze
      */
     async unfreezeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`);
         return this.withRetry(
@@ -298,7 +298,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/mute
      */
     async muteThread(roomId: string, threadId: string): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`);
         return this.withRetry(
@@ -323,7 +323,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         threadId: string,
         readUpTo?: string,
     ): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`);
         const body: Record<string, unknown> = {};
@@ -348,7 +348,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe
      */
     async subscribeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/subscribe`);
         return this.withRetry(
@@ -369,7 +369,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe
      */
     async unsubscribeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unsubscribe`);
         return this.withRetry(
@@ -396,7 +396,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         threadId: string,
         params?: { from?: string; limit?: number; dir?: string },
     ): Promise<IThreadRepliesResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`);
         return this.withRetry(
@@ -421,7 +421,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         threadId: string,
         body: { content: Record<string, unknown> },
     ): Promise<IThreadReply> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         if (!body.content) throw new InvalidParamError("content is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`);
@@ -443,7 +443,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * POST /_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact
      */
     async redactReply(roomId: string, eventId: string, reason?: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventId) throw new InvalidParamError("event_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/replies/${encodeURIComponent(eventId)}/redact`);
         const body: Record<string, unknown> = {};
@@ -470,7 +470,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/stats
      */
     async getThreadStats(roomId: string, threadId: string): Promise<IThreadStats> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`);
         return this.withRetry(
@@ -583,8 +583,8 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         roomId: string,
         params?: { from?: string; limit?: number },
     ): Promise<IThreadListResponse> {
-        AdminValidators.validateUserId(userId);
-        AdminValidators.validateRoomId(roomId);
+        validateUserId(userId);
+        validateRoomId(roomId);
         const path = tpV3(`/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`);
         return this.withRetry(
             () =>

@@ -25,7 +25,7 @@ import { MatrixClient } from "../client";
 import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MediaPrefix } from "../http-api/prefix";
-import { AdminValidators } from "../admin/validators";
+import { validateRoomId } from "../common/validators";
 import { ValidationError } from "../errors";
 import { logger } from "../logger";
 import { getOrCreateManager } from "../client-infra/manager-registry";
@@ -311,7 +311,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
      * @throws {ValidationError} 如果房间 ID 格式无效
      */
     public async getRoomMediaSize(roomId: string): Promise<number> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const room = this.client.getRoom(roomId);
         if (!room) return 0;
 

@@ -23,7 +23,7 @@ import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
 import { type EmptyObject } from "../@types/common";
 import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { AdminValidators } from "../admin/validators";
+import { validateLimit } from "../common/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
@@ -98,7 +98,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
         only?: string;
     }): Promise<INotificationsResponse> {
         if (opts?.limit !== undefined) {
-            AdminValidators.validateLimit(opts.limit);
+            validateLimit(opts.limit);
         }
 
         return this.withRetry(

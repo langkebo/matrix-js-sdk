@@ -34,7 +34,7 @@ import { BaseManager } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId } from "../common/validators";
 import { ValidationError } from "../errors";
 import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
 import {
@@ -287,7 +287,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ApiError} 如果 API 调用失败
      */
     public async getProfileInfo(userId: string): Promise<IProfile> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         const cachedEntry = this.getCachedProfileEntry(userId);
         if (cachedEntry?.isComplete) {
@@ -339,7 +339,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
     public async getDisplayName(userId: string, forceRefresh = false, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         try {
             const cachedEntry = !forceRefresh ? this.getCachedProfileEntry(userId) : undefined;
@@ -384,7 +384,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
     public async getAvatarUrl(userId: string, forceRefresh = false, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         try {
             const cachedEntry = !forceRefresh ? this.getCachedProfileEntry(userId) : undefined;

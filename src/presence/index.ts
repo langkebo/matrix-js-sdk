@@ -28,7 +28,7 @@ import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId } from "../common/validators";
 import { AuthError, ValidationError } from "../errors";
 import type { PresencePathPattern } from "./__generated__/route-table";
 
@@ -256,7 +256,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         forceFetch: boolean = false,
         throwOnError = true,
     ): Promise<IPresenceState | null> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         if (!forceFetch && this.presenceCache.has(userId)) {
             return this.presenceCache.get(userId)!;
@@ -317,7 +317,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         if (!userIds || userIds.length === 0) {
             throw new ValidationError("User IDs list cannot be empty");
         }
-        userIds.forEach((userId) => AdminValidators.validateUserId(userId));
+        userIds.forEach((userId) => validateUserId(userId));
         await this.subscribeToPresence(userIds);
     }
 
@@ -342,7 +342,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         if (!userIds || userIds.length === 0) {
             throw new ValidationError("User IDs list cannot be empty");
         }
-        userIds.forEach((userId) => AdminValidators.validateUserId(userId));
+        userIds.forEach((userId) => validateUserId(userId));
         await this.unsubscribeFromPresence(userIds);
     }
 
@@ -378,7 +378,7 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
             throw new InvalidParamError("User ID cannot be empty");
         }
         if (targetUserId) {
-            AdminValidators.validateUserId(targetUserId);
+            validateUserId(targetUserId);
         }
         const request = targetUserId
             ? this.withRetry(

@@ -2,7 +2,7 @@ import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId, validateRoomId } from "../common/validators";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { TypingPathPattern } from "./__generated__/route-table";
@@ -157,7 +157,7 @@ export class TypingManager extends BaseManager {
      * @throws {AuthError} 如果用户未登录
      */
     async startTyping(roomId: string, options?: TypingOptions): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const timeout = options?.timeout || 30000;
 
         // 清除之前的定时器
@@ -198,7 +198,7 @@ export class TypingManager extends BaseManager {
      * @throws {ValidationError} 如果房间 ID 格式无效
      */
     async stopTyping(roomId: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const timerKey = `${roomId}`;
         if (this.typingTimers.has(timerKey)) {
             clearTimeout(this.typingTimers.get(timerKey)!);
@@ -230,7 +230,7 @@ export class TypingManager extends BaseManager {
      * @throws {ValidationError} 如果房间 ID 格式无效
      */
     async getTypingUsers(roomId: string): Promise<TypingUser[]> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const room = this.client.getRoom(roomId);
         if (!room) return [];
 
@@ -279,7 +279,7 @@ export class TypingManager extends BaseManager {
      * 发起请求，适用于 sync 还未完成或需要实时数据的场景。
      */
     async fetchTypingUsers(roomId: string): Promise<TypingUser[]> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing`);
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<TypingResponseBody>(
@@ -299,8 +299,8 @@ export class TypingManager extends BaseManager {
      * 查询单个用户是否在某个房间内打字（GET /rooms/{room_id}/typing/{user_id}）。
      */
     async fetchUserTyping(roomId: string, userId: string): Promise<boolean> {
-        AdminValidators.validateRoomId(roomId);
-        AdminValidators.validateUserId(userId);
+        validateRoomId(roomId);
+        validateUserId(userId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<{ typing?: boolean }>(
@@ -321,7 +321,7 @@ export class TypingManager extends BaseManager {
      */
     async fetchRoomsTyping(rooms: string[]): Promise<Map<string, TypingUser[]>> {
         for (const roomId of rooms) {
-            AdminValidators.validateRoomId(roomId);
+            validateRoomId(roomId);
         }
         const response = await this.withRetry(async () => {
             return await this.client.http.authedRequest<BatchTypingResponseBody | Record<string, TypingResponseBody>>(

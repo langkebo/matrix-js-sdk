@@ -42,7 +42,7 @@ import { LRUCache } from "../utils/lru-cache";
 import { MatrixError } from "../http-api/errors";
 import { NotFoundError } from "../errors";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId, validateRoomId } from "../common/validators";
 
 export enum DMEvent {
     DMCreated = "DMCreated",
@@ -195,7 +195,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
         // 验证所有用户 ID
         opts.userIds.forEach((userId) => {
-            AdminValidators.validateUserId(userId);
+            validateUserId(userId);
         });
 
         const existingDm = await this.getDmForUser(opts.userIds[0]);
@@ -471,7 +471,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @throws {ApiError} 如果 API 调用失败
      */
     async getDmForUser(userId: string): Promise<string | null> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
         const cached = this.userDmMapCache.get(userId);
         if (cached) {
             return cached;
@@ -509,7 +509,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @throws {ApiError} 如果 API 调用失败
      */
     async leaveDm(roomId: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
@@ -678,7 +678,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
      * @throws {ApiError} 如果 API 调用失败
      */
     async markDmAsRead(roomId: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         try {
             await this.withRetry(async () => {
                 const room = this.client.getRoom(roomId);
@@ -874,8 +874,8 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
             throw new InvalidParamError("User ID is required");
         }
 
-        AdminValidators.validateUserId(userId);
-        options?.invite?.forEach((invitee) => AdminValidators.validateUserId(invitee));
+        validateUserId(userId);
+        options?.invite?.forEach((invitee) => validateUserId(invitee));
 
         try {
             return await this.withRetry(async () => {
@@ -963,7 +963,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         const usersToValidate = Array.isArray(userIdsOrOptions)
             ? userIdsOrOptions
             : userIdsOrOptions.userIds ?? [];
-        usersToValidate.forEach((userId) => AdminValidators.validateUserId(userId));
+        usersToValidate.forEach((userId) => validateUserId(userId));
 
         const body =
             Array.isArray(userIdsOrOptions)

@@ -25,7 +25,7 @@ import { ClientPrefix } from "../../http-api/prefix";
 import { InvalidParamError } from "../../common/errors";
 import { NotFoundError } from "../../errors";
 import { BaseManager } from "../../managers/base-manager";
-import { AdminValidators } from "../../admin/validators";
+import { validateUserId } from "../../common/validators";
 import type { Friend, FriendRequest } from "../index";
 import type { FriendSharedState } from "./shared-state";
 
@@ -94,7 +94,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      * @throws {ApiError} 如果 API 调用失败
      */
     async sendFriendRequest(userId: string, reason?: string): Promise<{ request_id?: string; status?: string }> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         if (userId === this.client.getUserId()) {
             throw new InvalidParamError("Cannot send friend request to yourself");
@@ -136,7 +136,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         if (userId === this.client.getUserId()) {
             throw new InvalidParamError("Cannot add yourself as a friend");
@@ -169,7 +169,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      * 接受好友请求
      */
     async acceptFriendRequest(userId: string): Promise<{ room_id?: string }> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         const response = await this.client.http.authedRequest<{ room_id?: string }>(
             Method.Post,
@@ -203,7 +203,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      * 拒绝好友请求
      */
     async rejectFriendRequest(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         await this.client.http.authedRequest(
             Method.Post,
@@ -222,7 +222,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      * 取消已发送的好友请求
      */
     async cancelFriendRequest(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         await this.client.http.authedRequest(
             Method.Post,

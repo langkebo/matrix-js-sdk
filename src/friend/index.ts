@@ -38,7 +38,7 @@ import { NotFoundError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import { AdminValidators } from "../admin/validators";
+
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { FriendPathPattern } from "./__generated__/route-table";
 

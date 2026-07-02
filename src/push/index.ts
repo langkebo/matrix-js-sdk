@@ -24,7 +24,7 @@ import { PUSHER_ENABLED } from "../@types/event";
 import { type IEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { LRUCache, CacheRegistry } from "../utils/lru-cache";
-import { AdminValidators } from "../admin/validators";
+import { validateRoomId } from "../common/validators";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { PushPathPattern } from "./__generated__/route-table";
 import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "../client-push-rules";
@@ -599,19 +599,19 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     }
 
     async muteRoom(roomId: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         await this.createPushRule("global", PushRuleKind.RoomSpecific, roomId, {
             actions: [PushRuleActionName.DontNotify],
         });
     }
 
     async unmuteRoom(roomId: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         await this.deletePushRule("global", PushRuleKind.RoomSpecific, roomId);
     }
 
     async isRoomMuted(roomId: string): Promise<boolean> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         try {
             const rules = await this.getPushRulesByKind("global", PushRuleKind.RoomSpecific);
             const rule = rules.find((r) => r.rule_id === roomId);

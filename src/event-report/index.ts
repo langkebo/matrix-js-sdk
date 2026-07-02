@@ -13,7 +13,7 @@ import { AdminPrefix } from "../http-api/prefix";
 import { type Body } from "../http-api/interface";
 import { BaseManager } from "../managers/base-manager";
 import { ValidationError } from "../errors";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId, validateRoomId } from "../common/validators";
 import type { EventReportPathPattern } from "./__generated__/route-table";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
@@ -140,9 +140,9 @@ export class EventReportManager extends BaseManager {
      */
     async createReport(body: CreateReportBody): Promise<ReportResponse> {
         this.requireNonEmptyString(body.event_id, "event_id");
-        AdminValidators.validateRoomId(body.room_id);
+        validateRoomId(body.room_id);
         if (body.reported_user_id) {
-            AdminValidators.validateUserId(body.reported_user_id);
+            validateUserId(body.reported_user_id);
         }
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<ReportResponse>(
@@ -234,7 +234,7 @@ export class EventReportManager extends BaseManager {
      * 对应 GET /_synapse/admin/v1/event_reports/room/{room_id}
      */
     async getReportsByRoom(roomId: string, params?: QueryParams): Promise<ReportResponse[]> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<ReportResponse[]>(
                 Method.Get,
@@ -254,7 +254,7 @@ export class EventReportManager extends BaseManager {
         reporterUserId: string,
         params?: QueryParams,
     ): Promise<ReportResponse[]> {
-        AdminValidators.validateUserId(reporterUserId);
+        validateUserId(reporterUserId);
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<ReportResponse[]>(
                 Method.Get,
@@ -428,7 +428,7 @@ export class EventReportManager extends BaseManager {
     async checkRateLimit(
         userId: string,
     ): Promise<{ is_allowed: boolean; remaining_reports: number; block_reason?: string }> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
         return await this.withRetry(async () => {
             return await this.client.http.authedRequest<{
                 is_allowed: boolean;
@@ -449,7 +449,7 @@ export class EventReportManager extends BaseManager {
      * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block
      */
     async blockUser(userId: string, blockedUntil: number, reason: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
         await this.withRetry(async () => {
             await this.client.http.authedRequest<void>(
                 Method.Post,
@@ -466,7 +466,7 @@ export class EventReportManager extends BaseManager {
      * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock
      */
     async unblockUser(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
         await this.withRetry(async () => {
             await this.client.http.authedRequest<void>(
                 Method.Post,

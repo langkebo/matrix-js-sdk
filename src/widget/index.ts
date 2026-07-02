@@ -28,7 +28,7 @@ import { BaseManager } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
-import { AdminValidators } from "../admin/validators";
+import { validateUserId, validateRoomId } from "../common/validators";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import type { WidgetPathPattern } from "./__generated__/route-table";
 
@@ -156,7 +156,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/rooms/{room_id}/widgets
      */
     async getRoomWidgets(roomId: string): Promise<IWidgetsListResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = wp(`/rooms/${encodeURIComponent(roomId)}/widgets`);
         return this.withRetry(
             () =>
@@ -176,7 +176,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config
      */
     async getJitsiConfig(roomId: string): Promise<IJitsiConfig> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = wp(`/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`);
         return this.withRetry(
             () =>
@@ -362,7 +362,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     async removeWidgetPermission(widgetId: string, userId: string): Promise<void> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
         if (!userId) throw new InvalidParamError("user_id is required");
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
         const path = wp(
             `/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`,
         );
@@ -471,7 +471,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
      * GET /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities
      */
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
         const path = wpV3(
             `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
@@ -498,7 +498,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         widgetId: string,
         capabilities: string[],
     ): Promise<IWidgetCapabilities> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
         if (!capabilities || capabilities.length === 0) {
             throw new InvalidParamError("capabilities must be a non-empty array");
@@ -528,7 +528,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         widgetId: string,
         message: Record<string, unknown>,
     ): Promise<IWidgetSendResponse> {
-        AdminValidators.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
         const path = wpV3(
             `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,

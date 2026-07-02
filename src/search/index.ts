@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
-import { AdminValidators } from "../admin/validators";
+import { validateRoomId, validateLimit } from "../common/validators";
 import { ValidationError } from "../errors";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/index";
@@ -107,10 +107,10 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             throw new ValidationError("Search term is required");
         }
         if (opts.room_id) {
-            AdminValidators.validateRoomId(opts.room_id);
+            validateRoomId(opts.room_id);
         }
         if (opts.limit !== undefined) {
-            AdminValidators.validateLimit(opts.limit);
+            validateLimit(opts.limit);
         }
         return this.withRetry(async () => {
             const body = buildSearchMessageRequestBody({ query: opts.term, keys: opts.keys });
@@ -180,7 +180,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             throw new ValidationError("Search term is required");
         }
         if (opts.limit !== undefined) {
-            AdminValidators.validateLimit(opts.limit);
+            validateLimit(opts.limit);
         }
         return this.withRetry(async () => {
             const body: IContent = {
@@ -206,7 +206,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             throw new ValidationError("Search term is required");
         }
         if (opts.limit !== undefined) {
-            AdminValidators.validateLimit(opts.limit);
+            validateLimit(opts.limit);
         }
         return this.withRetry(
             () =>

@@ -26,7 +26,7 @@ import { InvalidParamError } from "../../common/errors";
 import { logger } from "../../logger";
 import { NotFoundError } from "../../errors";
 import { BaseManager } from "../../managers/base-manager";
-import { AdminValidators } from "../../admin/validators";
+import { validateUserId, validateLimit } from "../../common/validators";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../../server-capabilities";
 import type {
     Friend,
@@ -160,7 +160,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     }
 
     async getFriendSuggestions(limit: number = 10): Promise<Friend[]> {
-        AdminValidators.validateLimit(limit);
+        validateLimit(limit);
         try {
             const response = await this.client.http.authedRequest<IFriendSuggestionsResponse>(
                 Method.Get,
@@ -278,7 +278,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         try {
             const response = await this.withRetry(async () => {
@@ -360,7 +360,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
         await this.client.http.authedRequest(
             Method.Post,
             `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`,
@@ -451,7 +451,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     // ===== 好友操作 =====
 
     async removeFriend(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         await this.client.http.authedRequest(
             Method.Delete,
@@ -558,7 +558,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         try {
             const response = await this.client.http.authedRequest<{ room_id: string | null }>(
@@ -578,7 +578,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (!userId) {
             throw new InvalidParamError("User ID is required");
         }
-        AdminValidators.validateUserId(userId);
+        validateUserId(userId);
 
         try {
             const response = await this.client.http.authedRequest<{ room_id: string }>(
