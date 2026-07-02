@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -69,11 +69,11 @@ const moduleTargets = [
     { label: "src/@types", files: collectTypeScriptFiles(join(srcRoot, "@types")) },
     { label: "src/models", files: collectTypeScriptFiles(join(srcRoot, "models")) },
     { label: "src/store", files: collectTypeScriptFiles(join(srcRoot, "store")) },
-    { label: "src/webrtc", files: collectTypeScriptFiles(join(srcRoot, "webrtc")) },
-    { label: "src/matrixrtc", files: collectTypeScriptFiles(join(srcRoot, "matrixrtc")) },
+    { label: "src/web-rtc", files: collectTypeScriptFiles(join(srcRoot, "web-rtc")) },
+    { label: "src/matrix-rtc", files: collectTypeScriptFiles(join(srcRoot, "matrix-rtc")) },
     { label: "src/rust-crypto", files: collectTypeScriptFiles(join(srcRoot, "rust-crypto")) },
     { label: "src/runtime-schemas", files: collectTypeScriptFiles(join(srcRoot, "runtime-schemas")) },
-].filter((target) => target.files.length > 0 && statSync(join(PROJECT_ROOT, target.label)).isDirectory());
+].filter((target) => target.files.length > 0 && existsSync(join(PROJECT_ROOT, target.label)) && statSync(join(PROJECT_ROOT, target.label)).isDirectory());
 
 const overall = runTypeCoverage("src", collectTypeScriptFiles(srcRoot), OVERALL_THRESHOLD);
 const modules = moduleTargets.map((target) => runTypeCoverage(target.label, target.files, MODULE_THRESHOLD));
