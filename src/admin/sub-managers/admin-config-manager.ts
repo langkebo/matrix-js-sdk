@@ -405,7 +405,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async addToInviteBlocklist(userId: string, reason?: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        const body: Record<string, unknown> = { user_id: userId };
+        const body: Record<string, unknown> /* Dynamic: invite blocklist body varies by endpoint */ = { user_id: userId };
         if (reason) body.reason = reason;
         await this.adminRequest(
             Method.Post,

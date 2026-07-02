@@ -56,6 +56,17 @@ const EXTERNAL_SERVICE_PREFIX: Record<ExternalServiceApiPrefix, string> = {
 
 const WEBHOOK_PREFIX = "/_synapse/external";
 
+/**
+ * Arbitrary configuration values for an external service.
+ * Shape varies by service type (e.g. webhook, openclaw, trendradar).
+ */
+export type ExternalServiceConfig = Record<string, unknown>; /* Dynamic: config shape varies by service type */
+
+/**
+ * Arbitrary JSON payload sent to an external service webhook endpoint.
+ */
+export type WebhookPayload = Record<string, unknown>; /* Dynamic: webhook payload varies by service */
+
 export interface ExternalServiceItem {
     id: string;
     type: string;
@@ -71,7 +82,7 @@ export interface ExternalServiceListResponse {
 export interface ExternalServiceCreateRequest {
     type: string;
     url: string;
-    config?: Record<string, unknown>;
+    config?: ExternalServiceConfig;
     enabled?: boolean;
 }
 
@@ -82,7 +93,7 @@ export interface ExternalServiceCreateResponse {
 export interface ExternalServiceUpdateRequest {
     type?: string;
     url?: string;
-    config?: Record<string, unknown>;
+    config?: ExternalServiceConfig;
     enabled?: boolean;
 }
 
@@ -302,7 +313,7 @@ export class ExternalServiceManager extends BaseManager {
 
     public async triggerWebhook(
         serviceId: string,
-        data?: Record<string, unknown>,
+        data?: WebhookPayload,
     ): Promise<ExternalServiceWebhookResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
@@ -319,7 +330,7 @@ export class ExternalServiceManager extends BaseManager {
 
     public async triggerOpenclawWebhook(
         serviceId: string,
-        data?: Record<string, unknown>,
+        data?: WebhookPayload,
     ): Promise<ExternalServiceWebhookResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
@@ -336,7 +347,7 @@ export class ExternalServiceManager extends BaseManager {
 
     public async triggerTrendradarWebhook(
         serviceId: string,
-        data?: Record<string, unknown>,
+        data?: WebhookPayload,
     ): Promise<ExternalServiceWebhookResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);

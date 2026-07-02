@@ -153,11 +153,11 @@ export class DehydratedDeviceManager extends BaseManager {
         }, "deleteDevice");
     }
 
-    public async getDeviceEvent(deviceId: string): Promise<Record<string, unknown>> {
+    public async getDeviceEvent(deviceId: string): Promise<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */> {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, unknown>>(
+            return await this.client.http.authedRequest<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */>(
                 Method.Get,
                 `/dehydrated_device/${encodeURIComponent(deviceId)}/initial_device`,
                 undefined,

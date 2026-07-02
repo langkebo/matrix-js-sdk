@@ -302,7 +302,7 @@ export class CasManager extends BaseManager {
 
     public async handleLogout(): Promise<void> {
         await this.withRetry(async () => {
-            await this.client.http.authedRequest<Record<string, unknown>>(
+            await this.client.http.authedRequest<Record<string, unknown> /* Dynamic: CAS logout response varies by server */>(
                 Method.Get,
                 "/logout",
                 undefined,

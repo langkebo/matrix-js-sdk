@@ -19,6 +19,17 @@ export interface SendToDeviceDeps {
     logger: { debug: (...args: unknown[]) => void };
 }
 
+/**
+ * To-device messages payload: userId -> deviceId -> content.
+ * Content shape varies by event type (e.g. m.room_key, m.direct, etc.).
+ */
+type ToDeviceMessagesPayload = Record<string, Record<string, unknown>>; /* Dynamic: to-device message content varies by event type */
+
+/**
+ * Per-device message content for a single user's devices.
+ */
+type PerDeviceMessageContent = Record<string, unknown>; /* Dynamic: per-device message content */
+
 export function buildSendToDevicePath(eventType: string, txnId: string): string {
     return encodeUri("/sendToDevice/$eventType/$txnId", {
         $eventType: eventType,
@@ -27,14 +38,14 @@ export function buildSendToDevicePath(eventType: string, txnId: string): string 
 }
 
 export function buildSendToDeviceBody(contentMap: SendToDeviceContentMap): {
-    body: { messages: Record<string, Record<string, unknown>> }; // Dynamic: to-device message content varies by event type
+    body: { messages: ToDeviceMessagesPayload };
     targets: Map<string, string[]>;
 } {
-    const messages: Record<string, Record<string, unknown>> = {}; // Dynamic: to-device message content varies by event type
+    const messages: ToDeviceMessagesPayload = {};
 
     const targets = new Map<string, string[]>();
     for (const [userId, deviceMessages] of contentMap) {
-        const perUserMessages: Record<string, unknown> = {}; // Dynamic: per-device message content
+        const perUserMessages: PerDeviceMessageContent = {};
         for (const [deviceId, content] of deviceMessages) {
             perUserMessages[deviceId] = content;
         }

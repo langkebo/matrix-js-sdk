@@ -16,6 +16,13 @@ limitations under the License.
 
 import type { IAuthData } from "./interactive-auth";
 
+/**
+ * Shape of an unknown error cause object when extracting fields.
+ * Used by error-class constructors to inspect nested error data from
+ * various sources (HTTP responses, native errors, etc.).
+ */
+type ErrorCauseObject = Record<string, unknown>; /* Dynamic: error cause shape is unknown */
+
 export enum InvalidCryptoStoreState {
     TooNew = "TOO_NEW",
 }
@@ -23,7 +30,7 @@ export enum InvalidCryptoStoreState {
 // Type-safe helpers to extract fields from unknown error causes without `as any`
 function extractStringField(cause: unknown, field: string): string | undefined {
     if (cause && typeof cause === "object" && field in cause) {
-        const value = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */)[field];
+        const value = (cause as ErrorCauseObject)[field];
         return typeof value === "string" ? value : undefined;
     }
     return undefined;
@@ -31,7 +38,7 @@ function extractStringField(cause: unknown, field: string): string | undefined {
 
 function extractNumberField(cause: unknown, field: string): number | undefined {
     if (cause && typeof cause === "object" && field in cause) {
-        const value = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */)[field];
+        const value = (cause as ErrorCauseObject)[field];
         return typeof value === "number" ? value : undefined;
     }
     return undefined;
@@ -39,9 +46,9 @@ function extractNumberField(cause: unknown, field: string): number | undefined {
 
 function extractNestedField(cause: unknown, parentField: string, childField: string): unknown {
     if (cause && typeof cause === "object" && parentField in cause) {
-        const parent = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */)[parentField];
-        if (parent && typeof parent === "object" && childField in (parent as Record<string, unknown> /* Dynamic: nested error field */)) {
-            return (parent as Record<string, unknown> /* Dynamic: nested error field */)[childField];
+        const parent = (cause as ErrorCauseObject)[parentField];
+        if (parent && typeof parent === "object" && childField in (parent as ErrorCauseObject)) {
+            return (parent as ErrorCauseObject)[childField];
         }
     }
     return undefined;
@@ -49,8 +56,8 @@ function extractNestedField(cause: unknown, parentField: string, childField: str
 
 function extractHeaderField(cause: unknown, headerName: string): string | undefined {
     if (cause && typeof cause === "object" && "httpHeaders" in cause) {
-        const headers = (cause as Record<string, unknown> /* Dynamic: error cause shape is unknown */).httpHeaders;
-        if (headers && typeof headers === "object" && "get" in (headers as Record<string, unknown> /* Dynamic: httpHeaders shape is unknown */)) {
+        const headers = (cause as ErrorCauseObject).httpHeaders;
+        if (headers && typeof headers === "object" && "get" in (headers as ErrorCauseObject)) {
             return (headers as { get: (name: string) => string | null }).get(headerName) ?? undefined;
         }
     }

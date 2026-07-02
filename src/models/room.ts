@@ -323,6 +323,18 @@ export type RoomEventHandlerMap = {
         | RoomStateEvent.Marker
     >;
 
+/**
+ * Nested string-keyed content map (e.g. room tags, receipt data).
+ * Shape: `{ $key: { $subKey: $value } }` where value type is unknown.
+ */
+type NestedContent = Record<string, Record<string, unknown>>; /* Dynamic: tag/receipt content structure varies */
+
+/**
+ * Receipt data for a single user's read receipt on an event.
+ * Contains at minimum `ts` and optional `thread_id`.
+ */
+type ReceiptData = Record<string, unknown>; /* Dynamic: receipt data shape varies */
+
 export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     public readonly reEmitter: TypedReEmitter<RoomEmittedEvents, RoomEventHandlerMap>;
     private txnToEvent: Map<string, MatrixEvent> = new Map(); // Pending in-flight requests { string: MatrixEvent }
@@ -380,7 +392,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
      * Dict of room tags; the keys are the tag name and the values
      * are any metadata associated with the tag - e.g. `{ "fav" : { order: 1 } }`
      */
-    public tags: Record<string, Record<string, unknown>> = {}; // Dynamic: tag metadata is arbitrary per tag
+    public tags: NestedContent = {};
     /**
      * accountData Dict of per-room account_data events; the keys are the
      * event type and the values are the events.
@@ -1421,7 +1433,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         let threadIds: string[] = [];
         let hasUnthreadedReceipt = false;
 
-        const content = event.getContent<Record<string, Record<string, unknown>>>(); // Dynamic: receipt content structure varies
+        const content = event.getContent<NestedContent>(); // Dynamic: receipt content structure varies
 
         for (const receiptGroup of Object.values(content)) {
             for (const [receiptType, userReceipt] of Object.entries(receiptGroup)) {
@@ -1430,7 +1442,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
                 for (const [userId, singleReceipt] of Object.entries(userReceipt)) {
                     if (!singleReceipt || typeof singleReceipt !== "object") continue;
-                    const typedSingleReceipt = singleReceipt as Record<string, unknown>; // Dynamic: receipt data shape varies
+                    const typedSingleReceipt = singleReceipt as ReceiptData;
                     if (userId !== this.client.getUserId()) continue;
                     if (typedSingleReceipt.thread_id === undefined) {
                         hasUnthreadedReceipt = true;
@@ -3415,7 +3427,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         // }
 
         // Do we need to deep copy here?
-        const content = event.getContent<{ tags?: Record<string, Record<string, unknown>> }>(); // Dynamic: tag metadata is arbitrary
+        const content = event.getContent<{ tags?: NestedContent }>(); // Dynamic: tag metadata is arbitrary
         this.tags = content.tags || {};
 
         // We could do a deep-comparison to see if the tags have really

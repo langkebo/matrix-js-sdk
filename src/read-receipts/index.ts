@@ -20,7 +20,7 @@ import type { EmptyObject } from "../@types/common";
 import type { MatrixEvent } from "../models/event";
 import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
-import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho } from "../client-receipt-requests";
+import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho, type ReceiptBody } from "../client-receipt-requests";
 import { setRoomReadMarkersRequest } from "../client-batch-requests";
 
 export interface IReadReceipt {
@@ -44,7 +44,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     // 防抖：按房间合并短时间内的多次已读回执请求，只发送最新的一条
     // 避免快速滚动时产生大量 HTTP 请求
     private pendingReceiptTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
-    private pendingReceiptData: Map<string, { event: MatrixEvent; receiptType: ReceiptType; body?: Record<string, unknown>; unthreaded: boolean }> = new Map();
+    private pendingReceiptData: Map<string, { event: MatrixEvent; receiptType: ReceiptType; body?: ReceiptBody; unthreaded: boolean }> = new Map();
     private pendingReceiptResolvers: Map<string, { resolve: (v: EmptyObject) => void; reject: (e: unknown) => void }[]> = new Map();
     private readonly RECEIPT_DEBOUNCE_MS = 500;
 
@@ -65,7 +65,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     public async sendReceipt(
         event: MatrixEvent,
         receiptType: ReceiptType,
-        body?: Record<string, unknown>, // Dynamic: receipt body may contain arbitrary keys like thread_id
+        body?: ReceiptBody,
         unthreaded = false,
     ): Promise<EmptyObject> {
         const roomId = event.getRoomId();

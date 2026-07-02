@@ -582,7 +582,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async claimKeys(body: Record<string, unknown>): Promise<unknown> {
+    async claimKeys(body: Record<string, unknown> /* Dynamic: federation key claim body varies by algorithm */): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -619,7 +619,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async queryKeys(body: Record<string, unknown>): Promise<unknown> {
+    async queryKeys(body: Record<string, unknown> /* Dynamic: federation key query body varies by algorithm */): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -657,7 +657,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async uploadKeys(body: Record<string, unknown>): Promise<unknown> {
+    async uploadKeys(body: Record<string, unknown> /* Dynamic: federation key upload body varies by algorithm */): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -760,7 +760,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async cloneKey(body: Record<string, unknown>): Promise<unknown> {
+    async cloneKey(body: Record<string, unknown> /* Dynamic: federation key clone body varies by algorithm */): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }

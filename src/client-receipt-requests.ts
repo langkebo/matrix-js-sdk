@@ -7,10 +7,16 @@ import { ReceiptType } from "./@types/read_receipts";
 import type { Room } from "./models/room";
 import * as utils from "./utils";
 
+/**
+ * Receipt body data sent with a read receipt request.
+ * May contain arbitrary keys like `thread_id` or `hidden`.
+ */
+export type ReceiptBody = Record<string, unknown>; /* Dynamic: receipt body may contain arbitrary keys like thread_id */
+
 export interface SendReceiptOptions {
     event: MatrixEvent;
     receiptType: ReceiptType;
-    body?: Record<string, unknown>; // Dynamic: receipt body may contain arbitrary keys like thread_id
+    body?: ReceiptBody;
     unthreaded: boolean;
     isGuest: boolean;
     supportsThreads: boolean;
@@ -26,11 +32,11 @@ export function buildReceiptPath(event: MatrixEvent, receiptType: ReceiptType): 
 }
 
 export function buildReceiptBody(
-    body: Record<string, unknown> | undefined, // Dynamic: receipt body may contain arbitrary keys like thread_id
+    body: ReceiptBody | undefined,
     event: MatrixEvent,
     unthreaded: boolean,
     supportsThreads: boolean,
-): Record<string, unknown> | undefined { // Dynamic: receipt body may contain arbitrary keys
+): ReceiptBody | undefined {
     const shouldAddThreadId = !unthreaded && supportsThreads;
     return shouldAddThreadId ? { ...body, thread_id: threadIdForReceipt(event) } : body;
 }
