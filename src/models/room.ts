@@ -3968,6 +3968,10 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         return this.roomReceipts.hasUserReadEvent(userId, eventId);
     }
 
+    public getLastUnthreadedReceiptFor(userId: string): Receipt | undefined {
+        return this.unthreadedReceipts.get(userId);
+    }
+
 
     /**
      * This issue should also be addressed on synapse's side and is tracked as part
