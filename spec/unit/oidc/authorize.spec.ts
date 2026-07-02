@@ -36,7 +36,6 @@ vi.mock("jwt-decode");
 
 describe("oidc authorization", () => {
     const delegatedAuthConfig = makeDelegatedAuthConfig();
-    const authorizationEndpoint = delegatedAuthConfig.authorization_endpoint;
     const clientId = "xyz789";
     const baseUrl = "https://test.com";
 
