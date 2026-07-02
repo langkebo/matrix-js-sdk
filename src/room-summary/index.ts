@@ -121,6 +121,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { Body } from "../http-api/interface";
 import { InvalidParamError } from "../common/errors";
+import { validateRoomId } from "../common/validators";
 import { type QueryDict } from "../utils";
 import { BaseManager } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -387,7 +388,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         roomId: string,
         body: IContent = {},
     ): Promise<RoomSummary | null> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId, { allowAlias: true });
 
         try {
             const summary = await this.withRetry(async () => {
@@ -410,7 +411,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     public async updateSummary(roomId: string, body: UpdateSummaryBody): Promise<RoomSummary | null> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId, { allowAlias: true });
 
         try {
             const summary = await this.withRetry(async () => {
@@ -435,7 +436,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     public async deleteSummary(roomId: string): Promise<void> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId, { allowAlias: true });
 
         return this.withRetry(async () => {
             await this.requestV3(Method.Delete, this.summaryReadPath(roomId));
@@ -444,7 +445,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     public async syncSummary(roomId: string, body: IContent = {}): Promise<SyncSummaryResult> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId, { allowAlias: true });
 
         return this.withRetry(async () => {
             return await this.requestV3<SyncSummaryResult>(
@@ -1066,22 +1067,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     // ===== 私有辅助方法 =====
-
-    private validateRoomId(roomId: string): void {
-        if (!roomId || typeof roomId !== "string") {
-            throw new InvalidParamError("Room ID is required and must be a string");
-        }
-        const trimmed = roomId.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("Room ID cannot be empty");
-        }
-        if (!trimmed.startsWith("!") && !trimmed.startsWith("#")) {
-            throw new InvalidParamError("Room ID must start with ! (room ID) or # (alias)");
-        }
-        if (!trimmed.includes(":")) {
-            throw new InvalidParamError("Room ID must contain a server name (e.g., !room:server.com)");
-        }
-    }
 
     private async requestV3<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
         return await this.client.http.authedRequest<T>(method, path, queryParams, body, {

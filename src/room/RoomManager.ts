@@ -33,6 +33,7 @@ import { type RoomAccountDataEvents, EventType } from "../@types/event";
 import { type IContent } from "../models/event";
 import { type IRoomEventFilter } from "../filter";
 import { InvalidParamError } from "../common/errors";
+import { validateRoomId, validateUserId } from "../common/validators";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
 import { logger } from "../logger";
@@ -197,25 +198,6 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         this.urlPreviewRequestCache = new InflightRequestCache<IPreviewUrlResponse>(client.urlPreviewCache);
     }
 
-    private validateRoomId(roomId: string): void {
-        if (!roomId || typeof roomId !== "string") {
-            throw new InvalidParamError("roomId is required and must be a string");
-        }
-        const trimmed = roomId.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("roomId cannot be empty");
-        }
-    }
-
-    private validateUserId(userId: string): void {
-        if (!userId || typeof userId !== "string") {
-            throw new InvalidParamError("userId is required and must be a string");
-        }
-        const trimmed = userId.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("userId cannot be empty");
-        }
-    }
 
     // ==================== Room Info ====================
 
@@ -237,7 +219,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async getRoomVersion(roomId: string, forceRefresh = false): Promise<string> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const cacheKey = `version:${roomId}`;
         if (!forceRefresh) {
@@ -256,7 +238,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async getRoomCapabilities(roomId: string, forceRefresh = false): Promise<IRoomCapabilitiesResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const cacheKey = `capabilities:${roomId}`;
         if (!forceRefresh) {
@@ -275,7 +257,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async getRoomMetadata(roomId: string, forceRefresh = false): Promise<IRoomMetadataResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const cacheKey = `metadata:${roomId}`;
         if (!forceRefresh) {
@@ -393,7 +375,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async leave(roomId: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/leave`), body: {}, prefix: ClientPrefix.V3 });
@@ -405,7 +387,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async forget(roomId: string, deleteRoom = true): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/forget`), body: { delete_room: deleteRoom }, prefix: ClientPrefix.V3 });
@@ -431,7 +413,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         },
         forceRefresh = false,
     ): Promise<IStateEvent[]> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         if (!forceRefresh && !params) {
             const cached = this.membersCache.get(`members:${roomId}`);
@@ -451,7 +433,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async getJoinedMembers(roomId: string, forceRefresh = false): Promise<IJoinedMembersResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const cacheKey = `joined_members:${roomId}`;
         if (!forceRefresh) {
@@ -478,8 +460,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * @returns membership event
      */
     public async getMembership(roomId: string, userId: string, throwOnError = true): Promise<IStateEvent | null> {
-        this.validateRoomId(roomId);
-        this.validateUserId(userId);
+        validateRoomId(roomId);
+        validateUserId(userId);
 
         try {
             const response = await this.withRetry(async () => {
@@ -504,8 +486,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // ==================== Member Actions ====================
 
     public async invite(roomId: string, userId: string, opts: InviteOpts | string = {}): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
-        this.validateUserId(userId);
+        validateRoomId(roomId);
+        validateUserId(userId);
 
         const normalizedOpts = typeof opts === "string" ? { reason: opts } : opts;
 
@@ -532,7 +514,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const identityAccessToken = this.client.identityServer?.getAccessToken
             ? await this.client.identityServer.getAccessToken()
             : undefined;
@@ -545,8 +527,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async kick(roomId: string, userId: string, reason?: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
-        this.validateUserId(userId);
+        validateRoomId(roomId);
+        validateUserId(userId);
 
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/kick`), body: { user_id: userId, reason }, prefix: ClientPrefix.V3 });
@@ -558,8 +540,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async ban(roomId: string, userId: string, reason?: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
-        this.validateUserId(userId);
+        validateRoomId(roomId);
+        validateUserId(userId);
 
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/ban`), body: { user_id: userId, reason }, prefix: ClientPrefix.V3 });
@@ -570,8 +552,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async unban(roomId: string, userId: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
-        this.validateUserId(userId);
+        validateRoomId(roomId);
+        validateUserId(userId);
 
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/unban`), body: { user_id: userId }, prefix: ClientPrefix.V3 });
@@ -616,7 +598,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // ==================== Events ====================
 
     public async getEvent(roomId: string, eventId: string): Promise<IRoomEvent> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventId) {
             throw new InvalidParamError("eventId is required");
         }
@@ -633,7 +615,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         eventId: string,
         params?: { limit?: number; filter?: IRoomEventFilter },
     ): Promise<IContextResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventId) {
             throw new InvalidParamError("eventId is required");
         }
@@ -653,7 +635,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         reason?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventId) {
             throw new InvalidParamError("eventId is required");
         }
@@ -669,7 +651,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // ==================== Tags ====================
 
     public async getRoomTags(roomId: string): Promise<ITagsResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const response = await this.withRetry(async () => {
             return await this.request<ITagsResponse>({ method: Method.Get, path: rp(                     utils.encodeUri("/user/$userId/rooms/$roomId/tags", {                         $userId: this.client.getUserId()!,                         $roomId: roomId,                     }) as StripV3<TagsPathPattern>,                 ), prefix: ClientPrefix.V3 });
@@ -679,7 +661,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async setRoomTag(roomId: string, tagName: string, metadata: ITagMetadata = {}): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!tagName) {
             throw new InvalidParamError("tagName is required");
         }
@@ -692,7 +674,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async deleteRoomTag(roomId: string, tagName: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!tagName) {
             throw new InvalidParamError("tagName is required");
         }
@@ -711,7 +693,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         eventType: K,
         content: RoomAccountDataEvents[K] | Record<string, never>,
     ): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventType) {
             throw new InvalidParamError("eventType is required");
         }
@@ -726,7 +708,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // ==================== Room Directory ====================
 
     public async getRoomDirectoryVisibility(roomId: string): Promise<{ visibility: Visibility }> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const response = await this.withRetry(async () => {
             return await this.request<{ visibility: Visibility }>({ method: Method.Get, path: utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId }), prefix: ClientPrefix.V3 });
         });
@@ -734,7 +716,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async setRoomDirectoryVisibility(roomId: string, visibility: Visibility): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Put, path: utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId }), body: { visibility }, prefix: ClientPrefix.V3 });
         });
@@ -748,7 +730,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         suggestedOnly = false,
         fromToken?: string,
     ): Promise<IRoomHierarchy> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = utils.encodeUri("/rooms/$roomId/hierarchy", { $roomId: roomId });
         const query: QueryDict = {
             suggested_only: String(suggestedOnly),
@@ -777,7 +759,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     public async createAlias(roomAlias: string, roomId: string): Promise<EmptyObject> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Put, path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }), body: { room_id: roomId }, prefix: ClientPrefix.V3 });
         });
@@ -793,7 +775,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async getLocalAliases(roomId: string): Promise<{ aliases: string[] }> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const response = await this.withRetry(async () => {
             return await this.request<{ aliases: string[] }>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/aliases`), prefix: ClientPrefix.V3 });
         });
@@ -807,7 +789,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         newVersion: string,
         additionalCreators?: string[],
     ): Promise<{ replacement_room: string }> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const body: { new_version: string; additional_creators?: string[] } = {
             new_version: newVersion,
         };
@@ -822,7 +804,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/report`), body: { reason }, prefix: ClientPrefix.V3 });
         });
@@ -830,7 +812,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async roomInitialSync(roomId: string): Promise<IRoomInitialSyncResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const response = await this.withRetry(async () => {
             return await this.request<IRoomInitialSyncResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/initialSync`), prefix: ClientPrefix.V3 });
         });
@@ -838,7 +820,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     public async setGuestAccess(roomId: string, opts: IGuestAccessOpts): Promise<void> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const writePromise = this.client.sendStateEvent(
             roomId,
             EventType.RoomGuestAccess,
@@ -864,7 +846,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // ==================== Peeking ====================
 
     public async peekInRoom(roomId: string, limit = 20): Promise<Room> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const { nextPeekSync, peekPromise } = beginRoomPeek(
             roomId,
             limit,
@@ -882,7 +864,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // ==================== Typing ====================
 
     public async getRoomTyping(roomId: string): Promise<string[]> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = `/rooms/${encodeURIComponent(roomId)}/typing`;
         const response = await this.request<{ user_ids: string[] }>({ method: Method.Get, path: path, prefix: ClientPrefix.V3 });
         return response.user_ids || [];

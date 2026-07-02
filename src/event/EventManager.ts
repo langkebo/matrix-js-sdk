@@ -19,6 +19,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { type IRoomEventFilter } from "../filter";
 import { InvalidParamError } from "../common/errors";
+import { validateRoomId } from "../common/validators";
 import { BaseManager } from "../managers/base-manager";
 import * as utils from "../utils";
 import { QueryDict } from "../utils";
@@ -129,16 +130,6 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         this.stateCache = new LRUCache<IStateEvent[]>(50, 5 * 60 * 1000);
     }
 
-    private validateRoomId(roomId: string): void {
-        if (!roomId || typeof roomId !== "string") {
-            throw new InvalidParamError("roomId is required and must be a string");
-        }
-        const trimmed = roomId.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("roomId cannot be empty");
-        }
-    }
-
     private validateEventId(eventId: string): void {
         if (!eventId || typeof eventId !== "string") {
             throw new InvalidParamError("eventId is required and must be a string");
@@ -161,7 +152,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             filter?: IRoomEventFilter;
         },
     ): Promise<IGetMessagesResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const queryParams: QueryDict = {
             from: params.from,
@@ -192,7 +183,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         timelineFilter?: IRoomEventFilter,
         lazyLoadMembers = false,
     ): Promise<IMessagesResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = buildMessagesRequestPath(roomId);
         const params = buildMessagesRequestParams({
             fromToken,
@@ -213,7 +204,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         timelineFilter?: IRoomEventFilter,
         lazyLoadMembers = false,
     ): Promise<IMessagesResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         const path = buildThreadListRequestPath(roomId);
         const params = buildThreadListRequestParams({
             fromToken,
@@ -252,7 +243,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         txnId?: string,
         workflowContext?: SendEventWorkflowContext,
     ): Promise<ISendEventResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventType) {
             throw new InvalidParamError("eventType is required");
         }
@@ -310,7 +301,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     // ==================== State ====================
 
     public async getState(roomId: string, forceRefresh = false): Promise<IStateEvent[]> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
 
         const cacheKey = `state:${roomId}`;
         if (!forceRefresh) {
@@ -335,7 +326,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     }
 
     public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<IContent> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventType) {
             throw new InvalidParamError("eventType is required");
         }
@@ -370,7 +361,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         content: IContent,
         stateKey = "",
     ): Promise<ISendEventResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         if (!eventType) {
             throw new InvalidParamError("eventType is required");
         }
@@ -400,7 +391,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     // ==================== Events ====================
 
     public async getEvent(roomId: string, eventId: string): Promise<IRoomEvent> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         this.validateEventId(eventId);
 
         const response = await this.withRetry(async () => {
@@ -424,7 +415,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         eventId: string,
         params?: { limit?: number; filter?: IRoomEventFilter; lazyLoadMembers?: boolean },
     ): Promise<NormalizedContextResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         this.validateEventId(eventId);
 
         const queryParams: Record<string, string | string[]> = params?.lazyLoadMembers
@@ -454,7 +445,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         reasonOrContent?: string | IContent,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        this.validateRoomId(roomId);
+        validateRoomId(roomId);
         this.validateEventId(eventId);
 
         const txn = txnId || `m${Date.now()}`;

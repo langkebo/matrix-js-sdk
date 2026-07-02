@@ -18,7 +18,6 @@ import { ValidationError } from "../errors";
 import { InvalidParamError } from "./errors";
 
 const USER_ID_REGEX = /^@[a-z0-9._=-]+:[a-z0-9.-]+$/i;
-const ROOM_ID_REGEX = /^![a-z0-9._=-]+:[a-z0-9.-]+$/i;
 
 export function validateUserId(userId: string): void {
     if (!userId || typeof userId !== "string") {
@@ -29,12 +28,25 @@ export function validateUserId(userId: string): void {
     }
 }
 
-export function validateRoomId(roomId: string): void {
+export function validateRoomId(roomId: string, opts?: { allowAlias?: boolean }): void {
     if (!roomId || typeof roomId !== "string") {
-        throw new ValidationError("Room ID must be a non-empty string");
+        throw new ValidationError("Room ID is required and must be a string");
     }
-    if (!ROOM_ID_REGEX.test(roomId)) {
-        throw new ValidationError(`Invalid room ID format: ${roomId}. Expected format: !localpart:homeserver`);
+    const aliasOk = opts?.allowAlias === true;
+    if (aliasOk) {
+        if (!roomId.includes(":")) {
+            throw new ValidationError(`Invalid room ID or alias format: ${roomId}`);
+        }
+    } else {
+        if (!roomId.startsWith("!") || !roomId.includes(":")) {
+            throw new ValidationError(`Invalid room ID format: ${roomId}`);
+        }
+    }
+}
+
+export function validateEventType(eventType: string): void {
+    if (!eventType || typeof eventType !== "string" || !eventType.includes(".")) {
+        throw new ValidationError(`Invalid event type: ${eventType}`);
     }
 }
 

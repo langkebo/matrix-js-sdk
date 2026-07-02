@@ -28,7 +28,7 @@ limitations under the License.
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 
-import { InvalidParamError } from "../common/errors";
+import { validateRoomId, validateUserId, validateEventType } from "../common/validators";
 import { encodeUri, type QueryDict } from "../utils";
 import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
@@ -54,60 +54,24 @@ export abstract class RoomSummaryBaseManager<
     }
 
     /**
-     * 验证房间 ID 格式
+     * 验证房间 ID 格式（委托到 common/validators）
      */
     protected validateRoomId(roomId: string): void {
-        if (!roomId || typeof roomId !== "string") {
-            throw new InvalidParamError("Room ID is required and must be a string");
-        }
-        const trimmed = roomId.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("Room ID cannot be empty");
-        }
-        if (!trimmed.startsWith("!") && !trimmed.startsWith("#")) {
-            throw new InvalidParamError("Room ID must start with ! (room ID) or # (alias)");
-        }
-        if (!trimmed.includes(":")) {
-            throw new InvalidParamError("Room ID must contain a server name (e.g., !room:server.com)");
-        }
+        validateRoomId(roomId, { allowAlias: true });
     }
 
     /**
-     * 验证用户 ID 格式
+     * 验证用户 ID 格式（委托到 common/validators）
      */
     protected validateUserId(userId: string): void {
-        if (!userId || typeof userId !== "string") {
-            throw new InvalidParamError("User ID is required and must be a string");
-        }
-        const trimmed = userId.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("User ID cannot be empty");
-        }
-        if (!trimmed.startsWith("@")) {
-            throw new InvalidParamError("User ID must start with @");
-        }
-        if (!trimmed.includes(":")) {
-            throw new InvalidParamError("User ID must contain a server name (e.g., @user:server.com)");
-        }
+        validateUserId(userId);
     }
 
     /**
-     * 验证事件类型格式
+     * 验证事件类型格式（委托到 common/validators）
      */
     protected validateEventType(eventType: string): void {
-        if (!eventType || typeof eventType !== "string") {
-            throw new InvalidParamError("Event type is required and must be a string");
-        }
-        const trimmed = eventType.trim();
-        if (trimmed.length === 0) {
-            throw new InvalidParamError("Event type cannot be empty");
-        }
-        if (!trimmed.match(/^[a-zA-Z0-9._-]+$/)) {
-            throw new InvalidParamError("Event type contains invalid characters");
-        }
-        if (trimmed.length > 255) {
-            throw new InvalidParamError("Event type is too long (max 255 characters)");
-        }
+        validateEventType(eventType);
     }
 
     /**
