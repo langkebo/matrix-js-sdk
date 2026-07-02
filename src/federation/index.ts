@@ -742,6 +742,227 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     }
 
     /**
+     * 通过联邦获取房间状态
+     *
+     * 对应 GET /_matrix/federation/v1/state/{room_id}
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @returns 房间状态
+     *
+     * @example
+     * ```typescript
+     * const state = await manager.getState("!room:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getState(roomId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            return await this.client.http.request<unknown>(
+                Method.Get,
+                `/_matrix/federation/v1/state/${encodeURIComponent(roomId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getState");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过联邦获取房间状态 ID 列表
+     *
+     * 对应 GET /_matrix/federation/v1/state_ids/{room_id}
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @returns 房间状态 ID 列表
+     *
+     * @example
+     * ```typescript
+     * const stateIds = await manager.getStateIds("!room:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getStateIds(roomId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            return await this.client.http.request<unknown>(
+                Method.Get,
+                `/_matrix/federation/v1/state_ids/${encodeURIComponent(roomId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getStateIds");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过联邦获取房间成员列表
+     *
+     * 对应 GET /_matrix/federation/v1/members/{room_id}
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @returns 成员列表
+     *
+     * @example
+     * ```typescript
+     * const members = await manager.getMembers("!room:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getMembers(roomId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            return await this.client.http.request<unknown>(
+                Method.Get,
+                `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getMembers");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过联邦获取房间已加入成员列表
+     *
+     * 对应 GET /_matrix/federation/v1/members/{room_id}/joined
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @returns 已加入成员列表
+     *
+     * @example
+     * ```typescript
+     * const joinedMembers = await manager.getJoinedMembers("!room:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getJoinedMembers(roomId: string): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            return await this.client.http.request<unknown>(
+                Method.Get,
+                `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}/joined`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getJoinedMembers");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过联邦获取事件
+     *
+     * 对应 GET /_matrix/federation/v1/event/{event_id}
+     *
+     * @param eventId - 事件 ID (e.g., "$event:example.com")
+     * @returns 事件数据
+     *
+     * @example
+     * ```typescript
+     * const event = await manager.getEvent("$event:example.com");
+     * ```
+     *
+     * @throws {ValidationError} If event ID is empty
+     * @throws {Error} If the request fails
+     */
+    async getEvent(eventId: string): Promise<unknown> {
+        if (!eventId) {
+            throw new ValidationError("Event ID is required");
+        }
+        try {
+            return await this.client.http.request<unknown>(
+                Method.Get,
+                `/_matrix/federation/v1/event/${encodeURIComponent(eventId)}`,
+                undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "getEvent");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过联邦回填房间历史
+     *
+     * 对应 GET /_matrix/federation/v1/backfill/{room_id}
+     *
+     * @param roomId - 房间 ID (e.g., "!room:example.com")
+     * @param opts - 可选参数
+     * @param opts.limit - 最大事件数量
+     * @param opts.from - 起始事件 ID
+     * @returns 回填结果
+     *
+     * @example
+     * ```typescript
+     * const result = await manager.backfillRoom("!room:example.com", { limit: 10 });
+     * ```
+     *
+     * @throws {ValidationError} If room ID is empty
+     * @throws {Error} If the request fails
+     */
+    async backfillRoom(
+        roomId: string,
+        opts?: { limit?: number; from?: string },
+    ): Promise<unknown> {
+        if (!roomId) {
+            throw new ValidationError("Room ID is required");
+        }
+        try {
+            const params: Record<string, string | number> = {};
+            if (opts?.limit !== undefined) params.limit = opts.limit;
+            if (opts?.from !== undefined) params.from = opts.from;
+
+            const queryKeys = Object.keys(params);
+            return await this.client.http.request<unknown>(
+                Method.Get,
+                `/_matrix/federation/v1/backfill/${encodeURIComponent(roomId)}`,
+                queryKeys.length > 0 ? params : undefined,
+                undefined,
+                { prefix: "" },
+            );
+        } catch (e) {
+            const error = this.normalizeError(e, "backfillRoom");
+            this.emit(FederationEvent.FederationError, error);
+            throw error;
+        }
+    }
+
+    /**
      * 克隆联邦密钥（v2）
      *
      * 对应 POST /_synapse/federation/v2/key/clone

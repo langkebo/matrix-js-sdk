@@ -294,4 +294,140 @@ describe("FederationManager", () => {
         );
         expect(result).toEqual(response);
     });
+
+    it("should get room state over federation", async () => {
+        const response = { pdus: [] };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.getState("!room:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/state/!room%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should throw ValidationError if room ID is empty for getState", async () => {
+        await expect(federationManager.getState("")).rejects.toThrow("Room ID is required");
+    });
+
+    it("should get room state IDs over federation", async () => {
+        const response = { auth_chain_ids: [], pdu_ids: [] };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.getStateIds("!room:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/state_ids/!room%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should throw ValidationError if room ID is empty for getStateIds", async () => {
+        await expect(federationManager.getStateIds("")).rejects.toThrow("Room ID is required");
+    });
+
+    it("should get room members over federation", async () => {
+        const response = { chunk: [], total_room_count_estimate: 0 };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.getMembers("!room:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/members/!room%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should throw ValidationError if room ID is empty for getMembers", async () => {
+        await expect(federationManager.getMembers("")).rejects.toThrow("Room ID is required");
+    });
+
+    it("should get joined members over federation", async () => {
+        const response = { joined: {} };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.getJoinedMembers("!room:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/members/!room%3Aexample.com/joined",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should throw ValidationError if room ID is empty for getJoinedMembers", async () => {
+        await expect(federationManager.getJoinedMembers("")).rejects.toThrow("Room ID is required");
+    });
+
+    it("should get event over federation by event ID", async () => {
+        const response = { origin: "example.com", event: { room_id: "!room:example.com" } };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.getEvent("$event:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/event/%24event%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should throw ValidationError if event ID is empty for getEvent", async () => {
+        await expect(federationManager.getEvent("")).rejects.toThrow("Event ID is required");
+    });
+
+    it("should backfill room history over federation", async () => {
+        const response = { origin: "example.com", events: [] };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.backfillRoom("!room:example.com");
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/backfill/!room%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should backfill room history with limit and from params", async () => {
+        const response = { origin: "example.com", events: [] };
+        mockRequest.mockResolvedValue(response);
+
+        const result = await federationManager.backfillRoom("!room:example.com", { limit: 10, from: "$prev:example.com" });
+
+        expect(mockRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/_matrix/federation/v1/backfill/!room%3Aexample.com",
+            { limit: 10, from: "$prev:example.com" },
+            undefined,
+            { prefix: "" },
+        );
+        expect(result).toEqual(response);
+    });
+
+    it("should throw ValidationError if room ID is empty for backfillRoom", async () => {
+        await expect(federationManager.backfillRoom("")).rejects.toThrow("Room ID is required");
+    });
 });
