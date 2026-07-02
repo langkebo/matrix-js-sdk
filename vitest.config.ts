@@ -51,7 +51,7 @@ export default defineConfig({
     test: {
         testTimeout: isCoverageRun ? 120000 : 10000,
         hookTimeout: isCoverageRun ? 30000 : 10000,
-        teardownTimeout: 10000,
+        teardownTimeout: 30000,
         coverage: {
             provider: "v8",
             include: ["src/**/*"],
@@ -67,14 +67,10 @@ export default defineConfig({
         reporters,
         setupFiles: "spec/setupTests.ts",
         globals: true,
-        pool: "threads",
-        poolOptions: {
-            threads: {
-                maxThreads: 4,
-                minThreads: 1,
-                memoryLimit: 4096,
-            },
-        },
+        pool: "forks",
+        maxForks: 1,
+        minForks: 1,
+        execArgv: ["--max-old-space-size=8192"],
         exclude: ["**/node_modules/**", "**/dist/**", "**/spec/integ/real-backend/**"],
     },
 });
