@@ -92,6 +92,8 @@ export interface ManagerExtensionsOptions {
     includeCas?: boolean;
     includeExternalService?: boolean;
     includeDehydratedDevice?: boolean;
+    includeThread?: boolean;
+    includeWidget?: boolean;
 
     includeServerCapabilities?: boolean;
     includeSyncManagement?: boolean;
@@ -190,6 +192,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeCas: true,
     includeExternalService: true,
     includeDehydratedDevice: true,
+    includeThread: true,
+    includeWidget: true,
 
     includeServerCapabilities: true,
     includeSyncManagement: true,
@@ -283,6 +287,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },
+    { option: "includeThread", module: "thread" },
+    { option: "includeWidget", module: "widget" },
 
     { option: "includeServerCapabilities", module: "server-capabilities" },
     { option: "includeSyncManagement", module: "sync-management" },
@@ -601,6 +607,14 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeDehydratedDevice || all) {
                 promises.push(safeDynamicImport(import("../dehydrated-device/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeThread || all) {
+                promises.push(safeDynamicImport(import("../thread/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeWidget || all) {
+                promises.push(safeDynamicImport(import("../widget/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeServerCapabilities || all) {

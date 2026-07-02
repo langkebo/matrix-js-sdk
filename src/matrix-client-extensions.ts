@@ -361,8 +361,12 @@ export interface MatrixClientExtensionMethods {
     getTagsManager(): import("./tags-management/index").TagsManager;
     removeRoomTag(roomId: string, tag: string): Promise<import("./@types/common").EmptyObject>;
 
+    // ============ Thread ============
+    getThreadManager(): import("./thread/index").ThreadManager;
+
     // ============ Widgets & Integrations ============
     getWidgetsManager(): import("./widgets/index").WidgetsManager;
+    getWidgetManager(): import("./widget/index").WidgetManager;
 
     // ============ Scheduled Events ============
     getScheduledEventsManager(): import("./scheduled-events/index").ScheduledEventsManager;
