@@ -19,6 +19,14 @@ limitations under the License.
  *
  * 提供好友请求、好友列表管理功能
  * 对接后端: synapse-rust/src/web/routes/friend_room.rs
+ *
+ * 采用组合模式，将方法按领域拆分为 3 个子 Manager：
+ * - requests: 好友请求管理（发送、接受、拒绝、取消）
+ * - list: 好友列表管理（列表、搜索、同步、分组、DM）
+ * - blocks: 好友屏蔽管理（状态更新、屏蔽/取消屏蔽）
+ *
+ * 所有原有方法保持向后兼容（委托到子 Manager）。
+ * 推荐使用子 Manager 直接访问：`friendManager.requests.sendFriendRequest(...)`
  */
 
 import { Method } from "../http-api/method";
@@ -33,6 +41,29 @@ import { getOrCreateManager } from "../client-infra/manager-registry";
 import { AdminValidators } from "../admin/validators";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { FriendPathPattern } from "./__generated__/route-table";
+
+// 子 Manager 导入
+import {
+    FriendRequestManager,
+    FriendRequestManagerEvent,
+} from "./sub-managers/friend-request-manager";
+import {
+    FriendListManager,
+    FriendListManagerEvent,
+} from "./sub-managers/friend-list-manager";
+import {
+    FriendBlockManager,
+    FriendBlockManagerEvent,
+} from "./sub-managers/friend-block-manager";
+import type { FriendSharedState } from "./sub-managers/shared-state";
+
+// 重新导出子 Manager 类型，供直接使用
+export { FriendRequestManager, FriendRequestManagerEvent } from "./sub-managers/friend-request-manager";
+export { FriendListManager, FriendListManagerEvent } from "./sub-managers/friend-list-manager";
+export { FriendBlockManager, FriendBlockManagerEvent } from "./sub-managers/friend-block-manager";
+export type { FriendSharedState } from "./sub-managers/shared-state";
+
+// ===== 类型和枚举（向下兼容） =====
 
 export enum FriendEvent {
     Invited = "Invited",
@@ -159,7 +190,6 @@ export type FriendStatus =
 
 /**
  * 单个好友分组（对应后端 `friend_room_service::create_friend_group` 返回的对象）。
- * 后端字段：`id`、`name`、`members`、`created_at`、`updated_ts`（可选）。
  */
 export interface FriendGroup {
     id: string;
@@ -171,8 +201,6 @@ export interface FriendGroup {
 
 /**
  * 内部缓存：按 group `id` 索引的分组映射。
- * 注意：之前版本曾以 `{name, users}` 描述分组，
- * 现已与后端对齐为 `{id, name, members, created_at}`。
  */
 export interface FriendGroups {
     [groupId: string]: FriendGroup;
@@ -224,7 +252,6 @@ interface IFriendRequestsResponse {
 }
 
 interface IFriendGroupsResponse {
-    /** 后端 `routes/friend_room.rs::get_friend_groups` 返回 `{groups: FriendGroup[]}`（裸数组） */
     groups?: FriendGroup[];
 }
 
@@ -269,1114 +296,343 @@ function normalizeFriendRequest(request: FriendRequest): FriendRequest {
     };
 }
 
+/**
+ * Friend Manager - 好友管理统一入口
+ *
+ * 通过组合模式将功能委托到子 Manager，同时保持完全向后兼容。
+ *
+ * @example
+ * ```typescript
+ * // 向后兼容：直接在 FriendManager 上调用方法
+ * await friendManager.sendFriendRequest("@alice:example.com", "Hi!");
+ *
+ * // 推荐新方式：通过子 Manager 访问
+ * await friendManager.requests.sendFriendRequest("@alice:example.com", "Hi!");
+ * const friends = await friendManager.list.getFriends();
+ * await friendManager.blocks.updateFriendStatus("@alice:example.com", "blocked");
+ * ```
+ */
 export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMap> {
-    private friendListRoomId: string | null = null;
-    private friends: LRUCache<Friend>;
-    private incomingRequests: Map<string, FriendRequest> = new Map();
-    private outgoingRequests: Map<string, FriendRequest> = new Map();
-    private groups: FriendGroups = {};
-    private initialized: boolean = false;
+    // ===== 共享状态 =====
+    private readonly sharedState: FriendSharedState;
+
+    // ===== 子 Manager（组合模式） =====
+    public readonly requests: FriendRequestManager;
+    public readonly list: FriendListManager;
+    public readonly blocks: FriendBlockManager;
 
     constructor(client: MatrixClient) {
         super(client);
-        this.friends = new LRUCache<Friend>(500, 5 * 60 * 1000);
-    }
 
-    public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Friends, true);
-    }
+        // 创建共享状态
+        const friendListRoomId: string | null = null;
+        const friends = new LRUCache<Friend>(500, 5 * 60 * 1000);
+        const incomingRequests = new Map<string, FriendRequest>();
+        const outgoingRequests = new Map<string, FriendRequest>();
+        const groups: FriendGroups = {};
+        const initialized = false;
 
-    private async ensureFriendListRoom(): Promise<string> {
-        if (this.friendListRoomId) {
-            return this.friendListRoomId;
-        }
+        this.sharedState = {
+            client,
+            friendListRoomId,
+            friends,
+            incomingRequests,
+            outgoingRequests,
+            groups,
+            initialized,
+        };
 
-        try {
-            const response = await this.client.http.authedRequest<IFriendsResponse>(
-                Method.Get,
-                "/friends",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+        // 创建子 Manager，共享状态
+        this.requests = new FriendRequestManager(this.sharedState);
+        this.list = new FriendListManager(this.sharedState);
+        this.blocks = new FriendBlockManager(this.sharedState);
 
-            if (response.room_id) {
-                this.friendListRoomId = response.room_id;
-                return response.room_id;
-            }
-        } catch (e) {
-            logger.debug("Friend list doesn't exist", e);
-        }
-        return "";
+        // 转发子 Manager 事件到 FriendManager（向后兼容）
+        this.forwardSubManagerEvents();
     }
 
     /**
-     * 发送好友请求
-     *
-     * @param userId - 目标用户 ID（格式：@localpart:homeserver）
-     * @param reason - 请求理由（可选）
-     *
-     * @example
-     * ```typescript
-     * // 发送好友请求
-     * await friendManager.sendFriendRequest("@alice:example.com", "Hi, let's be friends!");
-     *
-     * // 发送不带理由的请求
-     * await friendManager.sendFriendRequest("@bob:example.com");
-     *
-     * // 监听请求发送事件
-     * friendManager.on(FriendEvent.Invited, (userId, request) => {
-     *     console.log(`Friend request sent to ${userId}`);
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果用户 ID 格式无效
-     * @throws {InvalidParamError} 如果尝试添加自己为好友
-     * @throws {ApiError} 如果 API 调用失败
+     * 将子 Manager 的事件转发到 FriendManager
+     * 保持 `friendManager.on(FriendEvent.Invited, ...)` 的向后兼容性
      */
+    private forwardSubManagerEvents(): void {
+        // FriendRequestManager 事件转发
+        this.requests.on(FriendRequestManagerEvent.Invited, (userId, request) =>
+            this.emit(FriendEvent.Invited, userId, request),
+        );
+        this.requests.on(FriendRequestManagerEvent.Accepted, (userId) =>
+            this.emit(FriendEvent.Accepted, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.Rejected, (userId) =>
+            this.emit(FriendEvent.Rejected, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.Cancelled, (userId) =>
+            this.emit(FriendEvent.Cancelled, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.RequestSent, (userId) =>
+            this.emit(FriendEvent.RequestSent, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.RequestAccepted, (userId) =>
+            this.emit(FriendEvent.RequestAccepted, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.RequestRejected, (userId) =>
+            this.emit(FriendEvent.RequestRejected, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.RequestCancelled, (userId) =>
+            this.emit(FriendEvent.RequestCancelled, userId),
+        );
+        this.requests.on(FriendRequestManagerEvent.RequestReceived, (request) =>
+            this.emit(FriendEvent.RequestReceived, request),
+        );
+        this.requests.on(FriendRequestManagerEvent.FriendAdded, (friend) =>
+            this.emit(FriendEvent.FriendAdded, friend),
+        );
+        this.requests.on(FriendRequestManagerEvent.ListUpdated, () =>
+            this.emit(FriendEvent.ListUpdated),
+        );
+
+        // FriendListManager 事件转发
+        this.list.on(FriendListManagerEvent.FriendAdded, (friend) =>
+            this.emit(FriendEvent.FriendAdded, friend),
+        );
+        this.list.on(FriendListManagerEvent.FriendRemoved, (userId) =>
+            this.emit(FriendEvent.FriendRemoved, userId),
+        );
+        this.list.on(FriendListManagerEvent.FriendUpdated, (friend) =>
+            this.emit(FriendEvent.FriendUpdated, friend),
+        );
+        this.list.on(FriendListManagerEvent.ListUpdated, () =>
+            this.emit(FriendEvent.ListUpdated),
+        );
+        this.list.on(FriendListManagerEvent.SyncComplete, () =>
+            this.emit(FriendEvent.SyncComplete),
+        );
+        this.list.on(FriendListManagerEvent.Removed, (userId) =>
+            this.emit(FriendEvent.Removed, userId),
+        );
+
+        // FriendBlockManager 事件转发
+        this.blocks.on(FriendBlockManagerEvent.FriendUpdated, (friend) =>
+            this.emit(FriendEvent.FriendUpdated, friend),
+        );
+    }
+
+    // ===== 向后兼容委托方法 =====
+    // 所有原有方法委托到对应的子 Manager，保持 API 完全兼容
+
+    // ----- 通用 -----
+
+    async isSupported(): Promise<boolean> {
+        return this.list.isSupported();
+    }
+
+    // ----- 好友请求（委托 → requests） -----
+
     async sendFriendRequest(userId: string, reason?: string): Promise<{ request_id?: string; status?: string }> {
-        AdminValidators.validateUserId(userId);
-
-        if (userId === this.client.getUserId()) {
-            throw new InvalidParamError("Cannot send friend request to yourself");
-        }
-
-        if (reason !== undefined && reason.length > 500) {
-            throw new InvalidParamError("Friend request message too long (max 500 characters)");
-        }
-
-        const response = await this.client.http.authedRequest<{
-            request_id?: string;
-            status?: string;
-        }>(
-            Method.Post,
-            "/friends/request",
-            undefined,
-            { user_id: userId, message: reason },
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const request: FriendRequest = {
-            user_id: userId,
-            reason,
-            status: "pending",
-            timestamp: Date.now(),
-            request_id: response?.request_id,
-        };
-
-        this.outgoingRequests.set(userId, request);
-        this.emit(FriendEvent.Invited, userId, request);
-        this.emit(FriendEvent.RequestSent, userId);
-        return { request_id: response?.request_id, status: response?.status };
+        return this.requests.sendFriendRequest(userId, reason);
     }
 
-    /**
-     * 直接添加好友（不经过请求流程）
-     *
-     * 与 sendFriendRequest 不同，此方法直接将对方添加为好友，
-     * 无需对方确认即可建立好友关系。
-     *
-     * @param userId - 目标用户 ID（格式：@localpart:homeserver）
-     * @param opts - 可选参数
-     * @param opts.reason - 添加理由
-     * @returns 添加结果
-     *
-     * @example
-     * ```typescript
-     * // 直接添加好友
-     * await friendManager.addFriend("@alice:example.com", { reason: "We met at the conference" });
-     *
-     * // 不带理由直接添加
-     * await friendManager.addFriend("@bob:example.com");
-     * ```
-     *
-     * @throws {InvalidParamError} 如果用户 ID 为空或尝试添加自己
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async addFriend(userId: string, opts?: { reason?: string }): Promise<{ user_id?: string; status?: string }> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-        AdminValidators.validateUserId(userId);
-
-        if (userId === this.client.getUserId()) {
-            throw new InvalidParamError("Cannot add yourself as a friend");
-        }
-
-        const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<{ user_id?: string; status?: string }>(
-                Method.Post,
-                "/friends",
-                undefined,
-                { user_id: userId, reason: opts?.reason },
-                { prefix: ClientPrefix.V3 },
-            );
-        }, "addFriend");
-
-        const friendObj: Friend = {
-            user_id: userId,
-            reason: opts?.reason,
-            since: Date.now(),
-            status: FriendRelationshipStatus.Normal,
-        };
-        this.friends.set(userId, friendObj);
-        this.emit(FriendEvent.FriendAdded, friendObj);
-        this.emit(FriendEvent.ListUpdated);
-
-        return { user_id: response?.user_id, status: response?.status };
+        return this.requests.addFriend(userId, opts);
     }
 
-    /**
-     * 接受好友请求
-     *
-     * @param userId - 发送请求的用户 ID
-     *
-     * @example
-     * ```typescript
-     * // 接受好友请求
-     * await friendManager.acceptFriendRequest("@alice:example.com");
-     *
-     * // 监听接受事件
-     * friendManager.on(FriendEvent.Accepted, (userId) => {
-     *     console.log(`Accepted friend request from ${userId}`);
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果用户 ID 格式无效
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async acceptFriendRequest(userId: string): Promise<{ room_id?: string }> {
-        AdminValidators.validateUserId(userId);
-
-        const response = await this.client.http.authedRequest<{ room_id?: string }>(
-            Method.Post,
-            `/friends/request/${encodeURIComponent(userId)}/accept`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const request = this.incomingRequests.get(userId);
-        if (request) {
-            request.status = "accepted";
-            this.incomingRequests.delete(userId);
-        }
-
-        const friendObj: Friend = {
-            user_id: userId,
-            since: Date.now(),
-            status: FriendRelationshipStatus.Normal,
-        };
-        this.friends.set(userId, friendObj);
-
-        this.emit(FriendEvent.Accepted, userId);
-        this.emit(FriendEvent.RequestAccepted, userId);
-        this.emit(FriendEvent.FriendAdded, friendObj);
-        this.emit(FriendEvent.ListUpdated);
-        return { room_id: response?.room_id };
+        return this.requests.acceptFriendRequest(userId);
     }
 
-    /**
-     * 拒绝好友请求
-     *
-     * @param userId - 发送请求的用户 ID
-     *
-     * @example
-     * ```typescript
-     * // 拒绝好友请求
-     * await friendManager.rejectFriendRequest("@alice:example.com");
-     *
-     * // 监听拒绝事件
-     * friendManager.on(FriendEvent.Rejected, (userId) => {
-     *     console.log(`Rejected friend request from ${userId}`);
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果用户 ID 格式无效
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async rejectFriendRequest(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
-
-        await this.client.http.authedRequest(
-            Method.Post,
-            `/friends/request/${encodeURIComponent(userId)}/reject`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        this.incomingRequests.delete(userId);
-        this.emit(FriendEvent.Rejected, userId);
-        this.emit(FriendEvent.RequestRejected, userId);
+        return this.requests.rejectFriendRequest(userId);
     }
 
-    /**
-     * 取消已发送的好友请求
-     *
-     * @param userId - 目标用户 ID
-     *
-     * @example
-     * ```typescript
-     * // 取消好友请求
-     * await friendManager.cancelFriendRequest("@alice:example.com");
-     *
-     * // 监听取消事件
-     * friendManager.on(FriendEvent.Cancelled, (userId) => {
-     *     console.log(`Cancelled friend request to ${userId}`);
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果用户 ID 格式无效
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async cancelFriendRequest(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
-
-        await this.client.http.authedRequest(
-            Method.Post,
-            `/friends/request/${encodeURIComponent(userId)}/cancel`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        this.outgoingRequests.delete(userId);
-        this.emit(FriendEvent.Cancelled, userId);
-        this.emit(FriendEvent.RequestCancelled, userId);
-    }
-
-    /**
-     * 删除好友
-     *
-     * @param userId - 要删除的好友用户 ID
-     *
-     * @example
-     * ```typescript
-     * // 删除好友
-     * await friendManager.removeFriend("@alice:example.com");
-     *
-     * // 监听删除事件
-     * friendManager.on(FriendEvent.Removed, (userId) => {
-     *     console.log(`Removed friend ${userId}`);
-     * });
-     * ```
-     *
-     * @throws {ValidationError} 如果用户 ID 格式无效
-     * @throws {ApiError} 如果 API 调用失败
-     */
-    async removeFriend(userId: string): Promise<void> {
-        AdminValidators.validateUserId(userId);
-
-        await this.client.http.authedRequest(
-            Method.Delete,
-            `/friends/${encodeURIComponent(userId)}`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        this.friends.delete(userId);
-        this.emit(FriendEvent.Removed, userId);
-        this.emit(FriendEvent.FriendRemoved, userId);
-        this.emit(FriendEvent.ListUpdated);
-    }
-
-    /**
-     * 获取好友列表
-     *
-     * @returns 好友列表
-     *
-     * @example
-     * ```typescript
-     * // 获取所有好友
-     * const friends = await friendManager.getFriends();
-     * friends.forEach(friend => {
-     *     console.log(`Friend: ${friend.user_id}`);
-     *     console.log(`  Display name: ${friend.display_name}`);
-     *     console.log(`  Status: ${friend.status}`);
-     * });
-     *
-     * // 使用缓存
-     * const cachedFriends = friendManager.getCachedFriends();
-     * if (cachedFriends.length > 0) {
-     *     console.log("Using cached friends list");
-     * }
-     * ```
-     *
-     * @throws {ApiError} 如果 API 调用失败
-     */
-    async getFriends(): Promise<Friend[]> {
-        try {
-            const response = await this.client.http.authedRequest<IFriendsResponse>(
-                Method.Get,
-                "/friends",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
-
-            if (response.room_id) {
-                this.friendListRoomId = response.room_id;
-            }
-
-            const friends = (response.friends || response.items || []).map(normalizeFriend);
-            this.friends.clear();
-            friends.forEach((f) => this.friends.set(f.user_id, f));
-
-            return friends;
-        } catch (e) {
-            throw this.normalizeError(e, "getFriends");
-        }
+        return this.requests.cancelFriendRequest(userId);
     }
 
     async getIncomingRequests(): Promise<FriendRequest[]> {
-        try {
-            let response: IFriendRequestsResponse;
-            try {
-                response = await this.client.http.authedRequest<IFriendRequestsResponse>(
-                    Method.Get,
-                    "/friends/request/received",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V1 },
-                );
-            } catch (error) {
-                const normalized = this.normalizeError(error, "getIncomingRequests");
-                if (!(normalized instanceof NotFoundError)) {
-                    throw normalized;
-                }
-
-                // Backward compatibility for deployments that only expose the legacy alias.
-                response = await this.client.http.authedRequest<IFriendRequestsResponse>(
-                    Method.Get,
-                    "/friends/requests/incoming",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V1 },
-                );
-            }
-
-            const requests = (response.requests || []).map(normalizeFriendRequest);
-            this.incomingRequests.clear();
-            requests.forEach((r) => {
-                this.incomingRequests.set(r.user_id, r);
-                this.emit(FriendEvent.RequestReceived, r);
-            });
-
-            return requests;
-        } catch (e) {
-            throw this.normalizeError(e, "getIncomingRequests");
-        }
+        return this.requests.getIncomingRequests();
     }
 
     async getOutgoingRequests(): Promise<FriendRequest[]> {
-        try {
-            const response = await this.client.http.authedRequest<IFriendRequestsResponse>(
-                Method.Get,
-                "/friends/requests/outgoing",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-
-            const requests = (response.requests || []).map(normalizeFriendRequest);
-            this.outgoingRequests.clear();
-            requests.forEach((r) => this.outgoingRequests.set(r.user_id, r));
-
-            return requests;
-        } catch (e) {
-            throw this.normalizeError(e, "getOutgoingRequests");
-        }
+        return this.requests.getOutgoingRequests();
     }
 
-    /**
-     * 获取好友推荐列表
-     *
-     * @param limit - 返回数量限制（默认 10）
-     * @returns 推荐好友列表
-     *
-     * @example
-     * ```typescript
-     * // 获取默认数量的推荐
-     * const suggestions = await friendManager.getFriendSuggestions();
-     * suggestions.forEach(friend => {
-     *     console.log(`Suggested: ${friend.display_name} (${friend.user_id})`);
-     * });
-     *
-     * // 获取更多推荐
-     * const moreSuggestions = await friendManager.getFriendSuggestions(20);
-     * ```
-     *
-     * @throws {ValidationError} 如果 limit 超出范围
-     * @throws {ApiError} 如果 API 调用失败
-     */
+    getCachedIncomingRequests(): FriendRequest[] {
+        return this.requests.getCachedIncomingRequests();
+    }
+
+    getCachedOutgoingRequests(): FriendRequest[] {
+        return this.requests.getCachedOutgoingRequests();
+    }
+
+    // ----- 好友列表（委托 → list） -----
+
+    async getFriends(): Promise<Friend[]> {
+        return this.list.getFriends();
+    }
+
     async getFriendSuggestions(limit: number = 10): Promise<Friend[]> {
-        AdminValidators.validateLimit(limit);
-        try {
-            const response = await this.client.http.authedRequest<IFriendSuggestionsResponse>(
-                Method.Get,
-                "/friends/suggestions",
-                { limit },
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-
-            return (response.suggestions || []).map(normalizeFriend);
-        } catch (e) {
-            throw this.normalizeError(e, "getFriendSuggestions");
-        }
+        return this.list.getFriendSuggestions(limit);
     }
 
-    /**
-     * 搜索用户目录
-     *
-     * 通过后端 pg_trgm 相似度 + 在线状态集成进行全局用户搜索。
-     * 支持精确匹配（mode=exact）和模糊匹配（默认 fuzzy）。
-     * 结果按 match_score 降序排列，过滤自身、过滤隐私受限用户。
-     *
-     * @param q - 搜索关键词（必填，不可为空）
-     * @param mode - 匹配模式："fuzzy"（默认）| "exact"
-     * @param limit - 返回数量限制（默认 20，后端上限由 rate_limit_token_bucket 控制）
-     * @returns 搜索结果，包含用户信息 + 匹配度评分 + 在线状态
-     *
-     * @example
-     * ```typescript
-     * // 模糊搜索
-     * const results = await friendManager.searchUsers("alice");
-     * results.forEach(user => {
-     *     console.log(`${user.displayname} (${user.user_id}) - score: ${user.match_score}`);
-     * });
-     *
-     * // 精确搜索
-     * const exact = await friendManager.searchUsers("@bob:example.com", "exact");
-     *
-     * // 检查限流状态
-     * const { results, retry_after_seconds } = await friendManager.searchUsers("test");
-     * if (retry_after_seconds > 0) {
-     *     console.log(`Rate limited, retry after ${retry_after_seconds}s`);
-     * }
-     * ```
-     *
-     * @throws {InvalidParamError} 如果搜索关键词为空
-     * @throws {ApiError} 如果 API 调用失败或被限流
-     */
     async searchUsers(
         q: string,
         mode?: "fuzzy" | "exact",
         limit?: number,
     ): Promise<FriendSearchResponse> {
-        if (!q || q.trim().length === 0) {
-            throw new InvalidParamError("Search term cannot be empty");
-        }
-
-        const params: Record<string, string | number> = { q: q.trim() };
-        if (mode) params.mode = mode;
-        if (limit !== undefined) params.limit = limit;
-
-        try {
-            const response = await this.client.http.authedRequest<FriendSearchResponse>(
-                Method.Get,
-                fr("/friends/search"),
-                params,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
-
-            return response;
-        } catch (e) {
-            throw this.normalizeError(e, "searchUsers");
-        }
+        return this.list.searchUsers(q, mode, limit);
     }
 
-    /**
-     * 高级好友搜索（POST 方式）
-     *
-     * 与 searchUsers（GET 方式）不同，此方法使用 POST 请求体传递搜索参数，
-     * 支持更复杂的搜索条件和过滤选项。
-     *
-     * @param query - 搜索参数对象，可包含 q、mode、limit、filters 等字段
-     * @returns 搜索结果
-     *
-     * @example
-     * ```typescript
-     * // 基本搜索
-     * const results = await friendManager.searchFriendsAdvanced({ q: "alice" });
-     *
-     * // 带过滤条件的搜索
-     * const filtered = await friendManager.searchFriendsAdvanced({
-     *     q: "bob",
-     *     mode: "fuzzy",
-     *     limit: 10,
-     *     filters: { online_only: true },
-     * });
-     * ```
-     *
-     * @throws {InvalidParamError} 如果搜索参数为空
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async searchFriendsAdvanced(query: FriendSearchQuery): Promise<FriendSearchResponse> {
-        if (!query || Object.keys(query).length === 0) {
-            throw new InvalidParamError("Search query cannot be empty");
-        }
-
-        try {
-            const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<FriendSearchResponse>(
-                    Method.Post,
-                    "/friends/search",
-                    undefined,
-                    query,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "searchFriendsAdvanced");
-
-            return response;
-        } catch (e) {
-            throw this.normalizeError(e, "searchFriendsAdvanced");
-        }
+        return this.list.searchFriendsAdvanced(query);
     }
 
-    /**
-     * 检查是否为好友
-     *
-     * @param userId - 用户 ID（格式：@localpart:homeserver）
-     * @returns 是否为好友
-     *
-     * @example
-     * ```typescript
-     * // 检查是否为好友
-     * const isFriend = await friendManager.checkFriendship("@alice:example.com");
-     * if (isFriend) {
-     *     console.log("Already friends");
-     * } else {
-     *     console.log("Not friends yet");
-     * }
-     * ```
-     *
-     * @throws {ValidationError} 如果用户 ID 格式无效
-     */
-    /**
-     * 本地缓存快速命中检查（仅在已同步的缓存上工作，不触发网络请求）
-     */
     hasCachedFriend(userId: string): boolean {
-        return this.friends.has(userId);
-    }
-
-    async getFriendGroups(): Promise<FriendGroup[]> {
-        try {
-            const response = await this.client.http.authedRequest<IFriendGroupsResponse>(
-                Method.Get,
-                "/friends/groups",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-
-            const list = response.groups ?? [];
-            this.groups = {};
-            for (const g of list) {
-                if (g && g.id) {
-                    this.groups[g.id] = {
-                        id: g.id,
-                        name: g.name,
-                        members: g.members ?? [],
-                        created_at: g.created_at,
-                        updated_ts: g.updated_ts,
-                    };
-                }
-            }
-            return list;
-        } catch (e) {
-            throw this.normalizeError(e, "getFriendGroups");
-        }
-    }
-
-    /**
-     * 创建好友分组
-     *
-     * @param name - 分组名称
-     * @returns 创建的好友分组对象
-     *
-     * @example
-     * ```typescript
-     * // 创建好友分组
-     * const group = await friendManager.createFriendGroup("Work Friends");
-     * console.log("Group created:", group.id);
-     *
-     * // 添加好友到分组
-     * await friendManager.addToFriendGroup(group.id, "@alice:example.com");
-     * ```
-     *
-     * @throws {ValidationError} 如果分组名称为空或过长
-     * @throws {ApiError} 如果 API 调用失败
-     */
-    async createFriendGroup(name: string): Promise<FriendGroup> {
-        if (!name || name.length === 0) {
-            throw new InvalidParamError("Group name is required");
-        }
-        if (name.length > 50) {
-            throw new InvalidParamError("Group name too long (max 50 characters)");
-        }
-
-        const response = await this.client.http.authedRequest<ICreateGroupResponse>(
-            Method.Post,
-            "/friends/groups",
-            undefined,
-            { name },
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const group: FriendGroup = {
-            id: response.id,
-            name: response.name ?? name,
-            members: response.members ?? [],
-            created_at: response.created_at,
-            updated_ts: response.updated_ts,
-        };
-        this.groups[group.id] = group;
-
-        return group;
-    }
-
-    async addToFriendGroup(groupId: string, userId: string): Promise<void> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-        AdminValidators.validateUserId(userId);
-        await this.client.http.authedRequest(
-            Method.Post,
-            `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const cached = this.groups[groupId];
-        if (cached && !cached.members.includes(userId)) {
-            cached.members.push(userId);
-        }
-    }
-
-    async removeFromFriendGroup(groupId: string, userId: string): Promise<void> {
-        await this.client.http.authedRequest(
-            Method.Delete,
-            `/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const cached = this.groups[groupId];
-        if (cached) {
-            cached.members = cached.members.filter((u) => u !== userId);
-        }
-    }
-
-    async deleteFriendGroup(groupId: string): Promise<void> {
-        await this.client.http.authedRequest(Method.Delete, `/friends/groups/${groupId}`, undefined, undefined, {
-            prefix: ClientPrefix.V1,
-        });
-
-        delete this.groups[groupId];
-    }
-
-    async setFriendDisplayName(userId: string, displayName: string): Promise<void> {
-        if (!displayName || displayName.length < 1 || displayName.length > 256) {
-            throw new InvalidParamError("Display name must be between 1 and 256 characters");
-        }
-        await this.client.http.authedRequest(
-            Method.Put,
-            `/friends/${encodeURIComponent(userId)}/displayname`,
-            undefined,
-            { displayname: displayName },
-            { prefix: ClientPrefix.V1 },
-        );
+        return this.list.hasCachedFriend(userId);
     }
 
     async checkFriendship(userId: string): Promise<FriendshipCheckResponse> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-
-        try {
-            const response = await this.client.http.authedRequest<FriendshipCheckResponse>(
-                Method.Get,
-                `/friends/check/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
-            return response;
-        } catch (e) {
-            throw this.normalizeError(e, "checkFriendship");
-        }
+        return this.list.checkFriendship(userId);
     }
 
-    /**
-     * 获取好友关系列表（r0 版本）
-     *
-     * 通过 r0 版本的 friendships 端点获取好友关系列表。
-     * 此为旧版 API，可能在某些部署环境中仍然可用。
-     *
-     * @returns 好友关系列表
-     *
-     * @example
-     * ```typescript
-     * const friendships = await friendManager.getFriendships();
-     * friendships.forEach(f => {
-     *     console.log(`Friendship with ${f.user_id}: ${f.status}`);
-     * });
-     * ```
-     *
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async getFriendships(): Promise<Friend[]> {
-        try {
-            const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IFriendsResponse>(
-                    Method.Get,
-                    "/friendships",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.R0 },
-                );
-            }, "getFriendships");
-
-            const friends = (response.friends || response.items || []).map(normalizeFriend);
-            return friends;
-        } catch (e) {
-            throw this.normalizeError(e, "getFriendships");
-        }
+        return this.list.getFriendships();
     }
 
-    /**
-     * 创建好友关系（r0 版本）
-     *
-     * 通过 r0 版本的 friendships 端点直接创建好友关系。
-     * 此为旧版 API，推荐使用 addFriend（v3 版本）替代。
-     *
-     * @param userId - 目标用户 ID（格式：@localpart:homeserver）
-     * @returns 创建结果
-     *
-     * @example
-     * ```typescript
-     * const result = await friendManager.createFriendship("@alice:example.com");
-     * console.log("Friendship created:", result.user_id);
-     * ```
-     *
-     * @throws {InvalidParamError} 如果用户 ID 为空
-     * @throws {ApiError} 如果 API 调用失败
-     */
     async createFriendship(userId: string): Promise<{ user_id?: string; status?: string }> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-        AdminValidators.validateUserId(userId);
-
-        try {
-            const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ user_id?: string; status?: string }>(
-                    Method.Post,
-                    "/friendships",
-                    undefined,
-                    { user_id: userId },
-                    { prefix: ClientPrefix.R0 },
-                );
-            }, "createFriendship");
-
-            return { user_id: response?.user_id, status: response?.status };
-        } catch (e) {
-            throw this.normalizeError(e, "createFriendship");
-        }
+        return this.list.createFriendship(userId);
     }
 
     async updateFriendNote(userId: string, note: string): Promise<void> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-        if (note.length > 1000) {
-            throw new InvalidParamError("Note too long (max 1000 characters)");
-        }
-
-        await this.client.http.authedRequest(
-            Method.Put,
-            `/friends/${encodeURIComponent(userId)}/note`,
-            undefined,
-            { note },
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const friend = this.friends.get(userId);
-        if (friend) {
-            friend.note = note;
-            this.friends.set(userId, friend);
-            this.emit(FriendEvent.FriendUpdated, friend);
-        }
+        return this.list.updateFriendNote(userId, note);
     }
 
     async getFriendStatusInfo(userId: string): Promise<FriendStatusInfo> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-
-        return this.client.http.authedRequest<FriendStatusInfo>(
-            Method.Get,
-            `/friends/${encodeURIComponent(userId)}/status`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-    }
-
-    /**
-     * 获取与好友的 DM 房间
-     *
-     * @param userId - 好友用户 ID（格式：@localpart:homeserver）
-     * @returns DM 房间 ID，若无则返回 null
-     *
-     * @example
-     * ```typescript
-     * const { room_id } = await friendManager.getFriendDm("@alice:example.com");
-     * if (room_id) {
-     *     console.log("DM room:", room_id);
-     * } else {
-     *     console.log("No DM room with this friend");
-     * }
-     * ```
-     *
-     * @throws {InvalidParamError} 如果用户 ID 为空
-     * @throws {ApiError} 如果 API 调用失败
-     */
-    async getFriendDm(userId: string): Promise<{ room_id: string | null }> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-        AdminValidators.validateUserId(userId);
-
-        try {
-            const response = await this.client.http.authedRequest<{ room_id: string | null }>(
-                Method.Get,
-                `/friends/dm/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-            return response;
-        } catch (e) {
-            throw this.normalizeError(e, "getFriendDm");
-        }
-    }
-
-    /**
-     * 创建与好友的 DM 房间
-     *
-     * @param userId - 好友用户 ID（格式：@localpart:homeserver）
-     * @returns 创建的 DM 房间 ID
-     *
-     * @example
-     * ```typescript
-     * const { room_id } = await friendManager.createFriendDm("@alice:example.com");
-     * console.log("Created DM room:", room_id);
-     * ```
-     *
-     * @throws {InvalidParamError} 如果用户 ID 为空
-     * @throws {ApiError} 如果 API 调用失败
-     */
-    async createFriendDm(userId: string): Promise<{ room_id: string }> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-        AdminValidators.validateUserId(userId);
-
-        try {
-            const response = await this.client.http.authedRequest<{ room_id: string }>(
-                Method.Post,
-                `/friends/dm/${encodeURIComponent(userId)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-            return response;
-        } catch (e) {
-            throw this.normalizeError(e, "createFriendDm");
-        }
+        return this.blocks.getFriendStatusInfo(userId);
     }
 
     async getFriendStatus(userId: string): Promise<string> {
-        const response = await this.getFriendStatusInfo(userId);
-        return response.status;
+        return this.blocks.getFriendStatus(userId);
     }
 
     async updateFriendStatus(userId: string, status: string): Promise<void> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
+        return this.blocks.updateFriendStatus(userId, status);
+    }
 
-        const validStatuses = ["favorite", "normal", "blocked", "hidden"];
-        if (!validStatuses.includes(status)) {
-            throw new InvalidParamError(`Invalid status. Valid values: ${validStatuses.join(", ")}`);
-        }
+    async getFriendDm(userId: string): Promise<{ room_id: string | null }> {
+        return this.list.getFriendDm(userId);
+    }
 
-        await this.client.http.authedRequest(
-            Method.Put,
-            `/friends/${encodeURIComponent(userId)}/status`,
-            undefined,
-            { status },
-            { prefix: ClientPrefix.V1 },
-        );
+    async createFriendDm(userId: string): Promise<{ room_id: string }> {
+        return this.list.createFriendDm(userId);
+    }
 
-        const friend = this.friends.get(userId);
-        if (friend) {
-            friend.status = status as FriendStatus;
-            this.friends.set(userId, friend);
-            this.emit(FriendEvent.FriendUpdated, friend);
-        }
+    async removeFriend(userId: string): Promise<void> {
+        return this.list.removeFriend(userId);
+    }
+
+    async setFriendDisplayName(userId: string, displayName: string): Promise<void> {
+        return this.list.setFriendDisplayName(userId, displayName);
+    }
+
+    async getFriendInfo(userId: string, throwOnError = true): Promise<Friend | null> {
+        return this.list.getFriendInfo(userId, throwOnError);
+    }
+
+    // ----- 好友分组（委托 → list） -----
+
+    async getFriendGroups(): Promise<FriendGroup[]> {
+        return this.list.getFriendGroups();
+    }
+
+    async createFriendGroup(name: string): Promise<FriendGroup> {
+        return this.list.createFriendGroup(name);
+    }
+
+    async addToFriendGroup(groupId: string, userId: string): Promise<void> {
+        return this.list.addToFriendGroup(groupId, userId);
+    }
+
+    async removeFromFriendGroup(groupId: string, userId: string): Promise<void> {
+        return this.list.removeFromFriendGroup(groupId, userId);
+    }
+
+    async deleteFriendGroup(groupId: string): Promise<void> {
+        return this.list.deleteFriendGroup(groupId);
     }
 
     async renameFriendGroup(groupId: string, name: string): Promise<void> {
-        if (!name || name.length === 0) {
-            throw new InvalidParamError("Group name is required");
-        }
-        if (name.length > 50) {
-            throw new InvalidParamError("Group name too long (max 50 characters)");
-        }
-
-        await this.client.http.authedRequest(
-            Method.Put,
-            `/friends/groups/${groupId}/name`,
-            undefined,
-            { name },
-            { prefix: ClientPrefix.V1 },
-        );
-
-        const cached = this.groups[groupId];
-        if (cached) {
-            cached.name = name;
-        }
+        return this.list.renameFriendGroup(groupId, name);
     }
 
     async getFriendsInGroup(groupId: string): Promise<Friend[]> {
-        const response = await this.client.http.authedRequest<{ friends: Friend[] }>(
-            Method.Get,
-            `/friends/groups/${groupId}/friends`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        return (response.friends || []).map(normalizeFriend);
+        return this.list.getFriendsInGroup(groupId);
     }
 
     async getGroupsForUser(userId: string): Promise<FriendGroup[]> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-
-        const response = await this.client.http.authedRequest<{ groups?: FriendGroup[] }>(
-            Method.Get,
-            `/friends/${encodeURIComponent(userId)}/groups`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
-
-        return response.groups ?? [];
+        return this.list.getGroupsForUser(userId);
     }
 
+    // ----- 缓存（委托 → list） -----
+
     getFriendListRoomId(): string | null {
-        return this.friendListRoomId;
+        return this.list.getFriendListRoomId();
     }
 
     getCachedFriends(): Friend[] {
-        return this.friends.values();
-    }
-
-    getCachedIncomingRequests(): FriendRequest[] {
-        return Array.from(this.incomingRequests.values());
-    }
-
-    getCachedOutgoingRequests(): FriendRequest[] {
-        return Array.from(this.outgoingRequests.values());
-    }
-
-    /**
-     * 获取好友信息
-     *
-     * @param userId - 用户 ID
-     * @param throwOnError - 是否抛出错误（默认 true，传 false 时保留兼容 fallback）
-     * @returns 好友信息
-     */
-    async getFriendInfo(userId: string, throwOnError = true): Promise<Friend | null> {
-        if (!userId) {
-            throw new InvalidParamError("User ID is required");
-        }
-
-        try {
-            const response = await this.client.http.authedRequest<Friend>(
-                Method.Get,
-                `/friends/${encodeURIComponent(userId)}/info`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-            return normalizeFriend(response);
-        } catch (e) {
-            if (throwOnError) {
-                throw e;
-            }
-            const error = this.normalizeError(e, "getFriendInfo");
-            if (error instanceof NotFoundError) {
-                // @swallow-error { owner: "friend", expires: "2026-12-31" }
-                return null;
-            }
-            throw error;
-        }
+        return this.list.getCachedFriends();
     }
 
     getFriendCount(): number {
-        return this.friends.size();
+        return this.list.getFriendCount();
     }
 
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
-        return this.friends.getStats();
+        return this.list.getCacheStats();
+    }
+
+    async ensureFriendListRoom(): Promise<string> {
+        return this.list.ensureFriendListRoom();
     }
 
     clearCache(): void {
-        this.friends.clear();
+        this.list.clearCache();
+        this.requests.clearCache();
+        this.sharedState.incomingRequests.clear();
+        this.sharedState.outgoingRequests.clear();
     }
+
+    // ----- 生命周期（委托 → list） -----
 
     async sync(): Promise<void> {
         await Promise.all([
-            this.getFriends(),
-            this.getIncomingRequests(),
-            this.getOutgoingRequests(),
+            this.list.getFriends(),
+            this.requests.getIncomingRequests(),
+            this.requests.getOutgoingRequests(),
         ]);
         this.emit(FriendEvent.SyncComplete);
     }
 
     async start(): Promise<void> {
-        if (this.initialized) return;
+        if (this.sharedState.initialized) return;
 
         try {
             await Promise.all([
-                this.getFriends(),
-                this.getIncomingRequests(),
-                this.getOutgoingRequests(),
-                this.getFriendGroups(),
+                this.list.getFriends(),
+                this.requests.getIncomingRequests(),
+                this.requests.getOutgoingRequests(),
+                this.list.getFriendGroups(),
             ]);
-            this.initialized = true;
+            this.sharedState.initialized = true;
         } catch (e) {
             logger.warn("FriendManager.start failed:", e);
         }
     }
 
     stop(): void {
-        this.friends.clear();
-        this.incomingRequests.clear();
-        this.outgoingRequests.clear();
-        this.groups = {};
-        this.initialized = false;
+        this.list.stop();
+        this.requests.clearCache();
+        this.sharedState.friendListRoomId = null;
+        this.sharedState.initialized = false;
     }
 }
 
