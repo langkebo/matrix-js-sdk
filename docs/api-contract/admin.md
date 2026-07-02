@@ -246,3 +246,145 @@ last_reviewed: 2026-05-11
 ### 相关文档
 
 Worker admin（独立前缀 `/_synapse/worker/v1`）参见 [`worker-admin.md`](./worker-admin.md)。
+
+## DTO Definitions
+
+> The types below describe the canonical request/response shapes for the admin API surface.
+> They are extracted by `scripts/sdk-contract-codegen.mjs` into `src/admin/__generated__/dto.ts`.
+
+### Server info & health
+
+```typescript
+export interface AdminServerInfoDto {
+    server_name?: string;
+    version?: string;
+    python_version?: string;
+    uptime?: number;
+    federation_enabled?: boolean;
+    registration_enabled?: boolean;
+}
+
+export interface AdminServerStatsDto {
+    total_users?: number;
+    total_rooms?: number;
+    user_count?: number;
+    room_count?: number;
+    daily_active_users?: number;
+    monthly_active_users?: number;
+    total_nonlocal_users?: number;
+    total_room_events?: number;
+    server_start_time?: number;
+    r30_users?: number;
+    r30v2_users?: number;
+}
+
+export interface AdminServerHealthDto {
+    healthy: boolean;
+    checks?: Record<string, { status: string; message?: string }>;
+}
+```
+
+### User & account
+
+```typescript
+export interface AdminUserAccountDto {
+    user_id: string;
+    name?: string;
+    displayname?: string;
+    avatar_url?: string;
+    admin?: boolean;
+    deactivated?: boolean;
+    suspended?: boolean;
+    created_ts?: number;
+    last_seen_ts?: number;
+    last_seen_ip?: string;
+    user_type?: string;
+    is_guest?: boolean;
+    erased?: boolean;
+}
+
+export interface AdminDeviceDto {
+    device_id: string;
+    display_name?: string;
+    last_seen_ip?: string;
+    last_seen_ts?: number;
+    user_id?: string;
+}
+```
+
+### Room
+
+```typescript
+export interface AdminRoomInfoDto {
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    creator?: string;
+    joined_members?: number;
+    joined_local_members?: number;
+    invited_members?: number;
+    version?: string;
+    created_ts?: number;
+    join_rules?: string;
+    public?: boolean;
+    guest_access?: string;
+    history_visibility?: string;
+    state_events?: number;
+}
+
+export interface AdminRoomStatsDto {
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    member_count?: number;
+    message_count?: number;
+    last_message_ts?: number;
+    is_encrypted?: boolean;
+    admin_count?: number;
+    created_ts?: number;
+}
+```
+
+### Registration & tokens
+
+```typescript
+export interface AdminRegistrationTokenDto {
+    token: string;
+    uses_allowed?: number;
+    pending?: number;
+    completed?: number;
+    expiry_time?: number;
+}
+
+export interface AdminRegisterResultDto {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    device_id?: string;
+    user_id: string;
+    home_server?: string;
+    nonce?: string;
+}
+```
+
+### Federation
+
+```typescript
+export interface AdminFederationBlacklistEntryDto {
+    server_name: string;
+    reason?: string;
+    added_ts?: number;
+}
+
+export interface AdminFederationDestinationDto {
+    destination: string;
+    retry_last_ts?: number;
+    retry_interval?: number;
+    failure_ts?: number;
+    last_successful_stream_ordering?: number;
+    status?: "pending" | "active" | "rejected";
+    updated_ts?: number;
+}
+```
