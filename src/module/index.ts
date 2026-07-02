@@ -63,8 +63,6 @@ export enum ModuleEvent {
     AccountDataCallbackRegistered = "AccountDataCallbackRegistered",
     MediaCallbackRegistered = "MediaCallbackRegistered",
     PasswordAuthProviderRegistered = "PasswordAuthProviderRegistered",
-    PresenceRouteRegistered = "PresenceRouteRegistered",
-    RateLimitCallbackRegistered = "RateLimitCallbackRegistered",
     AccountValidityChecked = "AccountValidityChecked",
     AccountValidityRenewed = "AccountValidityRenewed",
     ModuleError = "ModuleError",
@@ -133,20 +131,6 @@ export interface PasswordAuthProviderInfo {
     config?: IContent;
 }
 
-export interface PresenceRouteInfo {
-    id: string;
-    module_name: string;
-    route_type: string;
-    enabled: boolean;
-}
-
-export interface RateLimitCallbackInfo {
-    id: string;
-    module_name: string;
-    enabled: boolean;
-    config?: IContent;
-}
-
 export interface AccountValidityInfo {
     user_id: string;
     valid: boolean;
@@ -179,8 +163,6 @@ interface ModuleManagerEventMap {
     [ModuleEvent.AccountDataCallbackRegistered]: (callback: CallbackInfo) => void;
     [ModuleEvent.MediaCallbackRegistered]: (callback: CallbackInfo) => void;
     [ModuleEvent.PasswordAuthProviderRegistered]: (provider: PasswordAuthProviderInfo) => void;
-    [ModuleEvent.PresenceRouteRegistered]: (route: PresenceRouteInfo) => void;
-    [ModuleEvent.RateLimitCallbackRegistered]: (callback: RateLimitCallbackInfo) => void;
     [ModuleEvent.AccountValidityChecked]: (info: AccountValidityInfo) => void;
     [ModuleEvent.AccountValidityRenewed]: (userId: string) => void;
     [ModuleEvent.ModuleError]: (error: Error) => void;
@@ -403,33 +385,6 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result.callbacks;
     }
 
-    /**
-     * @deprecated Functionality moved to the rate-limit module.
-     */
-    async getRateLimitCallbacks(): Promise<RateLimitCallbackInfo[]> {
-        const result = await this.adminRequest<{ callbacks: RateLimitCallbackInfo[] }>(
-            Method.Get,
-            "/rate_limit_callbacks",
-        );
-        return result.callbacks;
-    }
-
-    /**
-     * @deprecated Functionality moved to the rate-limit module.
-     */
-    async registerRateLimitCallback(callback: {
-        module_name: string;
-    }): Promise<RateLimitCallbackInfo> {
-        const result = await this.adminRequest<RateLimitCallbackInfo>(
-            Method.Post,
-            "/rate_limit_callbacks",
-            undefined,
-            callback,
-        );
-        this.emit(ModuleEvent.RateLimitCallbackRegistered, result);
-        return result;
-    }
-
     // ==================== 密码认证提供商 ====================
 
     async getPasswordAuthProviders(): Promise<PasswordAuthProviderInfo[]> {
@@ -452,36 +407,6 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
             provider as object,
         );
         this.emit(ModuleEvent.PasswordAuthProviderRegistered, result);
-        return result;
-    }
-
-    // ==================== 在线状态路由 ====================
-
-    /**
-     * @deprecated Functionality moved to the presence module.
-     */
-    async getPresenceRoutes(): Promise<PresenceRouteInfo[]> {
-        const result = await this.adminRequest<{ routes: PresenceRouteInfo[] }>(
-            Method.Get,
-            "/presence_routes",
-        );
-        return result.routes;
-    }
-
-    /**
-     * @deprecated Functionality moved to the presence module.
-     */
-    async registerPresenceRoute(route: {
-        module_name: string;
-        route_type: string;
-    }): Promise<PresenceRouteInfo> {
-        const result = await this.adminRequest<PresenceRouteInfo>(
-            Method.Post,
-            "/presence_routes",
-            undefined,
-            route,
-        );
-        this.emit(ModuleEvent.PresenceRouteRegistered, result);
         return result;
     }
 

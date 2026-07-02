@@ -256,23 +256,6 @@ describe("ModuleManager", () => {
             expect(result).toHaveLength(1);
         });
 
-        it("should get rate limit callbacks", async () => {
-            const mockCallbacks = {
-                callbacks: [{ id: "1", module_name: "test", enabled: true }],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallbacks);
-
-            const result = await moduleManager.getRateLimitCallbacks();
-            expect(result).toHaveLength(1);
-        });
-
-        it("should register rate limit callback", async () => {
-            const mockCallback = { id: "1", module_name: "test", enabled: true };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallback);
-
-            const result = await moduleManager.registerRateLimitCallback({ module_name: "test" });
-            expect(result.module_name).toBe("test");
-        });
     });
 
     describe("password auth providers", () => {
@@ -296,36 +279,6 @@ describe("ModuleManager", () => {
                 type: "ldap",
             });
             expect(result.name).toBe("ldap");
-        });
-    });
-
-    describe("presence routes", () => {
-        it("should get presence routes", async () => {
-            const mockRoutes = {
-                routes: [
-                    { id: "1", module_name: "test", route_type: "presence", enabled: true },
-                ],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockRoutes);
-
-            const result = await moduleManager.getPresenceRoutes();
-            expect(result).toHaveLength(1);
-        });
-
-        it("should register presence route", async () => {
-            const mockRoute = {
-                id: "1",
-                module_name: "test",
-                route_type: "presence",
-                enabled: true,
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockRoute);
-
-            const result = await moduleManager.registerPresenceRoute({
-                module_name: "test",
-                route_type: "presence",
-            });
-            expect(result.module_name).toBe("test");
         });
     });
 
