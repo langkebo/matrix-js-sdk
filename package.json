@@ -267,6 +267,46 @@
         "./key-verification": {
             "import": "./lib/key-verification/index.js",
             "types": "./lib/key-verification/index.d.ts"
+        },
+        "./e2ee": {
+            "import": "./lib/e2ee/index.js",
+            "types": "./lib/e2ee/index.d.ts"
+        },
+        "./external-service": {
+            "import": "./lib/external-service/index.js",
+            "types": "./lib/external-service/index.d.ts"
+        },
+        "./feature-flags": {
+            "import": "./lib/feature-flags/index.js",
+            "types": "./lib/feature-flags/index.d.ts"
+        },
+        "./federation": {
+            "import": "./lib/federation/index.js",
+            "types": "./lib/federation/index.d.ts"
+        },
+        "./media": {
+            "import": "./lib/media/index.js",
+            "types": "./lib/media/index.d.ts"
+        },
+        "./oidc": {
+            "import": "./lib/oidc/index.js",
+            "types": "./lib/oidc/index.d.ts"
+        },
+        "./presence": {
+            "import": "./lib/presence/index.js",
+            "types": "./lib/presence/index.d.ts"
+        },
+        "./room": {
+            "import": "./lib/room/index.js",
+            "types": "./lib/room/index.d.ts"
+        },
+        "./room-summary": {
+            "import": "./lib/room-summary/index.js",
+            "types": "./lib/room-summary/index.d.ts"
+        },
+        "./verification": {
+            "import": "./lib/verification/index.js",
+            "types": "./lib/verification/index.d.ts"
         }
     },
     "sideEffects": false,
