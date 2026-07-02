@@ -40,7 +40,7 @@ import { BaseManager } from "../managers/base-manager";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { OpenclawPathPattern } from "./__generated__/route-table";
-import type { OpenClawConnectionConfig } from "./__generated__/dto";
+import type { IOpenClawConnection } from "./__generated__/dto";
 
 export interface OpenClawConnection {
     id: number;
@@ -48,7 +48,7 @@ export interface OpenClawConnection {
     provider: string;
     base_url: string;
     has_api_key: boolean;
-    config?: OpenClawConnectionConfig;
+    config?: IOpenClawConnection;
     is_default: boolean;
     is_active: boolean;
     created_ts: number;
@@ -60,7 +60,7 @@ export interface CreateOpenClawConnectionRequest {
     provider: string;
     base_url: string;
     api_key?: string;
-    config?: OpenClawConnectionConfig;
+    config?: IOpenClawConnection;
     is_default?: boolean;
 }
 
@@ -68,7 +68,7 @@ export interface UpdateOpenClawConnectionRequest {
     name?: string;
     base_url?: string;
     api_key?: string;
-    config?: OpenClawConnectionConfig;
+    config?: IOpenClawConnection;
     is_default?: boolean;
     is_active?: boolean;
 }

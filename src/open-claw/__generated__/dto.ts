@@ -9,22 +9,13 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface OpenClawConnectionConfig {
-    api_key?: string;
-    model_id?: string;
-    max_tokens?: number;
-    temperature?: number;
-    top_p?: number;
-    [key: string]: unknown;
-}
-
 export interface IOpenClawConnection {
     id: number;
     name: string;
     provider: string;
     base_url: string;
     has_api_key: boolean;
-    config?: OpenClawConnectionConfig;
+    config?: Record<string, unknown>;
     is_default: boolean;
     is_active: boolean;
     created_ts: number;
@@ -44,22 +35,13 @@ export interface IOpenClawConversation {
     updated_ts: number;
 }
 
-export interface OpenClawToolCall {
-    id: string;
-    type: "function";
-    function: {
-        name: string;
-        arguments: string;
-    };
-}
-
 export interface IOpenClawMessage {
     id: number;
     conversation_id: number;
     role: string; // "user", "assistant", "system", "tool"
     content: string;
     token_count?: number;
-    tool_calls?: OpenClawToolCall[];
+    tool_calls?: Record<string, unknown>;
     created_ts: number;
 }
 

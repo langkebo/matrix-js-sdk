@@ -35,7 +35,8 @@ const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRAC
 const GENERATED_MODULES_DIR = path.join(repoRoot, "docs", "api-contract", "generated", "modules");
 
 const SDK_DIR_ALIASES = {
-    "app-service": "appservice",
+    "openclaw": "open-claw",
+    "thirdparty": "third-party",
 };
 
 const LEDGER_MODULE_ALIASES = {

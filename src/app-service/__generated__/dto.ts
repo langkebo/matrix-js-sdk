@@ -20,43 +20,19 @@ export interface ASRoom {
     alias: string;
 }
 
-export interface AppServiceNamespace {
-    exclusive: boolean;
-    regex: string;
-    group_id?: string;
-}
-
-export interface AppServiceNamespaces {
-    users?: AppServiceNamespace[];
-    rooms?: AppServiceNamespace[];
-    aliases?: AppServiceNamespace[];
-}
-
-export interface AppServiceEntry {
-    id: string;
-    url: string;
-    sender_localpart: string;
-    namespaces: AppServiceNamespaces;
-}
-
 export interface AppServicesResponse {
-    appservices: AppServiceEntry[];
+    appservices: Array<{
+        id: string;
+        url: string;
+        sender_localpart: string;
+        namespaces: object;
+    }>;
 }
 
-export interface AppServiceASPingResponseDto {}
-
-export interface AppServiceEvent {
-    type: string;
-    content: Record<string, unknown>;
-    sender?: string;
-    event_id?: string;
-    origin_server_ts?: number;
-    room_id?: string;
-    state_key?: string;
-}
+export type AppServiceASPingResponseDto = Record<string, never>;
 
 export interface AppServiceASRequestDto {
-    events: AppServiceEvent[];
+    events: unknown[];
 }
 
-export interface AppServiceASResponseDto {}
+export type AppServiceASResponseDto = Record<string, never>;
