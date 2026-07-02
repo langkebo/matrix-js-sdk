@@ -742,6 +742,10 @@ export class Thread extends ReadReceipt<ThreadEmittedEvents, ThreadEventHandlerM
         return this.lastPendingEvent ?? this.lastEvent ?? this.lastReply();
     }
 
+    public get timeline(): MatrixEvent[] {
+        return this.events;
+    }
+
     public get events(): MatrixEvent[] {
         return this.liveTimeline.getEvents();
     }
