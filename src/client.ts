@@ -1620,20 +1620,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.buildSyncApiOptions();
     }
 
-    /** @deprecated Not correctly supported for Rust Cryptography. Use {@link CryptoApi.isEncryptionEnabledInRoom} and/or {@link Room.hasEncryptionStateEvent}. */
-    public isRoomEncrypted(roomId: string): boolean {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            // we don't know about this room, so can't determine if it should be
-            // encrypted. Let's assume not.
-            return false;
-        }
-
-        // if there is an 'm.room.encryption' event in this room, it should be
-        // encrypted (independently of whether we actually support encryption)
-        return room.hasEncryptionStateEvent();
-    }
-
     /**
      * Check whether the key backup private key is stored in secret storage.
      * @returns map of key name to key info the secret is
@@ -2622,7 +2608,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
         await this.assertDelayedEventsSupported("updateDelayedEvent");
-        return await this.updateScheduledDelayedEventWithActionInBody(delayId, action, requestOptions);
+        return await updateScheduledDelayedEventWithActionInBodyRequest(
+            this.http,
+            delayId,
+            action,
+            UNSTABLE_MSC4140_DELAYED_EVENTS,
+            requestOptions,
+        );
     }
 
     /**
@@ -2681,21 +2673,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         await this.assertDelayedEventsSupported(`${action}ScheduledDelayedEvent`);
 
         return await updateScheduledDelayedEventWithFallback(
-            this.http,
-            delayId,
-            action,
-            UNSTABLE_MSC4140_DELAYED_EVENTS,
-            requestOptions,
-        );
-    }
-
-    /** @deprecated Present for backwards compatibility with an older version of MSC4140. */
-    private async updateScheduledDelayedEventWithActionInBody(
-        delayId: string,
-        action: UpdateDelayedEventAction,
-        requestOptions: IRequestOpts = {},
-    ): Promise<EmptyObject> {
-        return await updateScheduledDelayedEventWithActionInBodyRequest(
             this.http,
             delayId,
             action,

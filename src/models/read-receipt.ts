@@ -410,14 +410,4 @@ export abstract class ReadReceipt<
      */
     public abstract hasUserReadEvent(userId: string, eventId: string): boolean;
 
-    /**
-     * Returns the most recent unthreaded receipt for a given user
-     * @param userId - the MxID of the User
-     * @returns an unthreaded Receipt. Can be undefined if receipts have been disabled
-     * or a user chooses to use private read receipts (or we have simply not received
-     * a receipt from this user yet).
-     *
-     * @deprecated use `hasUserReadEvent` or `getEventReadUpTo` instead
-     */
-    public abstract getLastUnthreadedReceiptFor(userId: string): Receipt | undefined;
 }

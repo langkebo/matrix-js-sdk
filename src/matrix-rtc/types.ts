@@ -83,17 +83,10 @@ export interface EncryptionKeysToDeviceEventContent extends IContent {
     // Why is this needed?
     sent_ts?: number;
 }
-/**
- * @deprecated Use `RTCNotificationType` instead.
- */
-export type CallNotifyType = "ring" | "notify";
-/**
- * @deprecated Use `IRTCNotificationContent` instead.
- */
 export interface ICallNotifyContent {
     "application": string;
     "m.mentions": IMentions;
-    "notify_type": CallNotifyType;
+    "notify_type": "ring" | "notify";
     "call_id": string;
 }
 
