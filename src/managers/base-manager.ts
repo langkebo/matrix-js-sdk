@@ -18,19 +18,24 @@ limitations under the License.
  * Base Manager - 管理器基类
  *
  * 提供所有 Manager 类的通用功能：
- * - 统一的错误处理和规范化
- * - 重试逻辑
+ * - 统一的 HTTP 请求通道 (`request()`) 含可注入的 Transport seam
+ * - 重试逻辑（幂等方法默认开启，非幂等方法需显式声明）
+ * - 错误归一化（MatrixError/HTTPError → SdkError 子类）
  * - 请求统计
  * - 日志记录
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { HTTPError, MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
+import type { QueryDict } from "../utils";
+import type { Body, IRequestOpts } from "../http-api/interface";
 import { Method } from "../http-api/method";
-import { AdminPrefix } from "../http-api/prefix";
+import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, ValidationError } from "../errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
+
+// ─── 公共类型 ────────────────────────────────────────────────
 
 export interface RetryOptions {
     maxRetries?: number;
@@ -49,10 +54,39 @@ export interface RequestStats {
 }
 
 /**
- * Base class for all Manager classes
- *
- * Provides common functionality like error handling, retry logic, and request statistics.
+ * `request()` 方法的参数对象。
  */
+export interface RequestSpec {
+    method: Method;
+    path: string;
+    prefix?: string;
+    queryParams?: Record<string, string | string[]>;
+    body?: unknown;
+    retry?: RetryOptions;
+    /** 用于日志和错误消息的标签，默认使用 `path` */
+    label?: string;
+}
+
+/**
+ * HTTP 传输层接口。
+ *
+ * 生产环境默认适配 `client.http.authedRequest`，测试可注入 in-memory fake。
+ */
+export interface Transport {
+    request<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body, opts?: IRequestOpts): Promise<T>;
+}
+
+/**
+ * Manager 构造选项，向后兼容 `RetryOptions`。
+ */
+export interface ManagerOpts extends RetryOptions {
+    transport?: Transport;
+    /** 默认 API 前缀，不传时 fallback 为 `ClientPrefix.V3` */
+    defaultPrefix?: string;
+}
+
+// ─── BaseManager ──────────────────────────────────────────────
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export abstract class BaseManager<
     Events extends string = string,
@@ -60,7 +94,9 @@ export abstract class BaseManager<
 > extends TypedEventEmitter<Events, EventMap> {
 /* eslint-enable @typescript-eslint/no-explicit-any */
     protected readonly client: MatrixClient;
-    protected retryOptions: RetryOptions = {};
+    protected readonly transport: Transport;
+    protected readonly defaultPrefix: string;
+    protected retryOptions: RetryOptions;
     protected requestStats: RequestStats = {
         total: 0,
         successful: 0,
@@ -68,21 +104,120 @@ export abstract class BaseManager<
         retried: 0,
     };
 
-    constructor(client: MatrixClient, retryOptions?: RetryOptions) {
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
         super();
         this.client = client;
-        if (retryOptions) {
-            this.retryOptions = retryOptions;
-        }
+        this.transport = opts?.transport ?? defaultHttpTransport(client);
+        this.defaultPrefix = opts?.defaultPrefix ?? ClientPrefix.V3;
+        this.retryOptions = {
+            maxRetries: opts?.maxRetries ?? 3,
+            retryDelay: opts?.retryDelay ?? 1000,
+            backoffMultiplier: opts?.backoffMultiplier ?? 2,
+            idempotent: opts?.idempotent ?? true,
+            retryNonIdempotent: opts?.retryNonIdempotent ?? false,
+            label: opts?.label,
+        };
     }
 
+    // ─── 核心：统一请求方法 ────────────────────────────────────
+
     /**
-     * Normalize an error into a standard SdkError
+     * 发送 HTTP 请求，自动合并重试配置、错误归一化和请求统计。
      *
-     * @param error - The error to normalize
-     * @param method - The method name where the error occurred
-     * @returns A normalized SdkError
+     * @example
+     * const res = await this.request<IUserResponse>({
+     *     method: Method.Get,
+     *     path: "/users",
+     *     prefix: ClientPrefix.V1,
+     * });
      */
+    protected async request<T>(spec: RequestSpec): Promise<T> {
+        const label = spec.label ?? `${spec.method} ${spec.path}`;
+        const isIdempotent = spec.method === Method.Get || spec.method === "HEAD";
+        const mergedRetry: Required<Pick<RetryOptions, "maxRetries" | "retryDelay" | "backoffMultiplier">> &
+            Pick<RetryOptions, "idempotent" | "retryNonIdempotent"> = {
+            maxRetries: spec.retry?.maxRetries ?? this.retryOptions.maxRetries ?? 3,
+            retryDelay: spec.retry?.retryDelay ?? this.retryOptions.retryDelay ?? 1000,
+            backoffMultiplier: spec.retry?.backoffMultiplier ?? this.retryOptions.backoffMultiplier ?? 2,
+            idempotent: spec.retry?.idempotent ?? isIdempotent,
+            retryNonIdempotent: spec.retry?.retryNonIdempotent ?? this.retryOptions.retryNonIdempotent ?? false,
+        };
+
+        const prefix = spec.prefix ?? this.defaultPrefix;
+
+        let lastError: unknown;
+        let currentDelay = mergedRetry.retryDelay;
+
+        for (let attempt = 0; attempt <= mergedRetry.maxRetries; attempt++) {
+            try {
+                this.requestStats.total++;
+                const result = await this.transport.request<T>(
+                    spec.method,
+                    spec.path,
+                    spec.queryParams,
+                    spec.body as Body | undefined,
+                    { prefix },
+                );
+                this.requestStats.successful++;
+                return result;
+            } catch (error) {
+                lastError = error;
+                this.requestStats.failed++;
+
+                if (attempt < mergedRetry.maxRetries) {
+                    const canRetry = mergedRetry.idempotent || mergedRetry.retryNonIdempotent;
+                    const normalized = this.normalizeError(error, label);
+                    const isRetryableErr =
+                        normalized instanceof RetryableError ||
+                        (error instanceof HTTPError && typeof error.httpStatus === "number" && error.httpStatus >= 500);
+
+                    if (canRetry && isRetryableErr) {
+                        this.requestStats.retried++;
+                        let delay = currentDelay;
+                        if (error instanceof HTTPError && error.isRateLimitError()) {
+                            delay = safeGetRetryAfterMs(error, currentDelay);
+                        }
+                        logger.warn(
+                            `${this.constructor.name}.${label}: Retry attempt ${attempt + 1}/${mergedRetry.maxRetries} after ${delay}ms`,
+                            error,
+                        );
+                        await this.sleep(delay);
+                        currentDelay *= mergedRetry.backoffMultiplier;
+                        continue;
+                    }
+                }
+
+                throw this.normalizeError(error, label);
+            }
+        }
+
+        throw this.normalizeError(lastError, label);
+    }
+
+    // ─── 向后兼容 — admin 请求快捷方法 ───────────────────────────
+
+    /**
+     * @deprecated 请使用 `this.request({ method, path, prefix: AdminPrefix.V1 })` 替代。
+     */
+    protected async adminRequest<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string | string[]>,
+        body?: object,
+        label?: string,
+    ): Promise<T> {
+        return this.request<T>({
+            method,
+            path,
+            prefix: AdminPrefix.V1,
+            queryParams,
+            body: body ?? undefined,
+            label,
+        });
+    }
+
+    // ─── 错误归一化 ─────────────────────────────────────────────
+
     protected normalizeError(error: unknown, method: string): SdkError {
         const managerName = this.constructor.name;
         const err = error as Error;
@@ -91,7 +226,6 @@ export abstract class BaseManager<
         const errcode = plain?.errcode as string | undefined;
         const code = plain?.code as string | undefined;
 
-        // If already a SdkError, return as-is
         if (error instanceof SdkError) {
             return error;
         }
@@ -175,13 +309,8 @@ export abstract class BaseManager<
         );
     }
 
-    /**
-     * Execute a function with retry logic
-     *
-     * @param fn - The function to execute
-     * @param optionsOrLabel - Retry options or a label for logging
-     * @returns The result of the function
-     */
+    // ─── 重试 & 统计（向后兼容） ─────────────────────────────────
+
     public setRetryOptions(options: RetryOptions): void {
         this.retryOptions = { ...this.retryOptions, ...options };
     }
@@ -212,7 +341,6 @@ export abstract class BaseManager<
                 this.requestStats.failed++;
 
                 if (attempt < maxRetries) {
-                    // Check if error is retryable
                     const normalizedError = this.normalizeError(error, label);
                     const canRetryRequest = idempotent || retryNonIdempotent;
                     if (
@@ -241,18 +369,10 @@ export abstract class BaseManager<
         throw this.normalizeError(lastError, label);
     }
 
-    /**
-     * Get request statistics
-     *
-     * @returns Request statistics
-     */
     public getRequestStats(): RequestStats {
         return { ...this.requestStats };
     }
 
-    /**
-     * Reset request statistics
-     */
     public resetRequestStats(): void {
         this.requestStats = {
             total: 0,
@@ -262,11 +382,12 @@ export abstract class BaseManager<
         };
     }
 
-    /**
-     * Sleep for a specified duration
-     *
-     * @param ms - Duration in milliseconds
-     */
+    // ─── 验证 helper ────────────────────────────────────────────
+
+    protected sleep(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
     protected requireNonEmptyString(value: string | undefined | null, fieldName: string): asserts value is string {
         if (!value || value.trim().length === 0) {
             throw new ValidationError(`${fieldName} is required`);
@@ -296,26 +417,14 @@ export abstract class BaseManager<
             throw new ValidationError(`${fieldName} too long (max ${maxLength} characters)`);
         }
     }
+}
 
-    protected async adminRequest<T>(
-        method: Method,
-        path: string,
-        queryParams?: Record<string, string | string[]>,
-        body?: object,
-        label?: string,
-    ): Promise<T> {
-        return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<T>(
-                method,
-                path,
-                queryParams,
-                body,
-                { prefix: AdminPrefix.V1 },
-            );
-        }, label ?? "adminRequest");
-    }
+// ─── 默认 HTTP 传输 ────────────────────────────────────────────
 
-    protected sleep(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
+function defaultHttpTransport(client: MatrixClient): Transport {
+    return {
+        request<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body, opts?: IRequestOpts): Promise<T> {
+            return client.http.authedRequest<T>(method, path, queryParams, body, opts ?? {});
+        },
+    };
 }

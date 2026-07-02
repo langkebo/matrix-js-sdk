@@ -263,7 +263,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.OpenClaw, true);
     }
 
-    private request<T>(
+    private doRequest<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string>,
@@ -277,21 +277,21 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     }
 
     async listConnections(): Promise<OpenClawConnection[]> {
-        return this.request<OpenClawConnection[]>(Method.Get, oc("/connections"));
+        return this.doRequest<OpenClawConnection[]>(Method.Get, oc("/connections"));
     }
 
     async createConnection(req: CreateOpenClawConnectionRequest): Promise<OpenClawConnection> {
         this.requireNonEmptyString(req.name, "name");
         this.requireNonEmptyString(req.provider, "provider");
         this.requireNonEmptyString(req.base_url, "base_url");
-        const result = await this.request<OpenClawConnection>(Method.Post, oc("/connections"), undefined, req);
+        const result = await this.doRequest<OpenClawConnection>(Method.Post, oc("/connections"), undefined, req);
         this.emit(OpenClawEvent.ConnectionCreated, result);
         return result;
     }
 
     async getConnection(id: number): Promise<OpenClawConnection> {
         this.requirePositiveInteger(id, "id");
-        return this.request<OpenClawConnection>(
+        return this.doRequest<OpenClawConnection>(
             Method.Get,
             oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -299,7 +299,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async updateConnection(id: number, req: UpdateOpenClawConnectionRequest): Promise<OpenClawConnection> {
         this.requirePositiveInteger(id, "id");
-        const result = await this.request<OpenClawConnection>(
+        const result = await this.doRequest<OpenClawConnection>(
             Method.Put,
             oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
@@ -311,7 +311,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteConnection(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.request<void>(
+        await this.doRequest<void>(
             Method.Delete,
             oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -320,7 +320,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async testConnection(id: number): Promise<ConnectionTestResult> {
         this.requirePositiveInteger(id, "id");
-        const result = await this.request<ConnectionTestResult>(
+        const result = await this.doRequest<ConnectionTestResult>(
             Method.Post,
             oc(`/connections/${id}/test` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -335,7 +335,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         if (params?.from) q.from = params.from;
         if (params?.before !== undefined) q.before = String(params.before);
         if (params?.type) q.type = params.type;
-        return this.request<PaginatedResponse<OpenClawConversation>>(
+        return this.doRequest<PaginatedResponse<OpenClawConversation>>(
             Method.Get,
             oc("/conversations"),
             Object.keys(q).length > 0 ? q : undefined,
@@ -343,14 +343,14 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     }
 
     async createConversation(req: CreateOpenClawConversationRequest): Promise<OpenClawConversation> {
-        const result = await this.request<OpenClawConversation>(Method.Post, oc("/conversations"), undefined, req);
+        const result = await this.doRequest<OpenClawConversation>(Method.Post, oc("/conversations"), undefined, req);
         this.emit(OpenClawEvent.ConversationCreated, result);
         return result;
     }
 
     async getConversation(id: number): Promise<OpenClawConversation> {
         this.requirePositiveInteger(id, "id");
-        return this.request<OpenClawConversation>(
+        return this.doRequest<OpenClawConversation>(
             Method.Get,
             oc(`/conversations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -358,7 +358,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async updateConversation(id: number, req: UpdateOpenClawConversationRequest): Promise<OpenClawConversation> {
         this.requirePositiveInteger(id, "id");
-        const result = await this.request<OpenClawConversation>(
+        const result = await this.doRequest<OpenClawConversation>(
             Method.Put,
             oc(`/conversations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
@@ -370,7 +370,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteConversation(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.request<void>(
+        await this.doRequest<void>(
             Method.Delete,
             oc(`/conversations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -388,7 +388,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         if (params?.from) q.from = params.from;
         if (params?.before !== undefined) q.before = String(params.before);
         if (params?.type) q.type = params.type;
-        return this.request<PaginatedResponse<OpenClawMessage>>(
+        return this.doRequest<PaginatedResponse<OpenClawMessage>>(
             Method.Get,
             oc(`/conversations/${conversationId}/messages` as StripOpenClawPrefix<OpenclawPathPattern>),
             Object.keys(q).length > 0 ? q : undefined,
@@ -398,7 +398,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     async sendMessage(conversationId: number, req: SendMessageRequest): Promise<OpenClawMessage> {
         this.requirePositiveInteger(conversationId, "conversationId");
         this.requireNonEmptyString(req.content, "content");
-        const result = await this.request<OpenClawMessage>(
+        const result = await this.doRequest<OpenClawMessage>(
             Method.Post,
             oc(`/conversations/${conversationId}/messages` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
@@ -414,7 +414,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteMessage(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.request<void>(
+        await this.doRequest<void>(
             Method.Delete,
             oc(`/messages/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -428,7 +428,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         if (params?.from) q.from = params.from;
         if (params?.before !== undefined) q.before = String(params.before);
         if (params?.type) q.type = params.type;
-        return this.request<PaginatedResponse<OpenClawGeneration>>(
+        return this.doRequest<PaginatedResponse<OpenClawGeneration>>(
             Method.Get,
             oc("/generations"),
             Object.keys(q).length > 0 ? q : undefined,
@@ -438,14 +438,14 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     async createGeneration(req: CreateGenerationRequest): Promise<OpenClawGeneration> {
         this.requireNonEmptyString(req.type, "type");
         this.requireNonEmptyString(req.prompt, "prompt");
-        const result = await this.request<OpenClawGeneration>(Method.Post, oc("/generations"), undefined, req);
+        const result = await this.doRequest<OpenClawGeneration>(Method.Post, oc("/generations"), undefined, req);
         this.emit(OpenClawEvent.GenerationCreated, result);
         return result;
     }
 
     async getGeneration(id: number): Promise<OpenClawGeneration> {
         this.requirePositiveInteger(id, "id");
-        return this.request<OpenClawGeneration>(
+        return this.doRequest<OpenClawGeneration>(
             Method.Get,
             oc(`/generations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -453,7 +453,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteGeneration(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.request<void>(
+        await this.doRequest<void>(
             Method.Delete,
             oc(`/generations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -461,20 +461,20 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     }
 
     async listChatRoles(): Promise<OpenClawChatRole[]> {
-        return this.request<OpenClawChatRole[]>(Method.Get, oc("/roles"));
+        return this.doRequest<OpenClawChatRole[]>(Method.Get, oc("/roles"));
     }
 
     async createChatRole(req: CreateChatRoleRequest): Promise<OpenClawChatRole> {
         this.requireNonEmptyString(req.name, "name");
         this.requireNonEmptyString(req.system_message, "system_message");
-        const result = await this.request<OpenClawChatRole>(Method.Post, oc("/roles"), undefined, req);
+        const result = await this.doRequest<OpenClawChatRole>(Method.Post, oc("/roles"), undefined, req);
         this.emit(OpenClawEvent.RoleCreated, result);
         return result;
     }
 
     async getChatRole(id: number): Promise<OpenClawChatRole> {
         this.requirePositiveInteger(id, "id");
-        return this.request<OpenClawChatRole>(
+        return this.doRequest<OpenClawChatRole>(
             Method.Get,
             oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );
@@ -482,7 +482,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async updateChatRole(id: number, req: UpdateChatRoleRequest): Promise<OpenClawChatRole> {
         this.requirePositiveInteger(id, "id");
-        const result = await this.request<OpenClawChatRole>(
+        const result = await this.doRequest<OpenClawChatRole>(
             Method.Put,
             oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
             undefined,
@@ -494,7 +494,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteChatRole(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.request<void>(
+        await this.doRequest<void>(
             Method.Delete,
             oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
         );

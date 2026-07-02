@@ -244,7 +244,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         }
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<JsonObject>(Method.Post, sp("/spaces"), undefined, options);
+                return await this.doRequest<JsonObject>(Method.Post, sp("/spaces"), undefined, options);
             }, "createSpace");
             this.clearCache();
             const space = this.normalizeSpace(response);
@@ -285,7 +285,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId", spaceId));
+                return await this.doRequest<JsonObject>(Method.Get, this.spacePath("/spaces/$spaceId", spaceId));
             }, "getSpace");
             const space = this.normalizeSpace(response, spaceId);
             this.spaceCache.set(spaceId, space);
@@ -299,7 +299,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async updateSpace(spaceId: string, options: UpdateSpaceOptions): Promise<Space> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<JsonObject>(
+                return await this.doRequest<JsonObject>(
                     Method.Put,
                     this.spacePath("/spaces/$spaceId", spaceId),
                     undefined,
@@ -324,7 +324,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async deleteSpace(spaceId: string): Promise<void> {
         try {
             await this.withRetry(async () => {
-                await this.request(Method.Delete, this.spacePath("/spaces/$spaceId", spaceId));
+                await this.doRequest(Method.Delete, this.spacePath("/spaces/$spaceId", spaceId));
             }, "deleteSpace");
             this.clearCache();
             this.emit(SpaceEvent.SpaceDeleted, spaceId);
@@ -337,7 +337,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getPublicSpaces(options: SpaceQueryOptions = {}): Promise<SpaceListResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/public"), options);
+                return await this.doRequest<SpaceListResponse>(Method.Get, sp("/spaces/public"), options);
             }, "getPublicSpaces");
             return this.normalizeSpaceListResponse(response);
         } catch (error) {
@@ -349,7 +349,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async searchSpaces(query: string, limit: number = 10): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/search"), {
+                return await this.doRequest<SpaceListResponse>(Method.Get, sp("/spaces/search"), {
                     search_term: query,
                     limit,
                 });
@@ -364,7 +364,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceStatistics(): Promise<SpaceStatistics> {
         try {
             return await this.withRetry(async () => {
-                return await this.request<SpaceStatistics>(Method.Get, sp("/spaces/statistics"));
+                return await this.doRequest<SpaceStatistics>(Method.Get, sp("/spaces/statistics"));
             }, "getSpaceStatistics");
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceStatistics"));
@@ -381,7 +381,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<SpaceListResponse>(Method.Get, sp("/spaces/user"));
+                return await this.doRequest<SpaceListResponse>(Method.Get, sp("/spaces/user"));
             }, "getUserSpaces");
             const spaces = this.extractSpaces(response);
             this.cache.set(cacheKey, spaces);
@@ -395,7 +395,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<JsonObject | SpaceChild[]>(
+                return await this.doRequest<JsonObject | SpaceChild[]>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/children", spaceId),
                     options,
@@ -446,7 +446,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         validateRoomId(options.room_id);
         try {
             await this.withRetry(async () => {
-                await this.request(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
+                await this.doRequest(Method.Post, this.spacePath("/spaces/$spaceId/children", spaceId), undefined, {
                     room_id: options.room_id,
                     via_servers: options.via_servers ?? [],
                     suggested: options.suggested,
@@ -463,7 +463,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async removeChild(spaceId: string, roomId: string): Promise<void> {
         try {
             await this.withRetry(async () => {
-                await this.request(
+                await this.doRequest(
                     Method.Delete,
                     sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),
                 );
@@ -479,7 +479,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceMember[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<JsonObject | SpaceMember[]>(
+                return await this.doRequest<JsonObject | SpaceMember[]>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/members", spaceId),
                     options,
@@ -495,7 +495,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceRooms(spaceId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<SpaceListResponse>(
+                return await this.doRequest<SpaceListResponse>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/rooms", spaceId),
                     options,
@@ -511,7 +511,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceState(spaceId: string): Promise<unknown[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<unknown[] | { events?: unknown[] }>(
+                return await this.doRequest<unknown[] | { events?: unknown[] }>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/state", spaceId),
                 );
@@ -527,7 +527,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async inviteToSpace(spaceId: string, userId: string, body: JsonObject = {}): Promise<void> {
         try {
             await this.withRetry(async () => {
-                await this.request(Method.Post, this.spacePath("/spaces/$spaceId/invite", spaceId), undefined, {
+                await this.doRequest(Method.Post, this.spacePath("/spaces/$spaceId/invite", spaceId), undefined, {
                     user_id: userId,
                     ...body,
                 });
@@ -541,7 +541,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async joinSpace(spaceId: string, body: JsonObject = {}): Promise<JsonObject> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.request<JsonObject>(
+                return await this.doRequest<JsonObject>(
                     Method.Post,
                     this.spacePath("/spaces/$spaceId/join", spaceId),
                     undefined,
@@ -559,7 +559,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async leaveSpace(spaceId: string, body: JsonObject = {}): Promise<void> {
         try {
             await this.withRetry(async () => {
-                await this.request(Method.Post, this.spacePath("/spaces/$spaceId/leave", spaceId), undefined, body);
+                await this.doRequest(Method.Post, this.spacePath("/spaces/$spaceId/leave", spaceId), undefined, body);
             }, "leaveSpace");
             this.clearCache();
             this.emit(SpaceEvent.MemberLeft, spaceId, this.client.getUserId() || "");
@@ -581,7 +581,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceHierarchyPage(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
         try {
             return await this.withRetry(async () => {
-                return await this.request<SpaceHierarchyPage>(
+                return await this.doRequest<SpaceHierarchyPage>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/hierarchy", spaceId),
                     options,
@@ -596,7 +596,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceHierarchyV1(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
         try {
             return await this.withRetry(async () => {
-                return await this.request<SpaceHierarchyPage>(
+                return await this.doRequest<SpaceHierarchyPage>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/hierarchy/v1", spaceId),
                     options,
@@ -611,7 +611,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceSummary(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
-                return await this.request<JsonObject>(
+                return await this.doRequest<JsonObject>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/summary", spaceId),
                     options,
@@ -626,7 +626,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceSummaryWithChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
-                return await this.request<JsonObject>(
+                return await this.doRequest<JsonObject>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/summary/with_children", spaceId),
                     options,
@@ -641,7 +641,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceTreePath(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
-                return await this.request<JsonObject>(
+                return await this.doRequest<JsonObject>(
                     Method.Get,
                     this.spacePath("/spaces/$spaceId/tree_path", spaceId),
                     options,
@@ -656,7 +656,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getSpaceByRoom(roomId: string): Promise<Space> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));
+                return await this.doRequest<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));
             }, "getSpaceByRoom");
             return this.normalizeSpace(response);
         } catch (error) {
@@ -668,7 +668,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<SpaceListResponse>(
+                return await this.doRequest<SpaceListResponse>(
                     Method.Get,
                     sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),
                     options,
@@ -698,7 +698,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         return { memberCount: members.length, childCount: children.length };
     }
 
-    private async request<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
+    private async doRequest<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
         return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
             prefix: ClientPrefix.V3,
         });

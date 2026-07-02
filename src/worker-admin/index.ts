@@ -138,7 +138,7 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
         super(client);
     }
 
-    private request<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {
+    private doRequest<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {
         return this.withRetry(async () => {
             return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
                 prefix: WORKER_PREFIX,
@@ -151,32 +151,32 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/register */
     async registerWorker(req: RegisterWorkerRequest): Promise<WorkerInfo> {
         if (!req.worker_id) throw new ValidationError("worker_id is required");
-        return this.request(Method.Post, wa("/v1/register"), undefined, req);
+        return this.doRequest(Method.Post, wa("/v1/register"), undefined, req);
     }
 
     /** GET /_synapse/worker/v1/workers */
     async listWorkers(limit?: number): Promise<{ workers: WorkerInfo[]; total?: number }> {
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.request(Method.Get, wa("/v1/workers"), q);
+        return this.doRequest(Method.Get, wa("/v1/workers"), q);
     }
 
     /** GET /_synapse/worker/v1/workers/type/{worker_type} */
     async listWorkersByType(workerType: string, limit?: number): Promise<{ workers: WorkerInfo[] }> {
         if (!workerType) throw new ValidationError("workerType is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.request(Method.Get, wa(`/v1/workers/type/${encodeURIComponent(workerType)}` as StripWorkerPrefix<WorkerAdminPathPattern>), q);
+        return this.doRequest(Method.Get, wa(`/v1/workers/type/${encodeURIComponent(workerType)}` as StripWorkerPrefix<WorkerAdminPathPattern>), q);
     }
 
     /** GET /_synapse/worker/v1/workers/{worker_id} */
     async getWorker(workerId: string): Promise<WorkerInfo> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(Method.Get, wa(`/v1/workers/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
+        return this.doRequest(Method.Get, wa(`/v1/workers/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
     }
 
     /** DELETE /_synapse/worker/v1/workers/{worker_id} */
     async unregisterWorker(workerId: string): Promise<void> {
         if (!workerId) throw new ValidationError("workerId is required");
-        await this.request(Method.Delete, wa(`/v1/workers/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
+        await this.doRequest(Method.Delete, wa(`/v1/workers/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
     }
 
     // ===== Commands =====
@@ -184,32 +184,32 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/workers/{worker_id}/commands */
     async sendCommand(workerId: string, req: SendCommandRequest): Promise<WorkerCommand> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(Method.Post, wa(`/v1/workers/${encodeURIComponent(workerId)}/commands` as StripWorkerPrefix<WorkerAdminPathPattern>), undefined, req);
+        return this.doRequest(Method.Post, wa(`/v1/workers/${encodeURIComponent(workerId)}/commands` as StripWorkerPrefix<WorkerAdminPathPattern>), undefined, req);
     }
 
     // ===== Tasks =====
 
     /** POST /_synapse/worker/v1/tasks */
     async assignTask(req: AssignTaskRequest): Promise<WorkerTask> {
-        return this.request(Method.Post, wa("/v1/tasks"), undefined, req);
+        return this.doRequest(Method.Post, wa("/v1/tasks"), undefined, req);
     }
 
     /** GET /_synapse/worker/v1/tasks */
     async getPendingTasks(limit?: number): Promise<{ tasks: WorkerTask[] }> {
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.request(Method.Get, wa("/v1/tasks"), q);
+        return this.doRequest(Method.Get, wa("/v1/tasks"), q);
     }
 
     /** POST /_synapse/worker/v1/tasks/claim/{worker_id} */
     async claimTask(workerId: string): Promise<WorkerTask | null> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.request(Method.Post, wa(`/v1/tasks/claim/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
+        return this.doRequest(Method.Post, wa(`/v1/tasks/claim/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
     }
 
     /** POST /_synapse/worker/v1/tasks/{task_id}/claim/{worker_id} */
     async claimSpecificTask(taskId: string, workerId: string): Promise<WorkerTask> {
         if (!taskId || !workerId) throw new ValidationError("taskId/workerId are required");
-        return this.request(
+        return this.doRequest(
             Method.Post,
             wa(`/v1/tasks/${encodeURIComponent(taskId)}/claim/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
         );
@@ -219,18 +219,18 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     /** GET /_synapse/worker/v1/statistics */
     async getStatistics(): Promise<WorkerStatisticsEntry[]> {
-        return this.request(Method.Get, wa("/v1/statistics"));
+        return this.doRequest(Method.Get, wa("/v1/statistics"));
     }
 
     /** GET /_synapse/worker/v1/statistics/types */
     async getStatisticsByType(): Promise<WorkerTypeStatistics[]> {
-        return this.request(Method.Get, wa("/v1/statistics/types"));
+        return this.doRequest(Method.Get, wa("/v1/statistics/types"));
     }
 
     /** GET /_synapse/worker/v1/select/{task_type} */
     async selectWorker(taskType: string): Promise<SelectWorkerResponse> {
         if (!taskType) throw new ValidationError("taskType is required");
-        return this.request(Method.Get, wa(`/v1/select/${encodeURIComponent(taskType)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
+        return this.doRequest(Method.Get, wa(`/v1/select/${encodeURIComponent(taskType)}` as StripWorkerPrefix<WorkerAdminPathPattern>));
     }
 }
 

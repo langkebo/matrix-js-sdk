@@ -129,7 +129,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
         return version === "v3" ? AI_V3_PREFIX : AI_V1_PREFIX;
     }
 
-    private async request<T>(
+    private async doRequest<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string>,
@@ -145,19 +145,19 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
     }
 
     async listConnections(version?: AiApiVersion): Promise<AIConnection[]> {
-        return this.request<AIConnection[]>(Method.Get, ai("/connections"), undefined, undefined, version);
+        return this.doRequest<AIConnection[]>(Method.Get, ai("/connections"), undefined, undefined, version);
     }
 
     async createConnection(req: CreateConnectionOptions, version?: AiApiVersion): Promise<AIConnection> {
         this.requireNonEmptyString(req.provider, "provider");
-        const result = await this.request<AIConnection>(Method.Post, ai("/connections"), undefined, req, version);
+        const result = await this.doRequest<AIConnection>(Method.Post, ai("/connections"), undefined, req, version);
         this.emit(AIConnectionEvent.ConnectionCreated, result);
         return result;
     }
 
     async getConnection(id: string, version?: AiApiVersion): Promise<AIConnection> {
         this.requireNonEmptyString(id, "id");
-        return this.request<AIConnection>(
+        return this.doRequest<AIConnection>(
             Method.Get,
             ai(`/connections/${id}` as StripAiV1Prefix<AiConnectionPathPattern>),
             undefined,
@@ -168,7 +168,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
 
     async deleteConnection(id: string, version?: AiApiVersion): Promise<void> {
         this.requireNonEmptyString(id, "id");
-        await this.request<void>(
+        await this.doRequest<void>(
             Method.Delete,
             ai(`/connections/${id}` as StripAiV1Prefix<AiConnectionPathPattern>),
             undefined,
@@ -180,7 +180,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
 
     async listMcpTools(provider: string, version?: AiApiVersion): Promise<McpToolListResponse> {
         this.requireNonEmptyString(provider, "provider");
-        return this.request<McpToolListResponse>(
+        return this.doRequest<McpToolListResponse>(
             Method.Get,
             ai("/mcp/tools"),
             { provider },
@@ -192,7 +192,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
     async callMcpTool(req: McpToolCallRequest, version?: AiApiVersion): Promise<McpToolCallResponse> {
         this.requireNonEmptyString(req.provider, "provider");
         this.requireNonEmptyString(req.tool_name, "tool_name");
-        const result = await this.request<McpToolCallResponse>(
+        const result = await this.doRequest<McpToolCallResponse>(
             Method.Post,
             ai("/mcp/tools/call"),
             undefined,

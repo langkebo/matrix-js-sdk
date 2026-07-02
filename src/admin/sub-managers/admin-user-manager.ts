@@ -581,7 +581,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async isSynapseAdministrator(userId: string): Promise<boolean> {
         const path = `/v1/users/${encodeURIComponent(userId)}/admin`;
-        const response = await this.client.http.authedRequest<{ admin: boolean }>(Method.Get, path, undefined, undefined, {
+        const response = await this.request<{ admin: boolean }>({
+            method: Method.Get,
+            path,
             prefix: "/_synapse/admin",
         });
         return response.admin;
@@ -596,7 +598,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async whoisSynapseUser(userId: string): Promise<ISynapseAdminWhoisResponse> {
         const path = `/v1/whois/${encodeURIComponent(userId)}`;
-        return this.client.http.authedRequest<ISynapseAdminWhoisResponse>(Method.Get, path, undefined, undefined, {
+        return this.request<ISynapseAdminWhoisResponse>({
+            method: Method.Get,
+            path,
             prefix: "/_synapse/admin",
         });
     }
@@ -609,7 +613,9 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async deactivateSynapseUser(userId: string): Promise<ISynapseAdminDeactivateResponse> {
         const path = `/v1/deactivate/${encodeURIComponent(userId)}`;
-        return this.client.http.authedRequest<ISynapseAdminDeactivateResponse>(Method.Post, path, undefined, undefined, {
+        return this.request<ISynapseAdminDeactivateResponse>({
+            method: Method.Post,
+            path,
             prefix: "/_synapse/admin",
         });
     }

@@ -104,16 +104,10 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
             throw new InvalidParamError("Friend request message too long (max 500 characters)");
         }
 
-        const response = await this.client.http.authedRequest<{
+        const response = await this.request<{
             request_id?: string;
             status?: string;
-        }>(
-            Method.Post,
-            "/friends/request",
-            undefined,
-            { user_id: userId, message: reason },
-            { prefix: ClientPrefix.V1 },
-        );
+        }>({ method: Method.Post, path: "/friends/request", body: { user_id: userId, message: reason }, prefix: ClientPrefix.V1 });
 
         const request: FriendRequest = {
             user_id: userId,
@@ -143,13 +137,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         }
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<{ user_id?: string; status?: string }>(
-                Method.Post,
-                "/friends",
-                undefined,
-                { user_id: userId, reason: opts?.reason },
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<{ user_id?: string; status?: string }>({ method: Method.Post, path: "/friends", body: { user_id: userId, reason: opts?.reason }, prefix: ClientPrefix.V3 });
         }, "addFriend");
 
         const friendObj: Friend = {
@@ -171,13 +159,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
     async acceptFriendRequest(userId: string): Promise<{ room_id?: string }> {
         validateUserId(userId);
 
-        const response = await this.client.http.authedRequest<{ room_id?: string }>(
-            Method.Post,
-            `/friends/request/${encodeURIComponent(userId)}/accept`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        const response = await this.request<{ room_id?: string }>({ method: Method.Post, path: `/friends/request/${encodeURIComponent(userId)}/accept`, prefix: ClientPrefix.V1 });
 
         const request = this.sharedState.incomingRequests.get(userId);
         if (request) {
@@ -205,13 +187,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
     async rejectFriendRequest(userId: string): Promise<void> {
         validateUserId(userId);
 
-        await this.client.http.authedRequest(
-            Method.Post,
-            `/friends/request/${encodeURIComponent(userId)}/reject`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        await this.request({ method: Method.Post, path: `/friends/request/${encodeURIComponent(userId)}/reject`, prefix: ClientPrefix.V1 });
 
         this.sharedState.incomingRequests.delete(userId);
         this.emit(FriendRequestManagerEvent.Rejected, userId);
@@ -224,13 +200,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
     async cancelFriendRequest(userId: string): Promise<void> {
         validateUserId(userId);
 
-        await this.client.http.authedRequest(
-            Method.Post,
-            `/friends/request/${encodeURIComponent(userId)}/cancel`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        await this.request({ method: Method.Post, path: `/friends/request/${encodeURIComponent(userId)}/cancel`, prefix: ClientPrefix.V1 });
 
         this.sharedState.outgoingRequests.delete(userId);
         this.emit(FriendRequestManagerEvent.Cancelled, userId);
@@ -244,13 +214,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         try {
             let response: IFriendRequestsResponse;
             try {
-                response = await this.client.http.authedRequest<IFriendRequestsResponse>(
-                    Method.Get,
-                    "/friends/request/received",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V1 },
-                );
+                response = await this.request<IFriendRequestsResponse>({ method: Method.Get, path: "/friends/request/received", prefix: ClientPrefix.V1 });
             } catch (error) {
                 const normalized = this.normalizeError(error, "getIncomingRequests");
                 if (!(normalized instanceof NotFoundError)) {
@@ -258,13 +222,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
                 }
 
                 // Backward compatibility for deployments that only expose the legacy alias.
-                response = await this.client.http.authedRequest<IFriendRequestsResponse>(
-                    Method.Get,
-                    "/friends/requests/incoming",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V1 },
-                );
+                response = await this.request<IFriendRequestsResponse>({ method: Method.Get, path: "/friends/requests/incoming", prefix: ClientPrefix.V1 });
             }
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
@@ -286,13 +244,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      */
     async getOutgoingRequests(): Promise<FriendRequest[]> {
         try {
-            const response = await this.client.http.authedRequest<IFriendRequestsResponse>(
-                Method.Get,
-                "/friends/requests/outgoing",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            const response = await this.request<IFriendRequestsResponse>({ method: Method.Get, path: "/friends/requests/outgoing", prefix: ClientPrefix.V1 });
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
 

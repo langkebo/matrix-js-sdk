@@ -91,10 +91,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @returns 黑名单列表
      */
     async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
-        return this.client.http
-            .authedRequest<{
+        return this.request<{
                 blacklist?: IBlacklistEntry[];
-            }>(Method.Get, "/federation/blacklist", undefined, undefined, { prefix: AdminPrefix.V1 })
+            }>({ method: Method.Get, path: "/federation/blacklist", prefix: AdminPrefix.V1 })
             .then(
                 (response) => {
                     const entries: IBlacklistEntry[] = response.blacklist || [];
@@ -120,13 +119,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/federation/blacklist/add",
-                undefined,
-                { server_name: serverName, reason },
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request({
+                method: Method.Post,
+                path: "/federation/blacklist/add",
+                body: { server_name: serverName, reason },
+                prefix: AdminPrefix.V1,
+            });
 
             const entry: IBlacklistEntry = {
                 serverName,
@@ -150,13 +148,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                "/federation/blacklist/remove",
-                undefined,
-                { server_name: serverName },
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request({
+                method: Method.Post,
+                path: "/federation/blacklist/remove",
+                body: { server_name: serverName },
+                prefix: AdminPrefix.V1,
+            });
 
             this.blacklist.delete(serverName);
             this.emit(FederationEvent.BlacklistUpdated, Array.from(this.blacklist.values()));
@@ -188,14 +185,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Server name is required");
         }
 
-        return this.client.http
-            .authedRequest<{
+        return this.request<{
                 online?: boolean;
                 last_successful_connect?: number;
                 latency?: number;
-            }>(Method.Get, `/federation/status/${encodeURIComponent(serverName)}`, undefined, undefined, {
-                prefix: AdminPrefix.V1,
-            })
+            }>({ method: Method.Get, path: `/federation/status/${encodeURIComponent(serverName)}`, prefix: AdminPrefix.V1 })
             .then(
                 (response) => {
                     return {
@@ -222,10 +216,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @returns 目的地列表
      */
     async getFederationDestinations(throwOnError = true): Promise<IFederationServer[]> {
-        return this.client.http
-            .authedRequest<{
+        return this.request<{
                 destinations?: IFederationServer[];
-            }>(Method.Get, "/federation/destinations", undefined, undefined, { prefix: AdminPrefix.V1 })
+            }>({ method: Method.Get, path: "/federation/destinations", prefix: AdminPrefix.V1 })
             .then(
                 (response) => {
                     const servers: IFederationServer[] = response.destinations || [];
@@ -249,13 +242,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/federation/disconnect/${encodeURIComponent(serverName)}`,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request({
+                method: Method.Post,
+                path: `/federation/disconnect/${encodeURIComponent(serverName)}`,
+                prefix: AdminPrefix.V1,
+            });
         } catch (e) {
             const error = this.normalizeError(e, "disconnectServer");
             this.emit(FederationEvent.FederationError, error);
@@ -269,13 +260,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         try {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/federation/reconnect/${encodeURIComponent(serverName)}`,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request({
+                method: Method.Post,
+                path: `/federation/reconnect/${encodeURIComponent(serverName)}`,
+                prefix: AdminPrefix.V1,
+            });
         } catch (e) {
             const error = this.normalizeError(e, "reconnectServer");
             this.emit(FederationEvent.FederationError, error);
@@ -295,10 +284,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Server name is required");
         }
 
-        return this.client.http
-            .authedRequest<{
+        return this.request<{
                 server?: { version?: string };
-            }>(Method.Get, `/_matrix/federation/v1/version`, undefined, undefined, { prefix: "" })
+            }>({ method: Method.Get, path: "/_matrix/federation/v1/version", prefix: "" })
             .then(
                 (response) => {
                     return {
@@ -515,13 +503,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Event ID is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Get,
-                "/_synapse/federation/v1/event_auth",
-                { room_id: roomId, event_id: eventId },
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: "/_synapse/federation/v1/event_auth",
+                queryParams: { room_id: roomId, event_id: eventId },
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getEventAuth");
             this.emit(FederationEvent.FederationError, error);
@@ -550,13 +537,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Get,
-                `/_synapse/federation/v1/get_joining_rules/${encodeURIComponent(roomId)}`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_synapse/federation/v1/get_joining_rules/${encodeURIComponent(roomId)}`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getJoiningRules");
             this.emit(FederationEvent.FederationError, error);
@@ -587,13 +572,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Body is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Post,
-                "/_synapse/federation/v1/keys/claim",
-                undefined,
+            return await this.request<unknown>({
+                method: Method.Post,
+                path: "/_synapse/federation/v1/keys/claim",
                 body,
-                { prefix: "" },
-            );
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "claimKeys");
             this.emit(FederationEvent.FederationError, error);
@@ -624,13 +608,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Body is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Post,
-                "/_synapse/federation/v1/keys/query",
-                undefined,
+            return await this.request<unknown>({
+                method: Method.Post,
+                path: "/_synapse/federation/v1/keys/query",
                 body,
-                { prefix: "" },
-            );
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "queryKeys");
             this.emit(FederationEvent.FederationError, error);
@@ -662,13 +645,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Body is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Post,
-                "/_synapse/federation/v1/keys/upload",
-                undefined,
+            return await this.request<unknown>({
+                method: Method.Post,
+                path: "/_synapse/federation/v1/keys/upload",
                 body,
-                { prefix: "" },
-            );
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "uploadKeys");
             this.emit(FederationEvent.FederationError, error);
@@ -692,13 +674,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async queryAuth(): Promise<unknown> {
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Get,
-                "/_synapse/federation/v1/query/auth",
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: "/_synapse/federation/v1/query/auth",
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "queryAuth");
             this.emit(FederationEvent.FederationError, error);
@@ -727,13 +707,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Get,
-                `/_synapse/federation/v1/room_auth/${encodeURIComponent(roomId)}`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_synapse/federation/v1/room_auth/${encodeURIComponent(roomId)}`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getRoomAuth");
             this.emit(FederationEvent.FederationError, error);
@@ -986,13 +964,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Body is required");
         }
         try {
-            return await this.client.http.authedRequest<unknown>(
-                Method.Post,
-                "/_synapse/federation/v2/key/clone",
-                undefined,
+            return await this.request<unknown>({
+                method: Method.Post,
+                path: "/_synapse/federation/v2/key/clone",
                 body,
-                { prefix: "" },
-            );
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "cloneKey");
             this.emit(FederationEvent.FederationError, error);

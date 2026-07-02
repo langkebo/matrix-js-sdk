@@ -131,7 +131,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         super(client);
     }
 
-    private request<T>(
+    private doRequest<T>(
         method: Method,
         path: string,
         queryParams?: Record<string, string>,
@@ -163,7 +163,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
     public async listBackgroundUpdates(
         query?: BackgroundUpdateQuery,
     ): Promise<{ updates: BackgroundUpdateRecord[]; next_batch?: string | null }> {
-        return this.request(Method.Get, bu("/background_updates"), this.buildQuery(query));
+        return this.doRequest(Method.Get, bu("/background_updates"), this.buildQuery(query));
     }
 
     public async createBackgroundUpdate(body: CreateBackgroundUpdateBody): Promise<BackgroundUpdateRecord> {
@@ -173,62 +173,62 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         if (!body.job_type) {
             throw new ValidationError("job_type is required");
         }
-        return this.request(Method.Post, bu("/background_updates"), undefined, body);
+        return this.doRequest(Method.Post, bu("/background_updates"), undefined, body);
     }
 
     public async cleanupLocks(): Promise<{ cleaned_count: number }> {
-        return this.request(Method.Post, bu("/background_updates/cleanup_locks"));
+        return this.doRequest(Method.Post, bu("/background_updates/cleanup_locks"));
     }
 
     public async getUpdateCount(): Promise<{ total_updates: number }> {
-        return this.request(Method.Get, bu("/background_updates/count"));
+        return this.doRequest(Method.Get, bu("/background_updates/count"));
     }
 
     public async getNextPendingUpdate(): Promise<BackgroundUpdateRecord | null> {
-        return this.request(Method.Get, bu("/background_updates/next"));
+        return this.doRequest(Method.Get, bu("/background_updates/next"));
     }
 
     public async listPendingUpdates(): Promise<BackgroundUpdateRecord[]> {
-        return this.request(Method.Get, bu("/background_updates/pending"));
+        return this.doRequest(Method.Get, bu("/background_updates/pending"));
     }
 
     public async retryFailedUpdates(): Promise<{ retried_count: number }> {
-        return this.request(Method.Post, bu("/background_updates/retry_failed"));
+        return this.doRequest(Method.Post, bu("/background_updates/retry_failed"));
     }
 
     public async listRunningUpdates(): Promise<BackgroundUpdateRecord[]> {
-        return this.request(Method.Get, bu("/background_updates/running"));
+        return this.doRequest(Method.Get, bu("/background_updates/running"));
     }
 
     public async getStats(days?: number): Promise<BackgroundUpdateStatsRecord[]> {
         const query = days !== undefined ? { limit: String(days) } : undefined;
-        return this.request(Method.Get, bu("/background_updates/stats"), query);
+        return this.doRequest(Method.Get, bu("/background_updates/stats"), query);
     }
 
     public async getStatus(): Promise<BackgroundUpdateStatusResponse> {
-        return this.request(Method.Get, bu("/background_updates/status"));
+        return this.doRequest(Method.Get, bu("/background_updates/status"));
     }
 
     public async countByStatus(status: string): Promise<{ status: string; count: number }> {
         if (!status) {
             throw new ValidationError("status is required");
         }
-        return this.request(
+        return this.doRequest(
             Method.Get,
             bu(`/background_updates/status/${encodeURIComponent(status)}/count` as StripAdminV1<BackgroundUpdatePathPattern>),
         );
     }
 
     public async getUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
-        return this.request(Method.Get, bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>));
+        return this.doRequest(Method.Get, bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>));
     }
 
     public async deleteUpdate(jobName: string): Promise<void> {
-        await this.request(Method.Delete, bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>));
+        await this.doRequest(Method.Delete, bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>));
     }
 
     public async startUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
-        return this.request(
+        return this.doRequest(
             Method.Post,
             bu(`/background_updates/${this.encodeJobName(jobName)}/start` as StripAdminV1<BackgroundUpdatePathPattern>),
         );
@@ -241,7 +241,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         if (body.items_processed === undefined) {
             throw new ValidationError("items_processed is required");
         }
-        return this.request(
+        return this.doRequest(
             Method.Post,
             bu(`/background_updates/${this.encodeJobName(jobName)}/progress` as StripAdminV1<BackgroundUpdatePathPattern>),
             undefined,
@@ -250,7 +250,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
     }
 
     public async completeUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
-        return this.request(
+        return this.doRequest(
             Method.Post,
             bu(`/background_updates/${this.encodeJobName(jobName)}/complete` as StripAdminV1<BackgroundUpdatePathPattern>),
         );
@@ -263,7 +263,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         if (!body.error_message) {
             throw new ValidationError("error_message is required");
         }
-        return this.request(
+        return this.doRequest(
             Method.Post,
             bu(`/background_updates/${this.encodeJobName(jobName)}/fail` as StripAdminV1<BackgroundUpdatePathPattern>),
             undefined,
@@ -272,7 +272,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
     }
 
     public async cancelUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
-        return this.request(
+        return this.doRequest(
             Method.Post,
             bu(`/background_updates/${this.encodeJobName(jobName)}/cancel` as StripAdminV1<BackgroundUpdatePathPattern>),
         );
@@ -283,7 +283,7 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         query?: Pick<BackgroundUpdateQuery, "limit">,
     ): Promise<BackgroundUpdateHistoryRecord[]> {
         const queryParams = query?.limit !== undefined ? { limit: String(query.limit) } : undefined;
-        return this.request(
+        return this.doRequest(
             Method.Get,
             bu(`/background_updates/${this.encodeJobName(jobName)}/history` as StripAdminV1<BackgroundUpdatePathPattern>),
             queryParams,

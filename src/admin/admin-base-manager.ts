@@ -103,15 +103,14 @@ export abstract class AdminBaseManager<
         label?: string,
     ): Promise<T> {
         try {
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<T>(
-                    method,
-                    path,
-                    queryParams,
-                    body,
-                    { prefix: "/_synapse/admin" },
-                );
-            }, label ?? "v2Request");
+            return await this.request<T>({
+                method,
+                path,
+                queryParams,
+                body,
+                prefix: "/_synapse/admin",
+                label: label ?? "v2Request",
+            });
         } catch (err) {
             const error = this.normalizeError(err, label ?? "unknown");
             this.onError?.(error);

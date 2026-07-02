@@ -51,13 +51,7 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
             throw new InvalidParamError("User ID is required");
         }
 
-        return this.client.http.authedRequest<FriendStatusInfo>(
-            Method.Get,
-            `/friends/${encodeURIComponent(userId)}/status`,
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        return this.request<FriendStatusInfo>({ method: Method.Get, path: `/friends/${encodeURIComponent(userId)}/status`, prefix: ClientPrefix.V1 });
     }
 
     /**
@@ -99,13 +93,7 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
             throw new InvalidParamError(`Invalid status. Valid values: ${validStatuses.join(", ")}`);
         }
 
-        await this.client.http.authedRequest(
-            Method.Put,
-            `/friends/${encodeURIComponent(userId)}/status`,
-            undefined,
-            { status },
-            { prefix: ClientPrefix.V1 },
-        );
+        await this.request({ method: Method.Put, path: `/friends/${encodeURIComponent(userId)}/status`, body: { status }, prefix: ClientPrefix.V1 });
 
         const friend = this.sharedState.friends.get(userId);
         if (friend) {

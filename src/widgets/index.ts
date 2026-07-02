@@ -182,13 +182,13 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Widget, true);
     }
 
-    private request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+    private doRequest<T>(method: Method, path: string, body?: unknown): Promise<T> {
         return this.client.http.authedRequest(method, path, undefined, body as Body | undefined, {
             prefix: ClientPrefix.V1,
         }) as Promise<T>;
     }
 
-    private requestV3<T>(method: Method, path: string, body?: unknown): Promise<T> {
+    private doRequestV3<T>(method: Method, path: string, body?: unknown): Promise<T> {
         return this.client.http.authedRequest(method, path, undefined, body as Body | undefined, {
             prefix: ClientPrefix.V3,
         }) as Promise<T>;
@@ -196,13 +196,13 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
 
     /** POST /_matrix/client/v1/widgets */
     public async createWidget(body: CreateWidgetBody): Promise<WidgetResponse> {
-        return this.withRetry(() => this.request<WidgetResponse>(Method.Post, "/widgets", body), "createWidget");
+        return this.withRetry(() => this.doRequest<WidgetResponse>(Method.Post, "/widgets", body), "createWidget");
     }
 
     /** GET /_matrix/client/v1/widgets/{widget_id} */
     public async getWidgetById(widgetId: string): Promise<WidgetResponse> {
         return this.withRetry(
-            () => this.request<WidgetResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}`),
+            () => this.doRequest<WidgetResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}`),
             "getWidgetById",
         );
     }
@@ -210,7 +210,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** PUT /_matrix/client/v1/widgets/{widget_id} */
     public async updateWidget(widgetId: string, body: UpdateWidgetBody): Promise<WidgetResponse> {
         return this.withRetry(
-            () => this.request<WidgetResponse>(Method.Put, `/widgets/${encodeURIComponent(widgetId)}`, body),
+            () => this.doRequest<WidgetResponse>(Method.Put, `/widgets/${encodeURIComponent(widgetId)}`, body),
             "updateWidget",
         );
     }
@@ -218,7 +218,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** DELETE /_matrix/client/v1/widgets/{widget_id} */
     public async deleteWidget(widgetId: string): Promise<void> {
         await this.withRetry(
-            () => this.request<void>(Method.Delete, `/widgets/${encodeURIComponent(widgetId)}`),
+            () => this.doRequest<void>(Method.Delete, `/widgets/${encodeURIComponent(widgetId)}`),
             "deleteWidget",
         );
     }
@@ -226,7 +226,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** GET /_matrix/client/v1/widgets/{widget_id}/config */
     public async getWidgetConfig(widgetId: string): Promise<WidgetConfigResponse> {
         return this.withRetry(
-            () => this.request<WidgetConfigResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/config`),
+            () => this.doRequest<WidgetConfigResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/config`),
             "getWidgetConfig",
         );
     }
@@ -234,7 +234,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** GET /_matrix/client/v1/rooms/{room_id}/widgets */
     public async listRoomWidgets(roomId: string): Promise<{ widgets: Widget[] }> {
         return this.withRetry(
-            () => this.request<{ widgets: Widget[] }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/widgets`),
+            () => this.doRequest<{ widgets: Widget[] }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/widgets`),
             "listRoomWidgets",
         );
     }
@@ -243,7 +243,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async getJitsiConfig(roomId: string): Promise<WidgetJitsiConfigResponse> {
         return this.withRetry(
             () =>
-                this.request<WidgetJitsiConfigResponse>(
+                this.doRequest<WidgetJitsiConfigResponse>(
                     Method.Get,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`,
                 ),
@@ -258,7 +258,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     ): Promise<SetWidgetPermissionResponse> {
         return this.withRetry(
             () =>
-                this.request<SetWidgetPermissionResponse>(
+                this.doRequest<SetWidgetPermissionResponse>(
                     Method.Post,
                     `/widgets/${encodeURIComponent(widgetId)}/permissions`,
                     body,
@@ -271,7 +271,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async getWidgetPermissions(widgetId: string): Promise<GetWidgetPermissionsResponse> {
         return this.withRetry(
             () =>
-                this.request<GetWidgetPermissionsResponse>(
+                this.doRequest<GetWidgetPermissionsResponse>(
                     Method.Get,
                     `/widgets/${encodeURIComponent(widgetId)}/permissions`,
                 ),
@@ -283,7 +283,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async deleteWidgetPermission(widgetId: string, userId: string): Promise<void> {
         await this.withRetry(
             () =>
-                this.request<void>(
+                this.doRequest<void>(
                     Method.Delete,
                     `/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`,
                 ),
@@ -298,7 +298,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     ): Promise<WidgetSessionResponse> {
         return this.withRetry(
             () =>
-                this.request<WidgetSessionResponse>(
+                this.doRequest<WidgetSessionResponse>(
                     Method.Post,
                     `/widgets/${encodeURIComponent(widgetId)}/sessions`,
                     body,
@@ -311,7 +311,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async listWidgetSessions(widgetId: string): Promise<WidgetSessionsListResponse> {
         return this.withRetry(
             () =>
-                this.request<WidgetSessionsListResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/sessions`),
+                this.doRequest<WidgetSessionsListResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/sessions`),
             "listWidgetSessions",
         );
     }
@@ -320,7 +320,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async getWidgetSession(sessionId: string): Promise<WidgetSessionResponse> {
         return this.withRetry(
             () =>
-                this.request<WidgetSessionResponse>(Method.Get, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
+                this.doRequest<WidgetSessionResponse>(Method.Get, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "getWidgetSession",
         );
     }
@@ -328,7 +328,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** DELETE /_matrix/client/v1/widgets/sessions/{session_id} */
     public async terminateWidgetSession(sessionId: string): Promise<void> {
         await this.withRetry(
-            () => this.request<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
+            () => this.doRequest<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "terminateWidgetSession",
         );
     }
@@ -336,7 +336,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** DELETE /_matrix/client/v1/widgets/sessions/{session_id} (alias for terminateWidgetSession) */
     public async deleteWidgetSession(sessionId: string): Promise<void> {
         await this.withRetry(
-            () => this.request<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
+            () => this.doRequest<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
             "deleteWidgetSession",
         );
     }
@@ -347,7 +347,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         this.requireNonEmptyString(widgetId, "widgetId");
         return this.withRetry(
             () =>
-                this.requestV3<WidgetCapabilitiesResponse>(
+                this.doRequestV3<WidgetCapabilitiesResponse>(
                     Method.Get,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
                 ),
@@ -365,7 +365,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         this.requireNonEmptyString(widgetId, "widgetId");
         return this.withRetry(
             () =>
-                this.requestV3<WidgetCapabilitiesResponse>(
+                this.doRequestV3<WidgetCapabilitiesResponse>(
                     Method.Put,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
                     capabilities,
@@ -380,7 +380,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         this.requireNonEmptyString(widgetId, "widgetId");
         return this.withRetry(
             () =>
-                this.requestV3<WidgetMessageResponse>(
+                this.doRequestV3<WidgetMessageResponse>(
                     Method.Post,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
                     message,
@@ -392,7 +392,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     /** POST /_matrix/client/v3/widgets/create */
     public async createWidgetV3(body: CreateWidgetV3Body): Promise<CreateWidgetV3Response> {
         return this.withRetry(
-            () => this.requestV3<CreateWidgetV3Response>(Method.Post, "/widgets/create", body),
+            () => this.doRequestV3<CreateWidgetV3Response>(Method.Post, "/widgets/create", body),
             "createWidgetV3",
         );
     }

@@ -656,7 +656,7 @@ describe("FriendManager", () => {
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/friends/suggestions",
-                { limit: 5 },
+                { limit: "5" },
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
