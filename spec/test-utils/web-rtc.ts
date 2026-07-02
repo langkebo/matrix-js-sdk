@@ -428,7 +428,10 @@ export class MockCallMatrixClient extends TypedEventEmitter<EmittedEvents, Emitt
     };
 
     public sendStateEvent = vi.fn<MatrixClient["sendStateEvent"]>();
-    public sendToDevice = vi.fn<MatrixClient["sendToDevice"]>();
+    public sendToDeviceFromContentMap = vi.fn();
+    public getToDeviceManager = vi.fn<MatrixClient["getToDeviceManager"]>().mockReturnValue({
+        sendToDeviceFromContentMap: this.sendToDeviceFromContentMap,
+    } as unknown as ReturnType<MatrixClient["getToDeviceManager"]>);
 
     public isInitialSyncComplete(): boolean {
         return false;

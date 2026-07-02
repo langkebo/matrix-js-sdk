@@ -96,7 +96,7 @@ export class KeyVerificationManager extends BaseManager {
             to_user: userId,
             method: methods?.[0],
         };
-        return this.client.startDeviceSigningVerification(request, version);
+        return this.startDeviceSigningVerification(request, version);
     }
 
     /**
@@ -112,7 +112,7 @@ export class KeyVerificationManager extends BaseManager {
             to_user: userId,
             method: "sas",
         };
-        return this.client.startDeviceSigningVerification(request, version);
+        return this.startDeviceSigningVerification(request, version);
     }
 
     /**
@@ -130,7 +130,7 @@ export class KeyVerificationManager extends BaseManager {
             to_device: targetDeviceId,
             method,
         };
-        return this.client.startDeviceSigningVerification(request, version);
+        return this.startDeviceSigningVerification(request, version);
     }
 
     /**
@@ -140,7 +140,7 @@ export class KeyVerificationManager extends BaseManager {
         request: IDeviceSigningVerificationAcceptRequest,
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationAcceptResponse> {
-        return this.client.acceptDeviceSigningVerification(request, version);
+        return this.acceptDeviceSigningVerification(request, version);
     }
 
     /**
@@ -150,7 +150,7 @@ export class KeyVerificationManager extends BaseManager {
         request: IDeviceSigningVerificationKeyAgreementRequest,
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationKeyAgreementResponse> {
-        return this.client.sendDeviceSigningVerificationKeyAgreement(request, version);
+        return this.sendDeviceSigningVerificationKeyAgreement(request, version);
     }
 
     /**
@@ -160,7 +160,7 @@ export class KeyVerificationManager extends BaseManager {
         request: IDeviceSigningVerificationMacRequest,
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationMacResponse> {
-        return this.client.confirmDeviceSigningVerificationMac(request, version);
+        return this.confirmDeviceSigningVerificationMac(request, version);
     }
 
     /**
@@ -171,7 +171,7 @@ export class KeyVerificationManager extends BaseManager {
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationDoneResponse> {
         const request: IDeviceSigningVerificationDoneRequest = { transaction_id: txnId };
-        return this.client.completeDeviceSigningVerification(request, version);
+        return this.completeDeviceSigningVerification(request, version);
     }
 
     /**
@@ -183,7 +183,7 @@ export class KeyVerificationManager extends BaseManager {
         code = DEFAULT_CANCEL_CODE,
         version: VerificationApiVersion = "v1",
     ): Promise<IDeviceSigningVerificationCancelResponse> {
-        return this.client.cancelDeviceSigningVerification(
+        return this.cancelDeviceSigningVerification(
             {
                 transaction_id: txnId,
                 code,
@@ -201,10 +201,10 @@ export class KeyVerificationManager extends BaseManager {
         version: VerificationApiVersion = "v1",
     ): Promise<IVerificationRequestsResponse> {
         if (_userIdOrVersion === "v1" || _userIdOrVersion === "r0" || _userIdOrVersion === "v3") {
-            return this.client.getVerificationRequests(_userIdOrVersion);
+            return this.getVerificationRequestsHttp(_userIdOrVersion);
         }
 
-        return this.client.getVerificationRequests(version);
+        return this.getVerificationRequestsHttp(version);
     }
 
     public async showQrCode(

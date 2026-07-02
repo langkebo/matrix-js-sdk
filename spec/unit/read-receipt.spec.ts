@@ -102,7 +102,7 @@ describe("Read receipt", () => {
                 })
                 .respond(200, {});
 
-            client.sendReceipt(threadEvent, ReceiptType.Read, {});
+            client.getReadReceiptsManager().sendReceipt(threadEvent, ReceiptType.Read, {});
 
             await httpBackend.flushAllExpected();
             await flushPromises();
@@ -123,7 +123,7 @@ describe("Read receipt", () => {
                 })
                 .respond(200, {});
 
-            client.sendReadReceipt(threadEvent, ReceiptType.Read, true);
+            client.getReadReceiptsManager().sendReadReceipt(threadEvent, ReceiptType.Read, true);
 
             await httpBackend.flushAllExpected();
             await flushPromises();
@@ -144,7 +144,7 @@ describe("Read receipt", () => {
                 })
                 .respond(200, {});
 
-            client.sendReceipt(roomEvent, ReceiptType.Read, {});
+            client.getReadReceiptsManager().sendReceipt(roomEvent, ReceiptType.Read, {});
 
             await httpBackend.flushAllExpected();
             await flushPromises();
@@ -176,7 +176,7 @@ describe("Read receipt", () => {
                 })
                 .respond(200, {});
 
-            client.sendReceipt(reaction, ReceiptType.Read, {});
+            client.getReadReceiptsManager().sendReceipt(reaction, ReceiptType.Read, {});
 
             await httpBackend.flushAllExpected();
             await flushPromises();
@@ -199,7 +199,7 @@ describe("Read receipt", () => {
                 })
                 .respond(200, {});
 
-            client.sendReceipt(roomEvent, ReceiptType.Read, {});
+            client.getReadReceiptsManager().sendReceipt(roomEvent, ReceiptType.Read, {});
 
             await httpBackend.flushAllExpected();
             await flushPromises();

@@ -679,7 +679,7 @@ describe("MatrixClient", function () {
                     },
                 },
             ];
-            await client.reportRoom(roomId, reason);
+            await client.getReportingManager().reportRoom(roomId, reason);
             expect(httpLookups.length).toEqual(0);
         });
     });
@@ -885,10 +885,6 @@ describe("MatrixClient", function () {
             ).rejects.toThrow(errorMessage);
 
             await expect(client._unstable_getDelayedEvents()).rejects.toThrow(errorMessage);
-
-            await expect(
-                client._unstable_updateDelayedEvent("anyDelayId", UpdateDelayedEventAction.Send),
-            ).rejects.toThrow(errorMessage);
 
             await expect(client._unstable_cancelScheduledDelayedEvent("anyDelayId")).rejects.toThrow(errorMessage);
             await expect(client._unstable_restartScheduledDelayedEvent("anyDelayId")).rejects.toThrow(errorMessage);
@@ -1176,55 +1172,6 @@ describe("MatrixClient", function () {
         });
 
         // eslint-disable-next-line vitest/expect-expect
-        it.each([UpdateDelayedEventAction.Cancel, UpdateDelayedEventAction.Restart, UpdateDelayedEventAction.Send])(
-            "can %s scheduled delayed events (action in request body)",
-            async (action: UpdateDelayedEventAction) => {
-                const delayId = "id";
-                httpLookups = [
-                    {
-                        method: "POST",
-                        prefix: unstableMSC4140Prefix,
-                        path: `/delayed_events/${encodeURIComponent(delayId)}`,
-                        data: {
-                            action,
-                        },
-                    },
-                ];
-
-                await client._unstable_updateDelayedEvent(delayId, action);
-            },
-        );
-
-        // eslint-disable-next-line vitest/expect-expect
-        it.each([UpdateDelayedEventAction.Cancel, UpdateDelayedEventAction.Restart, UpdateDelayedEventAction.Send])(
-            "can %s scheduled delayed events (action in request body fallback when auth required)",
-            async (action: UpdateDelayedEventAction) => {
-                const delayId = "id";
-                const baseLookup = {
-                    method: "POST",
-                    prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}`,
-                };
-                httpLookups = [
-                    {
-                        ...baseLookup,
-                        error: {
-                            httpStatus: 401,
-                            errcode: "M_MISSING_TOKEN",
-                        },
-                    },
-                    {
-                        ...baseLookup,
-                        data: {
-                            action,
-                        },
-                    },
-                ];
-
-                await client._unstable_updateDelayedEvent(delayId, action);
-            },
-        );
-
         // eslint-disable-next-line vitest/expect-expect
         it("can cancel scheduled delayed events (action in request path)", async () => {
             const delayId = "id";
@@ -2635,7 +2582,8 @@ describe("MatrixClient", function () {
 
     describe("read-markers and read-receipts", () => {
         it("setRoomReadMarkers", () => {
-            client.setRoomReadMarkersHttpRequest = vi.fn();
+            const mockSetRoomReadMarkersHttpRequest = vi.fn();
+            client.getReadReceiptsManager().setRoomReadMarkersHttpRequest = mockSetRoomReadMarkersHttpRequest;
             const room = {
                 hasPendingEvent: vi.fn().mockReturnValue(false),
                 addLocalEchoReceipt: vi.fn(),
@@ -2644,9 +2592,9 @@ describe("MatrixClient", function () {
             const rpEvent = new MatrixEvent({ event_id: "read_private_event_id" });
             client.getRoom = () => room;
 
-            client.setRoomReadMarkers("room_id", "read_marker_event_id", rrEvent, rpEvent);
+            client.getReadReceiptsManager().setRoomReadMarkers("room_id", "read_marker_event_id", rrEvent, rpEvent);
 
-            expect(client.setRoomReadMarkersHttpRequest).toHaveBeenCalledWith(
+            expect(mockSetRoomReadMarkersHttpRequest).toHaveBeenCalledWith(
                 "room_id",
                 "read_marker_event_id",
                 "read_event_id",
@@ -2811,23 +2759,20 @@ describe("MatrixClient", function () {
                 unbindThreePid: vi.fn().mockResolvedValue({ id_server_unbind_result: "no-support" }),
             };
             vi.spyOn(client, "getThreePidsManager").mockReturnValue(threePidsManager as any);
-            vi.spyOn(client, "getIdentityServerUrl").mockReturnValue("https://identity.example.org");
+            vi.spyOn(client, "getIdentityServerManager").mockReturnValue({
+                getIdentityServerUrl: vi.fn().mockReturnValue("https://identity.example.org"),
+            } as any);
 
-            await expect(client.getThreePids()).resolves.toEqual({
+            await expect(client.getThreePidsManager().getThreePids()).resolves.toEqual({
                 threepids: [{ medium: "email", address: "alice@example.org" }],
             });
             await expect(
-                client.bindThreePid({
-                    client_secret: "secret456",
-                    sid: "sid123",
-                    id_server: "identity.example.org",
-                    id_access_token: "token123",
-                }),
+                client.getThreePidsManager().bindThreePid("secret456", "sid123", "identity.example.org", "token123"),
             ).resolves.toEqual({});
-            await expect(client.deleteThreePid("email", "alice@example.org")).resolves.toEqual({
+            await expect(client.getThreePidsManager().deleteThreePid("email", "alice@example.org")).resolves.toEqual({
                 id_server_unbind_result: "success",
             });
-            await expect(client.unbindThreePid("email", "alice@example.org")).resolves.toEqual({
+            await expect(client.getThreePidsManager().unbindThreePid("email", "alice@example.org")).resolves.toEqual({
                 id_server_unbind_result: "no-support",
             });
 
@@ -2839,11 +2784,7 @@ describe("MatrixClient", function () {
                 "token123",
             );
             expect(threePidsManager.deleteThreePid).toHaveBeenCalledWith("email", "alice@example.org");
-            expect(threePidsManager.unbindThreePid).toHaveBeenCalledWith(
-                "email",
-                "alice@example.org",
-                "https://identity.example.org",
-            );
+            expect(threePidsManager.unbindThreePid).toHaveBeenCalledWith("email", "alice@example.org");
         });
     });
 
@@ -2886,8 +2827,8 @@ describe("MatrixClient", function () {
             };
             vi.spyOn(client, "getIdentityServerManager").mockReturnValue(identityServerManager as any);
 
-            expect(client.getIdentityServerUrl(true)).toBe("identity.example.org");
-            client.setIdentityServerUrl("https://identity.example.org/");
+            expect(client.getIdentityServerManager().getIdentityServerUrl(true)).toBe("identity.example.org");
+            client.getIdentityServerManager().setIdentityServerUrl("https://identity.example.org/");
 
             expect(identityServerManager.getIdentityServerUrl).toHaveBeenCalledWith(true);
             expect(identityServerManager.setIdentityServerUrl).toHaveBeenCalledWith("https://identity.example.org/");
@@ -3054,7 +2995,7 @@ describe("MatrixClient", function () {
                     short_authentication_string: ["emoji"],
                 });
 
-            await client.startDeviceSigningVerification({
+            await client.getKeyVerificationManager().startDeviceSigningVerification({
                 from_device: "DEVICE",
                 to_user: "@bob:example.org",
                 to_device: "BOBDEVICE",
@@ -3086,7 +3027,7 @@ describe("MatrixClient", function () {
                     short_authentication_string: ["emoji"],
                 });
 
-            await client.acceptDeviceSigningVerification(
+            await client.getKeyVerificationManager().acceptDeviceSigningVerification(
                 {
                     transaction_id: "txn-1",
                     key_agreement_protocol: "curve25519-hkdf-sha256",
@@ -3114,7 +3055,7 @@ describe("MatrixClient", function () {
                 confirmed: false,
             });
 
-            await client.sendDeviceSigningVerificationKeyAgreement({
+            await client.getKeyVerificationManager().sendDeviceSigningVerificationKeyAgreement({
                 transaction_id: "txn-1",
                 pubkey: "curve25519:key",
             });
@@ -3136,7 +3077,7 @@ describe("MatrixClient", function () {
                 verified: true,
             });
 
-            await client.confirmDeviceSigningVerificationMac(
+            await client.getKeyVerificationManager().confirmDeviceSigningVerificationMac(
                 {
                     transaction_id: "txn-1",
                     mac: "mac-value",
@@ -3160,7 +3101,7 @@ describe("MatrixClient", function () {
                 transaction_id: "txn-1",
             });
 
-            await client.completeDeviceSigningVerification({
+            await client.getKeyVerificationManager().completeDeviceSigningVerification({
                 transaction_id: "txn-1",
             });
 
@@ -3180,7 +3121,7 @@ describe("MatrixClient", function () {
                 state: "cancelled",
             });
 
-            await client.cancelDeviceSigningVerification(
+            await client.getKeyVerificationManager().cancelDeviceSigningVerification(
                 {
                     transaction_id: "txn-1",
                     code: "m.user",
@@ -3206,7 +3147,7 @@ describe("MatrixClient", function () {
                 requests: [],
             });
 
-            await client.getVerificationRequests("r0");
+            await client.getKeyVerificationManager().getVerificationRequestsHttp("r0");
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
             expect(method).toBe("GET");
@@ -3221,7 +3162,7 @@ describe("MatrixClient", function () {
                 transaction_id: "txn-qr",
             });
 
-            await client.showQrCode();
+            await client.getKeyVerificationManager().showQrCodeHttp();
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
             expect(method).toBe("GET");
@@ -3237,7 +3178,7 @@ describe("MatrixClient", function () {
                 state: "pending",
             });
 
-            await client.scanQrCode(
+            await client.getKeyVerificationManager().scanQrCodeHttp(
                 {
                     transaction_id: "txn-qr",
                     server_name: "example.org",
@@ -5197,7 +5138,7 @@ describe("MatrixClient", function () {
                 throw new Error("Test impl doesn't know about this request");
             });
 
-            const lookupResult = await client.identityHashedLookup([["bob@email.dummy", "email"]], ID_ACCESS_TOKEN);
+            const lookupResult = await client.getIdentityServerManager().identityHashedLookup([["bob@email.dummy", "email"]], ID_ACCESS_TOKEN);
 
             expect(client.http.idServerRequest).toHaveBeenCalledWith(
                 "GET",

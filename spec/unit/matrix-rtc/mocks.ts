@@ -60,7 +60,6 @@ export type MockClient = MockedObject<
         | "sendEvent"
         | "sendStateEvent"
         | "_unstable_sendDelayedStateEvent"
-        | "_unstable_updateDelayedEvent"
         | "_unstable_cancelScheduledDelayedEvent"
         | "_unstable_restartScheduledDelayedEvent"
         | "_unstable_sendScheduledDelayedEvent"

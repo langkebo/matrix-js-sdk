@@ -93,7 +93,6 @@ describe("MembershipManager", () => {
         room = makeMockRoom([membershipTemplate]);
         // Provide a default mock that is like the default "non error" server behaviour.
         vi.mocked(client._unstable_sendDelayedStateEvent).mockResolvedValue({ delay_id: "id" });
-        vi.mocked(client._unstable_updateDelayedEvent).mockResolvedValue({});
         vi.mocked(client._unstable_cancelScheduledDelayedEvent).mockResolvedValue({});
         vi.mocked(client._unstable_restartScheduledDelayedEvent).mockResolvedValue({});
         vi.mocked(client._unstable_sendScheduledDelayedEvent).mockResolvedValue({});
@@ -510,7 +509,6 @@ describe("MembershipManager", () => {
             await vi.advanceTimersToNextTimerAsync();
             expect(client.sendStateEvent).not.toHaveBeenCalled();
             expect(client._unstable_sendDelayedStateEvent).not.toHaveBeenCalled();
-            expect(client._unstable_updateDelayedEvent).not.toHaveBeenCalled();
             expect(client._unstable_cancelScheduledDelayedEvent).not.toHaveBeenCalled();
             expect(client._unstable_restartScheduledDelayedEvent).not.toHaveBeenCalled();
             expect(client._unstable_sendScheduledDelayedEvent).not.toHaveBeenCalled();
@@ -522,7 +520,6 @@ describe("MembershipManager", () => {
             const myMembership = vi.mocked(client.sendStateEvent).mock.calls[0][2];
             // reset all mocks before checking what happens when calling: `onRTCSessionMemberUpdate`
             vi.mocked(client.sendStateEvent).mockClear();
-            vi.mocked(client._unstable_updateDelayedEvent).mockClear();
             vi.mocked(client._unstable_cancelScheduledDelayedEvent).mockClear();
             vi.mocked(client._unstable_restartScheduledDelayedEvent).mockClear();
             vi.mocked(client._unstable_sendScheduledDelayedEvent).mockClear();
@@ -540,7 +537,6 @@ describe("MembershipManager", () => {
 
             expect(client.sendStateEvent).not.toHaveBeenCalled();
             expect(client._unstable_sendDelayedStateEvent).not.toHaveBeenCalled();
-            expect(client._unstable_updateDelayedEvent).not.toHaveBeenCalled();
             expect(client._unstable_cancelScheduledDelayedEvent).not.toHaveBeenCalled();
             expect(client._unstable_restartScheduledDelayedEvent).not.toHaveBeenCalled();
             expect(client._unstable_sendScheduledDelayedEvent).not.toHaveBeenCalled();

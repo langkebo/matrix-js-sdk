@@ -2519,7 +2519,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
                 // However due to the switch to Rust cryptography we need to migrate to the new encryptToDeviceMessages API.
                 throw new Error("Unimplemented");
             } else {
-                await this.client.sendToDevice(
+                await this.client.getToDeviceManager().sendToDeviceFromContentMap(
                     eventType,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     new Map<string, Map<string, Record<string, any>>>([[userId, new Map([[this.opponentDeviceId, content]])]]),

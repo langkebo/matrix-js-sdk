@@ -70,7 +70,7 @@ export class CredentialsManager extends BaseManager<keyof CredentialsManagerEven
     }
 
     public getIdentityServer(): string | undefined {
-        return this.client.getIdentityServerUrl();
+        return this.client.getIdentityServerManager().getIdentityServerUrl();
     }
 
     public isLoggedIn(): boolean {

@@ -538,7 +538,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             : undefined;
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/invite`), body: {                     id_server: this.client.getIdentityServerUrl(true),                     id_access_token: identityAccessToken,                     medium,                     address,                 }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/invite`), body: {                     id_server: this.client.getIdentityServerManager().getIdentityServerUrl(true),                     id_access_token: identityAccessToken,                     medium,                     address,                 }, prefix: ClientPrefix.V3 });
         });
 
         return response;

@@ -31,10 +31,13 @@ describe("ToDeviceKeyTransport", () => {
     let statistics: Statistics;
     let mockLogger: Mocked<Logger>;
     let transport: ToDeviceKeyTransport;
+    let mockEncryptAndSendToDevice: ReturnType<typeof vi.fn> = vi.fn();
 
     beforeEach(() => {
-        mockClient = getMockClientWithEventEmitter({
-            encryptAndSendToDevice: vi.fn().mockImplementation(() => Promise.resolve()),
+        mockClient = getMockClientWithEventEmitter({});
+        const mockEncryptAndSendToDevice = vi.fn().mockImplementation(() => Promise.resolve());
+        mockClient.getToDeviceManager = vi.fn().mockReturnValue({
+            encryptAndSendToDevice: mockEncryptAndSendToDevice,
         });
         mockLogger = {
             debug: vi.fn(),
@@ -72,8 +75,8 @@ describe("ToDeviceKeyTransport", () => {
             { userId: "@mat:example.org", deviceId: "MATDEVICE", membershipTs: 1234 },
         ]);
 
-        expect(mockClient.encryptAndSendToDevice).toHaveBeenCalledTimes(1);
-        expect(mockClient.encryptAndSendToDevice).toHaveBeenCalledWith(
+        expect(mockEncryptAndSendToDevice).toHaveBeenCalledTimes(1);
+        expect(mockEncryptAndSendToDevice).toHaveBeenCalledWith(
             "io.element.call.encryption_keys",
             [
                 { userId: "@bob:example.org", deviceId: "BOBDEVICE" },
@@ -159,7 +162,7 @@ describe("ToDeviceKeyTransport", () => {
 
         transport.start();
 
-        expect(mockClient.encryptAndSendToDevice).toHaveBeenCalledTimes(0);
+        expect(mockEncryptAndSendToDevice).toHaveBeenCalledTimes(0);
     });
 
     it("should warn when there is a room mismatch", () => {

@@ -343,7 +343,7 @@ export class InteractiveAuth<T> {
                     sid: this.emailSid,
                     client_secret: this.clientSecret,
                 };
-                const isUrl = this.matrixClient.getIdentityServerUrl();
+                const isUrl = this.matrixClient.getIdentityServerManager().getIdentityServerUrl();
                 if (isUrl) {
                     creds.id_server = new URL(isUrl).host;
                 }

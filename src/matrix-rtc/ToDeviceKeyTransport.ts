@@ -50,7 +50,7 @@ export class ToDeviceKeyTransport
     public constructor(
         private membership: CallMembershipIdentityParts,
         private roomId: string,
-        private client: Pick<MatrixClient, "encryptAndSendToDevice" | "on" | "off">,
+        private client: Pick<MatrixClient, "getToDeviceManager" | "on" | "off">,
         private statistics: Statistics,
         parentLogger?: Logger,
     ) {
@@ -99,7 +99,7 @@ export class ToDeviceKeyTransport
 
         if (targets.length > 0) {
             await this.client
-                .encryptAndSendToDevice(EventType.CallEncryptionKeysPrefix, targets, content)
+                .getToDeviceManager().encryptAndSendToDevice(EventType.CallEncryptionKeysPrefix, targets, content)
                 .catch((error: WidgetApiResponseError) => {
                     const msg: string = error.message;
                     // This is not ideal. We would want to have a custom error type for unsupported actions.

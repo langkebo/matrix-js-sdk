@@ -1048,7 +1048,7 @@ describe("MatrixClient", function () {
                 threepids: [],
             };
 
-            const prom = client.getThreePids();
+            const prom = client.getThreePidsManager().getThreePids();
             httpBackend.when("GET", "/account/3pid").respond(200, response);
             await httpBackend.flush("");
             expect(await prom).toStrictEqual(response);
@@ -1367,14 +1367,14 @@ describe("MatrixClient", function () {
     describe("getTerms", () => {
         it("should return Identity Server terms", async () => {
             httpBackend.when("GET", "/terms").respond(200, { foo: "bar" });
-            const prom = client.getTerms(SERVICE_TYPES.IS, "http://identity.server");
+            const prom = client.getIdentityServerManager().getTerms(SERVICE_TYPES.IS, "http://identity.server");
             await httpBackend.flushAllExpected();
             await expect(prom).resolves.toEqual({ foo: "bar" });
         });
 
         it("should return Integrations Manager terms", async () => {
             httpBackend.when("GET", "/terms").respond(200, { foo: "bar" });
-            const prom = client.getTerms(SERVICE_TYPES.IM, "http://im.server");
+            const prom = client.getIdentityServerManager().getTerms(SERVICE_TYPES.IM, "http://im.server");
             await httpBackend.flushAllExpected();
             await expect(prom).resolves.toEqual({ foo: "bar" });
         });
@@ -1391,7 +1391,7 @@ describe("MatrixClient", function () {
                 })
                 .respond(200, {});
 
-            const prom = client.agreeToTerms(SERVICE_TYPES.IS, "https://vector.im", "at", terms);
+            const prom = client.getIdentityServerManager().agreeToTerms(SERVICE_TYPES.IS, "https://vector.im", "at", terms);
             await httpBackend.flushAllExpected();
             await prom;
         });
@@ -1437,7 +1437,7 @@ describe("MatrixClient", function () {
                 access_token: token,
                 user_id: userId,
             });
-            const prom = client.login("fake.login", {});
+            const prom = client.getAccountManager().login("fake.login", {});
             await httpBackend.flushAllExpected();
             const resp = await prom;
             expect(resp.access_token).toBe(token);
@@ -1466,7 +1466,7 @@ describe("MatrixClient", function () {
                     token: "tt",
                 });
 
-            const prom = client.registerWithIdentityServer(token);
+            const prom = client.getIdentityServerManager().registerWithIdentityServer(token);
             await httpBackend.flushAllExpected();
             const resp = await prom;
             expect(resp.access_token).toBe("at");
@@ -1684,10 +1684,7 @@ describe("MatrixClient", function () {
                 .respond(200, {});
 
             await Promise.all([
-                client.addThreePidOnly({
-                    client_secret: "secret",
-                    sid: "sid",
-                }),
+                client.getThreePidsManager().addThreePidOnly("secret", "sid"),
                 httpBackend.flushAllExpected(),
             ]);
         });
@@ -1709,12 +1706,7 @@ describe("MatrixClient", function () {
                 .respond(200, {});
 
             await Promise.all([
-                client.bindThreePid({
-                    client_secret: "secret",
-                    id_server: "server",
-                    id_access_token: "token",
-                    sid: "sid",
-                }),
+                client.getThreePidsManager().bindThreePid("secret", "sid", "server", "token"),
                 httpBackend.flushAllExpected(),
             ]);
         });
@@ -1734,7 +1726,7 @@ describe("MatrixClient", function () {
                 })
                 .respond(200, {});
 
-            await Promise.all([client.unbindThreePid("email", "alice@server.com"), httpBackend.flushAllExpected()]);
+            await Promise.all([client.getThreePidsManager().unbindThreePid("email", "alice@server.com"), httpBackend.flushAllExpected()]);
         });
     });
 

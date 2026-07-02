@@ -138,7 +138,7 @@ export class ToDeviceMessageQueue {
             `Sending batch of ${batch.batch.length} to-device messages with ID ${batch.id} and txnId ${batch.txnId}`,
         );
 
-        await this.client.sendToDevice(batch.eventType, contentMap, batch.txnId);
+        await this.client.getToDeviceManager().sendToDeviceFromContentMap(batch.eventType, contentMap, batch.txnId);
     }
 
     /**

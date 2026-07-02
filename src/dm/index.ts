@@ -687,7 +687,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
                     const events = timeline.getEvents();
                     const lastEvent = events[events.length - 1];
                     if (lastEvent) {
-                        return await this.client.setRoomReadMarkers(roomId, lastEvent.getId()!, lastEvent);
+                        return await this.client.getReadReceiptsManager().setRoomReadMarkers(roomId, lastEvent.getId()!, lastEvent);
                     }
                 }
                 return undefined;

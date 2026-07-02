@@ -550,16 +550,18 @@ describe("RoomWidgetClient", () => {
                     expect(widgetApi.requestCapability).toHaveBeenCalledWith(
                         MatrixCapabilities.MSC4157UpdateDelayedEvent,
                     );
-                    await client._unstable_updateDelayedEvent("id", action);
                     let updateDelayedEvent: (delayId: string) => Promise<unknown>;
                     switch (action) {
                         case UpdateDelayedEventAction.Cancel:
+                            await client._unstable_cancelScheduledDelayedEvent("id");
                             updateDelayedEvent = widgetApi.cancelScheduledDelayedEvent;
                             break;
                         case UpdateDelayedEventAction.Restart:
+                            await client._unstable_restartScheduledDelayedEvent("id");
                             updateDelayedEvent = widgetApi.cancelScheduledDelayedEvent;
                             break;
                         case UpdateDelayedEventAction.Send:
+                            await client._unstable_sendScheduledDelayedEvent("id");
                             updateDelayedEvent = widgetApi.sendScheduledDelayedEvent;
                             break;
                     }
@@ -628,15 +630,6 @@ describe("RoomWidgetClient", () => {
 
             it("fails to update delayed state events", async () => {
                 await makeClient({});
-                for (const action of [
-                    UpdateDelayedEventAction.Cancel,
-                    UpdateDelayedEventAction.Restart,
-                    UpdateDelayedEventAction.Send,
-                ]) {
-                    await expect(client._unstable_updateDelayedEvent("id", action)).rejects.toThrow(
-                        "Server does not support",
-                    );
-                }
                 for (const updateDelayedEvent of [
                     client._unstable_cancelScheduledDelayedEvent,
                     client._unstable_restartScheduledDelayedEvent,
@@ -1057,7 +1050,7 @@ describe("RoomWidgetClient", () => {
             await makeClient({ sendToDevice: ["org.example.foo"] });
             expect(widgetApi.requestCapabilityToSendToDevice).toHaveBeenCalledWith("org.example.foo");
 
-            await client.sendToDevice("org.example.foo", unencryptedContentMap);
+            await client.getToDeviceManager().sendToDeviceFromContentMap("org.example.foo", unencryptedContentMap);
             expect(widgetApi.sendToDevice).toHaveBeenCalledWith("org.example.foo", false, expectedRequestData);
         });
 
@@ -1072,7 +1065,7 @@ describe("RoomWidgetClient", () => {
                     { userId: "@bob:example.org", deviceId: "bobDesktop", payload: { hello: "bob!" } },
                 ],
             };
-            await client.queueToDevice(batch);
+            await client.getToDeviceManager().queueToDeviceBatch(batch);
             expect(widgetApi.sendToDevice).toHaveBeenCalledWith("org.example.foo", false, expectedRequestData);
         });
 
@@ -1082,7 +1075,7 @@ describe("RoomWidgetClient", () => {
 
             const payload = { hello: "world" };
             const embeddedClient = client as RoomWidgetClient;
-            await embeddedClient.encryptAndSendToDevice(
+            await embeddedClient.getToDeviceManager().encryptAndSendToDevice(
                 "org.example.foo",
                 [
                     { userId: "@alice:example.org", deviceId: "aliceWeb" },

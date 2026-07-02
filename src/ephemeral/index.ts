@@ -117,7 +117,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
         const roomMap = new Map<string, IContent>();
         roomMap.set(userId, content);
         contentMap.set(roomId, roomMap);
-        await this.client.sendToDevice(type, contentMap);
+        await this.client.getToDeviceManager().sendToDeviceFromContentMap(type, contentMap);
     }
 
     public getEphemeralEvents(roomId: string): IEphemeralEventInfo[] {

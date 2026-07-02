@@ -64,7 +64,6 @@ describe("MatrixRTCSession", () => {
         client._unstable_restartScheduledDelayedEvent = vi.fn().mockResolvedValue(undefined);
         client._unstable_cancelScheduledDelayedEvent = vi.fn().mockResolvedValue(undefined);
         client._unstable_sendScheduledDelayedEvent = vi.fn().mockResolvedValue(undefined);
-        client._unstable_updateDelayedEvent = vi.fn().mockResolvedValue(undefined);
         client.decryptEventIfNeeded = vi.fn();
     });
 
@@ -616,7 +615,6 @@ describe("MatrixRTCSession", () => {
             client.sendStateEvent = sendStateEventMock;
             client.sendEvent = sendEventMock;
 
-            client._unstable_updateDelayedEvent = vi.fn();
             client._unstable_cancelScheduledDelayedEvent = vi.fn();
             client._unstable_restartScheduledDelayedEvent = vi.fn();
             client._unstable_sendScheduledDelayedEvent = vi.fn();
@@ -848,7 +846,9 @@ describe("MatrixRTCSession", () => {
                 client.sendStateEvent = sendStateEventMock;
                 client._unstable_sendDelayedStateEvent = sendDelayedStateMock;
                 client.sendEvent = sendEventMock;
-                client.encryptAndSendToDevice = sendToDeviceMock;
+                client.getToDeviceManager = vi.fn().mockReturnValue({
+                    encryptAndSendToDevice: sendToDeviceMock,
+                });
 
                 mockRoom = makeMockRoom([]);
                 sess = MatrixRTCSession.sessionForSlot(client, mockRoom, callSession);

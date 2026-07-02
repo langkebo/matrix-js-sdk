@@ -708,7 +708,7 @@ describe("Group Call", function () {
 
             try {
                 const toDeviceProm = new Promise<void>((resolve) => {
-                    client1.sendToDevice.mockImplementation(() => {
+                    client1.sendToDeviceFromContentMap.mockImplementation(() => {
                         resolve();
                         return Promise.resolve({});
                     });
@@ -720,9 +720,9 @@ describe("Group Call", function () {
 
                 await toDeviceProm;
 
-                expect(client1.sendToDevice.mock.calls[0][0]).toBe("m.call.invite");
+                expect(client1.sendToDeviceFromContentMap.mock.calls[0][0]).toBe("m.call.invite");
 
-                const toDeviceCallContent = client1.sendToDevice.mock.calls[0][1];
+                const toDeviceCallContent = client1.sendToDeviceFromContentMap.mock.calls[0][1];
                 expect(toDeviceCallContent.size).toBe(1);
                 expect(toDeviceCallContent.has(FAKE_USER_ID_2)).toBe(true);
 
@@ -743,7 +743,7 @@ describe("Group Call", function () {
 
             try {
                 const toDeviceProm = new Promise<void>((resolve) => {
-                    client1.sendToDevice.mockImplementation(() => {
+                    client1.sendToDeviceFromContentMap.mockImplementation(() => {
                         resolve();
                         return Promise.resolve({});
                     });
@@ -755,16 +755,16 @@ describe("Group Call", function () {
 
                 await toDeviceProm;
 
-                expect(client1.sendToDevice).toHaveBeenCalled();
+                expect(client1.sendToDeviceFromContentMap).toHaveBeenCalled();
 
                 // @ts-ignore
                 const oldCall = groupCall1.calls.get(client2.userId)!.get(client2.deviceId)!;
                 oldCall.emit(CallEvent.Hangup, oldCall!);
 
-                client1.sendToDevice.mockClear();
+                client1.sendToDeviceFromContentMap.mockClear();
 
                 const toDeviceProm2 = new Promise<void>((resolve) => {
-                    client1.sendToDevice.mockImplementation(() => {
+                    client1.sendToDeviceFromContentMap.mockImplementation(() => {
                         resolve();
                         return Promise.resolve({});
                     });
@@ -794,7 +794,7 @@ describe("Group Call", function () {
                 // ...and then finally we can wait for the invite to be sent
                 await toDeviceProm2;
 
-                expect(client1.sendToDevice).toHaveBeenCalledWith(EventType.CallInvite, expect.objectContaining({}));
+                expect(client1.sendToDeviceFromContentMap).toHaveBeenCalledWith(EventType.CallInvite, expect.objectContaining({}));
             } finally {
                 await Promise.all([groupCall1.leave(), groupCall2.leave()]);
             }
@@ -805,7 +805,7 @@ describe("Group Call", function () {
 
             try {
                 const toDeviceProm = new Promise<void>((resolve) => {
-                    client1.sendToDevice.mockImplementation(() => {
+                    client1.sendToDeviceFromContentMap.mockImplementation(() => {
                         resolve();
                         return Promise.resolve({});
                     });

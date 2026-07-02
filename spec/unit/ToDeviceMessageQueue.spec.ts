@@ -44,16 +44,18 @@ describe("onResumedSync", () => {
 
         mockClient = getMockClientWithEventEmitter({});
         mockClient.store = store;
-        mockClient.sendToDevice = vi.fn().mockImplementation(async () => {
-            if (shouldFailSendToDevice) {
-                await Promise.reject(new ConnectionError("")).finally(() => {
-                    setTimeout(onSendToDeviceFailure, 0);
-                });
-            } else {
-                await Promise.resolve({}).finally(() => {
-                    setTimeout(onSendToDeviceSuccess, 0);
-                });
-            }
+        mockClient.getToDeviceManager = vi.fn().mockReturnValue({
+            sendToDeviceFromContentMap: vi.fn().mockImplementation(async () => {
+                if (shouldFailSendToDevice) {
+                    await Promise.reject(new ConnectionError("")).finally(() => {
+                        setTimeout(onSendToDeviceFailure, 0);
+                    });
+                } else {
+                    await Promise.resolve({}).finally(() => {
+                        setTimeout(onSendToDeviceSuccess, 0);
+                    });
+                }
+            }),
         });
 
         queue = new ToDeviceMessageQueue(mockClient, logger);
