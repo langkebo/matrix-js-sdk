@@ -27,7 +27,7 @@ describe("BaseManager.request", () => {
 
     beforeEach(() => {
         requestSpy = vi.fn();
-        transport = { request: requestSpy };
+        transport = { request: requestSpy } as Transport;
     });
 
     // ── Basic transport dispatch ──────────────────────────────
@@ -197,8 +197,9 @@ describe("BaseManager.request", () => {
     // ── Transport injection ───────────────────────────────────
 
     it("uses injected transport instead of real HTTP", async () => {
+        const requestMock = vi.fn().mockResolvedValue({ fromFake: true });
         const fakeTransport: Transport = {
-            request: vi.fn<() => Promise<{ fromFake: boolean }>>().mockResolvedValue({ fromFake: true }),
+            request: requestMock as unknown as Transport['request'],
         };
 
         const mgr = new DummyRequestManager({ transport: fakeTransport });

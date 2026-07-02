@@ -145,15 +145,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         }
 
         try {
-            const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ pushers: IPusher[] }>(
-                    Method.Get,
-                    pp("/pushers"),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "getPushers");
+            const response = await this.request<{ pushers: IPusher[] }>({ method: Method.Get, path: pp("/pushers"), prefix: ClientPrefix.V3 });
 
             let pushers = response?.pushers || [];
 
@@ -188,9 +180,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(Method.Post, pp("/pushers/set"), undefined, pusher, {
-                    prefix: ClientPrefix.V3,
-                });
+                return await this.request({ method: Method.Post, path: pp("/pushers/set"), body: pusher, prefix: ClientPrefix.V3 });
             }, "setPusher");
 
             this.pushersCache.delete("pushers");
@@ -238,13 +228,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IPushRules>(
-                    Method.Get,
-                    pp("/pushrules"),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IPushRules>({ method: Method.Get, path: pp("/pushrules"), prefix: ClientPrefix.V3 });
             }, "getPushRules");
 
             this.pushRulesCache.set("pushRules", response);
@@ -264,13 +248,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope) throw new InvalidParamError("scope is required");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IPushRuleSet>(
-                    Method.Get,
-                    pp(`/pushrules/${encodeURIComponent(scope)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IPushRuleSet>({ method: Method.Get, path: pp(`/pushrules/${encodeURIComponent(scope)}`), prefix: ClientPrefix.V3 });
             }, "getPushRulesByScope");
         } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRulesByScope"));
@@ -286,15 +264,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope) throw new InvalidParamError("scope is required");
         if (!kind) throw new InvalidParamError("kind is required");
         try {
-            const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<Record<string, IPushRule[]>>(
-                    Method.Get,
-                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "getPushRulesByKind");
+            const response = await this.request<Record<string, IPushRule[]>>({
+                method: Method.Get,
+                path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`),
+                prefix: ClientPrefix.V3,
+            });
 
             return response?.[kind] || [];
         } catch (error) {
@@ -316,13 +290,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IPushRule>(
-                    Method.Get,
-                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IPushRule>({ method: Method.Get, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), prefix: ClientPrefix.V3 });
             }, "getPushRule");
         // @swallow-error { owner: "push", expires: "2026-12-31" }
         } catch (error) {
@@ -347,13 +315,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
-                    undefined,
-                    rule,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({ method: Method.Post, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), body: rule, prefix: ClientPrefix.V3 });
             }, "createPushRule");
 
             this.pushRulesCache.delete("pushRules");
@@ -378,13 +340,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Put,
-                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
-                    undefined,
-                    rule,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({ method: Method.Put, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), body: rule, prefix: ClientPrefix.V3 });
             }, "updatePushRule");
 
             this.pushRulesCache.delete("pushRules");
@@ -403,13 +359,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Delete,
-                    pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({ method: Method.Delete, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), prefix: ClientPrefix.V3 });
             }, "deletePushRule");
 
             this.pushRulesCache.delete("pushRules");
@@ -428,15 +378,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ enabled: boolean }>(
-                    Method.Get,
-                    pp(
-                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
-                    ),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<{ enabled: boolean }>({ method: Method.Get, path: pp(                         `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,                     ), prefix: ClientPrefix.V3 });
             }, "getPushRuleEnabled");
 
             return response?.enabled ?? true;
@@ -456,15 +398,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Put,
-                    pp(
-                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
-                    ),
-                    undefined,
-                    { enabled },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({ method: Method.Put, path: pp(                         `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,                     ), body: { enabled }, prefix: ClientPrefix.V3 });
             }, "setPushRuleEnabled");
 
             this.pushRulesCache.delete("pushRules");
@@ -489,15 +423,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!actions || actions.length === 0) throw new InvalidParamError("actions are required");
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Put,
-                    pp(
-                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,
-                    ),
-                    undefined,
-                    { actions },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({ method: Method.Put, path: pp(                         `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,                     ), body: { actions }, prefix: ClientPrefix.V3 });
             }, "setPushRuleActions");
 
             this.pushRulesCache.delete("pushRules");
@@ -525,15 +451,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             if (params?.from) query.from = params.from;
             if (params?.only) query.only = params.only;
 
-            return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<INotificationsResponse>(
-                    Method.Get,
-                    pp("/notifications"),
-                    query,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
-            }, "getNotifications");
+            return await this.request<INotificationsResponse>({ method: Method.Get, path: pp("/notifications"), queryParams: query, prefix: ClientPrefix.V3 });
         } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getNotifications"));
             throw this.normalizeError(error, "getNotifications");
@@ -548,13 +466,7 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!notificationId) throw new InvalidParamError("notificationId is required");
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    pp(`/notifications/${encodeURIComponent(notificationId)}/ack`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({ method: Method.Post, path: pp(`/notifications/${encodeURIComponent(notificationId)}/ack`), prefix: ClientPrefix.V3 });
             }, "ackNotification");
         } catch (error) {
             if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return;

@@ -163,6 +163,7 @@ describe("RoomManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/capabilities`,
                 undefined,
                 undefined,
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -189,6 +190,7 @@ describe("RoomManager", () => {
                 "/createRoom",
                 undefined,
                 { name: "Test Room" },
+                { prefix: "/_matrix/client/v3" },
             );
         });
 
@@ -228,6 +230,7 @@ describe("RoomManager", () => {
                 `/join/${encodeURIComponent("!room:example.com")}`,
                 {},
                 {},
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -248,6 +251,7 @@ describe("RoomManager", () => {
                 `/knock/${encodeURIComponent("!room:example.com")}`,
                 { server_name: ["example.com", "backup.example.com"], via: ["example.com", "backup.example.com"] },
                 { reason: "let me in" },
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -576,6 +580,7 @@ describe("RoomManager", () => {
                 "/rooms/!room%3Aexample.com/context/%24event%3Aexample.com",
                 { limit: "0" },
                 undefined,
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -610,6 +615,7 @@ describe("RoomManager", () => {
                 `/user/${encodeURIComponent("@test:example.com")}/rooms/${encodeURIComponent("!room:example.com")}/tags`,
                 undefined,
                 undefined,
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -632,6 +638,7 @@ describe("RoomManager", () => {
                 `/user/${encodeURIComponent("@test:example.com")}/rooms/${encodeURIComponent("!room:example.com")}/tags/${encodeURIComponent("m.favourite")}`,
                 undefined,
                 { order: 0.5 },
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });
@@ -654,6 +661,7 @@ describe("RoomManager", () => {
                 `/user/${encodeURIComponent("@test:example.com")}/rooms/${encodeURIComponent("!room:example.com")}/tags/${encodeURIComponent("m.favourite")}`,
                 undefined,
                 undefined,
+                { prefix: "/_matrix/client/v3" },
             );
         });
     });

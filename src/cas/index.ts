@@ -119,13 +119,7 @@ export class CasManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveServicePath(prefix, ap("/cas/services"), "/admin/services");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasServiceListResponse>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<CasServiceListResponse>({ method: Method.Get, path: path, prefix: prefixValue });
         }, "listServices");
     }
 
@@ -136,13 +130,7 @@ export class CasManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveServicePath(prefix, ap("/cas/services"), "/admin/services");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasServiceCreateResponse>(
-                Method.Post,
-                path,
-                undefined,
-                data,
-                { prefix: prefixValue },
-            );
+            return await this.request<CasServiceCreateResponse>({ method: Method.Post, path: path, body: data, prefix: prefixValue });
         }, "createService");
     }
 
@@ -158,13 +146,7 @@ export class CasManager extends BaseManager {
             `/admin/services/${encodeURIComponent(serviceId)}`,
         );
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasServiceDeleteResponse>(
-                Method.Delete,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<CasServiceDeleteResponse>({ method: Method.Delete, path: path, prefix: prefixValue });
         }, "deleteService");
     }
 
@@ -180,13 +162,7 @@ export class CasManager extends BaseManager {
             `/admin/users/${encodeURIComponent(userId)}/attributes`,
         );
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasUserAttributesResponse>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<CasUserAttributesResponse>({ method: Method.Get, path: path, prefix: prefixValue });
         }, "getUserAttributes");
     }
 
@@ -203,13 +179,7 @@ export class CasManager extends BaseManager {
             `/admin/users/${encodeURIComponent(userId)}/attributes`,
         );
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasUserAttributesResponse>(
-                Method.Post,
-                path,
-                undefined,
-                data,
-                { prefix: prefixValue },
-            );
+            return await this.request<CasUserAttributesResponse>({ method: Method.Post, path: path, body: data, prefix: prefixValue });
         }, "setUserAttributes");
     }
 
@@ -225,13 +195,7 @@ export class CasManager extends BaseManager {
         if (pgtUrl) queryParams.pgtUrl = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasServiceValidateResponse>(
-                Method.Get,
-                "/serviceValidate",
-                queryParams,
-                undefined,
-                { prefix: CAS_API_PREFIX.cas },
-            );
+            return await this.request<CasServiceValidateResponse>({ method: Method.Get, path: "/serviceValidate", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
         }, "serviceValidate");
     }
 
@@ -247,13 +211,7 @@ export class CasManager extends BaseManager {
         if (pgtUrl) queryParams.pgtUrl = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasServiceValidateResponse>(
-                Method.Get,
-                "/proxyValidate",
-                queryParams,
-                undefined,
-                { prefix: CAS_API_PREFIX.cas },
-            );
+            return await this.request<CasServiceValidateResponse>({ method: Method.Get, path: "/proxyValidate", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
         }, "proxyValidate");
     }
 
@@ -269,13 +227,7 @@ export class CasManager extends BaseManager {
         if (pgtUrl) queryParams.pgtUrl = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasServiceValidateResponse>(
-                Method.Get,
-                "/p3/serviceValidate",
-                queryParams,
-                undefined,
-                { prefix: CAS_API_PREFIX.cas },
-            );
+            return await this.request<CasServiceValidateResponse>({ method: Method.Get, path: "/p3/serviceValidate", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
         }, "p3ServiceValidate");
     }
 
@@ -284,13 +236,7 @@ export class CasManager extends BaseManager {
         const queryParams: Record<string, string> = { targetService };
         if (pgt) queryParams.pgt = pgt;
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CasProxyResponse>(
-                Method.Get,
-                "/proxy",
-                queryParams,
-                undefined,
-                { prefix: CAS_API_PREFIX.cas },
-            );
+            return await this.request<CasProxyResponse>({ method: Method.Get, path: "/proxy", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
         }, "proxy");
     }
 
@@ -301,15 +247,11 @@ export class CasManager extends BaseManager {
     }
 
     public async handleLogout(): Promise<void> {
-        await this.withRetry(async () => {
-            await this.client.http.authedRequest<Record<string, unknown> /* Dynamic: CAS logout response varies by server */>(
-                Method.Get,
-                "/logout",
-                undefined,
-                undefined,
-                { prefix: CAS_API_PREFIX.cas },
-            );
-        }, "handleLogout");
+        await this.request<Record<string, unknown> /* Dynamic: CAS logout response varies by server */>({
+            method: Method.Get,
+            path: "/logout",
+            prefix: CAS_API_PREFIX.cas,
+        });
     }
 }
 

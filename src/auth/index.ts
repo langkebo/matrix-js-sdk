@@ -591,8 +591,10 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      */
     public async isUsernameAvailable(username: string): Promise<boolean> {
         try {
-            const response = await this.client.http.authedRequest<{ available: true }>(Method.Get, "/register/available", {
-                username,
+            const response = await this.request<{ available: true }>({
+                method: Method.Get,
+                path: "/register/available",
+                queryParams: { username },
             });
             return response.available;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
@@ -626,16 +628,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      */
     public async refreshToken(refreshToken: string): Promise<IRefreshTokenResponse> {
         const performRefreshRequestWithPrefix = (prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>
-            this.client.http.authedRequest(
-                Method.Post,
-                "/refresh",
-                undefined,
-                { refresh_token: refreshToken },
-                {
-                    prefix,
-                    inhibitLogoutEmit: true,
-                },
-            );
+            this.request({ method: Method.Post, path: "/refresh", body: { refresh_token: refreshToken }, prefix: ClientPrefix.V3 });
 
         try {
             return await performRefreshRequestWithPrefix(ClientPrefix.V3);

@@ -699,9 +699,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     }
 
     private async doRequest<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
-            prefix: ClientPrefix.V3,
-        });
+        return await this.request<T>({ method: method, path: path, queryParams: queryParams as Record<string, string | string[]>, body: body, prefix: ClientPrefix.V3 });
     }
 
     private spacePath(pathTemplate: string, spaceId: string): string {

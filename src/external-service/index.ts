@@ -185,13 +185,7 @@ export class ExternalServiceManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveListPath(prefix);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceListResponse>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<ExternalServiceListResponse>({ method: Method.Get, path: path, prefix: prefixValue });
         }, "listServices");
     }
 
@@ -202,13 +196,7 @@ export class ExternalServiceManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveListPath(prefix);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceCreateResponse>(
-                Method.Post,
-                path,
-                undefined,
-                data,
-                { prefix: prefixValue },
-            );
+            return await this.request<ExternalServiceCreateResponse>({ method: Method.Post, path: path, body: data, prefix: prefixValue });
         }, "createService");
     }
 
@@ -220,13 +208,7 @@ export class ExternalServiceManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveServiceIdPath(prefix, serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceItem>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<ExternalServiceItem>({ method: Method.Get, path: path, prefix: prefixValue });
         }, "getService");
     }
 
@@ -239,13 +221,7 @@ export class ExternalServiceManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveServiceIdPath(prefix, serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceUpdateResponse>(
-                Method.Put,
-                path,
-                undefined,
-                data,
-                { prefix: prefixValue },
-            );
+            return await this.request<ExternalServiceUpdateResponse>({ method: Method.Put, path: path, body: data, prefix: prefixValue });
         }, "updateService");
     }
 
@@ -257,13 +233,7 @@ export class ExternalServiceManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveServiceIdPath(prefix, serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceDeleteResponse>(
-                Method.Delete,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<ExternalServiceDeleteResponse>({ method: Method.Delete, path: path, prefix: prefixValue });
         }, "deleteService");
     }
 
@@ -273,13 +243,7 @@ export class ExternalServiceManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveHealthPath(prefix);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceHealthResponse>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: prefixValue },
-            );
+            return await this.request<ExternalServiceHealthResponse>({ method: Method.Get, path: path, prefix: prefixValue });
         }, "getHealth");
     }
 
@@ -287,13 +251,7 @@ export class ExternalServiceManager extends BaseManager {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceSingleHealthResponse>(
-                Method.Get,
-                sap(`/external_services/${encoded}/health`) as StripSynapseAdminV1<ExternalServicePathPattern>,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ExternalServiceSingleHealthResponse>({ method: Method.Get, path: sap(`/external_services/${encoded}/health`) as StripSynapseAdminV1<ExternalServicePathPattern>, prefix: AdminPrefix.V1 });
         }, "getServiceHealth");
     }
 
@@ -301,13 +259,7 @@ export class ExternalServiceManager extends BaseManager {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceHealthCheckResponse>(
-                Method.Post,
-                sap(`/external_services/${encoded}/health/check`) as StripSynapseAdminV1<ExternalServicePathPattern>,
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ExternalServiceHealthCheckResponse>({ method: Method.Post, path: sap(`/external_services/${encoded}/health/check`) as StripSynapseAdminV1<ExternalServicePathPattern>, prefix: AdminPrefix.V1 });
         }, "checkServiceHealth");
     }
 
@@ -318,13 +270,7 @@ export class ExternalServiceManager extends BaseManager {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceWebhookResponse>(
-                Method.Post,
-                `/webhook/${encoded}`,
-                undefined,
-                data,
-                { prefix: WEBHOOK_PREFIX },
-            );
+            return await this.request<ExternalServiceWebhookResponse>({ method: Method.Post, path: `/webhook/${encoded}`, body: data, prefix: WEBHOOK_PREFIX });
         }, "triggerWebhook");
     }
 
@@ -335,13 +281,7 @@ export class ExternalServiceManager extends BaseManager {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceWebhookResponse>(
-                Method.Post,
-                `/openclaw/${encoded}/webhook`,
-                undefined,
-                data,
-                { prefix: WEBHOOK_PREFIX },
-            );
+            return await this.request<ExternalServiceWebhookResponse>({ method: Method.Post, path: `/openclaw/${encoded}/webhook`, body: data, prefix: WEBHOOK_PREFIX });
         }, "triggerOpenclawWebhook");
     }
 
@@ -352,13 +292,7 @@ export class ExternalServiceManager extends BaseManager {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ExternalServiceWebhookResponse>(
-                Method.Post,
-                `/trendradar/${encoded}/webhook`,
-                undefined,
-                data,
-                { prefix: WEBHOOK_PREFIX },
-            );
+            return await this.request<ExternalServiceWebhookResponse>({ method: Method.Post, path: `/trendradar/${encoded}/webhook`, body: data, prefix: WEBHOOK_PREFIX });
         }, "triggerTrendradarWebhook");
     }
 }

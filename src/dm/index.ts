@@ -880,20 +880,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         try {
             return await this.withRetry(async () => {
                 const invite = options?.invite?.length ? Array.from(new Set([userId, ...options.invite])) : undefined;
-                return await this.client.http.authedRequest<CreateDmRoomResponse>(
-                    Method.Post,
-                    "/create_dm",
-                    undefined,
-                    {
-                        user_id: userId,
-                        invite,
-                        is_direct: true,
-                        name: options?.name,
-                        topic: options?.topic,
-                        visibility: options?.visibility,
-                    },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<CreateDmRoomResponse>({ method: Method.Post, path: "/create_dm", body: {                         user_id: userId,                         invite,                         is_direct: true,                         name: options?.name,                         topic: options?.topic,                         visibility: options?.visibility,                     }, prefix: ClientPrefix.V3 });
             });
         } catch (error) {
             throw this.normalizeError(error, "createDmRoomDetailed");
@@ -935,13 +922,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     async getDirectRoomsFromServer(): Promise<IDirectRoomsMap> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<DirectRoomsResponse>(
-                    Method.Get,
-                    "/direct",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<DirectRoomsResponse>({ method: Method.Get, path: "/direct", prefix: ClientPrefix.V3 });
             });
 
             return response.rooms || {};
@@ -974,13 +955,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UpdateDirectRoomResponse>(
-                    Method.Put,
-                    `/direct/${encodeURIComponent(roomId)}`,
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UpdateDirectRoomResponse>({ method: Method.Put, path: `/direct/${encodeURIComponent(roomId)}`, body: body, prefix: ClientPrefix.V3 });
             });
 
             this.emit(DMEvent.ListUpdated);
@@ -1005,13 +980,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<DmRoomCheckResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/dm`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<DmRoomCheckResponse>({ method: Method.Get, path: `/rooms/${encodeURIComponent(roomId)}/dm`, prefix: ClientPrefix.V3 });
             });
 
             return response["m.direct"] ?? false;
@@ -1043,13 +1012,7 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<DmPartnerResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/dm/partner`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<DmPartnerResponse>({ method: Method.Get, path: `/rooms/${encodeURIComponent(roomId)}/dm/partner`, prefix: ClientPrefix.V3 });
             });
 
             return response;

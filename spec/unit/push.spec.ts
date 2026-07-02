@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { PushManager, PushEvent } from "../../src/push/index";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
+import { HTTPError } from "../../src/http-api/errors";
 import { PushRuleKind, PushRuleActionName, TweakName } from "../../src/@types/PushRules";
 
 describe("PushManager", () => {
@@ -125,10 +126,7 @@ describe("PushManager", () => {
             const errorListener = vi.fn();
             pushManager.on(PushEvent.PushError, errorListener);
             for (let i = 0; i < 5; i++) {
-                mockClient.http.authedRequest.mockRejectedValueOnce({
-                    message: "Server error",
-                    httpStatus: 500,
-                });
+                mockClient.http.authedRequest.mockRejectedValueOnce(new HTTPError("Server error", 500));
             }
             vi.useFakeTimers();
             const promise = pushManager.getPushers();
@@ -442,10 +440,7 @@ describe("PushManager", () => {
 
         it("should throw RetryableError on 5xx", async () => {
             for (let i = 0; i < 5; i++) {
-                mockClient.http.authedRequest.mockRejectedValueOnce({
-                    message: "Error",
-                    httpStatus: 500,
-                });
+                mockClient.http.authedRequest.mockRejectedValueOnce(new HTTPError("Error", 500));
             }
             vi.useFakeTimers();
             const promise = pushManager.getNotifications();
