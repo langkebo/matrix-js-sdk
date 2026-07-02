@@ -18,7 +18,7 @@ pnpm install
 
 ```bash
 pnpm build                 # Full build (clean + compile + types)
-pnpm build:compile         # Compile TypeScript to JavaScript
+pnpm build:compile         # Compile TypeScript to JavaScript (Babel)
 pnpm build:types          # Generate type declarations only
 pnpm clean                # Remove lib/ directory
 ```
@@ -26,45 +26,55 @@ pnpm clean                # Remove lib/ directory
 ### Testing
 
 ```bash
-pnpm test                                    # Run all tests (excludes real-backend)
+pnpm test                                    # Run all unit/integration tests (excludes real-backend)
 pnpm test:watch                              # Run tests in watch mode
-pnpm test:real-backend                       # Unified real-backend batch: setup users, then run vitest suites + tsx scripts
-pnpm test:real-backend:batch                 # Run the mixed real-backend batch without setup
-pnpm test:real-backend:verification          # Run key verification tests only
-pnpm test:real-backend:device                # Run device management tests
 pnpm coverage                                # Generate coverage report
 
-# Run specific test file
+# Run a single test file
 npx vitest run spec/unit/matrix-client.spec.ts
 
-# Run real-backend tests with CA injection (recommended for matrix.test)
+# Real-backend tests (requires synapse-rust running at https://matrix.test + PostgreSQL)
+pnpm test:real-backend                       # Full batch: smoke → setup → batch
+pnpm test:real-backend:batch                 # Batch only (no setup)
+pnpm test:real-backend:setup                 # Ensure test users exist
+pnpm test:real-backend:verification          # Key verification tests only
+pnpm test:real-backend:device                # Device management tests
 pnpm run test:real-backend:tsx -- spec/integ/real-backend/step1-account.test.ts
+pnpm run test:real-backend:batch -- spec/integ/real-backend/device-manager.spec.ts
 
-# Ensure the default matrix.test users exist before running the batch
-pnpm run test:real-backend:setup
+# Performance tests
+pnpm test:perf                               # Run performance benchmarks
+pnpm perf:ci                                 # CI performance check
+pnpm perf:baseline                           # Generate performance baseline
+pnpm perf:compare                            # Compare against baseline
 
-# Run the entire mixed real-backend batch safely
-pnpm run test:real-backend
-
-# Run the mixed batch on a subset of files/directories; the wrapper auto-splits vitest suites and tsx scripts
-pnpm run test:real-backend:batch -- spec/integ/real-backend
-pnpm run test:real-backend:batch -- spec/integ/real-backend/device-manager.spec.ts spec/integ/real-backend/step1-account.test.ts
-
-# Avoid running `vitest` directly against the whole `spec/integ/real-backend` directory:
-# that tree contains both Vitest suites and standalone tsx scripts, so use `test:real-backend` or `test:real-backend:batch`.
-
-# Run real-backend tests with custom vitest config
-pnpm run test:real-backend:with-ca -- pnpm exec vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/step1-account.test.ts
+# IMPORTANT: Do NOT run vitest directly against spec/integ/real-backend/ —
+# that tree contains both Vitest suites and standalone tsx scripts.
+# Use test:real-backend or test:real-backend:batch instead.
 ```
 
 ### Linting
 
 ```bash
-pnpm lint                  # Run all linters (types + js + workflows)
+pnpm lint                  # All linters (types + js + workflows + quality gates)
 pnpm lint:js              # ESLint + Prettier check
 pnpm lint:js-fix          # Auto-fix linting issues
-pnpm lint:types           # TypeScript type checking
+pnpm lint:types           # tsc --noEmit
 pnpm lint:workflows       # Validate GitHub Actions workflows
+```
+
+### Contract & Quality Checks (CI gates)
+
+```bash
+pnpm contract:sync                    # Sync route manifests from docs/api-contract/generated/
+pnpm contract:check                   # Verify contract docs are in sync
+pnpm contract:codegen                 # Regenerate __generated__ route tables from contract manifests
+pnpm contract:codegen:check           # Verify generated route tables match manifests (CI gate)
+pnpm quality:contracts                # Run all 7 contract quality gates
+pnpm quality:report                   # Full quality report
+pnpm quality:type-coverage            # Check type coverage (no new `any` regressions)
+pnpm quality:swallow-fallbacks        # Detect empty catch blocks
+pnpm quality:debt-markers             # Scan for technical debt markers
 ```
 
 ### Documentation
@@ -76,311 +86,139 @@ cd docs && python -m http.server 8005  # Serve docs locally
 
 ## Architecture
 
-### Core Client Structure
+### Contract-Driven SDK (Ledger System)
 
-- **MatrixClient** (`src/client.ts`): Main entry point, orchestrates all SDK functionality
-- **Manager Pattern**: Domain-specific managers handle specialized operations:
-    - `AdminManager` - Admin operations (user/room management, server monitoring)
-    - `AuthManager` - Authentication and registration
-    - `DirectMessageManager` - DM-specific operations
-    - `FriendManager` - Friend relationships
-    - `SpaceManager` - Space hierarchy management
-    - `DeviceManager` - Device management
-    - `KeyVerificationManager` - Cross-signing and device verification
-    - `PresenceManager` - User presence
-    - `PushManager` - Push notification rules
+The SDK uses a **contract-driven architecture** where the backend's route manifest serves as the single source of truth:
 
-### Admin Module Architecture
+1. **Backend ledger**: synapse-rust exports every `(method, path, registered_by)` tuple via `declared_route_manifest_for()`.
+2. **Contract sync**: `scripts/contract-sync.mjs` reads the ledger and writes per-module machine manifests to `docs/api-contract/generated/modules/<module>.json`.
+3. **Codegen**: `scripts/sdk-contract-codegen.mjs` reads those manifests and generates TypeScript route tables + DTOs into `src/<module>/__generated__/` (e.g. `src/admin/__generated__/route-table.ts`, `dto.ts`, `contract-assertions.ts`).
+4. **Compile-time safety**: Managers import the generated route tables, making path/method strings literal-typed — a typo is a compile error, not a runtime 404.
 
-The Admin module (`src/admin/`) provides comprehensive server management capabilities:
+The CI gate `contract:codegen:check` ensures generated files stay in sync with the manifests. When adding or changing API methods, run `pnpm contract:sync && pnpm contract:codegen` and commit the generated output.
 
-**Core Components**:
+### Client Architecture
 
-- `AdminManager` (`src/admin/index.ts`) - Main admin operations manager
-- `AdminValidators` (`src/admin/validators.ts`) - Input validation utilities
-- `AdminUtils` (`src/admin/utils.ts`) - Helper functions for query building
+**MatrixClient** (`src/client.ts`) is the main entry point. Its implementation has been decomposed into ~60+ focused modules under `src/client-*.ts`:
 
-**Key Features**:
+| Pattern | Purpose | Examples |
+|---|---|---|
+| `client-send-*.ts` | Event sending pipeline | `client-send-event.ts`, `client-send-message.ts`, `client-send-http.ts` |
+| `client-*-requests.ts` | API request methods | `client-room-management-requests.ts`, `client-profile-requests.ts` |
+| `client-*-core.ts` | Core logic | `client-relations-core.ts`, `client-profile-core.ts` |
+| `client-auth.ts`, `client-crypto-requests.ts` | Auth and crypto | |
 
-- **User Management**: Create, deactivate, reset passwords, manage devices
-- **Room Management**: List, delete, block rooms, manage members
-- **Server Management**: Monitor status, health, statistics
-- **Federation Management**: Blacklist servers, manage connections
-- **Notification Management**: Send server notices
+**Manager infrastructure** lives in `src/client-infra/`:
+- `manager-registry.ts` — centralized manager registration (70+ managers)
+- `request-context.ts` — shared request context types
 
-**Security**:
+### Manager Pattern
 
-- Input validation for all user IDs, room IDs, and parameters
-- Protection against injection attacks
-- Rate limiting support
-- Comprehensive error handling
+Domain-specific managers handle specialized operations. Each manager is registered on MatrixClient and accessible via `client.get<Name>Manager()`:
 
-**API Design**:
+- `AdminManager`, `AuthManager`, `DirectMessageManager`, `FriendManager`, `SpaceManager`, `DeviceManager`, `KeyVerificationManager`, `PresenceManager`, `PushManager`
+- `CasManager`, `ExternalServiceManager`, `DehydratedDeviceManager`, `EventReportManager`, `FeatureFlagManager`, `ModerationManager`
 
-- Unified pagination format (`PaginatedResponse<T>`)
-- Consistent error types (`ValidationError`, `AuthError`, `NotFoundError`)
-- Backward compatibility with deprecated methods
-- Comprehensive JSDoc documentation with examples
+**Manager Extensions** (`src/manager-extensions/index.ts`): unified initialization entry point. Call `extendMatrixClientWithManagers()` to register all managers, or selectively with `ManagerExtensionsOptions`.
 
-**Documentation**:
+**Admin Sub-Managers** (`src/admin/sub-managers/`): the admin domain is further decomposed into focused sub-managers:
+- `AdminUserManager`, `AdminRoomManager`, `AdminServerManager`, `AdminFederationManager`, `AdminMediaManager`, `AdminConfigManager`
 
-- Usage guide: `docs/ADMIN_GUIDE.md`
-- API coverage: `docs/api-contract/ADMIN_SDK_COVERAGE_REPORT.md`
-- Version policy: `docs/VERSION_POLICY.md`
+### Module Organization and Entry Points
 
-### Module Organization
+The SDK has multiple entry points defined in `package.json` exports:
 
-The SDK is organized into feature modules with dedicated entry points:
+- `matrix-js-sdk` — main entry (client, models, stores)
+- `matrix-js-sdk/crypto` — cryptography API (Rust WASM)
+- `matrix-js-sdk/friend` — friend management
+- `matrix-js-sdk/dm` — direct messaging
+- `matrix-js-sdk/space` — space hierarchy
+- `matrix-js-sdk/admin` — admin operations
+- `matrix-js-sdk/push` — push notifications
+- `matrix-js-sdk/webrtc` — WebRTC calling
+- `matrix-js-sdk/http-api` — HTTP client utilities
+- `matrix-js-sdk/models` — core data models
+- `matrix-js-sdk/store` — storage implementations
 
-- `matrix-js-sdk` - Main entry (client, models, stores)
-- `matrix-js-sdk/crypto` - Cryptography API
-- `matrix-js-sdk/friend` - Friend management
-- `matrix-js-sdk/dm` - Direct messaging
-- `matrix-js-sdk/space` - Space operations
-- `matrix-js-sdk/admin` - Admin operations
-- `matrix-js-sdk/push` - Push notifications
-- `matrix-js-sdk/webrtc` - WebRTC calling
-- `matrix-js-sdk/http-api` - HTTP client utilities
-- `matrix-js-sdk/models` - Core data models
-- `matrix-js-sdk/store` - Storage implementations
-
-### Key Directories
-
-- `src/` - TypeScript source code (150+ subdirectories)
-- `lib/` - Compiled JavaScript output (generated by build)
-- `spec/` - Test files
-    - `spec/unit/` - Unit tests
-    - `spec/integ/` - Integration tests
-    - `spec/integ/real-backend/` - Real backend integration tests (excluded from default test run)
-- `docs/` - Documentation and API audit reports
-- `docs/api-contract/` - API contract documentation for backend integration
+Each module may have an `__generated__/` directory containing codegen output (route tables, DTOs, contract assertions). Never hand-edit these files.
 
 ### Crypto Implementation
 
 End-to-end encryption uses Rust crypto via `@matrix-org/matrix-sdk-crypto-wasm`:
 
 ```typescript
-// Initialize Rust crypto (required for E2EE)
 await matrixClient.initRustCrypto();
-
-// Access crypto API
 const crypto = matrixClient.getCrypto();
 await crypto.bootstrapSecretStorage({ ... });
 await crypto.bootstrapCrossSigning({ ... });
 ```
 
-**Important**: The legacy `initLegacyCrypto()` is deprecated. Always use `initRustCrypto()` for new code.
+**Always use `initRustCrypto()`**. The legacy `initLegacyCrypto()` is deprecated.
 
 ### Storage
 
-- **MemoryStore**: Default in-memory storage (no persistence)
-- **IndexedDBStore**: Browser persistent storage
-- **IndexedDBCryptoStore**: Crypto data storage (browser)
-- **LocalStorageCryptoStore**: Fallback crypto storage
+- **MemoryStore**: default in-memory (no persistence)
+- **IndexedDBStore**: browser persistent storage
+- **IndexedDBCryptoStore**: crypto data (browser)
+- **LocalStorageCryptoStore**: fallback crypto storage
 
 ## Real Backend Testing
 
-This fork includes comprehensive real backend integration tests against a synapse-rust server.
+Real backend tests run against an actual synapse-rust server with PostgreSQL database verification.
 
-### Test Configuration
+**Prerequisites**: synapse-rust running at `https://matrix.test`, PostgreSQL accessible, SDK built.
 
-- Backend URL: `https://matrix.test` (configured in `spec/integ/real-backend/TestConfig.ts`)
-- Database: PostgreSQL (accessible for verification tests)
+**CA trust**: for self-signed certs, the test runner auto-injects trust from `NODE_EXTRA_CA_CERTS`, `MATRIX_REAL_BACKEND_CA_CERT`, the fetched leaf certificate, or local mkcert root CA.
 
-### Database Verification
+Test config lives in `spec/integ/real-backend/TestConfig.ts`. See `docs/SDK真实服务器测试方案.md` for comprehensive documentation.
 
-Tests include database-level verification using `DatabaseVerifier` class:
+## Code Conventions
 
-```typescript
-// Verify data was written to database
-const dbVerifier = new DatabaseVerifier();
-const result = await dbVerifier.pool.query(`SELECT * FROM users WHERE name = $1`, [userId]);
-expect(result.rows.length).toBe(1);
-```
+### TypeScript
 
-### Running Real Backend Tests
+- Target: ES2022, Module: preserve (ESM), Strict mode, Node.js v22+
+- Avoid `any`. Use explicit interfaces and generics.
+- Replace `Record<string, unknown>` with specific typed interfaces.
+- Mark deprecated methods with `@deprecated` and provide migration paths. Keep deprecated methods working for at least 2 minor versions.
 
-Prerequisites:
+### Error Handling
 
-1. synapse-rust backend running and reachable at `https://matrix.test`
-2. PostgreSQL database accessible
-3. SDK built (`pnpm build`)
+- Never use empty catch blocks. Always log errors.
+- Use typed errors: `ValidationError`, `AuthError`, `NotFoundError`, `ApiError`.
+- Validate all user inputs with `AdminValidators` (user IDs, room IDs, limits).
 
-If the backend uses a self-signed certificate, `pnpm run test:real-backend:tsx ...` now auto-injects trust in this order:
+### API Design
 
-1. `NODE_EXTRA_CA_CERTS`
-2. `MATRIX_REAL_BACKEND_CA_CERT`
-3. the leaf certificate fetched from `MATRIX_REAL_BACKEND_BASE_URL`
-4. local mkcert root CA
+- Consistent camelCase naming, unified `PaginatedResponse<T>` pagination format.
+- Add `@example` and `@throws` to all public methods.
 
-See `docs/SDK真实服务器测试方案.md` for comprehensive testing documentation.
+### Generated Code
 
-## Code Style and Patterns
-
-### TypeScript Configuration
-
-- Target: ES2022
-- Module: preserve (ESM)
-- Strict mode enabled
-- Node.js v22+ required
-
-### Code Quality Standards
-
-**Error Handling**:
-
-- ❌ Never use empty catch blocks: `catch {}`
-- ✅ Always log errors: `catch (error) { logger.warn("...", error); }`
-- ✅ Use typed errors: `ValidationError`, `AuthError`, `NotFoundError`, `ApiError`
-- ✅ Provide clear error messages
-
-**Input Validation**:
-
-- ✅ Validate all user inputs before processing
-- ✅ Use `AdminValidators` for user IDs, room IDs, limits
-- ✅ Throw `ValidationError` for invalid inputs
-- ✅ Document validation rules in JSDoc
-
-**API Design**:
-
-- ✅ Use consistent naming conventions (camelCase)
-- ✅ Use unified pagination format (`PaginatedResponse<T>`)
-- ✅ Mark deprecated methods with `@deprecated` tag
-- ✅ Provide migration paths for deprecated APIs
-- ✅ Add `@example` and `@throws` to all public methods
-
-**Type Safety**:
-
-- ❌ Avoid using `any` type
-- ✅ Define explicit interfaces for all data structures
-- ✅ Use generics for reusable components
-- ✅ Ensure all public APIs have proper type definitions
-
-### Event Emitters
-
-The SDK uses EventEmitter pattern extensively:
-
-```typescript
-client.on(ClientEvent.Sync, (state, prevState, res) => {
-    // Handle sync state changes
-});
-
-client.on(RoomEvent.Timeline, (event, room, toStartOfTimeline) => {
-    // Handle timeline events
-});
-```
-
-### Async Patterns
-
-- Use `async/await` for asynchronous operations
-- Promises are preferred over callbacks
-- Event emitters for streaming/continuous updates
-
-### Manager Extensions
-
-When adding new manager functionality, follow the pattern in `src/manager-extensions/`:
-
-- Export manager classes and types
-- Register with MatrixClient
-- Provide dedicated entry point in package.json exports
+- `src/<module>/__generated__/` directories contain auto-generated route tables, DTOs, and contract assertions.
+- Never hand-edit `__generated__` files — they are regenerated by `pnpm contract:codegen`.
+- The CI gate `pnpm contract:codegen:check` ensures generated files match the contract manifests.
 
 ## Common Pitfalls
 
-1. **Don't use legacy crypto**: Always use `initRustCrypto()`, never `initLegacyCrypto()`
-2. **Real backend tests are excluded by default**: Use `vitest.real-backend.config.ts` to run them
-3. **Multiple entrypoints**: The SDK has multiple entry points - import from the correct one
-4. **Authenticated media**: Servers may require `Authorization` header for media endpoints
-5. **Crypto is not thread-safe**: Only one MatrixClient instance per IndexedDB at a time
-6. **Empty catch blocks**: Never use `catch {}` - always log errors explicitly
-7. **Input validation**: Always validate user inputs before processing (use `AdminValidators`)
-8. **Deprecated APIs**: Check for `@deprecated` tags and migrate to new APIs
-
-## Best Practices
-
-### For New Features
-
-1. **Input Validation**
-
-    ```typescript
-    import { AdminValidators } from "./admin/validators";
-
-    async myMethod(userId: string) {
-        AdminValidators.validateUserId(userId);
-        // ... implementation
-    }
-    ```
-
-2. **Error Handling**
-
-    ```typescript
-    try {
-        // operation
-    } catch (error) {
-        logger.warn("Operation failed", error);
-        throw new ApiError("Failed to ...", "ERROR_CODE", 500, error);
-    }
-    ```
-
-3. **Documentation**
-
-    ````typescript
-    /**
-     * Method description
-     *
-     * @param userId - User ID (e.g., "@alice:example.com")
-     * @returns User details
-     *
-     * @example
-     * ```typescript
-     * const user = await manager.getUser("@alice:example.com");
-     * console.log(user.displayname);
-     * ```
-     *
-     * @throws {ValidationError} If user ID format is invalid
-     * @throws {AuthError} If authentication fails
-     */
-    ````
-
-4. **Testing**
-    - Add unit tests for all new methods
-    - Add boundary condition tests
-    - Test error handling paths
-    - Ensure 100% test coverage for critical paths
-
-### For Refactoring
-
-1. **Maintain Backward Compatibility**
-    - Mark old methods as `@deprecated`
-    - Provide migration path
-    - Keep old methods working for at least 2 minor versions
-
-2. **Extract Reusable Code**
-    - Use utility functions from `src/admin/utils.ts`
-    - Avoid code duplication
-    - Create helper functions for common patterns
-
-3. **Type Safety**
-    - Define explicit interfaces
-    - Avoid `any` type
-    - Use generics for reusable components
+1. **Don't use legacy crypto**: always `initRustCrypto()`, never `initLegacyCrypto()`.
+2. **Real backend tests excluded by default**: use `vitest.real-backend.config.ts` or the `test:real-backend` scripts.
+3. **Multiple entrypoints**: import from the correct entry point (e.g. `matrix-js-sdk/admin`, not deep paths).
+4. **Crypto is not thread-safe**: only one MatrixClient instance per IndexedDB.
+5. **Don't hand-edit `__generated__/` files**: they're regenerated by `pnpm contract:codegen`.
+6. **Run contract sync after API changes**: `pnpm contract:sync && pnpm contract:codegen`, then commit the generated output.
+7. **Empty catch blocks are forbidden**: log errors explicitly — `quality:swallow-fallbacks` catches violations in CI.
 
 ## API Contract Documentation
 
-The `docs/api-contract/` directory contains detailed API documentation for backend integration:
+`docs/api-contract/` tracks API implementation status:
 
-- `auth.md` - Authentication endpoints
-- `room.md` - Room operations
-- `dm.md` - Direct messaging
-- `friend.md` - Friend management
-- `space.md` - Space hierarchy
-- `admin.md` - Admin operations
-- `sync.md` - Sync protocol
-- `push.md` - Push notifications
-
-These documents track API implementation status and backend compatibility.
+- `docs/api-contract/generated/modules/` — per-module machine manifests (auto-generated by contract-sync)
+- `docs/api-contract/generated/route-manifest.default.json` — full route manifest
+- Per-module docs: `auth.md`, `room.md`, `dm.md`, `friend.md`, `space.md`, `admin.md`, `sync.md`, `push.md`
 
 ## Testing Philosophy
 
-- Unit tests mock external dependencies
-- Integration tests use mock servers (`matrix-mock-request`)
-- Real backend tests verify against actual synapse-rust server with database validation
-- Tests should verify both API responses AND database state for critical operations
+- Unit tests mock external dependencies.
+- Integration tests use mock servers (`matrix-mock-request`).
+- Real backend tests verify against actual synapse-rust with database validation.
+- Tests should verify both API responses AND database state for critical operations.
