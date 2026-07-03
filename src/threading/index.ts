@@ -265,7 +265,11 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     ): Promise<T> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+                return await this.request<T>({
+                    method: method,
+                    path: path,
+                    queryParams: queryParams,
+                    body: body,
                     prefix: ClientPrefix.V1,
                 });
             }, "requestThreadV1");
@@ -281,7 +285,10 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     ): Promise<T> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<T>(Method.Get, path, queryParams, undefined, {
+                return await this.request<T>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: queryParams,
                     prefix: ClientPrefix.V3,
                 });
             }, "requestThreadV3");

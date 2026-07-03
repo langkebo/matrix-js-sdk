@@ -93,13 +93,12 @@ export class TypingManager extends BaseManager {
             data.timeout = timeoutMs ? timeoutMs : 20000;
         }
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<EmptyObject>(
-                Method.Put,
-                path,
-                undefined,
-                data,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<EmptyObject>({
+                method: Method.Put,
+                path: path,
+                body: data,
+                prefix: ClientPrefix.V3,
+            });
         }, "sendTyping");
     }
 
@@ -123,13 +122,12 @@ export class TypingManager extends BaseManager {
             data.timeout = timeoutMs ? timeoutMs : 20000;
         }
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<EmptyObject>(
-                Method.Post,
-                path,
-                undefined,
-                data,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: path,
+                body: data,
+                prefix: ClientPrefix.V3,
+            });
         }, "postTyping");
     }
 
@@ -282,13 +280,11 @@ export class TypingManager extends BaseManager {
         validateRoomId(roomId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing`);
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<TypingResponseBody>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<TypingResponseBody>({
+                method: Method.Get,
+                path: path,
+                prefix: ClientPrefix.V3,
+            });
         }, "fetchTypingUsers");
         const users = Array.isArray(response?.user_ids) ? response.user_ids : Array.isArray(response?.typing) ? response.typing : [];
         const timeout = response?.timeout ?? 30000;
@@ -303,13 +299,11 @@ export class TypingManager extends BaseManager {
         validateUserId(userId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/typing/${encodeURIComponent(userId)}`);
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<{ typing?: boolean }>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<{ typing?: boolean }>({
+                method: Method.Get,
+                path: path,
+                prefix: ClientPrefix.V3,
+            });
         }, "fetchUserTyping");
         return response?.typing === true;
     }
@@ -324,13 +318,12 @@ export class TypingManager extends BaseManager {
             validateRoomId(roomId);
         }
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<BatchTypingResponseBody | Record<string, TypingResponseBody>>(
-                Method.Post,
-                tp("/rooms/typing"),
-                undefined,
-                { rooms: rooms },
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<BatchTypingResponseBody | Record<string, TypingResponseBody>>({
+                method: Method.Post,
+                path: tp("/rooms/typing"),
+                body: { rooms: rooms },
+                prefix: ClientPrefix.V3,
+            });
         }, "fetchRoomsTyping");
 
         const result = new Map<string, TypingUser[]>();

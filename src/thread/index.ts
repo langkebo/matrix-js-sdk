@@ -124,13 +124,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    params,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: params,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getRoomThreads",
         );
     }
@@ -150,13 +149,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    body,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "createThread",
         );
     }
@@ -176,13 +174,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/search`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    params,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: params,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "searchThreads",
         );
     }
@@ -196,13 +193,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/unread`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    undefined,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getUnreadRoomThreads",
         );
     }
@@ -219,13 +214,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Get,
-                    path,
-                    undefined,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Get,
+                    path: path,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getThread",
         );
     }
@@ -240,13 +233,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`);
         await this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Delete,
-                    path,
-                    undefined,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<void>({
+                    method: Method.Delete,
+                    path: path,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "deleteThread",
         );
     }
@@ -261,13 +252,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    {},
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: {},
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "freezeThread",
         );
     }
@@ -282,13 +272,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    {},
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: {},
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "unfreezeThread",
         );
     }
@@ -303,13 +292,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    {},
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: {},
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "muteThread",
         );
     }
@@ -332,13 +320,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         }
         await this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    body,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<void>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "markThreadRead",
         );
     }
@@ -353,13 +340,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/subscribe`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    {},
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: {},
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "subscribeThread",
         );
     }
@@ -374,13 +360,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unsubscribe`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    {},
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: {},
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "unsubscribeThread",
         );
     }
@@ -401,13 +386,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadRepliesResponse>(
-                    Method.Get,
-                    path,
-                    params,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadRepliesResponse>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: params,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getThreadReplies",
         );
     }
@@ -427,13 +411,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadReply>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    body,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadReply>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "createThreadReply",
         );
     }
@@ -452,13 +435,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         }
         await this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    body,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<void>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "redactReply",
         );
     }
@@ -475,13 +457,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadStats>(
-                    Method.Get,
-                    path,
-                    undefined,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadStats>({
+                    method: Method.Get,
+                    path: path,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getThreadStats",
         );
     }
@@ -498,13 +478,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp("/threads");
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    params,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: params,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getAllThreads",
         );
     }
@@ -521,13 +500,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp("/threads");
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadResponse>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    body,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadResponse>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "createGlobalThread",
         );
     }
@@ -542,13 +520,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp("/threads/subscribed");
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    params,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: params,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getSubscribedThreads",
         );
     }
@@ -561,13 +538,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tp("/threads/unread");
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    undefined,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V1 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    prefix: THREAD_PREFIX_V1,
+                }),
             "getAllUnreadThreads",
         );
     }
@@ -588,13 +563,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tpV3(`/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IThreadListResponse>(
-                    Method.Get,
-                    path,
-                    params,
-                    undefined,
-                    { prefix: THREAD_PREFIX_V3 },
-                ),
+                this.request<IThreadListResponse>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: params,
+                    prefix: THREAD_PREFIX_V3,
+                }),
             "getUserThreads",
         );
     }

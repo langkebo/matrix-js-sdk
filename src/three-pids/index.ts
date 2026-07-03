@@ -40,7 +40,10 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
 
     public async getThreePids(): Promise<{ threepids: IThreepid[] }> {
         return this.withRetry(
-            async () => this.client.http.authedRequest<{ threepids: IThreepid[] }>(Method.Get, "/account/3pid"),
+            async () => this.request<{ threepids: IThreepid[] }>({
+                method: Method.Get,
+                path: "/account/3pid",
+            }),
             "getThreePids",
         );
     }
@@ -48,9 +51,13 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
     public async addThreePidOnly(clientSecret: string, sid: string): Promise<EmptyObject> {
         return this.withRetry(
             async () =>
-                this.client.http.authedRequest<EmptyObject>(Method.Post, "/account/3pid/add", undefined, {
+                this.request<EmptyObject>({
+                    method: Method.Post,
+                    path: "/account/3pid/add",
+                    body: {
                     client_secret: clientSecret,
                     sid,
+                },
                 }),
             "addThreePidOnly",
         );
@@ -64,11 +71,15 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
     ): Promise<EmptyObject> {
         const result = await this.withRetry(
             async () =>
-                this.client.http.authedRequest<EmptyObject>(Method.Post, "/account/3pid/bind", undefined, {
+                this.request<EmptyObject>({
+                    method: Method.Post,
+                    path: "/account/3pid/bind",
+                    body: {
                     client_secret: clientSecret,
                     sid,
                     id_server: idServer,
                     id_access_token: idAccessToken,
+                },
                 }),
             "bindThreePid",
         );
@@ -83,16 +94,15 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
     ): Promise<{ id_server_unbind_result: IdServerUnbindResult }> {
         const result = await this.withRetry(
             async () =>
-                this.client.http.authedRequest<{ id_server_unbind_result: IdServerUnbindResult }>(
-                    Method.Post,
-                    "/account/3pid/unbind",
-                    undefined,
-                    {
+                this.request<{ id_server_unbind_result: IdServerUnbindResult }>({
+                    method: Method.Post,
+                    path: "/account/3pid/unbind",
+                    body: {
                         medium,
                         address,
                         id_server: idServer,
                     },
-                ),
+                }),
             "unbindThreePid",
         );
         this.emit("threepid_unbound", { medium, address });
@@ -106,16 +116,15 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
     ): Promise<{ id_server_unbind_result: IdServerUnbindResult }> {
         const result = await this.withRetry(
             async () =>
-                this.client.http.authedRequest<{ id_server_unbind_result: IdServerUnbindResult }>(
-                    Method.Post,
-                    "/account/3pid/delete",
-                    undefined,
-                    {
+                this.request<{ id_server_unbind_result: IdServerUnbindResult }>({
+                    method: Method.Post,
+                    path: "/account/3pid/delete",
+                    body: {
                         medium,
                         address,
                         id_server: idServer,
                     },
-                ),
+                }),
             "deleteThreePid",
         );
         this.emit("threepid_deleted", { medium, address });

@@ -65,13 +65,12 @@ export class ToDeviceManager extends BaseManager {
         const transactionId = txnId ?? this.makeTxnId();
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ToDeviceResult>(
-                Method.Put,
-                `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
-                undefined,
-                { messages },
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<ToDeviceResult>({
+                method: Method.Put,
+                path: `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
+                body: { messages },
+                prefix: ClientPrefix.V3,
+            });
         }, "sendToDevice");
 
         return { success: !!response, failures: response?.failures };
@@ -100,13 +99,12 @@ export class ToDeviceManager extends BaseManager {
             messages[userId] = perUserMessages;
         }
 
-        return await this.client.http.authedRequest<EmptyObject>(
-            Method.Put,
-            path,
-            undefined,
-            { messages },
-            { prefix: ClientPrefix.V3 },
-        );
+        return await this.request<EmptyObject>({
+            method: Method.Put,
+            path: path,
+            body: { messages },
+            prefix: ClientPrefix.V3,
+        });
     }
 
     /**
