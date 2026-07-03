@@ -155,13 +155,12 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
 
         return this.withRetry(
             async () => {
-                const response = await this.client.http.authedRequest<IServerEphemeralEventsResponse>(
-                    Method.Get,
-                    ep(`/rooms/${encodeURIComponent(roomId)}/ephemeral` as StripV3<EphemeralPathPattern>),
-                    { limit: limit ?? this.defaultLimit },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                const response = await this.request<IServerEphemeralEventsResponse>({
+                    method: Method.Get,
+                    path: ep(`/rooms/${encodeURIComponent(roomId)}/ephemeral` as StripV3<EphemeralPathPattern>),
+                    queryParams: { limit: limit ?? this.defaultLimit },
+                    prefix: ClientPrefix.V3,
+                });
 
                 const events: IEphemeralEventInfo[] = (response.chunk || []).map((e) => ({
                     roomId,

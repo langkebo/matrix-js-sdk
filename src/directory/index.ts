@@ -78,7 +78,11 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
             }
 
             const path = "/publicRooms";
-            return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Get, path, opts as Record<string, string>);
+            return this.request<IPublicRoomsResponse>({
+                method: Method.Get,
+                path: path,
+                queryParams: opts as Record<string, string>,
+            });
         }, "getPublicRoomsList");
     }
 
@@ -92,35 +96,52 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
             const reqOpts: Record<string, string | number> = { server };
             if (limit) reqOpts.limit = limit;
             if (since) reqOpts.since = since;
-            return this.client.http.authedRequest<IPublicRoomsResponse>(Method.Post, path, undefined, reqOpts);
+            return this.request<IPublicRoomsResponse>({
+                method: Method.Post,
+                path: path,
+                body: reqOpts,
+            });
         }, "getPublicRooms");
     }
 
     public async getRoomIdForAlias(alias: string): Promise<IRoomAliasResponse> {
         return this.withRetry(() => {
             const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-            return this.client.http.authedRequest<IRoomAliasResponse>(Method.Get, path);
+            return this.request<IRoomAliasResponse>({
+                method: Method.Get,
+                path: path,
+            });
         }, "getRoomIdForAlias");
     }
 
     public async createRoomAlias(roomId: string, alias: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-            await this.client.http.authedRequest(Method.Put, path, undefined, { room_id: roomId });
+            await this.request({
+                method: Method.Put,
+                path: path,
+                body: { room_id: roomId },
+            });
         }, "createRoomAlias");
     }
 
     public async deleteRoomAlias(alias: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
-            await this.client.http.authedRequest(Method.Delete, path);
+            await this.request({
+                method: Method.Delete,
+                path: path,
+            });
         }, "deleteRoomAlias");
     }
 
     public async getAliasesForRoom(roomId: string): Promise<string[]> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/aliases", { $roomId: roomId });
-            const response = await this.client.http.authedRequest<IRoomAliasesResponse>(Method.Get, path);
+            const response = await this.request<IRoomAliasesResponse>({
+                method: Method.Get,
+                path: path,
+            });
             return response.aliases || [];
         }, "getAliasesForRoom");
     }

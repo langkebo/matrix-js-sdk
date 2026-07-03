@@ -115,17 +115,16 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
     async requestVerification(request: IDeviceVerificationRequest): Promise<IDeviceVerificationResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDeviceVerificationResponse>(
-                    Method.Post,
-                    "/device_verification/request",
-                    undefined,
-                    {
+                return await this.request<IDeviceVerificationResponse>({
+                    method: Method.Post,
+                    path: "/device_verification/request",
+                    body: {
                         new_device_id: request.new_device_id,
                         device_id: request.device_id,
                         method: request.method ?? "sas",
                     },
-                    { prefix: ClientPrefix.V3 },
-                );
+                    prefix: ClientPrefix.V3,
+                });
             }, "requestVerification");
 
             this.emit(DeviceTrustEvent.VerificationRequested, response);
@@ -138,16 +137,15 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
     async respondToVerification(token: string, approved: boolean): Promise<IVerificationRespondResult> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVerificationRespondResult>(
-                    Method.Post,
-                    "/device_verification/respond",
-                    undefined,
-                    {
+                return await this.request<IVerificationRespondResult>({
+                    method: Method.Post,
+                    path: "/device_verification/respond",
+                    body: {
                         token,
                         approved,
                     },
-                    { prefix: ClientPrefix.V3 },
-                );
+                    prefix: ClientPrefix.V3,
+                });
             }, "respondToVerification");
 
             this.emit(DeviceTrustEvent.VerificationResponded, response);
@@ -160,13 +158,11 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
     async getVerificationStatus(token: string): Promise<IDeviceVerificationResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDeviceVerificationResponse>(
-                    Method.Get,
-                    `/device_verification/status/${encodeURIComponent(token)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDeviceVerificationResponse>({
+                    method: Method.Get,
+                    path: `/device_verification/status/${encodeURIComponent(token)}`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getVerificationStatus");
 
             return response;
@@ -182,13 +178,11 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDeviceTrustListResponse>(
-                    Method.Get,
-                    "/device_trust",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDeviceTrustListResponse>({
+                    method: Method.Get,
+                    path: "/device_trust",
+                    prefix: ClientPrefix.V3,
+                });
             }, "getDeviceTrustList");
 
             const devices = response.devices || [];
@@ -218,13 +212,11 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDeviceTrustInfo>(
-                    Method.Get,
-                    `/device_trust/${encodeURIComponent(deviceId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDeviceTrustInfo>({
+                    method: Method.Get,
+                    path: `/device_trust/${encodeURIComponent(deviceId)}`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getDeviceTrust");
 
             this.deviceTrustCache.set(deviceId, response);
@@ -251,13 +243,11 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ISecuritySummary>(
-                    Method.Get,
-                    "/security/summary",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<ISecuritySummary>({
+                    method: Method.Get,
+                    path: "/security/summary",
+                    prefix: ClientPrefix.V3,
+                });
             }, "getSecuritySummary");
 
             this.securitySummaryCache.set("__summary__", response);

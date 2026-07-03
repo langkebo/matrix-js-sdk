@@ -236,13 +236,11 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDevicesResponse>(
-                    Method.Get,
-                    dp("/devices"),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDevicesResponse>({
+                    method: Method.Get,
+                    path: dp("/devices"),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getDevices");
 
             const devices: IDevice[] = result.devices || [];
@@ -302,13 +300,11 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
         try {
             const device = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDeviceResponse>(
-                    Method.Get,
-                    dp(`/devices/${encodeURIComponent(deviceId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDeviceResponse>({
+                    method: Method.Get,
+                    path: dp(`/devices/${encodeURIComponent(deviceId)}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getDevice");
 
             const fullDevice: IDevice = {
@@ -356,13 +352,12 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Put,
-                    dp(`/devices/${encodeURIComponent(deviceId)}`),
-                    undefined,
-                    updates,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({
+                    method: Method.Put,
+                    path: dp(`/devices/${encodeURIComponent(deviceId)}`),
+                    body: updates,
+                    prefix: ClientPrefix.V3,
+                });
             }, "updateDevice");
 
             const existingDevice = this.deviceCache.get(deviceId);
@@ -441,13 +436,12 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
             }
 
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Delete,
-                    dp(`/devices/${encodeURIComponent(deviceId)}`),
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({
+                    method: Method.Delete,
+                    path: dp(`/devices/${encodeURIComponent(deviceId)}`),
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteDevice");
 
             this.deviceCache.delete(deviceId);
@@ -489,7 +483,10 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
             }
 
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(Method.Post, dp("/delete_devices"), undefined, body, {
+                return await this.request({
+                    method: Method.Post,
+                    path: dp("/delete_devices"),
+                    body: body,
                     prefix: ClientPrefix.V3,
                 });
             }, "deleteDevices");
@@ -525,13 +522,12 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDeviceListUpdatesResponse>(
-                    Method.Post,
-                    dp("/keys/device_list_updates"),
-                    undefined,
-                    { users },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDeviceListUpdatesResponse>({
+                    method: Method.Post,
+                    path: dp("/keys/device_list_updates"),
+                    body: { users },
+                    prefix: ClientPrefix.V3,
+                });
             }, "getDeviceListUpdates");
 
             return {
