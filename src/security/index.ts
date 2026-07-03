@@ -56,11 +56,14 @@ export class SecurityManager extends BaseManager {
      */
     public async getAccountStatus(userId: string): Promise<AccountStatus | null> {
         try {
-            const response = await this.client.http.authedRequest<{
+            const response = await this.request<{
                 locked?: boolean;
                 suspended?: boolean;
                 verified?: boolean;
-            }>(Method.Get, `/account_status/${encodeURIComponent(userId)}`, undefined, undefined, ADMIN_PREFIX);
+            }>({
+                method: Method.Get,
+                path: `/account_status/${encodeURIComponent(userId)}`,
+            });
 
             return {
                 locked: response.locked ?? false,
@@ -96,9 +99,12 @@ export class SecurityManager extends BaseManager {
      */
     public async listLoginFailures(): Promise<LoginFailure[]> {
         try {
-            const response = await this.client.http.authedRequest<{
+            const response = await this.request<{
                 failures?: Record<string, { time: string; ip: string; userAgent?: string }[]>;
-            }>(Method.Get, "/login/failures", undefined, undefined, ADMIN_PREFIX);
+            }>({
+                method: Method.Get,
+                path: "/login/failures",
+            });
 
             const failures: LoginFailure[] = [];
             if (response.failures) {

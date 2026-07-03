@@ -103,13 +103,12 @@ export class SecureBackupManager extends BaseManager {
     async listSecureBackups(): Promise<Record<string, unknown>> { // Dynamic: backup list structure varies by algorithm
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<Record<string, unknown>>( // Dynamic: backup list structure varies by algorithm
+                return await this.request<Record<string, unknown>>({
+                    method: // Dynamic: backup list structure varies by algorithm
                     Method.Get,
-                    sb("/keys/backup/secure"),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                    path: sb("/keys/backup/secure"),
+                    prefix: ClientPrefix.V3,
+                });
             }, "listSecureBackups");
         } catch (error) {
             throw this.normalizeError(error, "listSecureBackups");
@@ -123,13 +122,12 @@ export class SecureBackupManager extends BaseManager {
     async createSecureBackup(passphrase: string): Promise<SecureBackupInfo> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<SecureBackupInfo>(
-                    Method.Post,
-                    sb("/keys/backup/secure"),
-                    undefined,
-                    { passphrase },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<SecureBackupInfo>({
+                    method: Method.Post,
+                    path: sb("/keys/backup/secure"),
+                    body: { passphrase },
+                    prefix: ClientPrefix.V3,
+                });
             }, "createSecureBackup");
 
             this.backupCache.set(result.backup_id, result);
@@ -153,13 +151,11 @@ export class SecureBackupManager extends BaseManager {
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<SecureBackupInfo>(
-                    Method.Get,
-                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<SecureBackupInfo>({
+                    method: Method.Get,
+                    path: sb(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getSecureBackup");
 
             this.backupCache.set(backupId, result);
@@ -176,13 +172,11 @@ export class SecureBackupManager extends BaseManager {
     async deleteSecureBackup(backupId: string): Promise<void> {
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Delete,
-                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({
+                    method: Method.Delete,
+                    path: sb(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteSecureBackup");
 
             this.backupCache.delete(backupId);
@@ -202,13 +196,12 @@ export class SecureBackupManager extends BaseManager {
     ): Promise<SecureBackupKeysResponse> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<SecureBackupKeysResponse>(
-                    Method.Post,
-                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys`),
-                    undefined,
-                    { passphrase, session_keys: sessionKeys },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<SecureBackupKeysResponse>({
+                    method: Method.Post,
+                    path: sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys`),
+                    body: { passphrase, session_keys: sessionKeys },
+                    prefix: ClientPrefix.V3,
+                });
             }, "addKeysToSecureBackup");
 
             this.backupCache.delete(backupId);
@@ -225,13 +218,12 @@ export class SecureBackupManager extends BaseManager {
     async restoreFromSecureBackup(backupId: string, passphrase: string): Promise<SecureBackupRestoreResponse> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<SecureBackupRestoreResponse>(
-                    Method.Post,
-                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore`),
-                    undefined,
-                    { passphrase },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<SecureBackupRestoreResponse>({
+                    method: Method.Post,
+                    path: sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore`),
+                    body: { passphrase },
+                    prefix: ClientPrefix.V3,
+                });
             }, "restoreFromSecureBackup");
 
             return result;
@@ -247,13 +239,12 @@ export class SecureBackupManager extends BaseManager {
     async verifySecureBackup(backupId: string, passphrase: string): Promise<SecureBackupVerifyResponse> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<SecureBackupVerifyResponse>(
-                    Method.Post,
-                    sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify`),
-                    undefined,
-                    { passphrase },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<SecureBackupVerifyResponse>({
+                    method: Method.Post,
+                    path: sb(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify`),
+                    body: { passphrase },
+                    prefix: ClientPrefix.V3,
+                });
             }, "verifySecureBackup");
 
             return result;

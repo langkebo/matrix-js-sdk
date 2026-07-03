@@ -84,13 +84,12 @@ export class SamlAuthManager extends BaseManager {
 
     async initiateLogin(redirectUrl?: string): Promise<string> {
         return await this.withRetry(async () => {
-            const response = await this.client.http.authedRequest<SamlLoginResponse>(
-                Method.Post,
-                cp("/login/sso/redirect/saml"),
-                undefined,
-                { redirectUrl },
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.request<SamlLoginResponse>({
+                method: Method.Post,
+                path: cp("/login/sso/redirect/saml"),
+                body: { redirectUrl },
+                prefix: ClientPrefix.R0,
+            });
             return response.redirect_url;
         }, "initiateLogin");
     }
@@ -103,13 +102,12 @@ export class SamlAuthManager extends BaseManager {
 
     async handleCallback(samlResponse: string, relayState?: string): Promise<SamlAuthResult> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<SamlAuthResult>(
-                Method.Post,
-                cp("/login/saml/callback"),
-                undefined,
-                { SAMLResponse: samlResponse, RelayState: relayState },
-                { prefix: ClientPrefix.R0 },
-            );
+            return await this.request<SamlAuthResult>({
+                method: Method.Post,
+                path: cp("/login/saml/callback"),
+                body: { SAMLResponse: samlResponse, RelayState: relayState },
+                prefix: ClientPrefix.R0,
+            });
         }, "handleCallback");
     }
 
@@ -121,13 +119,12 @@ export class SamlAuthManager extends BaseManager {
      */
     async getLoginCallback(params?: Record<string, string>): Promise<SamlAuthResult> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<SamlAuthResult>(
-                Method.Get,
-                cp("/login/saml/callback"),
-                params,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            return await this.request<SamlAuthResult>({
+                method: Method.Get,
+                path: cp("/login/saml/callback"),
+                queryParams: params,
+                prefix: ClientPrefix.R0,
+            });
         }, "getLoginCallback");
     }
 
@@ -140,13 +137,12 @@ export class SamlAuthManager extends BaseManager {
     async getSsoRedirect(redirectUrl?: string): Promise<string> {
         return await this.withRetry(async () => {
             const queryParams = redirectUrl ? { redirectUrl } : undefined;
-            const response = await this.client.http.authedRequest<SamlLoginResponse>(
-                Method.Get,
-                cp("/login/sso/redirect/saml"),
-                queryParams,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.request<SamlLoginResponse>({
+                method: Method.Get,
+                path: cp("/login/sso/redirect/saml"),
+                queryParams: queryParams,
+                prefix: ClientPrefix.R0,
+            });
             return response.redirect_url;
         }, "getSsoRedirect");
     }
@@ -154,49 +150,43 @@ export class SamlAuthManager extends BaseManager {
     async logout(redirectUrl?: string): Promise<SamlLogoutResponse> {
         return await this.withRetry(async () => {
             const params = redirectUrl ? { redirectUrl } : undefined;
-            return await this.client.http.authedRequest<SamlLogoutResponse>(
-                Method.Get,
-                cp("/logout/saml"),
-                params,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            return await this.request<SamlLogoutResponse>({
+                method: Method.Get,
+                path: cp("/logout/saml"),
+                queryParams: params,
+                prefix: ClientPrefix.R0,
+            });
         }, "logout");
     }
 
     async handleLogoutCallback(): Promise<void> {
         await this.withRetry(async () => {
-            await this.client.http.authedRequest<Record<string, unknown>>( // Dynamic: SAML callback response is opaque
+            await this.request<Record<string, unknown>>({
+                method: // Dynamic: SAML callback response is opaque
                 Method.Get,
-                cp("/logout/saml/callback"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+                path: cp("/logout/saml/callback"),
+                prefix: ClientPrefix.R0,
+            });
         }, "handleLogoutCallback");
     }
 
     async getIdpMetadata(): Promise<SamlMetadata> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<SamlMetadata>(
-                Method.Get,
-                cp("/saml/metadata"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            return await this.request<SamlMetadata>({
+                method: Method.Get,
+                path: cp("/saml/metadata"),
+                prefix: ClientPrefix.R0,
+            });
         }, "getIdpMetadata");
     }
 
     async getSpMetadata(): Promise<SamlSpMetadata> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<SamlSpMetadata>(
-                Method.Get,
-                cp("/saml/sp_metadata"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            return await this.request<SamlSpMetadata>({
+                method: Method.Get,
+                path: cp("/saml/sp_metadata"),
+                prefix: ClientPrefix.R0,
+            });
         }, "getSpMetadata");
     }
 
@@ -253,13 +243,13 @@ export class SamlAuthManager extends BaseManager {
         body?: Record<string, unknown>, // Dynamic: admin request body varies by endpoint
     ): Promise<T> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<T>(
-                method,
-                path,
-                queryParams as Record<string, string>,
-                body,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<T>({
+                method: method,
+                path: path,
+                queryParams: queryParams as Record<string, string>,
+                body: body,
+                prefix: AdminPrefix.V1,
+            });
         }, "adminRequest");
     }
 }

@@ -347,24 +347,20 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                     prefix: ClientPrefix.V3,
                 };
                 try {
-                    return await this.client.http.authedRequest(
-                        Method.Get,
-                        this.summaryReadPath(roomIdOrAlias),
-                        via ? { via } : undefined,
-                        undefined,
-                        paramOpts,
-                    );
+                    return await this.request({
+                        method: Method.Get,
+                        path: this.summaryReadPath(roomIdOrAlias),
+                        queryParams: via ? { via } : undefined,
+                    });
                 } catch {
                     const unstableOpts = {
                         prefix: "/_matrix/client/unstable/im.nheko.summary",
                     };
-                    return await this.client.http.authedRequest(
-                        Method.Get,
-                        `/summary/${encodeURIComponent(roomIdOrAlias)}`,
-                        via ? { via } : undefined,
-                        undefined,
-                        unstableOpts,
-                    );
+                    return await this.request({
+                        method: Method.Get,
+                        path: `/summary/${encodeURIComponent(roomIdOrAlias)}`,
+                        queryParams: via ? { via } : undefined,
+                    });
                 }
             }, "getRoomSummary");
 
@@ -1069,13 +1065,21 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     // ===== 私有辅助方法 =====
 
     private async requestV3<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+        return await this.request<T>({
+            method: method,
+            path: path,
+            queryParams: queryParams,
+            body: body,
             prefix: ClientPrefix.V3,
         });
     }
 
     private async requestInternal<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
-        return await this.client.http.authedRequest<T>(method, path, queryParams, body, {
+        return await this.request<T>({
+            method: method,
+            path: path,
+            queryParams: queryParams,
+            body: body,
             prefix: "/_synapse/room_summary/v1",
         });
     }

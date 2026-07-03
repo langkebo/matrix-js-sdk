@@ -189,12 +189,11 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             if (opts.limit !== undefined) {
                 body.limit = opts.limit;
             }
-            return this.client.http.authedRequest<IUserDirectoryResponse>(
-                Method.Post,
-                "/user_directory/search",
-                undefined,
-                body,
-            );
+            return this.request<IUserDirectoryResponse>({
+                method: Method.Post,
+                path: "/user_directory/search",
+                body: body,
+            });
         }, "searchUserDirectory");
     }
 
