@@ -147,7 +147,10 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         const path = ap(`/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}` as StripAuthPrefix<AuthPathPattern>);
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.request<Pick<IProfile, K>>(Method.Get, path);
+            return await this.request<Pick<IProfile, K>>({
+                method: Method.Get,
+                path: path,
+            });
         });
 
         const profile = this.setProfileFieldCache(userId, field, response[field], options);
@@ -169,7 +172,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<EmptyObject>(Method.Put, path, undefined, data);
+                return await this.request<EmptyObject>({
+                    method: Method.Put,
+                    path: path,
+                    body: data,
+                });
             });
 
             const userId = this.client.getUserId();
@@ -298,7 +305,10 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.request<IProfile>(Method.Get, path);
+                return await this.request<IProfile>({
+                    method: Method.Get,
+                    path: path,
+                });
             });
 
             const profile = this.setCompleteProfileCache(userId, response);

@@ -98,7 +98,9 @@ export class QrLoginManager extends BaseManager {
     public async getQrCode(): Promise<QrCodeResponse> {
         return this.withRetry(
             async () =>
-                await this.client.http.request<QrCodeResponse>(Method.Get, ap("/login/get_qr_code"), undefined, undefined, {
+                await this.request<QrCodeResponse>({
+                    method: Method.Get,
+                    path: ap("/login/get_qr_code"),
                     prefix: ClientPrefix.V1,
                 }),
             "getQrCode",
@@ -108,7 +110,10 @@ export class QrLoginManager extends BaseManager {
     public async startQrLogin(request: QrLoginStartRequest): Promise<QrLoginStartResponse> {
         return this.withRetry(
             async () =>
-                await this.client.http.request<QrLoginStartResponse>(Method.Post, ap("/login/qr/start"), undefined, request, {
+                await this.request<QrLoginStartResponse>({
+                    method: Method.Post,
+                    path: ap("/login/qr/start"),
+                    body: request,
                     prefix: ClientPrefix.V1,
                 }),
             "startQrLogin",
@@ -129,7 +134,9 @@ export class QrLoginManager extends BaseManager {
         const path = ap(`/login/qr/${encodeURIComponent(transactionId)}/status` as StripAuthPrefix<AuthPathPattern>);
         return this.withRetry(
             async () =>
-                await this.client.http.request<QrLoginStatusResponse>(Method.Get, path, undefined, undefined, {
+                await this.request<QrLoginStatusResponse>({
+                    method: Method.Get,
+                    path: path,
                     prefix: ClientPrefix.V1,
                 }),
             "getQrStatus",
@@ -139,13 +146,12 @@ export class QrLoginManager extends BaseManager {
     public async invalidateQrLogin(request: QrLoginInvalidateRequest): Promise<QrLoginInvalidateResponse> {
         return this.withRetry(
             async () =>
-                await this.client.http.request<QrLoginInvalidateResponse>(
-                    Method.Post,
-                    ap("/login/qr/invalidate"),
-                    undefined,
-                    request,
-                    { prefix: ClientPrefix.V1 },
-                ),
+                await this.request<QrLoginInvalidateResponse>({
+                    method: Method.Post,
+                    path: ap("/login/qr/invalidate"),
+                    body: request,
+                    prefix: ClientPrefix.V1,
+                }),
             "invalidateQrLogin",
         );
     }

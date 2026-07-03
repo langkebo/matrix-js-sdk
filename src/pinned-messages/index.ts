@@ -130,13 +130,11 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
 
         return this.withRetry(
             async () => {
-                const response = (await this.client.http.authedRequest(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                )) as IServerPinnedEventsResponse;
+                const response = (await this.request({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
+                    prefix: ClientPrefix.V3,
+                })) as IServerPinnedEventsResponse;
 
                 const events: IPinnedEventInfo[] = (response.events || []).map((e) => ({
                     eventId: e.event_id,
@@ -158,13 +156,12 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
 
         return this.withRetry(
             async () => {
-                await this.client.http.authedRequest(
-                    Method.Post,
-                    `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
-                    undefined,
-                    { event_id: eventId },
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request({
+                    method: Method.Post,
+                    path: `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
+                    body: { event_id: eventId },
+                    prefix: ClientPrefix.V3,
+                });
                 this.emit(PinnedEvent.Pinned, roomId, eventId);
                 const cached = this.pinnedEventsCache.get(roomId) || [];
                 cached.push({ eventId, roomId, pinnedBy: this.client.getUserId() || undefined, pinnedAt: Date.now() });
@@ -180,13 +177,11 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
 
         return this.withRetry(
             async () => {
-                await this.client.http.authedRequest(
-                    Method.Delete,
-                    `/rooms/${encodeURIComponent(roomId)}/pinned_events/${encodeURIComponent(eventId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request({
+                    method: Method.Delete,
+                    path: `/rooms/${encodeURIComponent(roomId)}/pinned_events/${encodeURIComponent(eventId)}`,
+                    prefix: ClientPrefix.V3,
+                });
                 this.emit(PinnedEvent.Unpinned, roomId, eventId);
                 const cached = this.pinnedEventsCache.get(roomId) || [];
                 this.pinnedEventsCache.set(

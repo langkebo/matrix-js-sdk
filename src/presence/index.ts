@@ -141,16 +141,16 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         try {
             await this.withRetry(
                 () =>
-                    this.client.http.authedRequest(
-                        Method.Put,
-                        pp(`/presence/${encodeURIComponent(userId)}/status`),
-                        {},
-                        {
+                    this.request({
+                        method: Method.Put,
+                        path: pp(`/presence/${encodeURIComponent(userId)}/status`),
+                        queryParams: {},
+                        body: {
                             presence: state,
                             status_msg: statusMsg,
                         },
-                        { prefix: PRESENCE_PREFIX, priority: undefined },
-                    ),
+                        prefix: PRESENCE_PREFIX,
+                    }),
                 "setPresence",
             );
 
@@ -190,16 +190,16 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         try {
             await this.withRetry(
                 () =>
-                    this.client.http.authedRequest(
-                        Method.Post,
-                        pp(`/presence/${encodeURIComponent(userId)}/status`),
-                        {},
-                        {
+                    this.request({
+                        method: Method.Post,
+                        path: pp(`/presence/${encodeURIComponent(userId)}/status`),
+                        queryParams: {},
+                        body: {
                             presence: state,
                             status_msg: statusMsg,
                         },
-                        { prefix: PRESENCE_PREFIX, priority: undefined },
-                    ),
+                        prefix: PRESENCE_PREFIX,
+                    }),
                 "postPresence",
             );
 
@@ -264,13 +264,12 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IPresenceState>(
-                    Method.Get,
-                    pp(`/presence/${encodeURIComponent(userId)}/status`),
-                    {},
-                    undefined,
-                    { prefix: PRESENCE_PREFIX, priority: undefined },
-                ),
+                this.request<IPresenceState>({
+                    method: Method.Get,
+                    path: pp(`/presence/${encodeURIComponent(userId)}/status`),
+                    queryParams: {},
+                    prefix: PRESENCE_PREFIX,
+                }),
             "getPresence",
         ).then(
             (response) => {
@@ -383,27 +382,23 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         const request = targetUserId
             ? this.withRetry(
                   () =>
-                      this.client.http.authedRequest<IPresenceList>(
-                          Method.Get,
-                          pp(`/presence/list/${encodeURIComponent(targetUserId)}`),
-                          {},
-                          undefined,
-                          { prefix: PRESENCE_PREFIX, priority: undefined },
-                      ),
+                      this.request<IPresenceList>({
+                          method: Method.Get,
+                          path: pp(`/presence/list/${encodeURIComponent(targetUserId)}`),
+                          queryParams: {},
+                          prefix: PRESENCE_PREFIX,
+                      }),
                   "getPresenceList",
               )
             : this.withRetry(
                   () =>
-                      this.client.http.authedRequest<IPresenceList>(
-                          Method.Post,
-                          pp("/presence/list"),
-                          {},
-                          {},
-                          {
-                              prefix: PRESENCE_PREFIX,
-                              priority: undefined,
-                          },
-                      ),
+                      this.request<IPresenceList>({
+                          method: Method.Post,
+                          path: pp("/presence/list"),
+                          queryParams: {},
+                          body: {},
+                          prefix: PRESENCE_PREFIX,
+                      }),
                   "getPresenceList",
               );
 
@@ -498,13 +493,13 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         try {
             const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest<IPresenceList>(
-                        Method.Post,
-                        pp("/presence/list"),
-                        {},
-                        { subscribe: userIds },
-                        { prefix: PRESENCE_PREFIX, priority: undefined },
-                    ),
+                    this.request<IPresenceList>({
+                        method: Method.Post,
+                        path: pp("/presence/list"),
+                        queryParams: {},
+                        body: { subscribe: userIds },
+                        prefix: PRESENCE_PREFIX,
+                    }),
                 "subscribeToPresence",
             );
             userIds.forEach((id) => this.subscribedUsers.add(id));
@@ -531,13 +526,13 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         try {
             const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest<IPresenceList>(
-                        Method.Post,
-                        pp("/presence/list"),
-                        {},
-                        { unsubscribe: userIds },
-                        { prefix: PRESENCE_PREFIX, priority: undefined },
-                    ),
+                    this.request<IPresenceList>({
+                        method: Method.Post,
+                        path: pp("/presence/list"),
+                        queryParams: {},
+                        body: { unsubscribe: userIds },
+                        prefix: PRESENCE_PREFIX,
+                    }),
                 "unsubscribeFromPresence",
             );
             userIds.forEach((id) => this.subscribedUsers.delete(id));

@@ -160,7 +160,9 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         const path = queryString ? `${pathTemplate}?${queryString}` : pathTemplate;
 
         try {
-            return await this.client.http.authedRequest<IRelationsResponse>(Method.Get, path, undefined, undefined, {
+            return await this.request<IRelationsResponse>({
+                method: Method.Get,
+                path: path,
                 prefix: ClientPrefix.V1,
             });
         } catch (e) {
@@ -266,7 +268,9 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         });
 
         try {
-            return await this.client.http.authedRequest<RelationAggregationResponse>(Method.Get, path, undefined, undefined, {
+            return await this.request<RelationAggregationResponse>({
+                method: Method.Get,
+                path: path,
                 prefix: ClientPrefix.V1,
             });
         } catch (e) {
@@ -351,7 +355,10 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         });
 
         try {
-            const response = await this.client.http.authedRequest<SendRelationResponse>(Method.Put, path, undefined, body, {
+            const response = await this.request<SendRelationResponse>({
+                method: Method.Put,
+                path: path,
+                body: body,
                 prefix: ClientPrefix.V1,
             });
             this.emit(RelationsEvent.Updated, roomId, eventId);
