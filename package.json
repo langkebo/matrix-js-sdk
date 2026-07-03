@@ -74,6 +74,7 @@
         "contract:codegen": "node scripts/sdk-contract-codegen.mjs",
         "contract:codegen:check": "node scripts/sdk-contract-codegen.mjs --check",
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",
+        "generate:manager-extensions": "node scripts/generate-manager-extensions.mjs",
         "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
