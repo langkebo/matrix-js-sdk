@@ -17,9 +17,11 @@ limitations under the License.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { OidcManager } from "../../src/oidc/manager";
+import { FakeTransport } from "../test-utils/FakeTransport";
 
 describe("OidcManager", () => {
     let mockClient: any;
+    let transport: FakeTransport;
     let oidcManager: OidcManager;
 
     beforeEach(() => {
@@ -30,14 +32,15 @@ describe("OidcManager", () => {
             },
             baseUrl: "https://matrix.test",
         };
-        oidcManager = new OidcManager(mockClient);
+        transport = new FakeTransport();
+        oidcManager = new OidcManager(mockClient as any, { transport });
     });
 
     // ============ Discovery ============
 
     describe("discover", () => {
         it("should discover OIDC configuration", async () => {
-            mockClient.http.request.mockResolvedValue({
+            transport.respondWith({
                 issuer: "https://matrix.test",
                 authorization_endpoint: "https://matrix.test/authorize",
                 token_endpoint: "https://matrix.test/token",
@@ -47,7 +50,7 @@ describe("OidcManager", () => {
 
             expect(result.issuer).toBe("https://matrix.test");
             expect(result.authorization_endpoint).toBe("https://matrix.test/authorize");
-            expect(mockClient.http.request).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "GET",
                 "/.well-known/openid-configuration",
                 undefined,
@@ -57,7 +60,7 @@ describe("OidcManager", () => {
         });
 
         it("should cache discovery and emit event", async () => {
-            mockClient.http.request.mockResolvedValue({
+            transport.respondWith({
                 issuer: "https://matrix.test",
                 authorization_endpoint: "https://matrix.test/authorize",
                 token_endpoint: "https://matrix.test/token",
@@ -76,7 +79,7 @@ describe("OidcManager", () => {
 
     describe("authorize", () => {
         it("should authorize with required params", async () => {
-            mockClient.http.request.mockResolvedValue({
+            transport.respondWith({
                 url: "https://matrix.test/authorize?code=abc",
             });
 
@@ -88,7 +91,7 @@ describe("OidcManager", () => {
             });
 
             expect(result).toContain("https://matrix.test/authorize");
-            expect(mockClient.http.request).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "GET",
                 "/oidc/authorize",
                 {
@@ -103,7 +106,7 @@ describe("OidcManager", () => {
         });
 
         it("should authorize with optional params", async () => {
-            mockClient.http.request.mockResolvedValue({ code: "abc" });
+            transport.respondWith({ code: "abc" });
 
             await oidcManager.authorize({
                 client_id: "client123",
@@ -116,7 +119,7 @@ describe("OidcManager", () => {
                 code_challenge_method: "S256",
             });
 
-            const callQuery = mockClient.http.request.mock.calls[0][2];
+            const callQuery = transport.request.mock.calls[0][2];
             expect(callQuery.state).toBe("state123");
             expect(callQuery.nonce).toBe("nonce123");
             expect(callQuery.code_challenge).toBe("challenge123");
@@ -139,7 +142,7 @@ describe("OidcManager", () => {
 
     describe("token", () => {
         it("should exchange token with authorization code", async () => {
-            mockClient.http.request.mockResolvedValue({
+            transport.respondWith({
                 access_token: "access-token-123",
                 refresh_token: "refresh-token-123",
                 token_type: "Bearer",
@@ -157,11 +160,17 @@ describe("OidcManager", () => {
             expect(result.access_token).toBe("access-token-123");
             expect(result.refresh_token).toBe("refresh-token-123");
             expect(result.expires_in).toBe(3600);
-            expect(mockClient.http.request).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "POST",
                 "/oidc/token",
                 undefined,
-                expect.objectContaining({ grant_type: "authorization_code", code: "code123" }),
+                {
+                    grant_type: "authorization_code",
+                    code: "code123",
+                    redirect_uri: "https://app.test/callback",
+                    code_verifier: "verifier123",
+                    client_id: "client123",
+                },
                 { prefix: "/_matrix/client/v3" },
             );
         });
@@ -177,7 +186,7 @@ describe("OidcManager", () => {
 
     describe("refreshToken", () => {
         it("should refresh access token", async () => {
-            mockClient.http.request.mockResolvedValue({
+            transport.respondWith({
                 access_token: "new-access-token",
                 refresh_token: "new-refresh-token",
                 token_type: "Bearer",
@@ -188,14 +197,14 @@ describe("OidcManager", () => {
             const result = await oidcManager.refreshToken("refresh-token-123");
 
             expect(result.access_token).toBe("new-access-token");
-            expect(mockClient.http.request).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "POST",
                 "/oidc/token",
                 undefined,
-                expect.objectContaining({
+                {
                     grant_type: "refresh_token",
                     refresh_token: "refresh-token-123",
-                }),
+                },
                 { prefix: "/_matrix/client/v3" },
             );
             expect(emitSpy).toHaveBeenCalledWith("oidcTokenRefreshed", { expires_in: 7200 });
@@ -210,7 +219,7 @@ describe("OidcManager", () => {
 
     describe("getUserInfo", () => {
         it("should get OIDC user info", async () => {
-            mockClient.http.authedRequest.mockResolvedValue({
+            transport.respondWith({
                 sub: "user123",
                 name: "Alice",
                 email: "alice@example.com",
@@ -220,7 +229,7 @@ describe("OidcManager", () => {
 
             expect(result.sub).toBe("user123");
             expect(result.name).toBe("Alice");
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "GET",
                 "/oidc/userinfo",
                 undefined,
@@ -234,7 +243,7 @@ describe("OidcManager", () => {
 
     describe("builtinLogin", () => {
         it("should perform built-in OIDC login", async () => {
-            mockClient.http.request.mockResolvedValue({ code: "auth-code-123" });
+            transport.respondWith({ code: "auth-code-123" });
 
             const result = await oidcManager.builtinLogin({
                 client_id: "client123",
@@ -244,15 +253,17 @@ describe("OidcManager", () => {
             });
 
             expect(result.code).toBe("auth-code-123");
-            expect(mockClient.http.request).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "POST",
                 "/oidc/login",
                 undefined,
-                expect.objectContaining({
+                {
                     client_id: "client123",
+                    redirect_uri: "https://app.test/callback",
+                    scope: "openid",
                     username: "alice",
                     password: "secret",
-                }),
+                },
                 { prefix: "/_matrix/client/v3" },
             );
         });
@@ -273,14 +284,14 @@ describe("OidcManager", () => {
 
     describe("ssoRedirect", () => {
         it("should get SSO redirect URL", async () => {
-            mockClient.http.request.mockResolvedValue({
+            transport.respondWith({
                 url: "https://sso.test/redirect",
             });
 
             const result = await oidcManager.ssoRedirect("https://app.test/callback");
 
             expect(result).toBe("https://sso.test/redirect");
-            expect(mockClient.http.request).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "GET",
                 "/login/sso/redirect",
                 { redirectUrl: "https://app.test/callback" },
@@ -294,12 +305,12 @@ describe("OidcManager", () => {
 
     describe("logout", () => {
         it("should logout and emit event", async () => {
-            mockClient.http.authedRequest.mockResolvedValue(undefined);
+            transport.respondWith(undefined);
             const emitSpy = vi.spyOn(oidcManager, "emit");
 
             await oidcManager.logout();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            transport.expectCalledWithArgs(
                 "POST",
                 "/oidc/logout",
                 undefined,
