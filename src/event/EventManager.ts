@@ -217,17 +217,14 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             lazyLoadMembers,
             timelineFilter,
         });
-        const opts = {
-            prefix:
-                Thread.hasServerSideListSupport === FeatureSupport.Stable
-                    ? ClientPrefix.V1
-                    : "/_matrix/client/unstable/org.matrix.msc3856",
-        };
-
         const res = await this.request<IThreadedMessagesResponse>({
             method: Method.Get,
             path: path,
             queryParams: params,
+            prefix:
+                Thread.hasServerSideListSupport === FeatureSupport.Stable
+                    ? ClientPrefix.V1
+                    : "/_matrix/client/unstable/org.matrix.msc3856",
         });
         return {
             ...res,
