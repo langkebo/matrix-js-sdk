@@ -1,324 +1,332 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-
+import { FakeTransport } from "../test-utils/FakeTransport";
 import { ModuleManager, ModuleEvent } from "../../src/module/index";
+import { Method } from "../../src/http-api/method";
+import { MatrixError } from "../../src/http-api/errors";
+import { NotFoundError } from "../../src/errors";
 
 describe("ModuleManager", () => {
-    let mockClient: any;
-    let moduleManager: ModuleManager;
-
-    const createMockClient = () => ({
-        http: {
-            authedRequest: vi.fn().mockResolvedValue({}),
-        },
-        getHomeserverUrl: () => "https://matrix.example.com",
-        getUserId: () => "@admin:example.com",
-    });
+    let transport: FakeTransport;
+    let manager: ModuleManager;
 
     beforeEach(() => {
-        mockClient = createMockClient();
-        moduleManager = new ModuleManager(mockClient as any);
-        vi.clearAllMocks();
+        transport = new FakeTransport();
+        manager = new ModuleManager({} as any, { transport });
     });
 
-    describe("module listing and management", () => {
+    // ==================== 模块管理 ====================
+
+    describe("module management", () => {
         it("should list modules", async () => {
-            const mockModules = {
+            const response = {
                 modules: [
-                    { name: "test-module", type: "spam_checker", enabled: true },
+                    { name: "spam-checker", type: "spam_checker", enabled: true },
                     { name: "auth-module", type: "password_auth_provider", enabled: false },
                 ],
                 total: 2,
             };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockModules);
+            transport.respondWith(response);
 
-            const result = await moduleManager.listModules({ from: "0", limit: 10 });
+            const result = await manager.listModules({ limit: 10, from: "0" });
+
             expect(result.modules).toHaveLength(2);
             expect(result.total).toBe(2);
+            transport.expectCalledWith(Method.Get, "/modules");
         });
 
         it("should list modules by type", async () => {
-            const mockModules = {
-                modules: [{ name: "spam-module", type: "spam_checker", enabled: true }],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockModules);
+            const response = { modules: [{ name: "spam-module", type: "spam_checker", enabled: true }] };
+            transport.respondWith(response);
 
-            const result = await moduleManager.listModulesByType("spam_checker");
+            const result = await manager.listModulesByType("spam_checker");
+
             expect(result).toHaveLength(1);
             expect(result[0].name).toBe("spam-module");
+            transport.expectCalledWith(Method.Get, "/modules/type/spam_checker");
         });
 
         it("should get a single module", async () => {
-            const mockModule = { name: "test-module", type: "spam_checker", enabled: true };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockModule);
+            const response = { name: "my-module", type: "spam_checker", enabled: true, version: "1.0" };
+            transport.respondWith(response);
 
-            const result = await moduleManager.getModule("test-module");
-            expect(result.name).toBe("test-module");
-            expect(result.enabled).toBe(true);
+            const result = await manager.getModule("my-module");
+
+            expect(result.name).toBe("my-module");
+            expect(result.version).toBe("1.0");
+            transport.expectCalledWith(Method.Get, "/modules/my-module");
         });
 
-        it("should create a module", async () => {
-            const mockModule = { name: "new-module", type: "custom", enabled: false };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockModule);
+        it("should throw NotFoundError when module is not found", async () => {
+            const matrixError = new MatrixError(
+                { errcode: "M_NOT_FOUND", error: "Module not found" }, 404, undefined,
+            );
+            transport.rejectWith(matrixError);
 
-            const emittedEvents: any[] = [];
-            moduleManager.on(ModuleEvent.ModuleCreated, (module: any) => emittedEvents.push(module));
+            await expect(manager.getModule("nonexistent")).rejects.toThrow(NotFoundError);
+        });
 
-            const result = await moduleManager.createModule({ name: "new-module", type: "custom" });
+        it("should create a module and emit event", async () => {
+            const response = { name: "new-module", type: "spam_checker", enabled: true };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
+
+            const result = await manager.createModule({ name: "new-module", type: "spam_checker" });
+
             expect(result.name).toBe("new-module");
-            expect(emittedEvents).toHaveLength(1);
+            transport.expectCalledWith(Method.Post, "/modules");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ModuleCreated, response);
         });
 
-        it("should delete a module", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+        it("should delete a module and emit event", async () => {
+            transport.respondWith(undefined as any);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const emittedEvents: any[] = [];
-            moduleManager.on(ModuleEvent.ModuleDeleted, (name: any) => emittedEvents.push(name));
+            await manager.deleteModule("old-module");
 
-            await moduleManager.deleteModule("old-module");
-            expect(emittedEvents).toEqual(["old-module"]);
+            transport.expectCalledWith(Method.Delete, "/modules/old-module");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ModuleDeleted, "old-module");
         });
 
-        it("should update module config", async () => {
-            const mockModule = {
-                name: "test-module",
-                type: "spam_checker",
-                enabled: true,
-                config: { threshold: 0.5 },
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockModule);
+        it("should update module config and emit event", async () => {
+            const response = { name: "my-module", type: "spam_checker", enabled: true, config: { key: "val" } };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await moduleManager.updateModuleConfig("test-module", { threshold: 0.5 });
-            expect(result.name).toBe("test-module");
-            expect(result.config).toEqual({ threshold: 0.5 });
+            const result = await manager.updateModuleConfig("my-module", { key: "val" });
+
+            expect(result.name).toBe("my-module");
+            transport.expectCalledWith(Method.Put, "/modules/my-module/config");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ModuleConfigUpdated, "my-module", { key: "val" });
         });
 
-        it("should enable a module", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+        it("should enable a module and emit event", async () => {
+            transport.respondWith(undefined as any);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const emittedEvents: any[] = [];
-            moduleManager.on(ModuleEvent.ModuleEnabled, (name: any) => emittedEvents.push(name));
+            await manager.setModuleEnabled("my-module", true);
 
-            await moduleManager.setModuleEnabled("test-module", true);
-            expect(emittedEvents).toEqual(["test-module"]);
+            transport.expectCalledWith(Method.Post, "/modules/my-module/enable");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ModuleEnabled, "my-module");
         });
 
-        it("should disable a module", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+        it("should disable a module and emit event", async () => {
+            transport.respondWith(undefined as any);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const emittedEvents: any[] = [];
-            moduleManager.on(ModuleEvent.ModuleDisabled, (name: any) => emittedEvents.push(name));
+            await manager.setModuleEnabled("my-module", false);
 
-            await moduleManager.setModuleEnabled("test-module", false);
-            expect(emittedEvents).toEqual(["test-module"]);
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ModuleDisabled, "my-module");
         });
 
         it("should get module logs", async () => {
-            const mockLogs = {
-                logs: [{ timestamp: 123456, level: "info", message: "test", module_name: "test" }],
+            const response = {
+                logs: [
+                    { timestamp: 1000, level: "INFO", message: "Started", module_name: "my-module" },
+                ],
                 total: 1,
             };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockLogs);
+            transport.respondWith(response);
 
-            const result = await moduleManager.getModuleLogs("test-module", { from: "0", limit: 10 });
+            const result = await manager.getModuleLogs("my-module", { limit: 10 });
+
             expect(result.logs).toHaveLength(1);
-            expect(result.total).toBe(1);
+            transport.expectCalledWith(Method.Get, "/modules/my-module/logs");
         });
     });
 
-    describe("spam checking", () => {
-        it("should check spam", async () => {
-            const mockResult = { is_spam: true, reason: "spam detected", score: 0.9 };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockResult);
+    // ==================== Spam 检查 ====================
 
-            const result = await moduleManager.checkSpam({
-                event_id: "ev1",
-                user_id: "@user:server",
-                content: { body: "test" },
+    describe("spam checking", () => {
+        it("should check spam and emit event", async () => {
+            const response = { is_spam: true, reason: "Blocked by policy", score: 0.95 };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
+
+            const result = await manager.checkSpam({
+                event_id: "$evt1", user_id: "@spammer:example.com", content: { body: "spam" },
             });
+
             expect(result.is_spam).toBe(true);
-            expect(result.score).toBe(0.9);
+            expect(result.reason).toBe("Blocked by policy");
+            transport.expectCalledWith(Method.Post, "/modules/check_spam");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.SpamCheckCompleted, response);
         });
 
         it("should get spam check result by event id", async () => {
-            const mockResult = { is_spam: false };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockResult);
+            transport.respondWith({ is_spam: false, score: 0 });
 
-            const result = await moduleManager.getSpamCheckResult("ev1");
+            const result = await manager.getSpamCheckResult("$evt1");
+
             expect(result.is_spam).toBe(false);
+            transport.expectCalledWith(Method.Get, "/modules/spam_check/%24evt1");
         });
 
-        it("should get spam check results by sender", async () => {
-            const mockResults = { checks: [{ is_spam: true, reason: "spam" }] };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockResults);
+        it("should get spam checks by sender", async () => {
+            const response = { checks: [{ is_spam: true, reason: "spam" }] };
+            transport.respondWith(response);
 
-            const result = await moduleManager.getSpamCheckBySender("@user:server", {
-                from: "0",
-                limit: 10,
-            });
+            const result = await manager.getSpamCheckBySender("@spammer:example.com");
+
             expect(result).toHaveLength(1);
+            transport.expectCalledWith(Method.Get, "/modules/spam_check/sender/%40spammer%3Aexample.com");
         });
     });
 
-    describe("third party rules", () => {
-        it("should check third party rules", async () => {
-            const mockResult = { allowed: true };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockResult);
+    // ==================== 第三方规则 ====================
 
-            const result = await moduleManager.checkThirdPartyRule({
-                rule_type: "m.room.member",
-                event_id: "ev1",
-                user_id: "@user:server",
+    describe("third-party rules", () => {
+        it("should check third-party rule and emit event", async () => {
+            const response = { allowed: false, reason: "Rule violation" };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
+
+            const result = await manager.checkThirdPartyRule({
+                rule_type: "m.room.message", event_id: "$evt2", user_id: "@user:example.com",
             });
-            expect(result.allowed).toBe(true);
-        });
 
-        it("should get third party rule result by event id", async () => {
-            const mockResult = { allowed: false, reason: "blocked" };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockResult);
-
-            const result = await moduleManager.getThirdPartyRuleResult("ev1");
             expect(result.allowed).toBe(false);
-            expect(result.reason).toBe("blocked");
+            transport.expectCalledWith(Method.Post, "/modules/check_third_party_rule");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ThirdPartyRuleChecked, response);
+        });
+
+        it("should get third-party rule result by event id", async () => {
+            transport.respondWith({ allowed: true });
+
+            const result = await manager.getThirdPartyRuleResult("$evt2");
+
+            expect(result.allowed).toBe(true);
+            transport.expectCalledWith(Method.Get, "/modules/third_party_rule/%24evt2");
         });
     });
 
-    describe("callbacks management", () => {
-        it("should get account data callbacks", async () => {
-            const mockCallbacks = {
-                callbacks: [
-                    { id: "1", module_name: "test", callback_type: "account_data", enabled: true },
-                ],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallbacks);
+    // ==================== 回调管理 ====================
 
-            const result = await moduleManager.getAccountDataCallbacks();
+    describe("callbacks", () => {
+        it("should get account data callbacks", async () => {
+            const response = { callbacks: [{ id: "cb1", module_name: "mod1", callback_type: "on_change", enabled: true }] };
+            transport.respondWith(response);
+
+            const result = await manager.getAccountDataCallbacks();
+
             expect(result).toHaveLength(1);
+            transport.expectCalledWith(Method.Get, "/account_data_callbacks");
         });
 
-        it("should register account data callback", async () => {
-            const mockCallback = {
-                id: "1",
-                module_name: "test",
-                callback_type: "account_data",
-                enabled: true,
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallback);
+        it("should register account data callback and emit event", async () => {
+            const response = { id: "cb1", module_name: "mod1", callback_type: "on_change", enabled: true };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await moduleManager.registerAccountDataCallback({
-                module_name: "test",
-                callback_type: "account_data",
-            });
-            expect(result.module_name).toBe("test");
+            const result = await manager.registerAccountDataCallback({ module_name: "mod1", callback_type: "on_change" });
+
+            expect(result.id).toBe("cb1");
+            transport.expectCalledWith(Method.Post, "/account_data_callbacks");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.AccountDataCallbackRegistered, response);
         });
 
         it("should get media callbacks", async () => {
-            const mockCallbacks = {
-                callbacks: [
-                    { id: "1", module_name: "test", callback_type: "media", enabled: true },
-                ],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallbacks);
+            const response = { callbacks: [{ id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true }] };
+            transport.respondWith(response);
 
-            const result = await moduleManager.getMediaCallbacks();
+            const result = await manager.getMediaCallbacks();
+
             expect(result).toHaveLength(1);
+            transport.expectCalledWith(Method.Get, "/media_callbacks");
         });
 
-        it("should register media callback", async () => {
-            const mockCallback = {
-                id: "1",
-                module_name: "test",
-                callback_type: "media",
-                enabled: true,
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallback);
+        it("should register media callback and emit event", async () => {
+            const response = { id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await moduleManager.registerMediaCallback({
-                module_name: "test",
-                callback_type: "media",
-            });
-            expect(result.module_name).toBe("test");
+            const result = await manager.registerMediaCallback({ module_name: "mod1", callback_type: "on_upload" });
+
+            expect(result.id).toBe("mcb1");
+            transport.expectCalledWith(Method.Post, "/media_callbacks");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.MediaCallbackRegistered, response);
         });
 
         it("should get media callbacks by type", async () => {
-            const mockCallbacks = {
-                callbacks: [
-                    {
-                        id: "1",
-                        module_name: "test",
-                        callback_type: "media/upload",
-                        enabled: true,
-                    },
-                ],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockCallbacks);
+            const response = { callbacks: [{ id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true }] };
+            transport.respondWith(response);
 
-            const result = await moduleManager.getMediaCallbacksByType("media/upload");
+            const result = await manager.getMediaCallbacksByType("on_upload");
+
             expect(result).toHaveLength(1);
+            transport.expectCalledWith(Method.Get, "/media_callbacks/on_upload");
         });
-
     });
+
+    // ==================== 密码认证提供商 ====================
 
     describe("password auth providers", () => {
-        it("should get password auth providers", async () => {
-            const mockProviders = {
-                providers: [{ id: "1", name: "ldap", type: "ldap", enabled: true }],
-            };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockProviders);
+        it("should list password auth providers", async () => {
+            const response = { providers: [{ id: "p1", name: "LDAP", type: "ldap_auth", enabled: true }] };
+            transport.respondWith(response);
 
-            const result = await moduleManager.getPasswordAuthProviders();
+            const result = await manager.getPasswordAuthProviders();
+
             expect(result).toHaveLength(1);
-            expect(result[0].name).toBe("ldap");
+            transport.expectCalledWith(Method.Get, "/password_auth_providers");
         });
 
-        it("should register password auth provider", async () => {
-            const mockProvider = { id: "1", name: "ldap", type: "ldap", enabled: true };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockProvider);
+        it("should register password auth provider and emit event", async () => {
+            const response = { id: "p1", name: "LDAP", type: "ldap_auth", enabled: true };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await moduleManager.registerPasswordAuthProvider({
-                name: "ldap",
-                type: "ldap",
-            });
-            expect(result.name).toBe("ldap");
+            const result = await manager.registerPasswordAuthProvider({ name: "LDAP", type: "ldap_auth" });
+
+            expect(result.name).toBe("LDAP");
+            transport.expectCalledWith(Method.Post, "/password_auth_providers");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.PasswordAuthProviderRegistered, response);
         });
     });
+
+    // ==================== 账户有效性 ====================
 
     describe("account validity", () => {
         it("should check account validity", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-            await expect(moduleManager.checkAccountValidity()).resolves.toBeUndefined();
+            transport.respondWith(undefined as any);
+
+            await manager.checkAccountValidity();
+
+            transport.expectCalledWith(Method.Post, "/account_validity");
         });
 
-        it("should get account validity for user", async () => {
-            const mockValidity = { user_id: "@user:server", valid: true };
-            mockClient.http.authedRequest.mockResolvedValueOnce(mockValidity);
+        it("should get account validity for a user and emit event", async () => {
+            const response = { user_id: "@user:example.com", valid: true, expires_at: 9999999999 };
+            transport.respondWith(response);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await moduleManager.getAccountValidity("@user:server");
-            expect(result.user_id).toBe("@user:server");
+            const result = await manager.getAccountValidity("@user:example.com");
+
             expect(result.valid).toBe(true);
+            transport.expectCalledWith(Method.Get, "/account_validity/%40user%3Aexample.com");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.AccountValidityChecked, response);
         });
 
-        it("should renew account validity", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
+        it("should renew account validity and emit event", async () => {
+            transport.respondWith(undefined as any);
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            const emittedEvents: any[] = [];
-            moduleManager.on(ModuleEvent.AccountValidityRenewed, (userId: any) =>
-                emittedEvents.push(userId),
-            );
+            await manager.renewAccountValidity("@user:example.com");
 
-            await moduleManager.renewAccountValidity("@user:server");
-            expect(emittedEvents).toEqual(["@user:server"]);
+            transport.expectCalledWith(Method.Post, "/account_validity/%40user%3Aexample.com/renew");
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.AccountValidityRenewed, "@user:example.com");
         });
     });
 
-    describe("error handling", () => {
+    // ==================== 事件发射 ====================
+
+    describe("event emission", () => {
         it("should emit ModuleError on request failure", async () => {
-            const emittedErrors: any[] = [];
-            moduleManager.on(ModuleEvent.ModuleError, (error: any) => emittedErrors.push(error));
+            transport.rejectWith(new Error("Server error"));
+            const emitSpy = vi.spyOn(manager, "emit");
 
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("Server error"));
+            await expect(manager.listModules()).rejects.toThrow();
 
-            await expect(moduleManager.listModules()).rejects.toThrow("Server error");
-            expect(emittedErrors).toHaveLength(1);
+            expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.ModuleError, expect.any(Error));
         });
     });
 });
