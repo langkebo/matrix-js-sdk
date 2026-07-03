@@ -103,15 +103,12 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<INotificationsResponse>(
-                    Method.Get,
-                    np("/notifications"),
-                    opts,
-                    undefined,
-                    {
-                        prefix: ClientPrefix.V3,
-                    },
-                ),
+                this.request<INotificationsResponse>({
+                    method: Method.Get,
+                    path: np("/notifications"),
+                    queryParams: opts,
+                    prefix: ClientPrefix.V3,
+                }),
             "getNotifications",
         );
     }
@@ -129,15 +126,11 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<EmptyObject>(
-                    Method.Post,
-                    np(`/notifications/${encodeURIComponent(notificationId)}/ack` as StripV3<PushPathPattern>),
-                    undefined,
-                    undefined,
-                    {
-                        prefix: ClientPrefix.V3,
-                    },
-                ),
+                this.request<EmptyObject>({
+                    method: Method.Post,
+                    path: np(`/notifications/${encodeURIComponent(notificationId)}/ack` as StripV3<PushPathPattern>),
+                    prefix: ClientPrefix.V3,
+                }),
             "ackNotification",
         );
     }

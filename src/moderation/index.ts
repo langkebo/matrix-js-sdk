@@ -45,7 +45,10 @@ export class ModerationManager extends BaseManager {
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}`;
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest<void>(Method.Post, path, undefined, body, {
+                await this.request<void>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
                     prefix: ClientPrefix.V3,
                 });
             }, "reportEvent");
@@ -62,7 +65,10 @@ export class ModerationManager extends BaseManager {
         const path = `/rooms/${encodeURIComponent(roomId)}/report`;
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest<void>(Method.Post, path, undefined, body, {
+                await this.request<void>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
                     prefix: ClientPrefix.V3,
                 });
             }, "reportRoom");
@@ -79,13 +85,12 @@ export class ModerationManager extends BaseManager {
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}/score`;
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest<void>(
-                    Method.Put,
-                    path,
-                    undefined,
-                    { score },
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request<void>({
+                    method: Method.Put,
+                    path: path,
+                    body: { score },
+                    prefix: ClientPrefix.V3,
+                });
             }, "updateReportScore");
         } catch (error) {
             throw this.normalizeError(error, "updateReportScore");
@@ -100,7 +105,9 @@ export class ModerationManager extends BaseManager {
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}/scanner_info`;
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ScannerInfo>(Method.Get, path, undefined, undefined, {
+                return await this.request<ScannerInfo>({
+                    method: Method.Get,
+                    path: path,
                     prefix: ClientPrefix.V1,
                 });
             }, "getScannerInfo");

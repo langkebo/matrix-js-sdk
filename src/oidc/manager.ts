@@ -166,13 +166,11 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
      */
     async discover(): Promise<IOidcDiscovery> {
         return this.withRetry(async () => {
-            const response = await this.client.http.request<IOidcDiscovery>(
-                Method.Get,
-                publicPath("/.well-known/openid-configuration"),
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            const response = await this.request<IOidcDiscovery>({
+                method: Method.Get,
+                path: publicPath("/.well-known/openid-configuration"),
+                prefix: "",
+            });
             this.discoveryCache = response;
             this.currentProvider = response.issuer;
             this.emit("oidcDiscovered", { issuer: response.issuer });
@@ -186,15 +184,11 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async getJwks(): Promise<IOidcJwks> {
         return this.withRetry(
             () =>
-                this.client.http.request<IOidcJwks>(
-                    Method.Get,
-                    publicPath("/.well-known/jwks.json"),
-                    undefined,
-                    undefined,
-                    {
-                        prefix: "",
-                    },
-                ),
+                this.request<IOidcJwks>({
+                    method: Method.Get,
+                    path: publicPath("/.well-known/jwks.json"),
+                    prefix: "",
+                }),
             "getJwks",
         );
     }
@@ -225,13 +219,12 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
             if (params.code_challenge) queryParams.code_challenge = params.code_challenge;
             if (params.code_challenge_method) queryParams.code_challenge_method = params.code_challenge_method;
 
-            const response = await this.client.http.request<{ url?: string; code?: string }>(
-                Method.Get,
-                op("/oidc/authorize"),
-                queryParams,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.request<{ url?: string; code?: string }>({
+                method: Method.Get,
+                path: op("/oidc/authorize"),
+                queryParams: queryParams,
+                prefix: ClientPrefix.V3,
+            });
             return response.url || response.code || "";
         }, "authorize");
     }
@@ -243,19 +236,18 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
 
         return this.withRetry(
             () =>
-                this.client.http.request<IOidcClientRegistration>(
-                    Method.Post,
-                    "/oidc/register",
-                    undefined,
-                    {
+                this.request<IOidcClientRegistration>({
+                    method: Method.Post,
+                    path: "/oidc/register",
+                    body: {
                         client_name: request.client_name,
                         redirect_uris: request.redirect_uris,
                         grant_types: request.grant_types,
                         response_types: request.response_types,
                         token_endpoint_auth_method: request.token_endpoint_auth_method,
                     },
-                    { prefix: ClientPrefix.V3 },
-                ),
+                    prefix: ClientPrefix.V3,
+                }),
             "registerClient",
         );
     }
@@ -267,11 +259,10 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
 
         return this.withRetry(
             () =>
-                this.client.http.request<IOidcTokenResponse>(
-                    Method.Post,
-                    op("/oidc/token"),
-                    undefined,
-                    {
+                this.request<IOidcTokenResponse>({
+                    method: Method.Post,
+                    path: op("/oidc/token"),
+                    body: {
                         grant_type: request.grant_type,
                         code: request.code,
                         redirect_uri: request.redirect_uri,
@@ -280,8 +271,8 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                         client_id: request.client_id,
                         client_secret: request.client_secret,
                     },
-                    { prefix: ClientPrefix.V3 },
-                ),
+                    prefix: ClientPrefix.V3,
+                }),
             "token",
         );
     }
@@ -289,7 +280,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async getUserInfo(): Promise<IOidcUserInfo> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IOidcUserInfo>(Method.Get, op("/oidc/userinfo"), undefined, undefined, {
+                this.request<IOidcUserInfo>({
+                    method: Method.Get,
+                    path: op("/oidc/userinfo"),
                     prefix: ClientPrefix.V3,
                 }),
             "getUserInfo",
@@ -312,7 +305,10 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async logout(request?: IOidcLogoutRequest): Promise<void> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(Method.Post, op("/oidc/logout"), undefined, request ?? {}, {
+                this.request<void>({
+                    method: Method.Post,
+                    path: op("/oidc/logout"),
+                    body: request ?? {},
                     prefix: ClientPrefix.V3,
                 }),
             "logout",
@@ -337,11 +333,10 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
 
         return this.withRetry(
             () =>
-                this.client.http.request<IOidcLoginResponse>(
-                    Method.Post,
-                    op("/oidc/login"),
-                    undefined,
-                    {
+                this.request<IOidcLoginResponse>({
+                    method: Method.Post,
+                    path: op("/oidc/login"),
+                    body: {
                         client_id: request.client_id,
                         redirect_uri: request.redirect_uri,
                         scope: request.scope ?? "openid",
@@ -351,8 +346,8 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                         username: request.username,
                         password: request.password,
                     },
-                    { prefix: ClientPrefix.V3 },
-                ),
+                    prefix: ClientPrefix.V3,
+                }),
             "builtinLogin",
         );
     }
@@ -364,13 +359,12 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async ssoRedirect(redirectUrl?: string): Promise<string> {
         return this.withRetry(async () => {
             const queryParams = redirectUrl ? { redirectUrl } : undefined;
-            const response = await this.client.http.request<{ url: string }>(
-                Method.Get,
-                op("/login/sso/redirect"),
-                queryParams,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.request<{ url: string }>({
+                method: Method.Get,
+                path: op("/login/sso/redirect"),
+                queryParams: queryParams,
+                prefix: ClientPrefix.V3,
+            });
             return response.url;
         }, "ssoRedirect");
     }
@@ -389,7 +383,9 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     async ssoUserInfo(): Promise<IOidcUserInfo> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IOidcUserInfo>(Method.Get, op("/login/sso/userinfo"), undefined, undefined, {
+                this.request<IOidcUserInfo>({
+                    method: Method.Get,
+                    path: op("/login/sso/userinfo"),
                     prefix: ClientPrefix.V3,
                 }),
             "ssoUserInfo",

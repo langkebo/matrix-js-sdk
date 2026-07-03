@@ -154,15 +154,11 @@ export class MediaManager extends BaseManager {
     public getMediaConfig(useAuthenticatedMedia: boolean = false): Promise<IMediaConfig> {
         const path = useAuthenticatedMedia ? "/media/config" : "/config";
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<IMediaConfig>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                {
-                    prefix: useAuthenticatedMedia ? ClientPrefix.V1 : MediaPrefix.V3,
-                },
-            );
+            return await this.request<IMediaConfig>({
+                method: Method.Get,
+                path: path,
+                prefix: useAuthenticatedMedia ? ClientPrefix.V1 : MediaPrefix.V3,
+            });
         }, "getMediaConfig");
     }
 
@@ -221,16 +217,12 @@ export class MediaManager extends BaseManager {
         content: ArrayBuffer | Blob,
         contentType: string,
     ): Promise<{ content_uri: string }> {
-        const response = await this.client.http.authedRequest<{ content_uri: string }>(
-            Method.Put,
-            mp(`/upload/${serverName}/${mediaId}` as MediaRelativePathPattern),
-            undefined,
-            content,
-            {
-                prefix: MediaPrefix.V3,
-                headers: { "Content-Type": contentType },
-            },
-        );
+        const response = await this.request<{ content_uri: string }>({
+            method: Method.Put,
+            path: mp(`/upload/${serverName}/${mediaId}` as MediaRelativePathPattern),
+            body: content,
+            prefix: MediaPrefix.V3,
+        });
         return response;
     }
 
@@ -264,15 +256,11 @@ export class MediaManager extends BaseManager {
      * POST /_matrix/media/v1/delete/{server_name}/{media_id}
      */
     public async deleteMedia(serverName: string, mediaId: string): Promise<void> {
-        await this.client.http.authedRequest(
-            Method.Post,
-            mp(`/delete/${serverName}/${mediaId}` as MediaRelativePathPattern),
-            undefined,
-            undefined,
-            {
-                prefix: MediaPrefix.V1,
-            },
-        );
+        await this.request({
+            method: Method.Post,
+            path: mp(`/delete/${serverName}/${mediaId}` as MediaRelativePathPattern),
+            prefix: MediaPrefix.V1,
+        });
     }
 
     /**
@@ -317,7 +305,10 @@ export class MediaManager extends BaseManager {
             params.ts = ts;
         }
 
-        return this.client.http.authedRequest<UrlPreview>(Method.Get, mp("/preview_url"), params, undefined, {
+        return this.request<UrlPreview>({
+            method: Method.Get,
+            path: mp("/preview_url"),
+            queryParams: params,
             prefix: MediaPrefix.V3,
         });
     }
@@ -361,71 +352,60 @@ export class MediaManager extends BaseManager {
         this.requireNonEmptyString(filename, "filename");
         this.requireNonEmptyString(contentType, "contentType");
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<ChunkUploadStartResponse>(
-                Method.Post,
-                "/upload/chunk/start",
-                undefined,
-                { filename, content_type: contentType, total_size: totalSize },
-                { prefix: MediaPrefix.V1 },
-            );
+            return await this.request<ChunkUploadStartResponse>({
+                method: Method.Post,
+                path: "/upload/chunk/start",
+                body: { filename, content_type: contentType, total_size: totalSize },
+                prefix: MediaPrefix.V1,
+            });
         }, "startChunkUpload");
     }
 
     public async uploadChunk(uploadId: string, chunkIndex: number, data: ArrayBuffer | Blob): Promise<ChunkUploadResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<ChunkUploadResponse>(
-                Method.Post,
-                `/upload/chunk`,
-                undefined,
-                data,
-                {
-                    prefix: MediaPrefix.V1,
-                    headers: {
-                        "X-Upload-Id": uploadId,
-                        "X-Chunk-Index": String(chunkIndex),
-                    },
-                },
-            );
+            return await this.request<ChunkUploadResponse>({
+                method: Method.Post,
+                path: `/upload/chunk`,
+                body: data,
+                prefix: MediaPrefix.V1,
+            });
         }, "uploadChunk");
     }
 
     public async completeChunkUpload(uploadId: string): Promise<ChunkUploadCompleteResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<ChunkUploadCompleteResponse>(
-                Method.Post,
-                `/upload/chunk/complete`,
-                undefined,
-                { upload_id: uploadId },
-                { prefix: MediaPrefix.V1 },
-            );
+            return await this.request<ChunkUploadCompleteResponse>({
+                method: Method.Post,
+                path: `/upload/chunk/complete`,
+                body: { upload_id: uploadId },
+                prefix: MediaPrefix.V1,
+            });
         }, "completeChunkUpload");
     }
 
     public async cancelChunkUpload(uploadId: string): Promise<ChunkUploadCancelResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<ChunkUploadCancelResponse>(
-                Method.Post,
-                `/upload/chunk/cancel`,
-                undefined,
-                { upload_id: uploadId },
-                { prefix: MediaPrefix.V1 },
-            );
+            return await this.request<ChunkUploadCancelResponse>({
+                method: Method.Post,
+                path: `/upload/chunk/cancel`,
+                body: { upload_id: uploadId },
+                prefix: MediaPrefix.V1,
+            });
         }, "cancelChunkUpload");
     }
 
     public async getChunkUploadProgress(uploadId: string): Promise<ChunkUploadProgressResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<ChunkUploadProgressResponse>(
-                Method.Get,
-                `/upload/chunk/progress`,
-                { upload_id: uploadId },
-                undefined,
-                { prefix: MediaPrefix.V1 },
-            );
+            return await this.request<ChunkUploadProgressResponse>({
+                method: Method.Get,
+                path: `/upload/chunk/progress`,
+                queryParams: { upload_id: uploadId },
+                prefix: MediaPrefix.V1,
+            });
         }, "getChunkUploadProgress");
     }
 

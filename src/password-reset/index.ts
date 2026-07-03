@@ -85,10 +85,14 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
     public async setPassword(authDict: AuthDict, newPassword: string, logoutDevices?: boolean): Promise<EmptyObject> {
         const result = await this.withRetry(
             async () =>
-                this.client.http.authedRequest<EmptyObject>(Method.Post, "/account/password", undefined, {
+                this.request<EmptyObject>({
+                    method: Method.Post,
+                    path: "/account/password",
+                    body: {
                     auth: authDict,
                     new_password: newPassword,
                     logout_devices: logoutDevices,
+                },
                 }),
             "setPassword",
         );
