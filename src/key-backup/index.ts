@@ -207,13 +207,11 @@ export class KeyBackupManager extends BaseManager {
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<BackupVersionInfo>(
-                    Method.Get,
-                    kb("/room_keys/version"),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<BackupVersionInfo>({
+                    method: Method.Get,
+                    path: kb("/room_keys/version"),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getLatestBackupVersion");
 
             this.versionCache.set(result.version, result);
@@ -243,13 +241,12 @@ export class KeyBackupManager extends BaseManager {
         }
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ version: string }>(
-                    Method.Post,
-                    kb("/room_keys/version"),
-                    undefined,
-                    { algorithm, auth_data: authData, auth },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<{ version: string }>({
+                    method: Method.Post,
+                    path: kb("/room_keys/version"),
+                    body: { algorithm, auth_data: authData, auth },
+                    prefix: ClientPrefix.V3,
+                });
             }, "createBackupVersion");
 
             this.currentVersion = result.version;
@@ -272,13 +269,11 @@ export class KeyBackupManager extends BaseManager {
 
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<BackupVersionInfo>(
-                    Method.Get,
-                    kb(`/room_keys/version/${version}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<BackupVersionInfo>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/version/${version}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getBackupVersion");
 
             this.versionCache.set(version, result);
@@ -294,13 +289,12 @@ export class KeyBackupManager extends BaseManager {
     ): Promise<{ version: string }> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ version: string }>(
-                    Method.Put,
-                    kb(`/room_keys/version/${version}`),
-                    undefined,
-                    { auth_data: authData },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<{ version: string }>({
+                    method: Method.Put,
+                    path: kb(`/room_keys/version/${version}`),
+                    body: { auth_data: authData },
+                    prefix: ClientPrefix.V3,
+                });
             }, "updateBackupVersion");
 
             this.versionCache.delete(version);
@@ -313,13 +307,11 @@ export class KeyBackupManager extends BaseManager {
     async deleteBackupVersion(version: string): Promise<{ deleted: boolean; version: string }> {
         try {
             const result = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ deleted: boolean; version: string }>(
-                    Method.Delete,
-                    kb(`/room_keys/version/${version}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<{ deleted: boolean; version: string }>({
+                    method: Method.Delete,
+                    path: kb(`/room_keys/version/${version}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteBackupVersion");
 
             if (version === this.currentVersion) {
@@ -337,13 +329,12 @@ export class KeyBackupManager extends BaseManager {
     async getAllRoomKeys(version: string): Promise<RoomKeyBackup> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RoomKeyBackup>(
-                    Method.Get,
-                    kb("/room_keys/keys"),
-                    { version },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<RoomKeyBackup>({
+                    method: Method.Get,
+                    path: kb("/room_keys/keys"),
+                    queryParams: { version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "getAllRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "getAllRoomKeys");
@@ -353,13 +344,13 @@ export class KeyBackupManager extends BaseManager {
     async putAllRoomKeys(version: string, body: PutRoomKeysBody): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Put,
-                    kb("/room_keys/keys"),
-                    { version },
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UploadKeysResult>({
+                    method: Method.Put,
+                    path: kb("/room_keys/keys"),
+                    queryParams: { version },
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             }, "putAllRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "putAllRoomKeys");
@@ -369,13 +360,12 @@ export class KeyBackupManager extends BaseManager {
     async getRoomKeys(version: string, roomId: string): Promise<{ sessions: Record<string, SessionData> }> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<{ sessions: Record<string, SessionData> }>(
-                    Method.Get,
-                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
-                    { version },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<{ sessions: Record<string, SessionData> }>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
+                    queryParams: { version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "getRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "getRoomKeys");
@@ -385,13 +375,13 @@ export class KeyBackupManager extends BaseManager {
     async putRoomKeys(version: string, roomId: string, body: PutRoomSessionsBody): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Put,
-                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
-                    { version },
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UploadKeysResult>({
+                    method: Method.Put,
+                    path: kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
+                    queryParams: { version },
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             }, "putRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "putRoomKeys");
@@ -401,13 +391,12 @@ export class KeyBackupManager extends BaseManager {
     async deleteAllRoomKeys(version: string): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Delete,
-                    kb("/room_keys/keys"),
-                    { version },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UploadKeysResult>({
+                    method: Method.Delete,
+                    path: kb("/room_keys/keys"),
+                    queryParams: { version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteAllRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "deleteAllRoomKeys");
@@ -417,13 +406,12 @@ export class KeyBackupManager extends BaseManager {
     async deleteRoomKeys(version: string, roomId: string): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Delete,
-                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
-                    { version },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UploadKeysResult>({
+                    method: Method.Delete,
+                    path: kb(`/room_keys/keys/${encodeURIComponent(roomId)}`),
+                    queryParams: { version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "deleteRoomKeys");
@@ -433,13 +421,12 @@ export class KeyBackupManager extends BaseManager {
     async getSessionKey(version: string, roomId: string, sessionId: string): Promise<EncryptedData | AESEncryptedSecretStoragePayload> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<EncryptedData | AESEncryptedSecretStoragePayload>(
-                    Method.Get,
-                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
-                    { version },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<EncryptedData | AESEncryptedSecretStoragePayload>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    queryParams: { version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "getSessionKey");
         } catch (error) {
             throw this.normalizeError(error, "getSessionKey");
@@ -454,13 +441,13 @@ export class KeyBackupManager extends BaseManager {
     ): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Put,
-                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
-                    { version },
-                    sessionData,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UploadKeysResult>({
+                    method: Method.Put,
+                    path: kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    queryParams: { version },
+                    body: sessionData,
+                    prefix: ClientPrefix.V3,
+                });
             }, "putSessionKey");
         } catch (error) {
             throw this.normalizeError(error, "putSessionKey");
@@ -470,13 +457,12 @@ export class KeyBackupManager extends BaseManager {
     async deleteSessionKey(version: string, roomId: string, sessionId: string): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<UploadKeysResult>(
-                    Method.Delete,
-                    kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
-                    { version },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<UploadKeysResult>({
+                    method: Method.Delete,
+                    path: kb(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    queryParams: { version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteSessionKey");
         } catch (error) {
             throw this.normalizeError(error, "deleteSessionKey");
@@ -488,13 +474,12 @@ export class KeyBackupManager extends BaseManager {
     async recoverKeys(version: string, rooms?: string[]): Promise<RecoverKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RecoverKeysResult>(
-                    Method.Post,
-                    kb("/room_keys/recover"),
-                    undefined,
-                    { version, rooms },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<RecoverKeysResult>({
+                    method: Method.Post,
+                    path: kb("/room_keys/recover"),
+                    body: { version, rooms },
+                    prefix: ClientPrefix.V3,
+                });
             }, "recoverKeys");
         } catch (error) {
             throw this.normalizeError(error, "recoverKeys");
@@ -504,13 +489,11 @@ export class KeyBackupManager extends BaseManager {
     async getRecoveryProgress(version: string): Promise<RecoveryProgress> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RecoveryProgress>(
-                    Method.Get,
-                    kb(`/room_keys/recovery/${version}/progress`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<RecoveryProgress>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/recovery/${version}/progress`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getRecoveryProgress");
         } catch (error) {
             throw this.normalizeError(error, "getRecoveryProgress");
@@ -520,13 +503,11 @@ export class KeyBackupManager extends BaseManager {
     async verifyBackup(version: string): Promise<VerifyResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<VerifyResult>(
-                    Method.Get,
-                    kb(`/room_keys/verify/${version}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<VerifyResult>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/verify/${version}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "verifyBackup");
         } catch (error) {
             throw this.normalizeError(error, "verifyBackup");
@@ -536,13 +517,12 @@ export class KeyBackupManager extends BaseManager {
     async batchRecover(version: string, roomIds: string[], sessionLimit?: number): Promise<BatchRecoverResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<BatchRecoverResult>(
-                    Method.Post,
-                    kb("/room_keys/batch_recover"),
-                    undefined,
-                    { version, room_ids: roomIds, session_limit: sessionLimit },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<BatchRecoverResult>({
+                    method: Method.Post,
+                    path: kb("/room_keys/batch_recover"),
+                    body: { version, room_ids: roomIds, session_limit: sessionLimit },
+                    prefix: ClientPrefix.V3,
+                });
             }, "batchRecover");
         } catch (error) {
             throw this.normalizeError(error, "batchRecover");
@@ -552,13 +532,11 @@ export class KeyBackupManager extends BaseManager {
     async recoverRoomKeys(version: string, roomId: string): Promise<RecoverRoomKeysResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RecoverRoomKeysResult>(
-                    Method.Get,
-                    kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<RecoverRoomKeysResult>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "recoverRoomKeys");
         } catch (error) {
             throw this.normalizeError(error, "recoverRoomKeys");
@@ -568,13 +546,11 @@ export class KeyBackupManager extends BaseManager {
     async recoverSessionKey(version: string, roomId: string, sessionId: string): Promise<RecoverSessionKeyResult> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RecoverSessionKeyResult>(
-                    Method.Get,
-                    kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<RecoverSessionKeyResult>({
+                    method: Method.Get,
+                    path: kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "recoverSessionKey");
         } catch (error) {
             throw this.normalizeError(error, "recoverSessionKey");
@@ -587,7 +563,9 @@ export class KeyBackupManager extends BaseManager {
         const path = version ? kb(`/room_keys/export/${version}`) : kb("/room_keys/export");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ExportResult>(Method.Get, path, undefined, undefined, {
+                return await this.request<ExportResult>({
+                    method: Method.Get,
+                    path: path,
                     prefix: ClientPrefix.V3,
                 });
             }, "exportKeys");
@@ -600,13 +578,12 @@ export class KeyBackupManager extends BaseManager {
         const path = version ? kb(`/room_keys/import/${version}`) : kb("/room_keys/import");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ImportResult>(
-                    Method.Post,
-                    path,
-                    undefined,
-                    { room_keys: roomKeys, version },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<ImportResult>({
+                    method: Method.Post,
+                    path: path,
+                    body: { room_keys: roomKeys, version },
+                    prefix: ClientPrefix.V3,
+                });
             }, "importKeys");
         } catch (error) {
             throw this.normalizeError(error, "importKeys");

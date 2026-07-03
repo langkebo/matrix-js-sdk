@@ -132,13 +132,11 @@ export class KeyRotationManager extends BaseManager {
         }
 
         const result = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<KeyRotationStatus>(
-                Method.Get,
-                "/keys/rotation/status",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<KeyRotationStatus>({
+                method: Method.Get,
+                path: "/keys/rotation/status",
+                prefix: ClientPrefix.V1,
+            });
         }, "getStatus");
 
         this.statusCache = {
@@ -155,13 +153,12 @@ export class KeyRotationManager extends BaseManager {
         }
 
         const result = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<RotateKeyResponse>(
-                Method.Post,
-                "/keys/rotation/rotate",
-                undefined,
-                request,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<RotateKeyResponse>({
+                method: Method.Post,
+                path: "/keys/rotation/rotate",
+                body: request,
+                prefix: ClientPrefix.V1,
+            });
         }, "rotateKey");
 
         this.clearStatusCache();
@@ -182,16 +179,15 @@ export class KeyRotationManager extends BaseManager {
         }
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<KeyRotationHistory>(
-                Method.Get,
-                `/keys/rotation/history/${encodeURIComponent(deviceId)}`,
-                {
+            return await this.request<KeyRotationHistory>({
+                method: Method.Get,
+                path: `/keys/rotation/history/${encodeURIComponent(deviceId)}`,
+                queryParams: {
                     limit: options.limit,
                     from: options.from,
                 },
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+                prefix: ClientPrefix.V1,
+            });
         }, "getRotationHistory");
     }
 
@@ -202,13 +198,12 @@ export class KeyRotationManager extends BaseManager {
         }
 
         const result = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<RevokeKeyResponse>(
-                Method.Post,
-                "/keys/rotation/revoke",
-                undefined,
-                request,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<RevokeKeyResponse>({
+                method: Method.Post,
+                path: "/keys/rotation/revoke",
+                body: request,
+                prefix: ClientPrefix.V1,
+            });
         }, "revokeKey");
 
         this.clearStatusCache();
@@ -224,13 +219,12 @@ export class KeyRotationManager extends BaseManager {
         }
 
         const result = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<UpdateRotationConfigResponse>(
-                Method.Put,
-                "/keys/rotation/config",
-                undefined,
-                request,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<UpdateRotationConfigResponse>({
+                method: Method.Put,
+                path: "/keys/rotation/config",
+                body: request,
+                prefix: ClientPrefix.V1,
+            });
         }, "updateConfig");
 
         this.clearStatusCache();
@@ -250,13 +244,12 @@ export class KeyRotationManager extends BaseManager {
         }
 
         const result = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<UpdateRotationConfigResponse>(
-                Method.Post,
-                "/keys/rotation/config",
-                undefined,
-                request,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<UpdateRotationConfigResponse>({
+                method: Method.Post,
+                path: "/keys/rotation/config",
+                body: request,
+                prefix: ClientPrefix.V1,
+            });
         }, "postConfig");
 
         this.clearStatusCache();
@@ -269,13 +262,11 @@ export class KeyRotationManager extends BaseManager {
      */
     public async postStatus(): Promise<KeyRotationStatus> {
         const result = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<KeyRotationStatus>(
-                Method.Post,
-                "/keys/rotation/status",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<KeyRotationStatus>({
+                method: Method.Post,
+                path: "/keys/rotation/status",
+                prefix: ClientPrefix.V1,
+            });
         }, "postStatus");
 
         this.statusCache = {
@@ -290,25 +281,22 @@ export class KeyRotationManager extends BaseManager {
         this.requireNonEmptyString(keyId, "keyId");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<KeyCheckResponse>(
-                Method.Get,
-                "/keys/rotation/check",
-                { key_id: keyId },
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<KeyCheckResponse>({
+                method: Method.Get,
+                path: "/keys/rotation/check",
+                queryParams: { key_id: keyId },
+                prefix: ClientPrefix.V1,
+            });
         }, "checkKeyValidity");
     }
 
     public async postCheck(): Promise<PostCheckResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<PostCheckResponse>(
-                Method.Post,
-                "/keys/rotation/check",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
+            return await this.request<PostCheckResponse>({
+                method: Method.Post,
+                path: "/keys/rotation/check",
+                prefix: ClientPrefix.V1,
+            });
         }, "postCheck");
     }
 

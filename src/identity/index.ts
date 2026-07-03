@@ -64,17 +64,25 @@ export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, Id
     public async lookup3pid(medium: string, address: string): Promise<Lookup3PidResult | null> {
         return this.withRetry(async () => {
             const path = "/_matrix/identity/v1/lookup";
-            return this.client.http.authedRequest<Lookup3PidResult | null>(Method.Get, path, { medium, address });
+            return this.request<Lookup3PidResult | null>({
+                method: Method.Get,
+                path: path,
+                queryParams: { medium, address },
+            });
         }, "lookup3pid");
     }
 
     public async store3pid(medium: string, address: string, validationToken: string): Promise<Store3PidResult> {
         return this.withRetry(async () => {
             const path = "/_matrix/identity/v1/store-invite";
-            return this.client.http.authedRequest<Store3PidResult>(Method.Post, path, undefined, {
+            return this.request<Store3PidResult>({
+                method: Method.Post,
+                path: path,
+                body: {
                 medium,
                 address,
                 token: validationToken,
+            },
             });
         }, "store3pid");
     }
@@ -82,9 +90,13 @@ export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, Id
     public async requestVerificationToken(medium: string, address: string): Promise<VerificationTokenResult> {
         return this.withRetry(async () => {
             const path = "/_matrix/identity/v1/validate/email/requestToken";
-            return this.client.http.authedRequest<VerificationTokenResult>(Method.Post, path, undefined, {
+            return this.request<VerificationTokenResult>({
+                method: Method.Post,
+                path: path,
+                body: {
                 email: address,
                 sendAttempt: 1,
+            },
             });
         }, "requestVerificationToken");
     }
@@ -92,10 +104,14 @@ export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, Id
     public async bind3pid(medium: string, address: string, mxid: string, token: string): Promise<Bind3PidResult> {
         return this.withRetry(async () => {
             const path = "/_matrix/identity/v1/3pid/bind";
-            return this.client.http.authedRequest<Bind3PidResult>(Method.Post, path, undefined, {
+            return this.request<Bind3PidResult>({
+                method: Method.Post,
+                path: path,
+                body: {
                 sid: token,
                 client_secret: mxid,
                 mxid,
+            },
             });
         }, "bind3pid");
     }

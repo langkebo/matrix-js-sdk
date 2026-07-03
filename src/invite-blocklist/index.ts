@@ -86,13 +86,11 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IBlocklistResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IBlocklistResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getBlocklist");
 
             const blocklist = response.blocked_users || response.blocklist || [];
@@ -119,13 +117,12 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest(
-                    Method.Post,
-                    `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
-                    undefined,
-                    { user_ids: userIds },
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request({
+                    method: Method.Post,
+                    path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
+                    body: { user_ids: userIds },
+                    prefix: ClientPrefix.V3,
+                });
             }, "setBlocklist");
 
             this.blocklistCache.set(roomId, userIds);
@@ -179,13 +176,11 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IAllowlistResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IAllowlistResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getAllowlist");
 
             const allowlist = response.allowed_users || response.allowlist || [];
@@ -212,13 +207,12 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest(
-                    Method.Post,
-                    `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
-                    undefined,
-                    { user_ids: userIds },
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request({
+                    method: Method.Post,
+                    path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
+                    body: { user_ids: userIds },
+                    prefix: ClientPrefix.V3,
+                });
             }, "setAllowlist");
 
             this.allowlistCache.set(roomId, userIds);

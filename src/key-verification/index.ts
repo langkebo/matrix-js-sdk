@@ -213,13 +213,12 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<{ qr_code_data: string; transaction_id: string }> {
         return this.withRetry(
             async () =>
-                await this.client.http.authedRequest(
-                    Method.Get,
-                    `/keys/qr_code/show`,
-                    { transaction_id: transactionId },
-                    undefined,
-                    { prefix: resolveVerificationPrefix(version) },
-                ),
+                await this.request({
+                    method: Method.Get,
+                    path: `/keys/qr_code/show`,
+                    queryParams: { transaction_id: transactionId },
+                    prefix: resolveVerificationPrefix(version),
+                }),
             "showQrCode",
         );
     }
@@ -231,13 +230,12 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<{ transaction_id: string; verified: boolean }> {
         return this.withRetry(
             async () =>
-                await this.client.http.authedRequest(
-                    Method.Post,
-                    `/keys/qr_code/scan`,
-                    undefined,
-                    { qr_code_data: qrCodeData, transaction_id: transactionId },
-                    { prefix: resolveVerificationPrefix(version) },
-                ),
+                await this.request({
+                    method: Method.Post,
+                    path: `/keys/qr_code/scan`,
+                    body: { qr_code_data: qrCodeData, transaction_id: transactionId },
+                    prefix: resolveVerificationPrefix(version),
+                }),
             "scanQrCode",
         );
     }
@@ -249,7 +247,12 @@ export class KeyVerificationManager extends BaseManager {
             queryParams?: QueryDict,
             body?: Body,
             requestOpts?: IRequestOpts,
-        ): Promise<T> => this.client.http.authedRequest<T>(method, path, queryParams, body, requestOpts);
+        ): Promise<T> => this.request<T>({
+            method: method,
+            path: path,
+            queryParams: queryParams,
+            body: body,
+        });
     }
 
     public startDeviceSigningVerification(
@@ -343,13 +346,11 @@ export class KeyVerificationManager extends BaseManager {
     ): Promise<IVerificationStatusResponse> {
         this.requireNonEmptyString(transactionId, "transactionId");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IVerificationStatusResponse>(
-                Method.Get,
-                `/keys/verification/${encodeURIComponent(transactionId)}`,
-                undefined,
-                undefined,
-                { prefix: resolveVerificationPrefix(version) },
-            );
+            return await this.request<IVerificationStatusResponse>({
+                method: Method.Get,
+                path: `/keys/verification/${encodeURIComponent(transactionId)}`,
+                prefix: resolveVerificationPrefix(version),
+            });
         }, "getVerificationStatus");
     }
 }
