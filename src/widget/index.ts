@@ -160,13 +160,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/rooms/${encodeURIComponent(roomId)}/widgets`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetsListResponse>(
-                    Method.Get,
+                this.request<IWidgetsListResponse>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getRoomWidgets",
         );
     }
@@ -180,13 +178,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IJitsiConfig>(
-                    Method.Get,
+                this.request<IJitsiConfig>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getJitsiConfig",
         );
     }
@@ -210,13 +206,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp("/widgets");
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetResponse>(
-                    Method.Post,
+                this.request<IWidgetResponse>({
+                    method: Method.Post,
                     path,
-                    undefined,
                     body,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "createWidget",
         );
     }
@@ -230,13 +225,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetResponse>(
-                    Method.Get,
+                this.request<IWidgetResponse>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getWidget",
         );
     }
@@ -253,13 +246,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetResponse>(
-                    Method.Put,
+                this.request<IWidgetResponse>({
+                    method: Method.Put,
                     path,
-                    undefined,
                     body,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "updateWidget",
         );
     }
@@ -273,13 +265,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}`);
         await this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Delete,
+                this.request<void>({
+                    method: Method.Delete,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "deleteWidget",
         );
     }
@@ -295,13 +285,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}/config`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetConfig>(
-                    Method.Get,
+                this.request<IWidgetConfig>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getWidgetConfig",
         );
     }
@@ -317,13 +305,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}/permissions`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetPermissionListResponse>(
-                    Method.Get,
+                this.request<IWidgetPermissionListResponse>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getWidgetPermissions",
         );
     }
@@ -344,13 +330,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}/permissions`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<{ success: boolean; permission_id: number }>(
-                    Method.Post,
+                this.request<{ success: boolean; permission_id: number }>({
+                    method: Method.Post,
                     path,
-                    undefined,
                     body,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "setWidgetPermissions",
         );
     }
@@ -368,13 +353,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         );
         await this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Delete,
+                this.request<void>({
+                    method: Method.Delete,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "removeWidgetPermission",
         );
     }
@@ -390,13 +373,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}/sessions`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetSessionsListResponse>(
-                    Method.Get,
+                this.request<IWidgetSessionsListResponse>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getWidgetSessions",
         );
     }
@@ -413,13 +394,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/${encodeURIComponent(widgetId)}/sessions`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetSessionResponse>(
-                    Method.Post,
+                this.request<IWidgetSessionResponse>({
+                    method: Method.Post,
                     path,
-                    undefined,
-                    body ?? {},
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    body: body ?? {},
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "createWidgetSession",
         );
     }
@@ -433,13 +413,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/sessions/${encodeURIComponent(sessionId)}`);
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetSessionResponse>(
-                    Method.Get,
+                this.request<IWidgetSessionResponse>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "getWidgetSession",
         );
     }
@@ -453,13 +431,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wp(`/widgets/sessions/${encodeURIComponent(sessionId)}`);
         await this.withRetry(
             () =>
-                this.client.http.authedRequest<void>(
-                    Method.Delete,
+                this.request<void>({
+                    method: Method.Delete,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V1 },
-                ),
+                    prefix: WIDGET_PREFIX_V1,
+                }),
             "deleteWidgetSession",
         );
     }
@@ -478,13 +454,11 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         );
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetCapabilities>(
-                    Method.Get,
+                this.request<IWidgetCapabilities>({
+                    method: Method.Get,
                     path,
-                    undefined,
-                    undefined,
-                    { prefix: WIDGET_PREFIX_V3 },
-                ),
+                    prefix: WIDGET_PREFIX_V3,
+                }),
             "getWidgetCapabilities",
         );
     }
@@ -508,13 +482,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         );
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetCapabilities>(
-                    Method.Put,
+                this.request<IWidgetCapabilities>({
+                    method: Method.Put,
                     path,
-                    undefined,
-                    { capabilities },
-                    { prefix: WIDGET_PREFIX_V3 },
-                ),
+                    body: { capabilities },
+                    prefix: WIDGET_PREFIX_V3,
+                }),
             "setWidgetCapabilities",
         );
     }
@@ -535,13 +508,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         );
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetSendResponse>(
-                    Method.Post,
+                this.request<IWidgetSendResponse>({
+                    method: Method.Post,
                     path,
-                    undefined,
-                    message,
-                    { prefix: WIDGET_PREFIX_V3 },
-                ),
+                    body: message,
+                    prefix: WIDGET_PREFIX_V3,
+                }),
             "sendWidgetEvent",
         );
     }
@@ -562,13 +534,12 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         const path = wpV3("/widgets/create");
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<IWidgetResponse>(
-                    Method.Post,
+                this.request<IWidgetResponse>({
+                    method: Method.Post,
                     path,
-                    undefined,
                     body,
-                    { prefix: WIDGET_PREFIX_V3 },
-                ),
+                    prefix: WIDGET_PREFIX_V3,
+                }),
             "createWidgetV3",
         );
     }
