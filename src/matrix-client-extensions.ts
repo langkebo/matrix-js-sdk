@@ -840,7 +840,7 @@ declare module "./matrix" {
 }
 
 // 扩展媒体类型（MSC3089 文件树支持）
-declare module "../@types/media" {
+declare module "./@types/media" {
     interface FileContent {
         [UNSTABLE_MSC3089_LEAF.name]?: EmptyObject;
     }
