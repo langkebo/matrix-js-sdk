@@ -16,14 +16,14 @@ limitations under the License.
 
 import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
-import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
+import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
 import type { MediaInfo, MediaQuotaResponse, MediaQuarantineChangesResponse } from "../types";
 import { MatrixClient } from "../../client";
 
 export class AdminMediaManager extends AdminBaseManager {
-    constructor(client: MatrixClient, onError?: AdminErrorCallback) {
-        super(client, onError);
+    constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
+        super(client, onError, opts);
     }
 
     /**

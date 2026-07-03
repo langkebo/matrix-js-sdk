@@ -17,7 +17,7 @@ limitations under the License.
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
-import { AdminBaseManager, apu, type AdminErrorCallback } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams } from "../utils";
 import type {
@@ -62,8 +62,8 @@ import type {
 import type { MatrixClient } from "../../client";
 
 export class AdminConfigManager extends AdminBaseManager {
-    constructor(client: MatrixClient, onError?: AdminErrorCallback) {
-        super(client, onError);
+    constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
+        super(client, onError, opts);
     }
 
     // ===== Retention Policy =====

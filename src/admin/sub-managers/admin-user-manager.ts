@@ -18,7 +18,7 @@ import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
 import { logger } from "../../logger";
-import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
+import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
 import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, UserStatsResponse, UserStatsListResponse, UserRoomsResponse, UserNotificationResponse, UserNotificationPayload } from "../types";
@@ -40,8 +40,8 @@ export interface AdminUserEventMap {
 }
 
 export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUserEventMap> {
-    constructor(client: MatrixClient, onError?: AdminErrorCallback) {
-        super(client, onError);
+    constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
+        super(client, onError, opts);
     }
 
     /**

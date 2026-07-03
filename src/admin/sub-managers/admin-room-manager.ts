@@ -17,7 +17,7 @@ limitations under the License.
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
-import { AdminBaseManager, type AdminErrorCallback } from "../admin-base-manager";
+import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
 import type {
@@ -63,8 +63,8 @@ export interface AdminRoomEventMap {
 }
 
 export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoomEventMap> {
-    constructor(client: MatrixClient, onError?: AdminErrorCallback) {
-        super(client, onError);
+    constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
+        super(client, onError, opts);
     }
 
     /**

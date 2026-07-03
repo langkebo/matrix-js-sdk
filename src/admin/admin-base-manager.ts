@@ -25,8 +25,10 @@ limitations under the License.
 
 import { Method } from "../http-api/method";
 import type { IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
+
+export type { ManagerOpts };
 
 export type AdminErrorCallback = (error: Error) => void;
 
@@ -63,8 +65,8 @@ export abstract class AdminBaseManager<
 /* eslint-enable @typescript-eslint/no-explicit-any */
     private readonly onError?: AdminErrorCallback;
 
-    constructor(client: MatrixClient, onError?: AdminErrorCallback) {
-        super(client);
+    constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
+        super(client, opts);
         this.onError = onError;
     }
 

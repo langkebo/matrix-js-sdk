@@ -37,7 +37,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import { AdminBaseManager, type AdminErrorCallback } from "./admin-base-manager";
+import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "./admin-base-manager";
 import {
     AdminEvent,
     type DeviceInfo,
@@ -219,21 +219,21 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
     public readonly media: AdminMediaManager;
     public readonly config: AdminConfigManager;
 
-    constructor(client: MatrixClient) {
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
         // 错误回调：发射 AdminError 事件
         const onError: AdminErrorCallback = (error) => {
             this.emit(AdminEvent.AdminError, error);
         };
 
-        super(client, onError);
+        super(client, onError, opts);
 
-        // 创建子 Manager，共享错误回调
-        this.users = new AdminUserManager(client, onError);
-        this.rooms = new AdminRoomManager(client, onError);
-        this.server = new AdminServerManager(client, onError);
-        this.federation = new AdminFederationManager(client, onError);
-        this.media = new AdminMediaManager(client, onError);
-        this.config = new AdminConfigManager(client, onError);
+        // 创建子 Manager，共享错误回调和 ManagerOpts
+        this.users = new AdminUserManager(client, onError, opts);
+        this.rooms = new AdminRoomManager(client, onError, opts);
+        this.server = new AdminServerManager(client, onError, opts);
+        this.federation = new AdminFederationManager(client, onError, opts);
+        this.media = new AdminMediaManager(client, onError, opts);
+        this.config = new AdminConfigManager(client, onError, opts);
 
         // 转发子 Manager 事件到 AdminManager（向后兼容）
         this.forwardSubManagerEvents();
