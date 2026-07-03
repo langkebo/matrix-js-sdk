@@ -160,13 +160,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async getVoiceStats(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceStats> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceStats>(
-                    Method.Get,
-                    "/voice/stats",
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceStats>({
+                    method: Method.Get,
+                    path: "/voice/stats",
+                });
             }, "getVoiceStats");
         } catch (e) {
             throw this.normalizeError(e, "getVoiceStats");
@@ -177,13 +174,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceRoomStats>(
-                    Method.Get,
-                    `/voice/room/${encodeURIComponent(roomId)}/stats`,
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceRoomStats>({
+                    method: Method.Get,
+                    path: `/voice/room/${encodeURIComponent(roomId)}/stats`,
+                });
             }, "getRoomVoiceStats");
         } catch (e) {
             throw this.normalizeError(e, "getRoomVoiceStats");
@@ -194,13 +188,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceUserStats>(
-                    Method.Get,
-                    `/voice/user/${encodeURIComponent(userId)}/stats`,
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceUserStats>({
+                    method: Method.Get,
+                    path: `/voice/user/${encodeURIComponent(userId)}/stats`,
+                });
             }, "getUserVoiceStats");
         } catch (e) {
             throw this.normalizeError(e, "getUserVoiceStats");
@@ -210,13 +201,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async getVoiceConfig(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceConfig> {
         try {
             const config = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceConfig>(
-                    Method.Get,
-                    "/voice/config",
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceConfig>({
+                    method: Method.Get,
+                    path: "/voice/config",
+                });
             }, "getVoiceConfig");
             this.cachedConfig = config;
             this.emit(VoiceEvent.ConfigUpdated, config);
@@ -231,13 +219,11 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(request.content_type, "Content type");
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceUploadResponse>(
-                    Method.Post,
-                    "/voice/upload",
-                    undefined,
-                    request,
-                    { prefix },
-                );
+                return await this.request<IVoiceUploadResponse>({
+                    method: Method.Post,
+                    path: "/voice/upload",
+                    body: request,
+                });
             }, "uploadVoiceMessage");
             this.emit(VoiceEvent.MessageUploaded, response);
             return response;
@@ -250,13 +236,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(messageId, "Message ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceMessage>(
-                    Method.Get,
-                    `/voice/${encodeURIComponent(messageId)}`,
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceMessage>({
+                    method: Method.Get,
+                    path: `/voice/${encodeURIComponent(messageId)}`,
+                });
             }, "getVoiceMessage");
         } catch (e) {
             throw this.normalizeError(e, "getVoiceMessage");
@@ -267,13 +250,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(messageId, "Message ID");
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceDeleteResponse>(
-                    Method.Delete,
-                    `/voice/${encodeURIComponent(messageId)}`,
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceDeleteResponse>({
+                    method: Method.Delete,
+                    path: `/voice/${encodeURIComponent(messageId)}`,
+                });
             }, "deleteVoiceMessage");
             this.emit(VoiceEvent.MessageDeleted, messageId);
             return response;
@@ -286,13 +266,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceRoomInfo>(
-                    Method.Get,
-                    `/voice/room/${encodeURIComponent(roomId)}`,
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceRoomInfo>({
+                    method: Method.Get,
+                    path: `/voice/room/${encodeURIComponent(roomId)}`,
+                });
             }, "getRoomVoice");
         } catch (e) {
             throw this.normalizeError(e, "getRoomVoice");
@@ -303,13 +280,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceUserInfo>(
-                    Method.Get,
-                    `/voice/user/${encodeURIComponent(userId)}`,
-                    undefined,
-                    undefined,
-                    { prefix },
-                );
+                return await this.request<IVoiceUserInfo>({
+                    method: Method.Get,
+                    path: `/voice/user/${encodeURIComponent(userId)}`,
+                });
             }, "getUserVoice");
         } catch (e) {
             throw this.normalizeError(e, "getUserVoice");
@@ -324,13 +298,11 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceConvertResponse>(
-                    Method.Post,
-                    `/voice/${encodeURIComponent(mediaId)}/convert`,
-                    undefined,
-                    options ?? {},
-                    { prefix },
-                );
+                return await this.request<IVoiceConvertResponse>({
+                    method: Method.Post,
+                    path: `/voice/${encodeURIComponent(mediaId)}/convert`,
+                    body: options ?? {},
+                });
             }, "convertVoiceMessage");
         } catch (e) {
             throw this.normalizeError(e, "convertVoiceMessage");
@@ -345,13 +317,11 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceOptimizeResponse>(
-                    Method.Post,
-                    `/voice/${encodeURIComponent(mediaId)}/optimize`,
-                    undefined,
-                    options ?? {},
-                    { prefix },
-                );
+                return await this.request<IVoiceOptimizeResponse>({
+                    method: Method.Post,
+                    path: `/voice/${encodeURIComponent(mediaId)}/optimize`,
+                    body: options ?? {},
+                });
             }, "optimizeVoiceMessage");
         } catch (e) {
             throw this.normalizeError(e, "optimizeVoiceMessage");
@@ -366,13 +336,11 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IVoiceTranscribeResponse>(
-                    Method.Post,
-                    `/voice/${encodeURIComponent(mediaId)}/transcription`,
-                    undefined,
-                    options ?? {},
-                    { prefix },
-                );
+                return await this.request<IVoiceTranscribeResponse>({
+                    method: Method.Post,
+                    path: `/voice/${encodeURIComponent(mediaId)}/transcription`,
+                    body: options ?? {},
+                });
             }, "transcribeVoiceMessage");
         } catch (e) {
             throw this.normalizeError(e, "transcribeVoiceMessage");

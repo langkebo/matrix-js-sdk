@@ -182,13 +182,12 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.from_device, "from_device");
         this.requireNonEmptyString(request.to_user, "to_user");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<VerificationStartResponse>(
-                Method.Post,
-                vp("/keys/device_signing/verify_start"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<VerificationStartResponse>({
+                method: Method.Post,
+                path: vp("/keys/device_signing/verify_start"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "startVerification");
     }
 
@@ -200,13 +199,12 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.key_agreement_protocol, "key_agreement_protocol");
         this.requireNonEmptyString(request.hash, "hash");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<VerificationAcceptResponse>(
-                Method.Put,
-                vp("/keys/device_signing/verify_accept"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<VerificationAcceptResponse>({
+                method: Method.Put,
+                path: vp("/keys/device_signing/verify_accept"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "acceptVerification");
     }
 
@@ -217,13 +215,12 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.pubkey, "pubkey");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<VerificationKeyAgreementResponse>(
-                Method.Post,
-                vp("/keys/device_signing/verify_key_agreement"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<VerificationKeyAgreementResponse>({
+                method: Method.Post,
+                path: vp("/keys/device_signing/verify_key_agreement"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "exchangeKeys");
     }
 
@@ -234,13 +231,12 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.mac, "mac");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<VerificationMacResponse>(
-                Method.Post,
-                vp("/keys/device_signing/verify_mac"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<VerificationMacResponse>({
+                method: Method.Post,
+                path: vp("/keys/device_signing/verify_mac"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "confirmMac");
     }
 
@@ -251,13 +247,12 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.mac, "mac");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<{ transaction_id: string }>(
-                Method.Post,
-                vp("/keys/device_signing/verify_done"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<{ transaction_id: string }>({
+                method: Method.Post,
+                path: vp("/keys/device_signing/verify_done"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "completeVerification");
     }
 
@@ -269,26 +264,23 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.code, "code");
         this.requireNonEmptyString(request.reason, "reason");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<VerificationCancelResponse>(
-                Method.Post,
-                vp("/keys/device_signing/verify_cancel"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<VerificationCancelResponse>({
+                method: Method.Post,
+                path: vp("/keys/device_signing/verify_cancel"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "cancelVerification");
     }
 
     public async listPendingVerifications(version?: VerificationApiVersion): Promise<ListVerificationRequestsResponse> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<ListVerificationRequestsResponse>(
-                    Method.Get,
-                    vp("/keys/device_signing/requests"),
-                    undefined,
-                    undefined,
-                    { prefix: verificationPrefix(version) },
-                );
+                return await this.request<ListVerificationRequestsResponse>({
+                    method: Method.Get,
+                    path: vp("/keys/device_signing/requests"),
+                    prefix: verificationPrefix(version),
+                });
             }, "listPendingVerifications");
         } catch (e) {
             logger.warn("VerificationManager.listPendingVerifications failed", e);
@@ -298,13 +290,11 @@ export class VerificationManager extends BaseManager {
 
     public async showQrCode(version?: VerificationApiVersion): Promise<QrCodeShowResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<QrCodeShowResponse>(
-                Method.Get,
-                vp("/keys/qr_code/show"),
-                undefined,
-                undefined,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<QrCodeShowResponse>({
+                method: Method.Get,
+                path: vp("/keys/qr_code/show"),
+                prefix: verificationPrefix(version),
+            });
         }, "showQrCode");
     }
 
@@ -319,13 +309,12 @@ export class VerificationManager extends BaseManager {
         this.requireNonEmptyString(request.device_ed25519_key, "device_ed25519_key");
         this.requireNonEmptyString(request.device_curve25519_key, "device_curve25519_key");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ScanQrCodeResponse>(
-                Method.Post,
-                vp("/keys/qr_code/scan"),
-                undefined,
-                request,
-                { prefix: verificationPrefix(version) },
-            );
+            return await this.request<ScanQrCodeResponse>({
+                method: Method.Post,
+                path: vp("/keys/qr_code/scan"),
+                body: request,
+                prefix: verificationPrefix(version),
+            });
         }, "scanQrCode");
     }
 

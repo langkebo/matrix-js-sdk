@@ -70,13 +70,11 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
 
         return this.withRetry(async () => {
             const path = encodeUri("/presence/$userId/status", { $userId: userId });
-            const response = await this.client.http.authedRequest<IPresenceResponse>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.request<IPresenceResponse>({
+                method: Method.Get,
+                path: path,
+                prefix: ClientPrefix.V3,
+            });
 
             this.presenceCache.set(userId, {
                 presence: response.presence,
@@ -110,7 +108,10 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
                 body.status_msg = statusMsg;
             }
 
-            const response = await this.client.http.authedRequest<{}>(Method.Put, path, undefined, body, {
+            const response = await this.request<{}>({
+                method: Method.Put,
+                path: path,
+                body: body,
                 prefix: ClientPrefix.V3,
             });
 
@@ -137,13 +138,12 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
         }
 
         return this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Post,
-                "/presence/list",
-                undefined,
-                { user_ids: userIds },
-                { prefix: ClientPrefix.V3 },
-            );
+            await this.request<void>({
+                method: Method.Post,
+                path: "/presence/list",
+                body: { user_ids: userIds },
+                prefix: ClientPrefix.V3,
+            });
 
             this.emit("presenceSubscribed", { userIds });
         }, "subscribeToPresence");

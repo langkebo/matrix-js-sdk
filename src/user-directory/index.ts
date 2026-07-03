@@ -79,14 +79,20 @@ export class UserDirectoryManager extends BaseManager {
     public async listUserDirectory(): Promise<IUserDirectoryListResult> {
         const path = ap("/user_directory/list");
         return this.withRetry(async () => {
-            return await this.client.http.request<IUserDirectoryListResult>(Method.Post, path);
+            return await this.request<IUserDirectoryListResult>({
+                method: Method.Post,
+                path: path,
+            });
         }, "listUserDirectory");
     }
 
     public async getProfile(userId: string): Promise<IUserProfile> {
         const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
         return this.withRetry(async () => {
-            return await this.client.http.request<IUserProfile>(Method.Get, path);
+            return await this.request<IUserProfile>({
+                method: Method.Get,
+                path: path,
+            });
         }, "getProfile");
     }
 
