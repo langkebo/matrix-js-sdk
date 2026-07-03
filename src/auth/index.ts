@@ -205,25 +205,18 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             }
         }
 
-        try {
-            const flows = await this.withRetry(async () => {
-                return await this.client.http.request<ILoginFlowsResponse>(
-                    Method.Get,
-                    ap("/login"),
-                    undefined,
-                    undefined,
-                    { prefix: undefined },
-                );
+        const flows = await this.withRetry(async () => {
+            return await this.request<ILoginFlowsResponse>({
+                method: Method.Get,
+                path: ap("/login"),
             });
+        });
 
-            if (flows) {
-                this.loginFlowCache.set("login_flows", flows);
-                this.emit(AuthEvent.LoginFlowUpdated, flows);
-            }
-            return flows;
-        } catch (error) {
-            throw this.normalizeError(error, "getSupportedLoginFlows");
+        if (flows) {
+            this.loginFlowCache.set("login_flows", flows);
+            this.emit(AuthEvent.LoginFlowUpdated, flows);
         }
+        return flows;
     }
 
     /**
@@ -239,25 +232,18 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             }
         }
 
-        try {
-            const flows = await this.withRetry(async () => {
-                return await this.client.http.request<RegisterFlowsResponse>(
-                    Method.Get,
-                    ap("/register"),
-                    undefined,
-                    undefined,
-                    { prefix: undefined },
-                );
+        const flows = await this.withRetry(async () => {
+            return await this.request<RegisterFlowsResponse>({
+                method: Method.Get,
+                path: ap("/register"),
             });
+        });
 
-            if (flows) {
-                this.registerFlowCache.set("register_flows", flows);
-                this.emit(AuthEvent.RegisterFlowUpdated, flows);
-            }
-            return flows;
-        } catch (error) {
-            throw this.normalizeError(error, "getRegisterFlows");
+        if (flows) {
+            this.registerFlowCache.set("register_flows", flows);
+            this.emit(AuthEvent.RegisterFlowUpdated, flows);
         }
+        return flows;
     }
 
     /**
@@ -419,7 +405,10 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
         return this.withRetry(
             async () =>
-                this.client.http.request<RegisterResponse>(Method.Post, ap("/register"), undefined, params, {
+                this.request<RegisterResponse>({
+                    method: Method.Post,
+                    path: ap("/register"),
+                    body: params,
                     prefix: ClientPrefix.V3,
                 }),
             "register",
@@ -435,7 +424,10 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     public async registerGuest(body?: RegisterRequest): Promise<RegisterResponse> {
         return this.withRetry(
             async () =>
-                this.client.http.request<RegisterResponse>(Method.Post, ap("/register"), undefined, body || {}, {
+                this.request<RegisterResponse>({
+                    method: Method.Post,
+                    path: ap("/register"),
+                    body: body || {},
                     prefix: ClientPrefix.V3,
                 }),
             "registerGuest",
@@ -618,7 +610,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
         if (kind) {
             params.kind = kind;
         }
-        return this.client.http.request(Method.Post, "/register", params, data);
+        return this.request({ method: Method.Post, path: "/register", queryParams: params, body: data });
     }
 
     /**
