@@ -181,11 +181,10 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCaptchaManager = function (): CaptchaManager {
         registerManagerClass("captcha", CaptchaManager);
-    return getOrCreateManager(this, "captcha", () => new CaptchaManager(this));
+        return getOrCreateManager(this, "captcha", () => new CaptchaManager(this));
     };
 }
 

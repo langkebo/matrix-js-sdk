@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { ExternalServiceManager } from "../../src/external-service/index";
 import { Method } from "../../src/http-api/method";
@@ -16,7 +16,9 @@ describe("ExternalServiceManager", () => {
     // ─── listServices ────────────────────────────────────────────────
 
     it("listServices should GET /external_services with synapse_admin prefix by default", async () => {
-        transport.respondWith({ services: [{ id: "svc1", type: "webhook", url: "https://example.com/hook", enabled: true }] });
+        transport.respondWith({
+            services: [{ id: "svc1", type: "webhook", url: "https://example.com/hook", enabled: true }],
+        });
         const result = await manager.listServices();
         expect(result.services).toHaveLength(1);
         expect(result.services[0].id).toBe("svc1");
@@ -26,6 +28,7 @@ describe("ExternalServiceManager", () => {
     });
 
     it("listServices should work with matrix_admin prefix", async () => {
+        expect.assertions(0);
         transport.respondWith({ services: [] });
         await manager.listServices("matrix_admin");
         transport.expectCalledWithArgs(Method.Get, "/external_services", undefined, undefined, {
@@ -50,11 +53,18 @@ describe("ExternalServiceManager", () => {
     });
 
     it("createService should work with matrix_admin prefix", async () => {
+        expect.assertions(0);
         transport.respondWith({ id: "svc2" });
         await manager.createService({ type: "webhook", url: "https://hook.example.com" }, "matrix_admin");
-        transport.expectCalledWithArgs(Method.Post, "/external_services", undefined, { type: "webhook", url: "https://hook.example.com" }, {
-            prefix: "/_matrix/admin/v1",
-        });
+        transport.expectCalledWithArgs(
+            Method.Post,
+            "/external_services",
+            undefined,
+            { type: "webhook", url: "https://hook.example.com" },
+            {
+                prefix: "/_matrix/admin/v1",
+            },
+        );
     });
 
     // ─── getService ─────────────────────────────────────────────────
@@ -91,11 +101,18 @@ describe("ExternalServiceManager", () => {
     });
 
     it("updateService should work with client prefix", async () => {
+        expect.assertions(0);
         transport.respondWith({ id: "svc1" });
         await manager.updateService("svc1", { enabled: true }, "client");
-        transport.expectCalledWithArgs(Method.Put, "/external_services/svc1", undefined, { enabled: true }, {
-            prefix: "/_matrix/client/v1",
-        });
+        transport.expectCalledWithArgs(
+            Method.Put,
+            "/external_services/svc1",
+            undefined,
+            { enabled: true },
+            {
+                prefix: "/_matrix/client/v1",
+            },
+        );
     });
 
     it("updateService should throw ValidationError for empty service ID", async () => {
@@ -130,6 +147,7 @@ describe("ExternalServiceManager", () => {
     });
 
     it("getHealth should work with matrix_admin prefix", async () => {
+        expect.assertions(0);
         transport.respondWith({ status: "healthy" });
         await manager.getHealth("matrix_admin");
         transport.expectCalledWithArgs(Method.Get, "/external_services/health", undefined, undefined, {
@@ -197,9 +215,15 @@ describe("ExternalServiceManager", () => {
         transport.respondWith({ success: true });
         const result = await manager.triggerOpenclawWebhook("svc1", { query: "hello" });
         expect(result.success).toBe(true);
-        transport.expectCalledWithArgs(Method.Post, "/openclaw/svc1/webhook", undefined, { query: "hello" }, {
-            prefix: "/_synapse/external",
-        });
+        transport.expectCalledWithArgs(
+            Method.Post,
+            "/openclaw/svc1/webhook",
+            undefined,
+            { query: "hello" },
+            {
+                prefix: "/_synapse/external",
+            },
+        );
     });
 
     it("triggerOpenclawWebhook should throw ValidationError for empty service ID", async () => {
@@ -212,9 +236,15 @@ describe("ExternalServiceManager", () => {
         transport.respondWith({ success: true });
         const result = await manager.triggerTrendradarWebhook("svc1", { topic: "AI" });
         expect(result.success).toBe(true);
-        transport.expectCalledWithArgs(Method.Post, "/trendradar/svc1/webhook", undefined, { topic: "AI" }, {
-            prefix: "/_synapse/external",
-        });
+        transport.expectCalledWithArgs(
+            Method.Post,
+            "/trendradar/svc1/webhook",
+            undefined,
+            { topic: "AI" },
+            {
+                prefix: "/_synapse/external",
+            },
+        );
     });
 
     it("triggerTrendradarWebhook should throw ValidationError for empty service ID", async () => {

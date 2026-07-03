@@ -36,7 +36,10 @@ export interface RoomSummaryMemberEventMap {
     [RoomSummaryMemberEvent.MembersUpdated]: (roomId: string, members: RoomSummaryMember[]) => void;
 }
 
-export class RoomSummaryMemberManager extends RoomSummaryBaseManager<RoomSummaryMemberEvent, RoomSummaryMemberEventMap> {
+export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
+    RoomSummaryMemberEvent,
+    RoomSummaryMemberEventMap
+> {
     private readonly memberCache: LRUCache<RoomSummaryMember[]>;
 
     constructor(client: MatrixClient, memberCache: LRUCache<RoomSummaryMember[]>, onError?: RoomSummaryErrorCallback) {
@@ -79,10 +82,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<RoomSummary
         }
 
         return this.withRetry(async () => {
-            return await this.requestV3<RoomSummaryMember[]>(
-                Method.Get,
-                this.summaryMembersPath(roomId),
-            );
+            return await this.requestV3<RoomSummaryMember[]>(Method.Get, this.summaryMembersPath(roomId));
         }, "getRoomSummaryMembers").then(
             (members) => {
                 this.memberCache.set(roomId, members);
@@ -170,10 +170,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<RoomSummary
         this.validateUserId(userId);
 
         return this.withRetry(async () => {
-            await this.requestV3(
-                Method.Delete,
-                this.summaryMemberPath(roomId, userId),
-            );
+            await this.requestV3(Method.Delete, this.summaryMemberPath(roomId, userId));
             this.memberCache.delete(roomId);
         }, "deleteSummaryMember");
     }

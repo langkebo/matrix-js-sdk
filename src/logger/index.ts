@@ -76,11 +76,10 @@ export class LoggerManager extends BaseManager<keyof LoggerManagerEvents, Logger
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getLoggerManager = function (): LoggerManager {
         registerManagerClass("logger", LoggerManager);
-    return getOrCreateManager(this, "logger", () => new LoggerManager(this));
+        return getOrCreateManager(this, "logger", () => new LoggerManager(this));
     };
 }
 

@@ -184,7 +184,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
                 eventType as string,
                 this.transport.request.bind(this.transport),
             );
-        // @swallow-error { owner: "account-data", expires: "2026-12-31" }
+            // @swallow-error { owner: "account-data", expires: "2026-12-31" }
         } catch (e) {
             if (isAccountDataNotFoundError(e)) {
                 return null;
@@ -245,11 +245,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param eventType - 数据类型
      * @param content - 数据内容
      */
-    public async setRoomAccountData<K extends string>(
-        roomId: string,
-        eventType: K,
-        content: IContent,
-    ): Promise<void> {
+    public async setRoomAccountData<K extends string>(roomId: string, eventType: K, content: IContent): Promise<void> {
         this.validateDataType(eventType);
         this.validateContentSize(content);
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
@@ -336,7 +332,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAccountDataManager = function (): AccountDataManager {
         registerManagerClass("accountData", AccountDataManager);
-    return getOrCreateManager(this, "accountData", () => new AccountDataManager(this));
+        return getOrCreateManager(this, "accountData", () => new AccountDataManager(this));
     };
 }
 

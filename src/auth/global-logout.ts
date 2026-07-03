@@ -89,11 +89,10 @@ interface Device {
     lastSeenTs?: number;
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getGlobalLogoutManager = function (): GlobalLogoutManager {
         registerManagerClass("authGlobalLogout", GlobalLogoutManager);
-    return getOrCreateManager(this, "authGlobalLogout", () => new GlobalLogoutManager(this));
+        return getOrCreateManager(this, "authGlobalLogout", () => new GlobalLogoutManager(this));
     };
 }
 

@@ -420,7 +420,7 @@ describe("BurnAfterReadManager", () => {
                 undefined,
                 expect.objectContaining({
                     "m.burn_after_read": { expires_in: 60000 },
-                    "body": "secret message",
+                    body: "secret message",
                 }),
                 { prefix: ClientPrefix.V3 },
             );

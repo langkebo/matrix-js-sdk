@@ -219,16 +219,24 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         }
         return this.doRequest(
             Method.Get,
-            bu(`/background_updates/status/${encodeURIComponent(status)}/count` as StripAdminV1<BackgroundUpdatePathPattern>),
+            bu(
+                `/background_updates/status/${encodeURIComponent(status)}/count` as StripAdminV1<BackgroundUpdatePathPattern>,
+            ),
         );
     }
 
     public async getUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
-        return this.doRequest(Method.Get, bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>));
+        return this.doRequest(
+            Method.Get,
+            bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>),
+        );
     }
 
     public async deleteUpdate(jobName: string): Promise<void> {
-        await this.doRequest(Method.Delete, bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>));
+        await this.doRequest(
+            Method.Delete,
+            bu(`/background_updates/${this.encodeJobName(jobName)}` as StripAdminV1<BackgroundUpdatePathPattern>),
+        );
     }
 
     public async startUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
@@ -238,16 +246,15 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         );
     }
 
-    public async updateProgress(
-        jobName: string,
-        body: UpdateProgressBody,
-    ): Promise<BackgroundUpdateRecord> {
+    public async updateProgress(jobName: string, body: UpdateProgressBody): Promise<BackgroundUpdateRecord> {
         if (body.items_processed === undefined) {
             throw new ValidationError("items_processed is required");
         }
         return this.doRequest(
             Method.Post,
-            bu(`/background_updates/${this.encodeJobName(jobName)}/progress` as StripAdminV1<BackgroundUpdatePathPattern>),
+            bu(
+                `/background_updates/${this.encodeJobName(jobName)}/progress` as StripAdminV1<BackgroundUpdatePathPattern>,
+            ),
             undefined,
             body,
         );
@@ -256,14 +263,13 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
     public async completeUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
         return this.doRequest(
             Method.Post,
-            bu(`/background_updates/${this.encodeJobName(jobName)}/complete` as StripAdminV1<BackgroundUpdatePathPattern>),
+            bu(
+                `/background_updates/${this.encodeJobName(jobName)}/complete` as StripAdminV1<BackgroundUpdatePathPattern>,
+            ),
         );
     }
 
-    public async failUpdate(
-        jobName: string,
-        body: FailBackgroundUpdateBody,
-    ): Promise<BackgroundUpdateRecord> {
+    public async failUpdate(jobName: string, body: FailBackgroundUpdateBody): Promise<BackgroundUpdateRecord> {
         if (!body.error_message) {
             throw new ValidationError("error_message is required");
         }
@@ -278,7 +284,9 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
     public async cancelUpdate(jobName: string): Promise<BackgroundUpdateRecord> {
         return this.doRequest(
             Method.Post,
-            bu(`/background_updates/${this.encodeJobName(jobName)}/cancel` as StripAdminV1<BackgroundUpdatePathPattern>),
+            bu(
+                `/background_updates/${this.encodeJobName(jobName)}/cancel` as StripAdminV1<BackgroundUpdatePathPattern>,
+            ),
         );
     }
 
@@ -289,17 +297,18 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         const queryParams = query?.limit !== undefined ? { limit: String(query.limit) } : undefined;
         return this.doRequest(
             Method.Get,
-            bu(`/background_updates/${this.encodeJobName(jobName)}/history` as StripAdminV1<BackgroundUpdatePathPattern>),
+            bu(
+                `/background_updates/${this.encodeJobName(jobName)}/history` as StripAdminV1<BackgroundUpdatePathPattern>,
+            ),
             queryParams,
         );
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getBackgroundUpdateManager = function (): BackgroundUpdateManager {
         registerManagerClass("backgroundUpdate", BackgroundUpdateManager);
-    return getOrCreateManager(this, "backgroundUpdate", () => new BackgroundUpdateManager(this));
+        return getOrCreateManager(this, "backgroundUpdate", () => new BackgroundUpdateManager(this));
     };
 }
 

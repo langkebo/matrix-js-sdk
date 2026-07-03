@@ -26,13 +26,9 @@ describe("OidcManager", () => {
 
         await manager.discover();
 
-        expect(request).toHaveBeenCalledWith(
-            Method.Get,
-            "/.well-known/openid-configuration",
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        expect(request).toHaveBeenCalledWith(Method.Get, "/.well-known/openid-configuration", undefined, undefined, {
+            prefix: "",
+        });
         expect(authedRequest).not.toHaveBeenCalled();
     });
 

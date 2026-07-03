@@ -205,9 +205,7 @@ describe("InviteListManager", () => {
         });
 
         it("acceptAllInvites should continue if one fails", async () => {
-            mockClient.joinRoom
-                .mockRejectedValueOnce(new Error("Room 1 failed"))
-                .mockResolvedValueOnce({});
+            mockClient.joinRoom.mockRejectedValueOnce(new Error("Room 1 failed")).mockResolvedValueOnce({});
             (manager as any).invites.set("!room1:example.com", { roomId: "!room1:example.com" });
             (manager as any).invites.set("!room2:example.com", { roomId: "!room2:example.com" });
 

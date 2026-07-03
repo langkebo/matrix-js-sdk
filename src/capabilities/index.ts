@@ -74,11 +74,10 @@ export class CapabilitiesManager extends BaseManager<keyof CapabilitiesManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCapabilitiesManager = function (): CapabilitiesManager {
         registerManagerClass("capabilities", CapabilitiesManager);
-    return getOrCreateManager(this, "capabilities", () => new CapabilitiesManager(this));
+        return getOrCreateManager(this, "capabilities", () => new CapabilitiesManager(this));
     };
 }
 

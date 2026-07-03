@@ -100,12 +100,13 @@ export class SecureBackupManager extends BaseManager {
      * 列出所有安全备份
      * GET /_matrix/client/v3/keys/backup/secure
      */
-    async listSecureBackups(): Promise<Record<string, unknown>> { // Dynamic: backup list structure varies by algorithm
+    async listSecureBackups(): Promise<Record<string, unknown>> {
+        // Dynamic: backup list structure varies by algorithm
         try {
             return await this.withRetry(async () => {
                 return await this.request<Record<string, unknown>>({
-                    method: // Dynamic: backup list structure varies by algorithm
-                    Method.Get,
+                    // Dynamic: backup list structure varies by algorithm
+                    method: Method.Get,
                     path: sb("/keys/backup/secure"),
                     prefix: ClientPrefix.V3,
                 });
@@ -260,14 +261,12 @@ export class SecureBackupManager extends BaseManager {
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.backupCache.getStats();
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecureBackupManager = function (): SecureBackupManager {
         registerManagerClass("secureBackup", SecureBackupManager);
-    return getOrCreateManager(this, "secureBackup", () => new SecureBackupManager(this));
+        return getOrCreateManager(this, "secureBackup", () => new SecureBackupManager(this));
     };
 }
 

@@ -27,11 +27,7 @@ import type { EmptyObject } from "../@types/common";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { AuthDict } from "../interactive-auth";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import {
-    buildEmailTokenRequestParams,
-    buildMsisdnTokenRequestParams,
-    requestTokenFromEndpoint,
-} from "../client-auth";
+import { buildEmailTokenRequestParams, buildMsisdnTokenRequestParams, requestTokenFromEndpoint } from "../client-auth";
 
 export type PasswordResetManagerEvents = Record<
     "password_reset_token_requested" | "password_changed",
@@ -89,10 +85,10 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
                     method: Method.Post,
                     path: "/account/password",
                     body: {
-                    auth: authDict,
-                    new_password: newPassword,
-                    logout_devices: logoutDevices,
-                },
+                        auth: authDict,
+                        new_password: newPassword,
+                        logout_devices: logoutDevices,
+                    },
                 }),
             "setPassword",
         );
@@ -101,13 +97,12 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
     }
 }
 
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getPasswordResetManager")) return;
 
     MatrixClient.prototype.getPasswordResetManager = function (this: MatrixClient): PasswordResetManager {
         registerManagerClass("passwordReset", PasswordResetManager);
-    return getOrCreateManager(this, "passwordReset", () => new PasswordResetManager(this));
+        return getOrCreateManager(this, "passwordReset", () => new PasswordResetManager(this));
     };
 }
 

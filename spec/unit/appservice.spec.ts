@@ -71,13 +71,9 @@ describe("ApplicationServiceManager", () => {
 
         await expect(manager.getProtocols()).resolves.toEqual(["irc", "slack"]);
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/thirdparty/protocols",
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/thirdparty/protocols", undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
     });
 
     it("queries thirdparty users through the v3 route", async () => {
@@ -86,13 +82,9 @@ describe("ApplicationServiceManager", () => {
 
         await expect(manager.queryUsers("irc", { nick: "alice" })).resolves.toEqual(response);
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/thirdparty/user/irc",
-            { nick: "alice" },
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/thirdparty/user/irc", { nick: "alice" }, undefined, {
+            prefix: ClientPrefix.V3,
+        });
     });
 
     it("queries thirdparty locations through the v3 route", async () => {

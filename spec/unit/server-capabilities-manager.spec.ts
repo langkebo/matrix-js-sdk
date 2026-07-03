@@ -40,8 +40,8 @@ describe("ServerCapabilitiesManager", () => {
             "io.hula.burn_after_read": true,
             "io.hula.friends": { enabled: false },
             "m.voice": { enabled: true },
-            "openclaw": { enabled: true },
-            "ai_connection": { enabled: true },
+            openclaw: { enabled: true },
+            ai_connection: { enabled: true },
         };
 
         expect(
@@ -137,21 +137,21 @@ describe("ServerCapabilitiesManager", () => {
                     [SynapseRustFeature.ExtendedProfile]: true,
                     [SynapseRustFeature.SlidingSync]: true,
                     [SynapseRustFeature.DehydratedDevice]: false,
-                        [SynapseRustFeature.Widget]: false,
-                        [SynapseRustFeature.BurnAfterRead]: false,
-                        [SynapseRustFeature.Friends]: false,
-                        [SynapseRustFeature.Voice]: false,
-                        [SynapseRustFeature.OpenClaw]: false,
-                        [SynapseRustFeature.AIConnection]: false,
-                    },
-                }),
+                    [SynapseRustFeature.Widget]: false,
+                    [SynapseRustFeature.BurnAfterRead]: false,
+                    [SynapseRustFeature.Friends]: false,
+                    [SynapseRustFeature.Voice]: false,
+                    [SynapseRustFeature.OpenClaw]: false,
+                    [SynapseRustFeature.AIConnection]: false,
+                },
+            }),
             http: {
                 authedRequest: vi.fn().mockResolvedValue({
                     capabilities: {
                         "io.hula.burn_after_read": { enabled: true },
                         "io.hula.voice_extended": { enabled: true },
-                        "openclaw": { enabled: true },
-                        "ai_connection": { enabled: true },
+                        openclaw: { enabled: true },
+                        ai_connection: { enabled: true },
                     },
                 }),
             },

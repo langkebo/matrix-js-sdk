@@ -69,11 +69,10 @@ export class MembershipManager extends BaseManager<keyof MembershipManagerEvents
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMembershipManager = function (): MembershipManager {
         registerManagerClass("membership", MembershipManager);
-    return getOrCreateManager(this, "membership", () => new MembershipManager(this));
+        return getOrCreateManager(this, "membership", () => new MembershipManager(this));
     };
 }
 

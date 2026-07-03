@@ -135,7 +135,8 @@ export class OutgoingRequestProcessor {
      */
     private async sendToDeviceRequest(request: ToDeviceRequest): Promise<string> {
         // a bit of extra logging, to help trace to-device messages through the system
-        const parsedBody: { messages: Record<string, Record<string, Record<string, unknown>>> } = JSON.parse( // Dynamic: to-device message content varies by event type
+        const parsedBody: { messages: Record<string, Record<string, Record<string, unknown>>> } = JSON.parse(
+            // Dynamic: to-device message content varies by event type
             request.body,
         );
 
@@ -170,7 +171,8 @@ export class OutgoingRequestProcessor {
 
         const parsedBody = JSON.parse(body);
         const makeRequest = async (auth: AuthDict | null): Promise<T> => {
-            const newBody: Record<string, unknown> = { // Dynamic: request body construction
+            const newBody: Record<string, unknown> = {
+                // Dynamic: request body construction
                 ...parsedBody,
             };
             if (auth !== null) {
@@ -216,7 +218,7 @@ export class OutgoingRequestProcessor {
             // nevertheless, we are sending, and accept, JSON.
             headers: {
                 "Content-Type": "application/json",
-                "Accept": "application/json",
+                Accept: "application/json",
             },
 
             // we use the full prefix

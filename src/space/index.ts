@@ -699,7 +699,13 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     }
 
     private async doRequest<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
-        return await this.request<T>({ method: method, path: path, queryParams: queryParams as Record<string, string | string[]>, body: body, prefix: ClientPrefix.V3 });
+        return await this.request<T>({
+            method: method,
+            path: path,
+            queryParams: queryParams as Record<string, string | string[]>,
+            body: body,
+            prefix: ClientPrefix.V3,
+        });
     }
 
     private spacePath(pathTemplate: string, spaceId: string): string {
@@ -804,11 +810,10 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSpaceManager = function (): SpaceManager {
         registerManagerClass("space", SpaceManager);
-    return getOrCreateManager(this, "space", () => new SpaceManager(this));
+        return getOrCreateManager(this, "space", () => new SpaceManager(this));
     };
 }
 

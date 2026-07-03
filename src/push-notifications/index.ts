@@ -69,7 +69,7 @@ export class PushNotificationsManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPushNotificationsManager = function (): PushNotificationsManager {
         registerManagerClass("pushNotifications", PushNotificationsManager);
-    return getOrCreateManager(this, "pushNotifications", () => new PushNotificationsManager(this));
+        return getOrCreateManager(this, "pushNotifications", () => new PushNotificationsManager(this));
     };
 }
 

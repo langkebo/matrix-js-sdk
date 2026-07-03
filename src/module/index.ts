@@ -40,8 +40,7 @@ import { buildPaginationParams } from "../common/pagination";
 import type { IContent } from "../models/event";
 import type { ModulePathPattern } from "./__generated__/route-table";
 
-type StripAdminV1<P extends string> =
-    P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
 /**
  * 模块路径类型安全包装函数，确保只使用 Ledger 注册的有效路径
@@ -208,10 +207,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     async getModule(moduleName: string): Promise<ModuleInfo> {
         try {
-            return await this.adminRequest<ModuleInfo>(
-                Method.Get,
-                mp(`/modules/${encodeURIComponent(moduleName)}`),
-            );
+            return await this.adminRequest<ModuleInfo>(Method.Get, mp(`/modules/${encodeURIComponent(moduleName)}`));
         } catch (error) {
             if (error instanceof MatrixError && error.errcode === "M_NOT_FOUND") {
                 throw new NotFoundError(`Module '${moduleName}' not found`);
@@ -221,21 +217,13 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }
 
     async createModule(moduleConfig: CreateModuleRequest): Promise<ModuleInfo> {
-        const result = await this.adminRequest<ModuleInfo>(
-            Method.Post,
-            mp("/modules"),
-            undefined,
-            moduleConfig,
-        );
+        const result = await this.adminRequest<ModuleInfo>(Method.Post, mp("/modules"), undefined, moduleConfig);
         this.emit(ModuleEvent.ModuleCreated, result);
         return result;
     }
 
     async deleteModule(moduleName: string): Promise<void> {
-        await this.adminRequest<void>(
-            Method.Delete,
-            mp(`/modules/${encodeURIComponent(moduleName)}`),
-        );
+        await this.adminRequest<void>(Method.Delete, mp(`/modules/${encodeURIComponent(moduleName)}`));
         this.emit(ModuleEvent.ModuleDeleted, moduleName);
     }
 
@@ -251,12 +239,9 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }
 
     async setModuleEnabled(moduleName: string, enabled: boolean): Promise<void> {
-        await this.adminRequest<void>(
-            Method.Post,
-            mp(`/modules/${encodeURIComponent(moduleName)}/enable`),
-            undefined,
-            { is_enabled: enabled },
-        );
+        await this.adminRequest<void>(Method.Post, mp(`/modules/${encodeURIComponent(moduleName)}/enable`), undefined, {
+            is_enabled: enabled,
+        });
         if (enabled) {
             this.emit(ModuleEvent.ModuleEnabled, moduleName);
         } else {
@@ -264,10 +249,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         }
     }
 
-    async getModuleLogs(
-        moduleName: string,
-        options?: { limit?: number; from?: string },
-    ): Promise<ModuleLogResponse> {
+    async getModuleLogs(moduleName: string, options?: { limit?: number; from?: string }): Promise<ModuleLogResponse> {
         const query = buildPaginationParams(options?.limit, options?.from);
         const result = await this.adminRequest<ModuleLogResponse>(
             Method.Get,
@@ -341,10 +323,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result.callbacks;
     }
 
-    async registerAccountDataCallback(callback: {
-        module_name: string;
-        callback_type: string;
-    }): Promise<CallbackInfo> {
+    async registerAccountDataCallback(callback: { module_name: string; callback_type: string }): Promise<CallbackInfo> {
         const result = await this.adminRequest<CallbackInfo>(
             Method.Post,
             mp("/account_data_callbacks"),
@@ -356,23 +335,12 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }
 
     async getMediaCallbacks(): Promise<CallbackInfo[]> {
-        const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(
-            Method.Get,
-            mp("/media_callbacks"),
-        );
+        const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(Method.Get, mp("/media_callbacks"));
         return result.callbacks;
     }
 
-    async registerMediaCallback(callback: {
-        module_name: string;
-        callback_type: string;
-    }): Promise<CallbackInfo> {
-        const result = await this.adminRequest<CallbackInfo>(
-            Method.Post,
-            mp("/media_callbacks"),
-            undefined,
-            callback,
-        );
+    async registerMediaCallback(callback: { module_name: string; callback_type: string }): Promise<CallbackInfo> {
+        const result = await this.adminRequest<CallbackInfo>(Method.Post, mp("/media_callbacks"), undefined, callback);
         this.emit(ModuleEvent.MediaCallbackRegistered, result);
         return result;
     }
@@ -426,10 +394,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     }
 
     async renewAccountValidity(userId: string): Promise<void> {
-        await this.adminRequest<void>(
-            Method.Post,
-            mp(`/account_validity/${encodeURIComponent(userId)}/renew`),
-        );
+        await this.adminRequest<void>(Method.Post, mp(`/account_validity/${encodeURIComponent(userId)}/renew`));
         this.emit(ModuleEvent.AccountValidityRenewed, userId);
     }
 }

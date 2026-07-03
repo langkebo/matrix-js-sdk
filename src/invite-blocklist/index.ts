@@ -299,11 +299,10 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getInviteBlocklistManager = function (): InviteBlocklistManager {
         registerManagerClass("inviteBlocklist", InviteBlocklistManager);
-    return getOrCreateManager(this, "inviteBlocklist", () => new InviteBlocklistManager(this));
+        return getOrCreateManager(this, "inviteBlocklist", () => new InviteBlocklistManager(this));
     };
 }
 

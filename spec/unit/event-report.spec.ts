@@ -38,13 +38,9 @@ describe("EventReportManager", () => {
         const result = await manager.getReportsCount();
 
         expect(result).toEqual({ total_reports: 12 });
-        expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/event_reports/count",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/event_reports/count", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
     });
 
     it("getAllReports reuses the list route with validated query params", async () => {
@@ -208,14 +204,9 @@ describe("EventReportManager", () => {
         await manager.getReport(7);
         await manager.getReportHistory(7);
 
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-            1,
-            Method.Get,
-            "/event_reports/7",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(mockAuthedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/event_reports/7", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
         expect(mockAuthedRequest).toHaveBeenNthCalledWith(
             2,
             Method.Get,
@@ -267,14 +258,9 @@ describe("EventReportManager", () => {
             { reason: "security" },
             { prefix: AdminPrefix.V1 },
         );
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-            5,
-            Method.Delete,
-            "/event_reports/7",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(mockAuthedRequest).toHaveBeenNthCalledWith(5, Method.Delete, "/event_reports/7", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
     });
 
     it("fetches aggregate moderation stats", async () => {
@@ -295,12 +281,8 @@ describe("EventReportManager", () => {
             dismissed: 4,
             escalated: 1,
         });
-        expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/event_reports/stats",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/event_reports/stats", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
     });
 });

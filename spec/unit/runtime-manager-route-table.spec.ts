@@ -229,7 +229,9 @@ describe("runtime manager route-table contract", () => {
 
     it("keeps KeyVerificationManager QR calls on the generated verification route-table", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ qr_code_data: "qr", transaction_id: "txn" });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof KeyVerificationManager>[0];
+        const client = { http: { authedRequest } } as unknown as ConstructorParameters<
+            typeof KeyVerificationManager
+        >[0];
         const manager = new KeyVerificationManager(client);
 
         await manager.showQrCode("txn", "v3");
@@ -362,13 +364,7 @@ describe("runtime manager route-table contract", () => {
             scope: "openid",
         });
 
-        const [method, path, , , options] = request.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
+        const [method, path, , , options] = request.mock.calls[0] as [string, string, unknown, unknown, RequestOptions];
         const runtimePath = fullRuntimePath(path, options);
         expect(hasRouteTableMatch(OIDC_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
@@ -660,13 +656,7 @@ describe("runtime manager route-table contract", () => {
 
         await manager.sendCaptcha("email", "alice@example.org", undefined, "r0");
 
-        const [method, path, , , options] = request.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
+        const [method, path, , , options] = request.mock.calls[0] as [string, string, unknown, unknown, RequestOptions];
         const runtimePath = fullRuntimePath(path, options);
         expect(hasRouteTableMatch(CAPTCHA_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });

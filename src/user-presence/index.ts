@@ -154,11 +154,10 @@ export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserPresenceManager = function (): UserPresenceManager {
         registerManagerClass("userPresence", UserPresenceManager);
-    return getOrCreateManager(this, "userPresence", () => new UserPresenceManager(this));
+        return getOrCreateManager(this, "userPresence", () => new UserPresenceManager(this));
     };
 }
 

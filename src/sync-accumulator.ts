@@ -89,16 +89,16 @@ export interface ISticky {
 }
 
 export interface IJoinedRoom {
-    "summary": IRoomSummary;
+    summary: IRoomSummary;
     // One of `state` or `state_after` is required.
-    "state"?: IState;
+    state?: IState;
     "org.matrix.msc4222.state_after"?: IState; // https://github.com/matrix-org/matrix-spec-proposals/pull/4222
-    "msc4354_sticky"?: ISticky; // https://github.com/matrix-org/matrix-spec-proposals/pull/4354
-    "timeline": ITimeline;
-    "ephemeral": IEphemeral;
-    "account_data": IAccountData;
-    "unread_notifications": UnreadNotificationCounts;
-    "unread_thread_notifications"?: Record<string, UnreadNotificationCounts>;
+    msc4354_sticky?: ISticky; // https://github.com/matrix-org/matrix-spec-proposals/pull/4354
+    timeline: ITimeline;
+    ephemeral: IEphemeral;
+    account_data: IAccountData;
+    unread_notifications: UnreadNotificationCounts;
+    unread_thread_notifications?: Record<string, UnreadNotificationCounts>;
     "org.matrix.msc3773.unread_thread_notifications"?: Record<string, UnreadNotificationCounts>;
 }
 
@@ -123,10 +123,10 @@ export interface IInvitedRoom {
 
 export interface ILeftRoom {
     // One of `state` or `state_after` is required.
-    "state"?: IState;
+    state?: IState;
     "org.matrix.msc4222.state_after"?: IState;
-    "timeline": ITimeline;
-    "account_data": IAccountData;
+    timeline: ITimeline;
+    account_data: IAccountData;
 }
 
 export interface IKnockedRoom {
@@ -183,15 +183,15 @@ export interface IDeviceLists {
 }
 
 export interface ISyncResponse {
-    "next_batch": string;
-    "rooms": IRooms;
-    "presence"?: IPresence;
-    "account_data": IAccountData;
-    "to_device"?: IToDevice;
-    "device_lists"?: IDeviceLists;
-    "device_one_time_keys_count"?: Record<string, number>;
+    next_batch: string;
+    rooms: IRooms;
+    presence?: IPresence;
+    account_data: IAccountData;
+    to_device?: IToDevice;
+    device_lists?: IDeviceLists;
+    device_one_time_keys_count?: Record<string, number>;
 
-    "device_unused_fallback_key_types"?: string[];
+    device_unused_fallback_key_types?: string[];
     "org.matrix.msc2732.device_unused_fallback_key_types"?: string[];
 }
 
@@ -645,21 +645,21 @@ export class SyncAccumulator {
             const roomData = this.joinRooms[roomId];
             const roomJson: IJoinedRoom & {
                 // We track both `state` and `state_after` for downgrade compatibility
-                "state": IState;
+                state: IState;
                 "org.matrix.msc4222.state_after": IState;
             } = {
-                "ephemeral": { events: [] },
-                "account_data": { events: [] },
-                "state": { events: [] },
+                ephemeral: { events: [] },
+                account_data: { events: [] },
+                state: { events: [] },
                 "org.matrix.msc4222.state_after": { events: [] },
-                "timeline": {
+                timeline: {
                     events: [],
                     prev_batch: null,
                 },
-                "unread_notifications": roomData._unreadNotifications,
-                "unread_thread_notifications": roomData._unreadThreadNotifications,
-                "summary": roomData._summary as IRoomSummary,
-                "msc4354_sticky": roomData._stickyEvents?.length
+                unread_notifications: roomData._unreadNotifications,
+                unread_thread_notifications: roomData._unreadThreadNotifications,
+                summary: roomData._summary as IRoomSummary,
+                msc4354_sticky: roomData._stickyEvents?.length
                     ? {
                           events: roomData._stickyEvents.map((e) => e.event),
                       }

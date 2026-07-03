@@ -50,13 +50,9 @@ describe("OidcManager", () => {
 
             expect(result.issuer).toBe("https://matrix.test");
             expect(result.authorization_endpoint).toBe("https://matrix.test/authorize");
-            transport.expectCalledWithArgs(
-                "GET",
-                "/.well-known/openid-configuration",
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            transport.expectCalledWithArgs("GET", "/.well-known/openid-configuration", undefined, undefined, {
+                prefix: "",
+            });
         });
 
         it("should cache discovery and emit event", async () => {
@@ -176,9 +172,7 @@ describe("OidcManager", () => {
         });
 
         it("should reject missing grant_type", async () => {
-            await expect(
-                oidcManager.token({ grant_type: "" } as any),
-            ).rejects.toThrow();
+            await expect(oidcManager.token({ grant_type: "" } as any)).rejects.toThrow();
         });
     });
 
@@ -229,13 +223,9 @@ describe("OidcManager", () => {
 
             expect(result.sub).toBe("user123");
             expect(result.name).toBe("Alice");
-            transport.expectCalledWithArgs(
-                "GET",
-                "/oidc/userinfo",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs("GET", "/oidc/userinfo", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
     });
 
@@ -310,13 +300,7 @@ describe("OidcManager", () => {
 
             await oidcManager.logout();
 
-            transport.expectCalledWithArgs(
-                "POST",
-                "/oidc/logout",
-                undefined,
-                {},
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs("POST", "/oidc/logout", undefined, {}, { prefix: "/_matrix/client/v3" });
             expect(emitSpy).toHaveBeenCalledWith("oidcLoggedOut", {});
         });
     });

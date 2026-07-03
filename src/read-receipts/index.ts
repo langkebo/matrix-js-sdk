@@ -44,8 +44,14 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     // 防抖：按房间合并短时间内的多次已读回执请求，只发送最新的一条
     // 避免快速滚动时产生大量 HTTP 请求
     private pendingReceiptTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
-    private pendingReceiptData: Map<string, { event: MatrixEvent; receiptType: ReceiptType; body?: ReceiptBody; unthreaded: boolean }> = new Map();
-    private pendingReceiptResolvers: Map<string, { resolve: (v: EmptyObject) => void; reject: (e: unknown) => void }[]> = new Map();
+    private pendingReceiptData: Map<
+        string,
+        { event: MatrixEvent; receiptType: ReceiptType; body?: ReceiptBody; unthreaded: boolean }
+    > = new Map();
+    private pendingReceiptResolvers: Map<
+        string,
+        { resolve: (v: EmptyObject) => void; reject: (e: unknown) => void }[]
+    > = new Map();
     private readonly RECEIPT_DEBOUNCE_MS = 500;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
@@ -177,8 +183,11 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
             this.client,
             this.client.getRoom(roomId),
             { roomId, rmEventId, rrEvent, rpEvent, userId: this.client.credentials.userId! },
-            (this.client as unknown as { setRoomReadMarkersHttpRequest?: typeof ReadReceiptsManager.prototype.setRoomReadMarkersHttpRequest }).setRoomReadMarkersHttpRequest?.bind(this.client) ??
-                this.setRoomReadMarkersHttpRequest.bind(this),
+            (
+                this.client as unknown as {
+                    setRoomReadMarkersHttpRequest?: typeof ReadReceiptsManager.prototype.setRoomReadMarkersHttpRequest;
+                }
+            ).setRoomReadMarkersHttpRequest?.bind(this.client) ?? this.setRoomReadMarkersHttpRequest.bind(this),
         );
     }
 
@@ -258,11 +267,10 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReadReceiptsManager = function (): ReadReceiptsManager {
         registerManagerClass("readReceipts", ReadReceiptsManager);
-    return getOrCreateManager(this, "readReceipts", () => new ReadReceiptsManager(this));
+        return getOrCreateManager(this, "readReceipts", () => new ReadReceiptsManager(this));
     };
 }
 

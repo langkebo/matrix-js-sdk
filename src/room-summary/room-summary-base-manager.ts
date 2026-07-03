@@ -45,7 +45,7 @@ export abstract class RoomSummaryBaseManager<
     Events extends string = string,
     EventMap extends Record<Events, any> = Record<Events, any>,
 > extends BaseManager<Events, EventMap> {
-/* eslint-enable @typescript-eslint/no-explicit-any */
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     protected readonly onError?: RoomSummaryErrorCallback;
 
     constructor(client: MatrixClient, onError?: RoomSummaryErrorCallback, opts?: ManagerOpts) {

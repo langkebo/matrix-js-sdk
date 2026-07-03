@@ -35,16 +35,16 @@ function matchesWildcard(actualValue: string, filterValue: string): boolean {
 }
 
 export interface IFilterComponent {
-    "types"?: string[];
-    "not_types"?: string[];
-    "rooms"?: string[];
-    "not_rooms"?: string[];
-    "senders"?: string[];
-    "not_senders"?: string[];
-    "contains_url"?: boolean;
-    "limit"?: number;
-    "related_by_senders"?: Array<RelationType | string>;
-    "related_by_rel_types"?: string[];
+    types?: string[];
+    not_types?: string[];
+    rooms?: string[];
+    not_rooms?: string[];
+    senders?: string[];
+    not_senders?: string[];
+    contains_url?: boolean;
+    limit?: number;
+    related_by_senders?: Array<RelationType | string>;
+    related_by_rel_types?: string[];
 
     // Unstable values
     "io.element.relation_senders"?: Array<RelationType | string>;

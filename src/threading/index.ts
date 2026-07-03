@@ -704,13 +704,12 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getThreadingManager")) return;
 
     MatrixClient.prototype.getThreadingManager = function (this: MatrixClient): ThreadingManager {
         registerManagerClass("threading", ThreadingManager);
-    return getOrCreateManager(this, "threading", () => new ThreadingManager(this));
+        return getOrCreateManager(this, "threading", () => new ThreadingManager(this));
     };
 }
 

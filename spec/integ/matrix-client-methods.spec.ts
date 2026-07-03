@@ -546,8 +546,8 @@ describe("MatrixClient", function () {
                                                 user_id: "@alice:localhost",
                                                 room_id: "!feuiwhf:localhost",
                                                 content: {
-                                                    "body": "thread reply",
-                                                    "msgtype": "m.text",
+                                                    body: "thread reply",
+                                                    msgtype: "m.text",
                                                     "m.relates_to": {
                                                         event_id: "$some-thread:server",
                                                         rel_type: THREAD_RELATION_TYPE.name,
@@ -604,8 +604,8 @@ describe("MatrixClient", function () {
                                         user_id: "@alice:localhost",
                                         room_id: "!feuiwhf:localhost",
                                         content: {
-                                            "body": "thread 1 reply 1",
-                                            "msgtype": "m.text",
+                                            body: "thread 1 reply 1",
+                                            msgtype: "m.text",
                                             "m.relates_to": {
                                                 event_id: "$thread1:server",
                                                 rel_type: THREAD_RELATION_TYPE.name,
@@ -623,8 +623,8 @@ describe("MatrixClient", function () {
                                                 user_id: "@alice:localhost",
                                                 room_id: "!feuiwhf:localhost",
                                                 content: {
-                                                    "body": "thread 2 reply 2",
-                                                    "msgtype": "m.text",
+                                                    body: "thread 2 reply 2",
+                                                    msgtype: "m.text",
                                                     "m.relates_to": {
                                                         event_id: "$thread2:server",
                                                         rel_type: THREAD_RELATION_TYPE.name,
@@ -670,8 +670,8 @@ describe("MatrixClient", function () {
                                         user_id: "@alice:localhost",
                                         room_id: "!feuiwhf:localhost",
                                         content: {
-                                            "body": "thread 1 reply 1",
-                                            "msgtype": "m.text",
+                                            body: "thread 1 reply 1",
+                                            msgtype: "m.text",
                                             "m.relates_to": {
                                                 event_id: "$thread1:server",
                                                 rel_type: THREAD_RELATION_TYPE.name,
@@ -1391,7 +1391,9 @@ describe("MatrixClient", function () {
                 })
                 .respond(200, {});
 
-            const prom = client.getIdentityServerManager().agreeToTerms(SERVICE_TYPES.IS, "https://vector.im", "at", terms);
+            const prom = client
+                .getIdentityServerManager()
+                .agreeToTerms(SERVICE_TYPES.IS, "https://vector.im", "at", terms);
             await httpBackend.flushAllExpected();
             await prom;
         });
@@ -1726,7 +1728,10 @@ describe("MatrixClient", function () {
                 })
                 .respond(200, {});
 
-            await Promise.all([client.getThreePidsManager().unbindThreePid("email", "alice@server.com"), httpBackend.flushAllExpected()]);
+            await Promise.all([
+                client.getThreePidsManager().unbindThreePid("email", "alice@server.com"),
+                httpBackend.flushAllExpected(),
+            ]);
         });
     });
 
@@ -1735,16 +1740,16 @@ describe("MatrixClient", function () {
         const encodedRoomId = encodeURIComponent(roomId);
 
         const roomSummary: RoomSummary = {
-            "room_id": roomId,
-            "name": "My Room",
-            "avatar_url": "",
-            "topic": "My room topic",
-            "world_readable": false,
-            "guest_can_join": false,
-            "num_joined_members": 1,
-            "room_type": "",
-            "join_rule": JoinRule.Public,
-            "membership": "leave",
+            room_id: roomId,
+            name: "My Room",
+            avatar_url: "",
+            topic: "My room topic",
+            world_readable: false,
+            guest_can_join: false,
+            num_joined_members: 1,
+            room_type: "",
+            join_rule: JoinRule.Public,
+            membership: "leave",
             "im.nheko.summary.room_version": "6",
             "im.nheko.summary.encryption": "algo",
         };
@@ -1913,18 +1918,18 @@ function withThreadId(event: MatrixEvent, newThreadId: string): MatrixEvent {
 const buildEventMessageInThread = (root: MatrixEvent) =>
     new MatrixEvent({
         content: {
-            "algorithm": "m.megolm.v1.aes-sha2",
-            "ciphertext": "ENCRYPTEDSTUFF",
-            "device_id": "XISFUZSKHH",
+            algorithm: "m.megolm.v1.aes-sha2",
+            ciphertext: "ENCRYPTEDSTUFF",
+            device_id: "XISFUZSKHH",
             "m.relates_to": {
-                "event_id": root.getId(),
+                event_id: root.getId(),
                 "m.in_reply_to": {
                     event_id: root.getId()!,
                 },
-                "rel_type": "m.thread",
+                rel_type: "m.thread",
             },
-            "sender_key": "i3N3CtG/CD2bGB8rA9fW6adLYSDvlUhf2iuU73L65Vg",
-            "session_id": "Ja11R/KG6ua0wdk8zAzognrxjio1Gm/RK2Gn6lFL804",
+            sender_key: "i3N3CtG/CD2bGB8rA9fW6adLYSDvlUhf2iuU73L65Vg",
+            session_id: "Ja11R/KG6ua0wdk8zAzognrxjio1Gm/RK2Gn6lFL804",
         },
         event_id: "$W4chKIGYowtBblVLkRimeIg8TcdjETnxhDPGfi6NpDg",
         origin_server_ts: 1643815466378,
@@ -1937,15 +1942,15 @@ const buildEventMessageInThread = (root: MatrixEvent) =>
 const buildEventPollResponseReference = () =>
     new MatrixEvent({
         content: {
-            "algorithm": "m.megolm.v1.aes-sha2",
-            "ciphertext": "ENCRYPTEDSTUFF",
-            "device_id": "XISFUZSKHH",
+            algorithm: "m.megolm.v1.aes-sha2",
+            ciphertext: "ENCRYPTEDSTUFF",
+            device_id: "XISFUZSKHH",
             "m.relates_to": {
                 event_id: "$VLS2ojbPmxb6x8ECetn45hmND6cRDcjgv-j-to9m7Vo",
                 rel_type: "m.reference",
             },
-            "sender_key": "i3N3CtG/CD2bGB8rA9fW6adLYSDvlUhf2iuU73L65Vg",
-            "session_id": "Ja11R/KG6ua0wdk8zAzognrxjio1Gm/RK2Gn6lFL804",
+            sender_key: "i3N3CtG/CD2bGB8rA9fW6adLYSDvlUhf2iuU73L65Vg",
+            session_id: "Ja11R/KG6ua0wdk8zAzognrxjio1Gm/RK2Gn6lFL804",
         },
         event_id: "$91JvpezvsF0cKgav3g8W-uEVS4WkDHgxbJZvL3uMR1g",
         origin_server_ts: 1643815458650,
@@ -2010,16 +2015,16 @@ const buildEventPollStartThreadRoot = () =>
 const buildEventReply = (target: MatrixEvent) =>
     new MatrixEvent({
         content: {
-            "algorithm": "m.megolm.v1.aes-sha2",
-            "ciphertext": "ENCRYPTEDSTUFF",
-            "device_id": "XISFUZSKHH",
+            algorithm: "m.megolm.v1.aes-sha2",
+            ciphertext: "ENCRYPTEDSTUFF",
+            device_id: "XISFUZSKHH",
             "m.relates_to": {
                 "m.in_reply_to": {
                     event_id: target.getId()!,
                 },
             },
-            "sender_key": "i3N3CtG/CD2bGB8rA9fW6adLYSDvlUhf2iuU73L65Vg",
-            "session_id": "Ja11R/KG6ua0wdk8zAzognrxjio1Gm/RK2Gn6lFL804",
+            sender_key: "i3N3CtG/CD2bGB8rA9fW6adLYSDvlUhf2iuU73L65Vg",
+            session_id: "Ja11R/KG6ua0wdk8zAzognrxjio1Gm/RK2Gn6lFL804",
         },
         event_id: target.getId()! + Math.random(),
         origin_server_ts: 1643815466378,

@@ -150,10 +150,7 @@ describe("KeyVerificationManager", () => {
             },
             "r0",
         );
-        expect(client.completeDeviceSigningVerification).toHaveBeenCalledWith(
-            { transaction_id: "txn-done" },
-            "v1",
-        );
+        expect(client.completeDeviceSigningVerification).toHaveBeenCalledWith({ transaction_id: "txn-done" }, "v1");
     });
 
     it("routes QR helpers through the verification contract paths", async () => {

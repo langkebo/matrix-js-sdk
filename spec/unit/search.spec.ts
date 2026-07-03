@@ -52,7 +52,9 @@ describe("search contract helpers", () => {
 
 describe("SearchManager", () => {
     it("performs search via http.authedRequest directly", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ search_categories: { room_events: { count: 1, results: [] } } });
+        const authedRequest = vi
+            .fn()
+            .mockResolvedValue({ search_categories: { room_events: { count: 1, results: [] } } });
         const client = {
             http: { authedRequest },
         };
@@ -64,17 +66,13 @@ describe("SearchManager", () => {
             search_categories: { room_events: { count: 1, results: [] } },
         });
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            "/search",
-            {},
-            body,
-            { abortSignal: undefined },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/search", {}, body, { abortSignal: undefined });
     });
 
     it("performs searchRecipients via http.authedRequest directly", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ results: [{ user_id: "@alice:example.com" }], count: 1, next_batch: null });
+        const authedRequest = vi
+            .fn()
+            .mockResolvedValue({ results: [{ user_id: "@alice:example.com" }], count: 1, next_batch: null });
         const client = {
             http: { authedRequest },
         };
@@ -102,7 +100,9 @@ describe("SearchManager", () => {
     });
 
     it("performs searchMessageText via http.authedRequest directly", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ search_categories: { room_events: { count: 2, results: [] } } });
+        const authedRequest = vi
+            .fn()
+            .mockResolvedValue({ search_categories: { room_events: { count: 2, results: [] } } });
         const client = {
             http: { authedRequest },
         };
@@ -123,7 +123,9 @@ describe("SearchManager", () => {
     });
 
     it("performs searchUserDirectory via http.authedRequest directly", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ results: [{ user_id: "@bob:example.com", display_name: "Bob" }], limited: false });
+        const authedRequest = vi
+            .fn()
+            .mockResolvedValue({ results: [{ user_id: "@bob:example.com", display_name: "Bob" }], limited: false });
         const client = {
             http: { authedRequest },
         };
@@ -135,11 +137,9 @@ describe("SearchManager", () => {
             limited: false,
         });
 
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            "/user_directory/search",
-            undefined,
-            { search_term: "bob", limit: 5 },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/user_directory/search", undefined, {
+            search_term: "bob",
+            limit: 5,
+        });
     });
 });

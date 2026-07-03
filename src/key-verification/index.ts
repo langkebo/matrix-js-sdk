@@ -246,13 +246,14 @@ export class KeyVerificationManager extends BaseManager {
             path: string,
             queryParams?: QueryDict,
             body?: Body,
-            requestOpts?: IRequestOpts,
-        ): Promise<T> => this.request<T>({
-            method: method,
-            path: path,
-            queryParams: queryParams,
-            body: body,
-        });
+            _requestOpts?: IRequestOpts,
+        ): Promise<T> =>
+            this.request<T>({
+                method: method,
+                path: path,
+                queryParams: queryParams,
+                body: body,
+            });
     }
 
     public startDeviceSigningVerification(
@@ -329,10 +330,16 @@ export class KeyVerificationManager extends BaseManager {
     }
 
     public showQrCodeHttp(version: VerificationApiVersion = "v1"): Promise<IShowQrCodeResponse> {
-        return showQrCodeHttpRequest<IShowQrCodeResponse>(resolveVerificationPrefix(version), this.getAuthedRequestProxy());
+        return showQrCodeHttpRequest<IShowQrCodeResponse>(
+            resolveVerificationPrefix(version),
+            this.getAuthedRequestProxy(),
+        );
     }
 
-    public scanQrCodeHttp(request: IScanQrCodeRequest, version: VerificationApiVersion = "v1"): Promise<IScanQrCodeResponse> {
+    public scanQrCodeHttp(
+        request: IScanQrCodeRequest,
+        version: VerificationApiVersion = "v1",
+    ): Promise<IScanQrCodeResponse> {
         return scanQrCodeHttpRequest<IScanQrCodeResponse>(
             request,
             resolveVerificationPrefix(version),
@@ -360,7 +367,7 @@ export class KeyVerificationManager extends BaseManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyVerificationManager = function (): KeyVerificationManager {
         registerManagerClass("keyVerification", KeyVerificationManager);
-    return getOrCreateManager(this, "keyVerification", () => new KeyVerificationManager(this));
+        return getOrCreateManager(this, "keyVerification", () => new KeyVerificationManager(this));
     };
 }
 

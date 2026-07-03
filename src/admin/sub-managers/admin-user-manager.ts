@@ -21,7 +21,37 @@ import { logger } from "../../logger";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
-import type { DeviceInfo, MediaInfo, AccountStatus, WhoisResponse, UserPusher, PaginatedResponse, AdminAccountDetails, ShadowBanStatus, RateLimitConfig, AdminLoginAsUserRequest, AdminLoginAsUserResponse, BatchCreateUsersRequest, BatchCreateUsersResponse, BatchDeactivateUsersRequest, BatchDeactivateUsersResponse, UpdateAccountDetailsRequest, UpdateAccountDetailsResponse, AdminLogoutResponse, AdminEvictResponse, UserSession, AdminToken, AdminRefreshToken, AdminLogoutRequest, AdminEvictRequest, UserStatsResponse, UserStatsListResponse, UserRoomsResponse, UserNotificationResponse, UserNotificationPayload } from "../types";
+import type {
+    DeviceInfo,
+    MediaInfo,
+    AccountStatus,
+    WhoisResponse,
+    UserPusher,
+    PaginatedResponse,
+    AdminAccountDetails,
+    ShadowBanStatus,
+    RateLimitConfig,
+    AdminLoginAsUserRequest,
+    AdminLoginAsUserResponse,
+    BatchCreateUsersRequest,
+    BatchCreateUsersResponse,
+    BatchDeactivateUsersRequest,
+    BatchDeactivateUsersResponse,
+    UpdateAccountDetailsRequest,
+    UpdateAccountDetailsResponse,
+    AdminLogoutResponse,
+    AdminEvictResponse,
+    UserSession,
+    AdminToken,
+    AdminRefreshToken,
+    AdminLogoutRequest,
+    AdminEvictRequest,
+    UserStatsResponse,
+    UserStatsListResponse,
+    UserRoomsResponse,
+    UserNotificationResponse,
+    UserNotificationPayload,
+} from "../types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../../@types/synapse";
 import { MatrixClient } from "../../client";
 
@@ -47,7 +77,10 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     /**
      * 获取用户列表（统一分页格式）
      */
-    async getUsersPaginated(options?: { from?: string; limit?: number }): Promise<PaginatedResponse<AdminAccountDetails>> {
+    async getUsersPaginated(options?: {
+        from?: string;
+        limit?: number;
+    }): Promise<PaginatedResponse<AdminAccountDetails>> {
         if (options?.limit !== undefined) {
             AdminValidators.validateLimit(options.limit);
         }
@@ -66,7 +99,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             }>(Method.Get, "/v2/users", buildQueryParams(queryParams));
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 response = await this.adminRequest<{
                     users: AdminAccountDetails[];
                     next_token?: string;
@@ -101,7 +134,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
                 );
             } catch (e) {
                 const err = e as MatrixError;
-                if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+                if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                     return await this.adminRequest<AdminAccountDetails>(
                         Method.Get,
                         `/users/${encodeURIComponent(userId)}`,
@@ -163,7 +196,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}`);
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.v2Request(Method.Delete, `/v2/users/${encodeURIComponent(userId)}`);
                 return;
             }
@@ -211,7 +244,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             );
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 response = await this.v2Request<{ devices: DeviceInfo[] }>(
                     Method.Get,
                     `/v2/users/${encodeURIComponent(userId)}/devices`,
@@ -243,10 +276,13 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         if (!deviceId) throw new ValidationError("Device ID is required");
         try {
-            await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`);
+            await this.adminRequest(
+                Method.Delete,
+                `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`,
+            );
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(
                     Method.Post,
                     `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}/delete`,
@@ -425,11 +461,15 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
 
     async getShadowBanStatus(userId: string, throwOnError = true): Promise<ShadowBanStatus | null> {
         try {
-            return await this.adminRequest<ShadowBanStatus>(Method.Get, `/users/${encodeURIComponent(userId)}/shadow_ban`);
-        // @swallow-error { owner: "admin", expires: "2026-12-31" }
+            return await this.adminRequest<ShadowBanStatus>(
+                Method.Get,
+                `/users/${encodeURIComponent(userId)}/shadow_ban`,
+            );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
-            if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) return null;
+            if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)))
+                return null;
             throw e;
         }
     }
@@ -443,10 +483,13 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             }
             try {
                 return await this.getRateLimitOverride(userId, throwOnError);
-            // @swallow-error { owner: "admin", expires: "2026-12-31" }
+                // @swallow-error { owner: "admin", expires: "2026-12-31" }
             } catch (fallbackErr) {
                 const err = fallbackErr as MatrixError;
-                if (!throwOnError && ((fallbackErr instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) {
+                if (
+                    !throwOnError &&
+                    (fallbackErr instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))
+                ) {
                     return null;
                 }
                 throw fallbackErr;
@@ -459,8 +502,13 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/rate_limit`, {}, config);
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/override_ratelimit`, {}, config);
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
+                await this.adminRequest(
+                    Method.Post,
+                    `/users/${encodeURIComponent(userId)}/override_ratelimit`,
+                    {},
+                    config,
+                );
                 return;
             }
             throw e;
@@ -472,7 +520,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/rate_limit`);
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.deleteRateLimitOverride(userId);
                 return;
             }
@@ -485,7 +533,10 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         return await this.adminRequest<AdminAccountDetails>(Method.Get, `/account/${encodeURIComponent(userId)}`);
     }
 
-    async updateAccountDetails(userId: string, payload: UpdateAccountDetailsRequest): Promise<UpdateAccountDetailsResponse> {
+    async updateAccountDetails(
+        userId: string,
+        payload: UpdateAccountDetailsRequest,
+    ): Promise<UpdateAccountDetailsResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Post, `/account/${encodeURIComponent(userId)}`, {}, payload);
     }
@@ -505,7 +556,10 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async whoisByDevice(userId: string, deviceId: string): Promise<WhoisResponse> {
         AdminValidators.validateUserId(userId);
         if (!deviceId) throw new ValidationError("Device ID is required");
-        return await this.adminRequest(Method.Get, `/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`);
+        return await this.adminRequest(
+            Method.Get,
+            `/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`,
+        );
     }
 
     async getUserMedia(
@@ -562,11 +616,21 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     }
 
     async blockEventReportUser(userId: string, payload: { blocked_until?: number; reason?: string }): Promise<void> {
-        await this.adminRequest(Method.Post, `/event_reports/rate_limit/${encodeURIComponent(userId)}/block`, {}, payload);
+        await this.adminRequest(
+            Method.Post,
+            `/event_reports/rate_limit/${encodeURIComponent(userId)}/block`,
+            {},
+            payload,
+        );
     }
 
     async unblockEventReportUser(userId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`, {}, undefined);
+        await this.adminRequest(
+            Method.Post,
+            `/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`,
+            {},
+            undefined,
+        );
     }
 
     // ===== Synapse-specific admin methods =====

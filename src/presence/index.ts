@@ -662,11 +662,10 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPresenceManager = function (): PresenceManager {
         registerManagerClass("presence", PresenceManager);
-    return getOrCreateManager(this, "presence", () => new PresenceManager(this));
+        return getOrCreateManager(this, "presence", () => new PresenceManager(this));
     };
 
     MatrixClient.prototype.setPresence = function (

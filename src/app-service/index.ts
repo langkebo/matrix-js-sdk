@@ -347,7 +347,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
 
             if (typeof response?.exists === "boolean") return response.exists;
             return response?.application_service != null;
-        // @swallow-error { owner: "app-service", expires: "2026-12-31" }
+            // @swallow-error { owner: "app-service", expires: "2026-12-31" }
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "checkUserId"));
             return false;
@@ -376,7 +376,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
 
             if (typeof response?.exists === "boolean") return response.exists;
             return response?.application_service != null;
-        // @swallow-error { owner: "app-service", expires: "2026-12-31" }
+            // @swallow-error { owner: "app-service", expires: "2026-12-31" }
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "checkAlias"));
             return false;
@@ -392,7 +392,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                     prefix: ClientPrefix.V1,
                 });
             }, "getUserAppservices");
-        // @swallow-error { owner: "app-service", expires: "2026-12-31" }
+            // @swallow-error { owner: "app-service", expires: "2026-12-31" }
         } catch (error) {
             this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "getUserAppservices"));
             return null;
@@ -533,7 +533,9 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "listApplicationServiceUsers");
     }
 
-    async getApplicationServiceNamespaces(asId: string): Promise<Record<string, unknown> /* Dynamic: namespaces stored as raw JSON */> {
+    async getApplicationServiceNamespaces(
+        asId: string,
+    ): Promise<Record<string, unknown> /* Dynamic: namespaces stored as raw JSON */> {
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
@@ -560,7 +562,9 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "listApplicationServiceEvents");
     }
 
-    async getApplicationServiceStatistics(asId: string): Promise<Record<string, unknown> /* Dynamic: statistics shape varies by backend version */> {
+    async getApplicationServiceStatistics(
+        asId: string,
+    ): Promise<Record<string, unknown> /* Dynamic: statistics shape varies by backend version */> {
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,

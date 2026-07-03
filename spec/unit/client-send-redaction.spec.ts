@@ -51,7 +51,7 @@ describe("client send redaction helper", () => {
                 txnId: "txn-1",
                 threadId: null,
             }),
-        ).toEqual({ "reason": "cleanup", "m.relates_to_types": ["m.reference"] });
+        ).toEqual({ reason: "cleanup", "m.relates_to_types": ["m.reference"] });
     });
 
     it("uses the unstable relation property when the server reports unstable support", () => {
@@ -65,6 +65,6 @@ describe("client send redaction helper", () => {
                 txnId: "txn-1",
                 threadId: "$thread:example.org",
             }),
-        ).toEqual({ "reason": "cleanup", "org.matrix.msc3912.with_relations": ["m.reference"] });
+        ).toEqual({ reason: "cleanup", "org.matrix.msc3912.with_relations": ["m.reference"] });
     });
 });

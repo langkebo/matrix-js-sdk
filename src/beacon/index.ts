@@ -119,11 +119,10 @@ export class BeaconManager extends BaseManager<keyof BeaconManagerEvents, Beacon
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getBeaconManager = function (): BeaconManager {
         registerManagerClass("beacon", BeaconManager);
-    return getOrCreateManager(this, "beacon", () => new BeaconManager(this));
+        return getOrCreateManager(this, "beacon", () => new BeaconManager(this));
     };
 }
 

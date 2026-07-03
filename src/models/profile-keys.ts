@@ -21,5 +21,3 @@ limitations under the License.
  * This key was introduced in Matrix v1.16.
  */
 export const ProfileKeyTimezone = "m.tz";
-
-

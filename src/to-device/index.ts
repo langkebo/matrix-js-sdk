@@ -111,7 +111,9 @@ export class ToDeviceManager extends BaseManager {
      * Queue a ToDeviceBatch for batch sending via the client's ToDeviceMessageQueue.
      */
     async queueToDeviceBatch(batch: ModelToDeviceBatch): Promise<void> {
-        return (this.client as unknown as { toDeviceMessageQueue: { queueBatch(batch: ModelToDeviceBatch): Promise<void> } }).toDeviceMessageQueue.queueBatch(batch);
+        return (
+            this.client as unknown as { toDeviceMessageQueue: { queueBatch(batch: ModelToDeviceBatch): Promise<void> } }
+        ).toDeviceMessageQueue.queueBatch(batch);
     }
 
     /**
@@ -178,11 +180,10 @@ export class ToDeviceManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getToDeviceManager = function (): ToDeviceManager {
         registerManagerClass("toDevice", ToDeviceManager);
-    return getOrCreateManager(this, "toDevice", () => new ToDeviceManager(this));
+        return getOrCreateManager(this, "toDevice", () => new ToDeviceManager(this));
     };
 }
 

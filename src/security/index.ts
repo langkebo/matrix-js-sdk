@@ -27,7 +27,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { logger } from "../logger";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-const ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
+const _ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
 
 export interface AccountStatus {
     locked: boolean;
@@ -70,7 +70,7 @@ export class SecurityManager extends BaseManager {
                 suspended: response.suspended ?? false,
                 verified: response.verified ?? false,
             };
-        // @swallow-error { owner: "security", expires: "2026-12-31" }
+            // @swallow-error { owner: "security", expires: "2026-12-31" }
         } catch (e) {
             logger.debug("SecurityManager.getAccountStatus failed", e);
             return null;
@@ -119,7 +119,7 @@ export class SecurityManager extends BaseManager {
                 }
             }
             return failures;
-        // @swallow-error { owner: "security", expires: "2026-12-31" }
+            // @swallow-error { owner: "security", expires: "2026-12-31" }
         } catch (e) {
             logger.debug("SecurityManager.listLoginFailures failed", e);
             return [];
@@ -155,11 +155,10 @@ export class SecurityManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecurityManager = function (): SecurityManager {
         registerManagerClass("security", SecurityManager);
-    return getOrCreateManager(this, "security", () => new SecurityManager(this));
+        return getOrCreateManager(this, "security", () => new SecurityManager(this));
     };
 }
 

@@ -62,10 +62,7 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
     }
 
     public async inviteUserToRoom(userId: string, roomId: string): Promise<IInviteResponse> {
-        return this.withRetry(
-            () => this.client.inviteUserToRoom(userId, roomId),
-            "inviteUserToRoom",
-        );
+        return this.withRetry(() => this.client.inviteUserToRoom(userId, roomId), "inviteUserToRoom");
     }
 
     public getInviteEvents(): IInviteEvent[] {
@@ -77,25 +74,18 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
     }
 
     public async acceptInvite(roomId: string): Promise<IInviteResponse> {
-        return this.withRetry(
-            () => this.client.acceptInvite(roomId),
-            "acceptInvite",
-        );
+        return this.withRetry(() => this.client.acceptInvite(roomId), "acceptInvite");
     }
 
     public async declineInvite(roomId: string): Promise<IInviteResponse> {
-        return this.withRetry(
-            () => this.client.declineInvite(roomId),
-            "declineInvite",
-        );
+        return this.withRetry(() => this.client.declineInvite(roomId), "declineInvite");
     }
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getInvitesManager = function (): InvitesManager {
         registerManagerClass("invites", InvitesManager);
-    return getOrCreateManager(this, "invites", () => new InvitesManager(this));
+        return getOrCreateManager(this, "invites", () => new InvitesManager(this));
     };
 }
 

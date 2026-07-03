@@ -67,15 +67,15 @@ import { type POLICIES_ACCOUNT_EVENT_TYPE } from "../models/invites-ignorer-type
 export interface Policies {
     [policyType: string]:
         | {
-            [policyId: string]: {
-                entity: string;
-                recommendation?: string;
-                reason?: string;
-            };
-        }
+              [policyId: string]: {
+                  entity: string;
+                  recommendation?: string;
+                  reason?: string;
+              };
+          }
         | {
-            [key: string]: unknown;
-        };
+              [key: string]: unknown;
+          };
 }
 
 export enum EventType {

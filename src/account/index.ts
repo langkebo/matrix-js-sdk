@@ -288,7 +288,7 @@ export class AccountManager extends BaseManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAccountManager = function (): AccountManager {
         registerManagerClass("account", AccountManager);
-    return getOrCreateManager(this, "account", () => new AccountManager(this));
+        return getOrCreateManager(this, "account", () => new AccountManager(this));
     };
 }
 

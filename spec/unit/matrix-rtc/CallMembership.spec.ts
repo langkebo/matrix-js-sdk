@@ -49,12 +49,12 @@ describe("CallMembership", () => {
         });
 
         const membershipTemplate: SessionMembershipData = {
-            "call_id": "",
-            "scope": "m.room",
-            "application": "m.call",
-            "device_id": "AAAAAAA",
-            "focus_active": { type: "livekit", focus_selection: "oldest_membership" },
-            "foci_preferred": [{ type: "livekit" }],
+            call_id: "",
+            scope: "m.room",
+            application: "m.call",
+            device_id: "AAAAAAA",
+            focus_active: { type: "livekit", focus_selection: "oldest_membership" },
+            foci_preferred: [{ type: "livekit" }],
             "m.call.intent": "voice",
         };
 
@@ -198,7 +198,7 @@ describe("CallMembership", () => {
                 expect(membership.application).toStrictEqual("m.call");
             });
             it("returns correct applicationData", () => {
-                expect(membership.applicationData).toStrictEqual({ "type": "m.call", "m.call.intent": "voice" });
+                expect(membership.applicationData).toStrictEqual({ type: "m.call", "m.call.intent": "voice" });
             });
             it("returns correct memberId", () => {
                 expect(membership.memberId).toBe("@alice:example.org:AAAAAAA");
@@ -214,7 +214,7 @@ describe("CallMembership", () => {
     describe("RtcMembershipData", () => {
         const membershipTemplate: RtcMembershipData = {
             slot_id: "m.call#",
-            application: { "type": "m.call", "m.call.id": "", "m.call.intent": "voice" },
+            application: { type: "m.call", "m.call.id": "", "m.call.intent": "voice" },
             member: { user_id: "@alice:example.org", device_id: "AAAAAAA", id: "xyzHASHxyz" },
             rtc_transports: [{ type: "livekit" }],
             versions: [],
@@ -372,7 +372,7 @@ describe("CallMembership", () => {
             });
             it("returns correct applicationData", () => {
                 expect(membership.applicationData).toStrictEqual({
-                    "type": "m.call",
+                    type: "m.call",
                     "m.call.id": "",
                     "m.call.intent": "voice",
                 });
@@ -417,7 +417,7 @@ describe("CallMembership", () => {
                 kind: "rtc",
                 data: {
                     slot_id: "m.call#",
-                    application: { "type": "m.call", "m.call.id": "", "m.call.intent": "voice" },
+                    application: { type: "m.call", "m.call.id": "", "m.call.intent": "voice" },
                     member: { user_id: "@alice:example.org", device_id: "AAAAAAA", id: "xyzRANDOMxyz" },
                     rtc_transports: [{ type: "livekit" }],
                     versions: [],

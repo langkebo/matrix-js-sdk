@@ -51,7 +51,11 @@ export class AdminMediaManager extends AdminBaseManager {
             }
         }
         const queryParams = buildPaginationParams(limit, from);
-        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(Method.Get, "/media", queryParams);
+        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(
+            Method.Get,
+            "/media",
+            queryParams,
+        );
         return { media: response.media || [], next_token: response.next_token };
     }
 

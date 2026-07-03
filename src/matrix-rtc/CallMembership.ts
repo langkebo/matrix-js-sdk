@@ -45,21 +45,21 @@ type Member = {
 };
 
 export interface RtcMembershipData extends IContent {
-    "slot_id": string;
-    "member": Member;
+    slot_id: string;
+    member: Member;
     "m.relates_to"?: {
         event_id: string;
         rel_type: RelationType.Reference;
     };
-    "application": {
+    application: {
         type: string;
         // other application specific keys
         [key: string]: unknown;
     };
-    "rtc_transports": Transport[];
-    "versions": string[];
-    "msc4354_sticky_key"?: string;
-    "sticky_key"?: string;
+    rtc_transports: Transport[];
+    versions: string[];
+    msc4354_sticky_key?: string;
+    sticky_key?: string;
 }
 
 type MembershipApplication = {
@@ -108,7 +108,12 @@ const checkRtcMembershipData = (
     } else {
         // validate that each transport has at least a string 'type'
         for (const t of data.rtc_transports) {
-            if (typeof t !== "object" || t === null || typeof (t as Record<string, unknown> /* Dynamic: validating untyped transport object */).type !== "string") {
+            if (
+                typeof t !== "object" ||
+                t === null ||
+                typeof (t as Record<string, unknown>) /* Dynamic: validating untyped transport object */.type !==
+                    "string"
+            ) {
                 errors.push(prefix + "rtc_transports entries must be objects with a string type");
                 break;
             }
@@ -158,7 +163,7 @@ export type SessionMembershipData = IContent & {
     /**
      * The RTC application defines the type of the RTC session.
      */
-    "application": string;
+    application: string;
 
     /**
      * The id of this session.
@@ -166,23 +171,23 @@ export type SessionMembershipData = IContent & {
      * multiple session in one room. A room wide session that is not associated with a user,
      * and therefore immune to creation race conflicts, uses the `call_id: ""`.
      */
-    "call_id": string;
+    call_id: string;
 
     /**
      * The Matrix device ID of this session. A single user can have multiple sessions on different devices.
      */
-    "device_id": string;
+    device_id: string;
 
     /**
      * The focus selection system this user/membership is using.
      */
-    "focus_active": LivekitFocusSelection;
+    focus_active: LivekitFocusSelection;
 
     /**
      * A list of possible foci this user knows about. One of them might be used based on the focus_active
      * selection system.
      */
-    "foci_preferred": Transport[];
+    foci_preferred: Transport[];
 
     /**
      * Optional field that contains the creation of the session. If it is undefined the creation
@@ -191,7 +196,7 @@ export type SessionMembershipData = IContent & {
      *  - If it is undefined it can be interpreted as a "Join".
      *  - If it is defined it can be interpreted as an "Update"
      */
-    "created_ts"?: number;
+    created_ts?: number;
 
     // Application specific data
 
@@ -199,14 +204,14 @@ export type SessionMembershipData = IContent & {
      * If the `application` = `"m.call"` this defines if it is a room or user owned call.
      * There can always be one room scoped call but multiple user owned calls (breakout sessions)
      */
-    "scope"?: CallScope;
+    scope?: CallScope;
 
     /**
      * Optionally we allow to define a delta to the `created_ts` that defines when the event is expired/invalid.
      * This should be set to multiple hours. The only reason it exist is to deal with failed delayed events.
      * (for example caused by a homeserver crashes)
      **/
-    "expires"?: number;
+    expires?: number;
 
     /**
      * The intent of the call from the perspective of this user. This may be an audio call, video call or
@@ -216,7 +221,7 @@ export type SessionMembershipData = IContent & {
     /**
      * The sticky key in case of a sticky event. This string encodes the application + device_id indicating the used slot + device.
      */
-    "msc4354_sticky_key"?: string;
+    msc4354_sticky_key?: string;
 
     /**
      * The id used on the media backend.
@@ -225,7 +230,7 @@ export type SessionMembershipData = IContent & {
      *
      * It is compleatly valid to not set this field. Other clients will treat `undefined` as `${this.matrixEventData.sender}:${data.device_id}`
      */
-    "membershipID"?: string;
+    membershipID?: string;
 };
 
 const checkSessionsMembershipData = (data: IContent, errors: string[]): data is SessionMembershipData => {
@@ -478,7 +483,7 @@ export class CallMembership {
                 return data.application;
             case "session":
             default:
-                return { "type": data.application, "m.call.intent": data["m.call.intent"] };
+                return { type: data.application, "m.call.intent": data["m.call.intent"] };
         }
     }
     /**

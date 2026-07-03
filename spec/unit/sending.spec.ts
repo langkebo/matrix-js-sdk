@@ -45,9 +45,9 @@ describe("SendingManager", () => {
 
     it("sendEvent should propagate client errors", async () => {
         mockClient.sendEvent.mockRejectedValue(new Error("Send failed"));
-        await expect(
-            manager.sendEvent("!room:example.com", "m.room.message", { body: "hello" }),
-        ).rejects.toThrow("Send failed");
+        await expect(manager.sendEvent("!room:example.com", "m.room.message", { body: "hello" })).rejects.toThrow(
+            "Send failed",
+        );
     });
 
     // ─── sendMessage ──────────────────────────────────────────────────
@@ -63,23 +63,13 @@ describe("SendingManager", () => {
     it("sendMessage should pass threadId when provided", async () => {
         const content = { body: "Hello", msgtype: "m.text" } as any;
         await manager.sendMessage("!room:example.com", "$thread456", content);
-        expect(mockClient.sendMessage).toHaveBeenCalledWith(
-            "!room:example.com",
-            "$thread456",
-            content,
-            undefined,
-        );
+        expect(mockClient.sendMessage).toHaveBeenCalledWith("!room:example.com", "$thread456", content, undefined);
     });
 
     it("sendMessage should pass null threadId correctly", async () => {
         const content = { body: "Hello", msgtype: "m.text" } as any;
         await manager.sendMessage("!room:example.com", null, content);
-        expect(mockClient.sendMessage).toHaveBeenCalledWith(
-            "!room:example.com",
-            null,
-            content,
-            undefined,
-        );
+        expect(mockClient.sendMessage).toHaveBeenCalledWith("!room:example.com", null, content, undefined);
     });
 
     // ─── sendTextMessage ─────────────────────────────────────────────
@@ -150,7 +140,12 @@ describe("SendingManager", () => {
 
     it("sendNotice should pass threadId when provided", async () => {
         await manager.sendNotice("!room:example.com", "$t-notice", "Notice in thread");
-        expect(mockClient.sendNotice).toHaveBeenCalledWith("!room:example.com", "$t-notice", "Notice in thread", undefined);
+        expect(mockClient.sendNotice).toHaveBeenCalledWith(
+            "!room:example.com",
+            "$t-notice",
+            "Notice in thread",
+            undefined,
+        );
     });
 
     it("sendNotice should propagate client errors", async () => {
@@ -196,19 +191,14 @@ describe("SendingManager", () => {
         };
         const result = await manager.sendFile("!room:example.com", content);
         expect(result.event_id).toBe("$file1");
-        expect(mockClient.sendMessage).toHaveBeenCalledWith(
-            "!room:example.com",
-            null,
-            content,
-            undefined,
-        );
+        expect(mockClient.sendMessage).toHaveBeenCalledWith("!room:example.com", null, content, undefined);
     });
 
     it("sendFile should propagate client errors", async () => {
         mockClient.sendMessage.mockRejectedValue(new Error("File send failed"));
-        await expect(
-            manager.sendFile("!room:example.com", { body: "test.pdf", msgtype: "m.file" }),
-        ).rejects.toThrow("File send failed");
+        await expect(manager.sendFile("!room:example.com", { body: "test.pdf", msgtype: "m.file" })).rejects.toThrow(
+            "File send failed",
+        );
     });
 
     // ─── extendMatrixClient export ─────────────────────────────────

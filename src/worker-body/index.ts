@@ -80,7 +80,12 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         super(client, opts);
     }
 
-    private doRequest<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {
+    private doRequest<T>(
+        method: Method,
+        path: string,
+        queryParams?: Record<string, string>,
+        body?: unknown,
+    ): Promise<T> {
         return this.withRetry(async () => {
             return this.request({
                 method: method,
@@ -197,7 +202,9 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         }
         return this.doRequest(
             Method.Put,
-            wb(`/v1/replication/${encodeURIComponent(workerId)}/${encodeURIComponent(streamName)}` as StripWorkerPrefix<WorkerBodyPathPattern>),
+            wb(
+                `/v1/replication/${encodeURIComponent(workerId)}/${encodeURIComponent(streamName)}` as StripWorkerPrefix<WorkerBodyPathPattern>,
+            ),
             undefined,
             { stream_name: streamName, position },
         );
@@ -210,10 +217,9 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWorkerBodyManager = function (): WorkerBodyManager {
         registerManagerClass("workerBody", WorkerBodyManager);
-    return getOrCreateManager(this, "workerBody", () => new WorkerBodyManager(this));
+        return getOrCreateManager(this, "workerBody", () => new WorkerBodyManager(this));
     };
 }

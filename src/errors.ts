@@ -205,7 +205,9 @@ export class RetryableError extends SdkError {
     public constructor(message: string, cause?: unknown) {
         const errcode = extractStringField(cause, "errcode") || "RETRYABLE";
         const httpStatus = extractNumberField(cause, "httpStatus") || 500;
-        const retryAfter = extractNumberField(cause, "retryAfter") || extractNestedField(cause, "data", "retry_after_ms") as number | undefined;
+        const retryAfter =
+            extractNumberField(cause, "retryAfter") ||
+            (extractNestedField(cause, "data", "retry_after_ms") as number | undefined);
         const traceId = extractHeaderField(cause, "x-trace-id");
 
         super(message, {

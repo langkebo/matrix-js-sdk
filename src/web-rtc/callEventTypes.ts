@@ -47,9 +47,9 @@ export interface MCallBase extends IContent {
 type Description = Pick<RTCSessionDescription, "type" | "sdp">;
 
 export interface MCallAnswer extends MCallBase {
-    "answer": Description;
-    "capabilities"?: CallCapabilities;
-    "sdp_stream_metadata"?: SDPStreamMetadata;
+    answer: Description;
+    capabilities?: CallCapabilities;
+    sdp_stream_metadata?: SDPStreamMetadata;
     "org.matrix.msc3077.sdp_stream_metadata"?: SDPStreamMetadata;
 }
 
@@ -58,19 +58,19 @@ export interface MCallSelectAnswer extends MCallBase {
 }
 
 export interface MCallInviteNegotiate extends MCallBase {
-    "offer": Description;
-    "description": Description;
-    "lifetime": number;
-    "capabilities"?: CallCapabilities;
-    "invitee"?: string;
-    "sender_session_id"?: string;
-    "dest_session_id"?: string;
-    "sdp_stream_metadata"?: SDPStreamMetadata;
+    offer: Description;
+    description: Description;
+    lifetime: number;
+    capabilities?: CallCapabilities;
+    invitee?: string;
+    sender_session_id?: string;
+    dest_session_id?: string;
+    sdp_stream_metadata?: SDPStreamMetadata;
     "org.matrix.msc3077.sdp_stream_metadata"?: SDPStreamMetadata;
 }
 
 export interface MCallSDPStreamMetadataChanged extends MCallBase {
-    "sdp_stream_metadata"?: SDPStreamMetadata;
+    sdp_stream_metadata?: SDPStreamMetadata;
     "org.matrix.msc3077.sdp_stream_metadata"?: SDPStreamMetadata;
 }
 

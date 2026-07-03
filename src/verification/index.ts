@@ -28,7 +28,9 @@ function vp<P extends VerificationManagerPathPattern>(path: P): P {
     return path;
 }
 
-function verificationPrefix(version: VerificationApiVersion = "v1"): ClientPrefix.R0 | ClientPrefix.V1 | ClientPrefix.V3 {
+function verificationPrefix(
+    version: VerificationApiVersion = "v1",
+): ClientPrefix.R0 | ClientPrefix.V1 | ClientPrefix.V3 {
     if (version === "r0") {
         return ClientPrefix.R0;
     }
@@ -298,10 +300,7 @@ export class VerificationManager extends BaseManager {
         }, "showQrCode");
     }
 
-    public async scanQrCode(
-        request: ScanQrCodeRequest,
-        version?: VerificationApiVersion,
-    ): Promise<ScanQrCodeResponse> {
+    public async scanQrCode(request: ScanQrCodeRequest, version?: VerificationApiVersion): Promise<ScanQrCodeResponse> {
         this.requireNonEmptyString(request.transaction_id, "transaction_id");
         this.requireNonEmptyString(request.server_name, "server_name");
         this.requireNonEmptyString(request.user_id, "user_id");
@@ -317,14 +316,12 @@ export class VerificationManager extends BaseManager {
             });
         }, "scanQrCode");
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVerificationManager = function (): VerificationManager {
         registerManagerClass("verification", VerificationManager);
-    return getOrCreateManager(this, "verification", () => new VerificationManager(this));
+        return getOrCreateManager(this, "verification", () => new VerificationManager(this));
     };
 }
 

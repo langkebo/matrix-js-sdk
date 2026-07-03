@@ -299,11 +299,10 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSendingManager = function (): SendingManager {
         registerManagerClass("sending", SendingManager);
-    return getOrCreateManager(this, "sending", () => new SendingManager(this));
+        return getOrCreateManager(this, "sending", () => new SendingManager(this));
     };
 }
 

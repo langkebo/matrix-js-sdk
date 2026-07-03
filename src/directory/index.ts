@@ -147,11 +147,10 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDirectoryManager = function (): DirectoryManager {
         registerManagerClass("directory", DirectoryManager);
-    return getOrCreateManager(this, "directory", () => new DirectoryManager(this));
+        return getOrCreateManager(this, "directory", () => new DirectoryManager(this));
     };
 }
 

@@ -50,10 +50,7 @@ export class RoomUpgradesManager extends BaseManager<keyof RoomUpgradesManagerEv
     }
 
     public async upgradeRoom(roomId: string, newVersion: string): Promise<IUpgradeRoomResponse> {
-        return this.withRetry(
-            () => this.client.upgradeRoom(roomId, newVersion),
-            "upgradeRoom",
-        );
+        return this.withRetry(() => this.client.upgradeRoom(roomId, newVersion), "upgradeRoom");
     }
 
     public canUpgradeRoom(roomId: string): boolean {
@@ -61,18 +58,14 @@ export class RoomUpgradesManager extends BaseManager<keyof RoomUpgradesManagerEv
     }
 
     public async getRecommendedRoomVersion(): Promise<string> {
-        return this.withRetry(
-            () => this.client.getRecommendedRoomVersion(),
-            "getRecommendedRoomVersion",
-        );
+        return this.withRetry(() => this.client.getRecommendedRoomVersion(), "getRecommendedRoomVersion");
     }
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomUpgradesManager = function (): RoomUpgradesManager {
         registerManagerClass("roomUpgrades", RoomUpgradesManager);
-    return getOrCreateManager(this, "roomUpgrades", () => new RoomUpgradesManager(this));
+        return getOrCreateManager(this, "roomUpgrades", () => new RoomUpgradesManager(this));
     };
 }
 

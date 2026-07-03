@@ -62,13 +62,13 @@ describe("Read receipt", () => {
             user: "@bob:matrix.org",
             room: ROOM_ID,
             content: {
-                "body": "Hello from a thread",
+                body: "Hello from a thread",
                 "m.relates_to": {
-                    "event_id": THREAD_ID,
+                    event_id: THREAD_ID,
                     "m.in_reply_to": {
                         event_id: THREAD_ID,
                     },
-                    "rel_type": "m.thread",
+                    rel_type: "m.thread",
                 },
             },
         });
@@ -272,13 +272,13 @@ describe("Read receipt", () => {
                 user: "@bob:matrix.org",
                 room: "!roomx",
                 content: {
-                    "body": "Hello from a thread",
+                    body: "Hello from a thread",
                     "m.relates_to": {
-                        "event_id": "$thread1",
+                        event_id: "$thread1",
                         "m.in_reply_to": {
                             event_id: "$thread1",
                         },
-                        "rel_type": "m.thread",
+                        rel_type: "m.thread",
                     },
                 },
             });
@@ -392,7 +392,7 @@ describe("Read receipt", () => {
                 event: true,
                 type: EventType.RoomRedaction,
                 content: {
-                    "body": "Edited!",
+                    body: "Edited!",
                     "m.new_content": {
                         body: "Edited!",
                     },
@@ -418,7 +418,7 @@ describe("Read receipt", () => {
                 event: true,
                 type: EventType.RoomRedaction,
                 content: {
-                    "body": "Edited!",
+                    body: "Edited!",
                     "m.new_content": {
                         body: "Edited!",
                     },

@@ -348,9 +348,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         if (!widgetId) throw new InvalidParamError("widget_id is required");
         if (!userId) throw new InvalidParamError("user_id is required");
         validateUserId(userId);
-        const path = wp(
-            `/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`,
-        );
+        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`);
         await this.withRetry(
             () =>
                 this.request<void>({
@@ -449,9 +447,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
         validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wpV3(
-            `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
-        );
+        const path = wpV3(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);
         return this.withRetry(
             () =>
                 this.request<IWidgetCapabilities>({
@@ -477,9 +473,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         if (!capabilities || capabilities.length === 0) {
             throw new InvalidParamError("capabilities must be a non-empty array");
         }
-        const path = wpV3(
-            `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
-        );
+        const path = wpV3(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);
         return this.withRetry(
             () =>
                 this.request<IWidgetCapabilities>({
@@ -503,9 +497,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     ): Promise<IWidgetSendResponse> {
         validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wpV3(
-            `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
-        );
+        const path = wpV3(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`);
         return this.withRetry(
             () =>
                 this.request<IWidgetSendResponse>({
@@ -557,11 +549,10 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
 // ============ MatrixClient extension ============
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWidgetManager = function (): WidgetManager {
         registerManagerClass("widget", WidgetManager);
-    return getOrCreateManager(this, "widget", () => new WidgetManager(this));
+        return getOrCreateManager(this, "widget", () => new WidgetManager(this));
     };
 }
 

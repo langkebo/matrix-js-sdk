@@ -5,17 +5,9 @@
  * C-6 token refresh behaviour, and M_UNRECOGNIZED 404 handling.
  */
 import { describe, it, expect } from "vitest";
-import {
-    MatrixErrorCode,
-    MATRIX_ERROR_HTTP_STATUS,
-} from "../../../src/@types/errors";
+import { MatrixErrorCode, MATRIX_ERROR_HTTP_STATUS } from "../../../src/@types/errors";
 
-const {
-    M_UNRECOGNIZED,
-    M_SERVER_NOT_TRUSTED,
-    M_REQUEST_TIMEOUT,
-    M_CANNOT_LEAVE_SERVER_NOTICE_ROOM,
-} = MatrixErrorCode;
+const { M_UNRECOGNIZED, M_SERVER_NOT_TRUSTED, M_REQUEST_TIMEOUT, M_CANNOT_LEAVE_SERVER_NOTICE_ROOM } = MatrixErrorCode;
 
 const ALL_CODES = Object.values(MatrixErrorCode);
 
@@ -52,10 +44,7 @@ describe("SDK-1: HTTP status mapping", () => {
 
     it("every error code has a known HTTP status", () => {
         for (const code of ALL_CODES) {
-            expect(
-                MATRIX_ERROR_HTTP_STATUS[code],
-                `${code} should have HTTP status mapping`,
-            ).toBeTypeOf("number");
+            expect(MATRIX_ERROR_HTTP_STATUS[code], `${code} should have HTTP status mapping`).toBeTypeOf("number");
         }
     });
 });

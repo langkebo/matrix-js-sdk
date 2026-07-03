@@ -91,15 +91,27 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
     }
 
     public async getServerRetentionPolicy(): Promise<RetentionPolicy> {
-        return await this.adminRequest<RetentionPolicy>(Method.Get, "/retention/policy", undefined, undefined, "getServerRetentionPolicy");
+        return await this.adminRequest<RetentionPolicy>(
+            Method.Get,
+            "/retention/policy",
+            undefined,
+            undefined,
+            "getServerRetentionPolicy",
+        );
     }
 
     public async setServerRetentionPolicy(policy: RetentionPolicy): Promise<RetentionPolicy> {
-        const response = await this.adminRequest<RetentionPolicy>(Method.Post, "/retention/policy", undefined, {
-            max_lifetime: policy.max_lifetime ?? null,
-            min_lifetime: policy.min_lifetime ?? null,
-            expire_on_clients: policy.expire_on_clients ?? false,
-        }, "setServerRetentionPolicy");
+        const response = await this.adminRequest<RetentionPolicy>(
+            Method.Post,
+            "/retention/policy",
+            undefined,
+            {
+                max_lifetime: policy.max_lifetime ?? null,
+                min_lifetime: policy.min_lifetime ?? null,
+                expire_on_clients: policy.expire_on_clients ?? false,
+            },
+            "setServerRetentionPolicy",
+        );
         this.emit("serverPolicyUpdated", { policy: response });
         return response;
     }
@@ -159,7 +171,13 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
     }
 
     public async getRetentionStatus(): Promise<IRetentionStatus> {
-        return await this.adminRequest<IRetentionStatus>(Method.Get, "/retention/status", undefined, undefined, "getRetentionStatus");
+        return await this.adminRequest<IRetentionStatus>(
+            Method.Get,
+            "/retention/status",
+            undefined,
+            undefined,
+            "getRetentionStatus",
+        );
     }
 
     public getRoomRetentionState(roomId: string): RetentionState {
@@ -230,11 +248,10 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRetentionManager = function (): RetentionManager {
         registerManagerClass("retention", RetentionManager);
-    return getOrCreateManager(this, "retention", () => new RetentionManager(this));
+        return getOrCreateManager(this, "retention", () => new RetentionManager(this));
     };
 }
 

@@ -290,14 +290,12 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
             securitySummary: this.securitySummaryCache.getStats(),
         };
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceTrustManager = function (): DeviceTrustManager {
         registerManagerClass("deviceTrust", DeviceTrustManager);
-    return getOrCreateManager(this, "deviceTrust", () => new DeviceTrustManager(this));
+        return getOrCreateManager(this, "deviceTrust", () => new DeviceTrustManager(this));
     };
 }
 

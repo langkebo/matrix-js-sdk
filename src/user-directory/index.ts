@@ -35,11 +35,13 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-type StripAuthPrefix<P extends string> =
-    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
-    P extends `/_matrix/client/r0${infer Rest}` ? Rest :
-    P extends `/_matrix/client/v1${infer Rest}` ? Rest :
-    P;
+type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}`
+    ? Rest
+    : P extends `/_matrix/client/r0${infer Rest}`
+      ? Rest
+      : P extends `/_matrix/client/v1${infer Rest}`
+        ? Rest
+        : P;
 
 function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
     return path;
@@ -110,11 +112,10 @@ export class UserDirectoryManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserDirectoryManager = function (): UserDirectoryManager {
         registerManagerClass("userDirectory", UserDirectoryManager);
-    return getOrCreateManager(this, "userDirectory", () => new UserDirectoryManager(this));
+        return getOrCreateManager(this, "userDirectory", () => new UserDirectoryManager(this));
     };
 }
 

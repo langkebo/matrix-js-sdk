@@ -382,7 +382,8 @@ export class InteractiveAuth<T> {
      * @param loginType - login type for the stage
      * @returns any parameters from the server for this stage
      */
-    public getStageParams(loginType: string): Record<string, unknown> | undefined { // Dynamic: UIA stage params vary per type
+    public getStageParams(loginType: string): Record<string, unknown> | undefined {
+        // Dynamic: UIA stage params vary per type
         return (this.data as IAuthData)?.params?.[loginType];
     }
 

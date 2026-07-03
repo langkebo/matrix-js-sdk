@@ -119,10 +119,10 @@ describe("MatrixRTCSession", () => {
                 await flushPromises();
 
                 if (testConfig.listenForMemberStateEvents) {
-                    // eslint-disable-next-line vitest/no-conditional-expect
+                     
                     expect(stateWarningWasLogged()).toBeTruthy();
                 } else {
-                    // eslint-disable-next-line vitest/no-conditional-expect
+                     
                     expect(stateWarningWasLogged()).toBeFalsy();
                 }
             });
@@ -558,23 +558,23 @@ describe("MatrixRTCSession", () => {
                 expect.any(String),
                 "org.matrix.msc3401.call.member",
                 {
-                    "application": "m.call",
-                    "call_id": "",
-                    "device_id": "AAAAAAA",
-                    "expires": 14400000,
-                    "foci_preferred": [
+                    application: "m.call",
+                    call_id: "",
+                    device_id: "AAAAAAA",
+                    expires: 14400000,
+                    foci_preferred: [
                         {
                             livekit_service_url: "htts://test.org",
                             type: "livekit",
                         },
                     ],
-                    "focus_active": {
+                    focus_active: {
                         focus_selection: "oldest_membership",
                         type: "livekit",
                     },
                     "m.call.intent": undefined,
-                    "membershipID": "@alice:example.org:AAAAAAA",
-                    "scope": "m.room",
+                    membershipID: "@alice:example.org:AAAAAAA",
+                    scope: "m.room",
                 },
                 "_@alice:example.org_AAAAAAA_m.call",
             );
@@ -667,27 +667,27 @@ describe("MatrixRTCSession", () => {
 
             expect(client.sendEvent).toHaveBeenCalledWith(mockRoom!.roomId, EventType.RTCNotification, {
                 "m.mentions": { user_ids: [], room: true },
-                "notification_type": "ring",
+                notification_type: "ring",
                 "m.relates_to": {
                     event_id: ownMembershipId,
                     rel_type: "m.reference",
                 },
-                "lifetime": 30000,
-                "sender_ts": expect.any(Number),
+                lifetime: 30000,
+                sender_ts: expect.any(Number),
             });
 
             await didSendNotification;
             // And ensure we emitted the DidSendCallNotification event with both payloads
             expect(didSendEventFn).toHaveBeenCalledWith({
-                "event_id": "new-evt",
-                "lifetime": 30000,
+                event_id: "new-evt",
+                lifetime: 30000,
                 "m.mentions": { room: true, user_ids: [] },
                 "m.relates_to": {
                     event_id: expect.any(String),
                     rel_type: "m.reference",
                 },
-                "notification_type": "ring",
-                "sender_ts": expect.any(Number),
+                notification_type: "ring",
+                sender_ts: expect.any(Number),
             });
         });
 
@@ -711,7 +711,7 @@ describe("MatrixRTCSession", () => {
             mockRoomState(mockRoom, [
                 {
                     ...membershipTemplate,
-                    "user_id": client.getUserId()!,
+                    user_id: client.getUserId()!,
                     // This is what triggers the intent type on the notification event.
                     "m.call.intent": "audio",
                 },
@@ -723,29 +723,29 @@ describe("MatrixRTCSession", () => {
 
             expect(client.sendEvent).toHaveBeenCalledWith(mockRoom!.roomId, EventType.RTCNotification, {
                 "m.mentions": { user_ids: [], room: true },
-                "notification_type": "ring",
+                notification_type: "ring",
                 "m.call.intent": "audio",
                 "m.relates_to": {
                     event_id: ownMembershipEventId,
                     rel_type: "m.reference",
                 },
-                "lifetime": 30000,
-                "sender_ts": expect.any(Number),
+                lifetime: 30000,
+                sender_ts: expect.any(Number),
             });
 
             await didSendNotification;
             // And ensure we emitted the DidSendCallNotification event with both payloads
             expect(didSendEventFn).toHaveBeenCalledWith({
-                "event_id": "new-evt",
-                "lifetime": 30000,
+                event_id: "new-evt",
+                lifetime: 30000,
                 "m.mentions": { room: true, user_ids: [] },
                 "m.relates_to": {
                     event_id: expect.any(String),
                     rel_type: "m.reference",
                 },
-                "notification_type": "ring",
+                notification_type: "ring",
                 "m.call.intent": "audio",
-                "sender_ts": expect.any(Number),
+                sender_ts: expect.any(Number),
             });
         });
 
@@ -806,7 +806,7 @@ describe("MatrixRTCSession", () => {
         });
 
         // TODO: re-enable this test when expiry is implemented
-        // eslint-disable-next-line vitest/no-commented-out-tests
+         
         // it("emits an event at the time a membership event expires", () => {
         //     vi.useFakeTimers();
         //     try {

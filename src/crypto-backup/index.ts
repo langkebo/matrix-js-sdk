@@ -110,11 +110,10 @@ export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoBackupManager = function (): CryptoBackupManager {
         registerManagerClass("cryptoBackup", CryptoBackupManager);
-    return getOrCreateManager(this, "cryptoBackup", () => new CryptoBackupManager(this));
+        return getOrCreateManager(this, "cryptoBackup", () => new CryptoBackupManager(this));
     };
 }
 

@@ -132,11 +132,10 @@ export class FilterManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFilterManager = function (): FilterManager {
         registerManagerClass("filter", FilterManager);
-    return getOrCreateManager(this, "filter", () => new FilterManager(this));
+        return getOrCreateManager(this, "filter", () => new FilterManager(this));
     };
 }
 

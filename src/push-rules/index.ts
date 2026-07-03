@@ -62,38 +62,23 @@ export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, 
     }
 
     public async getPushRules(): Promise<IPushRules> {
-        return this.withRetry(
-            () => this.client.getPushRules(),
-            "getPushRules",
-        );
+        return this.withRetry(() => this.client.getPushRules(), "getPushRules");
     }
 
     public async getPushRule(kind: string, ruleId: string): Promise<IPushRule | null> {
-        return this.withRetry(
-            () => this.client.getPushRule(kind, ruleId),
-            "getPushRule",
-        );
+        return this.withRetry(() => this.client.getPushRule(kind, ruleId), "getPushRule");
     }
 
     public async setPushRule(kind: string, ruleId: string, body: ISetPushRuleBody): Promise<void> {
-        return this.withRetry(
-            () => this.client.setPushRule(kind, ruleId, body),
-            "setPushRule",
-        );
+        return this.withRetry(() => this.client.setPushRule(kind, ruleId, body), "setPushRule");
     }
 
     public async deletePushRule(kind: string, ruleId: string): Promise<void> {
-        return this.withRetry(
-            () => this.client.deletePushRule(kind, ruleId),
-            "deletePushRule",
-        );
+        return this.withRetry(() => this.client.deletePushRule(kind, ruleId), "deletePushRule");
     }
 
     public async enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<void> {
-        return this.withRetry(
-            () => this.client.enablePushRule(kind, ruleId, enabled),
-            "enablePushRule",
-        );
+        return this.withRetry(() => this.client.enablePushRule(kind, ruleId, enabled), "enablePushRule");
     }
 
     public getPushRulesCached(): IPushRules | null {
@@ -101,11 +86,10 @@ export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPushRulesManager = function (): PushRulesManager {
         registerManagerClass("pushRules", PushRulesManager);
-    return getOrCreateManager(this, "pushRules", () => new PushRulesManager(this));
+        return getOrCreateManager(this, "pushRules", () => new PushRulesManager(this));
     };
 }
 

@@ -641,9 +641,7 @@ describe("RoomSummaryManager", () => {
         });
 
         it("should get room external ids via v3 endpoint", async () => {
-            authedRequest.mockResolvedValueOnce([
-                { provider: "slack", external_id: "room-123" },
-            ]);
+            authedRequest.mockResolvedValueOnce([{ provider: "slack", external_id: "room-123" }]);
 
             const result = await summaryManager.getRoomExternalIds("!room:example.com");
 

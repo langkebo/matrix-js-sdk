@@ -1302,10 +1302,10 @@ describe("Call", function () {
 
             await call.onAnswerReceived(
                 makeMockEvent("@test:foo", {
-                    "version": 1,
-                    "call_id": call.callId,
-                    "party_id": "party_id",
-                    "answer": {
+                    version: 1,
+                    call_id: call.callId,
+                    party_id: "party_id",
+                    answer: {
                         sdp: DUMMY_SDP,
                     },
                     "org.matrix.msc3077.sdp_stream_metadata": {
@@ -1505,7 +1505,7 @@ describe("Call", function () {
         const BOB_AVATAR_URL = "avatar.bob.foo";
 
         beforeEach(() => {
-            vi.mocked(client.client.getProfileManager().getProfileInfo).mockImplementation(async (userId) => {
+            vi.mocked(client.client.getProfileManager()!.getProfileInfo).mockImplementation(async (userId) => {
                 if (userId === ALICE_USER_ID) {
                     return {
                         displayname: ALICE_DISPLAY_NAME,

@@ -39,7 +39,12 @@ import { NotFoundError } from "../errors";
 import { logger } from "../logger";
 import { LRUCache } from "../utils/lru-cache";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { KeySignatures, IUploadKeySignaturesResponse, IDownloadKeyResult, IClaimOTKsResult } from "../client-api-types";
+import type {
+    KeySignatures,
+    IUploadKeySignaturesResponse,
+    IDownloadKeyResult,
+    IClaimOTKsResult,
+} from "../client-api-types";
 
 export interface IDeviceKeys {
     user_id: string;
@@ -237,9 +242,7 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
-    async uploadKeySignatures(
-        signatures: KeySignatures,
-    ): Promise<IUploadKeySignaturesResponse> {
+    async uploadKeySignatures(signatures: KeySignatures): Promise<IUploadKeySignaturesResponse> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<IUploadKeySignaturesResponse>({
@@ -317,14 +320,12 @@ export class CryptoKeysManager extends BaseManager {
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.deviceKeysCache.getStats();
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoKeysManager = function (): CryptoKeysManager {
         registerManagerClass("cryptoKeys", CryptoKeysManager);
-    return getOrCreateManager(this, "cryptoKeys", () => new CryptoKeysManager(this));
+        return getOrCreateManager(this, "cryptoKeys", () => new CryptoKeysManager(this));
     };
 }
 

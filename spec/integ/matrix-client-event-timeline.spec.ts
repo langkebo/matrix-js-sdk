@@ -45,7 +45,7 @@ const roomId = "!foo:bar";
 const otherUserId = "@bob:localhost";
 
 const withoutRoomId = (e: Partial<IEvent>): Partial<IEvent> => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { room_id: _, ...copy } = e;
     return copy;
 };
@@ -170,8 +170,8 @@ const THREAD_REPLY = utils.mkEvent({
     user: userId,
     type: "m.room.message",
     content: {
-        "body": "thread reply",
-        "msgtype": "m.text",
+        body: "thread reply",
+        msgtype: "m.text",
         "m.relates_to": {
             // We can't use the const here because we change server support mode for test
             rel_type: "io.element.thread",
@@ -1085,8 +1085,8 @@ describe("MatrixClient event timelines", function () {
             user: userId,
             type: "m.room.message",
             content: {
-                "body": "thread reply 2",
-                "msgtype": "m.text",
+                body: "thread reply 2",
+                msgtype: "m.text",
                 "m.relates_to": {
                     // We can't use the const here because we change server support mode for test
                     rel_type: "io.element.thread",
@@ -1103,8 +1103,8 @@ describe("MatrixClient event timelines", function () {
             user: userId,
             type: "m.room.message",
             content: {
-                "body": "thread reply 3",
-                "msgtype": "m.text",
+                body: "thread reply 3",
+                msgtype: "m.text",
                 "m.relates_to": {
                     // We can't use the const here because we change server support mode for test
                     rel_type: "io.element.thread",
@@ -1173,8 +1173,8 @@ describe("MatrixClient event timelines", function () {
             user: userId,
             type: "m.room.message",
             content: {
-                "body": "thread reply 2",
-                "msgtype": "m.text",
+                body: "thread reply 2",
+                msgtype: "m.text",
                 "m.relates_to": {
                     // We can't use the const here because we change server support mode for test
                     rel_type: "io.element.thread",
@@ -1205,8 +1205,8 @@ describe("MatrixClient event timelines", function () {
             user: userId,
             type: "m.room.message",
             content: {
-                "body": "thread reply 3",
-                "msgtype": "m.text",
+                body: "thread reply 3",
+                msgtype: "m.text",
                 "m.relates_to": {
                     // We can't use the const here because we change server support mode for test
                     rel_type: "io.element.thread",
@@ -1471,8 +1471,8 @@ describe("MatrixClient event timelines", function () {
                     user: userId,
                     type: "m.room.message",
                     content: {
-                        "body": "thread2 reply",
-                        "msgtype": "m.text",
+                        body: "thread2 reply",
+                        msgtype: "m.text",
                         "m.relates_to": {
                             // We can't use the const here because we change server support mode for test
                             rel_type: "io.element.thread",
@@ -1491,8 +1491,8 @@ describe("MatrixClient event timelines", function () {
                     user: userId,
                     type: "m.room.message",
                     content: {
-                        "body": "thread reply2",
-                        "msgtype": "m.text",
+                        body: "thread reply2",
+                        msgtype: "m.text",
                         "m.relates_to": {
                             // We can't use the const here because we change server support mode for test
                             rel_type: "io.element.thread",
@@ -1601,8 +1601,8 @@ describe("MatrixClient event timelines", function () {
                     user: userId,
                     type: "m.room.message",
                     content: {
-                        "body": "thread2 reply",
-                        "msgtype": "m.text",
+                        body: "thread2 reply",
+                        msgtype: "m.text",
                         "m.relates_to": {
                             // We can't use the const here because we change server support mode for test
                             rel_type: "io.element.thread",
@@ -2050,7 +2050,7 @@ describe("MatrixClient event timelines", function () {
             expect(timeline!.getEvents()[1]!.event).toEqual(THREAD_REPLY);
         }
 
-        // eslint-disable-next-line vitest/expect-expect
+         
         it("in stable mode", async () => {
             // @ts-ignore
             client.clientOpts.threadSupport = true;

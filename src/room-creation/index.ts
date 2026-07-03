@@ -74,17 +74,11 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
     }
 
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
-        return this.withRetry(
-            () => this.client.createDirectRoom(userId, options),
-            "createDirectRoom",
-        );
+        return this.withRetry(() => this.client.createDirectRoom(userId, options), "createDirectRoom");
     }
 
     public async findOrCreateDirectRoom(userId: string): Promise<ICreateRoomResponse> {
-        return this.withRetry(
-            () => this.client.findOrCreateDirectRoom(userId),
-            "findOrCreateDirectRoom",
-        );
+        return this.withRetry(() => this.client.findOrCreateDirectRoom(userId), "findOrCreateDirectRoom");
     }
 
     public getCreateRoomOptions(): ICreateRoomOptionsConfig {
@@ -96,11 +90,10 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomCreationManager = function (): RoomCreationManager {
         registerManagerClass("roomCreation", RoomCreationManager);
-    return getOrCreateManager(this, "roomCreation", () => new RoomCreationManager(this));
+        return getOrCreateManager(this, "roomCreation", () => new RoomCreationManager(this));
     };
 }
 

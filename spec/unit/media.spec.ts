@@ -51,13 +51,9 @@ describe("MediaManager", () => {
             const result = await mediaManager.getMediaConfig(false);
 
             expect(result["m.upload.size"]).toBe(10485760);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/config",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/media/v3" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/config", undefined, undefined, {
+                prefix: "/_matrix/media/v3",
+            });
         });
 
         it("should get media config (authenticated)", async () => {
@@ -68,13 +64,9 @@ describe("MediaManager", () => {
             const result = await mediaManager.getMediaConfig(true);
 
             expect(result["m.upload.size"]).toBe(5242880);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/media/config",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/media/config", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
         });
     });
 

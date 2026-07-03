@@ -22,7 +22,9 @@ describe("VerificationManager", () => {
         };
 
         vi.spyOn(logger, "warn").mockImplementation(() => undefined);
-        manager = new VerificationManager(mockClient as unknown as ConstructorParameters<typeof VerificationManager>[0]);
+        manager = new VerificationManager(
+            mockClient as unknown as ConstructorParameters<typeof VerificationManager>[0],
+        );
     });
 
     it("routes verification start to the generated-compatible v1 contract path", async () => {

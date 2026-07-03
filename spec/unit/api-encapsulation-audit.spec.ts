@@ -145,10 +145,12 @@ describe("API encapsulation audit", () => {
                 prefix: MediaPrefix.V3,
             },
         );
-        expect(manager.getDownloadUrl("mxc://test/media")).toBe("https://hs.example.com/_matrix/media/v3/download/test/media");
-        expect(
-            manager.getThumbnailUrl("mxc://test/media", { width: 64, height: 64, method: "crop" }),
-        ).toBe("https://hs.example.com/_matrix/media/v3/thumbnail/test/media?width=64&height=64&method=crop");
+        expect(manager.getDownloadUrl("mxc://test/media")).toBe(
+            "https://hs.example.com/_matrix/media/v3/download/test/media",
+        );
+        expect(manager.getThumbnailUrl("mxc://test/media", { width: 64, height: 64, method: "crop" })).toBe(
+            "https://hs.example.com/_matrix/media/v3/thumbnail/test/media?width=64&height=64&method=crop",
+        );
     });
 
     it("uses the v3 friends list contract and v1 friend request contract", async () => {

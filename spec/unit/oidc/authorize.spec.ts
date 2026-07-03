@@ -237,7 +237,7 @@ describe("oidc authorization", () => {
                     method: "post",
                     credentials: "same-origin",
                     headers: {
-                        "accept": "application/json",
+                        accept: "application/json",
                         "content-type": "application/x-www-form-urlencoded",
                     },
                 }),

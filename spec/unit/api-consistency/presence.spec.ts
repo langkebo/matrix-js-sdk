@@ -7,22 +7,12 @@ import { describe, it, expect } from "vitest";
 import { InvalidParamError } from "../../../src/common/errors";
 
 const ALLOWED_STATES = ["online", "offline", "unavailable"] as const;
-const INVALID_STATES = [
-    "away",
-    "dnd",
-    "busy",
-    "invisible",
-    "custom",
-    "Online",
-    "OFFLINE",
-];
+const INVALID_STATES = ["away", "dnd", "busy", "invisible", "custom", "Online", "OFFLINE"];
 
 function validatePresenceState(state: string): void {
     if (!state) throw new InvalidParamError("Presence state is required");
-    if (!ALLOWED_STATES.includes(state as typeof ALLOWED_STATES[number])) {
-        throw new InvalidParamError(
-            `Invalid presence state. Must be one of: ${ALLOWED_STATES.join(", ")}`,
-        );
+    if (!ALLOWED_STATES.includes(state as (typeof ALLOWED_STATES)[number])) {
+        throw new InvalidParamError(`Invalid presence state. Must be one of: ${ALLOWED_STATES.join(", ")}`);
     }
 }
 

@@ -42,7 +42,10 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 
     public getSyncState(): SyncState | null {
-        return (this.client as unknown as { syncApi?: { getSyncState(): SyncState | null } }).syncApi?.getSyncState() ?? null;
+        return (
+            (this.client as unknown as { syncApi?: { getSyncState(): SyncState | null } }).syncApi?.getSyncState() ??
+            null
+        );
     }
 
     public getSyncStateData(): ISyncStateData | null {
@@ -105,11 +108,10 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSyncManager = function (): SyncManager {
         registerManagerClass("syncManagement", SyncManager);
-    return getOrCreateManager(this, "syncManagement", () => new SyncManager(this));
+        return getOrCreateManager(this, "syncManagement", () => new SyncManager(this));
     };
 }
 

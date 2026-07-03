@@ -18,7 +18,11 @@ describe("Cross-device passphrase recovery real backend integration", () => {
         await syncPromise(client, 1);
     }
 
-    async function waitForRoom(client: MatrixClient, roomId: string, timeoutMs = TestConfig.timeout.long): Promise<void> {
+    async function waitForRoom(
+        client: MatrixClient,
+        roomId: string,
+        timeoutMs = TestConfig.timeout.long,
+    ): Promise<void> {
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
             if (client.getRoom(roomId)) {
@@ -31,7 +35,10 @@ describe("Cross-device passphrase recovery real backend integration", () => {
 
     function getEventBody(client: MatrixClient, roomId: string, eventId: string): string {
         const room = client.getRoom(roomId);
-        const event = room?.getLiveTimeline().getEvents().find((item) => item.getId() === eventId);
+        const event = room
+            ?.getLiveTimeline()
+            .getEvents()
+            .find((item) => item.getId() === eventId);
         const clearBody = event?.getClearContent()?.body;
         const contentBody = event?.getContent()?.body;
         return typeof clearBody === "string" ? clearBody : typeof contentBody === "string" ? contentBody : "";
@@ -232,7 +239,13 @@ describe("Cross-device passphrase recovery real backend integration", () => {
             expect(importResult.imported).toBeGreaterThan(0);
             expect(importResult.total).toBeGreaterThanOrEqual(importResult.imported);
 
-            await waitForEventBody(recoveryClient, encryptedRoomId, encryptedEventId, encryptedMessageBody, longHookTimeout);
+            await waitForEventBody(
+                recoveryClient,
+                encryptedRoomId,
+                encryptedEventId,
+                encryptedMessageBody,
+                longHookTimeout,
+            );
         },
         longHookTimeout,
     );

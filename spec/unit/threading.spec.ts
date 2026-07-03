@@ -71,13 +71,9 @@ describe("ThreadingManager", () => {
 
             expect(result.threads).toHaveLength(1);
             expect(result.total).toBe(1);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/threads",
-                { limit: 10 },
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/threads", { limit: 10 }, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
         });
 
         it("should fetch global thread list with no params", async () => {
@@ -90,13 +86,9 @@ describe("ThreadingManager", () => {
             const result = await threadingManager.getGlobalThreadList();
 
             expect(result.threads).toHaveLength(0);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/threads",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/threads", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
         });
     });
 
@@ -295,7 +287,12 @@ describe("ThreadingManager", () => {
                 updated_ts: 1234567890,
             });
 
-            const result = await threadingManager.markThreadRead("!room:example.com", "thread1", "$event99", 1234567890);
+            const result = await threadingManager.markThreadRead(
+                "!room:example.com",
+                "thread1",
+                "$event99",
+                1234567890,
+            );
 
             expect(result.unread_count).toBe(0);
             expect(result.last_read_event_id).toBe("$event99");

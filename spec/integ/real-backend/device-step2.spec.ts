@@ -65,7 +65,10 @@ describe("Device Step2 (real-backend)", () => {
             await dm.updateDevice(deviceBId, { display_name: newName });
 
             const afterUpdate = await dm.getDevices();
-            expect(afterUpdate.find((d: { device_id: string; display_name?: string }) => d.device_id === deviceBId)?.display_name).toBe(newName);
+            expect(
+                afterUpdate.find((d: { device_id: string; display_name?: string }) => d.device_id === deviceBId)
+                    ?.display_name,
+            ).toBe(newName);
 
             let deleted = false;
             try {

@@ -20,7 +20,17 @@ describe("OpenClawManager", () => {
     describe("connections", () => {
         it("should list connections", async () => {
             const connections = [
-                { id: 1, name: "OpenAI", provider: "openai", base_url: "https://api.openai.com", has_api_key: true, is_default: true, is_active: true, created_ts: 1000, updated_ts: 1000 },
+                {
+                    id: 1,
+                    name: "OpenAI",
+                    provider: "openai",
+                    base_url: "https://api.openai.com",
+                    has_api_key: true,
+                    is_default: true,
+                    is_active: true,
+                    created_ts: 1000,
+                    updated_ts: 1000,
+                },
             ];
             transport.respondWith(connections);
 
@@ -31,11 +41,25 @@ describe("OpenClawManager", () => {
         });
 
         it("should create a connection and emit event", async () => {
-            const connection = { id: 1, name: "Anthropic", provider: "anthropic", base_url: "https://api.anthropic.com", has_api_key: true, is_default: false, is_active: true, created_ts: 1000, updated_ts: 1000 };
+            const connection = {
+                id: 1,
+                name: "Anthropic",
+                provider: "anthropic",
+                base_url: "https://api.anthropic.com",
+                has_api_key: true,
+                is_default: false,
+                is_active: true,
+                created_ts: 1000,
+                updated_ts: 1000,
+            };
             transport.respondWith(connection);
             const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await manager.createConnection({ name: "Anthropic", provider: "anthropic", base_url: "https://api.anthropic.com" });
+            const result = await manager.createConnection({
+                name: "Anthropic",
+                provider: "anthropic",
+                base_url: "https://api.anthropic.com",
+            });
 
             expect(result.id).toBe(1);
             expect(result.name).toBe("Anthropic");
@@ -44,19 +68,35 @@ describe("OpenClawManager", () => {
         });
 
         it("should reject creating a connection with empty name", async () => {
-            await expect(manager.createConnection({ name: "", provider: "openai", base_url: "https://example.com" })).rejects.toThrow(ValidationError);
+            await expect(
+                manager.createConnection({ name: "", provider: "openai", base_url: "https://example.com" }),
+            ).rejects.toThrow(ValidationError);
         });
 
         it("should reject creating a connection with empty provider", async () => {
-            await expect(manager.createConnection({ name: "Test", provider: "", base_url: "https://example.com" })).rejects.toThrow(ValidationError);
+            await expect(
+                manager.createConnection({ name: "Test", provider: "", base_url: "https://example.com" }),
+            ).rejects.toThrow(ValidationError);
         });
 
         it("should reject creating a connection with empty base_url", async () => {
-            await expect(manager.createConnection({ name: "Test", provider: "openai", base_url: "" })).rejects.toThrow(ValidationError);
+            await expect(manager.createConnection({ name: "Test", provider: "openai", base_url: "" })).rejects.toThrow(
+                ValidationError,
+            );
         });
 
         it("should get a connection by id", async () => {
-            const connection = { id: 5, name: "Local", provider: "ollama", base_url: "http://localhost:11434", has_api_key: false, is_default: false, is_active: true, created_ts: 2000, updated_ts: 2000 };
+            const connection = {
+                id: 5,
+                name: "Local",
+                provider: "ollama",
+                base_url: "http://localhost:11434",
+                has_api_key: false,
+                is_default: false,
+                is_active: true,
+                created_ts: 2000,
+                updated_ts: 2000,
+            };
             transport.respondWith(connection);
 
             const result = await manager.getConnection(5);
@@ -71,7 +111,17 @@ describe("OpenClawManager", () => {
         });
 
         it("should update a connection and emit event", async () => {
-            const updated = { id: 1, name: "OpenAI Updated", provider: "openai", base_url: "https://api.openai.com", has_api_key: true, is_default: true, is_active: true, created_ts: 1000, updated_ts: 2000 };
+            const updated = {
+                id: 1,
+                name: "OpenAI Updated",
+                provider: "openai",
+                base_url: "https://api.openai.com",
+                has_api_key: true,
+                is_default: true,
+                is_active: true,
+                created_ts: 1000,
+                updated_ts: 2000,
+            };
             transport.respondWith(updated);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -110,7 +160,13 @@ describe("OpenClawManager", () => {
 
     describe("conversations", () => {
         it("should list conversations with pagination", async () => {
-            const paginated = { items: [{ id: 10, connection_id: 1, title: "Chat 1", is_pinned: false, created_ts: 3000, updated_ts: 3000 }], total: 1, has_more: false };
+            const paginated = {
+                items: [
+                    { id: 10, connection_id: 1, title: "Chat 1", is_pinned: false, created_ts: 3000, updated_ts: 3000 },
+                ],
+                total: 1,
+                has_more: false,
+            };
             transport.respondWith(paginated);
 
             const result = await manager.listConversations({ limit: 10, offset: 0 });
@@ -121,7 +177,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should create a conversation and emit event", async () => {
-            const conversation = { id: 10, connection_id: 1, title: "New Chat", is_pinned: false, created_ts: 4000, updated_ts: 4000 };
+            const conversation = {
+                id: 10,
+                connection_id: 1,
+                title: "New Chat",
+                is_pinned: false,
+                created_ts: 4000,
+                updated_ts: 4000,
+            };
             transport.respondWith(conversation);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -133,7 +196,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should get a conversation by id", async () => {
-            const conversation = { id: 10, connection_id: 1, title: "Existing Chat", is_pinned: true, created_ts: 5000, updated_ts: 5000 };
+            const conversation = {
+                id: 10,
+                connection_id: 1,
+                title: "Existing Chat",
+                is_pinned: true,
+                created_ts: 5000,
+                updated_ts: 5000,
+            };
             transport.respondWith(conversation);
 
             const result = await manager.getConversation(10);
@@ -144,7 +214,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should update a conversation and emit event", async () => {
-            const updated = { id: 10, connection_id: 1, title: "Renamed Chat", is_pinned: true, created_ts: 5000, updated_ts: 6000 };
+            const updated = {
+                id: 10,
+                connection_id: 1,
+                title: "Renamed Chat",
+                is_pinned: true,
+                created_ts: 5000,
+                updated_ts: 6000,
+            };
             transport.respondWith(updated);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -169,7 +246,11 @@ describe("OpenClawManager", () => {
 
     describe("messages", () => {
         it("should list messages for a conversation", async () => {
-            const paginated = { items: [{ id: 100, conversation_id: 10, role: "user", content: "Hello", created_ts: 6000 }], total: 1, has_more: false };
+            const paginated = {
+                items: [{ id: 100, conversation_id: 10, role: "user", content: "Hello", created_ts: 6000 }],
+                total: 1,
+                has_more: false,
+            };
             transport.respondWith(paginated);
 
             const result = await manager.listMessages(10, { limit: 50 });
@@ -223,7 +304,20 @@ describe("OpenClawManager", () => {
 
     describe("generations", () => {
         it("should list generations with pagination", async () => {
-            const paginated = { items: [{ id: 200, type: "image", prompt: "A cat", status: "completed", created_ts: 9000, updated_ts: 9000 }], total: 1, has_more: false };
+            const paginated = {
+                items: [
+                    {
+                        id: 200,
+                        type: "image",
+                        prompt: "A cat",
+                        status: "completed",
+                        created_ts: 9000,
+                        updated_ts: 9000,
+                    },
+                ],
+                total: 1,
+                has_more: false,
+            };
             transport.respondWith(paginated);
 
             const result = await manager.listGenerations({ type: "image" });
@@ -233,7 +327,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should create a generation and emit event", async () => {
-            const generation = { id: 200, type: "text", prompt: "Write a poem", status: "pending", created_ts: 10000, updated_ts: 10000 };
+            const generation = {
+                id: 200,
+                type: "text",
+                prompt: "Write a poem",
+                status: "pending",
+                created_ts: 10000,
+                updated_ts: 10000,
+            };
             transport.respondWith(generation);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -253,7 +354,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should get a generation by id", async () => {
-            const generation = { id: 200, type: "text", prompt: "Poem", status: "completed", created_ts: 11000, updated_ts: 11000 };
+            const generation = {
+                id: 200,
+                type: "text",
+                prompt: "Poem",
+                status: "completed",
+                created_ts: 11000,
+                updated_ts: 11000,
+            };
             transport.respondWith(generation);
 
             const result = await manager.getGeneration(200);
@@ -278,7 +386,14 @@ describe("OpenClawManager", () => {
     describe("chat roles", () => {
         it("should list chat roles", async () => {
             const roles = [
-                { id: 1, name: "Assistant", system_message: "You are helpful", is_public: true, created_ts: 12000, updated_ts: 12000 },
+                {
+                    id: 1,
+                    name: "Assistant",
+                    system_message: "You are helpful",
+                    is_public: true,
+                    created_ts: 12000,
+                    updated_ts: 12000,
+                },
             ];
             transport.respondWith(roles);
 
@@ -290,7 +405,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should create a chat role and emit event", async () => {
-            const role = { id: 2, name: "Translator", system_message: "Translate text", is_public: true, created_ts: 13000, updated_ts: 13000 };
+            const role = {
+                id: 2,
+                name: "Translator",
+                system_message: "Translate text",
+                is_public: true,
+                created_ts: 13000,
+                updated_ts: 13000,
+            };
             transport.respondWith(role);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -310,7 +432,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should get a chat role by id", async () => {
-            const role = { id: 3, name: "Critic", system_message: "Be critical", is_public: false, created_ts: 14000, updated_ts: 14000 };
+            const role = {
+                id: 3,
+                name: "Critic",
+                system_message: "Be critical",
+                is_public: false,
+                created_ts: 14000,
+                updated_ts: 14000,
+            };
             transport.respondWith(role);
 
             const result = await manager.getChatRole(3);
@@ -320,7 +449,14 @@ describe("OpenClawManager", () => {
         });
 
         it("should update a chat role and emit event", async () => {
-            const updated = { id: 1, name: "Assistant v2", system_message: "You are helpful", is_public: true, created_ts: 12000, updated_ts: 15000 };
+            const updated = {
+                id: 1,
+                name: "Assistant v2",
+                system_message: "You are helpful",
+                is_public: true,
+                created_ts: 12000,
+                updated_ts: 15000,
+            };
             transport.respondWith(updated);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -371,7 +507,7 @@ describe("OpenClawManager", () => {
 
             const call = transport.request.mock.calls[0];
             const opts = call[4];
-            expect(opts.prefix).toBe(OPENCLAW_PREFIX);
+            expect(opts?.prefix).toBe(OPENCLAW_PREFIX);
         });
 
         it("should include retry config in requests", async () => {
@@ -381,7 +517,7 @@ describe("OpenClawManager", () => {
 
             const call = transport.request.mock.calls[0];
             const opts = call[4];
-            expect(opts.prefix).toBe(OPENCLAW_PREFIX);
+            expect(opts?.prefix).toBe(OPENCLAW_PREFIX);
         });
     });
 });

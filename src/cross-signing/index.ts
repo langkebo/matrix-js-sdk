@@ -114,9 +114,9 @@ export class CrossSigningManager extends BaseManager<keyof CrossSigningManagerEv
                 crypto.getUserVerificationStatus(userId),
             ]);
             return {
-                masterKey: hasKeys ? (await crypto.getCrossSigningKeyId(CrossSigningKey.Master)) : null,
-                selfSigningKey: hasKeys ? (await crypto.getCrossSigningKeyId(CrossSigningKey.SelfSigning)) : null,
-                userSigningKey: hasKeys ? (await crypto.getCrossSigningKeyId(CrossSigningKey.UserSigning)) : null,
+                masterKey: hasKeys ? await crypto.getCrossSigningKeyId(CrossSigningKey.Master) : null,
+                selfSigningKey: hasKeys ? await crypto.getCrossSigningKeyId(CrossSigningKey.SelfSigning) : null,
+                userSigningKey: hasKeys ? await crypto.getCrossSigningKeyId(CrossSigningKey.UserSigning) : null,
                 verified: verificationStatus.isCrossSigningVerified(),
             };
         }, "getUserCrossSigningKeys");
@@ -131,11 +131,10 @@ export class CrossSigningManager extends BaseManager<keyof CrossSigningManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCrossSigningManager = function (): CrossSigningManager {
         registerManagerClass("crossSigning", CrossSigningManager);
-    return getOrCreateManager(this, "crossSigning", () => new CrossSigningManager(this));
+        return getOrCreateManager(this, "crossSigning", () => new CrossSigningManager(this));
     };
 }
 

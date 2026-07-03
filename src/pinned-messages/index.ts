@@ -205,7 +205,6 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
     }
 }
 
-
 export function extendMatrixClient(): void {
     registerManagerClass("pinnedMessages", PinnedMessagesManager);
     MatrixClient.prototype.getPinnedMessagesManager = function (): PinnedMessagesManager {

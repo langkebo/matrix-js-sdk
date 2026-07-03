@@ -121,14 +121,12 @@ export class RoomKeysManager extends BaseManager {
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.requestsCache.getStats();
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomKeysManager = function (): RoomKeysManager {
         registerManagerClass("roomKeys", RoomKeysManager);
-    return getOrCreateManager(this, "roomKeys", () => new RoomKeysManager(this));
+        return getOrCreateManager(this, "roomKeys", () => new RoomKeysManager(this));
     };
 }
 

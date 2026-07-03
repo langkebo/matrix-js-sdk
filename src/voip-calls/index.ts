@@ -88,7 +88,8 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
     }
 
     private getCallList(): MatrixCall[] {
-        const handler = (this.client as unknown as { callEventHandler?: { calls: Map<string, MatrixCall> } }).callEventHandler;
+        const handler = (this.client as unknown as { callEventHandler?: { calls: Map<string, MatrixCall> } })
+            .callEventHandler;
         if (!handler?.calls) return [];
         return Array.from(handler.calls.values()) as MatrixCall[];
     }
@@ -216,11 +217,10 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getVoIPCallsManager = function (): VoIPCallsManager {
         registerManagerClass("voipCalls", VoIPCallsManager);
-    return getOrCreateManager(this, "voipCalls", () => new VoIPCallsManager(this));
+        return getOrCreateManager(this, "voipCalls", () => new VoIPCallsManager(this));
     };
 }
 

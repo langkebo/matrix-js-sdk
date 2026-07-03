@@ -108,13 +108,7 @@ export class RoomSettingsManager extends BaseManager<keyof RoomSettingsManagerEv
         const isAllowed = typeof allow === "string" ? allow === "can_join" || allow === "true" : allow;
         const guestAccess = isAllowed ? GuestAccess.CanJoin : GuestAccess.Forbidden;
         await this.withRetry(
-            () =>
-                this.client.sendStateEvent(
-                    roomId,
-                    EventType.RoomGuestAccess,
-                    { guest_access: guestAccess },
-                    "",
-                ),
+            () => this.client.sendStateEvent(roomId, EventType.RoomGuestAccess, { guest_access: guestAccess }, ""),
             "setRoomGuestAccess",
         );
     }
@@ -127,23 +121,16 @@ export class RoomSettingsManager extends BaseManager<keyof RoomSettingsManagerEv
 
     public async setRoomJoinRule(roomId: string, joinRule: string): Promise<void> {
         await this.withRetry(
-            () =>
-                this.client.sendStateEvent(
-                    roomId,
-                    EventType.RoomJoinRules,
-                    { join_rule: joinRule as JoinRule },
-                    "",
-                ),
+            () => this.client.sendStateEvent(roomId, EventType.RoomJoinRules, { join_rule: joinRule as JoinRule }, ""),
             "setRoomJoinRule",
         );
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomSettingsManager = function (): RoomSettingsManager {
         registerManagerClass("roomSettings", RoomSettingsManager);
-    return getOrCreateManager(this, "roomSettings", () => new RoomSettingsManager(this));
+        return getOrCreateManager(this, "roomSettings", () => new RoomSettingsManager(this));
     };
 }
 

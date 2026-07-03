@@ -97,11 +97,10 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUserManager = function (): UserManager {
         registerManagerClass("user", UserManager);
-    return getOrCreateManager(this, "user", () => new UserManager(this));
+        return getOrCreateManager(this, "user", () => new UserManager(this));
     };
 
     MatrixClient.prototype.getUser = function (this: MatrixClient, userId: string): User | null {

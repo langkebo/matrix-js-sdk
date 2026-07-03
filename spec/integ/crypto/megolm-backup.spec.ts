@@ -51,7 +51,7 @@ const TEST_DEVICE_ID = "xzcvb";
 afterEach(() => {
     // reset fake-indexeddb after each test, to make sure we don't leak connections
     // cf https://github.com/dumbmatter/fakeIndexedDB#wipingresetting-the-indexeddb-for-a-fresh-state
-    // eslint-disable-next-line no-global-assign
+     
     indexedDB = new IDBFactory();
 });
 

@@ -28,9 +28,9 @@ describe("client thread relation helpers", () => {
         }));
 
         expect(content["m.relates_to"]).toEqual({
-            "rel_type": "m.thread",
-            "event_id": "$thread:example.org",
-            "is_falling_back": true,
+            rel_type: "m.thread",
+            event_id: "$thread:example.org",
+            is_falling_back: true,
             "m.in_reply_to": {
                 event_id: "$reply:example.org",
             },

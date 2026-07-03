@@ -41,13 +41,13 @@ export interface ExistingGeneratedArtifactAudit {
 }
 
 interface OpenApiOperationRecord {
-    "operationId"?: unknown;
-    "parameters"?: unknown;
-    "requestBody"?: unknown;
-    "responses"?: unknown;
-    "security"?: unknown;
-    "summary"?: unknown;
-    "tags"?: unknown;
+    operationId?: unknown;
+    parameters?: unknown;
+    requestBody?: unknown;
+    responses?: unknown;
+    security?: unknown;
+    summary?: unknown;
+    tags?: unknown;
     "x-codeSamples"?: unknown;
 }
 

@@ -280,7 +280,8 @@ describe.each([[StoreType.Memory], [StoreType.IndexedDB]])("queueToDevice (%s st
                 .respond(200, {});
 
             client
-                .getToDeviceManager().queueToDeviceBatch({
+                .getToDeviceManager()
+                .queueToDeviceBatch({
                     eventType: "org.example.foo",
                     batch: [FAKE_MSG],
                 })
@@ -300,7 +301,8 @@ describe.each([[StoreType.Memory], [StoreType.IndexedDB]])("queueToDevice (%s st
             httpBackend.when("PUT", "/sendToDevice/org.example.foo/").respond(400);
 
             client
-                .getToDeviceManager().queueToDeviceBatch({
+                .getToDeviceManager()
+                .queueToDeviceBatch({
                     eventType: "org.example.foo",
                     batch: [FAKE_MSG],
                 })
@@ -330,7 +332,8 @@ describe.each([[StoreType.Memory], [StoreType.IndexedDB]])("queueToDevice (%s st
             httpBackend.when("PUT", "/sendToDevice/org.example.foo/").respond(200, {});
 
             client
-                .getToDeviceManager().queueToDeviceBatch({
+                .getToDeviceManager()
+                .queueToDeviceBatch({
                     eventType: "org.example.foo",
                     batch: [FAKE_MSG],
                 })

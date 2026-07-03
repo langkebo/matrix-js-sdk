@@ -997,7 +997,7 @@ describe("MatrixClient syncing", () => {
                     roomVersion: "org.matrix.msc2716v3",
                 },
             ].forEach((testMeta) => {
-                // eslint-disable-next-line vitest/valid-title
+                 
                 describe(testMeta.label, () => {
                     const roomCreateEvent = utils.mkEvent({
                         type: "m.room.create",
@@ -1384,7 +1384,7 @@ describe("MatrixClient syncing", () => {
 
         describe("msc4222", () => {
             const roomOneSyncOne = {
-                "timeline": {
+                timeline: {
                     events: [
                         utils.mkMessage({
                             room: roomOne,
@@ -1433,7 +1433,7 @@ describe("MatrixClient syncing", () => {
                         }),
                     ],
                 },
-                "state": {
+                state: {
                     events: [
                         utils.mkEvent({
                             type: "m.room.name",
@@ -2127,13 +2127,13 @@ describe("MatrixClient syncing", () => {
                         room: roomId,
                         ts: 500,
                         content: {
-                            "body": "first thread response",
+                            body: "first thread response",
                             "m.relates_to": {
-                                "event_id": firstEventId,
+                                event_id: firstEventId,
                                 "m.in_reply_to": {
                                     event_id: firstEventId,
                                 },
-                                "rel_type": "io.element.thread",
+                                rel_type: "io.element.thread",
                             },
                         },
                     }) as IRoomEvent;
@@ -2146,13 +2146,13 @@ describe("MatrixClient syncing", () => {
                         room: roomId,
                         ts: 1500,
                         content: {
-                            "body": "second thread response",
+                            body: "second thread response",
                             "m.relates_to": {
-                                "event_id": firstEventId,
+                                event_id: firstEventId,
                                 "m.in_reply_to": {
                                     event_id: firstEventId,
                                 },
-                                "rel_type": "io.element.thread",
+                                rel_type: "io.element.thread",
                             },
                         },
                     }) as IRoomEvent;
@@ -2401,7 +2401,7 @@ describe("MatrixClient syncing", () => {
                                         }),
                                     ],
                                 },
-                                "state": {
+                                state: {
                                     events: [
                                         utils.mkEvent({
                                             type: "m.room.name",
@@ -2692,7 +2692,7 @@ describe("MatrixClient syncing (IndexedDB version)", () => {
                 room: roomId,
                 user: selfUserId,
                 content: {
-                    "body": "Thread response",
+                    body: "Thread response",
                     "m.relates_to": {
                         rel_type: THREAD_RELATION_TYPE.name,
                         event_id: "$someThreadId",

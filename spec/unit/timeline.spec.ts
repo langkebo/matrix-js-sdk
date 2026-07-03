@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { TimelineManager } from "../../src/timeline/index";
-import { Direction } from "../../src/models/event-timeline";
-
 describe("TimelineManager", () => {
     let transport: FakeTransport;
     let manager: TimelineManager;
@@ -174,10 +172,14 @@ describe("TimelineManager", () => {
         it("should throw when timeline support is disabled", async () => {
             const client = createMockClient();
             manager = new TimelineManager(client as any, { transport });
-            const mockTimelineSet = { getTimelineForEvent: vi.fn().mockReturnValue(null), room: { roomId: "!r:example.com" } };
+            const mockTimelineSet = {
+                getTimelineForEvent: vi.fn().mockReturnValue(null),
+                room: { roomId: "!r:example.com" },
+            };
 
-            await expect(manager.getEventTimeline(mockTimelineSet as any, "$evt"))
-                .rejects.toThrow("timeline support is disabled");
+            await expect(manager.getEventTimeline(mockTimelineSet as any, "$evt")).rejects.toThrow(
+                "timeline support is disabled",
+            );
         });
 
         it("should throw when timeline set has no room", async () => {
@@ -186,8 +188,9 @@ describe("TimelineManager", () => {
             manager = new TimelineManager(client as any, { transport });
             const mockTimelineSet = { getTimelineForEvent: vi.fn().mockReturnValue(null), room: null };
 
-            await expect(manager.getEventTimeline(mockTimelineSet as any, "$evt"))
-                .rejects.toThrow("only supports room timelines");
+            await expect(manager.getEventTimeline(mockTimelineSet as any, "$evt")).rejects.toThrow(
+                "only supports room timelines",
+            );
         });
 
         it("should return cached timeline when event is already known", async () => {
@@ -213,8 +216,7 @@ describe("TimelineManager", () => {
             const client = createMockClient();
             manager = new TimelineManager(client as any, { transport });
 
-            await expect(manager.getLatestTimeline({} as any))
-                .rejects.toThrow("timeline support is disabled");
+            await expect(manager.getLatestTimeline({} as any)).rejects.toThrow("timeline support is disabled");
         });
 
         it("should throw when timeline set has no room", async () => {
@@ -222,8 +224,9 @@ describe("TimelineManager", () => {
             (client as any).timelineSupport = true;
             manager = new TimelineManager(client as any, { transport });
 
-            await expect(manager.getLatestTimeline({ room: null } as any))
-                .rejects.toThrow("only supports room timelines");
+            await expect(manager.getLatestTimeline({ room: null } as any)).rejects.toThrow(
+                "only supports room timelines",
+            );
         });
     });
 
@@ -271,6 +274,7 @@ describe("TimelineManager", () => {
 
     describe("processAggregatedTimelineEvents", () => {
         it("should be a no-op when events array is empty", () => {
+            expect.assertions(0);
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
             manager = new TimelineManager(client as any, { transport });
@@ -280,6 +284,7 @@ describe("TimelineManager", () => {
         });
 
         it("should be a no-op when room is undefined", () => {
+            expect.assertions(0);
             const client = createMockClient();
             manager = new TimelineManager(client as any, { transport });
 
@@ -333,7 +338,13 @@ describe("TimelineManager", () => {
 
             manager.processPaginationEvents(mockTimeline as any, events, true, "token");
 
-            expect(mockTimelineSet.addEventsToTimeline).toHaveBeenCalledWith(events, true, false, mockTimeline, "token");
+            expect(mockTimelineSet.addEventsToTimeline).toHaveBeenCalledWith(
+                events,
+                true,
+                false,
+                mockTimeline,
+                "token",
+            );
         });
     });
 });

@@ -291,7 +291,7 @@ describe("MatrixClient", function () {
             }
 
             if (next.error) {
-                // eslint-disable-next-line
+                 
                 return Promise.reject(
                     new MatrixError(
                         {
@@ -439,18 +439,18 @@ describe("MatrixClient", function () {
             });
 
             const mxc = "mxc://server/example";
-            expect(client.getProfileManager().mxcUrlToHttp(mxc)).toBe(getHttpUriForMxc(client.baseUrl, mxc));
-            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32));
-            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46)).toBe(
+            expect(client.getProfileManager()!.mxcUrlToHttp(mxc)).toBe(getHttpUriForMxc(client.baseUrl, mxc));
+            expect(client.getProfileManager()!.mxcUrlToHttp(mxc, 32)).toBe(getHttpUriForMxc(client.baseUrl, mxc, 32));
+            expect(client.getProfileManager()!.mxcUrlToHttp(mxc, 32, 46)).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46),
             );
-            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale")).toBe(
+            expect(client.getProfileManager()!.mxcUrlToHttp(mxc, 32, 46, "scale")).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale"),
             );
-            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale", false, true)).toBe(
+            expect(client.getProfileManager()!.mxcUrlToHttp(mxc, 32, 46, "scale", false, true)).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale", false, true),
             );
-            expect(client.getProfileManager().mxcUrlToHttp(mxc, 32, 46, "scale", false, true, true)).toBe(
+            expect(client.getProfileManager()!.mxcUrlToHttp(mxc, 32, 46, "scale", false, true, true)).toBe(
                 getHttpUriForMxc(client.baseUrl, mxc, 32, 46, "scale", false, true, true),
             );
         });
@@ -625,11 +625,13 @@ describe("MatrixClient", function () {
 
     describe("searchRooms", () => {
         it("calls the search rooms helper route", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                results: [{ room_id: "!room:example.com" }],
-                count: 1,
-                next_batch: null,
-            });
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    results: [{ room_id: "!room:example.com" }],
+                    count: 1,
+                    next_batch: null,
+                });
 
             await expect(client.searchRooms("matrix", 20)).resolves.toEqual({
                 results: [{ room_id: "!room:example.com" }],
@@ -768,9 +770,9 @@ describe("MatrixClient", function () {
                             "m.in_reply_to": {
                                 event_id: threadId,
                             },
-                            "event_id": threadId,
-                            "is_falling_back": true,
-                            "rel_type": "m.thread",
+                            event_id: threadId,
+                            is_falling_back: true,
+                            rel_type: "m.thread",
                         },
                     },
                 },
@@ -787,7 +789,7 @@ describe("MatrixClient", function () {
 
             const content = {
                 body,
-                "msgtype": MsgType.Text,
+                msgtype: MsgType.Text,
                 "m.relates_to": {
                     "m.in_reply_to": {
                         event_id: "$other:event",
@@ -812,9 +814,9 @@ describe("MatrixClient", function () {
                             "m.in_reply_to": {
                                 event_id: "$other:event",
                             },
-                            "event_id": threadId,
-                            "is_falling_back": false,
-                            "rel_type": "m.thread",
+                            event_id: threadId,
+                            is_falling_back: false,
+                            rel_type: "m.thread",
                         },
                     },
                 },
@@ -992,9 +994,9 @@ describe("MatrixClient", function () {
                     "m.in_reply_to": {
                         event_id: threadId,
                     },
-                    "event_id": threadId,
-                    "is_falling_back": true,
-                    "rel_type": "m.thread",
+                    event_id: threadId,
+                    is_falling_back: true,
+                    rel_type: "m.thread",
                 },
             };
 
@@ -1048,7 +1050,7 @@ describe("MatrixClient", function () {
 
             const content = {
                 body,
-                "msgtype": MsgType.Text,
+                msgtype: MsgType.Text,
                 "m.relates_to": {
                     "m.in_reply_to": {
                         event_id: "$other:event",
@@ -1061,9 +1063,9 @@ describe("MatrixClient", function () {
                     "m.in_reply_to": {
                         event_id: "$other:event",
                     },
-                    "event_id": threadId,
-                    "is_falling_back": false,
-                    "rel_type": "m.thread",
+                    event_id: threadId,
+                    is_falling_back: false,
+                    rel_type: "m.thread",
                 },
             };
 
@@ -1171,7 +1173,7 @@ describe("MatrixClient", function () {
             });
         });
 
-        // eslint-disable-next-line vitest/expect-expect
+         
         // eslint-disable-next-line vitest/expect-expect
         it("can cancel scheduled delayed events (action in request path)", async () => {
             const delayId = "id";
@@ -1315,14 +1317,14 @@ describe("MatrixClient", function () {
             const threadId = "$threadId:server";
             const expectBody = {
                 ...content,
-                "msc4354_sticky_key": "test",
+                msc4354_sticky_key: "test",
                 "m.relates_to": {
                     "m.in_reply_to": {
                         event_id: threadId,
                     },
-                    "event_id": threadId,
-                    "is_falling_back": true,
-                    "rel_type": "m.thread",
+                    event_id: threadId,
+                    is_falling_back: true,
+                    rel_type: "m.thread",
                 },
             };
 
@@ -1358,8 +1360,8 @@ describe("MatrixClient", function () {
             const threadId = "$threadId:server";
             const content = {
                 body,
-                "msgtype": MsgType.Text,
-                "msc4354_sticky_key": "test",
+                msgtype: MsgType.Text,
+                msc4354_sticky_key: "test",
                 "m.relates_to": {
                     "m.in_reply_to": {
                         event_id: "$other:event",
@@ -1372,9 +1374,9 @@ describe("MatrixClient", function () {
                     "m.in_reply_to": {
                         event_id: "$other:event",
                     },
-                    "event_id": threadId,
-                    "is_falling_back": false,
-                    "rel_type": "m.thread",
+                    event_id: threadId,
+                    is_falling_back: false,
+                    rel_type: "m.thread",
                 },
             };
 
@@ -1423,14 +1425,14 @@ describe("MatrixClient", function () {
             const threadId = "$threadId:server";
             const expectBody = {
                 ...content,
-                "msc4354_sticky_key": "test",
+                msc4354_sticky_key: "test",
                 "m.relates_to": {
                     "m.in_reply_to": {
                         event_id: threadId,
                     },
-                    "event_id": threadId,
-                    "is_falling_back": true,
-                    "rel_type": "m.thread",
+                    event_id: threadId,
+                    is_falling_back: true,
+                    rel_type: "m.thread",
                 },
             };
 
@@ -1466,8 +1468,8 @@ describe("MatrixClient", function () {
             const threadId = "$threadId:server";
             const content = {
                 body,
-                "msgtype": MsgType.Text,
-                "msc4354_sticky_key": "test",
+                msgtype: MsgType.Text,
+                msc4354_sticky_key: "test",
                 "m.relates_to": {
                     "m.in_reply_to": {
                         event_id: "$other:event",
@@ -1480,9 +1482,9 @@ describe("MatrixClient", function () {
                     "m.in_reply_to": {
                         event_id: "$other:event",
                     },
-                    "event_id": threadId,
-                    "is_falling_back": false,
-                    "rel_type": "m.thread",
+                    event_id: threadId,
+                    is_falling_back: false,
+                    rel_type: "m.thread",
                 },
             };
 
@@ -1687,7 +1689,7 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                    /* eslint-disable vitest/no-conditional-expect */
+                     
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1706,7 +1708,7 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                    /* eslint-enable vitest/no-conditional-expect */
+                     
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1749,7 +1751,7 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                    /* eslint-disable vitest/no-conditional-expect */
+                     
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1768,7 +1770,7 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                    /* eslint-enable vitest/no-conditional-expect */
+                     
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1786,7 +1788,7 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                    /* eslint-disable vitest/no-conditional-expect */
+                     
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1804,7 +1806,7 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                    /* eslint-enable vitest/no-conditional-expect */
+                     
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1826,7 +1828,7 @@ describe("MatrixClient", function () {
         const syncPromise = new Promise<void>((resolve, reject) => {
             client.on(ClientEvent.Sync, function syncListener(state) {
                 if (state === "SYNCING") {
-                    // eslint-disable-next-line vitest/no-conditional-expect
+                     
                     expect(httpLookups.length).toEqual(0);
                     client.removeListener(ClientEvent.Sync, syncListener);
                     resolve();
@@ -1849,7 +1851,7 @@ describe("MatrixClient", function () {
                     method: "GET",
                     path: "/sync",
                     expectQueryParams: {
-                        "filter": "f1lt3r",
+                        filter: "f1lt3r",
                         "org.matrix.msc4222.use_state_after": true,
                     },
                     data: SYNC_DATA,
@@ -1871,7 +1873,7 @@ describe("MatrixClient", function () {
                     method: "GET",
                     path: "/sync",
                     expectQueryParams: {
-                        "set_presence": SetPresence.Unavailable,
+                        set_presence: SetPresence.Unavailable,
                         "org.matrix.msc4222.use_state_after": true,
                     },
                     data: SYNC_DATA,
@@ -1959,7 +1961,7 @@ describe("MatrixClient", function () {
 
             const wasPreparedPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
-                    /* eslint-disable vitest/no-conditional-expect */
+                     
                     if (state === "ERROR" && httpLookups.length > 0) {
                         expect(httpLookups.length).toEqual(2);
                         expect(client.retryImmediately()).toBe(true);
@@ -1971,7 +1973,7 @@ describe("MatrixClient", function () {
                         // unexpected state transition!
                         expect(state).toEqual(null);
                     }
-                    /* eslint-enable vitest/no-conditional-expect */
+                     
                 });
             });
             await client.startClient();
@@ -1993,10 +1995,10 @@ describe("MatrixClient", function () {
             const isSyncingPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
                     if (state === "ERROR" && httpLookups.length > 0) {
-                        /* eslint-disable vitest/no-conditional-expect */
+                         
                         expect(httpLookups.length).toEqual(1);
                         expect(client.retryImmediately()).toBe(true);
-                        /* eslint-enable vitest/no-conditional-expect */
+                         
                         vi.advanceTimersByTime(1);
                     } else if (state === "RECONNECTING" && httpLookups.length > 0) {
                         vi.advanceTimersByTime(10000);
@@ -2023,7 +2025,7 @@ describe("MatrixClient", function () {
 
             const wasPreparedPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
-                    /* eslint-disable vitest/no-conditional-expect */
+                     
                     if (state === "ERROR" && httpLookups.length > 0) {
                         expect(httpLookups.length).toEqual(3);
                         expect(client.retryImmediately()).toBe(true);
@@ -2035,7 +2037,7 @@ describe("MatrixClient", function () {
                         // unexpected state transition!
                         expect(state).toEqual(null);
                     }
-                    /* eslint-enable vitest/no-conditional-expect */
+                     
                 });
             });
             await client.startClient();
@@ -2630,11 +2632,16 @@ describe("MatrixClient", function () {
         });
 
         it("getRoomTyping fetches typing users on v3", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                user_ids: ["@alice:bar", "@bob:example.org"],
-            } as any);
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    user_ids: ["@alice:bar", "@bob:example.org"],
+                } as any);
 
-            await expect(client.getRoomTyping("!room:example.org")).resolves.toEqual(["@alice:bar", "@bob:example.org"]);
+            await expect(client.getRoomTyping("!room:example.org")).resolves.toEqual([
+                "@alice:bar",
+                "@bob:example.org",
+            ]);
 
             expect(client.http.authedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -2709,7 +2716,9 @@ describe("MatrixClient", function () {
         });
 
         it("calls the register email token helper route", async () => {
-            vi.mocked(client.http.request).mockClear().mockResolvedValue({ sid: "sid123" } as any);
+            vi.mocked(client.http.request)
+                .mockClear()
+                .mockResolvedValue({ sid: "sid123" } as any);
 
             await expect(
                 client.requestRegisterEmailToken("alice@example.org", "secret456", 7, "https://next.example.org"),
@@ -2736,10 +2745,12 @@ describe("MatrixClient", function () {
 
     describe("account compatibility contract alignment", () => {
         it("calls whoami through the MatrixClient compatibility surface", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                user_id: "@alice:bar",
-                device_id: "DEVICE1",
-            } as any);
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    user_id: "@alice:bar",
+                    device_id: "DEVICE1",
+                } as any);
 
             await expect(client.whoami()).resolves.toEqual({
                 user_id: "@alice:bar",
@@ -3060,7 +3071,8 @@ describe("MatrixClient", function () {
                 pubkey: "curve25519:key",
             });
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/device_signing/verify_key_agreement");
             expect(queryParams).toBeUndefined();
@@ -3085,7 +3097,8 @@ describe("MatrixClient", function () {
                 "r0",
             );
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/device_signing/verify_mac");
             expect(queryParams).toBeUndefined();
@@ -3105,7 +3118,8 @@ describe("MatrixClient", function () {
                 transaction_id: "txn-1",
             });
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/device_signing/verify_done");
             expect(queryParams).toBeUndefined();
@@ -3130,7 +3144,8 @@ describe("MatrixClient", function () {
                 "r0",
             );
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/device_signing/verify_cancel");
             expect(queryParams).toBeUndefined();
@@ -3149,7 +3164,8 @@ describe("MatrixClient", function () {
 
             await client.getKeyVerificationManager().getVerificationRequestsHttp("r0");
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("GET");
             expect(path).toBe("/keys/device_signing/requests");
             expect(queryParams).toBeUndefined();
@@ -3164,7 +3180,8 @@ describe("MatrixClient", function () {
 
             await client.getKeyVerificationManager().showQrCodeHttp();
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("GET");
             expect(path).toBe("/keys/qr_code/show");
             expect(queryParams).toBeUndefined();
@@ -3190,7 +3207,8 @@ describe("MatrixClient", function () {
                 "r0",
             );
 
-            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock.calls[0];
+            const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
+                .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/qr_code/scan");
             expect(queryParams).toBeUndefined();
@@ -3434,9 +3452,11 @@ describe("MatrixClient", function () {
         });
 
         it("calls the joined rooms helper route on v3", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                joined_rooms: ["!joined:example.org"],
-            });
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    joined_rooms: ["!joined:example.org"],
+                });
 
             await expect(client.getJoinedRooms()).resolves.toEqual({
                 joined_rooms: ["!joined:example.org"],
@@ -3511,7 +3531,9 @@ describe("MatrixClient", function () {
             } as any);
             vi.spyOn(client, "getEventMapper").mockReturnValue(((event: unknown) => event) as any);
 
-            await expect(client.relations("!room:example.org", "$event", RelationType.Reference, null)).resolves.toEqual({
+            await expect(
+                client.relations("!room:example.org", "$event", RelationType.Reference, null),
+            ).resolves.toEqual({
                 originalEvent,
                 events: [relatedEvent],
                 nextBatch: "next",
@@ -3529,11 +3551,15 @@ describe("MatrixClient", function () {
         });
 
         it("calls the aggregations route from the MatrixClient compatibility helper", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
-            });
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
+                });
 
-            await expect(client.getAggregations("!room:example.org", "$event", RelationType.Annotation)).resolves.toEqual({
+            await expect(
+                client.getAggregations("!room:example.org", "$event", RelationType.Annotation),
+            ).resolves.toEqual({
                 chunk: [{ type: "m.reaction", key: "👍", count: 2 }],
             });
 
@@ -3769,17 +3795,13 @@ describe("MatrixClient", function () {
             };
 
             // Mockup state events
-            client.sendStateEvent = function (
-                roomId: string,
-                type: string,
-                content: Record<string, unknown>,
-            ) {
+            (client as any).sendStateEvent = function (roomId: string, eventType: string, content: Record<string, unknown>) {
                 const room = this.getRoom(roomId) as WrappedRoom;
                 const state: Map<string, any> = room._state;
-                let store = state.get(type as string);
+                let store = state.get(eventType as string);
                 if (!store) {
                     store = {};
-                    state.set(type as string, store);
+                    state.set(eventType as string, store);
                 }
                 const eventId = `$event-${Math.random()}:example.org`;
                 store[eventId] = {
@@ -4320,11 +4342,11 @@ describe("MatrixClient", function () {
             return new MatrixEvent({
                 content: {
                     "m.federate": true,
-                    "predecessor": {
+                    predecessor: {
                         event_id: "id_of_last_event",
                         room_id: predecessorRoomId,
                     },
-                    "room_version": "9",
+                    room_version: "9",
                 },
                 event_id: `create_event_id_pred_${predecessorRoomId}`,
                 origin_server_ts: 1432735824653,
@@ -5138,7 +5160,9 @@ describe("MatrixClient", function () {
                 throw new Error("Test impl doesn't know about this request");
             });
 
-            const lookupResult = await client.getIdentityServerManager().identityHashedLookup([["bob@email.dummy", "email"]], ID_ACCESS_TOKEN);
+            const lookupResult = await client
+                .getIdentityServerManager()
+                .identityHashedLookup([["bob@email.dummy", "email"]], ID_ACCESS_TOKEN);
 
             expect(client.http.idServerRequest).toHaveBeenCalledWith(
                 "GET",

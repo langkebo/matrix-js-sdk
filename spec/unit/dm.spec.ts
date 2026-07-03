@@ -679,7 +679,7 @@ describe("DirectMessageManager", () => {
             it("should return true for DM room", async () => {
                 mockClient.http = {
                     authedRequest: vi.fn().mockResolvedValue({
-                        "room_id": "!dm:example.com",
+                        room_id: "!dm:example.com",
                         "m.direct": true,
                     }),
                 };
@@ -692,7 +692,7 @@ describe("DirectMessageManager", () => {
             it("should return false for non-DM room", async () => {
                 mockClient.http = {
                     authedRequest: vi.fn().mockResolvedValue({
-                        "room_id": "!room:example.com",
+                        room_id: "!room:example.com",
                         "m.direct": false,
                     }),
                 };

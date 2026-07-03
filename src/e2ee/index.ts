@@ -263,7 +263,9 @@ export class E2EEManager extends BaseManager {
         return this.postVoid(ep("/keys/device_list/update"), body, "postDeviceListUpdate");
     }
 
-    public async uploadSignatures(body: Record<string, Record<string, Record<string, string>>>): Promise<SignaturesUploadResponse> {
+    public async uploadSignatures(
+        body: Record<string, Record<string, Record<string, string>>>,
+    ): Promise<SignaturesUploadResponse> {
         return this.post(ep("/keys/signatures"), body, "uploadSignatures");
     }
 
@@ -271,7 +273,9 @@ export class E2EEManager extends BaseManager {
      * `/keys/signatures/upload` 与 `/keys/signatures` 是同一 handler 的别名，
      * 后端两条路径都会被路由到 `upload_signatures`，按 SDK 习惯保留两个入口。
      */
-    public async uploadSignaturesAlt(body: Record<string, Record<string, Record<string, string>>>): Promise<SignaturesUploadResponse> {
+    public async uploadSignaturesAlt(
+        body: Record<string, Record<string, Record<string, string>>>,
+    ): Promise<SignaturesUploadResponse> {
         return this.post(ep("/keys/signatures/upload"), body, "uploadSignaturesAlt");
     }
 
@@ -365,7 +369,9 @@ export class E2EEManager extends BaseManager {
         return this.post(ep("/device_verification/request"), body, "requestDeviceVerification");
     }
 
-    public async respondDeviceVerification(body: DeviceVerificationRespondBody): Promise<DeviceVerificationRespondResponse> {
+    public async respondDeviceVerification(
+        body: DeviceVerificationRespondBody,
+    ): Promise<DeviceVerificationRespondResponse> {
         return this.post(ep("/device_verification/respond"), body, "respondDeviceVerification");
     }
 
@@ -496,11 +502,7 @@ export class E2EEManager extends BaseManager {
 
     // -------- helpers ----------
 
-    private async post<T = IContent>(
-        path: string,
-        body: object,
-        label: string,
-    ): Promise<T> {
+    private async post<T = IContent>(path: string, body: object, label: string): Promise<T> {
         return await this.withRetry(async () => {
             return await this.request<T>({
                 method: Method.Post,
@@ -511,11 +513,7 @@ export class E2EEManager extends BaseManager {
         }, label);
     }
 
-    private async postVoid(
-        path: string,
-        body: object,
-        label: string,
-    ): Promise<void> {
+    private async postVoid(path: string, body: object, label: string): Promise<void> {
         return await this.withRetry(async () => {
             await this.request({
                 method: Method.Post,
@@ -525,14 +523,12 @@ export class E2EEManager extends BaseManager {
             });
         }, label);
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getE2EEManager = function (): E2EEManager {
         registerManagerClass("e2ee", E2EEManager);
-    return getOrCreateManager(this, "e2ee", () => new E2EEManager(this));
+        return getOrCreateManager(this, "e2ee", () => new E2EEManager(this));
     };
 }
 

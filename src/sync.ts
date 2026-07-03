@@ -168,12 +168,12 @@ export enum SetPresence {
 }
 
 interface ISyncParams extends QueryDict {
-    "filter"?: string;
-    "timeout": number;
-    "since"?: string;
-    "full_state"?: boolean;
-    "set_presence"?: SetPresence;
-    "_cacheBuster"?: string | number; // not part of the API itself
+    filter?: string;
+    timeout: number;
+    since?: string;
+    full_state?: boolean;
+    set_presence?: SetPresence;
+    _cacheBuster?: string | number; // not part of the API itself
     "org.matrix.msc4222.use_state_after"?: boolean; // https://github.com/matrix-org/matrix-spec-proposals/pull/4222
 }
 
@@ -338,8 +338,8 @@ export class SyncApi {
         );
 
         const qps: ISyncParams = {
-            "timeout": 0, // don't want to block since this is a single isolated req
-            "filter": filterId,
+            timeout: 0, // don't want to block since this is a single isolated req
+            filter: filterId,
             "org.matrix.msc4222.use_state_after": true,
         };
 
@@ -1728,7 +1728,7 @@ export class SyncApi {
                 });
             } else {
                 promise = client.getProfileManager
-                    ? client.getProfileManager().getProfileInfo(member.userId)
+                    ? client.getProfileManager()!.getProfileInfo(member.userId)
                     : client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(
                           Method.Get,
                           `/profile/${encodeURIComponent(member.userId)}`,

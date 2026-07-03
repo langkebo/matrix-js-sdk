@@ -59,11 +59,10 @@ export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getServerTimeManager = function (): ServerTimeManager {
         registerManagerClass("serverTime", ServerTimeManager);
-    return getOrCreateManager(this, "serverTime", () => new ServerTimeManager(this));
+        return getOrCreateManager(this, "serverTime", () => new ServerTimeManager(this));
     };
 }
 

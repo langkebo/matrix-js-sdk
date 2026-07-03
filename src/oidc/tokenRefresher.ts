@@ -57,8 +57,7 @@ export class OidcTokenRefresher {
          * used to validate tokens
          */
         private readonly idTokenClaims: IdTokenClaims,
-    ) {
-    }
+    ) {}
 
     /**
      * Ensures that the client is initialised.

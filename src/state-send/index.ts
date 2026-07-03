@@ -111,13 +111,12 @@ export class StateSendManager extends BaseManager<keyof StateSendManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getStateSendManager")) return;
 
     MatrixClient.prototype.getStateSendManager = function (this: MatrixClient): StateSendManager {
         registerManagerClass("stateSend", StateSendManager);
-    return getOrCreateManager(this, "stateSend", () => new StateSendManager(this));
+        return getOrCreateManager(this, "stateSend", () => new StateSendManager(this));
     };
 }
 

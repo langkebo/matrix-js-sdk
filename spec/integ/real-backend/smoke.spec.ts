@@ -186,7 +186,10 @@ function summarizeCapabilities(capabilities: Capabilities | undefined): Record<s
     };
 }
 
-function buildFeatureMatrix(versions: IServerVersions, capabilities: Capabilities | undefined): Record<string, unknown>[] {
+function buildFeatureMatrix(
+    versions: IServerVersions,
+    capabilities: Capabilities | undefined,
+): Record<string, unknown>[] {
     const resolved = resolveSynapseRustFeatureSupport(versions, capabilities);
 
     return CORE_HULA_FEATURES.map((probe) => {

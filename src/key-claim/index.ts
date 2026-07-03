@@ -71,7 +71,7 @@ export class KeyClaimManager extends BaseManager<keyof KeyClaimManagerEvents, Ke
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyClaimManager = function (): KeyClaimManager {
         registerManagerClass("keyClaim", KeyClaimManager);
-    return getOrCreateManager(this, "keyClaim", () => new KeyClaimManager(this));
+        return getOrCreateManager(this, "keyClaim", () => new KeyClaimManager(this));
     };
 }
 

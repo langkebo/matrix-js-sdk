@@ -78,11 +78,10 @@ export class LifecycleManager extends BaseManager<keyof LifecycleManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getLifecycleManager = function (): LifecycleManager {
         registerManagerClass("lifecycle", LifecycleManager);
-    return getOrCreateManager(this, "lifecycle", () => new LifecycleManager(this));
+        return getOrCreateManager(this, "lifecycle", () => new LifecycleManager(this));
     };
 }
 

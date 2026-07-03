@@ -240,10 +240,7 @@ export class EventReportManager extends BaseManager {
      * 按举报人查询举报
      * 对应 GET /_synapse/admin/v1/event_reports/reporter/{reporter_user_id}
      */
-    async getReportsByReporter(
-        reporterUserId: string,
-        params?: QueryParams,
-    ): Promise<ReportResponse[]> {
+    async getReportsByReporter(reporterUserId: string, params?: QueryParams): Promise<ReportResponse[]> {
         validateUserId(reporterUserId);
         return await this.withRetry(async () => {
             return await this.request<ReportResponse[]>({
@@ -259,10 +256,7 @@ export class EventReportManager extends BaseManager {
      * 按状态查询举报
      * 对应 GET /_synapse/admin/v1/event_reports/status/{status}
      */
-    async getReportsByStatus(
-        status: ReportStatus,
-        params?: QueryParams,
-    ): Promise<ReportResponse[]> {
+    async getReportsByStatus(status: ReportStatus, params?: QueryParams): Promise<ReportResponse[]> {
         this.requireNonEmptyString(status, "status");
         return await this.withRetry(async () => {
             return await this.request<ReportResponse[]>({
@@ -450,11 +444,10 @@ export class EventReportManager extends BaseManager {
     }
 }
 
-
 /** @internal */
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventReportManager = function (): EventReportManager {
         registerManagerClass("eventReport", EventReportManager);
-    return getOrCreateManager(this, "eventReport", () => new EventReportManager(this));
+        return getOrCreateManager(this, "eventReport", () => new EventReportManager(this));
     };
 }

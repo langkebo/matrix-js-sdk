@@ -78,7 +78,7 @@ export class SessionManager extends BaseManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSessionManager = function (): SessionManager {
         registerManagerClass("session", SessionManager);
-    return getOrCreateManager(this, "session", () => new SessionManager(this));
+        return getOrCreateManager(this, "session", () => new SessionManager(this));
     };
 }
 

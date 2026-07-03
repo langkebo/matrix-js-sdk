@@ -317,7 +317,10 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     public async listWidgetSessions(widgetId: string): Promise<WidgetSessionsListResponse> {
         return this.withRetry(
             () =>
-                this.doRequest<WidgetSessionsListResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/sessions`),
+                this.doRequest<WidgetSessionsListResponse>(
+                    Method.Get,
+                    `/widgets/${encodeURIComponent(widgetId)}/sessions`,
+                ),
             "listWidgetSessions",
         );
     }
@@ -425,11 +428,10 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getWidgetsManager = function (): WidgetsManager {
         registerManagerClass("widgets", WidgetsManager);
-    return getOrCreateManager(this, "widgets", () => new WidgetsManager(this));
+        return getOrCreateManager(this, "widgets", () => new WidgetsManager(this));
     };
 }
 

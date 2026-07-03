@@ -101,12 +101,12 @@ describe("EphemeralManager", () => {
 
         await manager.sendEphemeralEvent("!room:example.com", "m.typing", { user_ids: ["@alice:example.com"] });
 
-        expect(mockClient.sendToDevice).toHaveBeenCalledWith(
-            "m.typing",
-            expect.any(Map),
-        );
+        expect(mockClient.sendToDevice).toHaveBeenCalledWith("m.typing", expect.any(Map));
 
-        const contentMap = mockClient.sendToDevice.mock.calls[0][1] as Map<string, Map<string, Record<string, unknown>>>;
+        const contentMap = mockClient.sendToDevice.mock.calls[0][1] as Map<
+            string,
+            Map<string, Record<string, unknown>>
+        >;
         expect(contentMap.get("!room:example.com")?.get("@alice:example.com")).toEqual({
             user_ids: ["@alice:example.com"],
         });
@@ -150,8 +150,8 @@ describe("EphemeralManager", () => {
                 type: "m.receipt",
                 sender: "@alice:example.com",
                 content: {
-                    "$event1": { "m.read": { "@alice:example.com": { ts: 1 } } },
-                    "$event2": { "m.read": { "@bob:example.com": { ts: 2 } } },
+                    $event1: { "m.read": { "@alice:example.com": { ts: 1 } } },
+                    $event2: { "m.read": { "@bob:example.com": { ts: 2 } } },
                 },
                 timestamp: 5678,
             },

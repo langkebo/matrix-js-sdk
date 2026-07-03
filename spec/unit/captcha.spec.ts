@@ -55,13 +55,9 @@ describe("CaptchaManager", () => {
     it("getCaptchaStatus sends captcha_id as public query param on v3", async () => {
         request.mockResolvedValue({ status: "pending" });
         await manager.getCaptchaStatus("c1");
-        expect(request).toHaveBeenCalledWith(
-            Method.Get,
-            "/register/captcha/status",
-            { captcha_id: "c1" },
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        expect(request).toHaveBeenCalledWith(Method.Get, "/register/captcha/status", { captcha_id: "c1" }, undefined, {
+            prefix: ClientPrefix.V3,
+        });
         expect(authedRequest).not.toHaveBeenCalled();
     });
 
@@ -81,12 +77,8 @@ describe("CaptchaManager", () => {
     it("cleanupExpiredCaptchas uses the admin v1 route", async () => {
         authedRequest.mockResolvedValue({ cleaned_count: 42, message: "Cleaned up 42 expired captchas" });
         await manager.cleanupExpiredCaptchas();
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            "/captcha/cleanup",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/captcha/cleanup", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
     });
 });

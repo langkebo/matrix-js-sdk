@@ -245,31 +245,19 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
      */
     private forwardSubManagerEvents(): void {
         // 用户事件
-        this.users.on(AdminUserEvent.UserCreated, (userId, user) =>
-            this.emit(AdminEvent.UserCreated, userId, user),
-        );
-        this.users.on(AdminUserEvent.UserDeactivated, (userId) =>
-            this.emit(AdminEvent.UserDeactivated, userId),
-        );
-        this.users.on(AdminUserEvent.UserShadowBanned, (userId) =>
-            this.emit(AdminEvent.UserShadowBanned, userId),
-        );
-        this.users.on(AdminUserEvent.UserUnshadowBanned, (userId) =>
-            this.emit(AdminEvent.UserUnshadowBanned, userId),
-        );
+        this.users.on(AdminUserEvent.UserCreated, (userId, user) => this.emit(AdminEvent.UserCreated, userId, user));
+        this.users.on(AdminUserEvent.UserDeactivated, (userId) => this.emit(AdminEvent.UserDeactivated, userId));
+        this.users.on(AdminUserEvent.UserShadowBanned, (userId) => this.emit(AdminEvent.UserShadowBanned, userId));
+        this.users.on(AdminUserEvent.UserUnshadowBanned, (userId) => this.emit(AdminEvent.UserUnshadowBanned, userId));
 
         // 房间事件
-        this.rooms.on(AdminRoomEvent.RoomDeleted, (roomId) =>
-            this.emit(AdminEvent.RoomDeleted, roomId),
-        );
+        this.rooms.on(AdminRoomEvent.RoomDeleted, (roomId) => this.emit(AdminEvent.RoomDeleted, roomId));
         this.rooms.on(AdminRoomEvent.RoomBlocked, (roomId, blocked) =>
             this.emit(AdminEvent.RoomBlocked, roomId, blocked),
         );
 
         // 服务器事件
-        this.server.on(AdminServerEvent.ServerStatsUpdated, (stats) =>
-            this.emit(AdminEvent.ServerStatsUpdated, stats),
-        );
+        this.server.on(AdminServerEvent.ServerStatsUpdated, (stats) => this.emit(AdminEvent.ServerStatsUpdated, stats));
     }
 
     // ===== 向后兼容委托方法 =====
@@ -277,7 +265,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 
     // ----- 用户管理（委托 → users） -----
 
-    async getUsersPaginated(options?: { from?: string; limit?: number }): Promise<PaginatedResponse<AdminAccountDetails>> {
+    async getUsersPaginated(options?: {
+        from?: string;
+        limit?: number;
+    }): Promise<PaginatedResponse<AdminAccountDetails>> {
         return this.users.getUsersPaginated(options);
     }
 
@@ -424,7 +415,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.getAccountDetails(userId);
     }
 
-    async updateAccountDetails(userId: string, payload: UpdateAccountDetailsRequest): Promise<UpdateAccountDetailsResponse> {
+    async updateAccountDetails(
+        userId: string,
+        payload: UpdateAccountDetailsRequest,
+    ): Promise<UpdateAccountDetailsResponse> {
         return this.users.updateAccountDetails(userId, payload);
     }
 
@@ -440,7 +434,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.users.whoisByDevice(userId, deviceId);
     }
 
-    async getUserMedia(userId: string, from?: string, limit?: number): Promise<{ media: MediaInfo[]; next_token?: string }> {
+    async getUserMedia(
+        userId: string,
+        from?: string,
+        limit?: number,
+    ): Promise<{ media: MediaInfo[]; next_token?: string }> {
         return this.users.getUserMedia(userId, from, limit);
     }
 
@@ -671,7 +669,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.deleteSpace(spaceId);
     }
 
-    async getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
+    async getSpaceRooms(
+        spaceId: string,
+        from?: string,
+        limit?: number,
+    ): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
         return this.rooms.getSpaceRooms(spaceId, from, limit);
     }
 
@@ -679,7 +681,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.rooms.getSpaceStats(spaceId);
     }
 
-    async getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }> {
+    async getSpaceUsers(
+        spaceId: string,
+        from?: string,
+        limit?: number,
+    ): Promise<{ users: SpaceUser[]; next_batch?: string }> {
         return this.rooms.getSpaceUsers(spaceId, from, limit);
     }
 
@@ -854,7 +860,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.federation.getFederationDestinations();
     }
 
-    async getFederationDestination(serverName: string, throwOnError = true): Promise<AdminFederationDestinationDetail | null> {
+    async getFederationDestination(
+        serverName: string,
+        throwOnError = true,
+    ): Promise<AdminFederationDestinationDetail | null> {
         return this.federation.getFederationDestination(serverName, throwOnError);
     }
 
@@ -909,7 +918,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.federation.rewriteFederation(from, to);
     }
 
-    async confirmFederation(payload: { server_name?: string; action?: string; reason?: string }): Promise<FederationAdmissionResult> {
+    async confirmFederation(payload: {
+        server_name?: string;
+        action?: string;
+        reason?: string;
+    }): Promise<FederationAdmissionResult> {
         return this.federation.confirmFederation(payload);
     }
 
@@ -1006,10 +1019,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.setRoomRetentionPolicy(roomId, policy);
     }
 
-    async runRetention(options?: {
-        room_id?: string;
-        scope?: "all" | "room";
-    }): Promise<RetentionRunResult> {
+    async runRetention(options?: { room_id?: string; scope?: "all" | "room" }): Promise<RetentionRunResult> {
         return this.config.runRetention(options);
     }
 
@@ -1100,7 +1110,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.deleteRegistrationToken(token);
     }
 
-    async updateRegistrationToken(token: string, payload: { uses_allowed?: number; expiry_ts?: number }): Promise<void> {
+    async updateRegistrationToken(
+        token: string,
+        payload: { uses_allowed?: number; expiry_ts?: number },
+    ): Promise<void> {
         return this.config.updateRegistrationToken(token, payload);
     }
 
@@ -1116,7 +1129,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         return this.config.getAccountValidity(userId);
     }
 
-    async renewAccountValidity(userId: string, payload: AccountValidityRenewRequest): Promise<AdminAccountValidityInfo> {
+    async renewAccountValidity(
+        userId: string,
+        payload: AccountValidityRenewRequest,
+    ): Promise<AdminAccountValidityInfo> {
         return this.config.renewAccountValidity(userId, payload);
     }
 
@@ -1212,7 +1228,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAdminManager = function (): AdminManager {
         registerManagerClass("admin", AdminManager);
-    return getOrCreateManager(this, "admin", () => new AdminManager(this));
+        return getOrCreateManager(this, "admin", () => new AdminManager(this));
     };
 
     // 子 Manager 便捷访问方法（通过 AdminManager 的组合属性获取）

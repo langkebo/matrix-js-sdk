@@ -48,11 +48,13 @@ import {
 } from "../client-profile-requests";
 import { assertExtendedProfileSupported } from "../client-profile-core";
 
-type StripAuthPrefix<P extends string> =
-    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
-    P extends `/_matrix/client/r0${infer Rest}` ? Rest :
-    P extends `/_matrix/client/v1${infer Rest}` ? Rest :
-    P;
+type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}`
+    ? Rest
+    : P extends `/_matrix/client/r0${infer Rest}`
+      ? Rest
+      : P extends `/_matrix/client/v1${infer Rest}`
+        ? Rest
+        : P;
 
 function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
     return path;
@@ -144,7 +146,9 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         field: K,
         options: SetProfileFieldCacheOptions = {},
     ): Promise<IProfile[K]> {
-        const path = ap(`/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(
+            `/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}` as StripAuthPrefix<AuthPathPattern>,
+        );
 
         const response = await this.withRetry(async () => {
             return await this.request<Pick<IProfile, K>>({
@@ -348,7 +352,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ValidationError} 如果用户 ID 格式无效
      * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
-    public async getDisplayName(userId: string, forceRefresh = false, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
+    public async getDisplayName(
+        userId: string,
+        forceRefresh = false,
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<string | null> {
         validateUserId(userId);
 
         try {
@@ -393,7 +401,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @throws {ValidationError} 如果用户 ID 格式无效
      * @throws {ApiError} 如果 API 调用失败且 throwOnError 为 true
      */
-    public async getAvatarUrl(userId: string, forceRefresh = false, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
+    public async getAvatarUrl(
+        userId: string,
+        forceRefresh = false,
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<string | null> {
         validateUserId(userId);
 
         try {
@@ -591,23 +603,22 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getProfileManager = function (): ProfileManager {
         registerManagerClass("profile", ProfileManager);
-    return getOrCreateManager(this, "profile", () => new ProfileManager(this));
+        return getOrCreateManager(this, "profile", () => new ProfileManager(this));
     };
     MatrixClient.prototype.getProfileInfo = function (userId: string): Promise<IProfile> {
-        return this.getProfileManager().getProfileInfo(userId);
+        return this.getProfileManager()!.getProfileInfo(userId);
     };
     MatrixClient.prototype.getUserProfile = function (userId: string): Promise<IProfile> {
-        return this.getProfileManager().getProfileInfo(userId);
+        return this.getProfileManager()!.getProfileInfo(userId);
     };
     MatrixClient.prototype.setDisplayName = async function (name: string): Promise<void> {
-        await this.getProfileManager().setDisplayName(name);
+        await this.getProfileManager()!.setDisplayName(name);
     };
     MatrixClient.prototype.setAvatarUrl = async function (url: string): Promise<void> {
-        await this.getProfileManager().setAvatarUrl(url);
+        await this.getProfileManager()!.setAvatarUrl(url);
     };
 }
 

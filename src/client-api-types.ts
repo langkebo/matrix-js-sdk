@@ -22,8 +22,8 @@ export interface IRequestMsisdnTokenResponse extends IRequestTokenResponse {
 }
 
 export interface IUploadKeysRequest {
-    "device_keys"?: Required<IDeviceKeys>;
-    "one_time_keys"?: Record<string, IOneTimeKey>;
+    device_keys?: Required<IDeviceKeys>;
+    one_time_keys?: Record<string, IOneTimeKey>;
     "org.matrix.msc2732.fallback_keys"?: Record<string, IOneTimeKey>;
 }
 
@@ -94,12 +94,12 @@ export interface IPublicRoomsResponse {
 }
 
 export interface IMyDevice {
-    "device_id": string;
-    "display_name"?: string;
-    "last_seen_ip"?: string;
-    "last_seen_ts"?: number;
+    device_id: string;
+    display_name?: string;
+    last_seen_ip?: string;
+    last_seen_ts?: number;
     // UNSTABLE_MSC3852_LAST_SEEN_UA
-    "last_seen_user_agent"?: string;
+    last_seen_user_agent?: string;
     "org.matrix.msc3852.last_seen_user_agent"?: string;
 }
 
@@ -178,7 +178,7 @@ export interface RoomSummary extends Omit<IPublicRoomsChunkRoom, "canonical_alia
      * The current membership of this user in the room.
      * Usually "leave" if the room is fetched over federation.
      */
-    "membership"?: Membership;
+    membership?: Membership;
     /**
      * Version of the room.
      */

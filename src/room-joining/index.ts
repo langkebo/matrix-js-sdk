@@ -77,11 +77,10 @@ export class RoomJoiningManager extends BaseManager<keyof RoomJoiningManagerEven
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomJoiningManager = function (): RoomJoiningManager {
         registerManagerClass("roomJoining", RoomJoiningManager);
-    return getOrCreateManager(this, "roomJoining", () => new RoomJoiningManager(this));
+        return getOrCreateManager(this, "roomJoining", () => new RoomJoiningManager(this));
     };
 }
 

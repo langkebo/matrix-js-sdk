@@ -2390,10 +2390,10 @@ describe("RustCrypto", () => {
             expect(batch?.batch[0].userId).toEqual("@example:localhost");
             expect(batch?.batch[0].payload).toEqual(
                 expect.objectContaining({
-                    "algorithm": "m.olm.v1.curve25519-aes-sha2",
-                    "ciphertext": expect.any(Object),
+                    algorithm: "m.olm.v1.curve25519-aes-sha2",
+                    ciphertext: expect.any(Object),
                     "org.matrix.msgid": expect.any(String),
-                    "sender_key": expect.any(String),
+                    sender_key: expect.any(String),
                 }),
             );
         });

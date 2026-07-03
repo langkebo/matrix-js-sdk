@@ -23,7 +23,10 @@ export interface SendToDeviceDeps {
  * To-device messages payload: userId -> deviceId -> content.
  * Content shape varies by event type (e.g. m.room_key, m.direct, etc.).
  */
-type ToDeviceMessagesPayload = Record<string, Record<string, unknown>>; /* Dynamic: to-device message content varies by event type */
+type ToDeviceMessagesPayload = Record<
+    string,
+    Record<string, unknown>
+>; /* Dynamic: to-device message content varies by event type */
 
 /**
  * Per-device message content for a single user's devices.

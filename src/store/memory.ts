@@ -256,7 +256,7 @@ export class MemoryStore implements IStore {
             if (isValidFilterId(value)) {
                 return value;
             }
-        // @swallow-error { owner: "store", expires: "2026-12-31" }
+            // @swallow-error { owner: "store", expires: "2026-12-31" }
         } catch (error) {
             logger.warn(`Failed to get filter ID for ${filterName} from localStorage`, error);
         }

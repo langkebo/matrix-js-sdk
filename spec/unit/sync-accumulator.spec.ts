@@ -95,17 +95,17 @@ describe("SyncAccumulator", function () {
                 leave: {},
                 join: {
                     "!foo:bar": {
-                        "account_data": { events: [] },
-                        "ephemeral": { events: [] },
-                        "unread_notifications": {},
+                        account_data: { events: [] },
+                        ephemeral: { events: [] },
+                        unread_notifications: {},
                         "org.matrix.msc4222.state_after": { events },
-                        "state": { events },
-                        "summary": {
+                        state: { events },
+                        summary: {
                             "m.heroes": undefined,
                             "m.joined_member_count": undefined,
                             "m.invited_member_count": undefined,
                         },
-                        "timeline": {
+                        timeline: {
                             events: [msg("alice", "hi")],
                             prev_batch: "something",
                         },
@@ -1003,7 +1003,7 @@ describe("SyncAccumulator", function () {
                     "org.matrix.msc4222.state_after": {
                         events: [],
                     },
-                    "timeline": {
+                    timeline: {
                         events: [
                             utils.mkEvent({
                                 user: "alice",
@@ -1033,7 +1033,7 @@ describe("SyncAccumulator", function () {
             sa.accumulate(
                 syncSkeleton({
                     "org.matrix.msc4222.state_after": initState,
-                    "timeline": {
+                    timeline: {
                         events: initState.events,
                         prev_batch: null,
                     },
@@ -1048,7 +1048,7 @@ describe("SyncAccumulator", function () {
                     "org.matrix.msc4222.state_after": {
                         events: [joinEvent],
                     },
-                    "timeline": {
+                    timeline: {
                         events: [joinEvent],
                         prev_batch: "something",
                     },

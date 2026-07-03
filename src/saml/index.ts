@@ -162,8 +162,8 @@ export class SamlAuthManager extends BaseManager {
     async handleLogoutCallback(): Promise<void> {
         await this.withRetry(async () => {
             await this.request<Record<string, unknown>>({
-                method: // Dynamic: SAML callback response is opaque
-                Method.Get,
+                // Dynamic: SAML callback response is opaque
+                method: Method.Get,
                 path: cp("/logout/saml/callback"),
                 prefix: ClientPrefix.R0,
             });
@@ -254,11 +254,10 @@ export class SamlAuthManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSamlAuthManager = function (): SamlAuthManager {
         registerManagerClass("saml-auth", SamlAuthManager);
-    return getOrCreateManager(this, "saml-auth", () => new SamlAuthManager(this));
+        return getOrCreateManager(this, "saml-auth", () => new SamlAuthManager(this));
     };
 }
 

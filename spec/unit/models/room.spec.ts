@@ -110,7 +110,7 @@ describe("Room", () => {
                 type: "m.room.member",
                 state_key: targetUserId,
                 content: {
-                    "membership": membership,
+                    membership: membership,
                     "org.matrix.msc4293.redact_events": true,
                 },
                 sender: senderUserId,

@@ -44,7 +44,8 @@ export function queryKeysForUsersRequest<T>(
     token: string | undefined,
     authedRequest: AuthedRequestFn,
 ): Promise<T> {
-    const content: Record<string, unknown> = { // Dynamic: key query request body
+    const content: Record<string, unknown> = {
+        // Dynamic: key query request body
         device_keys: {},
     };
     if (token !== undefined) {

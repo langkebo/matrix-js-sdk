@@ -14,7 +14,11 @@ describe("KeyBackupManager", () => {
     });
 
     it("getBackupVersions calls /room_keys/version", async () => {
-        const version: BackupVersionInfo = { version: "1", algorithm: "m.megolm_backup.v1", auth_data: { public_key: "test_key" } };
+        const version: BackupVersionInfo = {
+            version: "1",
+            algorithm: "m.megolm_backup.v1",
+            auth_data: { public_key: "test_key" },
+        };
         authedRequest.mockResolvedValueOnce(version);
 
         const result = await keyBackupManager.getBackupVersions();
@@ -41,7 +45,11 @@ describe("KeyBackupManager", () => {
     });
 
     it("getBackupVersion calls GET /room_keys/version/{version}", async () => {
-        const versionInfo: BackupVersionInfo = { version: "1", algorithm: "m.megolm_backup.v1", auth_data: { public_key: "test_key" } };
+        const versionInfo: BackupVersionInfo = {
+            version: "1",
+            algorithm: "m.megolm_backup.v1",
+            auth_data: { public_key: "test_key" },
+        };
         authedRequest.mockResolvedValueOnce(versionInfo);
 
         const result = await keyBackupManager.getBackupVersion("1");

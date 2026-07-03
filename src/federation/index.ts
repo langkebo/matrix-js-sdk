@@ -92,25 +92,24 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
         return this.request<{
-                blacklist?: IBlacklistEntry[];
-            }>({ method: Method.Get, path: "/federation/blacklist", prefix: AdminPrefix.V1 })
-            .then(
-                (response) => {
-                    const entries: IBlacklistEntry[] = response.blacklist || [];
-                    this.blacklist.clear();
-                    entries.forEach((e) => this.blacklist.set(e.serverName, e));
-                    this.emit(FederationEvent.BlacklistUpdated, entries);
-                    return entries;
-                },
-                (e) => {
-                    const error = this.normalizeError(e, "getBlacklist");
-                    if (throwOnError) {
-                        throw error;
-                    }
-                    logger.warn("FederationManager.getBlacklist failed:", error);
-                    return Array.from(this.blacklist.values());
-                },
-            );
+            blacklist?: IBlacklistEntry[];
+        }>({ method: Method.Get, path: "/federation/blacklist", prefix: AdminPrefix.V1 }).then(
+            (response) => {
+                const entries: IBlacklistEntry[] = response.blacklist || [];
+                this.blacklist.clear();
+                entries.forEach((e) => this.blacklist.set(e.serverName, e));
+                this.emit(FederationEvent.BlacklistUpdated, entries);
+                return entries;
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getBlacklist");
+                if (throwOnError) {
+                    throw error;
+                }
+                logger.warn("FederationManager.getBlacklist failed:", error);
+                return Array.from(this.blacklist.values());
+            },
+        );
     }
 
     async addToBlacklist(serverName: string, reason?: string): Promise<void> {
@@ -186,27 +185,30 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         return this.request<{
-                online?: boolean;
-                last_successful_connect?: number;
-                latency?: number;
-            }>({ method: Method.Get, path: `/federation/status/${encodeURIComponent(serverName)}`, prefix: AdminPrefix.V1 })
-            .then(
-                (response) => {
-                    return {
-                        online: response.online || false,
-                        lastSuccessfulConnect: response.last_successful_connect,
-                        latency: response.latency,
-                    };
-                },
-                (e) => {
-                    const error = this.normalizeError(e, "getServerStatus");
-                    if (throwOnError) {
-                        throw error;
-                    }
-                    logger.warn("FederationManager.getServerStatus failed:", error);
-                    return null;
-                },
-            );
+            online?: boolean;
+            last_successful_connect?: number;
+            latency?: number;
+        }>({
+            method: Method.Get,
+            path: `/federation/status/${encodeURIComponent(serverName)}`,
+            prefix: AdminPrefix.V1,
+        }).then(
+            (response) => {
+                return {
+                    online: response.online || false,
+                    lastSuccessfulConnect: response.last_successful_connect,
+                    latency: response.latency,
+                };
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getServerStatus");
+                if (throwOnError) {
+                    throw error;
+                }
+                logger.warn("FederationManager.getServerStatus failed:", error);
+                return null;
+            },
+        );
     }
 
     /**
@@ -217,23 +219,22 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      */
     async getFederationDestinations(throwOnError = true): Promise<IFederationServer[]> {
         return this.request<{
-                destinations?: IFederationServer[];
-            }>({ method: Method.Get, path: "/federation/destinations", prefix: AdminPrefix.V1 })
-            .then(
-                (response) => {
-                    const servers: IFederationServer[] = response.destinations || [];
-                    servers.forEach((s) => this.serverCache.set(s.serverName, s));
-                    return servers;
-                },
-                (e) => {
-                    const error = this.normalizeError(e, "getFederationDestinations");
-                    if (throwOnError) {
-                        throw error;
-                    }
-                    logger.warn("FederationManager.getFederationDestinations failed:", error);
-                    return Array.from(this.serverCache.values());
-                },
-            );
+            destinations?: IFederationServer[];
+        }>({ method: Method.Get, path: "/federation/destinations", prefix: AdminPrefix.V1 }).then(
+            (response) => {
+                const servers: IFederationServer[] = response.destinations || [];
+                servers.forEach((s) => this.serverCache.set(s.serverName, s));
+                return servers;
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getFederationDestinations");
+                if (throwOnError) {
+                    throw error;
+                }
+                logger.warn("FederationManager.getFederationDestinations failed:", error);
+                return Array.from(this.serverCache.values());
+            },
+        );
     }
 
     async disconnectServer(serverName: string): Promise<void> {
@@ -285,23 +286,22 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
 
         return this.request<{
-                server?: { version?: string };
-            }>({ method: Method.Get, path: "/_matrix/federation/v1/version", prefix: "" })
-            .then(
-                (response) => {
-                    return {
-                        version: response.server?.version || "unknown",
-                    };
-                },
-                (e) => {
-                    const error = this.normalizeError(e, "getServerVersion");
-                    if (throwOnError) {
-                        throw error;
-                    }
-                    logger.warn("FederationManager.getServerVersion failed:", error);
-                    return null;
-                },
-            );
+            server?: { version?: string };
+        }>({ method: Method.Get, path: "/_matrix/federation/v1/version", prefix: "" }).then(
+            (response) => {
+                return {
+                    version: response.server?.version || "unknown",
+                };
+            },
+            (e) => {
+                const error = this.normalizeError(e, "getServerVersion");
+                if (throwOnError) {
+                    throw error;
+                }
+                logger.warn("FederationManager.getServerVersion failed:", error);
+                return null;
+            },
+        );
     }
 
     async getPublicRoomsOnServer(
@@ -564,7 +564,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async claimKeys(body: Record<string, unknown> /* Dynamic: federation key claim body varies by algorithm */): Promise<unknown> {
+    async claimKeys(
+        body: Record<string, unknown> /* Dynamic: federation key claim body varies by algorithm */,
+    ): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -600,7 +602,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async queryKeys(body: Record<string, unknown> /* Dynamic: federation key query body varies by algorithm */): Promise<unknown> {
+    async queryKeys(
+        body: Record<string, unknown> /* Dynamic: federation key query body varies by algorithm */,
+    ): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -637,7 +641,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async uploadKeys(body: Record<string, unknown> /* Dynamic: federation key upload body varies by algorithm */): Promise<unknown> {
+    async uploadKeys(
+        body: Record<string, unknown> /* Dynamic: federation key upload body varies by algorithm */,
+    ): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -900,10 +906,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async backfillRoom(
-        roomId: string,
-        opts?: { limit?: number; from?: string },
-    ): Promise<unknown> {
+    async backfillRoom(roomId: string, opts?: { limit?: number; from?: string }): Promise<unknown> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
@@ -945,7 +948,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * @throws {ValidationError} If body is empty
      * @throws {Error} If the request fails
      */
-    async cloneKey(body: Record<string, unknown> /* Dynamic: federation key clone body varies by algorithm */): Promise<unknown> {
+    async cloneKey(
+        body: Record<string, unknown> /* Dynamic: federation key clone body varies by algorithm */,
+    ): Promise<unknown> {
         if (!body) {
             throw new ValidationError("Body is required");
         }
@@ -1043,7 +1048,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFederationManager = function (): FederationManager {
         registerManagerClass("federation", FederationManager);
-    return getOrCreateManager(this, "federation", () => new FederationManager(this));
+        return getOrCreateManager(this, "federation", () => new FederationManager(this));
     };
 }
 

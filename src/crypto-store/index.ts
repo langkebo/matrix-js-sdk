@@ -57,11 +57,10 @@ export class CryptoStoreManager extends BaseManager<keyof CryptoStoreManagerEven
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoStoreManager = function (): CryptoStoreManager {
         registerManagerClass("cryptoStore", CryptoStoreManager);
-    return getOrCreateManager(this, "cryptoStore", () => new CryptoStoreManager(this));
+        return getOrCreateManager(this, "cryptoStore", () => new CryptoStoreManager(this));
     };
 }
 

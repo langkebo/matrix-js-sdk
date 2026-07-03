@@ -40,10 +40,11 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
 
     public async getThreePids(): Promise<{ threepids: IThreepid[] }> {
         return this.withRetry(
-            async () => this.request<{ threepids: IThreepid[] }>({
-                method: Method.Get,
-                path: "/account/3pid",
-            }),
+            async () =>
+                this.request<{ threepids: IThreepid[] }>({
+                    method: Method.Get,
+                    path: "/account/3pid",
+                }),
             "getThreePids",
         );
     }
@@ -55,9 +56,9 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
                     method: Method.Post,
                     path: "/account/3pid/add",
                     body: {
-                    client_secret: clientSecret,
-                    sid,
-                },
+                        client_secret: clientSecret,
+                        sid,
+                    },
                 }),
             "addThreePidOnly",
         );
@@ -75,11 +76,11 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
                     method: Method.Post,
                     path: "/account/3pid/bind",
                     body: {
-                    client_secret: clientSecret,
-                    sid,
-                    id_server: idServer,
-                    id_access_token: idAccessToken,
-                },
+                        client_secret: clientSecret,
+                        sid,
+                        id_server: idServer,
+                        id_access_token: idAccessToken,
+                    },
                 }),
             "bindThreePid",
         );
@@ -132,13 +133,12 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getThreePidsManager")) return;
 
     MatrixClient.prototype.getThreePidsManager = function (this: MatrixClient): ThreePidsManager {
         registerManagerClass("threepids", ThreePidsManager);
-    return getOrCreateManager(this, "threepids", () => new ThreePidsManager(this));
+        return getOrCreateManager(this, "threepids", () => new ThreePidsManager(this));
     };
 }
 

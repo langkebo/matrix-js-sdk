@@ -805,16 +805,16 @@ export class MembershipManager
                       foci_preferred: [this.rtcTransport, ...(this.fociPreferred ?? [])],
                   };
         return {
-            "application": this.slotDescription.application,
+            application: this.slotDescription.application,
             // INFO_SLOT_ID_LEGACY_CASE  (search for all occurances of this INFO to get the full picture)
             // Revert back to "" just for the sending the event.
-            "call_id": needsEmptyStringRoomFix ? "" : this.slotDescription.id,
-            "scope": "m.room",
-            "device_id": this.deviceId,
+            call_id: needsEmptyStringRoomFix ? "" : this.slotDescription.id,
+            scope: "m.room",
+            device_id: this.deviceId,
             // DO NOT use this.memberId here since that is the state key (using application...)
             // But for session events we use the colon seperated userId and deviceId. The SFU will automatically
             // assign those values to the media participant for those versions.
-            "membershipID": `${this.userId}:${this.deviceId}`,
+            membershipID: `${this.userId}:${this.deviceId}`,
             expires,
             "m.call.intent": this.callIntent,
             ...focusObjects,

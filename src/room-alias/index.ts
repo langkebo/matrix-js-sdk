@@ -72,7 +72,10 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名响应
      */
-    async getAliasRoom(alias: string, options: ErrorHandlingOptions | boolean = {}): Promise<IRoomAliasResponse | null> {
+    async getAliasRoom(
+        alias: string,
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<IRoomAliasResponse | null> {
         if (!alias) {
             throw new InvalidParamError("Alias is required");
         }
@@ -182,7 +185,10 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名列表响应
      */
-    async getRoomAliases(roomId: string, options: ErrorHandlingOptions | boolean = {}): Promise<IRoomAliasesResponse | null> {
+    async getRoomAliases(
+        roomId: string,
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<IRoomAliasesResponse | null> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }

@@ -78,60 +78,39 @@ export class CryptoEncryptionManager extends BaseManager<
     }
 
     public async encryptEvent(event: MatrixEvent, room: Room): Promise<IEncryptionResult> {
-        return this.withRetry(
-            () => this.client.encryptEvent(event, room),
-            "encryptEvent",
-        );
+        return this.withRetry(() => this.client.encryptEvent(event, room), "encryptEvent");
     }
 
     public async decryptEvent(event: MatrixEvent): Promise<IDecryptionResult> {
-        return this.withRetry(
-            () => this.client.decryptEvent(event),
-            "decryptEvent",
-        );
+        return this.withRetry(() => this.client.decryptEvent(event), "decryptEvent");
     }
 
-    public async getUserDevices(userId: string): Promise<Record<string, unknown>> { // Dynamic: device info structure varies
-        return this.withRetry(
-            () => this.client.getUserDevices(userId),
-            "getUserDevices",
-        );
+    public async getUserDevices(userId: string): Promise<Record<string, unknown>> {
+        // Dynamic: device info structure varies
+        return this.withRetry(() => this.client.getUserDevices(userId), "getUserDevices");
     }
 
     public async setDeviceVerified(userId: string, deviceId: string): Promise<void> {
-        return this.withRetry(
-            () => this.client.setDeviceVerified(userId, deviceId),
-            "setDeviceVerified",
-        );
+        return this.withRetry(() => this.client.setDeviceVerified(userId, deviceId), "setDeviceVerified");
     }
 
     public async markDeviceAsVerified(userId: string, deviceId: string): Promise<void> {
-        return this.withRetry(
-            () => this.client.markDeviceAsVerified(userId, deviceId),
-            "markDeviceAsVerified",
-        );
+        return this.withRetry(() => this.client.markDeviceAsVerified(userId, deviceId), "markDeviceAsVerified");
     }
 
     public async markAllDevicesAsVerified(userId: string): Promise<void> {
-        return this.withRetry(
-            () => this.client.markAllDevicesAsVerified(userId),
-            "markAllDevicesAsVerified",
-        );
+        return this.withRetry(() => this.client.markAllDevicesAsVerified(userId), "markAllDevicesAsVerified");
     }
 
     public async getEncryptionInfoForRoom(roomId: string): Promise<IEncryptionInfo> {
-        return this.withRetry(
-            () => this.client.getEncryptionInfoForRoom(roomId),
-            "getEncryptionInfoForRoom",
-        );
+        return this.withRetry(() => this.client.getEncryptionInfoForRoom(roomId), "getEncryptionInfoForRoom");
     }
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCryptoEncryptionManager = function (): CryptoEncryptionManager {
         registerManagerClass("cryptoEncryption", CryptoEncryptionManager);
-    return getOrCreateManager(this, "cryptoEncryption", () => new CryptoEncryptionManager(this));
+        return getOrCreateManager(this, "cryptoEncryption", () => new CryptoEncryptionManager(this));
     };
 }
 

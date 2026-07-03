@@ -52,9 +52,9 @@ describe("BackgroundUpdateManager", () => {
         await expect(manager.createBackgroundUpdate({ job_name: "", job_type: "reindex" })).rejects.toThrow(
             ValidationError,
         );
-        await expect(
-            manager.createBackgroundUpdate({ job_name: "populate-search", job_type: "" }),
-        ).rejects.toThrow(ValidationError);
+        await expect(manager.createBackgroundUpdate({ job_name: "populate-search", job_type: "" })).rejects.toThrow(
+            ValidationError,
+        );
     });
 
     it("fetches count, next, pending, running and status endpoints", async () => {
@@ -64,22 +64,12 @@ describe("BackgroundUpdateManager", () => {
         await manager.listRunningUpdates();
         await manager.getStatus();
 
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-            1,
-            "GET",
-            "/background_updates/count",
-            undefined,
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-            2,
-            "GET",
-            "/background_updates/next",
-            undefined,
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockAuthedRequest).toHaveBeenNthCalledWith(1, "GET", "/background_updates/count", undefined, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
+        expect(mockAuthedRequest).toHaveBeenNthCalledWith(2, "GET", "/background_updates/next", undefined, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
         expect(mockAuthedRequest).toHaveBeenNthCalledWith(
             3,
             "GET",

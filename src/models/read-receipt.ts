@@ -409,5 +409,4 @@ export abstract class ReadReceipt<
      * @returns True if the user has read the event, false otherwise.
      */
     public abstract hasUserReadEvent(userId: string, eventId: string): boolean;
-
 }

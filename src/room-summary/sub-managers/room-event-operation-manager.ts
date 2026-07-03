@@ -204,11 +204,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param type - 数据类型
      * @param content - 数据内容
      */
-    public async setRoomAccountDataV3(
-        roomId: string,
-        type: string,
-        content: IContent,
-    ): Promise<RoomAccountDataResult> {
+    public async setRoomAccountDataV3(roomId: string, type: string, content: IContent): Promise<RoomAccountDataResult> {
         this.validateRoomId(roomId);
         if (!type) throw new InvalidParamError("type is required");
         return await this.withRetry(async () => {
@@ -240,11 +236,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param receiptType - 回执类型
      * @param eventId - 事件 ID
      */
-    public async getRoomReceipts(
-        roomId: string,
-        receiptType: string,
-        eventId: string,
-    ): Promise<RoomReceiptsResult> {
+    public async getRoomReceipts(roomId: string, receiptType: string, eventId: string): Promise<RoomReceiptsResult> {
         this.validateRoomId(roomId);
         if (!receiptType) throw new InvalidParamError("receiptType is required");
         if (!eventId) throw new InvalidParamError("eventId is required");
@@ -335,7 +327,10 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomVaultData(roomId: string): Promise<RoomVaultDataResult | null> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomVaultDataResult>(Method.Get, this.roomSummaryPath("/rooms/$roomId/vault_data", roomId));
+            return await this.requestV3<RoomVaultDataResult>(
+                Method.Get,
+                this.roomSummaryPath("/rooms/$roomId/vault_data", roomId),
+            );
         }, "getRoomVaultData");
     }
 
@@ -425,10 +420,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomPermissions(roomId: string): Promise<RoomPermissionsResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(
-                Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/permissions", roomId),
-            );
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/permissions", roomId));
         }, "getRoomPermissions");
     }
 
@@ -440,10 +432,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomResolve(roomId: string): Promise<RoomResolveResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(
-                Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/resolve", roomId),
-            );
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/resolve", roomId));
         }, "getRoomResolve");
     }
 
@@ -478,10 +467,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomServiceTypes(roomId: string): Promise<RoomServiceTypesResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(
-                Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/service_types", roomId),
-            );
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/service_types", roomId));
         }, "getRoomServiceTypes");
     }
 
@@ -493,10 +479,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomReducedEvents(roomId: string): Promise<RoomReducedEventsResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(
-                Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/reduced_events", roomId),
-            );
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/reduced_events", roomId));
         }, "getRoomReducedEvents");
     }
 
@@ -508,10 +491,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomRendered(roomId: string): Promise<RoomRenderedResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(
-                Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/rendered/", roomId),
-            );
+            return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/rendered/", roomId));
         }, "getRoomRendered");
     }
 
@@ -647,11 +627,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param eventId - 事件 ID
      * @param body - 签名请求体
      */
-    public async signRoomEvent(
-        roomId: string,
-        eventId: string,
-        body: SignEventBody = {},
-    ): Promise<RoomSignResult> {
+    public async signRoomEvent(roomId: string, eventId: string, body: SignEventBody = {}): Promise<RoomSignResult> {
         this.validateRoomId(roomId);
         if (!eventId) {
             throw new InvalidParamError("eventId is required");
@@ -729,11 +705,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param eventType - 事件类型
      * @param content - 事件内容
      */
-    public async setStickyEvent(
-        roomId: string,
-        eventType: string,
-        content: IContent,
-    ): Promise<StickyEvent> {
+    public async setStickyEvent(roomId: string, eventType: string, content: IContent): Promise<StickyEvent> {
         this.validateRoomId(roomId);
         this.validateEventType(eventType);
         return await this.withRetry(async () => {
@@ -781,23 +753,14 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         }, "getRoomPowerLevels");
     }
 
-    public async translate(
-        content: string,
-        sourceLang?: string,
-        targetLang?: string,
-    ): Promise<TranslateResult> {
+    public async translate(content: string, sourceLang?: string, targetLang?: string): Promise<TranslateResult> {
         this.requireNonEmptyString(content, "content");
         return await this.withRetry(async () => {
-            return await this.requestV3<TranslateResult>(
-                Method.Post,
-                "/translate",
-                undefined,
-                {
-                    content,
-                    source_lang: sourceLang,
-                    target_lang: targetLang,
-                } as Body,
-            );
+            return await this.requestV3<TranslateResult>(Method.Post, "/translate", undefined, {
+                content,
+                source_lang: sourceLang,
+                target_lang: targetLang,
+            } as Body);
         }, "translate");
     }
 }

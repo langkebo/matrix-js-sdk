@@ -45,13 +45,9 @@ describe("NotificationsManager", () => {
         const result = await manager.getNotifications(opts);
 
         expect(result).toBe(mockResponse);
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/notifications",
-            opts,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/notifications", opts, undefined, {
+            prefix: ClientPrefix.V3,
+        });
     });
 
     it("should ack a notification with correct path", async () => {
@@ -62,7 +58,10 @@ describe("NotificationsManager", () => {
 
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Post,
-            `/_matrix/client/v3/notifications/${encodeURIComponent(notificationId)}/ack`.replace("/_matrix/client/v3", ""),
+            `/_matrix/client/v3/notifications/${encodeURIComponent(notificationId)}/ack`.replace(
+                "/_matrix/client/v3",
+                "",
+            ),
             undefined,
             undefined,
             { prefix: ClientPrefix.V3 },

@@ -99,7 +99,8 @@ export class ToDeviceKeyTransport
 
         if (targets.length > 0) {
             await this.client
-                .getToDeviceManager().encryptAndSendToDevice(EventType.CallEncryptionKeysPrefix, targets, content)
+                .getToDeviceManager()
+                .encryptAndSendToDevice(EventType.CallEncryptionKeysPrefix, targets, content)
                 .catch((error: WidgetApiResponseError) => {
                     const msg: string = error.message;
                     // This is not ideal. We would want to have a custom error type for unsupported actions.

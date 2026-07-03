@@ -25,7 +25,19 @@ describe("WidgetManager", () => {
     describe("getRoomWidgets", () => {
         it("should fetch room widgets", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                widgets: [{ widget_id: "w1", room_id: "!room:example.com", user_id: "@user:example.com", type: "custom", url: "https://example.com", name: "Test", data: {}, creator: "@user:example.com", active: true }],
+                widgets: [
+                    {
+                        widget_id: "w1",
+                        room_id: "!room:example.com",
+                        user_id: "@user:example.com",
+                        type: "custom",
+                        url: "https://example.com",
+                        name: "Test",
+                        data: {},
+                        creator: "@user:example.com",
+                        active: true,
+                    },
+                ],
             });
             const result = await widgetManager.getRoomWidgets("!room:example.com");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -42,7 +54,13 @@ describe("WidgetManager", () => {
 
     describe("getJitsiConfig", () => {
         it("should fetch Jitsi config for a room", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({ conf_id: "conf1", name: "Test", domain: "jitsi.example.com", app_id: null, jwt: null });
+            mockAuthedRequest.mockResolvedValueOnce({
+                conf_id: "conf1",
+                name: "Test",
+                domain: "jitsi.example.com",
+                app_id: null,
+                jwt: null,
+            });
             const result = await widgetManager.getJitsiConfig("!room:example.com");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -60,9 +78,23 @@ describe("WidgetManager", () => {
     describe("createWidget", () => {
         it("should create a widget", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                widget: { widget_id: "w1", room_id: null, user_id: "@user:example.com", type: "custom", url: "https://example.com", name: "Test", data: {}, creator: "@user:example.com", active: true },
+                widget: {
+                    widget_id: "w1",
+                    room_id: null,
+                    user_id: "@user:example.com",
+                    type: "custom",
+                    url: "https://example.com",
+                    name: "Test",
+                    data: {},
+                    creator: "@user:example.com",
+                    active: true,
+                },
             });
-            const result = await widgetManager.createWidget({ widget_type: "custom", url: "https://example.com", name: "Test" });
+            const result = await widgetManager.createWidget({
+                widget_type: "custom",
+                url: "https://example.com",
+                name: "Test",
+            });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/widgets",
@@ -80,25 +112,31 @@ describe("WidgetManager", () => {
         });
 
         it("should throw if url is missing", async () => {
-            await expect(
-                widgetManager.createWidget({ widget_type: "custom", url: "", name: "Test" }),
-            ).rejects.toThrow("url is required");
+            await expect(widgetManager.createWidget({ widget_type: "custom", url: "", name: "Test" })).rejects.toThrow(
+                "url is required",
+            );
         });
     });
 
     describe("getWidget", () => {
         it("should get a widget by ID", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                widget: { widget_id: "w1", room_id: null, user_id: "@user:example.com", type: "custom", url: "https://example.com", name: "Test", data: {}, creator: "@user:example.com", active: true },
+                widget: {
+                    widget_id: "w1",
+                    room_id: null,
+                    user_id: "@user:example.com",
+                    type: "custom",
+                    url: "https://example.com",
+                    name: "Test",
+                    data: {},
+                    creator: "@user:example.com",
+                    active: true,
+                },
             });
             const result = await widgetManager.getWidget("w1");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/widgets/w1",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/w1", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
             expect(result.widget.widget_id).toBe("w1");
         });
 
@@ -110,7 +148,17 @@ describe("WidgetManager", () => {
     describe("updateWidget", () => {
         it("should update a widget", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                widget: { widget_id: "w1", room_id: null, user_id: "@user:example.com", type: "custom", url: "https://example.com", name: "Updated", data: {}, creator: "@user:example.com", active: true },
+                widget: {
+                    widget_id: "w1",
+                    room_id: null,
+                    user_id: "@user:example.com",
+                    type: "custom",
+                    url: "https://example.com",
+                    name: "Updated",
+                    data: {},
+                    creator: "@user:example.com",
+                    active: true,
+                },
             });
             const result = await widgetManager.updateWidget("w1", { name: "Updated" });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -124,9 +172,7 @@ describe("WidgetManager", () => {
         });
 
         it("should throw if widget_id is missing", async () => {
-            await expect(
-                widgetManager.updateWidget("", { name: "Test" }),
-            ).rejects.toThrow("widget_id is required");
+            await expect(widgetManager.updateWidget("", { name: "Test" })).rejects.toThrow("widget_id is required");
         });
     });
 
@@ -134,13 +180,9 @@ describe("WidgetManager", () => {
         it("should delete a widget", async () => {
             mockAuthedRequest.mockResolvedValueOnce(undefined);
             await widgetManager.deleteWidget("w1");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Delete,
-                "/widgets/w1",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Delete, "/widgets/w1", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
         });
     });
 
@@ -148,15 +190,18 @@ describe("WidgetManager", () => {
 
     describe("getWidgetConfig", () => {
         it("should get widget config", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({ widget_id: "w1", room_id: null, url: "https://example.com", name: "Test", type: "custom", data: {} });
+            mockAuthedRequest.mockResolvedValueOnce({
+                widget_id: "w1",
+                room_id: null,
+                url: "https://example.com",
+                name: "Test",
+                type: "custom",
+                data: {},
+            });
             const result = await widgetManager.getWidgetConfig("w1");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/widgets/w1/config",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/w1/config", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
             expect(result.widget_id).toBe("w1");
         });
     });
@@ -166,7 +211,16 @@ describe("WidgetManager", () => {
     describe("getWidgetPermissions", () => {
         it("should get widget permissions", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                permissions: [{ id: 1, widget_id: "w1", user_id: "@user:example.com", permissions: ["read"], created_ts: 1234, updated_ts: null }],
+                permissions: [
+                    {
+                        id: 1,
+                        widget_id: "w1",
+                        user_id: "@user:example.com",
+                        permissions: ["read"],
+                        created_ts: 1234,
+                        updated_ts: null,
+                    },
+                ],
             });
             const result = await widgetManager.getWidgetPermissions("w1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -233,13 +287,9 @@ describe("WidgetManager", () => {
                 total: 1,
             });
             const result = await widgetManager.getWidgetSessions("w1");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/widgets/w1/sessions",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/w1/sessions", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
             expect(result.sessions).toHaveLength(1);
         });
     });
@@ -267,13 +317,9 @@ describe("WidgetManager", () => {
                 session: { session_id: "s1", widget_id: "w1", device_id: null, created_ts: 1234, expires_ts: null },
             });
             const result = await widgetManager.getWidgetSession("s1");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/widgets/sessions/s1",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/sessions/s1", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
             expect(result.session.session_id).toBe("s1");
         });
     });
@@ -296,7 +342,11 @@ describe("WidgetManager", () => {
 
     describe("getWidgetCapabilities", () => {
         it("should get widget capabilities", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({ widget_id: "w1", room_id: "!room:example.com", capabilities: ["read", "write"] });
+            mockAuthedRequest.mockResolvedValueOnce({
+                widget_id: "w1",
+                room_id: "!room:example.com",
+                capabilities: ["read", "write"],
+            });
             const result = await widgetManager.getWidgetCapabilities("!room:example.com", "w1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -311,7 +361,11 @@ describe("WidgetManager", () => {
 
     describe("setWidgetCapabilities", () => {
         it("should set widget capabilities", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({ widget_id: "w1", room_id: "!room:example.com", capabilities: ["read"] });
+            mockAuthedRequest.mockResolvedValueOnce({
+                widget_id: "w1",
+                room_id: "!room:example.com",
+                capabilities: ["read"],
+            });
             const result = await widgetManager.setWidgetCapabilities("!room:example.com", "w1", ["read"]);
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Put,
@@ -342,9 +396,23 @@ describe("WidgetManager", () => {
     describe("createWidgetV3", () => {
         it("should create a widget via v3 endpoint", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                widget: { widget_id: "w1", room_id: null, user_id: "@user:example.com", type: "custom", url: "https://example.com", name: "Test", data: {}, creator: "@user:example.com", active: true },
+                widget: {
+                    widget_id: "w1",
+                    room_id: null,
+                    user_id: "@user:example.com",
+                    type: "custom",
+                    url: "https://example.com",
+                    name: "Test",
+                    data: {},
+                    creator: "@user:example.com",
+                    active: true,
+                },
             });
-            const result = await widgetManager.createWidgetV3({ widget_type: "custom", url: "https://example.com", name: "Test" });
+            const result = await widgetManager.createWidgetV3({
+                widget_type: "custom",
+                url: "https://example.com",
+                name: "Test",
+            });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/widgets/create",

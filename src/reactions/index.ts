@@ -173,11 +173,10 @@ export class ReactionsManager extends BaseManager<keyof ReactionsManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReactionsManager = function (): ReactionsManager {
         registerManagerClass("reactions", ReactionsManager);
-    return getOrCreateManager(this, "reactions", () => new ReactionsManager(this));
+        return getOrCreateManager(this, "reactions", () => new ReactionsManager(this));
     };
 }
 

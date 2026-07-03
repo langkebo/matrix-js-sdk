@@ -49,11 +49,11 @@ describe("client send event helper", () => {
         expect(prepared.eventObject).toEqual({
             type: "m.room.message",
             content: {
-                "body": "hello",
+                body: "hello",
                 "m.relates_to": {
-                    "event_id": "$thread:example.org",
-                    "rel_type": "m.thread",
-                    "is_falling_back": true,
+                    event_id: "$thread:example.org",
+                    rel_type: "m.thread",
+                    is_falling_back: true,
                     "m.in_reply_to": {
                         event_id: "$thread:example.org",
                     },

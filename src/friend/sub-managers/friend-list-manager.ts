@@ -30,16 +30,12 @@ import { validateUserId, validateLimit } from "../../common/validators";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../../server-capabilities";
 import type {
     Friend,
-    FriendRequest,
     FriendGroup,
-    FriendGroups,
     FriendSearchResponse,
     FriendSearchQuery,
     FriendStatusInfo,
     FriendshipCheckResponse,
     FriendStatus,
-    FriendRelationshipStatus,
-    FriendRequestStatus,
 } from "../index";
 import type { FriendSharedState } from "./shared-state";
 
@@ -115,7 +111,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
 
         try {
-            const response = await this.request<IFriendsResponse>({ method: Method.Get, path: "/friends", prefix: ClientPrefix.V3 });
+            const response = await this.request<IFriendsResponse>({
+                method: Method.Get,
+                path: "/friends",
+                prefix: ClientPrefix.V3,
+            });
 
             if (response.room_id) {
                 this.sharedState.friendListRoomId = response.room_id;
@@ -131,7 +131,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     async getFriends(): Promise<Friend[]> {
         try {
-            const response = await this.request<IFriendsResponse>({ method: Method.Get, path: "/friends", prefix: ClientPrefix.V3 });
+            const response = await this.request<IFriendsResponse>({
+                method: Method.Get,
+                path: "/friends",
+                prefix: ClientPrefix.V3,
+            });
 
             if (response.room_id) {
                 this.sharedState.friendListRoomId = response.room_id;
@@ -150,7 +154,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     async getFriendSuggestions(limit: number = 10): Promise<Friend[]> {
         validateLimit(limit);
         try {
-            const response = await this.request<IFriendSuggestionsResponse>({ method: Method.Get, path: "/friends/suggestions", queryParams: { limit: String(limit) }, prefix: ClientPrefix.V1 });
+            const response = await this.request<IFriendSuggestionsResponse>({
+                method: Method.Get,
+                path: "/friends/suggestions",
+                queryParams: { limit: String(limit) },
+                prefix: ClientPrefix.V1,
+            });
 
             return (response.suggestions || []).map(normalizeFriend);
         } catch (e) {
@@ -160,11 +169,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 搜索 =====
 
-    async searchUsers(
-        q: string,
-        mode?: "fuzzy" | "exact",
-        limit?: number,
-    ): Promise<FriendSearchResponse> {
+    async searchUsers(q: string, mode?: "fuzzy" | "exact", limit?: number): Promise<FriendSearchResponse> {
         if (!q || q.trim().length === 0) {
             throw new InvalidParamError("Search term cannot be empty");
         }
@@ -174,7 +179,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (limit !== undefined) params.limit = limit;
 
         try {
-            const response = await this.request<FriendSearchResponse>({ method: Method.Get, path: "/friends/search", queryParams: params as Record<string, string | string[]>, prefix: ClientPrefix.V3 });
+            const response = await this.request<FriendSearchResponse>({
+                method: Method.Get,
+                path: "/friends/search",
+                queryParams: params as Record<string, string | string[]>,
+                prefix: ClientPrefix.V3,
+            });
 
             return response;
         } catch (e) {
@@ -189,7 +199,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<FriendSearchResponse>({ method: Method.Post, path: "/friends/search", body: query, prefix: ClientPrefix.V3 });
+                return await this.request<FriendSearchResponse>({
+                    method: Method.Post,
+                    path: "/friends/search",
+                    body: query,
+                    prefix: ClientPrefix.V3,
+                });
             }, "searchFriendsAdvanced");
 
             return response;
@@ -206,7 +221,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
 
         try {
-            const response = await this.request<FriendshipCheckResponse>({ method: Method.Get, path: `/friends/check/${encodeURIComponent(userId)}`, prefix: ClientPrefix.V3 });
+            const response = await this.request<FriendshipCheckResponse>({
+                method: Method.Get,
+                path: `/friends/check/${encodeURIComponent(userId)}`,
+                prefix: ClientPrefix.V3,
+            });
             return response;
         } catch (e) {
             throw this.normalizeError(e, "checkFriendship");
@@ -222,7 +241,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     async getFriendships(): Promise<Friend[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<IFriendsResponse>({ method: Method.Get, path: "/friendships", prefix: ClientPrefix.R0 });
+                return await this.request<IFriendsResponse>({
+                    method: Method.Get,
+                    path: "/friendships",
+                    prefix: ClientPrefix.R0,
+                });
             }, "getFriendships");
 
             const friends = (response.friends || response.items || []).map(normalizeFriend);
@@ -240,7 +263,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<{ user_id?: string; status?: string }>({ method: Method.Post, path: "/friendships", body: { user_id: userId }, prefix: ClientPrefix.R0 });
+                return await this.request<{ user_id?: string; status?: string }>({
+                    method: Method.Post,
+                    path: "/friendships",
+                    body: { user_id: userId },
+                    prefix: ClientPrefix.R0,
+                });
             }, "createFriendship");
 
             return { user_id: response?.user_id, status: response?.status };
@@ -253,7 +281,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     async getFriendGroups(): Promise<FriendGroup[]> {
         try {
-            const response = await this.request<IFriendGroupsResponse>({ method: Method.Get, path: "/friends/groups", prefix: ClientPrefix.V1 });
+            const response = await this.request<IFriendGroupsResponse>({
+                method: Method.Get,
+                path: "/friends/groups",
+                prefix: ClientPrefix.V1,
+            });
 
             const list = response.groups ?? [];
             this.sharedState.groups = {};
@@ -282,7 +314,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             throw new InvalidParamError("Group name too long (max 50 characters)");
         }
 
-        const response = await this.request<ICreateGroupResponse>({ method: Method.Post, path: "/friends/groups", body: { name }, prefix: ClientPrefix.V1 });
+        const response = await this.request<ICreateGroupResponse>({
+            method: Method.Post,
+            path: "/friends/groups",
+            body: { name },
+            prefix: ClientPrefix.V1,
+        });
 
         const group: FriendGroup = {
             id: response.id,
@@ -301,7 +338,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             throw new InvalidParamError("User ID is required");
         }
         validateUserId(userId);
-        await this.request({ method: Method.Post, path: `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`, prefix: ClientPrefix.V1 });
+        await this.request({
+            method: Method.Post,
+            path: `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`,
+            prefix: ClientPrefix.V1,
+        });
 
         const cached = this.sharedState.groups[groupId];
         if (cached && !cached.members.includes(userId)) {
@@ -310,7 +351,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     }
 
     async removeFromFriendGroup(groupId: string, userId: string): Promise<void> {
-        await this.request({ method: Method.Delete, path: `/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`, prefix: ClientPrefix.V1 });
+        await this.request({
+            method: Method.Delete,
+            path: `/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`,
+            prefix: ClientPrefix.V1,
+        });
 
         const cached = this.sharedState.groups[groupId];
         if (cached) {
@@ -332,7 +377,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             throw new InvalidParamError("Group name too long (max 50 characters)");
         }
 
-        await this.request({ method: Method.Put, path: `/friends/groups/${groupId}/name`, body: { name }, prefix: ClientPrefix.V1 });
+        await this.request({
+            method: Method.Put,
+            path: `/friends/groups/${groupId}/name`,
+            body: { name },
+            prefix: ClientPrefix.V1,
+        });
 
         const cached = this.sharedState.groups[groupId];
         if (cached) {
@@ -341,7 +391,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     }
 
     async getFriendsInGroup(groupId: string): Promise<Friend[]> {
-        const response = await this.request<{ friends: Friend[] }>({ method: Method.Get, path: `/friends/groups/${groupId}/friends`, prefix: ClientPrefix.V1 });
+        const response = await this.request<{ friends: Friend[] }>({
+            method: Method.Get,
+            path: `/friends/groups/${groupId}/friends`,
+            prefix: ClientPrefix.V1,
+        });
 
         return (response.friends || []).map(normalizeFriend);
     }
@@ -351,7 +405,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             throw new InvalidParamError("User ID is required");
         }
 
-        const response = await this.request<{ groups?: FriendGroup[] }>({ method: Method.Get, path: `/friends/${encodeURIComponent(userId)}/groups`, prefix: ClientPrefix.V1 });
+        const response = await this.request<{ groups?: FriendGroup[] }>({
+            method: Method.Get,
+            path: `/friends/${encodeURIComponent(userId)}/groups`,
+            prefix: ClientPrefix.V1,
+        });
 
         return response.groups ?? [];
     }
@@ -361,7 +419,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     async removeFriend(userId: string): Promise<void> {
         validateUserId(userId);
 
-        await this.request({ method: Method.Delete, path: `/friends/${encodeURIComponent(userId)}`, prefix: ClientPrefix.V1 });
+        await this.request({
+            method: Method.Delete,
+            path: `/friends/${encodeURIComponent(userId)}`,
+            prefix: ClientPrefix.V1,
+        });
 
         this.sharedState.friends.delete(userId);
         this.emit(FriendListManagerEvent.Removed, userId);
@@ -373,7 +435,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (!displayName || displayName.length < 1 || displayName.length > 256) {
             throw new InvalidParamError("Display name must be between 1 and 256 characters");
         }
-        await this.request({ method: Method.Put, path: `/friends/${encodeURIComponent(userId)}/displayname`, body: { displayname: displayName }, prefix: ClientPrefix.V1 });
+        await this.request({
+            method: Method.Put,
+            path: `/friends/${encodeURIComponent(userId)}/displayname`,
+            body: { displayname: displayName },
+            prefix: ClientPrefix.V1,
+        });
     }
 
     async updateFriendNote(userId: string, note: string): Promise<void> {
@@ -384,7 +451,12 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             throw new InvalidParamError("Note too long (max 1000 characters)");
         }
 
-        await this.request({ method: Method.Put, path: `/friends/${encodeURIComponent(userId)}/note`, body: { note }, prefix: ClientPrefix.V1 });
+        await this.request({
+            method: Method.Put,
+            path: `/friends/${encodeURIComponent(userId)}/note`,
+            body: { note },
+            prefix: ClientPrefix.V1,
+        });
 
         const friend = this.sharedState.friends.get(userId);
         if (friend) {
@@ -401,7 +473,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             throw new InvalidParamError("User ID is required");
         }
 
-        return this.request<FriendStatusInfo>({ method: Method.Get, path: `/friends/${encodeURIComponent(userId)}/status`, prefix: ClientPrefix.V1 });
+        return this.request<FriendStatusInfo>({
+            method: Method.Get,
+            path: `/friends/${encodeURIComponent(userId)}/status`,
+            prefix: ClientPrefix.V1,
+        });
     }
 
     async getFriendStatus(userId: string): Promise<string> {
@@ -415,7 +491,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
 
         try {
-            const response = await this.request<Friend>({ method: Method.Get, path: `/friends/${encodeURIComponent(userId)}/info`, prefix: ClientPrefix.V1 });
+            const response = await this.request<Friend>({
+                method: Method.Get,
+                path: `/friends/${encodeURIComponent(userId)}/info`,
+                prefix: ClientPrefix.V1,
+            });
             return normalizeFriend(response);
         } catch (e) {
             if (throwOnError) {
@@ -439,7 +519,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         validateUserId(userId);
 
         try {
-            const response = await this.request<{ room_id: string | null }>({ method: Method.Get, path: `/friends/dm/${encodeURIComponent(userId)}`, prefix: ClientPrefix.V1 });
+            const response = await this.request<{ room_id: string | null }>({
+                method: Method.Get,
+                path: `/friends/dm/${encodeURIComponent(userId)}`,
+                prefix: ClientPrefix.V1,
+            });
             return response;
         } catch (e) {
             throw this.normalizeError(e, "getFriendDm");
@@ -453,7 +537,11 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         validateUserId(userId);
 
         try {
-            const response = await this.request<{ room_id: string }>({ method: Method.Post, path: `/friends/dm/${encodeURIComponent(userId)}`, prefix: ClientPrefix.V1 });
+            const response = await this.request<{ room_id: string }>({
+                method: Method.Post,
+                path: `/friends/dm/${encodeURIComponent(userId)}`,
+                prefix: ClientPrefix.V1,
+            });
             return response;
         } catch (e) {
             throw this.normalizeError(e, "createFriendDm");
@@ -497,10 +585,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         if (this.sharedState.initialized) return;
 
         try {
-            await Promise.all([
-                this.getFriends(),
-                this.getFriendGroups(),
-            ]);
+            await Promise.all([this.getFriends(), this.getFriendGroups()]);
             this.sharedState.initialized = true;
         } catch (e) {
             logger.warn("FriendListManager.start failed:", e);

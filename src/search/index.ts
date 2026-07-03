@@ -114,7 +114,12 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         }
         return this.withRetry(async () => {
             const body = buildSearchMessageRequestBody({ query: opts.term, keys: opts.keys });
-            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.transport.request.bind(this.transport));
+            return performSearchRequest<ISearchResponse>(
+                body,
+                undefined,
+                undefined,
+                this.transport.request.bind(this.transport),
+            );
         }, "searchMessageText");
     }
 
@@ -144,7 +149,12 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
                     room_events: roomEvents,
                 },
             };
-            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.transport.request.bind(this.transport));
+            return performSearchRequest<ISearchResponse>(
+                body,
+                undefined,
+                undefined,
+                this.transport.request.bind(this.transport),
+            );
         }, "searchRoomEvents");
     }
 
@@ -218,9 +228,15 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         );
     }
 
-    public async search(
-        { body, next_batch, abortSignal }: { body: ISearchRequestBody; next_batch?: string; abortSignal?: AbortSignal },
-    ): Promise<ISearchResponse> {
+    public async search({
+        body,
+        next_batch,
+        abortSignal,
+    }: {
+        body: ISearchRequestBody;
+        next_batch?: string;
+        abortSignal?: AbortSignal;
+    }): Promise<ISearchResponse> {
         return this.withRetry(
             () =>
                 performSearchRequest<ISearchResponse>(
@@ -264,7 +280,10 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             highlights: [],
         };
 
-        const res = await this.searchRoomEvents({ term: opts.term, filter: opts.filter as unknown as import("../filter").IRoomEventFilter });
+        const res = await this.searchRoomEvents({
+            term: opts.term,
+            filter: opts.filter as unknown as import("../filter").IRoomEventFilter,
+        });
         return this.processRoomEventsSearch(searchResults, res);
     }
 
@@ -288,7 +307,11 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
             next_batch: searchResults.next_batch,
         };
 
-        const promise = this.search({ body: searchOpts.body, next_batch: searchOpts.next_batch, abortSignal: searchResults.abortSignal })
+        const promise = this.search({
+            body: searchOpts.body,
+            next_batch: searchOpts.next_batch,
+            abortSignal: searchResults.abortSignal,
+        })
             .then((res) => this.processRoomEventsSearch(searchResults, res))
             .finally(() => {
                 searchResults.pendingRequest = undefined;
@@ -338,11 +361,10 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSearchManager = function (): SearchManager {
         registerManagerClass("search", SearchManager);
-    return getOrCreateManager(this, "search", () => new SearchManager(this));
+        return getOrCreateManager(this, "search", () => new SearchManager(this));
     };
 }
 

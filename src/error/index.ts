@@ -84,9 +84,10 @@ export function handleManagerError<T = null>(
     options: ErrorHandlingOptions | boolean = {},
     _context?: string,
 ): T | null {
-    const opts = typeof options === "boolean"
-        ? { throwOnError: options, onError: undefined }
-        : { ...DEFAULT_ERROR_OPTIONS, ...options };
+    const opts =
+        typeof options === "boolean"
+            ? { throwOnError: options, onError: undefined }
+            : { ...DEFAULT_ERROR_OPTIONS, ...options };
 
     let sdkError: SDKError;
     if (isSDKError(error)) {
@@ -178,9 +179,12 @@ export function toErrorInfo(error: unknown): SDKErrorInfo {
             statusCode: error.statusCode,
             details: error.details,
             isRetryable: error.code === ErrorCodes.RATE_LIMITED || error.code === ErrorCodes.SERVICE_UNAVAILABLE,
-            retryAfter: error.details && typeof error.details === "object" && "retry_after_ms" in (error.details as Record<string, unknown>) // Dynamic: inspecting error details
-                ? (error.details as Record<string, unknown>).retry_after_ms // Dynamic: inspecting error details
-                : undefined,
+            retryAfter:
+                error.details &&
+                typeof error.details === "object" &&
+                "retry_after_ms" in (error.details as Record<string, unknown>) // Dynamic: inspecting error details
+                    ? (error.details as Record<string, unknown>).retry_after_ms // Dynamic: inspecting error details
+                    : undefined,
         };
     }
     if (error instanceof Error) {

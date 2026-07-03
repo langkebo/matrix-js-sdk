@@ -138,10 +138,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 在房间中创建新话题
      * POST /_matrix/client/v1/rooms/{room_id}/threads
      */
-    async createThread(
-        roomId: string,
-        body: { event_id: string; name?: string },
-    ): Promise<IThreadResponse> {
+    async createThread(roomId: string, body: { event_id: string; name?: string }): Promise<IThreadResponse> {
         validateRoomId(roomId);
         if (!body.event_id) {
             throw new InvalidParamError("event_id is required");
@@ -306,11 +303,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 标记话题为已读
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/read
      */
-    async markThreadRead(
-        roomId: string,
-        threadId: string,
-        readUpTo?: string,
-    ): Promise<void> {
+    async markThreadRead(roomId: string, threadId: string, readUpTo?: string): Promise<void> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`);
@@ -472,9 +465,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 获取全局所有话题
      * GET /_matrix/client/v1/threads
      */
-    async getAllThreads(
-        params?: { from?: string; limit?: number },
-    ): Promise<IThreadListResponse> {
+    async getAllThreads(params?: { from?: string; limit?: number }): Promise<IThreadListResponse> {
         const path = tp("/threads");
         return this.withRetry(
             () =>
@@ -492,9 +483,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 创建话题（无需指定房间上下文）
      * POST /_matrix/client/v1/threads
      */
-    async createGlobalThread(
-        body: { room_id: string; event_id: string; name?: string },
-    ): Promise<IThreadResponse> {
+    async createGlobalThread(body: { room_id: string; event_id: string; name?: string }): Promise<IThreadResponse> {
         if (!body.room_id) throw new InvalidParamError("room_id is required");
         if (!body.event_id) throw new InvalidParamError("event_id is required");
         const path = tp("/threads");
@@ -514,9 +503,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 获取已订阅的话题列表
      * GET /_matrix/client/v1/threads/subscribed
      */
-    async getSubscribedThreads(
-        params?: { from?: string; limit?: number },
-    ): Promise<IThreadListResponse> {
+    async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<IThreadListResponse> {
         const path = tp("/threads/subscribed");
         return this.withRetry(
             () =>
@@ -586,11 +573,10 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
 
 // ============ MatrixClient extension ============
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getThreadManager = function (): ThreadManager {
         registerManagerClass("thread", ThreadManager);
-    return getOrCreateManager(this, "thread", () => new ThreadManager(this));
+        return getOrCreateManager(this, "thread", () => new ThreadManager(this));
     };
 }
 

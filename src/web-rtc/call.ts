@@ -2522,7 +2522,9 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
                 await this.client.getToDeviceManager().sendToDeviceFromContentMap(
                     eventType,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    new Map<string, Map<string, Record<string, any>>>([[userId, new Map([[this.opponentDeviceId, content]])]]),
+                    new Map<string, Map<string, Record<string, any>>>([
+                        [userId, new Map([[this.opponentDeviceId, content]])],
+                    ]),
                 );
             }
         } else {
@@ -2610,7 +2612,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         // Fetch the target user's global profile info: their room avatar / displayname
         // could be different in whatever room we share with them.
         const profileInfo = this.client.getProfileManager
-            ? await this.client.getProfileManager().getProfileInfo(targetUserId)
+            ? await this.client.getProfileManager()!.getProfileInfo(targetUserId)
             : await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(
                   Method.Get,
                   `/profile/${encodeURIComponent(targetUserId)}`,
@@ -2641,7 +2643,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         const targetUserId = transferTargetCall.getOpponentMember()?.userId;
         const targetProfileInfo = targetUserId
             ? this.client.getProfileManager
-                ? await this.client.getProfileManager().getProfileInfo(targetUserId)
+                ? await this.client.getProfileManager()!.getProfileInfo(targetUserId)
                 : await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(
                       Method.Get,
                       `/profile/${encodeURIComponent(targetUserId)}`,
@@ -2650,7 +2652,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         const opponentUserId = this.getOpponentMember()?.userId;
         const transfereeProfileInfo = opponentUserId
             ? this.client.getProfileManager
-                ? await this.client.getProfileManager().getProfileInfo(opponentUserId)
+                ? await this.client.getProfileManager()!.getProfileInfo(opponentUserId)
                 : await this.client.http.authedRequest<{ displayname?: string; avatar_url?: string }>(
                       Method.Get,
                       `/profile/${encodeURIComponent(opponentUserId)}`,

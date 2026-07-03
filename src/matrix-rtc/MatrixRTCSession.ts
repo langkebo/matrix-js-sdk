@@ -660,13 +660,13 @@ export class MatrixRTCSession extends TypedEventEmitter<
         }> => {
             const content: IRTCNotificationContent = {
                 "m.mentions": { user_ids: [], room: true },
-                "notification_type": notificationType,
+                notification_type: notificationType,
                 "m.relates_to": {
                     event_id: parentEventId,
                     rel_type: RelationType.Reference,
                 },
-                "sender_ts": Date.now(),
-                "lifetime": 30_000, // 30 seconds
+                sender_ts: Date.now(),
+                lifetime: 30_000, // 30 seconds
             };
             if (callIntent) {
                 content["m.call.intent"] = callIntent;

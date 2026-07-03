@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { VerificationManager } from "../../src/verification/index";
 import { Method } from "../../src/http-api/method";
-import { MatrixError } from "../../src/http-api/errors";
 
 describe("VerificationManager", () => {
     let transport: FakeTransport;
@@ -31,15 +30,15 @@ describe("VerificationManager", () => {
     });
 
     it("startVerification should throw ValidationError when from_device is empty", async () => {
-        await expect(
-            manager.startVerification({ from_device: "", to_user: "@bob:example.com" }),
-        ).rejects.toThrow("from_device is required");
+        await expect(manager.startVerification({ from_device: "", to_user: "@bob:example.com" })).rejects.toThrow(
+            "from_device is required",
+        );
     });
 
     it("startVerification should throw ValidationError when to_user is empty", async () => {
-        await expect(
-            manager.startVerification({ from_device: "DEVICE1", to_user: "" }),
-        ).rejects.toThrow("to_user is required");
+        await expect(manager.startVerification({ from_device: "DEVICE1", to_user: "" })).rejects.toThrow(
+            "to_user is required",
+        );
     });
 
     it("startVerification should reject on API failure", async () => {
@@ -94,9 +93,9 @@ describe("VerificationManager", () => {
     });
 
     it("exchangeKeys should throw ValidationError when pubkey is empty", async () => {
-        await expect(
-            manager.exchangeKeys({ transaction_id: "txn1", pubkey: "" }),
-        ).rejects.toThrow("pubkey is required");
+        await expect(manager.exchangeKeys({ transaction_id: "txn1", pubkey: "" })).rejects.toThrow(
+            "pubkey is required",
+        );
     });
 
     // ─── confirmMac ──────────────────────────────────────────────────
@@ -110,9 +109,7 @@ describe("VerificationManager", () => {
     });
 
     it("confirmMac should throw ValidationError when mac is empty", async () => {
-        await expect(
-            manager.confirmMac({ transaction_id: "txn1", mac: "" }),
-        ).rejects.toThrow("mac is required");
+        await expect(manager.confirmMac({ transaction_id: "txn1", mac: "" })).rejects.toThrow("mac is required");
     });
 
     // ─── completeVerification ───────────────────────────────────────
@@ -126,9 +123,9 @@ describe("VerificationManager", () => {
     });
 
     it("completeVerification should throw ValidationError when mac is empty", async () => {
-        await expect(
-            manager.completeVerification({ transaction_id: "txn1", mac: "" }),
-        ).rejects.toThrow("mac is required");
+        await expect(manager.completeVerification({ transaction_id: "txn1", mac: "" })).rejects.toThrow(
+            "mac is required",
+        );
     });
 
     // ─── cancelVerification ─────────────────────────────────────────
@@ -143,9 +140,9 @@ describe("VerificationManager", () => {
     });
 
     it("cancelVerification should throw ValidationError when code is empty", async () => {
-        await expect(
-            manager.cancelVerification({ transaction_id: "txn1", code: "", reason: "none" }),
-        ).rejects.toThrow("code is required");
+        await expect(manager.cancelVerification({ transaction_id: "txn1", code: "", reason: "none" })).rejects.toThrow(
+            "code is required",
+        );
     });
 
     it("cancelVerification should throw ValidationError when reason is empty", async () => {

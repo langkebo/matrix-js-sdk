@@ -26,14 +26,14 @@ export interface RoomCanonicalAliasEventContent extends IContent {
 }
 
 export interface RoomCreateEventContent extends IContent {
-    "creator"?: string;
+    creator?: string;
     "m.federate"?: boolean;
-    "predecessor"?: {
+    predecessor?: {
         event_id: string;
         room_id: string;
     };
-    "room_version"?: string;
-    "type"?: RoomType;
+    room_version?: string;
+    type?: RoomType;
 }
 
 export interface RoomJoinRulesEventContent {
@@ -106,10 +106,10 @@ export interface RoomPinnedEventsEventContent extends IContent {
 }
 
 export interface RoomEncryptionEventContent extends IContent {
-    "algorithm": "m.megolm.v1.aes-sha2";
+    algorithm: "m.megolm.v1.aes-sha2";
     "io.element.msc4362.encrypt_state_events"?: boolean;
-    "rotation_period_ms"?: number;
-    "rotation_period_msgs"?: number;
+    rotation_period_ms?: number;
+    rotation_period_msgs?: number;
 }
 
 export interface RoomHistoryVisibilityEventContent extends IContent {

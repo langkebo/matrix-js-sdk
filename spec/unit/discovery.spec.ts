@@ -274,7 +274,6 @@ describe("DiscoveryManager", () => {
         });
     });
 
-
     describe("getRoomVisibility", () => {
         it("should get room visibility", async () => {
             const response = {

@@ -70,10 +70,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
 
         try {
             const stats = await this.withRetry(async () => {
-                return await this.requestV3<RoomStats>(
-                    Method.Get,
-                    this.summaryStatsPath(roomId),
-                );
+                return await this.requestV3<RoomStats>(Method.Get, this.summaryStatsPath(roomId));
             }, "getRoomSummaryStats");
 
             if (stats) {
@@ -81,7 +78,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
                 this.emit(RoomSummaryStatsEvent.StatsUpdated, roomId, stats);
             }
             return stats;
-        // @swallow-error { owner: "room-summary", expires: "2026-12-31" }
+            // @swallow-error { owner: "room-summary", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "getRoomSummaryStats");
@@ -91,10 +88,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         }
     }
 
-    public async recalculateSummaryStats(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<RoomStats | null> {
+    public async recalculateSummaryStats(roomId: string, body: IContent = {}): Promise<RoomStats | null> {
         this.validateRoomId(roomId);
 
         try {
@@ -117,10 +111,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         }
     }
 
-    public async recalculateSummaryHeroes(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<HeroesRecalcResult> {
+    public async recalculateSummaryHeroes(roomId: string, body: IContent = {}): Promise<HeroesRecalcResult> {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
@@ -135,10 +126,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         }, "recalculateSummaryHeroes");
     }
 
-    public async clearSummaryUnread(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<UnreadClearResult> {
+    public async clearSummaryUnread(roomId: string, body: IContent = {}): Promise<UnreadClearResult> {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {

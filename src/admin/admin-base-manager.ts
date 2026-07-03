@@ -32,8 +32,7 @@ export type { ManagerOpts };
 
 export type AdminErrorCallback = (error: Error) => void;
 
-type StripAdminPath<P extends string> =
-    P extends `/_synapse/admin${infer Rest}` ? Rest : never;
+type StripAdminPath<P extends string> = P extends `/_synapse/admin${infer Rest}` ? Rest : never;
 
 /**
  * 类型安全的 Admin 路径断言函数
@@ -62,7 +61,7 @@ export abstract class AdminBaseManager<
     Events extends string = string,
     EventMap extends Record<Events, any> = Record<Events, any>,
 > extends BaseManager<Events, EventMap> {
-/* eslint-enable @typescript-eslint/no-explicit-any */
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     private readonly onError?: AdminErrorCallback;
 
     constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {

@@ -178,9 +178,7 @@ describe("ServerCapabilitiesManager", () => {
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({ capabilities: { "io.hula.friends": { enabled: true } } });
 
-            const result = await manager.doesServerAdvertiseSynapseRustFeature(
-                SynapseRustFeature.Friends,
-            );
+            const result = await manager.doesServerAdvertiseSynapseRustFeature(SynapseRustFeature.Friends);
 
             expect(result).toBe(true);
         });
@@ -254,12 +252,10 @@ describe("ServerCapabilitiesManager", () => {
 
         it("should check unstable features when v1.4 not available", async () => {
             const mockClient = createMockClient();
-            mockClient.getVersions
-                .mockResolvedValueOnce({ versions: ["v1.11"] })
-                .mockResolvedValue({
-                    versions: ["v1.11"],
-                    unstable_features: { "org.matrix.msc3440.stable": true },
-                });
+            mockClient.getVersions.mockResolvedValueOnce({ versions: ["v1.11"] }).mockResolvedValue({
+                versions: ["v1.11"],
+                unstable_features: { "org.matrix.msc3440.stable": true },
+            });
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerSupportThread();
@@ -322,9 +318,9 @@ describe("ServerCapabilitiesManager", () => {
             const result = await manager.getVersions();
 
             expect(result.versions).toContain("v1.11");
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get, "/_matrix/client/versions", undefined, undefined, { prefix: "" },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/client/versions", undefined, undefined, {
+                prefix: "",
+            });
         });
 
         it("should return cached promise on subsequent calls", async () => {

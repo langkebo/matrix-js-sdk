@@ -814,8 +814,8 @@ describe("Thread", () => {
                     user: myUserId,
                     msg: "Original message in thread",
                     relatesTo: {
-                        "rel_type": THREAD_RELATION_TYPE.name,
-                        "event_id": thread.id,
+                        rel_type: THREAD_RELATION_TYPE.name,
+                        event_id: thread.id,
                         "m.in_reply_to": {
                             event_id: thread.id,
                         },
@@ -929,8 +929,8 @@ describe("Thread", () => {
                         user: myUserId,
                         msg: "Thread message",
                         relatesTo: {
-                            "rel_type": THREAD_RELATION_TYPE.name,
-                            "event_id": thread.id,
+                            rel_type: THREAD_RELATION_TYPE.name,
+                            event_id: thread.id,
                             "m.in_reply_to": { event_id: thread.id },
                         },
                         event: true,

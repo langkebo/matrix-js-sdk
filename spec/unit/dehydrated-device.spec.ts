@@ -43,9 +43,7 @@ describe("DehydratedDeviceManager", () => {
         });
 
         it("should throw if device_data is missing", async () => {
-            await expect(manager.createDevice({ device_data: null as any })).rejects.toThrow(
-                "device_data is required",
-            );
+            await expect(manager.createDevice({ device_data: null as any })).rejects.toThrow("device_data is required");
         });
 
         it("should throw if device_data.algorithm is empty", async () => {
@@ -132,6 +130,7 @@ describe("DehydratedDeviceManager", () => {
 
     describe("deleteDevice", () => {
         it("should delete a dehydrated device", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await manager.deleteDevice("dev123");

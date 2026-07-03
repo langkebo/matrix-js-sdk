@@ -44,11 +44,7 @@ import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
 import type { AuthPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import {
-    buildEmailTokenRequestParams,
-    buildMsisdnTokenRequestParams,
-    requestTokenFromEndpoint,
-} from "../client-auth";
+import { buildEmailTokenRequestParams, buildMsisdnTokenRequestParams, requestTokenFromEndpoint } from "../client-auth";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { IRefreshTokenResponse } from "../@types/auth";
 
@@ -619,8 +615,13 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * @returns Promise which resolves to the new token.
      */
     public async refreshToken(refreshToken: string): Promise<IRefreshTokenResponse> {
-        const performRefreshRequestWithPrefix = (prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>
-            this.request({ method: Method.Post, path: "/refresh", body: { refresh_token: refreshToken }, prefix: ClientPrefix.V3 });
+        const performRefreshRequestWithPrefix = (_prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>
+            this.request({
+                method: Method.Post,
+                path: "/refresh",
+                body: { refresh_token: refreshToken },
+                prefix: ClientPrefix.V3,
+            });
 
         try {
             return await performRefreshRequestWithPrefix(ClientPrefix.V3);
@@ -634,11 +635,10 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAuthManager = function (): AuthManager {
         registerManagerClass("auth", AuthManager);
-    return getOrCreateManager(this, "auth", () => new AuthManager(this));
+        return getOrCreateManager(this, "auth", () => new AuthManager(this));
     };
 }
 

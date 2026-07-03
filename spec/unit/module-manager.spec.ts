@@ -57,9 +57,7 @@ describe("ModuleManager", () => {
         });
 
         it("should throw NotFoundError when module is not found", async () => {
-            const matrixError = new MatrixError(
-                { errcode: "M_NOT_FOUND", error: "Module not found" }, 404, undefined,
-            );
+            const matrixError = new MatrixError({ errcode: "M_NOT_FOUND", error: "Module not found" }, 404, undefined);
             transport.rejectWith(matrixError);
 
             await expect(manager.getModule("nonexistent")).rejects.toThrow(NotFoundError);
@@ -120,9 +118,7 @@ describe("ModuleManager", () => {
 
         it("should get module logs", async () => {
             const response = {
-                logs: [
-                    { timestamp: 1000, level: "INFO", message: "Started", module_name: "my-module" },
-                ],
+                logs: [{ timestamp: 1000, level: "INFO", message: "Started", module_name: "my-module" }],
                 total: 1,
             };
             transport.respondWith(response);
@@ -143,7 +139,9 @@ describe("ModuleManager", () => {
             const emitSpy = vi.spyOn(manager, "emit");
 
             const result = await manager.checkSpam({
-                event_id: "$evt1", user_id: "@spammer:example.com", content: { body: "spam" },
+                event_id: "$evt1",
+                user_id: "@spammer:example.com",
+                content: { body: "spam" },
             });
 
             expect(result.is_spam).toBe(true);
@@ -181,7 +179,9 @@ describe("ModuleManager", () => {
             const emitSpy = vi.spyOn(manager, "emit");
 
             const result = await manager.checkThirdPartyRule({
-                rule_type: "m.room.message", event_id: "$evt2", user_id: "@user:example.com",
+                rule_type: "m.room.message",
+                event_id: "$evt2",
+                user_id: "@user:example.com",
             });
 
             expect(result.allowed).toBe(false);
@@ -203,7 +203,9 @@ describe("ModuleManager", () => {
 
     describe("callbacks", () => {
         it("should get account data callbacks", async () => {
-            const response = { callbacks: [{ id: "cb1", module_name: "mod1", callback_type: "on_change", enabled: true }] };
+            const response = {
+                callbacks: [{ id: "cb1", module_name: "mod1", callback_type: "on_change", enabled: true }],
+            };
             transport.respondWith(response);
 
             const result = await manager.getAccountDataCallbacks();
@@ -217,7 +219,10 @@ describe("ModuleManager", () => {
             transport.respondWith(response);
             const emitSpy = vi.spyOn(manager, "emit");
 
-            const result = await manager.registerAccountDataCallback({ module_name: "mod1", callback_type: "on_change" });
+            const result = await manager.registerAccountDataCallback({
+                module_name: "mod1",
+                callback_type: "on_change",
+            });
 
             expect(result.id).toBe("cb1");
             transport.expectCalledWith(Method.Post, "/account_data_callbacks");
@@ -225,7 +230,9 @@ describe("ModuleManager", () => {
         });
 
         it("should get media callbacks", async () => {
-            const response = { callbacks: [{ id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true }] };
+            const response = {
+                callbacks: [{ id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true }],
+            };
             transport.respondWith(response);
 
             const result = await manager.getMediaCallbacks();
@@ -247,7 +254,9 @@ describe("ModuleManager", () => {
         });
 
         it("should get media callbacks by type", async () => {
-            const response = { callbacks: [{ id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true }] };
+            const response = {
+                callbacks: [{ id: "mcb1", module_name: "mod1", callback_type: "on_upload", enabled: true }],
+            };
             transport.respondWith(response);
 
             const result = await manager.getMediaCallbacksByType("on_upload");
@@ -287,6 +296,7 @@ describe("ModuleManager", () => {
 
     describe("account validity", () => {
         it("should check account validity", async () => {
+            expect.assertions(0);
             transport.respondWith(undefined as any);
 
             await manager.checkAccountValidity();

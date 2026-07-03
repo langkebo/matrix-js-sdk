@@ -53,9 +53,9 @@ describe("SDK manager initialization", () => {
         expect(client.getRoomManager()).toBeTruthy();
         expect(client.getAccountManager()).toBeTruthy();
         expect(client.getCredentialsManager()).toBeTruthy();
-        expect(client.getDeviceManager()).toBeTruthy()
-        expect(client.getProfileManager()).toBeTruthy()
-        expect(client.getPresenceManager()).toBeTruthy()
+        expect(client.getDeviceManager()).toBeTruthy();
+        expect(client.getProfileManager()).toBeTruthy();
+        expect(client.getPresenceManager()).toBeTruthy();
 
         // Async manager extensions should not be initialized in vitest environment
         expect(isManagerExtensionsInitialized()).toBe(false);

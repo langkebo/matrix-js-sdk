@@ -72,10 +72,7 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            return await this.requestV3<IRoomSummaryState[]>(
-                Method.Get,
-                this.summaryStateCollectionPath(roomId),
-            );
+            return await this.requestV3<IRoomSummaryState[]>(Method.Get, this.summaryStateCollectionPath(roomId));
         }, "getAllSummaryState");
     }
 

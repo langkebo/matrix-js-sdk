@@ -31,7 +31,7 @@ describe("ToDeviceKeyTransport", () => {
     let statistics: Statistics;
     let mockLogger: Mocked<Logger>;
     let transport: ToDeviceKeyTransport;
-    let mockEncryptAndSendToDevice: ReturnType<typeof vi.fn> = vi.fn();
+    const mockEncryptAndSendToDevice: ReturnType<typeof vi.fn> = vi.fn();
 
     beforeEach(() => {
         mockClient = getMockClientWithEventEmitter({});

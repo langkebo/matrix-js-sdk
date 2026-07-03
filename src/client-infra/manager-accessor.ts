@@ -26,7 +26,7 @@ export function extendMatrixClient(): void {
         if (!Ctor) {
             throw new Error(
                 `No manager registered for "${name}". ` +
-                `Ensure the corresponding extendMatrixClient() has been called before using client.manager().`,
+                    `Ensure the corresponding extendMatrixClient() has been called before using client.manager().`,
             );
         }
 

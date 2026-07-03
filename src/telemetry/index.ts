@@ -355,7 +355,10 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         if (!alertId) {
             throw new ValidationError("Alert ID is required");
         }
-        return this.adminRequest(Method.Post, tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack` as StripAdminV1<TelemetryPathPattern>));
+        return this.adminRequest(
+            Method.Post,
+            tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack` as StripAdminV1<TelemetryPathPattern>),
+        );
     }
 
     public async getServerHealth(): Promise<ServerTelemetryHealth> {
@@ -407,7 +410,6 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         this.flush();
     }
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTelemetryManager = function (config?: Partial<TelemetryConfig>): TelemetryManager {

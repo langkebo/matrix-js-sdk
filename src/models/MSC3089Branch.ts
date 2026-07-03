@@ -149,7 +149,7 @@ export class MSC3089Branch {
         if (!file || typeof file.url !== "string") {
             throw new Error("No encrypted file info available");
         }
-        const httpUrl = this.client.getProfileManager().mxcUrlToHttp(file.url);
+        const httpUrl = this.client.getProfileManager()!.mxcUrlToHttp(file.url);
 
         if (!httpUrl) {
             throw new Error(`No HTTP URL available for ${file.url}`);

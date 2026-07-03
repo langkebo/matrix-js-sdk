@@ -17,7 +17,13 @@ limitations under the License.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { type MatrixClient } from "../../src/client";
-import { FriendManager, FriendEvent, type Friend, type FriendRequest, type FriendSearchResult } from "../../src/friend/index.ts";
+import {
+    FriendManager,
+    FriendEvent,
+    type Friend,
+    type FriendRequest,
+    type FriendSearchResult,
+} from "../../src/friend/index.ts";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { Method } from "../../src/http-api/method.ts";
 import { ClientPrefix } from "../../src/http-api/prefix.ts";
@@ -752,13 +758,9 @@ describe("FriendManager", () => {
 
             const response = await friendManager.searchUsers("bob");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/friends/search",
-                { q: "bob" },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends/search", { q: "bob" }, undefined, {
+                prefix: ClientPrefix.V3,
+            });
 
             expect(response.results).toHaveLength(2);
             expect(response.results![0].user_id).toBe("@bob:example.com");
@@ -850,13 +852,9 @@ describe("FriendManager", () => {
 
             await friendManager.searchUsers("  alice  ");
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/friends/search",
-                { q: "alice" },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends/search", { q: "alice" }, undefined, {
+                prefix: ClientPrefix.V3,
+            });
         });
 
         it("should expose retry_after_seconds for rate limiting", async () => {
@@ -944,5 +942,4 @@ describe("FriendManager", () => {
             expect(friendManager.getCachedOutgoingRequests()).toHaveLength(0);
         });
     });
-
 });

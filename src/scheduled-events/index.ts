@@ -59,9 +59,25 @@ export class ScheduledEventsManager extends BaseManager<
     // (different param types/counts and return types). We cast to a local interface that matches
     // what this manager expects.
     private get delayedEventClient(): {
-        _unstable_sendDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<IDelayedEventResponse>;
-        _unstable_sendStickyDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<IDelayedEventResponse>;
-        _unstable_sendDelayedStateEvent(roomId: string, eventType: string, stateKey: string, content: IContent, delayMs: number): Promise<IDelayedEventResponse>;
+        _unstable_sendDelayedEvent(
+            eventType: string,
+            roomId: string,
+            content: IContent,
+            delayMs: number,
+        ): Promise<IDelayedEventResponse>;
+        _unstable_sendStickyDelayedEvent(
+            eventType: string,
+            roomId: string,
+            content: IContent,
+            delayMs: number,
+        ): Promise<IDelayedEventResponse>;
+        _unstable_sendDelayedStateEvent(
+            roomId: string,
+            eventType: string,
+            stateKey: string,
+            content: IContent,
+            delayMs: number,
+        ): Promise<IDelayedEventResponse>;
         _unstable_getDelayedEvents(): Promise<IDelayedEvent[]>;
         _unstable_updateDelayedEvent(eventId: string, timeoutMs: number): Promise<IDelayedEventResponse>;
         _unstable_restartScheduledDelayedEvent(eventId: string): Promise<IDelayedEventResponse>;
@@ -102,16 +118,14 @@ export class ScheduledEventsManager extends BaseManager<
         delayMs: number,
     ): Promise<IDelayedEventResponse> {
         return this.withRetry(
-            () => this.delayedEventClient._unstable_sendDelayedStateEvent(roomId, eventType, stateKey, content, delayMs),
+            () =>
+                this.delayedEventClient._unstable_sendDelayedStateEvent(roomId, eventType, stateKey, content, delayMs),
             "sendDelayedStateEvent",
         );
     }
 
     public async getDelayedEvents(): Promise<IDelayedEvent[]> {
-        return this.withRetry(
-            () => this.delayedEventClient._unstable_getDelayedEvents(),
-            "getDelayedEvents",
-        );
+        return this.withRetry(() => this.delayedEventClient._unstable_getDelayedEvents(), "getDelayedEvents");
     }
 
     public async updateDelayedEvent(eventId: string, timeoutMs: number): Promise<IDelayedEventResponse> {
@@ -136,11 +150,10 @@ export class ScheduledEventsManager extends BaseManager<
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getScheduledEventsManager = function (): ScheduledEventsManager {
         registerManagerClass("scheduledEvents", ScheduledEventsManager);
-    return getOrCreateManager(this, "scheduledEvents", () => new ScheduledEventsManager(this));
+        return getOrCreateManager(this, "scheduledEvents", () => new ScheduledEventsManager(this));
     };
 }
 

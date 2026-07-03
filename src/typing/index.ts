@@ -286,7 +286,11 @@ export class TypingManager extends BaseManager {
                 prefix: ClientPrefix.V3,
             });
         }, "fetchTypingUsers");
-        const users = Array.isArray(response?.user_ids) ? response.user_ids : Array.isArray(response?.typing) ? response.typing : [];
+        const users = Array.isArray(response?.user_ids)
+            ? response.user_ids
+            : Array.isArray(response?.typing)
+              ? response.typing
+              : [];
         const timeout = response?.timeout ?? 30000;
         return users.map((userId: string) => ({ userId, timeout }));
     }
@@ -327,12 +331,15 @@ export class TypingManager extends BaseManager {
         }, "fetchRoomsTyping");
 
         const result = new Map<string, TypingUser[]>();
-        const roomEntries = (response && "rooms" in response && response.rooms ? response.rooms : response ?? {}) as Record<
-            string,
-            TypingResponseBody
-        >;
+        const roomEntries = (
+            response && "rooms" in response && response.rooms ? response.rooms : (response ?? {})
+        ) as Record<string, TypingResponseBody>;
         for (const [roomId, entry] of Object.entries(roomEntries)) {
-            const users = Array.isArray(entry?.user_ids) ? entry.user_ids : Array.isArray(entry?.typing) ? entry.typing : [];
+            const users = Array.isArray(entry?.user_ids)
+                ? entry.user_ids
+                : Array.isArray(entry?.typing)
+                  ? entry.typing
+                  : [];
             const timeout = entry?.timeout ?? 30000;
             result.set(
                 roomId,
@@ -361,11 +368,10 @@ export class TypingManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTypingManager = function (): TypingManager {
         registerManagerClass("typing", TypingManager);
-    return getOrCreateManager(this, "typing", () => new TypingManager(this));
+        return getOrCreateManager(this, "typing", () => new TypingManager(this));
     };
 
     MatrixClient.prototype.sendTyping = function (

@@ -141,10 +141,13 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateRoomId(roomId);
         try {
             return await this.adminRequest<RoomInfo>(Method.Get, `/rooms/${encodeURIComponent(roomId)}`);
-        // @swallow-error { owner: "admin", expires: "2026-12-31" }
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
-            if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) {
+            if (
+                !throwOnError &&
+                (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))
+            ) {
                 return null;
             }
             throw e;
@@ -186,7 +189,12 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
 
     async purgeRoomHistory(roomId: string, payload?: PurgeHistoryPayload): Promise<AdminPurgeHistoryResult> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/purge_history`, {}, payload ?? {});
+        return await this.adminRequest(
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/purge_history`,
+            {},
+            payload ?? {},
+        );
     }
 
     /**
@@ -297,7 +305,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             await this.adminRequest(Method.Put, `/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
                 return;
             }
@@ -343,11 +351,12 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
                 queryParams.dir = String(optionsOrFrom.dir);
             }
         }
-        const response = await this.adminRequest<{ chunk?: RoomMessage[]; start?: string; end?: string; messages?: RoomMessage[] }>(
-            Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/messages`,
-            queryParams,
-        );
+        const response = await this.adminRequest<{
+            chunk?: RoomMessage[];
+            start?: string;
+            end?: string;
+            messages?: RoomMessage[];
+        }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/messages`, queryParams);
         return {
             chunk: response.chunk || response.messages || [],
             start: response.start,
@@ -500,7 +509,11 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         await this.adminRequest(Method.Delete, `/spaces/${encodeURIComponent(spaceId)}`);
     }
 
-    async getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
+    async getSpaceRooms(
+        spaceId: string,
+        from?: string,
+        limit?: number,
+    ): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
@@ -511,7 +524,11 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/stats`);
     }
 
-    async getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }> {
+    async getSpaceUsers(
+        spaceId: string,
+        from?: string,
+        limit?: number,
+    ): Promise<{ users: SpaceUser[]; next_batch?: string }> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/users`, query);

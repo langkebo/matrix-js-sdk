@@ -110,7 +110,9 @@ describe("RelationsManager", () => {
         } as any);
         vi.spyOn(manager as any, "emit").mockImplementation(emit);
 
-        await expect(manager.sendRelation("!room:example.org", "$ctx", "m.annotation", "$target", { key: "👍" })).rejects.toThrow();
+        await expect(
+            manager.sendRelation("!room:example.org", "$ctx", "m.annotation", "$target", { key: "👍" }),
+        ).rejects.toThrow();
         expect(emit).toHaveBeenCalledWith("RelationsError", expect.any(Error));
     });
 

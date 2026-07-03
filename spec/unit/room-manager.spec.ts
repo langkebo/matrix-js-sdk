@@ -219,13 +219,13 @@ describe("RoomManager", () => {
                     hasMembershipState: vi.fn().mockReturnValue(false),
                 })
                 .mockReturnValueOnce({
-                roomId: "!room:example.com",
-                getMember: vi.fn().mockReturnValue({
-                    membership: KnownMembership.Invite,
-                    events: { member: { getSender: vi.fn().mockReturnValue("@inviter:example.com") } },
-                }),
-                hasMembershipState: vi.fn().mockReturnValue(true),
-            });
+                    roomId: "!room:example.com",
+                    getMember: vi.fn().mockReturnValue({
+                        membership: KnownMembership.Invite,
+                        events: { member: { getSender: vi.fn().mockReturnValue("@inviter:example.com") } },
+                    }),
+                    hasMembershipState: vi.fn().mockReturnValue(true),
+                });
             mockClient.http.authedRequest.mockResolvedValue({ room_id: "!room:example.com" });
             const result = await roomManager.joinRoom("!room:example.com");
             expect(result).toBeDefined();

@@ -42,12 +42,12 @@ export interface IFilterDefinition {
 }
 
 export interface IRoomEventFilter extends IFilterComponent {
-    "lazy_load_members"?: boolean;
-    "include_redundant_members"?: boolean;
-    "types"?: Array<EventType | string>;
-    "related_by_senders"?: Array<RelationType | string>;
-    "related_by_rel_types"?: string[];
-    "unread_thread_notifications"?: boolean;
+    lazy_load_members?: boolean;
+    include_redundant_members?: boolean;
+    types?: Array<EventType | string>;
+    related_by_senders?: Array<RelationType | string>;
+    related_by_rel_types?: string[];
+    unread_thread_notifications?: boolean;
     "org.matrix.msc3773.unread_thread_notifications"?: boolean;
 
     // Unstable values

@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Filter, type IFilterDefinition } from "../../src/filter";
 import { FilterManager as CanonicalFilterManager } from "../../src/filter/index";
-import {
-    FilterManager as ExportedFilterManager,
-} from "../../src/matrix";
+import { FilterManager as ExportedFilterManager } from "../../src/matrix";
 
 describe("FilterManager compatibility", () => {
     let mockClient: any;

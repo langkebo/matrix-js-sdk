@@ -347,7 +347,9 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
         // 设备名称长度校验（m-13 后端要求 ≤100 字符）
         if (updates.display_name && updates.display_name.length > 100) {
-            throw new ValidationError(`Device display name must be ≤ 100 characters (current: ${updates.display_name.length})`);
+            throw new ValidationError(
+                `Device display name must be ≤ 100 characters (current: ${updates.display_name.length})`,
+            );
         }
 
         try {
@@ -641,11 +643,10 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceManager = function (): DeviceManager {
         registerManagerClass("device", DeviceManager);
-    return getOrCreateManager(this, "device", () => new DeviceManager(this));
+        return getOrCreateManager(this, "device", () => new DeviceManager(this));
     };
 }
 

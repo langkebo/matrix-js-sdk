@@ -106,11 +106,7 @@ const isSecureUrl = (value: string, { allowQuery }: { allowQuery?: boolean } = {
         return false;
     }
 };
-const requiredUrlProperty = (
-    wellKnown: RawAuthMetadata,
-    key: string,
-    options?: { allowQuery?: boolean },
-): boolean => {
+const requiredUrlProperty = (wellKnown: RawAuthMetadata, key: string, options?: { allowQuery?: boolean }): boolean => {
     if (!requiredStringProperty(wellKnown, key)) {
         return false;
     }
@@ -120,11 +116,7 @@ const requiredUrlProperty = (
     }
     return true;
 };
-const optionalUrlProperty = (
-    wellKnown: RawAuthMetadata,
-    key: string,
-    options?: { allowQuery?: boolean },
-): boolean => {
+const optionalUrlProperty = (wellKnown: RawAuthMetadata, key: string, options?: { allowQuery?: boolean }): boolean => {
     if (!optionalStringProperty(wellKnown, key)) {
         return false;
     }

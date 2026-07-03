@@ -65,7 +65,7 @@ export class RoomListManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomListManager = function (): RoomListManager {
         registerManagerClass("roomList", RoomListManager);
-    return getOrCreateManager(this, "roomList", () => new RoomListManager(this));
+        return getOrCreateManager(this, "roomList", () => new RoomListManager(this));
     };
 }
 

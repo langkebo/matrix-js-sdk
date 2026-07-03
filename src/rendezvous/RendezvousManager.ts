@@ -131,7 +131,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
         path: string,
         queryParams?: Record<string, string>,
         body?: unknown,
-        sessionKey?: string,
+        _sessionKey?: string,
     ): Promise<T> {
         return await this.withRetry(
             async () =>
@@ -340,11 +340,10 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRendezvousManager = function (): RendezvousManager {
         registerManagerClass("rendezvous", RendezvousManager);
-    return getOrCreateManager(this, "rendezvous", () => new RendezvousManager(this));
+        return getOrCreateManager(this, "rendezvous", () => new RendezvousManager(this));
     };
 }
 

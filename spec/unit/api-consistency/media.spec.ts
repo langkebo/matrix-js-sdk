@@ -16,10 +16,7 @@ function buildSignedUrl(
 
     const serverName = encodeURIComponent(parsed[1]);
     const mediaId = encodeURIComponent(parsed[2]);
-    const url = new URL(
-        `/_matrix/media/v3/download/${serverName}/${mediaId}`,
-        baseUrl,
-    );
+    const url = new URL(`/_matrix/media/v3/download/${serverName}/${mediaId}`, baseUrl);
 
     if (options.signature) {
         url.searchParams.set("signature", options.signature);

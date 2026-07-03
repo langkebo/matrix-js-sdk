@@ -43,9 +43,9 @@ describe("types", () => {
 describe("IRTCNotificationContent", () => {
     const validBase = Object.freeze({
         "m.mentions": { user_ids: [], room: true },
-        "notification_type": "notification",
-        "sender_ts": 123,
-        "lifetime": 1000,
+        notification_type: "notification",
+        sender_ts: 123,
+        lifetime: 1000,
     });
 
     it("parses valid content", () => {

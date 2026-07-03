@@ -130,7 +130,12 @@ export class CasManager extends BaseManager {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveServicePath(prefix, ap("/cas/services"), "/admin/services");
         return await this.withRetry(async () => {
-            return await this.request<CasServiceCreateResponse>({ method: Method.Post, path: path, body: data, prefix: prefixValue });
+            return await this.request<CasServiceCreateResponse>({
+                method: Method.Post,
+                path: path,
+                body: data,
+                prefix: prefixValue,
+            });
         }, "createService");
     }
 
@@ -146,7 +151,11 @@ export class CasManager extends BaseManager {
             `/admin/services/${encodeURIComponent(serviceId)}`,
         );
         return await this.withRetry(async () => {
-            return await this.request<CasServiceDeleteResponse>({ method: Method.Delete, path: path, prefix: prefixValue });
+            return await this.request<CasServiceDeleteResponse>({
+                method: Method.Delete,
+                path: path,
+                prefix: prefixValue,
+            });
         }, "deleteService");
     }
 
@@ -162,7 +171,11 @@ export class CasManager extends BaseManager {
             `/admin/users/${encodeURIComponent(userId)}/attributes`,
         );
         return await this.withRetry(async () => {
-            return await this.request<CasUserAttributesResponse>({ method: Method.Get, path: path, prefix: prefixValue });
+            return await this.request<CasUserAttributesResponse>({
+                method: Method.Get,
+                path: path,
+                prefix: prefixValue,
+            });
         }, "getUserAttributes");
     }
 
@@ -179,7 +192,12 @@ export class CasManager extends BaseManager {
             `/admin/users/${encodeURIComponent(userId)}/attributes`,
         );
         return await this.withRetry(async () => {
-            return await this.request<CasUserAttributesResponse>({ method: Method.Post, path: path, body: data, prefix: prefixValue });
+            return await this.request<CasUserAttributesResponse>({
+                method: Method.Post,
+                path: path,
+                body: data,
+                prefix: prefixValue,
+            });
         }, "setUserAttributes");
     }
 
@@ -195,7 +213,12 @@ export class CasManager extends BaseManager {
         if (pgtUrl) queryParams.pgtUrl = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.request<CasServiceValidateResponse>({ method: Method.Get, path: "/serviceValidate", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
+            return await this.request<CasServiceValidateResponse>({
+                method: Method.Get,
+                path: "/serviceValidate",
+                queryParams: queryParams,
+                prefix: CAS_API_PREFIX.cas,
+            });
         }, "serviceValidate");
     }
 
@@ -211,7 +234,12 @@ export class CasManager extends BaseManager {
         if (pgtUrl) queryParams.pgtUrl = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.request<CasServiceValidateResponse>({ method: Method.Get, path: "/proxyValidate", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
+            return await this.request<CasServiceValidateResponse>({
+                method: Method.Get,
+                path: "/proxyValidate",
+                queryParams: queryParams,
+                prefix: CAS_API_PREFIX.cas,
+            });
         }, "proxyValidate");
     }
 
@@ -227,7 +255,12 @@ export class CasManager extends BaseManager {
         if (pgtUrl) queryParams.pgtUrl = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.request<CasServiceValidateResponse>({ method: Method.Get, path: "/p3/serviceValidate", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
+            return await this.request<CasServiceValidateResponse>({
+                method: Method.Get,
+                path: "/p3/serviceValidate",
+                queryParams: queryParams,
+                prefix: CAS_API_PREFIX.cas,
+            });
         }, "p3ServiceValidate");
     }
 
@@ -236,7 +269,12 @@ export class CasManager extends BaseManager {
         const queryParams: Record<string, string> = { targetService };
         if (pgt) queryParams.pgt = pgt;
         return await this.withRetry(async () => {
-            return await this.request<CasProxyResponse>({ method: Method.Get, path: "/proxy", queryParams: queryParams, prefix: CAS_API_PREFIX.cas });
+            return await this.request<CasProxyResponse>({
+                method: Method.Get,
+                path: "/proxy",
+                queryParams: queryParams,
+                prefix: CAS_API_PREFIX.cas,
+            });
         }, "proxy");
     }
 
@@ -255,11 +293,10 @@ export class CasManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCasManager = function (): CasManager {
         registerManagerClass("cas", CasManager);
-    return getOrCreateManager(this, "cas", () => new CasManager(this));
+        return getOrCreateManager(this, "cas", () => new CasManager(this));
     };
 }
 

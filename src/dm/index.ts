@@ -97,7 +97,7 @@ export interface DirectRoomsResponse {
 }
 
 export interface DmRoomCheckResponse {
-    "room_id": string;
+    room_id: string;
     "m.direct": boolean;
 }
 
@@ -687,7 +687,9 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
                     const events = timeline.getEvents();
                     const lastEvent = events[events.length - 1];
                     if (lastEvent) {
-                        return await this.client.getReadReceiptsManager().setRoomReadMarkers(roomId, lastEvent.getId()!, lastEvent);
+                        return await this.client
+                            .getReadReceiptsManager()
+                            .setRoomReadMarkers(roomId, lastEvent.getId()!, lastEvent);
                     }
                 }
                 return undefined;
@@ -880,7 +882,19 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         try {
             return await this.withRetry(async () => {
                 const invite = options?.invite?.length ? Array.from(new Set([userId, ...options.invite])) : undefined;
-                return await this.request<CreateDmRoomResponse>({ method: Method.Post, path: "/create_dm", body: {                         user_id: userId,                         invite,                         is_direct: true,                         name: options?.name,                         topic: options?.topic,                         visibility: options?.visibility,                     }, prefix: ClientPrefix.V3 });
+                return await this.request<CreateDmRoomResponse>({
+                    method: Method.Post,
+                    path: "/create_dm",
+                    body: {
+                        user_id: userId,
+                        invite,
+                        is_direct: true,
+                        name: options?.name,
+                        topic: options?.topic,
+                        visibility: options?.visibility,
+                    },
+                    prefix: ClientPrefix.V3,
+                });
             });
         } catch (error) {
             throw this.normalizeError(error, "createDmRoomDetailed");
@@ -922,7 +936,11 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     async getDirectRoomsFromServer(): Promise<IDirectRoomsMap> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<DirectRoomsResponse>({ method: Method.Get, path: "/direct", prefix: ClientPrefix.V3 });
+                return await this.request<DirectRoomsResponse>({
+                    method: Method.Get,
+                    path: "/direct",
+                    prefix: ClientPrefix.V3,
+                });
             });
 
             return response.rooms || {};
@@ -941,21 +959,23 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
             throw new InvalidParamError("Room ID is required");
         }
 
-        const usersToValidate = Array.isArray(userIdsOrOptions)
-            ? userIdsOrOptions
-            : userIdsOrOptions.userIds ?? [];
+        const usersToValidate = Array.isArray(userIdsOrOptions) ? userIdsOrOptions : (userIdsOrOptions.userIds ?? []);
         usersToValidate.forEach((userId) => validateUserId(userId));
 
-        const body =
-            Array.isArray(userIdsOrOptions)
-                ? { users: userIdsOrOptions }
-                : userIdsOrOptions.content
-                  ? { content: userIdsOrOptions.content }
-                  : { users: userIdsOrOptions.userIds ?? [] };
+        const body = Array.isArray(userIdsOrOptions)
+            ? { users: userIdsOrOptions }
+            : userIdsOrOptions.content
+              ? { content: userIdsOrOptions.content }
+              : { users: userIdsOrOptions.userIds ?? [] };
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<UpdateDirectRoomResponse>({ method: Method.Put, path: `/direct/${encodeURIComponent(roomId)}`, body: body, prefix: ClientPrefix.V3 });
+                return await this.request<UpdateDirectRoomResponse>({
+                    method: Method.Put,
+                    path: `/direct/${encodeURIComponent(roomId)}`,
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             });
 
             this.emit(DMEvent.ListUpdated);
@@ -980,7 +1000,11 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<DmRoomCheckResponse>({ method: Method.Get, path: `/rooms/${encodeURIComponent(roomId)}/dm`, prefix: ClientPrefix.V3 });
+                return await this.request<DmRoomCheckResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/dm`,
+                    prefix: ClientPrefix.V3,
+                });
             });
 
             return response["m.direct"] ?? false;
@@ -1012,7 +1036,11 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<DmPartnerResponse>({ method: Method.Get, path: `/rooms/${encodeURIComponent(roomId)}/dm/partner`, prefix: ClientPrefix.V3 });
+                return await this.request<DmPartnerResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/dm/partner`,
+                    prefix: ClientPrefix.V3,
+                });
             });
 
             return response;
@@ -1085,7 +1113,7 @@ export function extendMatrixClient(): void {
 
     MatrixClient.prototype.getDirectMessageManager = function (): DirectMessageManager {
         registerManagerClass("dm", DirectMessageManager);
-    return getOrCreateManager(this, "dm", () => new DirectMessageManager(this));
+        return getOrCreateManager(this, "dm", () => new DirectMessageManager(this));
     };
 }
 

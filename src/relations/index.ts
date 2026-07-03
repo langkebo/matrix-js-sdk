@@ -95,14 +95,13 @@ function replaceParam(oldKey: string, newKey: string, params: QueryDict): QueryD
     return params;
 }
 
-type StripClientPrefix<P extends string> =
-    P extends `/_matrix/client/r0${infer Rest}`
+type StripClientPrefix<P extends string> = P extends `/_matrix/client/r0${infer Rest}`
+    ? Rest
+    : P extends `/_matrix/client/v1${infer Rest}`
+      ? Rest
+      : P extends `/_matrix/client/v3${infer Rest}`
         ? Rest
-        : P extends `/_matrix/client/v1${infer Rest}`
-          ? Rest
-          : P extends `/_matrix/client/v3${infer Rest}`
-            ? Rest
-            : never;
+        : never;
 
 function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
     return path;
@@ -139,11 +138,12 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
         const queryString = utils.encodeParams(params);
 
-        const templatedUrl: StripClientPrefix<RelationsPathPattern> = relationType !== null && eventType !== null && eventType !== undefined
-            ? rr("/rooms/$roomId/relations/$eventId/$relationType/$eventType")
-            : relationType !== null
-            ? rr("/rooms/$roomId/relations/$eventId/$relationType")
-            : rr("/rooms/$roomId/relations/$eventId");
+        const templatedUrl: StripClientPrefix<RelationsPathPattern> =
+            relationType !== null && eventType !== null && eventType !== undefined
+                ? rr("/rooms/$roomId/relations/$eventId/$relationType/$eventType")
+                : relationType !== null
+                  ? rr("/rooms/$roomId/relations/$eventId/$relationType")
+                  : rr("/rooms/$roomId/relations/$eventId");
 
         if (relationType === null && eventType !== null && eventType !== undefined) {
             logger.warn(`eventType: ${eventType} ignored when fetching relations as relationType is null`);
@@ -285,7 +285,10 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         eventType?: EventType | string | null,
         opts: IRelationsRequestOpts = { dir: Direction.Backward },
         deps?: {
-            getEncryptedIfNeededEventType: (roomId: string, eventType?: string | null) => EventType | string | null | undefined;
+            getEncryptedIfNeededEventType: (
+                roomId: string,
+                eventType?: string | null,
+            ) => EventType | string | null | undefined;
             fetchRoomEvent: (roomId: string, eventId: string) => Promise<Partial<IEvent>>;
             fetchRelations: (
                 roomId: string,
@@ -369,7 +372,6 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             throw error;
         }
     }
-
 }
 
 // Declare prototype extension
@@ -377,7 +379,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRelationsManager = function (): RelationsManager {
         registerManagerClass("relations", RelationsManager);
-    return getOrCreateManager(this, "relations", () => new RelationsManager(this));
+        return getOrCreateManager(this, "relations", () => new RelationsManager(this));
     };
 }
 

@@ -61,7 +61,6 @@ import { type IActionsObject, PushProcessor } from "./pushprocessor";
 import { AutoDiscovery } from "./autodiscovery";
 import { TypedReEmitter } from "./ReEmitter";
 import { logger, type Logger } from "./logger";
-import { SERVICE_TYPES } from "./service-types";
 import {
     type Body,
     ClientPrefix,
@@ -95,8 +94,6 @@ import {
     isSendDelayedEventRequestOpts,
     UpdateDelayedEventAction,
     type DelayedEventInfo,
-    type IAddThreePidOnlyBody,
-    type IBindThreePidBody,
     type ICreateRoomOpts,
     type IEventSearchOpts,
     type IGuestAccessOpts,
@@ -125,12 +122,7 @@ import {
     type TimelineEvents,
     type WritableAccountDataEvents,
 } from "./@types/event";
-import {
-    type IdServerUnbindResult,
-    Preset,
-    type Terms,
-    type Visibility,
-} from "./@types/partials";
+import { type IdServerUnbindResult, Preset, type Visibility } from "./@types/partials";
 import { type EventMapper, eventMapperFor, type MapperOpts } from "./event-mapper";
 import { secureRandomString } from "./randomstring";
 import { MSC3089TreeSpace } from "./models/MSC3089TreeSpace";
@@ -155,7 +147,6 @@ import type {
     IWhoamiResponse,
 } from "./client-internal-types";
 import { type IPushRule, type IPushRules } from "./@types/PushRules";
-import { type IThreepid } from "./@types/three-pids";
 import { type CryptoStore } from "./crypto/store/base";
 import {
     GroupCall,
@@ -173,18 +164,11 @@ import {
     type SSOAction,
 } from "./@types/auth";
 import { TypedEventEmitter } from "./models/typed-event-emitter";
-import { ReceiptType } from "./@types/read_receipts";
 import { type MSC3575SlidingSyncRequest, type MSC3575SlidingSyncResponse } from "./sliding-sync";
 import { SlidingSyncSdk } from "./sliding-sync-sdk";
-import {
-    FeatureSupport,
-    Thread,
-    THREAD_RELATION_TYPE,
-    ThreadFilterType,
-} from "./models/thread";
+import { FeatureSupport, Thread, THREAD_RELATION_TYPE, ThreadFilterType } from "./models/thread";
 import { NamespacedValue, UnstableValue } from "./NamespacedValue";
 import { ToDeviceMessageQueue } from "./ToDeviceMessageQueue";
-import { type ToDeviceBatch, type ToDevicePayload } from "./models/ToDeviceMessage";
 import { IgnoredInvites } from "./models/invites-ignorer";
 import { type LocalNotificationSettings } from "./@types/local_notifications";
 import { Feature, ServerSupport } from "./feature";
@@ -209,7 +193,6 @@ import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointE
 import { type Transport } from "./matrix-rtc/index";
 import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events";
 import {
-    updateScheduledDelayedEventWithActionInBody as updateScheduledDelayedEventWithActionInBodyRequest,
     updateScheduledDelayedEventWithFallback,
 } from "./client-delayed-events-updater";
 import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
@@ -229,18 +212,6 @@ import {
     type CrossSigningKeys,
     type IClientWellKnown,
     type ICreateRoomKeyRequest,
-    type IDeviceSigningVerificationAcceptRequest,
-    type IDeviceSigningVerificationAcceptResponse,
-    type IDeviceSigningVerificationCancelRequest,
-    type IDeviceSigningVerificationCancelResponse,
-    type IDeviceSigningVerificationDoneRequest,
-    type IDeviceSigningVerificationDoneResponse,
-    type IDeviceSigningVerificationKeyAgreementRequest,
-    type IDeviceSigningVerificationKeyAgreementResponse,
-    type IDeviceSigningVerificationMacRequest,
-    type IDeviceSigningVerificationMacResponse,
-    type IDeviceSigningVerificationStartRequest,
-    type IDeviceSigningVerificationStartResponse,
     type IClaimOTKsResult,
     type IDownloadKeyResult,
     type IGetRoomKeyRequestsQuery,
@@ -255,23 +226,18 @@ import {
     type IRequestMsisdnTokenResponse,
     type IRequestTokenResponse,
     type IRoomInitialSyncResponse,
-    type IScanQrCodeRequest,
-    type IScanQrCodeResponse,
     type ISecureBackupInfo,
     type ISecureBackupRestoreResponse,
     type ISecureBackupSessionKey,
     type ISecureBackupStoreKeysResponse,
     type ISecureBackupVerifyResponse,
-    type IShowQrCodeResponse,
     type IServerVersions,
     type ITurnServer,
     type ITurnServerResponse,
     type IUploadKeySignaturesResponse,
     type TimestampToEventResponse,
     type IUploadKeysRequest,
-    type IVerificationRequestsResponse,
     type KeySignatures,
-    type SendToDeviceContentMap,
 } from "./client-api-types";
 import {
     type ICreateClientOpts,
@@ -2240,9 +2206,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         txnId?: string,
     ): Promise<ISendEventResponse> {
         if (typeof threadId === "object" && threadId !== null) {
-            return this.sendEvent(roomId, null, EventType.RoomMessage, threadId as RoomMessageEventContent, content as string);
+            return this.sendEvent(
+                roomId,
+                null,
+                EventType.RoomMessage,
+                threadId as RoomMessageEventContent,
+                content as string,
+            );
         }
-        return this.sendEvent(roomId, threadId as string | null, EventType.RoomMessage, content as RoomMessageEventContent, txnId);
+        return this.sendEvent(
+            roomId,
+            threadId as string | null,
+            EventType.RoomMessage,
+            content as RoomMessageEventContent,
+            txnId,
+        );
     }
 
     public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
@@ -2342,7 +2320,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         info?: ImageInfo | string,
         text = "Image",
     ): Promise<ISendEventResponse> {
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Image, url: url as string, info: info as ImageInfo | undefined, body: text });
+        return this.sendMessage(roomId, threadId, {
+            msgtype: MsgType.Image,
+            url: url as string,
+            info: info as ImageInfo | undefined,
+            body: text,
+        });
     }
 
     public sendStickerMessage(
@@ -2352,7 +2335,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         info?: ImageInfo | string,
         text = "Sticker",
     ): Promise<ISendEventResponse> {
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, url: url as string, info: info as ImageInfo | undefined, body: text } as RoomMessageEventContent);
+        return this.sendMessage(roomId, threadId, {
+            msgtype: MsgType.Text,
+            url: url as string,
+            info: info as ImageInfo | undefined,
+            body: text,
+        } as RoomMessageEventContent);
     }
 
     public sendHtmlMessage(
@@ -2361,8 +2349,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrHtml: string,
         htmlBody?: string,
     ): Promise<ISendEventResponse> {
-        const { threadId, body, htmlBody: actualHtmlBody } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body, format: "org.matrix.custom.html", formatted_body: actualHtmlBody });
+        const {
+            threadId,
+            body,
+            htmlBody: actualHtmlBody,
+        } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
+        return this.sendMessage(roomId, threadId, {
+            msgtype: MsgType.Text,
+            body,
+            format: "org.matrix.custom.html",
+            formatted_body: actualHtmlBody,
+        });
     }
 
     public sendHtmlNotice(
@@ -2371,8 +2368,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrHtml: string,
         htmlBody?: string,
     ): Promise<ISendEventResponse> {
-        const { threadId, body, htmlBody: actualHtmlBody } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body, format: "org.matrix.custom.html", formatted_body: actualHtmlBody });
+        const {
+            threadId,
+            body,
+            htmlBody: actualHtmlBody,
+        } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
+        return this.sendMessage(roomId, threadId, {
+            msgtype: MsgType.Notice,
+            body,
+            format: "org.matrix.custom.html",
+            formatted_body: actualHtmlBody,
+        });
     }
 
     public sendHtmlEmote(
@@ -2381,8 +2387,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrHtml: string,
         htmlBody?: string,
     ): Promise<ISendEventResponse> {
-        const { threadId, body, htmlBody: actualHtmlBody } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
-        return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body, format: "org.matrix.custom.html", formatted_body: actualHtmlBody });
+        const {
+            threadId,
+            body,
+            htmlBody: actualHtmlBody,
+        } = normalizeThreadHtmlArgs(threadIdOrBody, bodyOrHtml, htmlBody);
+        return this.sendMessage(roomId, threadId, {
+            msgtype: MsgType.Emote,
+            body,
+            format: "org.matrix.custom.html",
+            formatted_body: actualHtmlBody,
+        });
     }
 
     protected prepareSendEventWithThreadRelation(
@@ -3009,7 +3024,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         sendAttempt: number,
         nextLink?: string,
     ): Promise<IRequestMsisdnTokenResponse> {
-        return this.getAuthManager().requestRegisterMsisdnToken(phoneCountry, phoneNumber, clientSecret, sendAttempt, nextLink);
+        return this.getAuthManager().requestRegisterMsisdnToken(
+            phoneCountry,
+            phoneNumber,
+            clientSecret,
+            sendAttempt,
+            nextLink,
+        );
     }
 
     public requestAdd3pidEmailToken(
@@ -3028,7 +3049,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         sendAttempt: number,
         nextLink?: string,
     ): Promise<IRequestMsisdnTokenResponse> {
-        return this.getAuthManager().requestAdd3pidMsisdnToken(phoneCountry, phoneNumber, clientSecret, sendAttempt, nextLink);
+        return this.getAuthManager().requestAdd3pidMsisdnToken(
+            phoneCountry,
+            phoneNumber,
+            clientSecret,
+            sendAttempt,
+            nextLink,
+        );
     }
 
     public requestPasswordEmailToken(
@@ -3218,7 +3245,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             .filter(([, value]) => {
                 return primTypes.includes(typeof value);
             })
-            .reduce<Record<string, unknown>>((obj, [key, value]) => { // Dynamic: accumulates arbitrary client option key-value pairs
+            .reduce<Record<string, unknown>>((obj, [key, value]) => {
+                // Dynamic: accumulates arbitrary client option key-value pairs
                 obj[key] = value;
                 return obj;
             }, {});
@@ -3317,7 +3345,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         prevBatch?: string | null;
     }> {
         return this.getRelationsManager().relations(roomId, eventId, relationType, eventType, opts, {
-            getEncryptedIfNeededEventType: (r: string, e: string | null | undefined) => this.getEncryptedIfNeededEventType(r, e),
+            getEncryptedIfNeededEventType: (r: string, e: string | null | undefined) =>
+                this.getEncryptedIfNeededEventType(r, e),
             fetchRoomEvent: (r: string, e: string) => this.fetchRoomEvent(r, e),
             fetchRelations: (
                 r: string,
@@ -3343,7 +3372,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         eventId: string,
         relType: string,
     ): Promise<{ chunk: Array<{ type: string; key: string; count: number }> }> {
-        return this.getRelationsManager().getAggregations(roomId, eventId, relType) as Promise<{ chunk: Array<{ type: string; key: string; count: number }> }>;
+        return this.getRelationsManager().getAggregations(roomId, eventId, relType) as Promise<{
+            chunk: Array<{ type: string; key: string; count: number }>;
+        }>;
     }
 
     /**
@@ -3361,11 +3392,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns A decryption promise
      */
     public decryptEventIfNeeded(event: MatrixEvent, options?: IDecryptOptions): Promise<void> {
-        return this.getEventManager().decryptEventIfNeeded(event, {
-            enableEncryptedStateEvents: this.enableEncryptedStateEvents,
-            getCrypto: () => this.getCrypto(),
-            cryptoBackend: this.cryptoBackend!,
-        }, options);
+        return this.getEventManager().decryptEventIfNeeded(
+            event,
+            {
+                enableEncryptedStateEvents: this.enableEncryptedStateEvents,
+                getCrypto: () => this.getCrypto(),
+                cryptoBackend: this.cryptoBackend!,
+            },
+            options,
+        );
     }
 
     /**
@@ -3586,7 +3621,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }: IRoomDirectoryOptions = {}): Promise<IPublicRoomsResponse> {
         const request = { server, limit, since, ...options };
         const key = stableSerialize(request);
-        return this.publicRoomsRequestCache.getOrCreate(key, () => publicRoomsRequest(request, this.authedRequestProxy));
+        return this.publicRoomsRequestCache.getOrCreate(key, () =>
+            publicRoomsRequest(request, this.authedRequestProxy),
+        );
     }
 
     public createAlias(alias: string, roomId: string): Promise<EmptyObject> {
@@ -3696,7 +3733,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     public getKeyChanges(oldToken: string, newToken: string): Promise<{ changed: string[]; left: string[] }> {
-        return this.getCryptoKeysManager().getKeysChanges(oldToken, newToken) as Promise<{ changed: string[]; left: string[] }>;
+        return this.getCryptoKeysManager().getKeysChanges(oldToken, newToken) as Promise<{
+            changed: string[];
+            left: string[];
+        }>;
     }
 
     public uploadDeviceSigningKeys(auth?: AuthDict, keys?: CrossSigningKeys): Promise<EmptyObject> {
@@ -3882,7 +3922,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             processThreadRoots?: boolean;
         } = {},
     ): void {
-        this.getTimelineManager().processPaginationEvents(eventTimeline, matrixEvents, backwards, token, room, options, this.supportsThreads());
+        this.getTimelineManager().processPaginationEvents(
+            eventTimeline,
+            matrixEvents,
+            backwards,
+            token,
+            room,
+            options,
+            this.supportsThreads(),
+        );
     }
 
     public async whoami(): Promise<IWhoamiResponse> {
@@ -3916,7 +3964,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return false;
     }
     public rotateEncryptionKeys(): Promise<void> {
-        return this.getKeyRotationManager().rotateKey().then(() => {});
+        return this.getKeyRotationManager()
+            .rotateKey()
+            .then(() => {});
     }
     public isRotationNeeded(): boolean {
         return false;
@@ -3983,9 +4033,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
     public async redactReaction(_roomId: string, _eventId: string): Promise<void> {}
     public getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>> {
-        return this.getReactionsManager().getReactionUsers(roomId, eventId).then((users) =>
-            users.map((userId) => ({ userId })),
-        );
+        return this.getReactionsManager()
+            .getReactionUsers(roomId, eventId)
+            .then((users) => users.map((userId) => ({ userId })));
     }
     public hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean> {
         return this.getReactionsManager().hasReaction(roomId, eventId, userId, key);
@@ -4084,8 +4134,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getAllWidgetEvents(_roomId: string): Promise<MatrixEvent[]> {
         return Promise.resolve([]);
     }
-    public getProfileManager(): ProfileManager | null {
-        return null;
+    public getProfileManager(): ProfileManager {
+        return null!;
     }
 }
 

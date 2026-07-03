@@ -592,12 +592,15 @@ export interface RoomReceiptsResult {
         /** The event ID the receipt refers to */
         event_id: string;
         /** User receipt data: user_id → receipt info */
-        users?: Record<string, {
-            /** Timestamp of the receipt */
-            ts: number;
-            /** Thread receipt, if applicable */
-            thread_id?: string;
-        }>;
+        users?: Record<
+            string,
+            {
+                /** Timestamp of the receipt */
+                ts: number;
+                /** Thread receipt, if applicable */
+                thread_id?: string;
+            }
+        >;
     }>;
 }
 

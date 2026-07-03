@@ -76,7 +76,11 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
             turnServers: ITurnServer[];
             turnServer(): Promise<ITurnServerResponse>;
             emit(event: string, ...args: unknown[]): boolean;
-            logger?: { debug?(...args: unknown[]): void; error?(...args: unknown[]): void; info?(...args: unknown[]): void };
+            logger?: {
+                debug?(...args: unknown[]): void;
+                error?(...args: unknown[]): void;
+                info?(...args: unknown[]): void;
+            };
             checkTurnServersIntervalID?: ReturnType<typeof setInterval>;
         };
         if (!client.supportsVoip || !client.supportsVoip()) {
@@ -123,11 +127,10 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTurnServerManager = function (): TurnServerManager {
         registerManagerClass("turnServer", TurnServerManager);
-    return getOrCreateManager(this, "turnServer", () => new TurnServerManager(this));
+        return getOrCreateManager(this, "turnServer", () => new TurnServerManager(this));
     };
 }
 

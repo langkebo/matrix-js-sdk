@@ -88,11 +88,10 @@ export class TokenManager extends BaseManager<keyof TokenManagerEvents, TokenMan
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTokenManager = function (): TokenManager {
         registerManagerClass("tokenManagement", TokenManager);
-    return getOrCreateManager(this, "tokenManagement", () => new TokenManager(this));
+        return getOrCreateManager(this, "tokenManagement", () => new TokenManager(this));
     };
 }
 

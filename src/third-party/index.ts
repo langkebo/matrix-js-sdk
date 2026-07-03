@@ -76,10 +76,7 @@ export class ThirdPartyManager extends BaseManager {
      * Get third party locations for a protocol.
      * GET /_matrix/client/v3/thirdparty/location/{protocol}
      */
-    getThirdpartyLocation(
-        protocol: string,
-        params?: { searchFields?: string[] },
-    ): Promise<ThirdPartyLocation[]> {
+    getThirdpartyLocation(protocol: string, params?: { searchFields?: string[] }): Promise<ThirdPartyLocation[]> {
         const path = utils.encodeUri("/thirdparty/location/$protocol", { $protocol: protocol });
         return this.withRetry(async () => {
             return await this.request<ThirdPartyLocation[]>({
@@ -123,7 +120,10 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
-    async getProtocol(protocol: string, options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyProtocol | null> {
+    async getProtocol(
+        protocol: string,
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<ThirdPartyProtocol | null> {
         try {
             const data = await this.withRetry(async () => {
                 return await this.request<IProtocol>({
@@ -176,7 +176,10 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
-    async searchAllLocations(params: ThirdPartySearchParams = {}, options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyLocation[]> {
+    async searchAllLocations(
+        params: ThirdPartySearchParams = {},
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<ThirdPartyLocation[]> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<ThirdPartyLocation[]>({
@@ -192,7 +195,10 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
-    async searchAllUsers(params: ThirdPartySearchParams = {}, options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyUser[]> {
+    async searchAllUsers(
+        params: ThirdPartySearchParams = {},
+        options: ErrorHandlingOptions | boolean = {},
+    ): Promise<ThirdPartyUser[]> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<ThirdPartyUser[]>({
@@ -322,14 +328,12 @@ export class ThirdPartyManager extends BaseManager {
 
         return uri;
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getThirdPartyManager = function (): ThirdPartyManager {
         registerManagerClass("thirdparty", ThirdPartyManager);
-    return getOrCreateManager(this, "thirdparty", () => new ThirdPartyManager(this));
+        return getOrCreateManager(this, "thirdparty", () => new ThirdPartyManager(this));
     };
 }
 

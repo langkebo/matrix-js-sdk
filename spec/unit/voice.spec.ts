@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { VoiceManager, VoiceEvent } from "../../src/voice/index";
 import { Method } from "../../src/http-api/method";
-import { ClientPrefix } from "../../src/http-api/prefix";
 
 describe("VoiceManager", () => {
     let transport: FakeTransport;
@@ -130,9 +129,7 @@ describe("VoiceManager", () => {
 
     it("uploadVoiceMessage should reject on failure", async () => {
         transport.rejectWith(new Error("Upload failed"));
-        await expect(
-            manager.uploadVoiceMessage({ content: "data", content_type: "audio/ogg" }),
-        ).rejects.toThrow();
+        await expect(manager.uploadVoiceMessage({ content: "data", content_type: "audio/ogg" })).rejects.toThrow();
     });
 
     // ─── getVoiceMessage ─────────────────────────────────────────────

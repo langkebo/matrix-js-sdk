@@ -212,7 +212,7 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
                 size: stats.storage_bytes ?? 0,
                 ntFiles: stats.media_count ?? 0,
             };
-        // @swallow-error { owner: "media-quota", expires: "2026-12-31" }
+            // @swallow-error { owner: "media-quota", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
@@ -348,11 +348,10 @@ export class MediaQuotaManager extends BaseManager<keyof MediaQuotaManagerEvents
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMediaQuotaManager = function (): MediaQuotaManager {
         registerManagerClass("mediaQuota", MediaQuotaManager);
-    return getOrCreateManager(this, "mediaQuota", () => new MediaQuotaManager(this));
+        return getOrCreateManager(this, "mediaQuota", () => new MediaQuotaManager(this));
     };
 }
 

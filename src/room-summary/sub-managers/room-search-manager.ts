@@ -166,7 +166,8 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
                 .map((room) => ({
                     room_id: room.roomId,
                     name: room.name,
-                    topic: room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent<{ topic?: string }>().topic,
+                    topic: room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent<{ topic?: string }>()
+                        .topic,
                     avatar_url: room.getMxcAvatarUrl() ?? undefined,
                     join_rule: "invite" as const,
                     history_visibility: "shared" as const,
@@ -203,7 +204,8 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
                 .map((room) => ({
                     room_id: room.roomId,
                     name: room.name,
-                    topic: room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent<{ topic?: string }>().topic,
+                    topic: room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent<{ topic?: string }>()
+                        .topic,
                     avatar_url: room.getMxcAvatarUrl() ?? undefined,
                     join_rule: "invite" as const,
                     history_visibility: "shared" as const,

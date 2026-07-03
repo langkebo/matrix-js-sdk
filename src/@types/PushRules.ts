@@ -188,21 +188,21 @@ export interface IPushRules extends IContent {
 }
 
 export interface IPusher {
-    "app_display_name": string;
-    "app_id": string;
-    "data": {
+    app_display_name: string;
+    app_id: string;
+    data: {
         format?: string;
         url?: string; // Required when kind is "http".
         brand?: string; // Used by some email pushers.
     };
-    "device_display_name": string;
-    "kind": "http" | string;
-    "lang": string;
-    "profile_tag"?: string;
-    "pushkey": string;
-    "enabled"?: boolean | null;
+    device_display_name: string;
+    kind: "http" | string;
+    lang: string;
+    profile_tag?: string;
+    pushkey: string;
+    enabled?: boolean | null;
     "org.matrix.msc3881.enabled"?: boolean | null;
-    "device_id"?: string | null;
+    device_id?: string | null;
     "org.matrix.msc3881.device_id"?: string | null;
 }
 

@@ -117,11 +117,10 @@ export class ModerationManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getModerationManager = function (): ModerationManager {
         registerManagerClass("moderation", ModerationManager);
-    return getOrCreateManager(this, "moderation", () => new ModerationManager(this));
+        return getOrCreateManager(this, "moderation", () => new ModerationManager(this));
     };
 }
 

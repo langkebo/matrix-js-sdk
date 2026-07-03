@@ -262,8 +262,8 @@ export function deepCompare(x: unknown, y: unknown): boolean {
             }
         }
     } else {
-        const xRec = x as Record<string, unknown> /* Dynamic: deep-compare any object */;
-        const yRec = y as Record<string, unknown> /* Dynamic: deep-compare any object */;
+        const xRec = x as Record<string, unknown>; /* Dynamic: deep-compare any object */
+        const yRec = y as Record<string, unknown>; /* Dynamic: deep-compare any object */
         // check that all of y's direct keys are in x
         for (const p in yRec) {
             if (Object.prototype.hasOwnProperty.call(yRec, p) !== Object.prototype.hasOwnProperty.call(xRec, p)) {
@@ -723,14 +723,19 @@ function processMapToObjectValue(value: unknown): unknown {
  * Recursively converts Maps to plain objects.
  * Also supports sub-lists of Maps.
  */
-export function recursiveMapToObject(map: Map<unknown, unknown>): Record<string, unknown> /* Dynamic: converts arbitrary Map to object */ {
+export function recursiveMapToObject(
+    map: Map<unknown, unknown>,
+): Record<string, unknown> /* Dynamic: converts arbitrary Map to object */ {
     const targetMap = new Map<unknown, unknown>();
 
     for (const [key, value] of map) {
         targetMap.set(key, processMapToObjectValue(value));
     }
 
-    return Object.fromEntries(targetMap.entries()) as Record<string, unknown> /* Dynamic: converts arbitrary Map to object */;
+    return Object.fromEntries(targetMap.entries()) as Record<
+        string,
+        unknown
+    > /* Dynamic: converts arbitrary Map to object */;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -14,11 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {
-    type CallMembershipIdentityParts,
-    getEncryptionKeyMapKey,
-    type IEncryptionManager,
-} from "./EncryptionManager";
+import { type CallMembershipIdentityParts, getEncryptionKeyMapKey, type IEncryptionManager } from "./EncryptionManager";
 import { type EncryptionConfig, type MembershipConfig } from "./MatrixRTCSession";
 import { CallMembership } from "./CallMembership";
 import { decodeBase64, encodeBase64 } from "../base64";

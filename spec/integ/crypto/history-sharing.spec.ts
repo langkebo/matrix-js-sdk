@@ -60,7 +60,7 @@ beforeAll(async () => {
 afterEach(() => {
     // reset fake-indexeddb after each test, to make sure we don't leak connections
     // cf https://github.com/dumbmatter/fakeIndexedDB#wipingresetting-the-indexeddb-for-a-fresh-state
-    // eslint-disable-next-line no-global-assign
+     
     indexedDB = new IDBFactory();
 });
 
@@ -184,15 +184,12 @@ describe("History Sharing", () => {
 
         // Now, Alice invites Bob
         const uploadProm = new Promise<Uint8Array>((resolve) => {
-            fetchMock.postOnce(
-                `begin:${ALICE_HOMESERVER_URL}/_matrix/media/v3/upload`,
-                (callLog) => {
-                    const body = callLog.options.body as Uint8Array;
-                    debug(`Alice uploaded blob of length ${body.length}`);
-                    resolve(body);
-                    return { content_uri: "mxc://alice-server/here" };
-                },
-            );
+            fetchMock.postOnce(`begin:${ALICE_HOMESERVER_URL}/_matrix/media/v3/upload`, (callLog) => {
+                const body = callLog.options.body as Uint8Array;
+                debug(`Alice uploaded blob of length ${body.length}`);
+                resolve(body);
+                return { content_uri: "mxc://alice-server/here" };
+            });
         });
         const toDeviceMessageProm = expectSendToDeviceMessage(ALICE_HOMESERVER_URL, "m.room.encrypted");
         // POST https://alice-server.com/_matrix/client/v3/rooms/!room%3Aexample.com/invite
@@ -346,15 +343,12 @@ describe("History Sharing", () => {
      */
     async function assertInviteAndShareHistory(roomId: string): Promise<void> {
         const uploadProm = new Promise<Uint8Array>((resolve) => {
-            fetchMock.postOnce(
-                `begin:${ALICE_HOMESERVER_URL}/_matrix/media/v3/upload`,
-                (callLog) => {
-                    const body = callLog.options.body as Uint8Array;
-                    debug(`Alice uploaded blob of length ${body.length}`);
-                    resolve(body);
-                    return { content_uri: "mxc://alice-server/here" };
-                },
-            );
+            fetchMock.postOnce(`begin:${ALICE_HOMESERVER_URL}/_matrix/media/v3/upload`, (callLog) => {
+                const body = callLog.options.body as Uint8Array;
+                debug(`Alice uploaded blob of length ${body.length}`);
+                resolve(body);
+                return { content_uri: "mxc://alice-server/here" };
+            });
         });
         const toDeviceMessageProm = expectSendToDeviceMessage(ALICE_HOMESERVER_URL, "m.room.encrypted");
         fetchMock.postOnce(`${ALICE_HOMESERVER_URL}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite`, {});

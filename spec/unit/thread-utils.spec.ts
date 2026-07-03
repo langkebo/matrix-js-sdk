@@ -23,8 +23,8 @@ function makeEvent(relatesToEvent: string, relType: string): Partial<IEvent> {
         event_id: secureRandomString(10),
         type: "m.room.message",
         content: {
-            "msgtype": "m.text",
-            "body": "foo",
+            msgtype: "m.text",
+            body: "foo",
             "m.relates_to": {
                 rel_type: relType,
                 event_id: relatesToEvent,

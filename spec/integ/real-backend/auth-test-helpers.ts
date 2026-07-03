@@ -51,7 +51,7 @@ function isRateLimited(error: unknown): boolean {
         return (
             record.statusCode === 429 ||
             record.httpStatus === 429 ||
-            record.isRetryable === true && retryAfter !== undefined ||
+            (record.isRetryable === true && retryAfter !== undefined) ||
             record.errorCode === "M_LIMIT_EXCEEDED" ||
             record.errcode === "M_LIMIT_EXCEEDED" ||
             message.includes("429") ||
@@ -71,7 +71,7 @@ function isTransientConnectionError(error: unknown): boolean {
         const code = typeof record.code === "string" ? record.code : "";
 
         return (
-            record.isRetryable === true && message.includes("fetch failed") ||
+            (record.isRetryable === true && message.includes("fetch failed")) ||
             record.statusCode === 0 ||
             record.httpStatus === 0 ||
             code === "ECONNRESET" ||

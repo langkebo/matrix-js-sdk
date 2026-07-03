@@ -305,11 +305,10 @@ export class KeyRotationManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyRotationManager = function (): KeyRotationManager {
         registerManagerClass("keyRotation", KeyRotationManager);
-    return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
+        return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
     };
 }
 

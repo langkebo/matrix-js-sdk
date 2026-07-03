@@ -283,10 +283,7 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
-    async updateBackupVersion(
-        version: string,
-        authData: AuthData | Aes256AuthData,
-    ): Promise<{ version: string }> {
+    async updateBackupVersion(version: string, authData: AuthData | Aes256AuthData): Promise<{ version: string }> {
         try {
             const result = await this.withRetry(async () => {
                 return await this.request<{ version: string }>({
@@ -418,7 +415,11 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
-    async getSessionKey(version: string, roomId: string, sessionId: string): Promise<EncryptedData | AESEncryptedSecretStoragePayload> {
+    async getSessionKey(
+        version: string,
+        roomId: string,
+        sessionId: string,
+    ): Promise<EncryptedData | AESEncryptedSecretStoragePayload> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<EncryptedData | AESEncryptedSecretStoragePayload>({
@@ -548,7 +549,9 @@ export class KeyBackupManager extends BaseManager {
             return await this.withRetry(async () => {
                 return await this.request<RecoverSessionKeyResult>({
                     method: Method.Get,
-                    path: kb(`/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`),
+                    path: kb(
+                        `/room_keys/recover/${version}/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
+                    ),
                     prefix: ClientPrefix.V3,
                 });
             }, "recoverSessionKey");
@@ -617,14 +620,12 @@ export class KeyBackupManager extends BaseManager {
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.versionCache.getStats();
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyBackupManager = function (): KeyBackupManager {
         registerManagerClass("keyBackup", KeyBackupManager);
-    return getOrCreateManager(this, "keyBackup", () => new KeyBackupManager(this));
+        return getOrCreateManager(this, "keyBackup", () => new KeyBackupManager(this));
     };
 }
 

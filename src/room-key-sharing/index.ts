@@ -107,11 +107,10 @@ export class RoomKeySharingManager extends BaseManager<keyof RoomKeySharingManag
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomKeySharingManager = function (): RoomKeySharingManager {
         registerManagerClass("roomKeySharing", RoomKeySharingManager);
-    return getOrCreateManager(this, "roomKeySharing", () => new RoomKeySharingManager(this));
+        return getOrCreateManager(this, "roomKeySharing", () => new RoomKeySharingManager(this));
     };
 }
 

@@ -79,10 +79,10 @@ export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, Id
                 method: Method.Post,
                 path: path,
                 body: {
-                medium,
-                address,
-                token: validationToken,
-            },
+                    medium,
+                    address,
+                    token: validationToken,
+                },
             });
         }, "store3pid");
     }
@@ -94,9 +94,9 @@ export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, Id
                 method: Method.Post,
                 path: path,
                 body: {
-                email: address,
-                sendAttempt: 1,
-            },
+                    email: address,
+                    sendAttempt: 1,
+                },
             });
         }, "requestVerificationToken");
     }
@@ -108,20 +108,19 @@ export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, Id
                 method: Method.Post,
                 path: path,
                 body: {
-                sid: token,
-                client_secret: mxid,
-                mxid,
-            },
+                    sid: token,
+                    client_secret: mxid,
+                    mxid,
+                },
             });
         }, "bind3pid");
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getIdentityManager = function (): IdentityManager {
         registerManagerClass("identity", IdentityManager);
-    return getOrCreateManager(this, "identity", () => new IdentityManager(this));
+        return getOrCreateManager(this, "identity", () => new IdentityManager(this));
     };
 }
 

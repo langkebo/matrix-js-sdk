@@ -198,7 +198,6 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         this.urlPreviewRequestCache = new InflightRequestCache<IPreviewUrlResponse>(client.urlPreviewCache);
     }
 
-
     // ==================== Room Info ====================
 
     public getRoom(roomId: string | undefined): Room | null {
@@ -230,7 +229,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<IRoomVersionResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/version`), prefix: ClientPrefix.V3 });
+            return await this.request<IRoomVersionResponse>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/version`),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.roomInfoCache.set(cacheKey, { room_version: response.room_version });
@@ -249,7 +252,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<IRoomCapabilitiesResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/capabilities`), prefix: ClientPrefix.V3 });
+            return await this.request<IRoomCapabilitiesResponse>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/capabilities`),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.roomInfoCache.set(cacheKey, response);
@@ -268,7 +275,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<IRoomMetadataResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/metadata`), prefix: ClientPrefix.V3 });
+            return await this.request<IRoomMetadataResponse>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/metadata`),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.roomInfoCache.set(cacheKey, response);
@@ -291,7 +302,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<{ room_id: string }>({ method: Method.Post, path: rp("/createRoom"), body: options, prefix: ClientPrefix.V3 });
+            return await this.request<{ room_id: string }>({
+                method: Method.Post,
+                path: rp("/createRoom"),
+                body: options,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.emit(RoomEvent.RoomCreated, response.room_id);
@@ -331,7 +347,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const path = rp(`/join/${encodeURIComponent(roomIdOrAlias)}`);
-        const res = await this.request<{ room_id: string }>({ method: Method.Post, path: path, queryParams: queryParams, body: data, prefix: ClientPrefix.V3 });
+        const res = await this.request<{ room_id: string }>({
+            method: Method.Post,
+            path: path,
+            queryParams: queryParams,
+            body: data,
+            prefix: ClientPrefix.V3,
+        });
 
         const roomId = res.room_id;
         const cryptoBackend = this.client.getCryptoBackend();
@@ -369,16 +391,30 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             body.reason = opts.reason;
         }
 
-        return this.withRetry(async () => {
-            return await this.request({ method: Method.Post, path: path, queryParams: queryParams, body: body, prefix: ClientPrefix.V3 });
-        }, { label: "knockRoom", idempotent: false });
+        return this.withRetry(
+            async () => {
+                return await this.request({
+                    method: Method.Post,
+                    path: path,
+                    queryParams: queryParams,
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
+            },
+            { label: "knockRoom", idempotent: false },
+        );
     }
 
     public async leave(roomId: string): Promise<EmptyObject> {
         validateRoomId(roomId);
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/leave`), body: {}, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/leave`),
+                body: {},
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.emit(RoomEvent.RoomLeft, roomId);
@@ -390,7 +426,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         validateRoomId(roomId);
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/forget`), body: { delete_room: deleteRoom }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/forget`),
+                body: { delete_room: deleteRoom },
+                prefix: ClientPrefix.V3,
+            });
         });
 
         if (deleteRoom) {
@@ -423,7 +464,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<IGetMembersResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/members`), queryParams: params as Record<string, string>, prefix: ClientPrefix.V3 });
+            return await this.request<IGetMembersResponse>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/members`),
+                queryParams: params as Record<string, string>,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         if (!params) {
@@ -444,7 +490,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<IJoinedMembersResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/joined_members`), prefix: ClientPrefix.V3 });
+            return await this.request<IJoinedMembersResponse>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/joined_members`),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.roomInfoCache.set(cacheKey, response);
@@ -465,7 +515,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<IStateEvent>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`), prefix: ClientPrefix.V3 });
+                return await this.request<IStateEvent>({
+                    method: Method.Get,
+                    path: rp(`/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`),
+                    prefix: ClientPrefix.V3,
+                });
             });
 
             return response;
@@ -474,7 +528,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             if (throwOnError) {
                 throw error;
             }
-            const err = error as Record<string, unknown> /* Dynamic: error shape varies by source */;
+            const err = error as Record<string, unknown>; /* Dynamic: error shape varies by source */
             const httpStatus = err?.httpStatus as number | undefined;
             if (httpStatus === 404) {
                 return null;
@@ -501,7 +555,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         };
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/invite`), body: body, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/invite`),
+                body: body,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.membersCache.delete(`members:${roomId}`);
@@ -520,7 +579,17 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             : undefined;
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/invite`), body: {                     id_server: this.client.getIdentityServerManager().getIdentityServerUrl(true),                     id_access_token: identityAccessToken,                     medium,                     address,                 }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/invite`),
+                body: {
+                    id_server: this.client.getIdentityServerManager().getIdentityServerUrl(true),
+                    id_access_token: identityAccessToken,
+                    medium,
+                    address,
+                },
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -531,7 +600,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         validateUserId(userId);
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/kick`), body: { user_id: userId, reason }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/kick`),
+                body: { user_id: userId, reason },
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.membersCache.delete(`members:${roomId}`);
@@ -544,7 +618,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         validateUserId(userId);
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/ban`), body: { user_id: userId, reason }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/ban`),
+                body: { user_id: userId, reason },
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.membersCache.delete(`members:${roomId}`);
@@ -556,7 +635,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         validateUserId(userId);
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/unban`), body: { user_id: userId }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/unban`),
+                body: { user_id: userId },
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.membersCache.delete(`members:${roomId}`);
@@ -604,7 +688,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<IRoomEvent>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`), prefix: ClientPrefix.V3 });
+            return await this.request<IRoomEvent>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -624,7 +712,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         if (params?.limit !== undefined) queryParams.limit = params.limit.toString();
         if (params?.filter) queryParams.filter = JSON.stringify(params.filter);
 
-        const response = await this.request<IContextResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`), queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined, prefix: ClientPrefix.V3 });
+        const response = await this.request<IContextResponse>({
+            method: Method.Get,
+            path: rp(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`),
+            queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+            prefix: ClientPrefix.V3,
+        });
 
         return response;
     }
@@ -642,7 +735,14 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
         const txn = txnId || `m${Date.now()}`;
         const response = await this.withRetry(async () => {
-            return await this.request<ISendEventResponse>({ method: Method.Put, path: rp(`/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txn)}`), body: reason ? { reason } : {}, prefix: ClientPrefix.V3 });
+            return await this.request<ISendEventResponse>({
+                method: Method.Put,
+                path: rp(
+                    `/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txn)}`,
+                ),
+                body: reason ? { reason } : {},
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -654,7 +754,16 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         validateRoomId(roomId);
 
         const response = await this.withRetry(async () => {
-            return await this.request<ITagsResponse>({ method: Method.Get, path: rp(                     utils.encodeUri("/user/$userId/rooms/$roomId/tags", {                         $userId: this.client.getUserId()!,                         $roomId: roomId,                     }) as StripV3<TagsPathPattern>,                 ), prefix: ClientPrefix.V3 });
+            return await this.request<ITagsResponse>({
+                method: Method.Get,
+                path: rp(
+                    utils.encodeUri("/user/$userId/rooms/$roomId/tags", {
+                        $userId: this.client.getUserId()!,
+                        $roomId: roomId,
+                    }) as StripV3<TagsPathPattern>,
+                ),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -667,7 +776,18 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Put, path: rp(                     utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {                         $userId: this.client.getUserId()!,                         $roomId: roomId,                         $tag: tagName,                     }) as StripV3<TagsPathPattern>,                 ), body: metadata, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Put,
+                path: rp(
+                    utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
+                        $userId: this.client.getUserId()!,
+                        $roomId: roomId,
+                        $tag: tagName,
+                    }) as StripV3<TagsPathPattern>,
+                ),
+                body: metadata,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -680,7 +800,17 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Delete, path: rp(                     utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {                         $userId: this.client.getUserId()!,                         $roomId: roomId,                         $tag: tagName,                     }) as StripV3<TagsPathPattern>,                 ), prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Delete,
+                path: rp(
+                    utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
+                        $userId: this.client.getUserId()!,
+                        $roomId: roomId,
+                        $tag: tagName,
+                    }) as StripV3<TagsPathPattern>,
+                ),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -699,7 +829,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Put, path: utils.encodeUri("/rooms/$roomId/account_data/$type", {                     $roomId: roomId,                     $type: eventType,                 }), body: content, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Put,
+                path: utils.encodeUri("/rooms/$roomId/account_data/$type", { $roomId: roomId, $type: eventType }),
+                body: content,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -710,7 +845,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async getRoomDirectoryVisibility(roomId: string): Promise<{ visibility: Visibility }> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
-            return await this.request<{ visibility: Visibility }>({ method: Method.Get, path: utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId }), prefix: ClientPrefix.V3 });
+            return await this.request<{ visibility: Visibility }>({
+                method: Method.Get,
+                path: utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId }),
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -718,7 +857,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async setRoomDirectoryVisibility(roomId: string, visibility: Visibility): Promise<EmptyObject> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Put, path: utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId }), body: { visibility }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Put,
+                path: utils.encodeUri("/directory/list/room/$roomId", { $roomId: roomId }),
+                body: { visibility },
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -740,10 +884,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         };
 
         try {
-            return await this.request<IRoomHierarchy>({ method: Method.Get, path: path, queryParams: query as Record<string, string | string[]>, prefix: ClientPrefix.V1 });
+            return await this.request<IRoomHierarchy>({
+                method: Method.Get,
+                path: path,
+                queryParams: query as Record<string, string | string[]>,
+                prefix: ClientPrefix.V1,
+            });
         } catch (e) {
             if ((e as MatrixError).errcode === "M_UNRECOGNIZED") {
-                return await this.request<IRoomHierarchy>({ method: Method.Get, path: path, queryParams: query as Record<string, string | string[]>, prefix: "/_matrix/client/unstable/org.matrix.msc2946" });
+                return await this.request<IRoomHierarchy>({
+                    method: Method.Get,
+                    path: path,
+                    queryParams: query as Record<string, string | string[]>,
+                    prefix: "/_matrix/client/unstable/org.matrix.msc2946",
+                });
             }
             throw e;
         }
@@ -752,7 +906,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async getRoomIdForAlias(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
         const response = await this.withRetry(async () => {
-            return await this.request<{ room_id: string; servers: string[] }>({ method: Method.Get, path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }), prefix: ClientPrefix.V3 });
+            return await this.request<{ room_id: string; servers: string[] }>({
+                method: Method.Get,
+                path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }),
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -761,7 +919,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Put, path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }), body: { room_id: roomId }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Put,
+                path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }),
+                body: { room_id: roomId },
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -769,7 +932,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async deleteAlias(roomAlias: string): Promise<EmptyObject> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Delete, path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }), prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Delete,
+                path: utils.encodeUri("/directory/room/$roomAlias", { $roomAlias: roomAlias }),
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -777,7 +944,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async getLocalAliases(roomId: string): Promise<{ aliases: string[] }> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
-            return await this.request<{ aliases: string[] }>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/aliases`), prefix: ClientPrefix.V3 });
+            return await this.request<{ aliases: string[] }>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/aliases`),
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -798,7 +969,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
 
         const response = await this.withRetry(async () => {
-            return await this.request<{ replacement_room: string }>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/upgrade`), body: body, prefix: ClientPrefix.V3 });
+            return await this.request<{ replacement_room: string }>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/upgrade`),
+                body: body,
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -806,7 +982,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
-            return await this.request<EmptyObject>({ method: Method.Post, path: rp(`/rooms/${encodeURIComponent(roomId)}/report`), body: { reason }, prefix: ClientPrefix.V3 });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/report`),
+                body: { reason },
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -814,7 +995,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async roomInitialSync(roomId: string): Promise<IRoomInitialSyncResponse> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
-            return await this.request<IRoomInitialSyncResponse>({ method: Method.Get, path: rp(`/rooms/${encodeURIComponent(roomId)}/initialSync`), prefix: ClientPrefix.V3 });
+            return await this.request<IRoomInitialSyncResponse>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/initialSync`),
+                prefix: ClientPrefix.V3,
+            });
         });
         return response;
     }
@@ -866,7 +1051,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     public async getRoomTyping(roomId: string): Promise<string[]> {
         validateRoomId(roomId);
         const path = `/rooms/${encodeURIComponent(roomId)}/typing`;
-        const response = await this.request<{ user_ids: string[] }>({ method: Method.Get, path: path, prefix: ClientPrefix.V3 });
+        const response = await this.request<{ user_ids: string[] }>({
+            method: Method.Get,
+            path: path,
+            prefix: ClientPrefix.V3,
+        });
         return response.user_ids || [];
     }
 
@@ -894,7 +1083,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         const key = bucketedTs + "_" + normalizedUrl;
 
         return this.urlPreviewRequestCache.getOrCreate(key, () =>
-            this.request<IPreviewUrlResponse>({ method: Method.Get, path: "/preview_url", queryParams: {                     url: normalizedUrl,                     ts: bucketedTs.toString(),                 }, prefix: MediaPrefix.V3 }),
+            this.request<IPreviewUrlResponse>({
+                method: Method.Get,
+                path: "/preview_url",
+                queryParams: { url: normalizedUrl, ts: bucketedTs.toString() },
+                prefix: MediaPrefix.V3,
+            }),
         );
     }
 
@@ -922,7 +1116,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * Custom endpoint for synapse-rust.
      */
     public async getMyRooms(): Promise<IMyRoomsResponse> {
-        const response = await this.request<IMyRoomsResponse>({ method: Method.Get, path: "/_matrix/client/v3/my_rooms", prefix: ClientPrefix.V3 });
+        const response = await this.request<IMyRoomsResponse>({
+            method: Method.Get,
+            path: "/_matrix/client/v3/my_rooms",
+            prefix: ClientPrefix.V3,
+        });
         return {
             ...response,
             rooms: response.rooms.map((room: IMyRoom) => {
@@ -945,8 +1143,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         limit?: number,
     ): Promise<{ results: unknown[]; count: number; next_batch: string | null }> {
         return searchRoomsRequest(
-            <T>(method: Method, path: string, queryParams?: QueryDict, body?: Body, requestOpts?: IRequestOpts): Promise<T> =>
-                this.request<T>({ method, path, queryParams: queryParams as Record<string, string | string[]>, body, prefix: requestOpts?.prefix ?? ClientPrefix.V3 }),
+            <T>(
+                method: Method,
+                path: string,
+                queryParams?: QueryDict,
+                body?: Body,
+                requestOpts?: IRequestOpts,
+            ): Promise<T> =>
+                this.request<T>({
+                    method,
+                    path,
+                    queryParams: queryParams as Record<string, string | string[]>,
+                    body,
+                    prefix: requestOpts?.prefix ?? ClientPrefix.V3,
+                }),
             searchTerm,
             limit,
         );
@@ -977,7 +1187,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         picture?: string;
         email?: string;
     }> {
-        return this.request({ method: Method.Get, path: "/_matrix/client/v3/login/sso/userinfo", prefix: ClientPrefix.V3 });
+        return this.request({
+            method: Method.Get,
+            path: "/_matrix/client/v3/login/sso/userinfo",
+            prefix: ClientPrefix.V3,
+        });
     }
 
     /**
@@ -999,8 +1213,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      */
     public async slidingSync(
         req: MSC3575SlidingSyncRequest,
-        proxyBaseUrl?: string,
-        abortSignal?: AbortSignal,
+        _proxyBaseUrl?: string,
+        _abortSignal?: AbortSignal,
     ): Promise<MSC3575SlidingSyncResponse> {
         const qps: Record<string, string | string[]> = {};
         if (req.pos !== undefined) {
@@ -1009,8 +1223,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         if (req.timeout !== undefined) {
             qps.timeout = String(req.timeout);
         }
-        const clientTimeout = req.clientTimeout;
         const { pos: _pos, timeout: _timeout, clientTimeout: _clientTimeout, ...body } = req;
-        return this.request({ method: Method.Post, path: rp("/sync"), queryParams: qps, body: body, prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575" });
+        return this.request({
+            method: Method.Post,
+            path: rp("/sync"),
+            queryParams: qps,
+            body: body,
+            prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
+        });
     }
 }

@@ -22,51 +22,35 @@ function classifyError(err: { errcode?: string; httpStatus?: number }): string {
 
 describe("SDK-1/2/3: Error code classification", () => {
     it("M_UNRECOGNIZED + 404 → unrecognized", () => {
-        expect(classifyError({ errcode: "M_UNRECOGNIZED", httpStatus: 404 })).toBe(
-            "unrecognized",
-        );
+        expect(classifyError({ errcode: "M_UNRECOGNIZED", httpStatus: 404 })).toBe("unrecognized");
     });
 
     it("M_SERVER_NOT_TRUSTED + 502 → server_not_trusted", () => {
-        expect(
-            classifyError({ errcode: "M_SERVER_NOT_TRUSTED", httpStatus: 502 }),
-        ).toBe("server_not_trusted");
+        expect(classifyError({ errcode: "M_SERVER_NOT_TRUSTED", httpStatus: 502 })).toBe("server_not_trusted");
     });
 
     it("M_REQUEST_TIMEOUT + 408 → request_timeout", () => {
-        expect(
-            classifyError({ errcode: "M_REQUEST_TIMEOUT", httpStatus: 408 }),
-        ).toBe("request_timeout");
+        expect(classifyError({ errcode: "M_REQUEST_TIMEOUT", httpStatus: 408 })).toBe("request_timeout");
     });
 
     it("M_UNKNOWN_TOKEN → auth_expired", () => {
-        expect(classifyError({ errcode: "M_UNKNOWN_TOKEN", httpStatus: 401 })).toBe(
-            "auth_expired",
-        );
+        expect(classifyError({ errcode: "M_UNKNOWN_TOKEN", httpStatus: 401 })).toBe("auth_expired");
     });
 
     it("M_MISSING_TOKEN → auth_expired", () => {
-        expect(classifyError({ errcode: "M_MISSING_TOKEN", httpStatus: 401 })).toBe(
-            "auth_expired",
-        );
+        expect(classifyError({ errcode: "M_MISSING_TOKEN", httpStatus: 401 })).toBe("auth_expired");
     });
 
     it("M_LIMIT_EXCEEDED + 429 → rate_limited", () => {
-        expect(classifyError({ errcode: "M_LIMIT_EXCEEDED", httpStatus: 429 })).toBe(
-            "rate_limited",
-        );
+        expect(classifyError({ errcode: "M_LIMIT_EXCEEDED", httpStatus: 429 })).toBe("rate_limited");
     });
 
     it("M_FORBIDDEN + 403 → forbidden", () => {
-        expect(classifyError({ errcode: "M_FORBIDDEN", httpStatus: 403 })).toBe(
-            "forbidden",
-        );
+        expect(classifyError({ errcode: "M_FORBIDDEN", httpStatus: 403 })).toBe("forbidden");
     });
 
     it("M_NOT_FOUND + 404 → not_found", () => {
-        expect(classifyError({ errcode: "M_NOT_FOUND", httpStatus: 404 })).toBe(
-            "not_found",
-        );
+        expect(classifyError({ errcode: "M_NOT_FOUND", httpStatus: 404 })).toBe("not_found");
     });
 
     it("all codes have a known classification", () => {

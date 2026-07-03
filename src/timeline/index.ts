@@ -235,11 +235,20 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
                 timelineSet.thread.id,
                 THREAD_RELATION_TYPE.name,
                 null,
-                { dir: Direction.Backward, limit: 1, recurse: clientInternals.canSupportRelationsRecursion || undefined },
+                {
+                    dir: Direction.Backward,
+                    limit: 1,
+                    recurse: clientInternals.canSupportRelationsRecursion || undefined,
+                },
             );
             event = res.chunk?.[0];
         } else {
-            const res = await clientInternals.createMessagesRequest(timelineSet.room.roomId, null, 1, Direction.Backward);
+            const res = await clientInternals.createMessagesRequest(
+                timelineSet.room.roomId,
+                null,
+                1,
+                Direction.Backward,
+            );
             event = res.chunk?.[0];
         }
         if (!event) {
@@ -426,13 +435,12 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
     }
 }
 
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getTimelineManager")) return;
 
     MatrixClient.prototype.getTimelineManager = function (this: MatrixClient): TimelineManager {
         registerManagerClass("timeline", TimelineManager);
-    return getOrCreateManager(this, "timeline", () => new TimelineManager(this));
+        return getOrCreateManager(this, "timeline", () => new TimelineManager(this));
     };
 }
 

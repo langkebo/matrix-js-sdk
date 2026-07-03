@@ -213,8 +213,7 @@ export interface PaginatedResponse<T> {
 
 const OPENCLAW_PREFIX = "/_matrix/client/unstable/org.synapse_rust.openclaw";
 
-type StripOpenClawPrefix<P extends string> =
-    P extends `${typeof OPENCLAW_PREFIX}${infer Rest}` ? Rest : never;
+type StripOpenClawPrefix<P extends string> = P extends `${typeof OPENCLAW_PREFIX}${infer Rest}` ? Rest : never;
 
 function oc<P extends StripOpenClawPrefix<OpenclawPathPattern>>(path: P): P {
     return path;
@@ -270,7 +269,10 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         body?: unknown,
     ): Promise<T> {
         return this.request<T>({
-            method, path, queryParams, body,
+            method,
+            path,
+            queryParams,
+            body,
             prefix: OPENCLAW_PREFIX,
             retry: { label: "openclaw-request" },
         });
@@ -311,10 +313,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteConnection(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.doRequest<void>(
-            Method.Delete,
-            oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
-        );
+        await this.doRequest<void>(Method.Delete, oc(`/connections/${id}` as StripOpenClawPrefix<OpenclawPathPattern>));
         this.emit(OpenClawEvent.ConnectionDeleted, id);
     }
 
@@ -377,10 +376,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
         this.emit(OpenClawEvent.ConversationDeleted, id);
     }
 
-    async listMessages(
-        conversationId: number,
-        params?: PaginationParams,
-    ): Promise<PaginatedResponse<OpenClawMessage>> {
+    async listMessages(conversationId: number, params?: PaginationParams): Promise<PaginatedResponse<OpenClawMessage>> {
         this.requirePositiveInteger(conversationId, "conversationId");
         const q: Record<string, string> = {};
         if (params?.limit !== undefined) q.limit = String(params.limit);
@@ -414,10 +410,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteMessage(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.doRequest<void>(
-            Method.Delete,
-            oc(`/messages/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
-        );
+        await this.doRequest<void>(Method.Delete, oc(`/messages/${id}` as StripOpenClawPrefix<OpenclawPathPattern>));
         this.emit(OpenClawEvent.MessageDeleted, id);
     }
 
@@ -453,10 +446,7 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteGeneration(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.doRequest<void>(
-            Method.Delete,
-            oc(`/generations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
-        );
+        await this.doRequest<void>(Method.Delete, oc(`/generations/${id}` as StripOpenClawPrefix<OpenclawPathPattern>));
         this.emit(OpenClawEvent.GenerationDeleted, id);
     }
 
@@ -494,14 +484,10 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 
     async deleteChatRole(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
-        await this.doRequest<void>(
-            Method.Delete,
-            oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>),
-        );
+        await this.doRequest<void>(Method.Delete, oc(`/roles/${id}` as StripOpenClawPrefix<OpenclawPathPattern>));
         this.emit(OpenClawEvent.RoleDeleted, id);
     }
 }
-
 
 export function createOpenClawManager(client: MatrixClient): OpenClawManager {
     return getOrCreateManager(client, "OpenClawManager", () => new OpenClawManager(client));
@@ -510,7 +496,7 @@ export function createOpenClawManager(client: MatrixClient): OpenClawManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getOpenClawManager = function (): OpenClawManager {
         registerManagerClass("openclaw", OpenClawManager);
-    return getOrCreateManager(this, "openclaw", () => new OpenClawManager(this));
+        return getOrCreateManager(this, "openclaw", () => new OpenClawManager(this));
     };
 }
 

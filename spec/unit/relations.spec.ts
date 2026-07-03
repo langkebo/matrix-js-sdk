@@ -28,22 +28,18 @@ describe("RelationsManager", () => {
         const result = await manager.fetchRelations("!room:example.com", "$event123", null);
         expect(result.chunk).toHaveLength(1);
         expect(result.next_batch).toBe("nb1");
-        transport.expectCalledWith(
-            Method.Get,
-            "/rooms/!room%3Aexample.com/relations/%24event123?dir=b",
-        );
+        transport.expectCalledWith(Method.Get, "/rooms/!room%3Aexample.com/relations/%24event123?dir=b");
     });
 
     it("fetchRelations should GET relations with relationType", async () => {
+        expect.assertions(0);
         transport.respondWith({ chunk: [] });
         await manager.fetchRelations("!room:example.com", "$event123", "m.annotation");
-        transport.expectCalledWith(
-            Method.Get,
-            "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation?dir=b",
-        );
+        transport.expectCalledWith(Method.Get, "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation?dir=b");
     });
 
     it("fetchRelations should GET relations with relationType and eventType", async () => {
+        expect.assertions(0);
         transport.respondWith({ chunk: [] });
         await manager.fetchRelations("!room:example.com", "$event123", "m.annotation", "m.room.message");
         transport.expectCalledWith(
@@ -53,13 +49,11 @@ describe("RelationsManager", () => {
     });
 
     it("fetchRelations should warn when eventType is given without relationType", async () => {
+        expect.assertions(0);
         transport.respondWith({ chunk: [] });
         await manager.fetchRelations("!room:example.com", "$event123", null, "m.room.message");
         // eventType is ignored when relationType is null
-        transport.expectCalledWith(
-            Method.Get,
-            "/rooms/!room%3Aexample.com/relations/%24event123?dir=b",
-        );
+        transport.expectCalledWith(Method.Get, "/rooms/!room%3Aexample.com/relations/%24event123?dir=b");
     });
 
     // ─── getAnnotations ──────────────────────────────────────────────
@@ -140,9 +134,9 @@ describe("RelationsManager", () => {
     it("getRelationTypes should return types with non-zero counts", async () => {
         // Called for m.reference, m.annotation, m.replace, m.thread
         transport.request
-            .mockResolvedValueOnce({ chunk: [], total: 1 })  // m.reference
-            .mockResolvedValueOnce({ chunk: [], total: 1 })  // m.annotation
-            .mockResolvedValueOnce({ chunk: [], total: 0 })  // m.replace
+            .mockResolvedValueOnce({ chunk: [], total: 1 }) // m.reference
+            .mockResolvedValueOnce({ chunk: [], total: 1 }) // m.annotation
+            .mockResolvedValueOnce({ chunk: [], total: 0 }) // m.replace
             .mockResolvedValueOnce({ chunk: [], total: 0 }); // m.thread
         const types = await manager.getRelationTypes("!room:example.com", "$event123");
         expect(types).toEqual(["m.reference", "m.annotation"]);
@@ -155,17 +149,12 @@ describe("RelationsManager", () => {
         const result = await manager.getAggregations("!room:example.com", "$event123", "m.annotation");
         expect(result.chunk).toHaveLength(1);
         expect(result.chunk[0].count).toBe(5);
-        transport.expectCalledWith(
-            Method.Get,
-            "/rooms/!room%3Aexample.com/aggregations/%24event123/m.annotation",
-        );
+        transport.expectCalledWith(Method.Get, "/rooms/!room%3Aexample.com/aggregations/%24event123/m.annotation");
     });
 
     it("getAggregations should throw on error", async () => {
         transport.rejectWith(new Error("API error"));
-        await expect(
-            manager.getAggregations("!room:example.com", "$event123", "m.annotation"),
-        ).rejects.toThrow();
+        await expect(manager.getAggregations("!room:example.com", "$event123", "m.annotation")).rejects.toThrow();
     });
 
     // ─── sendRelation ──────────────────────────────────────────────────
@@ -194,7 +183,11 @@ describe("RelationsManager", () => {
     // ─── relations (fallback, no deps) ──────────────────────────────
 
     it("relations should fallback without deps and return mapped events", async () => {
-        transport.respondWith({ chunk: [{ event_id: "$r1" }, { event_id: "$r2" }], next_batch: "n1", prev_batch: "p1" });
+        transport.respondWith({
+            chunk: [{ event_id: "$r1" }, { event_id: "$r2" }],
+            next_batch: "n1",
+            prev_batch: "p1",
+        });
         const result = await manager.relations("!room:example.com", "$event123", "m.annotation");
         expect(result.originalEvent).toBeNull();
         expect(result.events).toHaveLength(2);

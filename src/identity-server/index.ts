@@ -381,7 +381,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * @returns Rejects: with an error response.
      */
     public getIdentityAccount(identityAccessToken: string): Promise<{ user_id: string }> {
-        return this.client.http.idServerRequest(Method.Get, "/account", undefined, IdentityPrefix.V2, identityAccessToken);
+        return this.client.http.idServerRequest(
+            Method.Get,
+            "/account",
+            undefined,
+            IdentityPrefix.V2,
+            identityAccessToken,
+        );
     }
 
     /**
@@ -395,7 +401,12 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
     /**
      * Agree to the terms of service for a service type
      */
-    public agreeToTerms(serviceType: string, baseUrl: string, accessToken: string, termsUrls: string[]): Promise<EmptyObject> {
+    public agreeToTerms(
+        serviceType: string,
+        baseUrl: string,
+        accessToken: string,
+        termsUrls: string[],
+    ): Promise<EmptyObject> {
         const url = this.termsUrlForService(serviceType, baseUrl);
         const headers = {
             Authorization: "Bearer " + accessToken,
@@ -433,13 +444,12 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
     }
 }
 
-
 export function extendMatrixClient(): void {
     if (MatrixClient.prototype.hasOwnProperty("getIdentityServerManager")) return;
 
     MatrixClient.prototype.getIdentityServerManager = function (this: MatrixClient): IdentityServerManager {
         registerManagerClass("identityServer", IdentityServerManager);
-    return getOrCreateManager(this, "identityServer", () => new IdentityServerManager(this));
+        return getOrCreateManager(this, "identityServer", () => new IdentityServerManager(this));
     };
 }
 

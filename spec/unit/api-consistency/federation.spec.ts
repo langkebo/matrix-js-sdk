@@ -66,7 +66,7 @@ describe("SDK-11: Federation Canonical JSON alignment", () => {
             const json = toCanonicalJson(input);
             expect(json).toContain("\\u2028");
             expect(json).toContain("\\u2029");
-            expect(json).toContain("\"msg\"");
+            expect(json).toContain('"msg"');
         });
     });
 

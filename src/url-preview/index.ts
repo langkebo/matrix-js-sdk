@@ -49,11 +49,10 @@ export class UrlPreviewManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUrlPreviewManager = function (): UrlPreviewManager {
         registerManagerClass("urlPreview", UrlPreviewManager);
-    return getOrCreateManager(this, "urlPreview", () => new UrlPreviewManager(this));
+        return getOrCreateManager(this, "urlPreview", () => new UrlPreviewManager(this));
     };
 }
 

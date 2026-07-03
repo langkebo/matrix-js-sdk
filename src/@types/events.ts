@@ -19,7 +19,7 @@ import { type FileInfo, type ImageInfo, type MediaEventContent } from "./media";
 import { type XOR } from "./common";
 
 interface BaseTimelineEvent {
-    "body": string;
+    body: string;
     "m.mentions"?: {
         user_ids?: string[];
         room?: boolean;

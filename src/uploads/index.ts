@@ -58,10 +58,7 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
     }
 
     public async uploadFile(file: File | Blob, opts?: IUploadOptions): Promise<IUploadResponse> {
-        return this.withRetry(
-            () => this.client.uploadFile(file, opts),
-            "uploadFile",
-        );
+        return this.withRetry(() => this.client.uploadFile(file, opts), "uploadFile");
     }
 
     public cancelUpload(upload: Promise<unknown>): boolean {
@@ -77,11 +74,10 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getUploadsManager = function (): UploadsManager {
         registerManagerClass("uploads", UploadsManager);
-    return getOrCreateManager(this, "uploads", () => new UploadsManager(this));
+        return getOrCreateManager(this, "uploads", () => new UploadsManager(this));
     };
 }
 

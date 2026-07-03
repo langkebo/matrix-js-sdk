@@ -78,7 +78,10 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
         this.notifTimelineSet.resetLiveTimeline("end");
     }
 
-    public async setLocalNotificationSettings(deviceId: string, settings: LocalNotificationSettings): Promise<EmptyObject> {
+    public async setLocalNotificationSettings(
+        deviceId: string,
+        settings: LocalNotificationSettings,
+    ): Promise<EmptyObject> {
         const key = `${LOCAL_NOTIFICATION_SETTINGS_PREFIX.name}.${deviceId}` as const;
         return this.client.setAccountData(key, settings);
     }
@@ -136,11 +139,10 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getNotificationsManager = function (): NotificationsManager {
         registerManagerClass("notifications", NotificationsManager);
-    return getOrCreateManager(this, "notifications", () => new NotificationsManager(this));
+        return getOrCreateManager(this, "notifications", () => new NotificationsManager(this));
     };
 }
 

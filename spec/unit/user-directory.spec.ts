@@ -46,10 +46,7 @@ describe("UserDirectoryManager", () => {
         await expect(manager.getProfile("@alice:example.com")).resolves.toEqual({
             displayname: "Alice",
         });
-        expect(request).toHaveBeenCalledWith(
-            Method.Get,
-            "/user_directory/profiles/%40alice%3Aexample.com",
-        );
+        expect(request).toHaveBeenCalledWith(Method.Get, "/user_directory/profiles/%40alice%3Aexample.com");
     });
 
     it("propagates 404 errors from the user directory profile endpoint", async () => {

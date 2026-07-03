@@ -61,11 +61,7 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
         return (event?.getContent() as IContent) ?? null;
     }
 
-    public async setRoomAccountData(
-        roomId: string,
-        eventType: string,
-        content: IContent,
-    ): Promise<EmptyObject> {
+    public async setRoomAccountData(roomId: string, eventType: string, content: IContent): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
             return this.request<EmptyObject>({
@@ -100,11 +96,10 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
 
 interface EmptyObject {}
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getTagsManager = function (): TagsManager {
         registerManagerClass("tagsManagement", TagsManager);
-    return getOrCreateManager(this, "tagsManagement", () => new TagsManager(this));
+        return getOrCreateManager(this, "tagsManagement", () => new TagsManager(this));
     };
 }
 

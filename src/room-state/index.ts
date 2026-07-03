@@ -140,11 +140,10 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomStateManager = function (): RoomStateManager {
         registerManagerClass("roomState", RoomStateManager);
-    return getOrCreateManager(this, "roomState", () => new RoomStateManager(this));
+        return getOrCreateManager(this, "roomState", () => new RoomStateManager(this));
     };
 }
 

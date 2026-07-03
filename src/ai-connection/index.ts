@@ -80,8 +80,7 @@ export interface ConnectionListResponse {
 const AI_V1_PREFIX = "/_matrix/client/v1/ai";
 const AI_V3_PREFIX = "/_matrix/client/v3/ai";
 
-type StripAiV1Prefix<P extends string> =
-    P extends `${typeof AI_V1_PREFIX}${infer Rest}` ? Rest : never;
+type StripAiV1Prefix<P extends string> = P extends `${typeof AI_V1_PREFIX}${infer Rest}` ? Rest : never;
 
 function ai<P extends StripAiV1Prefix<AiConnectionPathPattern>>(path: P): P {
     return path;
@@ -184,13 +183,7 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
 
     async listMcpTools(provider: string, version?: AiApiVersion): Promise<McpToolListResponse> {
         this.requireNonEmptyString(provider, "provider");
-        return this.doRequest<McpToolListResponse>(
-            Method.Get,
-            ai("/mcp/tools"),
-            { provider },
-            undefined,
-            version,
-        );
+        return this.doRequest<McpToolListResponse>(Method.Get, ai("/mcp/tools"), { provider }, undefined, version);
     }
 
     async callMcpTool(req: McpToolCallRequest, version?: AiApiVersion): Promise<McpToolCallResponse> {
@@ -208,11 +201,10 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAIConnectionManager = function (): AIConnectionManager {
         registerManagerClass("aiConnection", AIConnectionManager);
-    return getOrCreateManager(this, "aiConnection", () => new AIConnectionManager(this));
+        return getOrCreateManager(this, "aiConnection", () => new AIConnectionManager(this));
     };
 }
 

@@ -21,7 +21,9 @@ describe("AIConnectionManager", () => {
                 authedRequest: vi.fn(),
             },
         };
-        manager = new AIConnectionManager(mockClient as unknown as ConstructorParameters<typeof AIConnectionManager>[0]);
+        manager = new AIConnectionManager(
+            mockClient as unknown as ConstructorParameters<typeof AIConnectionManager>[0],
+        );
     });
 
     afterEach(() => {
@@ -45,47 +47,47 @@ describe("AIConnectionManager", () => {
         it("should call GET /connections with v1 prefix by default", async () => {
             mockClient.http.authedRequest.mockResolvedValue([]);
             await manager.listConnections();
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/connections",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1/ai" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/connections", undefined, undefined, {
+                prefix: "/_matrix/client/v1/ai",
+            });
         });
 
         it("should call GET /connections with v3 prefix when specified", async () => {
             mockClient.http.authedRequest.mockResolvedValue([]);
             await manager.listConnections("v3");
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/connections",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3/ai" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/connections", undefined, undefined, {
+                prefix: "/_matrix/client/v3/ai",
+            });
         });
     });
 
     describe("createConnection", () => {
         it("should call POST /connections with request body", async () => {
             const req = { provider: "openai", config: { apiKey: "sk-xxx" } };
-            const mockResponse = { id: "conn1", user_id: "user1", provider: "openai", is_active: true, created_ts: 1000 };
+            const mockResponse = {
+                id: "conn1",
+                user_id: "user1",
+                provider: "openai",
+                is_active: true,
+                created_ts: 1000,
+            };
             mockClient.http.authedRequest.mockResolvedValue(mockResponse);
             const result = await manager.createConnection(req);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/connections",
-                undefined,
-                req,
-                { prefix: "/_matrix/client/v1/ai" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("POST", "/connections", undefined, req, {
+                prefix: "/_matrix/client/v1/ai",
+            });
             expect(result).toEqual(mockResponse);
         });
 
         it("should emit ConnectionCreated event", async () => {
             const req = { provider: "openai" };
-            const mockResponse = { id: "conn1", user_id: "user1", provider: "openai", is_active: true, created_ts: 1000 };
+            const mockResponse = {
+                id: "conn1",
+                user_id: "user1",
+                provider: "openai",
+                is_active: true,
+                created_ts: 1000,
+            };
             mockClient.http.authedRequest.mockResolvedValue(mockResponse);
             const listener = vi.fn();
             manager.on(AIConnectionEvent.ConnectionCreated, listener);
@@ -100,7 +102,13 @@ describe("AIConnectionManager", () => {
 
     describe("getConnection", () => {
         it("should call GET /connections/{id}", async () => {
-            const mockResponse = { id: "conn1", user_id: "user1", provider: "openai", is_active: true, created_ts: 1000 };
+            const mockResponse = {
+                id: "conn1",
+                user_id: "user1",
+                provider: "openai",
+                is_active: true,
+                created_ts: 1000,
+            };
             mockClient.http.authedRequest.mockResolvedValue(mockResponse);
             const result = await manager.getConnection("conn1");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -178,13 +186,9 @@ describe("AIConnectionManager", () => {
             const mockResponse = { result: { answer: "42" } };
             mockClient.http.authedRequest.mockResolvedValue(mockResponse);
             const result = await manager.callMcpTool(req);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/mcp/tools/call",
-                undefined,
-                req,
-                { prefix: "/_matrix/client/v1/ai" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("POST", "/mcp/tools/call", undefined, req, {
+                prefix: "/_matrix/client/v1/ai",
+            });
             expect(result).toEqual(mockResponse);
         });
 
@@ -216,21 +220,24 @@ describe("AIConnectionManager", () => {
                 it("should use correct prefix for listConnections", async () => {
                     mockClient.http.authedRequest.mockResolvedValue([]);
                     await manager.listConnections(version);
-                    const lastCall = mockClient.http.authedRequest.mock.calls[mockClient.http.authedRequest.mock.calls.length - 1];
+                    const lastCall =
+                        mockClient.http.authedRequest.mock.calls[mockClient.http.authedRequest.mock.calls.length - 1];
                     expect(lastCall[4]).toEqual({ prefix: expectedPrefixes[version] });
                 });
 
                 it("should use correct prefix for createConnection", async () => {
                     mockClient.http.authedRequest.mockResolvedValue({ id: "1" });
                     await manager.createConnection({ provider: "test" }, version);
-                    const lastCall = mockClient.http.authedRequest.mock.calls[mockClient.http.authedRequest.mock.calls.length - 1];
+                    const lastCall =
+                        mockClient.http.authedRequest.mock.calls[mockClient.http.authedRequest.mock.calls.length - 1];
                     expect(lastCall[4]).toEqual({ prefix: expectedPrefixes[version] });
                 });
 
                 it("should use correct prefix for listMcpTools", async () => {
                     mockClient.http.authedRequest.mockResolvedValue({ tools: [] });
                     await manager.listMcpTools("test", version);
-                    const lastCall = mockClient.http.authedRequest.mock.calls[mockClient.http.authedRequest.mock.calls.length - 1];
+                    const lastCall =
+                        mockClient.http.authedRequest.mock.calls[mockClient.http.authedRequest.mock.calls.length - 1];
                     expect(lastCall[4]).toEqual({ prefix: expectedPrefixes[version] });
                 });
             });
@@ -243,13 +250,9 @@ describe("AIConnectionManager", () => {
             await manager.listConnections();
 
             expect(mockClient.doesServerAdvertiseSynapseRustFeature).toHaveBeenCalledWith("ai_connection");
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/connections",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3/ai" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/connections", undefined, undefined, {
+                prefix: "/_matrix/client/v3/ai",
+            });
         });
 
         it("keeps the v1 route when discovery is unavailable or not advertised", async () => {
@@ -258,13 +261,9 @@ describe("AIConnectionManager", () => {
 
             await manager.listConnections();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/connections",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1/ai" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/connections", undefined, undefined, {
+                prefix: "/_matrix/client/v1/ai",
+            });
         });
     });
 });

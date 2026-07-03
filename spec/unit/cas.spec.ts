@@ -34,7 +34,9 @@ describe("CasManager", () => {
 
     describe("synapse_admin prefix (default)", () => {
         it("listServices should send GET /cas/services with admin prefix", async () => {
-            transport.respondWith({ services: [{ id: "1", name: "Test", service_url: "https://sso.test", enabled: true }] });
+            transport.respondWith({
+                services: [{ id: "1", name: "Test", service_url: "https://sso.test", enabled: true }],
+            });
 
             const result = await manager.listServices();
 

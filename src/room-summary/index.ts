@@ -200,7 +200,13 @@ import { RoomSummaryThreadManager } from "./sub-managers/room-thread-manager";
 import { RoomSummarySearchManager, type RoomSearchBody } from "./sub-managers/room-search-manager";
 import { RoomSummaryKeyManager } from "./sub-managers/room-key-manager";
 import { RoomSummaryInvitePolicyManager } from "./sub-managers/room-invite-policy-manager";
-import { RoomSummaryEventOperationManager, type TranslateEventBody, type ConvertEventBody, type SignEventBody, type VerifyEventBody } from "./sub-managers/room-event-operation-manager";
+import {
+    RoomSummaryEventOperationManager,
+    type TranslateEventBody,
+    type ConvertEventBody,
+    type SignEventBody,
+    type VerifyEventBody,
+} from "./sub-managers/room-event-operation-manager";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
@@ -343,7 +349,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
         try {
             const clientSummary = await this.withRetry(async () => {
-                const paramOpts = {
+                const _paramOpts = {
                     prefix: ClientPrefix.V3,
                 };
                 try {
@@ -353,7 +359,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                         queryParams: via ? { via } : undefined,
                     });
                 } catch {
-                    const unstableOpts = {
+                    const _unstableOpts = {
                         prefix: "/_matrix/client/unstable/im.nheko.summary",
                     };
                     return await this.request({
@@ -380,20 +386,12 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
     }
 
-    public async createOrRefreshSummary(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<RoomSummary | null> {
+    public async createOrRefreshSummary(roomId: string, body: IContent = {}): Promise<RoomSummary | null> {
         validateRoomId(roomId, { allowAlias: true });
 
         try {
             const summary = await this.withRetry(async () => {
-                return await this.requestV3<RoomSummary>(
-                    Method.Post,
-                    this.summaryReadPath(roomId),
-                    undefined,
-                    body,
-                );
+                return await this.requestV3<RoomSummary>(Method.Post, this.summaryReadPath(roomId), undefined, body);
             }, "createOrRefreshSummary");
 
             if (summary) {
@@ -411,12 +409,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
         try {
             const summary = await this.withRetry(async () => {
-                return await this.requestV3<RoomSummary>(
-                    Method.Put,
-                    this.summaryReadPath(roomId),
-                    undefined,
-                    body,
-                );
+                return await this.requestV3<RoomSummary>(Method.Put, this.summaryReadPath(roomId), undefined, body);
             }, "updateSummary");
 
             if (summary) {
@@ -504,15 +497,10 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                 rooms: ClientRoomSummary[];
                 total_room_count_estimate?: number;
                 next_batch?: string;
-            }>(
-                Method.Post,
-                rsi("/summaries/batch"),
-                undefined,
-                {
-                    rooms: roomIds,
-                    suggested_only: options?.suggestedOnly ?? false,
-                },
-            );
+            }>(Method.Post, rsi("/summaries/batch"), undefined, {
+                rooms: roomIds,
+                suggested_only: options?.suggestedOnly ?? false,
+            });
 
             return (response.rooms ?? []).map((s) => {
                 const summary = this.convertClientSummary(s);
@@ -540,22 +528,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      * );
      * ```
      */
-    public async batchGetSummaries(
-        rooms: string[],
-        isSuggestedOnly?: boolean,
-    ): Promise<BatchSummaryResponse> {
+    public async batchGetSummaries(rooms: string[], isSuggestedOnly?: boolean): Promise<BatchSummaryResponse> {
         if (!rooms.length) return {};
 
         return this.withRetry(async () => {
-            return await this.requestInternal<BatchSummaryResponse>(
-                Method.Post,
-                rsi("/summaries/batch"),
-                undefined,
-                {
-                    rooms,
-                    is_suggested_only: isSuggestedOnly ?? false,
-                },
-            );
+            return await this.requestInternal<BatchSummaryResponse>(Method.Post, rsi("/summaries/batch"), undefined, {
+                rooms,
+                is_suggested_only: isSuggestedOnly ?? false,
+            });
         }, "batchGetSummaries");
     }
 
@@ -591,15 +571,10 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         }
 
         return this.withRetry(async () => {
-            return await this.requestInternal<BatchSummaryResponse>(
-                Method.Post,
-                rsi("/summaries/batch"),
-                undefined,
-                {
-                    rooms: request.rooms,
-                    is_suggested_only: request.is_suggested_only ?? false,
-                },
-            );
+            return await this.requestInternal<BatchSummaryResponse>(Method.Post, rsi("/summaries/batch"), undefined, {
+                rooms: request.rooms,
+                is_suggested_only: request.is_suggested_only ?? false,
+            });
         }, "fetchBatchSummaries");
     }
 
@@ -723,11 +698,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.state.getAllSummaryState(roomId);
     }
 
-    async getSummaryState(
-        roomId: string,
-        eventType: string,
-        stateKey: string = "",
-    ): Promise<RoomSummaryStateContent> {
+    async getSummaryState(roomId: string, eventType: string, stateKey: string = ""): Promise<RoomSummaryStateContent> {
         return this.state.getSummaryState(roomId, eventType, stateKey);
     }
 
@@ -742,32 +713,19 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     // ----- 统计管理（委托 → stats） -----
 
-    async getRoomSummaryStats(
-        roomId: string,
-        forceRefresh = false,
-        throwOnError = true,
-    ): Promise<RoomStats | null> {
+    async getRoomSummaryStats(roomId: string, forceRefresh = false, throwOnError = true): Promise<RoomStats | null> {
         return this.stats.getRoomSummaryStats(roomId, forceRefresh, throwOnError);
     }
 
-    async recalculateSummaryStats(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<RoomStats | null> {
+    async recalculateSummaryStats(roomId: string, body: IContent = {}): Promise<RoomStats | null> {
         return this.stats.recalculateSummaryStats(roomId, body);
     }
 
-    async recalculateSummaryHeroes(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<HeroesRecalcResult> {
+    async recalculateSummaryHeroes(roomId: string, body: IContent = {}): Promise<HeroesRecalcResult> {
         return this.stats.recalculateSummaryHeroes(roomId, body);
     }
 
-    async clearSummaryUnread(
-        roomId: string,
-        body: IContent = {},
-    ): Promise<UnreadClearResult> {
+    async clearSummaryUnread(roomId: string, body: IContent = {}): Promise<UnreadClearResult> {
         return this.stats.clearSummaryUnread(roomId, body);
     }
 
@@ -787,11 +745,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     // ----- 搜索/发现（委托 → search） -----
 
-    async getRoomHierarchy(
-        roomId: string,
-        options?: RoomSummaryOptions,
-        throwOnError = true,
-    ): Promise<unknown | null> {
+    async getRoomHierarchy(roomId: string, options?: RoomSummaryOptions, throwOnError = true): Promise<unknown | null> {
         return this.search.getRoomHierarchy(roomId, options, throwOnError);
     }
 
@@ -996,35 +950,19 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.eventOps.translateRoomEvent(roomId, eventId, body);
     }
 
-    async translate(
-        content: string,
-        sourceLang?: string,
-        targetLang?: string,
-    ): Promise<TranslateResult> {
+    async translate(content: string, sourceLang?: string, targetLang?: string): Promise<TranslateResult> {
         return this.eventOps.translate(content, sourceLang, targetLang);
     }
 
-    async convertRoomEvent(
-        roomId: string,
-        eventId: string,
-        body: ConvertEventBody = {},
-    ): Promise<RoomConvertResult> {
+    async convertRoomEvent(roomId: string, eventId: string, body: ConvertEventBody = {}): Promise<RoomConvertResult> {
         return this.eventOps.convertRoomEvent(roomId, eventId, body);
     }
 
-    async signRoomEvent(
-        roomId: string,
-        eventId: string,
-        body: SignEventBody = {},
-    ): Promise<RoomSignResult> {
+    async signRoomEvent(roomId: string, eventId: string, body: SignEventBody = {}): Promise<RoomSignResult> {
         return this.eventOps.signRoomEvent(roomId, eventId, body);
     }
 
-    async verifyRoomEvent(
-        roomId: string,
-        eventId: string,
-        body: VerifyEventBody = {},
-    ): Promise<RoomVerifyResult> {
+    async verifyRoomEvent(roomId: string, eventId: string, body: VerifyEventBody = {}): Promise<RoomVerifyResult> {
         return this.eventOps.verifyRoomEvent(roomId, eventId, body);
     }
 
@@ -1036,11 +974,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.eventOps.getStickyEvents(roomId);
     }
 
-    async setStickyEvent(
-        roomId: string,
-        eventType: string,
-        content: RoomSummaryStateContent,
-    ): Promise<StickyEvent> {
+    async setStickyEvent(roomId: string, eventType: string, content: RoomSummaryStateContent): Promise<StickyEvent> {
         return this.eventOps.setStickyEvent(roomId, eventType, content);
     }
 
@@ -1113,7 +1047,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             last_message_ts: clientSummary.last_message_ts,
         };
     }
-
 }
 
 // Type declaration for MatrixClient extension
@@ -1125,7 +1058,7 @@ export function extendMatrixClient(): void {
     if (typeof MatrixClient === "undefined") return;
     MatrixClient.prototype.getRoomSummaryManager = function (): RoomSummaryManager {
         registerManagerClass("roomSummary", RoomSummaryManager);
-    return getOrCreateManager(this, "roomSummary", () => new RoomSummaryManager(this));
+        return getOrCreateManager(this, "roomSummary", () => new RoomSummaryManager(this));
     };
 }
 

@@ -7,7 +7,7 @@ import type { IDeviceKeys, IMegolmSessionData } from "../../../src/@types/crypto
 import type { IDownloadKeyResult, IEvent } from "../../../src";
 import type { KeyBackupSession, KeyBackupInfo, KeyBackupRoomSessions } from "../../../src/crypto-api/keybackup";
 
-/* eslint-disable comma-dangle */
+ 
 
 // Alice data
 

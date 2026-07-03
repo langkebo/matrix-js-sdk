@@ -39,25 +39,18 @@ export class EventProcessingManager extends BaseManager<
     }
 
     public async processEvent(event: MatrixEvent): Promise<void> {
-        return this.withRetry(
-            () => this.client.processEvent(event),
-            "processEvent",
-        );
+        return this.withRetry(() => this.client.processEvent(event), "processEvent");
     }
 
     public async handleEvent(event: MatrixEvent): Promise<void> {
-        return this.withRetry(
-            () => this.client.handleEvent(event),
-            "handleEvent",
-        );
+        return this.withRetry(() => this.client.handleEvent(event), "handleEvent");
     }
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventProcessingManager = function (): EventProcessingManager {
         registerManagerClass("eventProcessing", EventProcessingManager);
-    return getOrCreateManager(this, "eventProcessing", () => new EventProcessingManager(this));
+        return getOrCreateManager(this, "eventProcessing", () => new EventProcessingManager(this));
     };
 }
 

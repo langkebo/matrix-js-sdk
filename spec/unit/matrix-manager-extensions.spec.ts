@@ -69,7 +69,12 @@ describe("matrix manager extension defaults", () => {
     it("createClient should skip dynamic manager extension initialization when disabled", async () => {
         expect(isManagerExtensionsInitialized()).toBe(false);
 
-        const createClient = (options: { disableDynamicExtensions?: boolean; baseUrl?: string; userId?: string; accessToken?: string }) => {
+        const createClient = (options: {
+            disableDynamicExtensions?: boolean;
+            baseUrl?: string;
+            userId?: string;
+            accessToken?: string;
+        }) => {
             if (!options.disableDynamicExtensions) {
                 extendMatrixClientWithManagers();
             }

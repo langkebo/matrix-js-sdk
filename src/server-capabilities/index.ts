@@ -367,7 +367,9 @@ export class ServerCapabilitiesManager extends BaseManager<
     public async _unstable_getSharedRooms(userId: string): Promise<string[]> {
         const sharedRoomsSupport = await this.doesServerSupportUnstableFeature(UNSTABLE_MSC2666_SHARED_ROOMS);
         const mutualRoomsSupport = await this.doesServerSupportUnstableFeature(UNSTABLE_MSC2666_MUTUAL_ROOMS);
-        const queryMutualRoomsSupport = await this.doesServerSupportUnstableFeature(UNSTABLE_MSC2666_QUERY_MUTUAL_ROOMS);
+        const queryMutualRoomsSupport = await this.doesServerSupportUnstableFeature(
+            UNSTABLE_MSC2666_QUERY_MUTUAL_ROOMS,
+        );
 
         if (!sharedRoomsSupport && !mutualRoomsSupport && !queryMutualRoomsSupport) {
             throw Error("Server does not support the Mutual Rooms API");
@@ -423,7 +425,8 @@ export class ServerCapabilitiesManager extends BaseManager<
      * Requires homeserver support for MSC4143.
      * @throws A M_NOT_FOUND error if not supported by the homeserver.
      */
-    public async _unstable_getRTCTransports(): Promise<Record<string, unknown>[]> { // Dynamic: RTC transport configs vary by transport type
+    public async _unstable_getRTCTransports(): Promise<Record<string, unknown>[]> {
+        // Dynamic: RTC transport configs vary by transport type
         return (
             await this.request<{
                 rtc_transports: Record<string, unknown>[]; // Dynamic: RTC transport configs vary by transport type
@@ -436,11 +439,10 @@ export class ServerCapabilitiesManager extends BaseManager<
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getServerCapabilitiesManager = function (): ServerCapabilitiesManager {
         registerManagerClass("serverCapabilities", ServerCapabilitiesManager);
-    return getOrCreateManager(this, "serverCapabilities", () => new ServerCapabilitiesManager(this));
+        return getOrCreateManager(this, "serverCapabilities", () => new ServerCapabilitiesManager(this));
     };
 }
 

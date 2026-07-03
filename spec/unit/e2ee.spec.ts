@@ -83,13 +83,9 @@ describe("E2EEManager", () => {
             const result = await e2eeManager.getKeyChanges({ from: "t1", to: "t2" });
 
             expect(result.changed).toEqual(["@alice:example.com"]);
-            transport.expectCalledWithArgs(
-                Method.Get,
-                "/keys/changes",
-                { from: "t1", to: "t2" },
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs(Method.Get, "/keys/changes", { from: "t1", to: "t2" }, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
 
         it("should get key changes with empty params", async () => {
@@ -118,9 +114,7 @@ describe("E2EEManager", () => {
         });
 
         it("should reject if no device_id and no new_device_id", async () => {
-            await expect(
-                e2eeManager.requestDeviceVerification({ user_id: "@alice:example.com" }),
-            ).rejects.toThrow();
+            await expect(e2eeManager.requestDeviceVerification({ user_id: "@alice:example.com" })).rejects.toThrow();
         });
     });
 
@@ -163,13 +157,9 @@ describe("E2EEManager", () => {
             const result = await e2eeManager.getDeviceTrustList();
 
             expect(result.DEVICE1.trust_level).toBe("verified");
-            transport.expectCalledWithArgs(
-                Method.Get,
-                "/device_trust",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs(Method.Get, "/device_trust", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
     });
 
@@ -178,36 +168,35 @@ describe("E2EEManager", () => {
     describe("listRoomKeyRequests", () => {
         it("should list room key requests", async () => {
             transport.respondWith([
-                { request_id: "req1", room_id: "!room:example.com", session_id: "s1", algorithm: "m.megolm.v1.aes-sha2", state: "pending" },
+                {
+                    request_id: "req1",
+                    room_id: "!room:example.com",
+                    session_id: "s1",
+                    algorithm: "m.megolm.v1.aes-sha2",
+                    state: "pending",
+                },
             ]);
 
             const result = await e2eeManager.listRoomKeyRequests();
 
             expect(result).toHaveLength(1);
             expect(result[0].request_id).toBe("req1");
-            transport.expectCalledWithArgs(
-                Method.Get,
-                "/room_keys/request",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs(Method.Get, "/room_keys/request", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
     });
 
     describe("deleteRoomKeyRequest", () => {
         it("should delete a room key request", async () => {
+            expect.assertions(0);
             transport.respondWith(undefined);
 
             await e2eeManager.deleteRoomKeyRequest("req1");
 
-            transport.expectCalledWithArgs(
-                Method.Delete,
-                "/room_keys/request/req1",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs(Method.Delete, "/room_keys/request/req1", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
     });
 
@@ -216,19 +205,22 @@ describe("E2EEManager", () => {
     describe("getSecureBackupList", () => {
         it("should get secure backup list", async () => {
             transport.respondWith({
-                backups: [{ backup_id: "backup1", algorithm: "m.megolm_backup.v1.curve25519-aes-sha2", auth_data: {}, version: "1" }],
+                backups: [
+                    {
+                        backup_id: "backup1",
+                        algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                        auth_data: {},
+                        version: "1",
+                    },
+                ],
             });
 
             const result = await e2eeManager.getSecureBackupList();
 
             expect(result.backups).toHaveLength(1);
-            transport.expectCalledWithArgs(
-                Method.Get,
-                "/keys/backup/secure",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            transport.expectCalledWithArgs(Method.Get, "/keys/backup/secure", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
     });
 

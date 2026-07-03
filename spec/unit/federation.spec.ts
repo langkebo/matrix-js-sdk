@@ -30,13 +30,9 @@ describe("FederationManager", () => {
 
         const result = await federationManager.getBlacklist();
 
-        expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/federation/blacklist",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/federation/blacklist", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
         expect(result).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
         expect(federationManager.getCachedBlacklist()).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
     });
@@ -52,7 +48,12 @@ describe("FederationManager", () => {
             { prefix: AdminPrefix.V1 },
         );
         expect(federationManager.getCachedBlacklist()).toEqual([
-            { serverName: "server2.com", reason: "test reason", addedAt: expect.any(Number), addedBy: "@user:example.com" },
+            {
+                serverName: "server2.com",
+                reason: "test reason",
+                addedAt: expect.any(Number),
+                addedBy: "@user:example.com",
+            },
         ]);
     });
 
@@ -92,13 +93,9 @@ describe("FederationManager", () => {
 
         const result = await federationManager.getFederationDestinations();
 
-        expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/federation/destinations",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
+        expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/federation/destinations", undefined, undefined, {
+            prefix: AdminPrefix.V1,
+        });
         expect(result).toEqual([{ serverName: "dest1.com" }]);
         expect(federationManager.getCachedServers()).toEqual([{ serverName: "dest1.com" }]);
     });
@@ -142,8 +139,6 @@ describe("FederationManager", () => {
         expect(result).toEqual({ version: "1.0.0" });
     });
 
-
-
     it("should clear cache", async () => {
         mockAuthedRequest.mockResolvedValueOnce({}); // Mock for addToBlacklist
         await federationManager.addToBlacklist("server_to_clear.com");
@@ -155,12 +150,16 @@ describe("FederationManager", () => {
     });
 
     it("should initialize blacklist on start", async () => {
-        mockAuthedRequest.mockResolvedValue({ blacklist: [{ serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" }] });
+        mockAuthedRequest.mockResolvedValue({
+            blacklist: [{ serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" }],
+        });
         federationManager.clearCache(); // Ensure empty before start
 
         await federationManager.start();
 
-        expect(federationManager.getCachedBlacklist()).toEqual([{ serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" }]);
+        expect(federationManager.getCachedBlacklist()).toEqual([
+            { serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" },
+        ]);
     });
 
     it("should stop and clear cache", async () => {
@@ -227,7 +226,9 @@ describe("FederationManager", () => {
 
         const result = await federationManager.getFederationInfo();
 
-        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/federation/v1", undefined, undefined, { prefix: "" });
+        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/federation/v1", undefined, undefined, {
+            prefix: "",
+        });
         expect(result).toEqual(info);
     });
 
@@ -415,7 +416,10 @@ describe("FederationManager", () => {
         const response = { origin: "example.com", events: [] };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.backfillRoom("!room:example.com", { limit: 10, from: "$prev:example.com" });
+        const result = await federationManager.backfillRoom("!room:example.com", {
+            limit: 10,
+            from: "$prev:example.com",
+        });
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,

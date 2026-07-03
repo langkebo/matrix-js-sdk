@@ -99,13 +99,20 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 目的地详情或 null
      */
-    async getFederationDestination(serverName: string, throwOnError = true): Promise<AdminFederationDestinationDetail | null> {
+    async getFederationDestination(
+        serverName: string,
+        throwOnError = true,
+    ): Promise<AdminFederationDestinationDetail | null> {
         try {
-            return await this.adminRequest<AdminFederationDestinationDetail>(Method.Get, `/federation/destinations/${encodeURIComponent(serverName)}`);
-        // @swallow-error { owner: "admin", expires: "2026-12-31" }
+            return await this.adminRequest<AdminFederationDestinationDetail>(
+                Method.Get,
+                `/federation/destinations/${encodeURIComponent(serverName)}`,
+            );
+            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
-            if (!throwOnError && ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404))) return null;
+            if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)))
+                return null;
             throw e;
         }
     }
@@ -116,7 +123,12 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param serverName - 服务器名称
      */
     async disconnectFederation(serverName: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`, {}, undefined);
+        await this.adminRequest(
+            Method.Post,
+            `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -136,10 +148,15 @@ export class AdminFederationManager extends AdminBaseManager {
     async resetFederationDestination(serverName: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
         try {
-            await this.adminRequest(Method.Post, `/federation/destinations/${encodeURIComponent(serverName)}/reset`, {}, undefined);
+            await this.adminRequest(
+                Method.Post,
+                `/federation/destinations/${encodeURIComponent(serverName)}/reset`,
+                {},
+                undefined,
+            );
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(
                     Method.Post,
                     `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
@@ -166,7 +183,11 @@ export class AdminFederationManager extends AdminBaseManager {
         const query: Record<string, string> = {};
         if (options?.from !== undefined) query.from = String(options.from);
         if (options?.limit !== undefined) query.limit = String(options.limit);
-        return await this.adminRequest(Method.Get, `/federation/destinations/${encodeURIComponent(serverName)}/rooms`, query);
+        return await this.adminRequest(
+            Method.Get,
+            `/federation/destinations/${encodeURIComponent(serverName)}/rooms`,
+            query,
+        );
     }
 
     /**
@@ -175,7 +196,12 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param serverName - 服务器名称
      */
     async deleteFederationDestination(serverName: string): Promise<void> {
-        await this.adminRequest(Method.Delete, `/federation/destinations/${encodeURIComponent(serverName)}`, {}, undefined);
+        await this.adminRequest(
+            Method.Delete,
+            `/federation/destinations/${encodeURIComponent(serverName)}`,
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -214,14 +240,14 @@ export class AdminFederationManager extends AdminBaseManager {
      */
     async getFederationAdmissionList(): Promise<FederationAdmissionResult[]> {
         try {
-            const response = await this.adminRequest<{ admissions?: FederationAdmissionResult[]; pending?: FederationAdmissionResult[] }>(
-                Method.Get,
-                "/federation/pending",
-            );
+            const response = await this.adminRequest<{
+                admissions?: FederationAdmissionResult[];
+                pending?: FederationAdmissionResult[];
+            }>(Method.Get, "/federation/pending");
             return response.admissions || response.pending || [];
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 const fallback = await this.adminRequest<{ admissions?: FederationAdmissionResult[] }>(
                     Method.Get,
                     "/federation/admissions",
@@ -242,14 +268,10 @@ export class AdminFederationManager extends AdminBaseManager {
     async getPendingFederationServers(from?: string, limit?: number): Promise<PendingFederationList> {
         const queryParams = buildPaginationParams(limit, from);
         try {
-            return await this.adminRequest<PendingFederationList>(
-                Method.Get,
-                "/federation/pending",
-                queryParams,
-            );
+            return await this.adminRequest<PendingFederationList>(Method.Get, "/federation/pending", queryParams);
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 return await this.adminRequest<PendingFederationList>(
                     Method.Get,
                     "/federation/pending_servers",
@@ -288,7 +310,11 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param payload - 确认载荷
      * @returns 确认结果
      */
-    async confirmFederation(payload: { server_name?: string; action?: string; reason?: string }): Promise<FederationAdmissionResult> {
+    async confirmFederation(payload: {
+        server_name?: string;
+        action?: string;
+        reason?: string;
+    }): Promise<FederationAdmissionResult> {
         return await this.adminRequest(Method.Post, "/federation/confirm", {}, payload);
     }
 
@@ -300,7 +326,12 @@ export class AdminFederationManager extends AdminBaseManager {
      */
     async addToFederationBlacklist(serverName: string, reason?: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
-        await this.adminRequest(Method.Post, `/federation/blacklist/${encodeURIComponent(serverName)}`, {}, reason ? { reason } : undefined);
+        await this.adminRequest(
+            Method.Post,
+            `/federation/blacklist/${encodeURIComponent(serverName)}`,
+            {},
+            reason ? { reason } : undefined,
+        );
     }
 
     /**

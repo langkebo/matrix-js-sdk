@@ -87,7 +87,7 @@ export function getSyncResponse(
                     type: "m.room.encryption",
                     state_key: "",
                     content: {
-                        "algorithm": "m.megolm.v1.aes-sha2",
+                        algorithm: "m.megolm.v1.aes-sha2",
                         "io.element.msc4362.encrypt_state_events": encryptStateEvents,
                     },
                 }),
@@ -147,7 +147,7 @@ export function mock<T>(constr: { new (...args: any[]): T }, name: string): T {
         return "mock" + (name ? " of " + name : "");
     };
     for (const key of Object.getOwnPropertyNames(constr.prototype)) {
-        // eslint-disable-line guard-for-in
+         
         try {
             if (constr.prototype[key] instanceof Function) {
                 result[key] = vi.fn();
@@ -411,11 +411,11 @@ export function mkReplyMessage(
         ...opts,
         type: EventType.RoomMessage,
         content: {
-            "msgtype": MsgType.Text,
-            "body": opts.msg,
+            msgtype: MsgType.Text,
+            body: opts.msg,
             "m.relates_to": {
-                "rel_type": "m.in_reply_to",
-                "event_id": opts.replyToMessage.getId(),
+                rel_type: "m.in_reply_to",
+                event_id: opts.replyToMessage.getId(),
                 "m.in_reply_to": {
                     event_id: opts.replyToMessage.getId()!,
                 },
@@ -481,7 +481,7 @@ export function mkEdit(
             user: userId,
             room: roomId,
             content: {
-                "body": `* ${msg}`,
+                body: `* ${msg}`,
                 "m.new_content": {
                     body: msg,
                 },

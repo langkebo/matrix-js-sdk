@@ -691,8 +691,8 @@ describe("NotificationService", function () {
                     user: "@alfred:localhost",
                     event: true,
                     content: {
-                        "body": "",
-                        "msgtype": "m.text",
+                        body: "",
+                        msgtype: "m.text",
                         "m.mentions": {},
                     },
                 });

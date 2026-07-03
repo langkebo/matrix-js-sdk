@@ -47,11 +47,7 @@ export class RoomAccountDataManager extends BaseManager<
         super(client, opts);
     }
 
-    public async setRoomAccountData(
-        roomId: string,
-        eventType: string,
-        content: IContent,
-    ): Promise<void> {
+    public async setRoomAccountData(roomId: string, eventType: string, content: IContent): Promise<void> {
         await this.client.setRoomAccountData(roomId, eventType as never, content as never);
     }
 
@@ -83,11 +79,10 @@ export class RoomAccountDataManager extends BaseManager<
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomAccountDataManager = function (): RoomAccountDataManager {
         registerManagerClass("roomAccountData", RoomAccountDataManager);
-    return getOrCreateManager(this, "roomAccountData", () => new RoomAccountDataManager(this));
+        return getOrCreateManager(this, "roomAccountData", () => new RoomAccountDataManager(this));
     };
 }
 

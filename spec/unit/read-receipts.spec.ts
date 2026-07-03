@@ -45,10 +45,12 @@ describe("ReadReceiptsManager", () => {
         vi.useRealTimers();
     });
 
-    function makeMockEvent(overrides: Partial<{
-        roomId: string | null;
-        eventId: string;
-    }> = {}): any {
+    function makeMockEvent(
+        overrides: Partial<{
+            roomId: string | null;
+            eventId: string;
+        }> = {},
+    ): any {
         return {
             getRoomId: vi.fn().mockReturnValue(overrides.roomId ?? "!room:example.com"),
             getId: vi.fn().mockReturnValue(overrides.eventId ?? "$event123"),
@@ -76,9 +78,7 @@ describe("ReadReceiptsManager", () => {
             const mockRoom = makeMockRoom({ hasPendingEvent: vi.fn().mockReturnValue(true) });
             mockClient.getRoom.mockReturnValue(mockRoom);
 
-            await expect(manager.sendReadReceipt(event)).rejects.toThrow(
-                "Cannot set read receipt to a pending event",
-            );
+            await expect(manager.sendReadReceipt(event)).rejects.toThrow("Cannot set read receipt to a pending event");
         });
 
         it("should call sendReceipt for non-pending event", async () => {
@@ -170,12 +170,7 @@ describe("ReadReceiptsManager", () => {
             mockClient.doesServerSupportUnstableFeature.mockResolvedValue(true);
             transport.respondWith({});
 
-            await manager.setRoomReadMarkersHttpRequest(
-                "!room:example.com",
-                "$rm123",
-                "$rr456",
-                "$rp789",
-            );
+            await manager.setRoomReadMarkersHttpRequest("!room:example.com", "$rm123", "$rr456", "$rp789");
 
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
@@ -194,12 +189,7 @@ describe("ReadReceiptsManager", () => {
             mockClient.isVersionSupported.mockResolvedValue(false);
             transport.respondWith({});
 
-            await manager.setRoomReadMarkersHttpRequest(
-                "!room:example.com",
-                "$rm123",
-                "$rr456",
-                "$rp789",
-            );
+            await manager.setRoomReadMarkersHttpRequest("!room:example.com", "$rm123", "$rr456", "$rp789");
 
             const callBody = transport.request.mock.calls[0][3];
             expect(callBody).not.toHaveProperty("m.read.private");
@@ -247,9 +237,11 @@ describe("ReadReceiptsManager", () => {
         it("should return receipts when event has them", () => {
             const mockRoom = makeMockRoom({
                 findEventById: vi.fn().mockReturnValue({}),
-                getReceiptsForEvent: vi.fn().mockReturnValue([
-                    { userId: "@alice:example.com", data: { ts: 1000, event_id: "$event123" }, type: "m.read" },
-                ]),
+                getReceiptsForEvent: vi
+                    .fn()
+                    .mockReturnValue([
+                        { userId: "@alice:example.com", data: { ts: 1000, event_id: "$event123" }, type: "m.read" },
+                    ]),
             });
             mockClient.getRoom.mockReturnValue(mockRoom);
 

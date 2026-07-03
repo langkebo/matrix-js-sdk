@@ -65,11 +65,10 @@ export class EventStatusManager extends BaseManager<keyof EventStatusManagerEven
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEventStatusManager = function (): EventStatusManager {
         registerManagerClass("eventStatus", EventStatusManager);
-    return getOrCreateManager(this, "eventStatus", () => new EventStatusManager(this));
+        return getOrCreateManager(this, "eventStatus", () => new EventStatusManager(this));
     };
 }
 

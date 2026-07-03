@@ -474,11 +474,10 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getStickyEventManager = function (): StickyEventManager {
         registerManagerClass("stickyEvent", StickyEventManager);
-    return getOrCreateManager(this, "stickyEvent", () => new StickyEventManager(this));
+        return getOrCreateManager(this, "stickyEvent", () => new StickyEventManager(this));
     };
 }
 

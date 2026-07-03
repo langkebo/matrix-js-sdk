@@ -84,10 +84,10 @@ export interface EncryptionKeysToDeviceEventContent extends IContent {
     sent_ts?: number;
 }
 export interface ICallNotifyContent {
-    "application": string;
+    application: string;
     "m.mentions": IMentions;
-    "notify_type": "ring" | "notify";
-    "call_id": string;
+    notify_type: "ring" | "notify";
+    call_id: string;
 }
 
 export type RTCNotificationType = "ring" | "notification";
@@ -137,13 +137,13 @@ export function parseCallNotificationContent(content: IContent): IRTCNotificatio
  */
 export interface IRTCNotificationContent extends RelationEvent {
     "m.mentions"?: IMentions;
-    "notification_type": RTCNotificationType;
+    notification_type: RTCNotificationType;
     /**
      * The initial intent of the calling user.
      */
     "m.call.intent"?: RTCCallIntent;
-    "sender_ts": number;
-    "lifetime": number;
+    sender_ts: number;
+    lifetime: number;
 }
 
 /**

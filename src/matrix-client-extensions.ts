@@ -70,7 +70,14 @@ export interface OidcUserInfo {
     /** Phone number verified */
     phone_number_verified?: boolean;
     /** Address */
-    address?: { formatted?: string; street_address?: string; locality?: string; region?: string; postal_code?: string; country?: string };
+    address?: {
+        formatted?: string;
+        street_address?: string;
+        locality?: string;
+        region?: string;
+        postal_code?: string;
+        country?: string;
+    };
     /** Updated at (timestamp) */
     updated_at?: number;
     /** Additional claims */
@@ -129,12 +136,7 @@ export interface MatrixClientExtensionMethods {
     getRooms(): Room[];
     getUsers(): unknown[];
     getUser(userId: string): unknown | null;
-    sendEvent(
-        roomId: string,
-        eventType: string,
-        content: IContent,
-        txnId?: string,
-    ): Promise<{ event_id: string }>;
+    sendEvent(roomId: string, eventType: string, content: IContent, txnId?: string): Promise<{ event_id: string }>;
     sendEvent(
         roomId: string,
         threadId: string | null,
@@ -783,11 +785,16 @@ export interface MatrixClientInternalMethods {
 
     // ============ Device Keys (device-keys/index.ts) ============
     getDeviceKeys(userId: string): Promise<Record<string, import("./device-keys/index").DeviceKeys>>;
-    uploadDeviceKeys(keys: import("./device-keys/index").DeviceKeys): Promise<import("./device-keys/index").UploadKeysResponse>;
+    uploadDeviceKeys(
+        keys: import("./device-keys/index").DeviceKeys,
+    ): Promise<import("./device-keys/index").UploadKeysResponse>;
     hasDevice(deviceId: string): boolean;
 
     // ============ Uploads (uploads/index.ts) ============
-    uploadFile(file: File | Blob, opts?: import("./uploads/index").IUploadOptions): Promise<import("./uploads/index").IUploadResponse>;
+    uploadFile(
+        file: File | Blob,
+        opts?: import("./uploads/index").IUploadOptions,
+    ): Promise<import("./uploads/index").IUploadResponse>;
     getUploadProgress(uploadId: string): import("./uploads/index").IUploadProgress | null;
     abortAllUploads(): void;
 

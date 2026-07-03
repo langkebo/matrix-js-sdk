@@ -72,7 +72,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             stats = await this.adminRequest<ServerStats>(Method.Get, "/statistics");
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 stats = await this.adminRequest<ServerStats>(Method.Get, "/server_stats");
             } else {
                 throw e;
@@ -111,7 +111,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             return await this.adminRequest<ServerHealth>(Method.Get, "/health");
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 return await this.adminRequest<ServerHealth>(Method.Get, "/server_health");
             }
             throw e;
@@ -128,7 +128,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             return await this.adminRequest<ServerInfo>(Method.Get, "/info");
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 return await this.adminRequest<ServerInfo>(Method.Get, "/server_info");
             }
             throw e;
@@ -313,7 +313,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async deactivateNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        await this.adminRequest(Method.Put, `/notifications/${encodeURIComponent(notificationId)}/deactivate`, {}, undefined);
+        await this.adminRequest(
+            Method.Put,
+            `/notifications/${encodeURIComponent(notificationId)}/deactivate`,
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -337,7 +342,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             return await this.adminRequest(Method.Get, "/config");
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 try {
                     return await this.adminRequest(Method.Get, "/server_config");
                 } catch (fallbackErr) {
@@ -498,7 +503,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 return await this.adminRequest(Method.Post, "/cleanup/rooms", {}, payload ?? {});
             }
             throw e;

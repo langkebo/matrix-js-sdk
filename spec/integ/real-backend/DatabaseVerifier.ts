@@ -38,12 +38,9 @@ export class DatabaseVerifier {
         }
 
         const configured = process.env.MATRIX_REAL_BACKEND_DB_CONTAINER;
-        const candidates = [
-            configured,
-            this.requestedContainerName,
-            "synapse-postgres",
-            "docker-postgres",
-        ].filter((name): name is string => Boolean(name));
+        const candidates = [configured, this.requestedContainerName, "synapse-postgres", "docker-postgres"].filter(
+            (name): name is string => Boolean(name),
+        );
 
         try {
             const { stdout } = await execAsync("docker ps --format '{{.Names}}'");

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { ApplicationServiceManager, AppServiceEvent } from "../../src/app-service/index";
 import { Method } from "../../src/http-api/method";
-import { AdminPrefix, ClientPrefix } from "../../src/http-api/prefix";
 import { ValidationError } from "../../src/errors";
 
 describe("ApplicationServiceManager", () => {
@@ -51,15 +50,24 @@ describe("ApplicationServiceManager", () => {
 
         it("should emit ServiceRegistered event on success", async () => {
             const response = {
-                id: 1, as_id: "as1", url: "https://as.example.com",
-                sender: "bot", rate_limited: false, protocols: [], is_enabled: true, created_ts: 1000,
+                id: 1,
+                as_id: "as1",
+                url: "https://as.example.com",
+                sender: "bot",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 1000,
             };
             transport.respondWith(response);
             const emitSpy = vi.spyOn(manager, "emit");
 
             await manager.registerAppService({
-                id: "as1", url: "https://as.example.com",
-                as_token: "t", hs_token: "t", sender_localpart: "bot",
+                id: "as1",
+                url: "https://as.example.com",
+                as_token: "t",
+                hs_token: "t",
+                sender_localpart: "bot",
             });
 
             expect(emitSpy).toHaveBeenCalledWith(AppServiceEvent.ServiceRegistered, "as1", expect.any(Object));
@@ -67,14 +75,23 @@ describe("ApplicationServiceManager", () => {
 
         it("should cache the registered service for later lookups", async () => {
             const response = {
-                id: 1, as_id: "cached-as", url: "https://cached.example.com",
-                sender: "cbot", rate_limited: false, protocols: [], is_enabled: true, created_ts: 1000,
+                id: 1,
+                as_id: "cached-as",
+                url: "https://cached.example.com",
+                sender: "cbot",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 1000,
             };
             transport.respondWith(response);
 
             await manager.registerAppService({
-                id: "cached-as", url: "https://cached.example.com",
-                as_token: "t", hs_token: "t", sender_localpart: "cbot",
+                id: "cached-as",
+                url: "https://cached.example.com",
+                as_token: "t",
+                hs_token: "t",
+                sender_localpart: "cbot",
             });
 
             const cached = manager.getCachedService("cached-as");
@@ -86,8 +103,14 @@ describe("ApplicationServiceManager", () => {
     describe("getApplicationService", () => {
         it("should fetch a service from the API when not cached", async () => {
             const response = {
-                id: 10, as_id: "remote-as", url: "https://remote.example.com",
-                sender: "rbot", rate_limited: true, protocols: ["slack"], is_enabled: true, created_ts: 2000,
+                id: 10,
+                as_id: "remote-as",
+                url: "https://remote.example.com",
+                sender: "rbot",
+                rate_limited: true,
+                protocols: ["slack"],
+                is_enabled: true,
+                created_ts: 2000,
             };
             transport.respondWith(response);
 
@@ -100,7 +123,16 @@ describe("ApplicationServiceManager", () => {
 
         it("should return cached service without HTTP call", async () => {
             transport.respondWith([
-                { id: 5, as_id: "preloaded", url: "https://pre.example.com", sender: "pbot", rate_limited: false, protocols: [], is_enabled: true, created_ts: 3000 },
+                {
+                    id: 5,
+                    as_id: "preloaded",
+                    url: "https://pre.example.com",
+                    sender: "pbot",
+                    rate_limited: false,
+                    protocols: [],
+                    is_enabled: true,
+                    created_ts: 3000,
+                },
             ]);
             await manager.listApplicationServices();
             transport.resetCalls();
@@ -123,8 +155,14 @@ describe("ApplicationServiceManager", () => {
     describe("updateApplicationService", () => {
         it("should update an existing service", async () => {
             const response = {
-                id: 1, as_id: "update-me", url: "https://updated.example.com",
-                sender: "ubot", rate_limited: true, protocols: ["matrix"], is_enabled: true, created_ts: 4000,
+                id: 1,
+                as_id: "update-me",
+                url: "https://updated.example.com",
+                sender: "ubot",
+                rate_limited: true,
+                protocols: ["matrix"],
+                is_enabled: true,
+                created_ts: 4000,
             };
             transport.respondWith(response);
 
@@ -135,7 +173,16 @@ describe("ApplicationServiceManager", () => {
         });
 
         it("should emit ServiceUpdated event", async () => {
-            const response = { id: 1, as_id: "evt-as", url: "https://evt.example.com", sender: "ebot", rate_limited: false, protocols: [], is_enabled: true, created_ts: 5000 };
+            const response = {
+                id: 1,
+                as_id: "evt-as",
+                url: "https://evt.example.com",
+                sender: "ebot",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 5000,
+            };
             transport.respondWith(response);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -160,8 +207,26 @@ describe("ApplicationServiceManager", () => {
     describe("listApplicationServices", () => {
         it("should list and cache all services", async () => {
             const response = [
-                { id: 1, as_id: "as1", url: "https://a1.com", sender: "bot1", rate_limited: false, protocols: [], is_enabled: true, created_ts: 100 },
-                { id: 2, as_id: "as2", url: "https://a2.com", sender: "bot2", rate_limited: true, protocols: ["irc"], is_enabled: false, created_ts: 200 },
+                {
+                    id: 1,
+                    as_id: "as1",
+                    url: "https://a1.com",
+                    sender: "bot1",
+                    rate_limited: false,
+                    protocols: [],
+                    is_enabled: true,
+                    created_ts: 100,
+                },
+                {
+                    id: 2,
+                    as_id: "as2",
+                    url: "https://a2.com",
+                    sender: "bot2",
+                    rate_limited: true,
+                    protocols: ["irc"],
+                    is_enabled: false,
+                    created_ts: 200,
+                },
             ];
             transport.respondWith(response);
 
@@ -271,6 +336,7 @@ describe("ApplicationServiceManager", () => {
         });
 
         it("should set application service state", async () => {
+            expect.assertions(0);
             transport.respondWith(undefined as any);
 
             await manager.setApplicationServiceState("as1", "mykey", "myvalue");
@@ -300,10 +366,23 @@ describe("ApplicationServiceManager", () => {
 
     describe("cache and lifecycle", () => {
         it("should return all cached services via getCachedServices", async () => {
-            const response = { id: 1, as_id: "c1", url: "https://c1.com", sender: "bot1", rate_limited: false, protocols: [], is_enabled: true, created_ts: 100 };
+            const response = {
+                id: 1,
+                as_id: "c1",
+                url: "https://c1.com",
+                sender: "bot1",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 100,
+            };
             transport.respondWith(response);
             await manager.registerAppService({
-                id: "c1", url: "https://c1.com", as_token: "t", hs_token: "t", sender_localpart: "bot1",
+                id: "c1",
+                url: "https://c1.com",
+                as_token: "t",
+                hs_token: "t",
+                sender_localpart: "bot1",
             });
 
             const all = manager.getCachedServices();
@@ -312,10 +391,23 @@ describe("ApplicationServiceManager", () => {
         });
 
         it("should clear cache via clearCache", async () => {
-            const response = { id: 1, as_id: "cc", url: "https://cc.com", sender: "bot", rate_limited: false, protocols: [], is_enabled: true, created_ts: 100 };
+            const response = {
+                id: 1,
+                as_id: "cc",
+                url: "https://cc.com",
+                sender: "bot",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 100,
+            };
             transport.respondWith(response);
             await manager.registerAppService({
-                id: "cc", url: "https://cc.com", as_token: "t", hs_token: "t", sender_localpart: "bot",
+                id: "cc",
+                url: "https://cc.com",
+                as_token: "t",
+                hs_token: "t",
+                sender_localpart: "bot",
             });
 
             manager.clearCache();
@@ -332,10 +424,23 @@ describe("ApplicationServiceManager", () => {
         });
 
         it("should clear cache on stop", async () => {
-            const response = { id: 1, as_id: "st", url: "https://st.com", sender: "bot", rate_limited: false, protocols: [], is_enabled: true, created_ts: 100 };
+            const response = {
+                id: 1,
+                as_id: "st",
+                url: "https://st.com",
+                sender: "bot",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 100,
+            };
             transport.respondWith(response);
             await manager.registerAppService({
-                id: "st", url: "https://st.com", as_token: "t", hs_token: "t", sender_localpart: "bot",
+                id: "st",
+                url: "https://st.com",
+                as_token: "t",
+                hs_token: "t",
+                sender_localpart: "bot",
             });
 
             manager.stop();
@@ -348,10 +453,15 @@ describe("ApplicationServiceManager", () => {
             transport.rejectWith(new Error("Registration failed"));
             const emitSpy = vi.spyOn(manager, "emit");
 
-            await expect(manager.registerAppService({
-                id: "fail", url: "https://fail.com",
-                as_token: "t", hs_token: "t", sender_localpart: "bot",
-            })).rejects.toThrow();
+            await expect(
+                manager.registerAppService({
+                    id: "fail",
+                    url: "https://fail.com",
+                    as_token: "t",
+                    hs_token: "t",
+                    sender_localpart: "bot",
+                }),
+            ).rejects.toThrow();
 
             expect(emitSpy).toHaveBeenCalledWith(AppServiceEvent.ServiceError, expect.any(Error));
         });

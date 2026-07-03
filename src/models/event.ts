@@ -19,7 +19,6 @@ limitations under the License.
  * the public classes.
  */
 
-
 import { logger } from "../logger";
 import {
     EVENT_VISIBILITY_CHANGE_TYPE,
@@ -70,37 +69,42 @@ export interface IAudioInfo extends IMediaInfo {
     duration?: number;
 }
 
-export type EventContentInfo = IImageInfo | IVideoInfo | IAudioInfo | IMediaInfo | Record<string, unknown> /* Dynamic: media info extensions */;
+export type EventContentInfo =
+    | IImageInfo
+    | IVideoInfo
+    | IAudioInfo
+    | IMediaInfo
+    | Record<string, unknown> /* Dynamic: media info extensions */;
 
 export interface IContent {
     [key: string]: unknown;
-    "msgtype"?: MsgType | string;
-    "membership"?: Membership;
-    "avatar_url"?: string;
-    "displayname"?: string;
+    msgtype?: MsgType | string;
+    membership?: Membership;
+    avatar_url?: string;
+    displayname?: string;
     "m.relates_to"?: IEventRelation;
 
     "m.mentions"?: IMentions;
-    "body"?: string;
-    "url"?: string;
-    "info"?: EventContentInfo;
+    body?: string;
+    url?: string;
+    info?: EventContentInfo;
 }
 
 type StrippedState = Required<Pick<IEvent, "content" | "state_key" | "type" | "sender">>;
 
 export interface IUnsigned {
     [key: string]: unknown;
-    "age"?: number;
-    "prev_sender"?: string;
-    "prev_content"?: IContent;
-    "redacted_because"?: IEvent;
-    "replaces_state"?: string;
-    "transaction_id"?: string;
-    "invite_room_state"?: StrippedState[];
+    age?: number;
+    prev_sender?: string;
+    prev_content?: IContent;
+    redacted_because?: IEvent;
+    replaces_state?: string;
+    transaction_id?: string;
+    invite_room_state?: StrippedState[];
     "m.relations"?: Record<RelationType | string, unknown>;
-    "msc4354_sticky_duration_ttl_ms"?: number;
+    msc4354_sticky_duration_ttl_ms?: number;
     [UNSIGNED_THREAD_ID_FIELD.name]?: string;
-    "membership"?: Membership;
+    membership?: Membership;
     "io.element.msc4115.membership"?: Membership;
 }
 
@@ -135,13 +139,13 @@ export interface IAggregatedRelation {
 }
 
 export interface IEventRelation {
-    "rel_type"?: RelationType | string;
-    "event_id"?: string;
-    "is_falling_back"?: boolean;
+    rel_type?: RelationType | string;
+    event_id?: string;
+    is_falling_back?: boolean;
     "m.in_reply_to"?: {
         event_id?: string;
     };
-    "key"?: string;
+    key?: string;
 }
 
 export interface IMentions {
@@ -1242,7 +1246,6 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
             this.moveAllRelatedToMainTimeline(room);
             redactionEvent.moveToMainTimeline(room);
         }
-
     }
 
     private moveAllRelatedToMainTimeline(room: Room): void {
@@ -1640,7 +1643,10 @@ export class MatrixEvent extends TypedEventEmitter<MatrixEventEmittedEvents, Mat
         const snapshotProperties = Object.fromEntries(
             Object.entries(this).filter(([property]) => property !== "event"),
         );
-        Object.assign(ev as unknown as Record<string, unknown> /* Dynamic: restoring snapshot properties */, snapshotProperties);
+        Object.assign(
+            ev as unknown as Record<string, unknown> /* Dynamic: restoring snapshot properties */,
+            snapshotProperties,
+        );
         return ev;
     }
 

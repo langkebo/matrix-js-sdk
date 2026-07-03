@@ -63,11 +63,10 @@ export class AggregationsManager extends BaseManager<keyof AggregationsManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getAggregationsManager = function (): AggregationsManager {
         registerManagerClass("aggregations", AggregationsManager);
-    return getOrCreateManager(this, "aggregations", () => new AggregationsManager(this));
+        return getOrCreateManager(this, "aggregations", () => new AggregationsManager(this));
     };
 }
 

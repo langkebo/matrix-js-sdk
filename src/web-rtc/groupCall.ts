@@ -170,8 +170,8 @@ export interface IGroupCallRoomState extends IContent {
     "m.terminated"?: GroupCallTerminationReason;
     "io.element.ptt"?: boolean;
     // Known limitation: data-channel schema needs a stricter specification
-    "dataChannelsEnabled"?: boolean;
-    "dataChannelOptions"?: IGroupCallDataChannelOptions;
+    dataChannelsEnabled?: boolean;
+    dataChannelOptions?: IGroupCallDataChannelOptions;
 
     "io.element.livekit_service_url"?: string;
 }
@@ -342,8 +342,8 @@ export class GroupCall extends TypedEventEmitter<
             "m.type": this.type,
             "io.element.ptt": this.isPtt,
             // Known limitation: data-channel fields require a more explicit contract
-            "dataChannelsEnabled": this.dataChannelsEnabled,
-            "dataChannelOptions": this.dataChannelsEnabled ? this.dataChannelOptions : undefined,
+            dataChannelsEnabled: this.dataChannelsEnabled,
+            dataChannelOptions: this.dataChannelsEnabled ? this.dataChannelOptions : undefined,
         };
         if (this.livekitServiceURL) {
             groupCallState["io.element.livekit_service_url"] = this.livekitServiceURL;

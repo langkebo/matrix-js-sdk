@@ -71,11 +71,10 @@ export class SendingQueueManager extends BaseManager<keyof SendingQueueManagerEv
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSendingQueueManager = function (): SendingQueueManager {
         registerManagerClass("sendingQueue", SendingQueueManager);
-    return getOrCreateManager(this, "sendingQueue", () => new SendingQueueManager(this));
+        return getOrCreateManager(this, "sendingQueue", () => new SendingQueueManager(this));
     };
 }
 

@@ -221,14 +221,12 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
     public stop(): void {
         this.ephemeralEventsCache.clear();
     }
-
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getEphemeralManager = function (): EphemeralManager {
         registerManagerClass("ephemeral", EphemeralManager);
-    return getOrCreateManager(this, "ephemeral", () => new EphemeralManager(this));
+        return getOrCreateManager(this, "ephemeral", () => new EphemeralManager(this));
     };
 }
 

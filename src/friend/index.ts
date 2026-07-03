@@ -29,32 +29,16 @@ limitations under the License.
  * 推荐使用子 Manager 直接访问：`friendManager.requests.sendFriendRequest(...)`
  */
 
-import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
-import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
-import { NotFoundError } from "../errors";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
-import type { FriendPathPattern } from "./__generated__/route-table";
-
 // 子 Manager 导入
-import {
-    FriendRequestManager,
-    FriendRequestManagerEvent,
-} from "./sub-managers/friend-request-manager";
-import {
-    FriendListManager,
-    FriendListManagerEvent,
-} from "./sub-managers/friend-list-manager";
-import {
-    FriendBlockManager,
-    FriendBlockManagerEvent,
-} from "./sub-managers/friend-block-manager";
+import { FriendRequestManager, FriendRequestManagerEvent } from "./sub-managers/friend-request-manager";
+import { FriendListManager, FriendListManagerEvent } from "./sub-managers/friend-list-manager";
+import { FriendBlockManager, FriendBlockManagerEvent } from "./sub-managers/friend-block-manager";
 import type { FriendSharedState } from "./sub-managers/shared-state";
 
 // 重新导出子 Manager 类型，供直接使用
@@ -222,78 +206,17 @@ interface FriendManagerEventMap {
     [FriendEvent.RequestAccepted]: (userId: string) => void;
     [FriendEvent.RequestRejected]: (userId: string) => void;
     [FriendEvent.RequestCancelled]: (userId: string) => void;
-    [FriendEvent.NotificationReceived]: (notification: { type: string; user_id?: string; data?: FriendNotificationData }) => void;
+    [FriendEvent.NotificationReceived]: (notification: {
+        type: string;
+        user_id?: string;
+        data?: FriendNotificationData;
+    }) => void;
 }
 
 export interface FriendNotificationData {
     request_id?: string;
     message?: string;
     [key: string]: unknown;
-}
-
-interface IFriendListResponse {
-    room_id?: string;
-    total?: number;
-}
-
-interface IFriendsResponse extends IFriendListResponse {
-    friends?: Friend[];
-    items?: Friend[];
-    limit?: number;
-    offset?: number;
-    next_offset?: number;
-    version?: number;
-    cached?: boolean;
-    generated_ts?: number;
-}
-
-interface IFriendRequestsResponse {
-    requests?: FriendRequest[];
-}
-
-interface IFriendGroupsResponse {
-    groups?: FriendGroup[];
-}
-
-interface ICreateGroupResponse extends FriendGroup {}
-
-interface IFriendSuggestionsResponse {
-    suggestions?: Friend[];
-    total?: number;
-}
-
-type StripClientPrefix<P extends string> =
-    P extends `/_matrix/client/r0${infer Rest}`
-        ? Rest
-        : P extends `/_matrix/client/v1${infer Rest}`
-          ? Rest
-          : P extends `/_matrix/client/v3${infer Rest}`
-            ? Rest
-            : never;
-
-function fr<P extends StripClientPrefix<FriendPathPattern>>(path: P): P {
-    return path;
-}
-
-const FRIEND_RELATIONSHIP_STATUSES = new Set<string>(Object.values(FriendRelationshipStatus));
-const FRIEND_REQUEST_STATUSES = new Set<string>(Object.values(FriendRequestStatus));
-
-function normalizeFriend(friend: Friend): Friend {
-    const status = friend.status;
-    return {
-        ...friend,
-        display_name: friend.display_name ?? friend.displayname,
-        status: status && FRIEND_RELATIONSHIP_STATUSES.has(status) ? status : FriendRelationshipStatus.Normal,
-    };
-}
-
-function normalizeFriendRequest(request: FriendRequest): FriendRequest {
-    return {
-        ...request,
-        reason: request.reason ?? request.message,
-        display_name: request.display_name ?? request.displayname,
-        status: FRIEND_REQUEST_STATUSES.has(request.status) ? request.status : FriendRequestStatus.Pending,
-    };
 }
 
 /**
@@ -360,18 +283,10 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         this.requests.on(FriendRequestManagerEvent.Invited, (userId, request) =>
             this.emit(FriendEvent.Invited, userId, request),
         );
-        this.requests.on(FriendRequestManagerEvent.Accepted, (userId) =>
-            this.emit(FriendEvent.Accepted, userId),
-        );
-        this.requests.on(FriendRequestManagerEvent.Rejected, (userId) =>
-            this.emit(FriendEvent.Rejected, userId),
-        );
-        this.requests.on(FriendRequestManagerEvent.Cancelled, (userId) =>
-            this.emit(FriendEvent.Cancelled, userId),
-        );
-        this.requests.on(FriendRequestManagerEvent.RequestSent, (userId) =>
-            this.emit(FriendEvent.RequestSent, userId),
-        );
+        this.requests.on(FriendRequestManagerEvent.Accepted, (userId) => this.emit(FriendEvent.Accepted, userId));
+        this.requests.on(FriendRequestManagerEvent.Rejected, (userId) => this.emit(FriendEvent.Rejected, userId));
+        this.requests.on(FriendRequestManagerEvent.Cancelled, (userId) => this.emit(FriendEvent.Cancelled, userId));
+        this.requests.on(FriendRequestManagerEvent.RequestSent, (userId) => this.emit(FriendEvent.RequestSent, userId));
         this.requests.on(FriendRequestManagerEvent.RequestAccepted, (userId) =>
             this.emit(FriendEvent.RequestAccepted, userId),
         );
@@ -384,37 +299,19 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         this.requests.on(FriendRequestManagerEvent.RequestReceived, (request) =>
             this.emit(FriendEvent.RequestReceived, request),
         );
-        this.requests.on(FriendRequestManagerEvent.FriendAdded, (friend) =>
-            this.emit(FriendEvent.FriendAdded, friend),
-        );
-        this.requests.on(FriendRequestManagerEvent.ListUpdated, () =>
-            this.emit(FriendEvent.ListUpdated),
-        );
+        this.requests.on(FriendRequestManagerEvent.FriendAdded, (friend) => this.emit(FriendEvent.FriendAdded, friend));
+        this.requests.on(FriendRequestManagerEvent.ListUpdated, () => this.emit(FriendEvent.ListUpdated));
 
         // FriendListManager 事件转发
-        this.list.on(FriendListManagerEvent.FriendAdded, (friend) =>
-            this.emit(FriendEvent.FriendAdded, friend),
-        );
-        this.list.on(FriendListManagerEvent.FriendRemoved, (userId) =>
-            this.emit(FriendEvent.FriendRemoved, userId),
-        );
-        this.list.on(FriendListManagerEvent.FriendUpdated, (friend) =>
-            this.emit(FriendEvent.FriendUpdated, friend),
-        );
-        this.list.on(FriendListManagerEvent.ListUpdated, () =>
-            this.emit(FriendEvent.ListUpdated),
-        );
-        this.list.on(FriendListManagerEvent.SyncComplete, () =>
-            this.emit(FriendEvent.SyncComplete),
-        );
-        this.list.on(FriendListManagerEvent.Removed, (userId) =>
-            this.emit(FriendEvent.Removed, userId),
-        );
+        this.list.on(FriendListManagerEvent.FriendAdded, (friend) => this.emit(FriendEvent.FriendAdded, friend));
+        this.list.on(FriendListManagerEvent.FriendRemoved, (userId) => this.emit(FriendEvent.FriendRemoved, userId));
+        this.list.on(FriendListManagerEvent.FriendUpdated, (friend) => this.emit(FriendEvent.FriendUpdated, friend));
+        this.list.on(FriendListManagerEvent.ListUpdated, () => this.emit(FriendEvent.ListUpdated));
+        this.list.on(FriendListManagerEvent.SyncComplete, () => this.emit(FriendEvent.SyncComplete));
+        this.list.on(FriendListManagerEvent.Removed, (userId) => this.emit(FriendEvent.Removed, userId));
 
         // FriendBlockManager 事件转发
-        this.blocks.on(FriendBlockManagerEvent.FriendUpdated, (friend) =>
-            this.emit(FriendEvent.FriendUpdated, friend),
-        );
+        this.blocks.on(FriendBlockManagerEvent.FriendUpdated, (friend) => this.emit(FriendEvent.FriendUpdated, friend));
     }
 
     // ===== 向后兼容委托方法 =====
@@ -474,11 +371,7 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         return this.list.getFriendSuggestions(limit);
     }
 
-    async searchUsers(
-        q: string,
-        mode?: "fuzzy" | "exact",
-        limit?: number,
-    ): Promise<FriendSearchResponse> {
+    async searchUsers(q: string, mode?: "fuzzy" | "exact", limit?: number): Promise<FriendSearchResponse> {
         return this.list.searchUsers(q, mode, limit);
     }
 
@@ -636,11 +529,10 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFriendManager = function (): FriendManager {
         registerManagerClass("friend", FriendManager);
-    return getOrCreateManager(this, "friend", () => new FriendManager(this));
+        return getOrCreateManager(this, "friend", () => new FriendManager(this));
     };
 }
 

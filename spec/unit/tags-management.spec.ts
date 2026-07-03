@@ -17,7 +17,10 @@ describe("TagsManager", () => {
             http: { authedRequest },
             credentials: { userId: "@alice:example.com" },
             getRoom: vi.fn().mockImplementation((roomId: string) => ({
-                tags: ((getRoomTagsStub as any)(roomId) || []).reduce((acc: any, t: string) => ({ ...acc, [t]: {} }), {}),
+                tags: ((getRoomTagsStub as any)(roomId) || []).reduce(
+                    (acc: any, t: string) => ({ ...acc, [t]: {} }),
+                    {},
+                ),
                 getAccountData: (type: string) => ({
                     getContent: () => (getRoomAccountDataStub as any)(roomId, type),
                 }),

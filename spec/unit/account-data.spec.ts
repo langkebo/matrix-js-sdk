@@ -62,7 +62,10 @@ describe("AccountDataManager", () => {
             mockClient.clientRunning = false;
             mockAuthedRequest.mockResolvedValue({});
 
-            await accountDataManager.setAccountData("m.direct" as any, { "@bob:example.com": ["!room:example.com"] } as any);
+            await accountDataManager.setAccountData(
+                "m.direct" as any,
+                { "@bob:example.com": ["!room:example.com"] } as any,
+            );
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Put,
@@ -352,7 +355,9 @@ describe("AccountDataManager", () => {
             const error = new Error("Server error");
             mockAuthedRequest.mockRejectedValue(error);
 
-            await expect(accountDataManager.getAccountDataFromServer("m.direct" as any)).rejects.toThrow("Server error");
+            await expect(accountDataManager.getAccountDataFromServer("m.direct" as any)).rejects.toThrow(
+                "Server error",
+            );
         });
 
         it("should throw error on delete failure", async () => {

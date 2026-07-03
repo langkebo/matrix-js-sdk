@@ -844,7 +844,7 @@ export class SlidingSyncSdk {
                 });
             } else {
                 promise = client.getProfileManager
-                    ? client.getProfileManager().getProfileInfo(member.userId)
+                    ? client.getProfileManager()!.getProfileInfo(member.userId)
                     : client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(
                           Method.Get,
                           `/profile/${encodeURIComponent(member.userId)}`,

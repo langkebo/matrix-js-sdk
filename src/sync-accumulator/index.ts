@@ -21,7 +21,13 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { SyncAccumulator, type IJoinedRoom, type IInvitedRoom, type ILeftRoom, type ISyncResponse } from "../sync-accumulator";
+import {
+    SyncAccumulator,
+    type IJoinedRoom,
+    type IInvitedRoom,
+    type ILeftRoom,
+    type ISyncResponse,
+} from "../sync-accumulator";
 import { type IContent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -64,10 +70,7 @@ export class SyncAccumulatorManager extends BaseManager<
     }
 
     public async accumulateSyncData(data: ISyncResponse): Promise<void> {
-        return this.withRetry(
-            () => this.client.accumulateSyncData(data),
-            "accumulateSyncData",
-        );
+        return this.withRetry(() => this.client.accumulateSyncData(data), "accumulateSyncData");
     }
 
     public getAccumulatedData(): ISyncAccumulatedData | null {
@@ -79,11 +82,10 @@ export class SyncAccumulatorManager extends BaseManager<
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSyncAccumulatorManager = function (): SyncAccumulatorManager {
         registerManagerClass("syncAccumulator", SyncAccumulatorManager);
-    return getOrCreateManager(this, "syncAccumulator", () => new SyncAccumulatorManager(this));
+        return getOrCreateManager(this, "syncAccumulator", () => new SyncAccumulatorManager(this));
     };
 }
 

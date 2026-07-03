@@ -406,11 +406,10 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getOidcManager = function (): OidcManager {
         registerManagerClass("oidc", OidcManager);
-    return getOrCreateManager(this, "oidc", () => new OidcManager(this));
+        return getOrCreateManager(this, "oidc", () => new OidcManager(this));
     };
 }
 

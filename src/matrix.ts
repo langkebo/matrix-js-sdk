@@ -156,7 +156,6 @@ export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as Hierarc
 export { DebugLogger } from "./logger";
 export { TelemetryManager } from "./telemetry/index";
 
-
 let cryptoStoreFactory = (): CryptoStore => new MemoryCryptoStore();
 
 /**

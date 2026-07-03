@@ -100,10 +100,16 @@ export interface ClaimKeysRequest {
     one_time_keys: Record<string, Record<string, string>>;
 }
 
-export type OneTimeKeysMap = Record<string, Record<string, {
-    key: string;
-    signatures?: Record<string, Record<string, string>>;
-}>>;
+export type OneTimeKeysMap = Record<
+    string,
+    Record<
+        string,
+        {
+            key: string;
+            signatures?: Record<string, Record<string, string>>;
+        }
+    >
+>;
 
 export interface ClaimKeysResponse {
     one_time_keys?: OneTimeKeysMap;
@@ -323,10 +329,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
      * 更新设备列表
      * POST /_matrix/client/r0/keys/device_list/update
      */
-    async updateDeviceList(
-        users: string[],
-        since?: string,
-    ): Promise<DeviceListUpdateResponse> {
+    async updateDeviceList(users: string[], since?: string): Promise<DeviceListUpdateResponse> {
         const body: { users: string[]; since?: string } = { users };
 
         if (since) {
@@ -554,11 +557,10 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDeviceKeysManager = function (): DeviceKeysManager {
         registerManagerClass("deviceKeys", DeviceKeysManager);
-    return getOrCreateManager(this, "deviceKeys", () => new DeviceKeysManager(this));
+        return getOrCreateManager(this, "deviceKeys", () => new DeviceKeysManager(this));
     };
 }
 

@@ -73,17 +73,13 @@ export class FakeTransport implements Transport {
         const calls = this.request.mock.calls;
         const match = calls.some(
             ([m, p, _q, b]) =>
-                m === method &&
-                p === path &&
-                (body === undefined || JSON.stringify(b) === JSON.stringify(body)),
+                m === method && p === path && (body === undefined || JSON.stringify(b) === JSON.stringify(body)),
         );
         if (!match) {
             throw new Error(
                 `Expected Transport.request to have been called with ${method} ${path}` +
                     (body !== undefined ? ` and body ${JSON.stringify(body)}` : "") +
-                    `\n\nActual calls:\n${
-                        calls.map((c) => `  ${c[0]} ${c[1]}`).join("\n") || "  (none)"
-                    }`,
+                    `\n\nActual calls:\n${calls.map((c) => `  ${c[0]} ${c[1]}`).join("\n") || "  (none)"}`,
             );
         }
     }

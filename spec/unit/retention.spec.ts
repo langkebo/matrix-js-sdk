@@ -29,13 +29,9 @@ describe("RetentionManager", () => {
             const res = await manager.getServerRetentionPolicy();
 
             expect(res).toEqual({ max_lifetime: 86400000 });
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/retention/policy",
-                undefined,
-                undefined,
-                { prefix: "/_synapse/admin/v1" },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/retention/policy", undefined, undefined, {
+                prefix: "/_synapse/admin/v1",
+            });
         });
 
         it("propagates 403 typed errors", async () => {
@@ -158,13 +154,9 @@ describe("RetentionManager", () => {
 
             await manager.getRetentionStatus();
 
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/retention/status",
-                undefined,
-                undefined,
-                { prefix: "/_synapse/admin/v1" },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/retention/status", undefined, undefined, {
+                prefix: "/_synapse/admin/v1",
+            });
         });
     });
 

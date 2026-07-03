@@ -114,21 +114,16 @@ describe("RendezvousManager", () => {
                 headers: { "X-Matrix-Rendezvous-Key": "k3" },
             },
         );
-        expect(authedRequest).toHaveBeenNthCalledWith(
-            4,
-            Method.Delete,
-            "/rendezvous/sess-3",
-            {},
-            undefined,
-            {
-                prefix: "/_matrix/client/v1",
-                headers: { "X-Matrix-Rendezvous-Key": "k3" },
-            },
-        );
+        expect(authedRequest).toHaveBeenNthCalledWith(4, Method.Delete, "/rendezvous/sess-3", {}, undefined, {
+            prefix: "/_matrix/client/v1",
+            headers: { "X-Matrix-Rendezvous-Key": "k3" },
+        });
     });
 
     it("should return null when the session is not found", async () => {
-        authedRequest.mockRejectedValueOnce(new MatrixError({ errcode: "M_NOT_FOUND", error: "Session not found" }, 404));
+        authedRequest.mockRejectedValueOnce(
+            new MatrixError({ errcode: "M_NOT_FOUND", error: "Session not found" }, 404),
+        );
 
         await expect(manager.getSession("missing")).resolves.toBeNull();
     });

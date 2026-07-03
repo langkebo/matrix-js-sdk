@@ -794,7 +794,10 @@ describe("Group Call", function () {
                 // ...and then finally we can wait for the invite to be sent
                 await toDeviceProm2;
 
-                expect(client1.sendToDeviceFromContentMap).toHaveBeenCalledWith(EventType.CallInvite, expect.objectContaining({}));
+                expect(client1.sendToDeviceFromContentMap).toHaveBeenCalledWith(
+                    EventType.CallInvite,
+                    expect.objectContaining({}),
+                );
             } finally {
                 await Promise.all([groupCall1.leave(), groupCall2.leave()]);
             }

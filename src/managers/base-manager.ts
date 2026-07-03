@@ -92,7 +92,7 @@ export abstract class BaseManager<
     Events extends string = string,
     EventMap extends Record<Events, any> = Record<Events, any>,
 > extends TypedEventEmitter<Events, EventMap> {
-/* eslint-enable @typescript-eslint/no-explicit-any */
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     protected readonly client: MatrixClient;
     protected readonly transport: Transport;
     protected readonly defaultPrefix: string;
@@ -221,7 +221,7 @@ export abstract class BaseManager<
     protected normalizeError(error: unknown, method: string): SdkError {
         const managerName = this.constructor.name;
         const err = error as Error;
-        const plain = error as Record<string, unknown> /* Dynamic: error shape varies by source */;
+        const plain = error as Record<string, unknown>; /* Dynamic: error shape varies by source */
         const httpStatus = plain?.httpStatus as number | undefined;
         const errcode = plain?.errcode as string | undefined;
         const code = plain?.code as string | undefined;
@@ -423,7 +423,13 @@ export abstract class BaseManager<
 
 function defaultHttpTransport(client: MatrixClient): Transport {
     return {
-        request<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body, opts?: IRequestOpts): Promise<T> {
+        request<T>(
+            method: Method,
+            path: string,
+            queryParams?: QueryDict,
+            body?: Body,
+            opts?: IRequestOpts,
+        ): Promise<T> {
             return client.http.authedRequest<T>(method, path, queryParams, body, opts ?? {});
         },
     };

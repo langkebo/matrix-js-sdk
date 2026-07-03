@@ -87,11 +87,10 @@ export class CredentialsManager extends BaseManager<keyof CredentialsManagerEven
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getCredentialsManager = function (): CredentialsManager {
         registerManagerClass("credentials", CredentialsManager);
-    return getOrCreateManager(this, "credentials", () => new CredentialsManager(this));
+        return getOrCreateManager(this, "credentials", () => new CredentialsManager(this));
     };
 }
 

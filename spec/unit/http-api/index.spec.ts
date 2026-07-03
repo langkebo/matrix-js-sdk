@@ -92,7 +92,8 @@ describe("MatrixHttpApi", () => {
         upload = api.uploadContent({} as File);
         expect(getRequest()!.open).toHaveBeenCalledWith(
             Method.Post,
-            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?content_type=application%2Foctet-stream&access_token=token",
+            baseUrl.toLowerCase() +
+                "/_matrix/media/v3/upload?content_type=application%2Foctet-stream&access_token=token",
         );
         expect(getRequest()!.setRequestHeader).not.toHaveBeenCalledWith("Authorization");
     });

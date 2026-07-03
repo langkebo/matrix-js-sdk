@@ -114,7 +114,7 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSecretStorageManager = function (): SecretStorageManager {
         registerManagerClass("secretStorage", SecretStorageManager);
-    return getOrCreateManager(this, "secretStorage", () => new SecretStorageManager(this));
+        return getOrCreateManager(this, "secretStorage", () => new SecretStorageManager(this));
     };
 }
 

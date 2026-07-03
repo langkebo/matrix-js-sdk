@@ -113,11 +113,11 @@ describe("codegen tools", () => {
                     "/_matrix/federation/v1/event/{eventId}": {
                         parameters: [{ in: "path", name: "eventId", required: true }],
                         get: {
-                            "responses": {
+                            responses: {
                                 200: { description: "ok" },
                                 500: { description: "failure" },
                             },
-                            "security": [{ federationAuth: [] }],
+                            security: [{ federationAuth: [] }],
                             "x-codeSamples": [{ label: "Fetch event" }],
                         },
                     },

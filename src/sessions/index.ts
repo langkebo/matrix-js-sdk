@@ -61,17 +61,11 @@ export class SessionsManager extends BaseManager<keyof SessionsManagerEvents, Se
     }
 
     public async refreshSession(): Promise<ISessionInfo> {
-        return this.withRetry(
-            () => this.client.refreshSession(),
-            "refreshSession",
-        );
+        return this.withRetry(() => this.client.refreshSession(), "refreshSession");
     }
 
     public async revokeSession(deviceId: string): Promise<void> {
-        return this.withRetry(
-            () => this.client.revokeSession(deviceId),
-            "revokeSession",
-        );
+        return this.withRetry(() => this.client.revokeSession(deviceId), "revokeSession");
     }
 
     public getLastActiveSession(): ISessionDetail | null {
@@ -83,11 +77,10 @@ export class SessionsManager extends BaseManager<keyof SessionsManagerEvents, Se
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSessionsManager = function (): SessionsManager {
         registerManagerClass("sessions", SessionsManager);
-    return getOrCreateManager(this, "sessions", () => new SessionsManager(this));
+        return getOrCreateManager(this, "sessions", () => new SessionsManager(this));
     };
 }
 

@@ -137,6 +137,7 @@ describe("AdminManager", () => {
         });
 
         it("应该添加服务器到黑名单", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await adminManager.addToFederationBlacklist("evil.com", "spam");
@@ -150,19 +151,17 @@ describe("AdminManager", () => {
         });
 
         it("应该从黑名单移除服务器", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await adminManager.removeFromFederationBlacklist("evil.com");
-            transport.expectCalledWithArgs(
-                Method.Delete,
-                "/federation/blacklist/evil.com",
-                undefined,
-                undefined,
-                { prefix: "/_synapse/admin/v1" },
-            );
+            transport.expectCalledWithArgs(Method.Delete, "/federation/blacklist/evil.com", undefined, undefined, {
+                prefix: "/_synapse/admin/v1",
+            });
         });
 
         it("应该断开联邦连接", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await adminManager.disconnectFederation("server.com");
@@ -178,6 +177,7 @@ describe("AdminManager", () => {
 
     describe("用户管理扩展", () => {
         it("应该删除单个设备", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await adminManager.deleteUserDevice("@user:example.com", "DEVICE123");
@@ -210,6 +210,7 @@ describe("AdminManager", () => {
         });
 
         it("应该覆盖速率限制", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await adminManager.overrideRateLimit("@user:example.com");
@@ -231,6 +232,7 @@ describe("AdminManager", () => {
         });
 
         it("应该删除速率限制覆盖", async () => {
+            expect.assertions(0);
             transport.respondWith({});
 
             await adminManager.deleteRateLimitOverride("@user:example.com");
@@ -307,7 +309,9 @@ describe("AdminManager", () => {
 
     describe("错误分类测试", () => {
         it("应该对 401 响应抛出 AuthError", async () => {
-            transport.rejectWith(new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" }, 401, undefined));
+            transport.rejectWith(
+                new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" }, 401, undefined),
+            );
 
             await expect(adminManager.getUser("@test:localhost")).rejects.toThrow(AuthError);
         });
@@ -711,10 +715,26 @@ describe("AdminManager", () => {
     describe("URL 拼接完整性", () => {
         it("所有 API 方法都应该传递正确的 prefix", async () => {
             const methodsToTest = [
-                { name: "getUsersPaginated", call: () => adminManager.getUsersPaginated(), expectedPrefix: "/_synapse/admin" },
-                { name: "getRoomsPaginated", call: () => adminManager.getRoomsPaginated(), expectedPrefix: "/_synapse/admin/v1" },
-                { name: "getServerVersion", call: () => adminManager.getServerVersion(), expectedPrefix: "/_synapse/admin/v1" },
-                { name: "getServerStats", call: () => adminManager.getServerStats(), expectedPrefix: "/_synapse/admin/v1" },
+                {
+                    name: "getUsersPaginated",
+                    call: () => adminManager.getUsersPaginated(),
+                    expectedPrefix: "/_synapse/admin",
+                },
+                {
+                    name: "getRoomsPaginated",
+                    call: () => adminManager.getRoomsPaginated(),
+                    expectedPrefix: "/_synapse/admin/v1",
+                },
+                {
+                    name: "getServerVersion",
+                    call: () => adminManager.getServerVersion(),
+                    expectedPrefix: "/_synapse/admin/v1",
+                },
+                {
+                    name: "getServerStats",
+                    call: () => adminManager.getServerStats(),
+                    expectedPrefix: "/_synapse/admin/v1",
+                },
             ];
 
             for (const { call, expectedPrefix } of methodsToTest) {

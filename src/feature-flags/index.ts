@@ -131,11 +131,10 @@ export class FeatureFlagManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getFeatureFlagManager = function (): FeatureFlagManager {
         registerManagerClass("featureFlags", FeatureFlagManager);
-    return getOrCreateManager(this, "featureFlags", () => new FeatureFlagManager(this));
+        return getOrCreateManager(this, "featureFlags", () => new FeatureFlagManager(this));
     };
 }
 

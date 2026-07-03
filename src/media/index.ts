@@ -31,12 +31,15 @@ import type { MediaPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IMediaConfig } from "../client-internal-types";
 
-type StripMediaPrefix<P extends string> =
-    P extends `/_matrix/media/v1${infer Rest}` ? Rest :
-    P extends `/_matrix/media/v3${infer Rest}` ? Rest :
-    P extends `/_matrix/media/r0${infer Rest}` ? Rest :
-    P extends `/_matrix/media/r1${infer Rest}` ? Rest :
-    never;
+type StripMediaPrefix<P extends string> = P extends `/_matrix/media/v1${infer Rest}`
+    ? Rest
+    : P extends `/_matrix/media/v3${infer Rest}`
+      ? Rest
+      : P extends `/_matrix/media/r0${infer Rest}`
+        ? Rest
+        : P extends `/_matrix/media/r1${infer Rest}`
+          ? Rest
+          : never;
 
 type MediaRelativePathPattern = StripMediaPrefix<MediaPathPattern>;
 
@@ -45,12 +48,12 @@ function mp<P extends MediaRelativePathPattern>(path: P): P {
 }
 
 export interface UrlPreview {
-    "url"?: string;
-    "title"?: string;
-    "description"?: string;
-    "image_url"?: string;
-    "image"?: string;
-    "og_image"?: string;
+    url?: string;
+    title?: string;
+    description?: string;
+    image_url?: string;
+    image?: string;
+    og_image?: string;
     "matrix:image"?: string;
 }
 
@@ -215,7 +218,7 @@ export class MediaManager extends BaseManager {
         serverName: string,
         mediaId: string,
         content: ArrayBuffer | Blob,
-        contentType: string,
+        _contentType: string,
     ): Promise<{ content_uri: string }> {
         const response = await this.request<{ content_uri: string }>({
             method: Method.Put,
@@ -325,7 +328,9 @@ export class MediaManager extends BaseManager {
 
         const { serverName, mediaId } = parsed;
         const version = options.version ?? "v3";
-        const prefix = options.useAuthentication ? "/_matrix/client/v1/media/download" : `/_matrix/media/${version}/download`;
+        const prefix = options.useAuthentication
+            ? "/_matrix/client/v1/media/download"
+            : `/_matrix/media/${version}/download`;
         const encodedServer = encodeURIComponent(serverName);
         const encodedMediaId = encodeURIComponent(mediaId);
         const encodedFilename = options.filename ? `/${encodeURIComponent(options.filename)}` : "";
@@ -361,7 +366,11 @@ export class MediaManager extends BaseManager {
         }, "startChunkUpload");
     }
 
-    public async uploadChunk(uploadId: string, chunkIndex: number, data: ArrayBuffer | Blob): Promise<ChunkUploadResponse> {
+    public async uploadChunk(
+        uploadId: string,
+        chunkIndex: number,
+        data: ArrayBuffer | Blob,
+    ): Promise<ChunkUploadResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
             return await this.request<ChunkUploadResponse>({
@@ -420,9 +429,7 @@ export class MediaManager extends BaseManager {
         }
 
         const { serverName, mediaId } = parsed;
-        const prefix = options.useAuthentication
-            ? "/_matrix/client/v1/media/thumbnail"
-            : "/_matrix/media/v3/thumbnail";
+        const prefix = options.useAuthentication ? "/_matrix/client/v1/media/thumbnail" : "/_matrix/media/v3/thumbnail";
         const url = new URL(
             `${prefix}/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
             this.client.baseUrl,
@@ -459,7 +466,7 @@ export class MediaManager extends BaseManager {
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getMediaManager = function (): MediaManager {
         registerManagerClass("media", MediaManager);
-    return getOrCreateManager(this, "media", () => new MediaManager(this));
+        return getOrCreateManager(this, "media", () => new MediaManager(this));
     };
 }
 

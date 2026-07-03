@@ -72,7 +72,7 @@ describe("client send http helper", () => {
         expect(http.authedRequest).toHaveBeenCalledWith(
             Method.Put,
             "/rooms/!room%3Aexample.org/send/m.room.message/generated-txn",
-            { "org.matrix.msc4140.delay": 5000, "ts": 1234 },
+            { "org.matrix.msc4140.delay": 5000, ts: 1234 },
             { body: "later" },
         );
         expect(logger.debug).not.toHaveBeenCalled();

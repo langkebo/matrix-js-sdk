@@ -100,7 +100,10 @@ export class DehydratedDeviceManager extends BaseManager {
         }, "getDevices");
     }
 
-    public async claimDevice(deviceId: string, data: ClaimDehydratedDeviceRequest): Promise<ClaimDehydratedDeviceResponse> {
+    public async claimDevice(
+        deviceId: string,
+        data: ClaimDehydratedDeviceRequest,
+    ): Promise<ClaimDehydratedDeviceResponse> {
         this.requireNonEmptyString(deviceId, "deviceId");
         this.requireNonNull(data.rehydrate_data, "rehydrate_data");
         this.requireNonEmptyString(data.rehydrate_data.algorithm, "rehydrate_data.algorithm");
@@ -116,7 +119,10 @@ export class DehydratedDeviceManager extends BaseManager {
         }, "claimDevice");
     }
 
-    public async updateDeviceData(deviceId: string, data: UpdateDehydratedDeviceRequest): Promise<UpdateDehydratedDeviceResponse> {
+    public async updateDeviceData(
+        deviceId: string,
+        data: UpdateDehydratedDeviceRequest,
+    ): Promise<UpdateDehydratedDeviceResponse> {
         this.requireNonEmptyString(deviceId, "deviceId");
         this.requireNonNull(data.device_data, "device_data");
         this.requireNonEmptyString(data.device_data.algorithm, "device_data.algorithm");
@@ -144,7 +150,9 @@ export class DehydratedDeviceManager extends BaseManager {
         }, "deleteDevice");
     }
 
-    public async getDeviceEvent(deviceId: string): Promise<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */> {
+    public async getDeviceEvent(
+        deviceId: string,
+    ): Promise<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */> {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
@@ -157,11 +165,10 @@ export class DehydratedDeviceManager extends BaseManager {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getDehydratedDeviceManager = function (): DehydratedDeviceManager {
         registerManagerClass("dehydratedDevice", DehydratedDeviceManager);
-    return getOrCreateManager(this, "dehydratedDevice", () => new DehydratedDeviceManager(this));
+        return getOrCreateManager(this, "dehydratedDevice", () => new DehydratedDeviceManager(this));
     };
 }
 

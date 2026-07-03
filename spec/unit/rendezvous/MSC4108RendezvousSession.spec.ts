@@ -63,7 +63,7 @@ describe("MSC4108RendezvousSession", () => {
                 body: "data",
                 headers: {
                     "content-type": "text/plain",
-                    "etag": "aaa",
+                    etag: "aaa",
                 },
             });
             await expect(transport.receive()).resolves.toEqual("data");
@@ -170,7 +170,7 @@ describe("MSC4108RendezvousSession", () => {
             fetchMock.getOnce("https://fallbackserver/rz/123", {
                 status: 200,
                 body: "foo=baa",
-                headers: { "content-type": "text/plain", "etag": "aaa" },
+                headers: { "content-type": "text/plain", etag: "aaa" },
             });
             await expect(transport.receive()).resolves.toEqual("foo=baa");
             await fetchMock.callHistory.flush(true);
@@ -180,7 +180,7 @@ describe("MSC4108RendezvousSession", () => {
             fetchMock.getOnce("https://fallbackserver/rz/123", {
                 status: 200,
                 body: "foo=baa",
-                headers: { "content-type": "text/plain", "etag": "bbb" },
+                headers: { "content-type": "text/plain", etag: "bbb" },
             });
             await expect(transport.receive()).resolves.toEqual("foo=baa");
             await fetchMock.callHistory.flush(true);

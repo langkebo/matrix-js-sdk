@@ -284,7 +284,7 @@ describe("MatrixEvent", () => {
             return new MatrixEvent({
                 type: "m.room.message",
                 content: {
-                    "body": eventId,
+                    body: eventId,
                     "m.relates_to": {
                         rel_type: THREAD_RELATION_TYPE.name,
                         event_id: threadRootId,
@@ -298,7 +298,7 @@ describe("MatrixEvent", () => {
             return new MatrixEvent({
                 type: "m.room.message",
                 content: {
-                    "body": "Edited",
+                    body: "Edited",
                     "m.new_content": {
                         body: "Edited",
                     },
@@ -597,13 +597,13 @@ describe("MatrixEvent", () => {
             event_id: "$event_id",
             type: "some_state_event",
             content: {
-                "foo": "bar",
+                foo: "bar",
                 "m.relates_to": {
-                    "event_id": "$thread_id",
+                    event_id: "$thread_id",
                     "m.in_reply_to": {
                         event_id: "$thread_id",
                     },
-                    "rel_type": "m.thread",
+                    rel_type: "m.thread",
                 },
             },
             state_key: "",

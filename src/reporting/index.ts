@@ -101,7 +101,8 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
      * @param roomId - The room ID
      * @param eventId - The event ID
      */
-    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> { // Dynamic: scanner info shape is server-defined
+    public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> {
+        // Dynamic: scanner info shape is server-defined
         const path = utils.encodeUri("/rooms/$roomId/report/$eventId/scanner_info", {
             $roomId: roomId,
             $eventId: eventId,
@@ -114,11 +115,10 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getReportingManager = function (): ReportingManager {
         registerManagerClass("reporting", ReportingManager);
-    return getOrCreateManager(this, "reporting", () => new ReportingManager(this));
+        return getOrCreateManager(this, "reporting", () => new ReportingManager(this));
     };
 }
 

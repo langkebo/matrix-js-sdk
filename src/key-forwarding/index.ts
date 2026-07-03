@@ -53,10 +53,7 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
         eventId: string,
         userId: string,
     ): Promise<IKeyForwardingResponse> {
-        return this.withRetry(
-            () => this.client.requestKeyForwarding(roomId, eventId, userId),
-            "requestKeyForwarding",
-        );
+        return this.withRetry(() => this.client.requestKeyForwarding(roomId, eventId, userId), "requestKeyForwarding");
     }
 
     public async forwardKey(
@@ -65,10 +62,7 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
         userId: string,
         key: Record<string, unknown>, // Dynamic: key forwarding data varies by algorithm
     ): Promise<IKeyForwardingResponse> {
-        return this.withRetry(
-            () => this.client.forwardKey(roomId, eventId, userId, key),
-            "forwardKey",
-        );
+        return this.withRetry(() => this.client.forwardKey(roomId, eventId, userId, key), "forwardKey");
     }
 
     public hasForwardedKey(roomId: string, eventId: string): boolean {
@@ -80,11 +74,10 @@ export class KeyForwardingManager extends BaseManager<keyof KeyForwardingManager
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getKeyForwardingManager = function (): KeyForwardingManager {
         registerManagerClass("keyForwarding", KeyForwardingManager);
-    return getOrCreateManager(this, "keyForwarding", () => new KeyForwardingManager(this));
+        return getOrCreateManager(this, "keyForwarding", () => new KeyForwardingManager(this));
     };
 }
 

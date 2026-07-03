@@ -3972,7 +3972,6 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
         return this.unthreadedReceipts.get(userId);
     }
 
-
     /**
      * This issue should also be addressed on synapse's side and is tracked as part
      * of https://github.com/matrix-org/synapse/issues/14837

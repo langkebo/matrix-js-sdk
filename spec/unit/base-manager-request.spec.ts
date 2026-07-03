@@ -92,9 +92,7 @@ describe("BaseManager.request", () => {
 
     it("retries idempotent GET on 500 error and eventually succeeds", async () => {
         const mgr = new DummyRequestManager({ transport });
-        requestSpy
-            .mockRejectedValueOnce(new HTTPError("server error", 500))
-            .mockResolvedValue({ recovered: true });
+        requestSpy.mockRejectedValueOnce(new HTTPError("server error", 500)).mockResolvedValue({ recovered: true });
 
         const result = await mgr.doRequest({ method: Method.Get, path: "/unstable" });
 
@@ -107,18 +105,14 @@ describe("BaseManager.request", () => {
         const mgr = new DummyRequestManager({ transport });
         requestSpy.mockRejectedValue(new HTTPError("server error", 500));
 
-        await expect(
-            mgr.doRequest({ method: Method.Post, path: "/unsafe" }),
-        ).rejects.toBeInstanceOf(RetryableError);
+        await expect(mgr.doRequest({ method: Method.Post, path: "/unsafe" })).rejects.toBeInstanceOf(RetryableError);
 
         expect(requestSpy).toHaveBeenCalledTimes(1);
     });
 
     it("retries POST when retryNonIdempotent is set", async () => {
         const mgr = new DummyRequestManager({ transport });
-        requestSpy
-            .mockRejectedValueOnce(new HTTPError("transient", 503))
-            .mockResolvedValue({ ok: true });
+        requestSpy.mockRejectedValueOnce(new HTTPError("transient", 503)).mockResolvedValue({ ok: true });
 
         const result = await mgr.doRequest({
             method: Method.Post,
@@ -199,7 +193,7 @@ describe("BaseManager.request", () => {
     it("uses injected transport instead of real HTTP", async () => {
         const requestMock = vi.fn().mockResolvedValue({ fromFake: true });
         const fakeTransport: Transport = {
-            request: requestMock as unknown as Transport['request'],
+            request: requestMock as unknown as Transport["request"],
         };
 
         const mgr = new DummyRequestManager({ transport: fakeTransport });

@@ -345,7 +345,12 @@ async function main(): Promise<void> {
             throw new Error("缺少待校验的加密事件");
         }
 
-        const event = await waitForEventDecryption(clientB!, encryptedRoomId, lastEncryptedEventId, lastEncryptedMessageBody);
+        const event = await waitForEventDecryption(
+            clientB!,
+            encryptedRoomId,
+            lastEncryptedEventId,
+            lastEncryptedMessageBody,
+        );
         console.log(
             `      已解密事件: type=${event.getType()}, body=${event.getClearContent()?.body ?? event.getContent()?.body ?? ""}`,
         );
@@ -428,7 +433,9 @@ async function main(): Promise<void> {
         try {
             const exportResult = await clientA!.getKeyBackupManager().exportKeys();
             const importResult = await clientA!.getKeyBackupManager().importKeys(exportResult.room_keys);
-            console.log(`      导入结果: count=${importResult.count}, failed=${importResult.failed}, total=${importResult.total}`);
+            console.log(
+                `      导入结果: count=${importResult.count}, failed=${importResult.failed}, total=${importResult.total}`,
+            );
         } catch (e: any) {
             console.log(`      导入密钥: ${e.message}`);
         }

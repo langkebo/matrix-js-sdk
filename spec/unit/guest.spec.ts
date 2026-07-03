@@ -18,7 +18,13 @@ describe("GuestManager", () => {
         getRooms = vi.fn().mockReturnValue([]);
         joinRoom = vi.fn();
         manager = new GuestManager(
-            { http: { request, authedRequest }, getUserId, getRooms, joinRoom, getHomeserverUrl: () => "https://h" } as any,
+            {
+                http: { request, authedRequest },
+                getUserId,
+                getRooms,
+                joinRoom,
+                getHomeserverUrl: () => "https://h",
+            } as any,
             "https://h",
         );
         manager.setRetryOptions({ maxRetries: 0 });
@@ -201,14 +207,9 @@ describe("GuestManager", () => {
                 { device_id: "D" },
                 { prefix: "/_matrix/client/v3" },
             );
-            expect(authedRequest).toHaveBeenNthCalledWith(
-                1,
-                Method.Get,
-                "/account/guest",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            expect(authedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/account/guest", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
             expect(authedRequest).toHaveBeenNthCalledWith(
                 2,
                 Method.Post,

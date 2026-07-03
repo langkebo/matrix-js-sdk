@@ -82,7 +82,8 @@ export class AIModule {
         return this.mcpEndpoint;
     }
 
-    private async callMcp<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> { // Dynamic: MCP params vary per method
+    private async callMcp<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
+        // Dynamic: MCP params vary per method
         const id = ++this.requestId;
 
         const request: McpRpcRequest = {
@@ -135,7 +136,8 @@ export class AIModule {
         return result.tools || [];
     }
 
-    public async callTool(toolName: string, args?: Record<string, unknown>): Promise<unknown> { // Dynamic: tool args vary per tool
+    public async callTool(toolName: string, args?: Record<string, unknown>): Promise<unknown> {
+        // Dynamic: tool args vary per tool
         return this.callMcp<unknown>("tools/call", {
             name: toolName,
             arguments: args || {},

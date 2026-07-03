@@ -212,7 +212,7 @@ describe("Group Call Event Handler", function () {
             makeMockGroupCallStateEvent(FAKE_ROOM_ID, FAKE_GROUP_CALL_ID, {
                 "m.type": GroupCallType.Video,
                 "m.intent": GroupCallIntent.Prompt,
-                "dataChannelsEnabled": true,
+                dataChannelsEnabled: true,
                 dataChannelOptions,
             }),
             {

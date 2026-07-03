@@ -21,7 +21,6 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 
 export * from "./EventManager";
 
-
 export function extendMatrixClient(): void {
     registerManagerClass("event", EventManager);
 

@@ -296,7 +296,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         });
 
         it("covers module checks and module-adjacent callback routes", async () => {
-            await manager.checkModuleThirdPartyRule({ event_id: "$e1", room_id: "!r:x", sender: "@a:x", event_type: "m.room.message", content: {}, state_events: [] });
+            await manager.checkModuleThirdPartyRule({
+                event_id: "$e1",
+                room_id: "!r:x",
+                sender: "@a:x",
+                event_type: "m.room.message",
+                content: {},
+                state_events: [],
+            });
             await manager.getModuleSpamCheckResult("$e2");
             await manager.listModuleSpamChecksBySender("@alice:x", { limit: 5 });
             await manager.getModuleThirdPartyRuleResults("$e3");
@@ -832,15 +839,25 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.kickRoomMember("!room:example.com", "@u:x", { reason: "rule" });
             await manager.unbanRoomMember("!room:example.com", "@u:x", { reason: "appeal-ok" });
             expect(req.mock.calls[0][0]).toBe("PUT");
-            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[0][1]).toBe(
+                `/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`,
+            );
             expect(req.mock.calls[1][0]).toBe("DELETE");
-            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[1][1]).toBe(
+                `/rooms/${encodeURIComponent("!room:example.com")}/members/${encodeURIComponent("@u:x")}`,
+            );
             expect(req.mock.calls[2][0]).toBe("POST");
-            expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/ban/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[2][1]).toBe(
+                `/rooms/${encodeURIComponent("!room:example.com")}/ban/${encodeURIComponent("@u:x")}`,
+            );
             expect(req.mock.calls[3][0]).toBe("POST");
-            expect(req.mock.calls[3][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/kick/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[3][1]).toBe(
+                `/rooms/${encodeURIComponent("!room:example.com")}/kick/${encodeURIComponent("@u:x")}`,
+            );
             expect(req.mock.calls[4][0]).toBe("POST");
-            expect(req.mock.calls[4][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/unban/${encodeURIComponent("@u:x")}`);
+            expect(req.mock.calls[4][1]).toBe(
+                `/rooms/${encodeURIComponent("!room:example.com")}/unban/${encodeURIComponent("@u:x")}`,
+            );
         });
 
         it("ban/kick body routes and make_admin compatibility are correct", async () => {

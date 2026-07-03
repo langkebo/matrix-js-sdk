@@ -53,25 +53,18 @@ export class StoresManager extends BaseManager<keyof StoresManagerEvents, Stores
     }
 
     public async storeValue(key: string, value: unknown): Promise<void> {
-        return this.withRetry(
-            () => this.client.storeValue(key, value),
-            "storeValue",
-        );
+        return this.withRetry(() => this.client.storeValue(key, value), "storeValue");
     }
 
     public async getStoredValue(key: string): Promise<unknown> {
-        return this.withRetry(
-            () => this.client.getStoredValue(key),
-            "getStoredValue",
-        );
+        return this.withRetry(() => this.client.getStoredValue(key), "getStoredValue");
     }
 }
-
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getStoresManager = function (): StoresManager {
         registerManagerClass("stores", StoresManager);
-    return getOrCreateManager(this, "stores", () => new StoresManager(this));
+        return getOrCreateManager(this, "stores", () => new StoresManager(this));
     };
 }
 

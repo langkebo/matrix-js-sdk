@@ -105,10 +105,7 @@ export class AdminConfigManager extends AdminBaseManager {
         );
     }
 
-    async runRetention(options?: {
-        room_id?: string;
-        scope?: "all" | "room";
-    }): Promise<RetentionRunResult> {
+    async runRetention(options?: { room_id?: string; scope?: "all" | "room" }): Promise<RetentionRunResult> {
         return await this.adminRequest<RetentionRunResult>(
             Method.Post,
             apu("/retention/run"),
@@ -205,7 +202,12 @@ export class AdminConfigManager extends AdminBaseManager {
     }
 
     async setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<AdminModuleInfo> {
-        return await this.adminRequest(Method.Post, `/modules/${encodeURIComponent(moduleId)}/enable`, {}, { is_enabled: isEnabled });
+        return await this.adminRequest(
+            Method.Post,
+            `/modules/${encodeURIComponent(moduleId)}/enable`,
+            {},
+            { is_enabled: isEnabled },
+        );
     }
 
     async getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLogPage> {
@@ -300,13 +302,16 @@ export class AdminConfigManager extends AdminBaseManager {
         await this.adminRequest(Method.Delete, `/registration_tokens/${encodeURIComponent(token)}`);
     }
 
-    async updateRegistrationToken(token: string, payload: { uses_allowed?: number; expiry_ts?: number }): Promise<void> {
+    async updateRegistrationToken(
+        token: string,
+        payload: { uses_allowed?: number; expiry_ts?: number },
+    ): Promise<void> {
         if (!token) throw new ValidationError("Token is required");
         try {
             await this.adminRequest(Method.Post, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
         } catch (e) {
             const err = e as MatrixError;
-            if ((e instanceof NotFoundError) || (err instanceof MatrixError && err.httpStatus === 404)) {
+            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(Method.Put, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
                 return;
             }
@@ -329,8 +334,16 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, `/account_validity/${encodeURIComponent(userId)}`);
     }
 
-    async renewAccountValidity(userId: string, payload: AccountValidityRenewRequest): Promise<AdminAccountValidityInfo> {
-        return await this.adminRequest(Method.Post, `/account_validity/${encodeURIComponent(userId)}/renew`, {}, payload);
+    async renewAccountValidity(
+        userId: string,
+        payload: AccountValidityRenewRequest,
+    ): Promise<AdminAccountValidityInfo> {
+        return await this.adminRequest(
+            Method.Post,
+            `/account_validity/${encodeURIComponent(userId)}/renew`,
+            {},
+            payload,
+        );
     }
 
     // ===== Password Auth Providers =====
@@ -405,14 +418,11 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async addToInviteBlocklist(userId: string, reason?: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        const body: Record<string, unknown> /* Dynamic: invite blocklist body varies by endpoint */ = { user_id: userId };
+        const body: Record<string, unknown> /* Dynamic: invite blocklist body varies by endpoint */ = {
+            user_id: userId,
+        };
         if (reason) body.reason = reason;
-        await this.adminRequest(
-            Method.Post,
-            `/invite/blocklist/${encodeURIComponent(userId)}`,
-            {},
-            body,
-        );
+        await this.adminRequest(Method.Post, `/invite/blocklist/${encodeURIComponent(userId)}`, {}, body);
     }
 
     /**
@@ -422,10 +432,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async removeFromInviteBlocklist(userId: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/invite/blocklist/${encodeURIComponent(userId)}`,
-        );
+        await this.adminRequest(Method.Delete, `/invite/blocklist/${encodeURIComponent(userId)}`);
     }
 
     /**
@@ -450,10 +457,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async removeFromInviteAllowlist(userId: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        await this.adminRequest(
-            Method.Delete,
-            `/invite/allowlist/${encodeURIComponent(userId)}`,
-        );
+        await this.adminRequest(Method.Delete, `/invite/allowlist/${encodeURIComponent(userId)}`);
     }
 
     // ===== Jitsi =====

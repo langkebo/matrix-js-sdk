@@ -296,9 +296,7 @@ export class IgnoredInvites {
     /**
      * Modify in place the `IGNORE_INVITES_POLICIES` object from account data.
      */
-    private async withIgnoreInvitesPolicies(
-        cb: (ignoreInvitesPolicies: IgnoreInvitesPolicies) => void,
-    ): Promise<void> {
+    private async withIgnoreInvitesPolicies(cb: (ignoreInvitesPolicies: IgnoreInvitesPolicies) => void): Promise<void> {
         const { policies, ignoreInvitesPolicies } = this.getPoliciesAndIgnoreInvitesPolicies();
         cb(ignoreInvitesPolicies);
         policies[IGNORE_INVITES_ACCOUNT_EVENT_KEY.name] = ignoreInvitesPolicies;

@@ -62,7 +62,9 @@ describe("ReportingManager", () => {
             });
             authedRequest.mockRejectedValueOnce(httpError);
 
-            await expect(manager.reportEvent("!abuse:example.com", "$evt:example.com", -100, "spam")).rejects.toMatchObject({
+            await expect(
+                manager.reportEvent("!abuse:example.com", "$evt:example.com", -100, "spam"),
+            ).rejects.toMatchObject({
                 httpStatus: 404,
                 errcode: "M_NOT_FOUND",
             });

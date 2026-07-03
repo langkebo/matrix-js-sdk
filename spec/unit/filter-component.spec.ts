@@ -133,7 +133,7 @@ describe("Filter Component", function () {
                 content: {},
                 unsigned: {
                     "m.relations": {
-                        "testtesttest": {},
+                        testtesttest: {},
                         "m.annotation": {
                             chunk: [
                                 {

@@ -326,16 +326,17 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             throw new InvalidParamError("eventType is required");
         }
 
-        const path = stateKey !== undefined
-            ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
-                  $roomId: roomId,
-                  $eventType: eventType,
-                  $stateKey: stateKey,
-              })
-            : utils.encodeUri("/rooms/$roomId/state/$eventType", {
-                  $roomId: roomId,
-                  $eventType: eventType,
-              });
+        const path =
+            stateKey !== undefined
+                ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
+                      $roomId: roomId,
+                      $eventType: eventType,
+                      $stateKey: stateKey,
+                  })
+                : utils.encodeUri("/rooms/$roomId/state/$eventType", {
+                      $roomId: roomId,
+                      $eventType: eventType,
+                  });
 
         const response = await this.withRetry(async () => {
             return await this.request<IContent>({
@@ -359,16 +360,17 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             throw new InvalidParamError("eventType is required");
         }
 
-        const path = stateKey !== undefined
-            ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
-                  $roomId: roomId,
-                  $eventType: eventType,
-                  $stateKey: stateKey,
-              })
-            : utils.encodeUri("/rooms/$roomId/state/$eventType", {
-                  $roomId: roomId,
-                  $eventType: eventType,
-              });
+        const path =
+            stateKey !== undefined
+                ? utils.encodeUri("/rooms/$roomId/state/$eventType/$stateKey", {
+                      $roomId: roomId,
+                      $eventType: eventType,
+                      $stateKey: stateKey,
+                  })
+                : utils.encodeUri("/rooms/$roomId/state/$eventType", {
+                      $roomId: roomId,
+                      $eventType: eventType,
+                  });
 
         const response = await this.withRetry(async () => {
             return await this.request<ISendEventResponse>({
@@ -534,7 +536,10 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         }
 
         if (event.shouldAttemptDecryption() && deps.getCrypto()) {
-            event.attemptDecryption(deps.cryptoBackend as unknown as import("../common-crypto/CryptoBackend").CryptoBackend, options);
+            event.attemptDecryption(
+                deps.cryptoBackend as unknown as import("../common-crypto/CryptoBackend").CryptoBackend,
+                options,
+            );
         }
 
         if (event.isBeingDecrypted()) {

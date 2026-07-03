@@ -145,7 +145,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         }
 
         try {
-            const response = await this.request<{ pushers: IPusher[] }>({ method: Method.Get, path: pp("/pushers"), prefix: ClientPrefix.V3 });
+            const response = await this.request<{ pushers: IPusher[] }>({
+                method: Method.Get,
+                path: pp("/pushers"),
+                prefix: ClientPrefix.V3,
+            });
 
             let pushers = response?.pushers || [];
 
@@ -154,7 +158,9 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             if (!supportsRemoteToggle) {
                 pushers = pushers.map((pusher) => {
                     if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
-                        (pusher as unknown as Record<string, unknown> /* Dynamic: adding unstable feature property */)[PUSHER_ENABLED.name] = true;
+                        (pusher as unknown as Record<string, unknown>) /* Dynamic: adding unstable feature property */[
+                            PUSHER_ENABLED.name
+                        ] = true;
                     }
                     return pusher;
                 });
@@ -180,7 +186,12 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Post, path: pp("/pushers/set"), body: pusher, prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Post,
+                    path: pp("/pushers/set"),
+                    body: pusher,
+                    prefix: ClientPrefix.V3,
+                });
             }, "setPusher");
 
             this.pushersCache.delete("pushers");
@@ -228,7 +239,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<IPushRules>({ method: Method.Get, path: pp("/pushrules"), prefix: ClientPrefix.V3 });
+                return await this.request<IPushRules>({
+                    method: Method.Get,
+                    path: pp("/pushrules"),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getPushRules");
 
             this.pushRulesCache.set("pushRules", response);
@@ -248,7 +263,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope) throw new InvalidParamError("scope is required");
         try {
             return await this.withRetry(async () => {
-                return await this.request<IPushRuleSet>({ method: Method.Get, path: pp(`/pushrules/${encodeURIComponent(scope)}`), prefix: ClientPrefix.V3 });
+                return await this.request<IPushRuleSet>({
+                    method: Method.Get,
+                    path: pp(`/pushrules/${encodeURIComponent(scope)}`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getPushRulesByScope");
         } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRulesByScope"));
@@ -290,9 +309,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             return await this.withRetry(async () => {
-                return await this.request<IPushRule>({ method: Method.Get, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), prefix: ClientPrefix.V3 });
+                return await this.request<IPushRule>({
+                    method: Method.Get,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    ),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getPushRule");
-        // @swallow-error { owner: "push", expires: "2026-12-31" }
+            // @swallow-error { owner: "push", expires: "2026-12-31" }
         } catch (error) {
             if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return null;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRule"));
@@ -315,7 +340,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Post, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), body: rule, prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Post,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    ),
+                    body: rule,
+                    prefix: ClientPrefix.V3,
+                });
             }, "createPushRule");
 
             this.pushRulesCache.delete("pushRules");
@@ -340,7 +372,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Put, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), body: rule, prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Put,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    ),
+                    body: rule,
+                    prefix: ClientPrefix.V3,
+                });
             }, "updatePushRule");
 
             this.pushRulesCache.delete("pushRules");
@@ -359,7 +398,13 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Delete, path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`), prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Delete,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,
+                    ),
+                    prefix: ClientPrefix.V3,
+                });
             }, "deletePushRule");
 
             this.pushRulesCache.delete("pushRules");
@@ -378,11 +423,17 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<{ enabled: boolean }>({ method: Method.Get, path: pp(                         `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,                     ), prefix: ClientPrefix.V3 });
+                return await this.request<{ enabled: boolean }>({
+                    method: Method.Get,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
+                    ),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getPushRuleEnabled");
 
             return response?.enabled ?? true;
-        // @swallow-error { owner: "push", expires: "2026-12-31" }
+            // @swallow-error { owner: "push", expires: "2026-12-31" }
         } catch (error) {
             if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return false;
             this.emit(PushEvent.PushError, this.normalizeError(error, "getPushRuleEnabled"));
@@ -398,7 +449,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Put, path: pp(                         `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,                     ), body: { enabled }, prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Put,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,
+                    ),
+                    body: { enabled },
+                    prefix: ClientPrefix.V3,
+                });
             }, "setPushRuleEnabled");
 
             this.pushRulesCache.delete("pushRules");
@@ -423,7 +481,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!actions || actions.length === 0) throw new InvalidParamError("actions are required");
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Put, path: pp(                         `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,                     ), body: { actions }, prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Put,
+                    path: pp(
+                        `/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,
+                    ),
+                    body: { actions },
+                    prefix: ClientPrefix.V3,
+                });
             }, "setPushRuleActions");
 
             this.pushRulesCache.delete("pushRules");
@@ -451,7 +516,12 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             if (params?.from) query.from = params.from;
             if (params?.only) query.only = params.only;
 
-            return await this.request<INotificationsResponse>({ method: Method.Get, path: pp("/notifications"), queryParams: query, prefix: ClientPrefix.V3 });
+            return await this.request<INotificationsResponse>({
+                method: Method.Get,
+                path: pp("/notifications"),
+                queryParams: query,
+                prefix: ClientPrefix.V3,
+            });
         } catch (error) {
             this.emit(PushEvent.PushError, this.normalizeError(error, "getNotifications"));
             throw this.normalizeError(error, "getNotifications");
@@ -466,7 +536,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         if (!notificationId) throw new InvalidParamError("notificationId is required");
         try {
             await this.withRetry(async () => {
-                return await this.request({ method: Method.Post, path: pp(`/notifications/${encodeURIComponent(notificationId)}/ack`), prefix: ClientPrefix.V3 });
+                return await this.request({
+                    method: Method.Post,
+                    path: pp(`/notifications/${encodeURIComponent(notificationId)}/ack`),
+                    prefix: ClientPrefix.V3,
+                });
             }, "ackNotification");
         } catch (error) {
             if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return;
@@ -536,7 +610,10 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     async addKeywordHighlight(keyword: string): Promise<void> {
         if (!keyword) throw new InvalidParamError("keyword is required");
         await this.createPushRule("global", PushRuleKind.ContentSpecific, keyword, {
-            actions: [PushRuleActionName.Notify, { set_tweak: "highlight", value: true } as import("../@types/PushRules").TweakHighlight],
+            actions: [
+                PushRuleActionName.Notify,
+                { set_tweak: "highlight", value: true } as import("../@types/PushRules").TweakHighlight,
+            ],
             pattern: keyword,
         });
     }
@@ -581,11 +658,10 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getPushManager = function (): PushManager {
         registerManagerClass("push", PushManager);
-    return getOrCreateManager(this, "push", () => new PushManager(this));
+        return getOrCreateManager(this, "push", () => new PushManager(this));
     };
 }
 

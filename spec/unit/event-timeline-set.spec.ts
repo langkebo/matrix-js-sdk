@@ -66,13 +66,13 @@ describe("EventTimelineSet", () => {
                 user: userA,
                 room: roomId,
                 content: {
-                    "body": "Thread response :: " + Math.random(),
+                    body: "Thread response :: " + Math.random(),
                     "m.relates_to": {
-                        "event_id": root.getId(),
+                        event_id: root.getId(),
                         "m.in_reply_to": {
                             event_id: root.getId(),
                         },
-                        "rel_type": "m.thread",
+                        rel_type: "m.thread",
                     },
                 },
             },
@@ -368,13 +368,13 @@ describe("EventTimelineSet", () => {
                     user: userA,
                     room: roomId,
                     content: {
-                        "body": "Thread response :: " + Math.random(),
+                        body: "Thread response :: " + Math.random(),
                         "m.relates_to": {
-                            "event_id": root.getId(),
+                            event_id: root.getId(),
                             "m.in_reply_to": {
                                 event_id: root.getId()!,
                             },
-                            "rel_type": "m.thread",
+                            rel_type: "m.thread",
                         },
                     },
                 },

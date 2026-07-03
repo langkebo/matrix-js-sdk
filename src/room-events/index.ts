@@ -51,17 +51,11 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
     }
 
     public async getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]> {
-        return this.withRetry(
-            () => this.client.getRoomEvents(roomId, limit),
-            "getRoomEvents",
-        );
+        return this.withRetry(() => this.client.getRoomEvents(roomId, limit), "getRoomEvents");
     }
 
     public async getStateEventsForRoom(roomId: string): Promise<MatrixEvent[]> {
-        return this.withRetry(
-            () => this.client.getStateEventsForRoom(roomId),
-            "getStateEventsForRoom",
-        );
+        return this.withRetry(() => this.client.getStateEventsForRoom(roomId), "getStateEventsForRoom");
     }
 
     public getTimelineEvents(roomId: string): MatrixEvent[] {
@@ -141,11 +135,10 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
     }
 }
 
-
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getRoomEventsManager = function (): RoomEventsManager {
         registerManagerClass("roomEvents", RoomEventsManager);
-    return getOrCreateManager(this, "roomEvents", () => new RoomEventsManager(this));
+        return getOrCreateManager(this, "roomEvents", () => new RoomEventsManager(this));
     };
 }
 

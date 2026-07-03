@@ -70,9 +70,13 @@ describe("KeyBackupManager", () => {
                 password: "secret",
             };
 
-            const result = await manager.createBackupVersion("m.megolm_backup.v1.curve25519-aes-sha2", {
-                public_key: "value",
-            }, auth);
+            const result = await manager.createBackupVersion(
+                "m.megolm_backup.v1.curve25519-aes-sha2",
+                {
+                    public_key: "value",
+                },
+                auth,
+            );
 
             expect(mockHttp.authedRequest).toHaveBeenCalledWith(
                 Method.Post,
