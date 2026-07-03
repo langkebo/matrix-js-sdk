@@ -240,7 +240,7 @@ export class AdminFederationManager extends AdminBaseManager {
      * @returns 待处理联邦服务器列表
      */
     async getPendingFederationServers(from?: string, limit?: number): Promise<PendingFederationList> {
-        const queryParams = buildPaginationParams(from, limit);
+        const queryParams = buildPaginationParams(limit, from);
         try {
             return await this.adminRequest<PendingFederationList>(
                 Method.Get,

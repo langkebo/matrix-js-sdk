@@ -236,7 +236,7 @@ export class AdminConfigManager extends AdminBaseManager {
     // ===== Reports =====
 
     async listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
-        const query = buildPaginationParams(options?.from, options?.limit);
+        const query = buildPaginationParams(options?.limit, options?.from);
         return await this.adminRequest(Method.Get, "/reports", query);
     }
 

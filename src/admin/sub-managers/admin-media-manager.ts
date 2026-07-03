@@ -50,7 +50,7 @@ export class AdminMediaManager extends AdminBaseManager {
                 limit = limitOrFrom;
             }
         }
-        const queryParams = buildPaginationParams(from, limit);
+        const queryParams = buildPaginationParams(limit, from);
         const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(Method.Get, "/media", queryParams);
         return { media: response.media || [], next_token: response.next_token };
     }
@@ -159,7 +159,7 @@ export class AdminMediaManager extends AdminBaseManager {
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        const queryParams = buildPaginationParams(options?.from, options?.limit);
+        const queryParams = buildPaginationParams(options?.limit, options?.from);
         const response = await this.adminRequest<MediaQuarantineChangesResponse>(
             Method.Get,
             `/quarantine_media/${encodeURIComponent(mediaId)}/changes`,

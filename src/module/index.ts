@@ -36,7 +36,7 @@ import { MatrixError } from "../http-api/errors";
 import { MatrixClient } from "../client";
 import { getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError } from "../errors";
-import { buildPaginationParams } from "../admin/utils";
+import { buildPaginationParams } from "../common/pagination";
 import type { IContent } from "../models/event";
 import type { ModulePathPattern } from "./__generated__/route-table";
 
@@ -192,7 +192,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
     // ==================== 模块管理 ====================
 
     async listModules(options?: { limit?: number; from?: string }): Promise<ModuleListResponse> {
-        const query = buildPaginationParams(options?.from, options?.limit);
+        const query = buildPaginationParams(options?.limit, options?.from);
         const result = await this.adminRequest<ModuleListResponse>(Method.Get, mp("/modules"), query);
         this.emit(ModuleEvent.ModulesListed, result);
         return result;
@@ -268,7 +268,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         moduleName: string,
         options?: { limit?: number; from?: string },
     ): Promise<ModuleLogResponse> {
-        const query = buildPaginationParams(options?.from, options?.limit);
+        const query = buildPaginationParams(options?.limit, options?.from);
         const result = await this.adminRequest<ModuleLogResponse>(
             Method.Get,
             mp(`/modules/${encodeURIComponent(moduleName)}/logs`),
@@ -302,7 +302,7 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         sender: string,
         options?: { limit?: number; from?: string },
     ): Promise<SpamCheckResponse[]> {
-        const query = buildPaginationParams(options?.from, options?.limit);
+        const query = buildPaginationParams(options?.limit, options?.from);
         const result = await this.adminRequest<{ checks: SpamCheckResponse[] }>(
             Method.Get,
             mp(`/modules/spam_check/sender/${encodeURIComponent(sender)}`),

@@ -175,7 +175,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         } else {
             from = fromOrLimit;
         }
-        const queryParams = buildPaginationParams(from, localLimit);
+        const queryParams = buildPaginationParams(localLimit, from);
         const response = await this.adminRequest<{ notices: ServerNotice[]; next_token?: string }>(
             Method.Get,
             "/server_notices",
@@ -244,7 +244,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 系统通知分页结果
      */
     async listNotifications(from?: string, limit?: number): Promise<SystemNotificationPage> {
-        const queryParams = buildPaginationParams(from, limit);
+        const queryParams = buildPaginationParams(limit, from);
         const response = await this.adminRequest<SystemNotificationPage>(Method.Get, "/notifications", queryParams);
         return {
             notifications: response.notifications || [],

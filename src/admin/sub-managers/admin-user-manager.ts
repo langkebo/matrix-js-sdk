@@ -52,7 +52,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             AdminValidators.validateLimit(options.limit);
         }
 
-        const queryParams = buildPaginationParams(options?.from, options?.limit);
+        const queryParams = buildPaginationParams(options?.limit, options?.from);
         let response: {
             users: AdminAccountDetails[];
             next_token?: string;
@@ -302,7 +302,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
 
     async getUserRooms(userId: string, from?: string, limit?: number): Promise<UserRoomsResponse> {
         AdminValidators.validateUserId(userId);
-        const query = buildPaginationParams(from, limit);
+        const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rooms`, query);
     }
 
@@ -312,7 +312,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     }
 
     async listUserStats(from?: string, limit?: number): Promise<UserStatsListResponse> {
-        const query = buildPaginationParams(from, limit);
+        const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, "/user_stats", query);
     }
 
@@ -514,7 +514,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         limit?: number,
     ): Promise<{ media: MediaInfo[]; next_token?: string }> {
         AdminValidators.validateUserId(userId);
-        const queryParams = buildPaginationParams(from, limit);
+        const queryParams = buildPaginationParams(limit, from);
         const response = await this.adminRequest<{ media?: MediaInfo[]; next_token?: string }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/media`,

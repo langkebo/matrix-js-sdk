@@ -92,7 +92,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             AdminValidators.validateLimit(options.limit);
         }
 
-        const queryParams = buildPaginationParams(options?.from, options?.limit);
+        const queryParams = buildPaginationParams(options?.limit, options?.from);
         if (options?.search) {
             queryParams.search = options.search;
             queryParams.search_term = options.search;
@@ -336,9 +336,9 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateRoomId(roomId);
         const queryParams: Record<string, string> = {};
         if (typeof optionsOrFrom === "string") {
-            Object.assign(queryParams, buildPaginationParams(optionsOrFrom, limit));
+            Object.assign(queryParams, buildPaginationParams(limit, optionsOrFrom));
         } else if (optionsOrFrom) {
-            Object.assign(queryParams, buildPaginationParams(optionsOrFrom.from, optionsOrFrom.limit));
+            Object.assign(queryParams, buildPaginationParams(optionsOrFrom.limit, optionsOrFrom.from));
             if (optionsOrFrom.dir !== undefined) {
                 queryParams.dir = String(optionsOrFrom.dir);
             }
@@ -441,7 +441,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * @returns 房间统计信息列表
      */
     async getRoomStats(from?: string, limit?: number): Promise<RoomStats[]> {
-        const queryParams = buildPaginationParams(from, limit);
+        const queryParams = buildPaginationParams(limit, from);
         const response = await this.adminRequest<{ rooms: RoomStats[] }>(Method.Get, "/room_stats", queryParams);
         return response.rooms || [];
     }
@@ -456,7 +456,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     async listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
-        const query = buildPaginationParams(options?.from, options?.limit);
+        const query = buildPaginationParams(options?.limit, options?.from);
         return await this.adminRequest(Method.Get, "/reports", query);
     }
 
@@ -472,7 +472,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
 
     async listRoomReports(roomId: string, options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         AdminValidators.validateRoomId(roomId);
-        const query = buildPaginationParams(options?.from, options?.limit);
+        const query = buildPaginationParams(options?.limit, options?.from);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/reports`, query);
     }
 
@@ -491,7 +491,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     async listSpaces(from?: string, limit?: number): Promise<SpacePage> {
-        const query = buildPaginationParams(from, limit);
+        const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, "/spaces", query);
     }
 
@@ -502,7 +502,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
 
     async getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
         AdminValidators.validateRoomId(spaceId);
-        const query = buildPaginationParams(from, limit);
+        const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
     }
 
@@ -513,7 +513,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
 
     async getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }> {
         AdminValidators.validateRoomId(spaceId);
-        const query = buildPaginationParams(from, limit);
+        const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/users`, query);
     }
 }

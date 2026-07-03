@@ -21,26 +21,20 @@ limitations under the License.
 /**
  * Build pagination query parameters
  *
- * @param from - Pagination start token
+ * Re-exported from common utilities. Accepts (limit, from, to, dir) order.
+ *
  * @param limit - Number of items to return
+ * @param from - Pagination start token
  * @returns Query parameters object
  *
  * @example
  * ```typescript
- * const params = buildPaginationParams("token123", 50);
- * // { from: "token123", limit: "50" }
+ * const params = buildPaginationParams(50, "token123");
+ * // { limit: "50", from: "token123" }
  * ```
  */
-export function buildPaginationParams(from?: string, limit?: number): Record<string, string> {
-    const params: Record<string, string> = {};
-    if (from) {
-        params["from"] = from;
-    }
-    if (limit !== undefined) {
-        params["limit"] = String(limit);
-    }
-    return params;
-}
+import { buildPaginationParams } from "../common/pagination";
+export { buildPaginationParams };
 
 /**
  * Build search query parameters
@@ -57,7 +51,7 @@ export function buildPaginationParams(from?: string, limit?: number): Record<str
  * ```
  */
 export function buildSearchParams(searchTerm?: string, from?: string, limit?: number): Record<string, string> {
-    const params = buildPaginationParams(from, limit);
+    const params = buildPaginationParams(limit, from);
     if (searchTerm) {
         params["search_term"] = searchTerm;
     }
