@@ -124,11 +124,11 @@ describe("SamlAuthManager", () => {
         });
 
         it("getSpMetadata should GET /saml/sp_metadata", async () => {
-            transport.respondWith({ entityId: "https://sp.test/metadata", acsUrl: "https://sp.test/acs" });
+            transport.respondWith({ xml: "<md>test</md>" });
 
             const result = await manager.getSpMetadata();
 
-            expect(result.entityId).toBe("https://sp.test/metadata");
+            expect(result.xml).toBe("<md>test</md>");
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
                 "/saml/sp_metadata",
