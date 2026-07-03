@@ -16,7 +16,7 @@
  * const result = await manager.uploadVoiceMessage({ content_type: "audio/ogg", body: "..." });
  * ```
  */
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -149,8 +149,8 @@ interface VoiceManagerEventMap {
 export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> {
     private cachedConfig: IVoiceConfig | null = null;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async isSupported(): Promise<boolean> {

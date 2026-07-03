@@ -30,7 +30,7 @@ limitations under the License.
  *                 ...
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixError } from "../http-api/errors";
 import { MatrixClient } from "../client";
@@ -169,8 +169,8 @@ interface ModuleManagerEventMap {
 }
 
 export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     protected async adminRequest<T>(

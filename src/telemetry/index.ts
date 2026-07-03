@@ -32,7 +32,7 @@ limitations under the License.
  */
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import type { TelemetryPathPattern } from "./__generated__/route-table";
 import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
@@ -178,8 +178,8 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
     private sessionStart: number;
     private stats: UsageStats;
 
-    constructor(client: MatrixClient, config?: Partial<TelemetryConfig>) {
-        super(client);
+    constructor(client: MatrixClient, config?: Partial<TelemetryConfig>, opts?: ManagerOpts) {
+        super(client, opts);
         this.config = {
             enabled: config?.enabled || false,
             endpoint: config?.endpoint,

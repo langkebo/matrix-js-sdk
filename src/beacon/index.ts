@@ -27,7 +27,7 @@ import { type MBeaconInfoEventContent } from "../@types/beacon";
 import { type MatrixEvent } from "../models/event";
 import { type Room } from "../models/room";
 import { Beacon, type BeaconEventHandlerMap } from "../models/beacon";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface BeaconManagerEvents {
@@ -37,8 +37,8 @@ export interface BeaconManagerEvents {
 }
 
 export class BeaconManager extends BaseManager<keyof BeaconManagerEvents, BeaconManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async createLiveBeacon(

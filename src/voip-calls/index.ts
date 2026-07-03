@@ -31,7 +31,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { MatrixCall } from "../web-rtc/call";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
@@ -72,8 +72,8 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
     private cachedVoipConfig: IVoipConfigResponse | null = null;
     private turnServerExpiry = 0;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public createCall(roomId: string): MatrixCall | null {

@@ -20,7 +20,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { type IRoomEventFilter } from "../filter";
 import { InvalidParamError } from "../common/errors";
 import { validateRoomId } from "../common/validators";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import * as utils from "../utils";
 import { QueryDict } from "../utils";
 import { LRUCache } from "../utils/lru-cache";
@@ -125,8 +125,8 @@ export function setEventManagerRetryOptions(
 export class EventManager extends BaseManager<EventManagerEvent, EventManagerEventMap> {
     private stateCache: LRUCache<IStateEvent[]>;
 
-    constructor(client: MatrixClient, retryOptions?: import("../managers/base-manager").RetryOptions) {
-        super(client, retryOptions);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.stateCache = new LRUCache<IStateEvent[]>(50, 5 * 60 * 1000);
     }
 

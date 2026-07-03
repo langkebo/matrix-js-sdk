@@ -25,7 +25,7 @@ import { Method } from "../http-api/method";
 import { MediaPrefix, ClientPrefix } from "../http-api/prefix";
 import type { UploadResponse } from "../http-api/interface";
 import type { UploadOpts } from "../http-api/interface";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { MediaPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -138,8 +138,8 @@ function parseMxcUri(mxc?: string): { serverName: string; mediaId: string } | nu
 }
 
 export class MediaManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

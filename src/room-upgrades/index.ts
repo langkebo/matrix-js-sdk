@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRoomUpgradeHistory {
@@ -41,8 +41,8 @@ export interface RoomUpgradesManagerEvents {
 }
 
 export class RoomUpgradesManager extends BaseManager<keyof RoomUpgradesManagerEvents, RoomUpgradesManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getRoomUpgradeHistory(roomId: string): IRoomUpgradeHistory[] {

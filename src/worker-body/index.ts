@@ -20,7 +20,7 @@ import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { ValidationError } from "../errors";
 import { type IEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { WorkerBodyPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -76,8 +76,8 @@ export interface WorkerEventsResponse {
 }
 
 export class WorkerBodyManager extends BaseManager<string, Record<string, never>> {
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private doRequest<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {

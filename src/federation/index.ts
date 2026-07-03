@@ -32,7 +32,7 @@ limitations under the License.
  *   (HTTP 502)。调用方可通过 `MatrixError.isServerNotTrustedError()` 检测。
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -80,8 +80,8 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     private serverCache: Map<string, IFederationServer> = new Map();
     private initialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

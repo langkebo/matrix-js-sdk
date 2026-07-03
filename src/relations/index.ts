@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { type IEvent, type IContent, type MatrixEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
@@ -109,8 +109,8 @@ function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
 }
 
 export class RelationsManager extends BaseManager<RelationsEvent, RelationsManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

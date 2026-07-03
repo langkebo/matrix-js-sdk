@@ -30,7 +30,7 @@ import { ClientPrefix } from "../http-api/prefix";
 
 import { validateRoomId, validateUserId, validateEventType } from "../common/validators";
 import { encodeUri, type QueryDict } from "../utils";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 
 export type RoomSummaryErrorCallback = (error: Error) => void;
@@ -48,8 +48,8 @@ export abstract class RoomSummaryBaseManager<
 /* eslint-enable @typescript-eslint/no-explicit-any */
     protected readonly onError?: RoomSummaryErrorCallback;
 
-    constructor(client: MatrixClient, onError?: RoomSummaryErrorCallback) {
-        super(client);
+    constructor(client: MatrixClient, onError?: RoomSummaryErrorCallback, opts?: ManagerOpts) {
+        super(client, opts);
         this.onError = onError;
     }
 

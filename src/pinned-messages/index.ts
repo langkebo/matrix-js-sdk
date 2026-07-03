@@ -33,7 +33,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import { getOrCreateManager, registerManagerClass } from "../client-infra/manager-registry";
 
@@ -71,8 +71,8 @@ interface PinnedMessagesManagerEventMap {
 export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessagesManagerEventMap> {
     private pinnedEventsCache: LRUCache<IPinnedEventInfo[]>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.pinnedEventsCache = new LRUCache<IPinnedEventInfo[]>({
             maxSize: 100,
             ttl: 5 * 60 * 1000,

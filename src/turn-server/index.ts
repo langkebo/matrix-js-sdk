@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { type ITurnServer, type ITurnServerResponse } from "../client";
 import { ClientEvent } from "../client";
 import { type HTTPError } from "../http-api/index";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 const TURN_CHECK_INTERVAL = 30 * 1000;
@@ -35,8 +35,8 @@ export interface TurnServerManagerEvents {
 }
 
 export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents, TurnServerManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getTurnServers(): ITurnServer[] {

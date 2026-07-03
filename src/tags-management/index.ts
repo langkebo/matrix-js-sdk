@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { type IContent } from "../models/event";
 import { buildRoomAccountDataPath, buildRoomTagPath } from "../client-account-data-requests";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ITagContent {
@@ -44,8 +44,8 @@ export interface TagsManagerEvents {
 }
 
 export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getRoomTags(roomId: string): string[] {

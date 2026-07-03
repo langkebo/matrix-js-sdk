@@ -27,7 +27,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -53,8 +53,8 @@ export interface CreateRoomKeyRequest {
 export class RoomKeysManager extends BaseManager {
     private requestsCache: LRUCache<RoomKeyRequest[]>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.requestsCache = new LRUCache<RoomKeyRequest[]>({
             maxSize: 50,
             ttl: 5 * 60 * 1000,

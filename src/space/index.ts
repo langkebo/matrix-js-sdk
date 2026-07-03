@@ -34,7 +34,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { Body } from "../http-api/interface";
 import { NotFoundError } from "../errors";
 import { type QueryDict } from "../utils";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { validateRoomId } from "../common/validators";
 import { ValidationError } from "../errors";
@@ -176,8 +176,8 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     private cache: LRUCache<Space[]>;
     private spaceCache: LRUCache<Space>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.cache = new LRUCache<Space[]>({ maxSize: 50, ttl: 5 * 60 * 1000, name: "index.ts-space" });
         this.spaceCache = new LRUCache<Space>({ maxSize: 100, ttl: 5 * 60 * 1000, name: "index.ts-space" });
     }

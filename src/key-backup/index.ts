@@ -28,7 +28,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { KeyBackupPathPattern } from "./__generated__/route-table";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -182,8 +182,8 @@ export class KeyBackupManager extends BaseManager {
     private currentVersion: string | null = null;
     private versionCache: LRUCache<BackupVersionInfo>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.versionCache = new LRUCache<BackupVersionInfo>({
             maxSize: 10,
             ttl: 5 * 60 * 1000,

@@ -32,7 +32,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { InvalidParamError } from "../common/errors";
 import { LRUCache } from "../utils/lru-cache";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -102,8 +102,8 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
     private readonly cacheTTL = 5 * 60 * 1000;
     private securitySummaryCache: LRUCache<ISecuritySummary>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.deviceTrustCache = new LRUCache<IDeviceTrustInfo>({
             maxSize: 200,
             ttl: 5 * 60 * 1000,

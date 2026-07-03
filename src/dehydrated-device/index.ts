@@ -1,5 +1,5 @@
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
@@ -55,8 +55,8 @@ export interface UpdateDehydratedDeviceResponse {
 }
 
 export class DehydratedDeviceManager extends BaseManager {
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async isSupported(): Promise<boolean> {

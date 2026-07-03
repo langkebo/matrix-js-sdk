@@ -18,7 +18,7 @@ import { MatrixClient } from "../client";
 import { CachedReceipt, Receipt, ReceiptType } from "../@types/read_receipts";
 import type { EmptyObject } from "../@types/common";
 import type { MatrixEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho, type ReceiptBody } from "../client-receipt-requests";
 import { setRoomReadMarkersRequest } from "../client-batch-requests";
@@ -48,8 +48,8 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
     private pendingReceiptResolvers: Map<string, { resolve: (v: EmptyObject) => void; reject: (e: unknown) => void }[]> = new Map();
     private readonly RECEIPT_DEBOUNCE_MS = 500;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

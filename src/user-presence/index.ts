@@ -26,7 +26,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
@@ -59,8 +59,8 @@ const VALID_PRESENCE_STATES: PresenceState[] = ["online", "offline", "unavailabl
 export class UserPresenceManager extends BaseManager<keyof UserPresenceManagerEvents, UserPresenceManagerEvents> {
     private presenceCache: Map<string, ICachedPresence> = new Map();
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async getUserPresence(userId: string): Promise<IPresenceResponse> {

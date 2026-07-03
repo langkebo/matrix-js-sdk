@@ -20,7 +20,7 @@ limitations under the License.
  * 提供应用服务的注册、查询、管理功能
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -159,8 +159,8 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     private services: Map<string, ApplicationService> = new Map();
     private initialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface Lookup3PidResult {
@@ -53,8 +53,8 @@ export interface IdentityManagerEvents {
 }
 
 export class IdentityManager extends BaseManager<keyof IdentityManagerEvents, IdentityManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getIdentityServerUrl(): string | undefined {

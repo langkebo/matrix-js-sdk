@@ -1,6 +1,6 @@
 import { logger } from "../logger";
 import { MatrixClient, type IProtocol } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
 import type { ThirdpartyPathPattern } from "./__generated__/route-table";
@@ -50,8 +50,8 @@ function tp<P extends StripV3<ThirdpartyPathPattern>>(path: P): P {
 }
 
 export class ThirdPartyManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

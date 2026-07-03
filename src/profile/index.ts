@@ -30,7 +30,7 @@ import { UserEvent } from "../models/user";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
 import { getHttpUriForMxc } from "../content-repo";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
@@ -93,8 +93,8 @@ interface ProfileManagerEventMap {
 export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEventMap> {
     private profileCache: LRUCache<CachedProfileEntry>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.profileCache = new LRUCache<CachedProfileEntry>({
             maxSize: 200,
             ttl: 10 * 60 * 1000,

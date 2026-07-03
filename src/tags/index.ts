@@ -20,7 +20,7 @@ limitations under the License.
  * 提供房间标签的添加、删除、查询功能
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { IContent } from "../models/event";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
@@ -63,8 +63,8 @@ interface TagManagerEventMap {
 export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
     private roomTags: Map<string, IRoomTags> = new Map();
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     async getRoomTags(roomId: string): Promise<IRoomTags> {

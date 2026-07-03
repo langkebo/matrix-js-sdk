@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { MatrixEvent, type IClearEvent, type IContent } from "../models/event";
 import { Room } from "../models/room";
 import { CryptoApi } from "../crypto-api";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IEncryptionResult {
@@ -57,8 +57,8 @@ export class CryptoEncryptionManager extends BaseManager<
     keyof CryptoEncryptionManagerEvents,
     CryptoEncryptionManagerEvents
 > {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public isE2eEnabled(): boolean {

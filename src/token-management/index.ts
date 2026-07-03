@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TokenInfo {
@@ -40,8 +40,8 @@ export interface TokenManagerEvents {
 }
 
 export class TokenManager extends BaseManager<keyof TokenManagerEvents, TokenManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getAccessToken(): string | undefined {

@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IInviteEvent {
@@ -43,8 +43,8 @@ export interface InvitesManagerEvents {
 }
 
 export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, InvitesManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async inviteByThreePid(medium: string, address: string, roomId: string): Promise<IInviteResponse> {

@@ -38,7 +38,7 @@ limitations under the License.
 import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { AiConnectionPathPattern } from "./__generated__/route-table";
@@ -104,8 +104,8 @@ interface AIConnectionManagerEventMap {
 export type AiApiVersion = "v1" | "v3";
 
 export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnectionManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async isSupported(): Promise<boolean> {

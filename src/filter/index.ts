@@ -36,13 +36,13 @@ import * as utils from "../utils";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { buildCreateFilterPath, buildFilterPath } from "../client-account-data-requests";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ApiError, NotFoundError, ValidationError } from "../errors";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export class FilterManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async createFilter(definition: IFilterDefinition): Promise<{ filterId: string }> {

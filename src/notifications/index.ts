@@ -22,7 +22,7 @@ import { type LocalNotificationSettings } from "../@types/local_notifications";
 import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
 import { type EmptyObject } from "../@types/common";
 import { type IEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { validateLimit } from "../common/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -58,8 +58,8 @@ export interface NotificationsManagerEvents {
 export class NotificationsManager extends BaseManager<keyof NotificationsManagerEvents, NotificationsManagerEvents> {
     private notifTimelineSet: EventTimelineSet | null = null;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getNotifTimelineSet(): EventTimelineSet | null {

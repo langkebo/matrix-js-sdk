@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import type { IThreepid } from "../@types/three-pids";
 import type { IdServerUnbindResult } from "../@types/partials";
@@ -34,8 +34,8 @@ export type ThreePidsManagerEvents = Record<
 >;
 
 export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, ThreePidsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async getThreePids(): Promise<{ threepids: IThreepid[] }> {

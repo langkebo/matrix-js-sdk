@@ -32,7 +32,7 @@ limitations under the License.
  * ```
  */
 import { logger } from "../logger";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { Direction } from "../models/event-timeline";
@@ -71,8 +71,8 @@ export class InviteListManager extends BaseManager<InviteListEvent, InviteListMa
     private invites: Map<string, IInviteInfo> = new Map();
     private initialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     async getInvites(): Promise<IInviteInfo[]> {

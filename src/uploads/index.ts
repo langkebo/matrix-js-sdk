@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import type { UploadOpts } from "../http-api/interface";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IUploadOptions {
@@ -49,8 +49,8 @@ export interface UploadsManagerEvents {
 }
 
 export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, UploadsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async uploadContent(file: File | Blob | string, opts?: IUploadOptions): Promise<IUploadResponse> {

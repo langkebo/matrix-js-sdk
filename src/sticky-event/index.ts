@@ -27,7 +27,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { type IContent, MatrixEvent } from "../models/event";
 import { EventType } from "../@types/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { InvalidParamError } from "../common/errors";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -107,8 +107,8 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         retried: 0,
     };
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.stickyEventsCache = new LRUCache<IStickyEventInfo>({
             maxSize: 100,
             ttl: 5 * 60 * 1000,

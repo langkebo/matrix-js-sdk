@@ -31,7 +31,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { Method } from "../http-api/method";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -68,8 +68,8 @@ export interface IUserProfile {
 }
 
 export class UserDirectoryManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async searchUserDirectory(term: string, limit?: number): Promise<IUserDirectorySearchResult> {

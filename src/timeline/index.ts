@@ -26,7 +26,7 @@ import { EventTimeline, Direction } from "../models/event-timeline";
 import { EventTimelineSet } from "../models/event-timeline-set";
 import { MatrixEvent, type IContent } from "../models/event";
 import { Thread, THREAD_RELATION_TYPE, ThreadFilterType } from "../models/thread";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { IContextResponse } from "../@types/requests";
 import type { IMessagesResponse } from "../client-internal-types";
 import type { IRelationsResponse } from "../@types/requests";
@@ -84,8 +84,8 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
     private static SCROLLBACK_DELAY_MS = 3000;
     private ongoingScrollbacks: Record<string, { promise?: Promise<Room>; errorTs?: number }> = {};
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getTimelineForRoom(roomId: string): EventTimelineSet | null {

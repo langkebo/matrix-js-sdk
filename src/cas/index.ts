@@ -23,7 +23,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import type { CasPathPattern } from "./__generated__/route-table";
@@ -103,8 +103,8 @@ export interface CasProxyResponse {
 }
 
 export class CasManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private resolvePrefix(prefix: CasApiPrefix): string {

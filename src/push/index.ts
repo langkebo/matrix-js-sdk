@@ -22,7 +22,7 @@ import {
 } from "../@types/PushRules";
 import { PUSHER_ENABLED } from "../@types/event";
 import { type IEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache, CacheRegistry } from "../utils/lru-cache";
 import { validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -123,8 +123,8 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     private pushRulesCache: LRUCache<IPushRules>;
     private initialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
 
         this.pushersCache = new LRUCache<IPusher[]>({ maxSize: 10, ttl: 5 * 60 * 1000, name: "push-pushers" });
         this.pushRulesCache = new LRUCache<IPushRules>({ maxSize: 10, ttl: 5 * 60 * 1000, name: "push-rules" });

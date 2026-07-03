@@ -21,7 +21,7 @@ limitations under the License.
  * 对应后端: synapse-rust/src/web/routes/presence.rs
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
@@ -77,8 +77,8 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
     private subscribedUsers: Set<string> = new Set();
     private initialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.presenceCache = new LRUCache<IPresenceState>({
             maxSize: 500,
             ttl: 5 * 60 * 1000,

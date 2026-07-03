@@ -20,7 +20,7 @@ limitations under the License.
  * 提供登录、登出、Token 管理等功能
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
@@ -57,8 +57,8 @@ const SSO_ACTION_PARAM = {
 };
 
 export class AccountManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

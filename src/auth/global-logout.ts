@@ -24,11 +24,11 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 
 export class GlobalLogoutManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

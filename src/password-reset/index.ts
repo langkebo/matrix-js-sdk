@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import type { EmptyObject } from "../@types/common";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
@@ -39,8 +39,8 @@ export type PasswordResetManagerEvents = Record<
 >;
 
 export class PasswordResetManager extends BaseManager<keyof PasswordResetManagerEvents, PasswordResetManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async requestPasswordEmailToken(

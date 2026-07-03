@@ -9,7 +9,7 @@ you may not use this file except in compliance with the License.
 
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import type { VerificationPathPattern } from "./__generated__/route-table";
@@ -171,8 +171,8 @@ export interface ScanQrCodeResponse {
 }
 
 export class VerificationManager extends BaseManager {
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async startVerification(

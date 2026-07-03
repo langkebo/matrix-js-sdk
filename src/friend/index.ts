@@ -35,7 +35,7 @@ import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { NotFoundError } from "../errors";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -321,8 +321,8 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
     public readonly list: FriendListManager;
     public readonly blocks: FriendBlockManager;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
 
         // 创建共享状态
         const friendListRoomId: string | null = null;

@@ -33,7 +33,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { type IContent } from "../models/event";
 import { LRUCache } from "../utils/lru-cache";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { EphemeralPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -98,8 +98,8 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
     private ephemeralEventsCache: LRUCache<IEphemeralEventInfo[]>;
     private defaultLimit = 100;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.ephemeralEventsCache = new LRUCache<IEphemeralEventInfo[]>({
             maxSize: 100,
             ttl: 60 * 1000,

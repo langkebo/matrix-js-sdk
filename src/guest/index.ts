@@ -26,7 +26,7 @@ limitations under the License.
  */
 
 import { logger } from "../logger";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -149,8 +149,8 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
     private guestInfo: IGuestInfo | null = null;
     private baseUrl: string;
 
-    constructor(client: MatrixClient, baseUrl: string) {
-        super(client);
+    constructor(client: MatrixClient, baseUrl: string, opts?: ManagerOpts) {
+        super(client, opts);
         this.baseUrl = baseUrl;
     }
 

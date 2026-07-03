@@ -34,7 +34,7 @@ limitations under the License.
  */
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -122,8 +122,8 @@ export class KeyRotationManager extends BaseManager {
     private readonly statusCacheTtlMs = 30_000;
     private statusCache: StatusCacheEntry | null = null;
 
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async getStatus(forceRefresh = false): Promise<KeyRotationStatus> {

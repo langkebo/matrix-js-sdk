@@ -21,7 +21,7 @@ limitations under the License.
  * 对应后端: synapse-rust thread 模块
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
@@ -106,8 +106,8 @@ interface ThreadManagerEventMap {
 // ============ Manager ============
 
 export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     // ============ Room-scoped thread list ============

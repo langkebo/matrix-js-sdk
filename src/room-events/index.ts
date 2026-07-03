@@ -25,7 +25,7 @@ import { Method } from "../http-api/index";
 import * as utils from "../utils";
 import { MatrixEvent, type IEvent } from "../models/event";
 import { type IEphemeralEventData } from "../ephemeral/index";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IRoomEventResponse {
@@ -46,8 +46,8 @@ export interface RoomEventsManagerEvents {
 }
 
 export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents, RoomEventsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]> {

@@ -32,7 +32,7 @@ import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { MatrixError } from "../http-api/errors";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { NotFoundError, ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
 import type { DevicePathPattern } from "./__generated__/route-table";
@@ -193,8 +193,8 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
     private currentDeviceId: string | null = null;
     private initialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.currentDeviceId = client.deviceId ?? null;
 
         this.deviceListCache = new LRUCache<IDevice[]>({ maxSize: 10, ttl: 5 * 60 * 1000, name: "index.ts-idevice" });

@@ -19,7 +19,7 @@ import { EventType } from "../@types/event";
 import type { ISendEventResponse } from "../@types/requests";
 import type { RoomMessageEventContent } from "../@types/events";
 import type { IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IImageInfo {
@@ -61,8 +61,8 @@ export interface SendingManagerEvents {
 }
 
 export class SendingManager extends BaseManager<keyof SendingManagerEvents, SendingManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async sendEvent(

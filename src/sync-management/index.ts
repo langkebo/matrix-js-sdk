@@ -18,7 +18,7 @@ import type { IStoredClientOpts } from "../client-config-types";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { SyncApi, SyncState, type ISyncStateData, type SyncApiOptions } from "../sync";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
 
@@ -33,8 +33,8 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     private syncedLeftRooms = false;
     private syncLeftRoomsPromise: Promise<Room[]> | undefined;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getSyncToken(): string | undefined {

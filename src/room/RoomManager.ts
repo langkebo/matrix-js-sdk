@@ -34,7 +34,7 @@ import { type IContent } from "../models/event";
 import { type IRoomEventFilter } from "../filter";
 import { InvalidParamError } from "../common/errors";
 import { validateRoomId, validateUserId } from "../common/validators";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import * as utils from "../utils";
 import { logger } from "../logger";
 import { KnownMembership } from "../@types/membership";
@@ -189,8 +189,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     private peekSync: SyncApi | null = null;
     private readonly urlPreviewRequestCache: InflightRequestCache<IPreviewUrlResponse>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
 
         this.roomInfoCache = new LRUCache<RoomInfoCacheEntry>(100, 5 * 60 * 1000);
         this.membersCache = new LRUCache<IStateEvent[]>(100, 2 * 60 * 1000);

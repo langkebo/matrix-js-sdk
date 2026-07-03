@@ -32,7 +32,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -87,8 +87,8 @@ export interface SecureBackupVerifyResponse {
 export class SecureBackupManager extends BaseManager {
     private backupCache: LRUCache<SecureBackupInfo>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.backupCache = new LRUCache<SecureBackupInfo>({
             maxSize: 10,
             ttl: 5 * 60 * 1000,

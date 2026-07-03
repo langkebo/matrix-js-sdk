@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { type EmptyObject } from "../@types/common";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 
@@ -34,8 +34,8 @@ export interface UserManagerEvents {
 }
 
 export class UserManager extends BaseManager<keyof UserManagerEvents, UserManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getUserId(): string | null {

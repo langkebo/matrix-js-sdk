@@ -34,7 +34,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { NotFoundError } from "../errors";
 import { logger } from "../logger";
 import { LRUCache } from "../utils/lru-cache";
@@ -98,8 +98,8 @@ export interface IRoomKeyDistributionResponse {
 export class CryptoKeysManager extends BaseManager {
     private deviceKeysCache: LRUCache<IDeviceKeys>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
         this.deviceKeysCache = new LRUCache<IDeviceKeys>({
             maxSize: 500,
             ttl: 10 * 60 * 1000,

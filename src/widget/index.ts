@@ -24,7 +24,7 @@ limitations under the License.
  * 本模块使用 __generated__ route-table 路径常量，提供 Ledger 对齐的 widget API。
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
@@ -145,8 +145,8 @@ interface WidgetManagerEventMap {
 // ============ Manager ============
 
 export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     // ============ Room widgets ============

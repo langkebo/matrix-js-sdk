@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
 import { RoomMember } from "../models/room-member";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface MembershipManagerEvents {
@@ -27,8 +27,8 @@ export interface MembershipManagerEvents {
 }
 
 export class MembershipManager extends BaseManager<keyof MembershipManagerEvents, MembershipManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getRoomMembers(roomId: string): RoomMember[] {

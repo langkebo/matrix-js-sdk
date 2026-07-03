@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export type ClaimedKeys = Record<string, Record<string, string>>;
@@ -32,8 +32,8 @@ export interface KeyClaimManagerEvents {
 }
 
 export class KeyClaimManager extends BaseManager<keyof KeyClaimManagerEvents, KeyClaimManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

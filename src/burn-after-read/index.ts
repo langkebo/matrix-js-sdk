@@ -42,7 +42,7 @@ limitations under the License.
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
-import { BaseManager, type RequestStats } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts, type RequestStats } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { NotFoundError, ValidationError, SdkError } from "../errors";
 import { logger } from "../logger";
@@ -156,12 +156,8 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
     private roomSettings: Map<string, IBurnSettings> = new Map();
     private burnRetryCount: Map<string, number> = new Map();
 
-    constructor(client: MatrixClient, config?: Partial<IBurnAfterReadConfig>) {
-        super(client, {
-            maxRetries: 3,
-            retryDelay: 1000,
-            backoffMultiplier: 2,
-        });
+    constructor(client: MatrixClient, config?: Partial<IBurnAfterReadConfig>, opts?: ManagerOpts) {
+        super(client, { maxRetries: 3, retryDelay: 1000, backoffMultiplier: 2, ...opts });
         this.config = {
             enabled: config?.enabled ?? true,
             default_expire_time: config?.default_expire_time ?? DEFAULT_BURN_AFTER_MS,

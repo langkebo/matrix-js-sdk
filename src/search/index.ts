@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { validateRoomId, validateLimit } from "../common/validators";
 import { ValidationError } from "../errors";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -64,8 +64,8 @@ export interface SearchManagerEvents {
 }
 
 export class SearchManager extends BaseManager<keyof SearchManagerEvents, SearchManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

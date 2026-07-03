@@ -11,7 +11,7 @@ import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { type Body } from "../http-api/interface";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import type { EventReportPathPattern } from "./__generated__/route-table";
@@ -111,8 +111,8 @@ export interface EventReportCountResponse {
  * 对应后端 `event_report.rs` 中的所有 Admin REST 端点。
  */
 export class EventReportManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private buildQueryParams(params?: QueryParams): Record<string, string | number> | undefined {

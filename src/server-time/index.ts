@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ServerTimeManagerEvents {
@@ -30,8 +30,8 @@ export interface ServerTimeManagerEvents {
 }
 
 export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents, ServerTimeManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getServerClockDiff(): number {

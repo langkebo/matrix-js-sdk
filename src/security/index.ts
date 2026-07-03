@@ -23,7 +23,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { logger } from "../logger";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -46,8 +46,8 @@ export interface LoginFailuresResponse {
 }
 
 export class SecurityManager extends BaseManager {
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

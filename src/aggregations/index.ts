@@ -16,7 +16,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IAggregation {
@@ -30,8 +30,8 @@ export interface AggregationsManagerEvents {
 }
 
 export class AggregationsManager extends BaseManager<keyof AggregationsManagerEvents, AggregationsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getAggregations(roomId: string, eventId: string): IAggregation[] {

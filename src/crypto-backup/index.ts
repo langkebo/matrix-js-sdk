@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { Curve25519AuthData, Aes256AuthData } from "../crypto-api/keybackup";
 import type { ISigned } from "../@types/signed";
@@ -42,8 +42,8 @@ export interface CryptoBackupManagerEvents {
 }
 
 export class CryptoBackupManager extends BaseManager<keyof CryptoBackupManagerEvents, CryptoBackupManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async isCryptoBackupEnabled(): Promise<boolean> {

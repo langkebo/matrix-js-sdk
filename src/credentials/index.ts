@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface CredentialsInfo {
@@ -38,8 +38,8 @@ export interface CredentialsManagerEvents {
 }
 
 export class CredentialsManager extends BaseManager<keyof CredentialsManagerEvents, CredentialsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getUserId(): string | null {

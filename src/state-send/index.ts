@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { EventType } from "../@types/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixError } from "../http-api/errors";
 import { NotFoundError } from "../errors";
 import type { IPowerLevelsContent } from "../models/room-state";
@@ -52,8 +52,8 @@ type ClientInternals = {
 };
 
 export class StateSendManager extends BaseManager<keyof StateSendManagerEvents, StateSendManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async setPowerLevel(

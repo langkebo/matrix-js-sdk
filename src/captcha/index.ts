@@ -25,7 +25,7 @@ import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
 import { Method } from "../http-api";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { CaptchaPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -86,8 +86,8 @@ interface CaptchaManagerEventMap {
 }
 
 export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, CaptchaManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async sendCaptcha(

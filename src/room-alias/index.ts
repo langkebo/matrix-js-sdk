@@ -21,7 +21,7 @@ limitations under the License.
  * 提供房间别名的创建、删除、查询功能
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -61,8 +61,8 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
     private aliasCache: Map<string, IRoomAliasInfo> = new Map();
     private roomAliasesCache: Map<string, string[]> = new Map();
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

@@ -10,7 +10,7 @@
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface FeatureFlag {
@@ -51,8 +51,8 @@ export interface FeatureFlagListResponse {
  * FeatureFlagManager 处理功能开关的后台管理。
  */
 export class FeatureFlagManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

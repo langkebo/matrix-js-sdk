@@ -9,7 +9,7 @@ you may not use this file except in compliance with the License.
 
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
@@ -230,8 +230,8 @@ export interface DeviceVerificationRespondResponse {
 export type SendToDeviceVersion = "r0" | "v1" | "v3";
 
 export class E2EEManager extends BaseManager {
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     // -------- compat (r0/v1/v3) ----------

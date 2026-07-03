@@ -25,7 +25,7 @@ import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { type WidgetData } from "../matrix-client-extensions";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
@@ -174,8 +174,8 @@ export interface WidgetsManagerEvents {
 }
 
 export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, WidgetsManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async isSupported(): Promise<boolean> {

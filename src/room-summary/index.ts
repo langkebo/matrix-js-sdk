@@ -123,7 +123,7 @@ import { Body } from "../http-api/interface";
 import { InvalidParamError } from "../common/errors";
 import { validateRoomId } from "../common/validators";
 import { type QueryDict } from "../utils";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types";
@@ -263,8 +263,8 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public readonly invitePolicy: RoomSummaryInvitePolicyManager;
     public readonly eventOps: RoomSummaryEventOperationManager;
 
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
 
         this.summaryCache = new LRUCache<RoomSummary>({
             maxSize: 1000,

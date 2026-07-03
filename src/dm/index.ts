@@ -37,7 +37,7 @@ import type { ICreateRoomOpts } from "../@types/requests";
 import { Preset } from "../@types/partials";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { MatrixError } from "../http-api/errors";
 import { NotFoundError } from "../errors";
@@ -146,8 +146,8 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     private userDmMapCache: LRUCache<string>;
     private isInitialized: boolean = false;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
 
         this.dmRoomsCache = new LRUCache<DmRoomInfo>(100, 5 * 60 * 1000);
         this.userDmMapCache = new LRUCache<string>(200, 10 * 60 * 1000);

@@ -33,7 +33,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
@@ -157,8 +157,8 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
     private currentProvider: string | null = null;
     private discoveryCache: IOidcDiscovery | null = null;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

@@ -24,7 +24,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import type { ExternalServicePathPattern } from "./__generated__/route-table";
@@ -137,8 +137,8 @@ export interface ExternalServiceWebhookResponse {
 }
 
 export class ExternalServiceManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private resolvePrefix(prefix: ExternalServiceApiPrefix): string {

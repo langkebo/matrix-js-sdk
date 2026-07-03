@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { SyncAccumulator, type IJoinedRoom, type IInvitedRoom, type ILeftRoom, type ISyncResponse } from "../sync-accumulator";
 import { type IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface ISyncAccumulatedData {
@@ -51,8 +51,8 @@ export class SyncAccumulatorManager extends BaseManager<
     keyof SyncAccumulatorManagerEvents,
     SyncAccumulatorManagerEvents
 > {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getSyncAccumulator(): SyncAccumulator | null {

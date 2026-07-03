@@ -29,7 +29,7 @@ limitations under the License.
  * - GET /_matrix/client/v1/rendezvous/{session_id}/messages - 获取消息
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { Body, type IRequestOpts } from "../http-api/interface";
@@ -114,8 +114,8 @@ interface RendezvousManagerEventMap {
 }
 
 export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private buildRequestOpts(sessionKey?: string): IRequestOpts {

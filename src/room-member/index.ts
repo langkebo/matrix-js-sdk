@@ -23,7 +23,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import * as utils from "../utils";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface RoomMemberInfo {
@@ -42,8 +42,8 @@ export interface RoomMemberManagerEvents {
 }
 
 export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents, RoomMemberManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async invite(roomId: string, userId: string): Promise<void> {

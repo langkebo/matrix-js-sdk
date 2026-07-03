@@ -24,7 +24,7 @@ import { MatrixClient } from "../client";
 import { Preset } from "../@types/partials";
 import { determineFeatureSupport, FeatureSupport } from "../models/thread";
 import { Feature, ServerSupport } from "../feature";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
@@ -165,8 +165,8 @@ export class ServerCapabilitiesManager extends BaseManager<
     /** Timestamp of when the capabilities cache was last fetched */
     private capabilitiesFetchedAt = 0;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async getServerCapabilities(): Promise<Capabilities> {

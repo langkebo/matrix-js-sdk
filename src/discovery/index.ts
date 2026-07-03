@@ -29,7 +29,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { IRoomDirectoryOptions } from "../@types/requests";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import type { IClientWellKnown, IServerVersions } from "../client-api-types";
@@ -122,8 +122,8 @@ export interface HealthResponse {
 }
 
 export class DiscoveryManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getHomeserverUrl(): string {

@@ -25,7 +25,7 @@ limitations under the License.
  * - POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 设置邀请白名单
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
@@ -71,8 +71,8 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     private blocklistCache: Map<string, string[]> = new Map();
     private allowlistCache: Map<string, string[]> = new Map();
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

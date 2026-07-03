@@ -1,7 +1,7 @@
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import type { IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
@@ -51,8 +51,8 @@ export class TypingManager extends BaseManager {
     private lastTypingSendTime: Map<string, number> = new Map();
     private readonly TYPING_THROTTLE_MS = 10000;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

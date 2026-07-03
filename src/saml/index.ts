@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api";
 import { ClientPrefix, AdminPrefix } from "../http-api/prefix";
 import type { SamlPathPattern } from "./__generated__/route-table";
@@ -78,8 +78,8 @@ function ap<P extends StripAdmin<SamlPathPattern>>(path: P): P {
 }
 
 export class SamlAuthManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     async initiateLogin(redirectUrl?: string): Promise<string> {

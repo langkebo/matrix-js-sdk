@@ -39,7 +39,7 @@ import { Method } from "../http-api/index";
 import { ClientPrefix } from "../http-api/prefix";
 import { type ILoginFlowsResponse } from "../@types/auth";
 import { type RegisterRequest, type RegisterResponse } from "../@types/registration";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
 import type { AuthPathPattern } from "./__generated__/route-table";
@@ -104,8 +104,8 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     private loginFlowCache: LRUCache<ILoginFlowsResponse>;
     private registerFlowCache: LRUCache<RegisterFlowsResponse>;
 
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
 
         this.loginFlowCache = new LRUCache<ILoginFlowsResponse>(10, 10 * 60 * 1000);
         this.registerFlowCache = new LRUCache<RegisterFlowsResponse>(10, 10 * 60 * 1000);

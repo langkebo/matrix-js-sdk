@@ -29,7 +29,7 @@ import type { IContent } from "../models/event";
 import type { IRelationsResponse, IContextResponse } from "../@types/requests";
 import { getRelationsThreadFilter } from "../thread-utils";
 import { ServerSupport, Feature } from "../feature";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ClientPrefix, Method } from "../http-api";
 import type { Body } from "../http-api/interface";
 import type { ThreadPathPattern } from "../thread/__generated__/route-table";
@@ -240,8 +240,8 @@ type ClientInternals = {
 };
 
 export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, ThreadingManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private buildQuery(

@@ -20,14 +20,14 @@ limitations under the License.
  * 提供登录、登出、会话管理等功能
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { type EmptyObject } from "../@types/common";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export class SessionManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     /**

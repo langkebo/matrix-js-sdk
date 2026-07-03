@@ -33,7 +33,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { ValidationError } from "../errors";
 import type { Body } from "../http-api/interface";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import type { BackgroundUpdatePathPattern } from "./__generated__/route-table";
@@ -127,8 +127,8 @@ export interface FailBackgroundUpdateBody {
 }
 
 export class BackgroundUpdateManager extends BaseManager<string, Record<string, never>> {
-    public constructor(client: MatrixClient) {
-        super(client);
+    public constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     private doRequest<T>(

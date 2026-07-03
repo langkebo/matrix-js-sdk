@@ -35,7 +35,7 @@ limitations under the License.
  * - PUT /sendToDevice/{event_type}/{transaction_id} - 发送设备消息
  */
 
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
@@ -220,8 +220,8 @@ interface DeviceKeysManagerEventMap {
 }
 
 export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysManagerEventMap> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     // normalizeError provided by BaseManager

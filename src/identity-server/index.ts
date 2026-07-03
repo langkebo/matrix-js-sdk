@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import * as utils from "../utils";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { IdentityPrefix, Method } from "../http-api/index";
@@ -45,8 +45,8 @@ async function loadClientIdentityLookup(): Promise<typeof import("../client-iden
 export type IdentityServerManagerEvents = Record<"identity_server_url_changed", (url: string | undefined) => void>;
 
 export class IdentityServerManager extends BaseManager<keyof IdentityServerManagerEvents, IdentityServerManagerEvents> {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public getIdentityServerUrl(stripProto = false): string | undefined {

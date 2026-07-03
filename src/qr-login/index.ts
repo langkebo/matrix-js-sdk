@@ -31,7 +31,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 
 type StripAuthPrefix<P extends string> =
     P extends `/_matrix/client/v3${infer Rest}` ? Rest :
@@ -91,8 +91,8 @@ export interface QrLoginInvalidateResponse {
 export type QrLoginStatus = "pending" | "confirmed" | "expired" | "invalidated";
 
 export class QrLoginManager extends BaseManager {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     public async getQrCode(): Promise<QrCodeResponse> {

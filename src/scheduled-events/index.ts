@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { type IContent } from "../models/event";
-import { BaseManager } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IDelayedEventResponse {
@@ -51,8 +51,8 @@ export class ScheduledEventsManager extends BaseManager<
     keyof ScheduledEventsManagerEvents,
     ScheduledEventsManagerEvents
 > {
-    constructor(client: MatrixClient) {
-        super(client);
+    constructor(client: MatrixClient, opts?: ManagerOpts) {
+        super(client, opts);
     }
 
     // Type assertion helper: _unstable_* methods on real MatrixClient have incompatible signatures
