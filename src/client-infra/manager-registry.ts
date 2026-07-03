@@ -105,7 +105,6 @@ export type ManagerName =
     | "filter"
     | "friend"
     | "guest"
-    | "http"
     | "identity"
     | "identityServer"
     | "inviteBlocklist"
@@ -239,7 +238,6 @@ export interface ManagerTypeMap {
     filter: import("../filter/index").FilterManager;
     friend: import("../friend/index").FriendManager;
     guest: import("../guest/index").GuestManager;
-    http: import("../http/index").HttpManager;
     identity: import("../identity/index").IdentityManager;
     identityServer: import("../identity-server/index").IdentityServerManager;
     inviteBlocklist: import("../invite-blocklist/index").InviteBlocklistManager;

@@ -127,7 +127,6 @@ export { EventManager } from "./event";
 export { EventProcessingManager } from "./event-processing";
 export { EventStatusManager } from "./event-status";
 export { FilterManager, FilterManager as CanonicalFilterManager } from "./filter/index";
-export { HttpManager } from "./http";
 export { IdentityManager } from "./identity";
 export { InviteListManager } from "./invite-list";
 export { InvitesManager } from "./invites";

@@ -325,7 +325,6 @@ export interface MatrixClientExtensionMethods {
     getDirectoryManager(): import("./directory/index").DirectoryManager;
     getFederationManager(): import("./federation/index").FederationManager;
     getServerCapabilitiesManager(): import("./server-capabilities/index").ServerCapabilitiesManager;
-    getHttpManager(): import("./http/index").HttpManager;
     getTurnServerManager(): import("./turn-server/index").TurnServerManager;
     getServerTimeManager(): import("./server-time/index").ServerTimeManager;
     getIdentityManager(): import("./identity/index").IdentityManager;
@@ -760,12 +759,6 @@ export interface MatrixClientInternalMethods {
     hasInvite(roomId: string): boolean;
     acceptInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
     declineInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
-
-    // ============ HTTP (http/index.ts) ============
-    createRequest(options: import("./http/index").IRequestOptions): Promise<unknown>;
-    pickAnyDestinationCertificate(roomId: string, eventId: string): unknown;
-    getPendingRequests(): import("./http/index").IPendingRequest[];
-    cancelPendingRequests(reason: string): void;
 
     // ============ Event Processing (event-processing/index.ts) ============
     processEvent(event: MatrixEvent): Promise<void>;
