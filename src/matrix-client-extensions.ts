@@ -24,6 +24,7 @@ import type { CryptoBackend } from "./common-crypto/CryptoBackend";
 import type { CryptoApi } from "./crypto-api";
 import type { IStoredClientOpts } from "./client-config-types";
 import type { SyncApiOptions } from "./sync";
+import { UNSTABLE_MSC3089_LEAF } from "./@types/event";
 
 // ============ 类型定义 ============
 
@@ -836,6 +837,13 @@ declare module "./client" {
 // 扩展 matrix 入口
 declare module "./matrix" {
     interface MatrixClient extends MatrixClientExtensionMethods, MatrixClientInternalMethods {}
+}
+
+// 扩展媒体类型（MSC3089 文件树支持）
+declare module "../@types/media" {
+    interface FileContent {
+        [UNSTABLE_MSC3089_LEAF.name]?: EmptyObject;
+    }
 }
 
 // ============ 导出类型 ============

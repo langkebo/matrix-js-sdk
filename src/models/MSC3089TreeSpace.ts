@@ -33,7 +33,6 @@ import { type FileType, MatrixError } from "../http-api/index";
 import { KnownMembership } from "../@types/membership";
 import { type RoomPowerLevelsEventContent, type SpaceChildEventContent } from "../@types/state_events";
 import type { EncryptedFile, FileContent } from "../@types/media";
-import { type EmptyObject } from "../@types/common";
 
 /**
  * The recommended defaults for a tree space's power levels. Note that this
@@ -76,12 +75,6 @@ export enum TreePermissions {
     Viewer = "viewer", // Default
     Editor = "editor", // "Moderator" or ~PL50
     Owner = "owner", // "Admin" or PL100
-}
-
-declare module "../@types/media" {
-    interface FileContent {
-        [UNSTABLE_MSC3089_LEAF.name]?: EmptyObject;
-    }
 }
 
 /**
