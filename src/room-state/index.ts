@@ -60,7 +60,10 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
     public async roomState(roomId: string): Promise<IStateEvent[]> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
-            return this.client.http.authedRequest<IStateEvent[]>(Method.Get, path);
+            return this.request<IStateEvent[]>({
+                method: Method.Get,
+                path: path,
+            });
         }, "roomState");
     }
 
@@ -77,7 +80,10 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
                       $stateKey: stateKey || "",
                   })
                 : utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
-            return this.client.http.authedRequest<IStateEvent | IStateEvent[]>(Method.Get, path);
+            return this.request<IStateEvent | IStateEvent[]>({
+                method: Method.Get,
+                path: path,
+            });
         }, "getStateEvents");
     }
 
@@ -111,14 +117,21 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
                 $eventType: eventType,
                 $stateKey: stateKey || "",
             });
-            return this.client.http.authedRequest<ISendStateEventResponse>(Method.Put, path, undefined, content);
+            return this.request<ISendStateEventResponse>({
+                method: Method.Put,
+                path: path,
+                body: content,
+            });
         }, "sendStateEvent");
     }
 
     public async getRoomEncryption(roomId: string): Promise<IEncryptionConfig | null> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state/m.room.encryption", { $roomId: roomId });
-            return this.client.http.authedRequest<IEncryptionConfig>(Method.Get, path);
+            return this.request<IEncryptionConfig>({
+                method: Method.Get,
+                path: path,
+            });
         }, "getRoomEncryption");
     }
 

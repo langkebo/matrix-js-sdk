@@ -135,13 +135,12 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     ): Promise<T> {
         return await this.withRetry(
             async () =>
-                (await this.client.http.authedRequest(
-                    method,
-                    path,
-                    queryParams ?? {},
-                    body as Body | undefined,
-                    this.buildRequestOpts(sessionKey),
-                )) as Promise<T>,
+                (await this.request({
+                    method: method,
+                    path: path,
+                    queryParams: queryParams ?? {},
+                    body: body as Body | undefined,
+                })) as Promise<T>,
             "rendezvousRequest",
         );
     }

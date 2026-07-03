@@ -86,7 +86,10 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
                 $roomId: roomId,
                 $eventId: eventId,
             });
-            return this.client.http.authedRequest<IEvent>(Method.Get, path);
+            return this.request<IEvent>({
+                method: Method.Get,
+                path: path,
+            });
         }, "getEvent");
     }
 
@@ -107,7 +110,11 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
             if (from) {
                 params.from = from;
             }
-            return this.client.http.authedRequest<IMessagesResponse>(Method.Get, path, params);
+            return this.request<IMessagesResponse>({
+                method: Method.Get,
+                path: path,
+                queryParams: params,
+            });
         }, "getMessages");
     }
 
@@ -125,7 +132,11 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
                     key: key,
                 },
             };
-            return this.client.http.authedRequest<IRoomEventResponse>(Method.Put, reactionPath, undefined, content);
+            return this.request<IRoomEventResponse>({
+                method: Method.Put,
+                path: reactionPath,
+                body: content,
+            });
         }, "sendReaction");
     }
 }

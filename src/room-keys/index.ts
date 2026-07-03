@@ -76,13 +76,11 @@ export class RoomKeysManager extends BaseManager {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<RoomKeyRequestsResponse>(
-                    Method.Get,
-                    "/room_keys/request",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<RoomKeyRequestsResponse>({
+                    method: Method.Get,
+                    path: "/room_keys/request",
+                    prefix: ClientPrefix.V3,
+                });
             }, "getRoomKeyRequests");
 
             if (response.requests) {
@@ -102,7 +100,10 @@ export class RoomKeysManager extends BaseManager {
     async createRoomKeyRequest(request: CreateRoomKeyRequest): Promise<void> {
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(Method.Post, "/room_keys/request", undefined, request, {
+                return await this.request({
+                    method: Method.Post,
+                    path: "/room_keys/request",
+                    body: request,
                     prefix: ClientPrefix.V3,
                 });
             }, "createRoomKeyRequest");

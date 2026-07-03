@@ -87,13 +87,11 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IRoomAliasResponse>(
-                    Method.Get,
-                    `/directory/room/${encodeURIComponent(alias)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IRoomAliasResponse>({
+                    method: Method.Get,
+                    path: `/directory/room/${encodeURIComponent(alias)}`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getAliasRoom");
 
             const info: IRoomAliasInfo = {
@@ -117,13 +115,12 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
 
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest(
-                    Method.Put,
-                    `/directory/room/${encodeURIComponent(alias)}`,
-                    undefined,
-                    { room_id: roomId },
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request({
+                    method: Method.Put,
+                    path: `/directory/room/${encodeURIComponent(alias)}`,
+                    body: { room_id: roomId },
+                    prefix: ClientPrefix.V3,
+                });
             }, "setRoomAlias");
 
             const info: IRoomAliasInfo = {
@@ -155,13 +152,11 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
 
         try {
             await this.withRetry(async () => {
-                await this.client.http.authedRequest(
-                    Method.Delete,
-                    `/directory/room/${encodeURIComponent(alias)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                await this.request({
+                    method: Method.Delete,
+                    path: `/directory/room/${encodeURIComponent(alias)}`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "deleteRoomAlias");
 
             this.aliasCache.delete(alias);
@@ -198,13 +193,11 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IRoomAliasesResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/aliases`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IRoomAliasesResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/aliases`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getRoomAliases");
 
             const aliases = response.aliases || [];
