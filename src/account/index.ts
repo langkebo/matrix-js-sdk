@@ -101,7 +101,10 @@ export class AccountManager extends BaseManager {
      */
     public loginFlows(): Promise<ILoginFlowsResponse> {
         return this.withRetry(async () => {
-            return await this.client.http.request(Method.Get, ap("/login"));
+            return await this.request<ILoginFlowsResponse>({
+                method: Method.Get,
+                path: ap("/login"),
+            });
         }, "loginFlows");
     }
 
@@ -154,7 +157,11 @@ export class AccountManager extends BaseManager {
      */
     public async loginRequest(data: LoginRequest): Promise<LoginResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.request<LoginResponse>(Method.Post, ap("/login"), undefined, data);
+            return await this.request<LoginResponse>({
+                method: Method.Post,
+                path: ap("/login"),
+                body: data,
+            });
         }, "loginRequest");
     }
 
@@ -168,7 +175,10 @@ export class AccountManager extends BaseManager {
         }
 
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest(Method.Post, ap("/logout"));
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: ap("/logout"),
+            });
         }, "logout");
     }
 
@@ -182,7 +192,10 @@ export class AccountManager extends BaseManager {
         }
 
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest(Method.Post, ap("/logout/all"));
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path: ap("/logout/all"),
+            });
         }, "logoutAll");
     }
 
@@ -191,10 +204,14 @@ export class AccountManager extends BaseManager {
      */
     public async submitEmailToken(sid: string, clientSecret: string, token: string): Promise<{ success: boolean }> {
         return this.withRetry(async () => {
-            return await this.client.http.request(Method.Post, ap("/register/email/submitToken"), undefined, {
-                sid,
-                client_secret: clientSecret,
-                token,
+            return await this.request<{ success: boolean }>({
+                method: Method.Post,
+                path: ap("/register/email/submitToken"),
+                body: {
+                    sid,
+                    client_secret: clientSecret,
+                    token,
+                },
             });
         }, "submitEmailToken");
     }
@@ -215,7 +232,11 @@ export class AccountManager extends BaseManager {
         }
 
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest(Method.Post, ap("/account/deactivate"), undefined, body);
+            return await this.request<{ id_server_unbind_result: IdServerUnbindResult }>({
+                method: Method.Post,
+                path: ap("/account/deactivate"),
+                body,
+            });
         }, "deactivateAccount");
     }
 
@@ -225,13 +246,12 @@ export class AccountManager extends BaseManager {
     public async requestLoginToken(auth?: AuthDict): Promise<LoginTokenPostResponse> {
         const body: UIARequest<unknown> = { auth };
         return this.withRetry(async () => {
-            return await this.client.http.authedRequest<LoginTokenPostResponse>(
-                Method.Post,
-                "/login/get_token",
-                undefined,
+            return await this.request<LoginTokenPostResponse>({
+                method: Method.Post,
+                path: "/login/get_token",
                 body,
-                { prefix: ClientPrefix.V1 },
-            );
+                prefix: ClientPrefix.V1,
+            });
         }, "requestLoginToken");
     }
 
@@ -254,7 +274,11 @@ export class AccountManager extends BaseManager {
             $roomId: roomId,
         });
         await this.withRetry(async () => {
-            await this.client.http.authedRequest(Method.Put, path, undefined, opts);
+            await this.request({
+                method: Method.Put,
+                path,
+                body: opts,
+            });
         }, "setGuestAccess");
     }
 }

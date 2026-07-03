@@ -208,12 +208,10 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      */
     public async listAccountData(): Promise<{ account_data: Record<string, IContent> }> {
         const path = buildUserAccountDataListPath(this.client.credentials.userId!);
-
-        try {
-            return await this.client.http.authedRequest<{ account_data: Record<string, IContent> }>(Method.Get, path);
-        } catch (e) {
-            throw this.normalizeError(e, "listAccountData");
-        }
+        return await this.request<{ account_data: Record<string, IContent> }>({
+            method: Method.Get,
+            path,
+        });
     }
 
     /**
@@ -230,15 +228,14 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     ): Promise<MatrixEvent | undefined> {
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
 
-        try {
-            const response = await this.client.http.authedRequest<IContent>(Method.Get, path);
-            return new MatrixEvent({
-                type: eventType,
-                content: response,
-            });
-        } catch (e) {
-            throw this.normalizeError(e, "getRoomAccountDataFromServer");
-        }
+        const response = await this.request<IContent>({
+            method: Method.Get,
+            path,
+        });
+        return new MatrixEvent({
+            type: eventType,
+            content: response,
+        });
     }
 
     /**
@@ -257,11 +254,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
         this.validateContentSize(content);
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
 
-        try {
-            await this.client.http.authedRequest(Method.Put, path, undefined, content);
-        } catch (e) {
-            throw this.normalizeError(e, "setRoomAccountData");
-        }
+        await this.request({
+            method: Method.Put,
+            path,
+            body: content,
+        });
     }
 
     /**
@@ -274,11 +271,10 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     public async deleteRoomAccountData(roomId: string, eventType: string): Promise<void> {
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
 
-        try {
-            await this.client.http.authedRequest(Method.Delete, path);
-        } catch (e) {
-            throw this.normalizeError(e, "deleteRoomAccountData");
-        }
+        await this.request({
+            method: Method.Delete,
+            path,
+        });
     }
 
     /**

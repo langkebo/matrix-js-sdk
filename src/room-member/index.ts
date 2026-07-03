@@ -49,17 +49,25 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
     public async invite(roomId: string, userId: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, { user_id: userId });
+            await this.request({
+                method: Method.Post,
+                path,
+                body: { user_id: userId },
+            });
         }, "invite");
     }
 
     public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, {
-                id_server: this.client.baseUrl,
-                medium,
-                address,
+            await this.request({
+                method: Method.Post,
+                path,
+                body: {
+                    id_server: this.client.baseUrl,
+                    medium,
+                    address,
+                },
             });
         }, "inviteByThreePid");
     }
@@ -70,9 +78,13 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
                 $roomId: roomId,
                 $userId: userId,
             });
-            await this.client.http.authedRequest(Method.Put, path, undefined, {
-                membership: "leave",
-                reason,
+            await this.request({
+                method: Method.Put,
+                path,
+                body: {
+                    membership: "leave",
+                    reason,
+                },
             });
         }, "kick");
     }
@@ -80,9 +92,13 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
     public async ban(roomId: string, userId: string, reason?: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/ban", { $roomId: roomId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, {
-                user_id: userId,
-                reason,
+            await this.request({
+                method: Method.Post,
+                path,
+                body: {
+                    user_id: userId,
+                    reason,
+                },
             });
         }, "ban");
     }
@@ -90,7 +106,11 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
     public async unban(roomId: string, userId: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/unban", { $roomId: roomId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, { user_id: userId });
+            await this.request({
+                method: Method.Post,
+                path,
+                body: { user_id: userId },
+            });
         }, "unban");
     }
 
@@ -100,7 +120,10 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
                 $roomId: roomId,
                 $userId: userId,
             });
-            return this.client.http.authedRequest<RoomMemberInfo>(Method.Get, path);
+            return this.request<RoomMemberInfo>({
+                method: Method.Get,
+                path,
+            });
         }, "getRoomMember");
     }
 }

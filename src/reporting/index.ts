@@ -47,21 +47,33 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
     public async reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId });
-            return await this.client.http.authedRequest<EmptyObject>(Method.Post, path, undefined, { reason });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path,
+                body: { reason },
+            });
         }, "reportRoom");
     }
 
     public async reportEvent(roomId: string, eventId: string, score: number, reason: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report/$eventId", { $roomId: roomId, $eventId: eventId });
-            return await this.client.http.authedRequest<EmptyObject>(Method.Post, path, undefined, { score, reason });
+            return await this.request<EmptyObject>({
+                method: Method.Post,
+                path,
+                body: { score, reason },
+            });
         }, "reportEvent");
     }
 
     public async reportUser(userId: string, reason: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/users/$userId/report", { $userId: userId });
-            await this.client.http.authedRequest(Method.Post, path, undefined, { reason });
+            await this.request({
+                method: Method.Post,
+                path,
+                body: { reason },
+            });
         }, "reportUser");
     }
 
@@ -76,7 +88,12 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
             $roomId: roomId,
             $eventId: eventId,
         });
-        await this.client.http.authedRequest(Method.Put, path, undefined, { score }, { prefix: ClientPrefix.V3 });
+        await this.request({
+            method: Method.Put,
+            path,
+            body: { score },
+            prefix: ClientPrefix.V3,
+        });
     }
 
     /**
@@ -89,7 +106,11 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
             $roomId: roomId,
             $eventId: eventId,
         });
-        return this.client.http.authedRequest(Method.Get, path, undefined, undefined, { prefix: ClientPrefix.V1 });
+        return this.request({
+            method: Method.Get,
+            path,
+            prefix: ClientPrefix.V1,
+        });
     }
 }
 
