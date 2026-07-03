@@ -163,13 +163,12 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         if (params.filter) queryParams.filter = JSON.stringify(params.filter);
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IGetMessagesResponse>(
-                Method.Get,
-                utils.encodeUri("/rooms/$roomId/messages", { $roomId: roomId }),
-                queryParams,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<IGetMessagesResponse>({
+                method: Method.Get,
+                path: utils.encodeUri("/rooms/$roomId/messages", { $roomId: roomId }),
+                queryParams: queryParams,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -192,7 +191,11 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             lazyLoadMembers,
             timelineFilter,
         });
-        return this.client.http.authedRequest<IMessagesResponse>(Method.Get, path, params);
+        return this.request<IMessagesResponse>({
+            method: Method.Get,
+            path: path,
+            queryParams: params,
+        });
     }
 
     public async createThreadListMessagesRequest(
@@ -221,13 +224,11 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
                     : "/_matrix/client/unstable/org.matrix.msc3856",
         };
 
-        const res = await this.client.http.authedRequest<IThreadedMessagesResponse>(
-            Method.Get,
-            path,
-            params,
-            undefined,
-            opts,
-        );
+        const res = await this.request<IThreadedMessagesResponse>({
+            method: Method.Get,
+            path: path,
+            queryParams: params,
+        });
         return {
             ...res,
             chunk: res.chunk?.reverse(),
@@ -281,17 +282,16 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
 
         const txn = txnId || `m${Date.now()}`;
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ISendEventResponse>(
-                Method.Put,
-                utils.encodeUri("/rooms/$roomId/send/$eventType/$txnId", {
+            return await this.request<ISendEventResponse>({
+                method: Method.Put,
+                path: utils.encodeUri("/rooms/$roomId/send/$eventType/$txnId", {
                     $roomId: roomId,
                     $eventType: eventType,
                     $txnId: txn,
                 }),
-                undefined,
-                content,
-                { prefix: ClientPrefix.V3 },
-            );
+                body: content,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.emit(EventManagerEvent.EventSent, roomId, response.event_id);
@@ -312,13 +312,11 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         }
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IStateEvent[]>(
-                Method.Get,
-                utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId }),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<IStateEvent[]>({
+                method: Method.Get,
+                path: utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId }),
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.stateCache.set(cacheKey, response);
@@ -343,13 +341,11 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
               });
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IContent>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<IContent>({
+                method: Method.Get,
+                path: path,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -378,7 +374,10 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
               });
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ISendEventResponse>(Method.Put, path, undefined, content, {
+            return await this.request<ISendEventResponse>({
+                method: Method.Put,
+                path: path,
+                body: content,
                 prefix: ClientPrefix.V3,
             });
         });
@@ -395,16 +394,14 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         this.validateEventId(eventId);
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IRoomEvent>(
-                Method.Get,
-                utils.encodeUri("/rooms/$roomId/event/$eventId", {
+            return await this.request<IRoomEvent>({
+                method: Method.Get,
+                path: utils.encodeUri("/rooms/$roomId/event/$eventId", {
                     $roomId: roomId,
                     $eventId: eventId,
                 }),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return response;
@@ -427,13 +424,12 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         }
 
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<IContextResponse>(
-                Method.Get,
-                buildEventContextPath(roomId, eventId),
-                Object.keys(queryParams).length > 0 ? queryParams : undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<IContextResponse>({
+                method: Method.Get,
+                path: buildEventContextPath(roomId, eventId),
+                queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         return normalizeEventContextResponse(response);
@@ -456,17 +452,16 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
                     : {}
                 : (reasonOrContent ?? {});
         const response = await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ISendEventResponse>(
-                Method.Put,
-                utils.encodeUri("/rooms/$roomId/redact/$eventId/$txnId", {
+            return await this.request<ISendEventResponse>({
+                method: Method.Put,
+                path: utils.encodeUri("/rooms/$roomId/redact/$eventId/$txnId", {
                     $roomId: roomId,
                     $eventId: eventId,
                     $txnId: txn,
                 }),
-                undefined,
-                content,
-                { prefix: ClientPrefix.V3 },
-            );
+                body: content,
+                prefix: ClientPrefix.V3,
+            });
         });
 
         this.emit(EventManagerEvent.EventRedacted, roomId, eventId);

@@ -53,13 +53,12 @@ export class FilterManager extends BaseManager {
 
         try {
             const path = buildCreateFilterPath(userId);
-            const response = await this.client.http.authedRequest<{ filter_id: string }>(
-                Method.Post,
-                path,
-                undefined,
-                definition,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.request<{ filter_id: string }>({
+                method: Method.Post,
+                path: path,
+                body: definition,
+                prefix: ClientPrefix.V3,
+            });
 
             const filter = Filter.fromJson(userId, response.filter_id, definition);
             this.client.store.storeFilter(filter);
@@ -80,13 +79,11 @@ export class FilterManager extends BaseManager {
         const path = buildFilterPath(userId, filterId);
 
         try {
-            const response = await this.client.http.authedRequest<IFilterDefinition>(
-                Method.Get,
-                path,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const response = await this.request<IFilterDefinition>({
+                method: Method.Get,
+                path: path,
+                prefix: ClientPrefix.V3,
+            });
 
             const filter = Filter.fromJson(userId, filterId, response);
             this.client.store.storeFilter(filter);

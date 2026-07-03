@@ -320,11 +320,16 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             if (limit !== undefined) params.limit = limit;
             if (since !== undefined) params.since = since;
 
-            const response = await this.client.http.request<{
+            const response = await this.request<{
                 chunk?: unknown[];
                 next_batch?: string;
                 prev_batch?: string;
-            }>(Method.Get, `/_matrix/federation/v1/publicRooms`, params, undefined, { prefix: "" });
+            }>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/publicRooms`,
+                queryParams: params,
+                prefix: "",
+            });
 
             const result: { chunk: unknown[]; next_batch?: string; prev_batch?: string } = {
                 chunk: response.chunk || [],
@@ -348,13 +353,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!userId) {
             throw new ValidationError("User ID is required");
         }
-        return this.client.http.request<IUserProfile>(
-            Method.Get,
-            `/_matrix/federation/v1/query/profile/${encodeURIComponent(userId)}`,
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<IUserProfile>({
+            method: Method.Get,
+            path: `/_matrix/federation/v1/query/profile/${encodeURIComponent(userId)}`,
+            prefix: "",
+        });
     }
 
     /**
@@ -365,13 +368,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!roomAlias) {
             throw new ValidationError("Room alias is required");
         }
-        return this.client.http.request<{ room_id: string; servers: string[] }>(
-            Method.Get,
-            `/_matrix/federation/v1/query/directory`,
-            { room_alias: roomAlias },
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<{ room_id: string; servers: string[] }>({
+            method: Method.Get,
+            path: `/_matrix/federation/v1/query/directory`,
+            queryParams: { room_alias: roomAlias },
+            prefix: "",
+        });
     }
 
     /**
@@ -382,20 +384,22 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
-        return this.client.http.request<unknown>(
-            Method.Get,
-            `/_matrix/federation/v1/hierarchy/${encodeURIComponent(roomId)}`,
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<unknown>({
+            method: Method.Get,
+            path: `/_matrix/federation/v1/hierarchy/${encodeURIComponent(roomId)}`,
+            prefix: "",
+        });
     }
 
     /**
      * 获取联邦发现信息
      */
     async getFederationInfo(): Promise<unknown> {
-        return this.client.http.request<unknown>(Method.Get, "/_matrix/federation/v1", undefined, undefined, { prefix: "" });
+        return this.request<unknown>({
+            method: Method.Get,
+            path: "/_matrix/federation/v1",
+            prefix: "",
+        });
     }
 
     /**
@@ -406,13 +410,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!destination) {
             throw new ValidationError("Destination is required");
         }
-        return this.client.http.request<unknown>(
-            Method.Get,
-            "/_matrix/federation/v1/query/destination",
-            { destination },
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<unknown>({
+            method: Method.Get,
+            path: "/_matrix/federation/v1/query/destination",
+            queryParams: { destination },
+            prefix: "",
+        });
     }
 
     /**
@@ -427,13 +430,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!eventId) {
             throw new ValidationError("Event ID is required");
         }
-        return this.client.http.request<unknown>(
-            Method.Get,
-            `/_matrix/federation/v1/room/${encodeURIComponent(roomId)}/${encodeURIComponent(eventId)}`,
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<unknown>({
+            method: Method.Get,
+            path: `/_matrix/federation/v1/room/${encodeURIComponent(roomId)}/${encodeURIComponent(eventId)}`,
+            prefix: "",
+        });
     }
 
     /**
@@ -448,13 +449,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return this.client.http.request<unknown>(
-            Method.Get,
-            `/_matrix/federation/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<unknown>({
+            method: Method.Get,
+            path: `/_matrix/federation/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            prefix: "",
+        });
     }
 
     /**
@@ -469,13 +468,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return this.client.http.request<unknown>(
-            Method.Get,
-            `/_matrix/federation/v1/media/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        return this.request<unknown>({
+            method: Method.Get,
+            path: `/_matrix/federation/v1/media/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            prefix: "",
+        });
     }
 
     /**
@@ -740,13 +737,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.client.http.request<unknown>(
-                Method.Get,
-                `/_matrix/federation/v1/state/${encodeURIComponent(roomId)}`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/state/${encodeURIComponent(roomId)}`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getState");
             this.emit(FederationEvent.FederationError, error);
@@ -775,13 +770,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.client.http.request<unknown>(
-                Method.Get,
-                `/_matrix/federation/v1/state_ids/${encodeURIComponent(roomId)}`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/state_ids/${encodeURIComponent(roomId)}`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getStateIds");
             this.emit(FederationEvent.FederationError, error);
@@ -810,13 +803,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.client.http.request<unknown>(
-                Method.Get,
-                `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getMembers");
             this.emit(FederationEvent.FederationError, error);
@@ -845,13 +836,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.client.http.request<unknown>(
-                Method.Get,
-                `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}/joined`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}/joined`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getJoinedMembers");
             this.emit(FederationEvent.FederationError, error);
@@ -880,13 +869,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             throw new ValidationError("Event ID is required");
         }
         try {
-            return await this.client.http.request<unknown>(
-                Method.Get,
-                `/_matrix/federation/v1/event/${encodeURIComponent(eventId)}`,
-                undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/event/${encodeURIComponent(eventId)}`,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "getEvent");
             this.emit(FederationEvent.FederationError, error);
@@ -926,13 +913,12 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             if (opts?.from !== undefined) params.from = opts.from;
 
             const queryKeys = Object.keys(params);
-            return await this.client.http.request<unknown>(
-                Method.Get,
-                `/_matrix/federation/v1/backfill/${encodeURIComponent(roomId)}`,
-                queryKeys.length > 0 ? params : undefined,
-                undefined,
-                { prefix: "" },
-            );
+            return await this.request<unknown>({
+                method: Method.Get,
+                path: `/_matrix/federation/v1/backfill/${encodeURIComponent(roomId)}`,
+                queryParams: queryKeys.length > 0 ? params : undefined,
+                prefix: "",
+            });
         } catch (e) {
             const error = this.normalizeError(e, "backfillRoom");
             this.emit(FederationEvent.FederationError, error);

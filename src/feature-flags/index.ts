@@ -62,13 +62,12 @@ export class FeatureFlagManager extends BaseManager {
     async createFlag(body: CreateFeatureFlagRequest): Promise<FeatureFlag> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<FeatureFlag>(
-                    Method.Post,
-                    "/feature-flags",
-                    undefined,
-                    body,
-                    { prefix: AdminPrefix.V1 },
-                );
+                return await this.request<FeatureFlag>({
+                    method: Method.Post,
+                    path: "/feature-flags",
+                    body: body,
+                    prefix: AdminPrefix.V1,
+                });
             }, "createFlag");
         } catch (error) {
             throw this.normalizeError(error, "createFlag");
@@ -82,13 +81,12 @@ export class FeatureFlagManager extends BaseManager {
     async updateFlag(key: string, body: UpdateFeatureFlagRequest): Promise<FeatureFlag> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<FeatureFlag>(
-                    Method.Patch,
-                    `/feature-flags/${encodeURIComponent(key)}`,
-                    undefined,
-                    body,
-                    { prefix: AdminPrefix.V1 },
-                );
+                return await this.request<FeatureFlag>({
+                    method: Method.Patch,
+                    path: `/feature-flags/${encodeURIComponent(key)}`,
+                    body: body,
+                    prefix: AdminPrefix.V1,
+                });
             }, "updateFlag");
         } catch (error) {
             throw this.normalizeError(error, "updateFlag");
@@ -102,13 +100,11 @@ export class FeatureFlagManager extends BaseManager {
     async getFlag(key: string): Promise<FeatureFlag> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<FeatureFlag>(
-                    Method.Get,
-                    `/feature-flags/${encodeURIComponent(key)}`,
-                    undefined,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
+                return await this.request<FeatureFlag>({
+                    method: Method.Get,
+                    path: `/feature-flags/${encodeURIComponent(key)}`,
+                    prefix: AdminPrefix.V1,
+                });
             }, "getFlag");
         } catch (error) {
             throw this.normalizeError(error, "getFlag");
@@ -122,13 +118,12 @@ export class FeatureFlagManager extends BaseManager {
     async listFlags(query?: FeatureFlagListQuery): Promise<FeatureFlagListResponse> {
         try {
             return await this.withRetry(async () => {
-                return await this.client.http.authedRequest<FeatureFlagListResponse>(
-                    Method.Get,
-                    "/feature-flags",
-                    query,
-                    undefined,
-                    { prefix: AdminPrefix.V1 },
-                );
+                return await this.request<FeatureFlagListResponse>({
+                    method: Method.Get,
+                    path: "/feature-flags",
+                    queryParams: query,
+                    prefix: AdminPrefix.V1,
+                });
             }, "listFlags");
         } catch (error) {
             throw this.normalizeError(error, "listFlags");

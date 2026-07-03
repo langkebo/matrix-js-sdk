@@ -169,13 +169,12 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }
 
             const response = await this.withRetry(async () => {
-                return await this.client.http.request<IGuestRegisterResponse>(
-                    Method.Post,
-                    "/register",
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IGuestRegisterResponse>({
+                    method: Method.Post,
+                    path: "/register",
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             }, "registerGuest");
 
             const guestInfo: IGuestInfo = {
@@ -211,13 +210,12 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }
 
             const response = await this.withRetry(async () => {
-                return await this.client.http.request<IGuestLoginResponse>(
-                    Method.Post,
-                    "/login",
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IGuestLoginResponse>({
+                    method: Method.Post,
+                    path: "/login",
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             }, "loginGuest");
 
             const guestInfo: IGuestInfo = {
@@ -292,7 +290,10 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }
 
             await this.withRetry(async () => {
-                await this.client.http.authedRequest(Method.Post, "/account/password", undefined, body, {
+                await this.request({
+                    method: Method.Post,
+                    path: "/account/password",
+                    body: body,
                     prefix: ClientPrefix.V3,
                 });
             }, "upgradeGuestAccount");
@@ -357,13 +358,11 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
             if (roomIdOrAlias.startsWith("#")) {
                 const response = await this.withRetry(async () => {
-                    return await this.client.http.authedRequest<{ room_id?: string }>(
-                        Method.Get,
-                        `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
-                        undefined,
-                        undefined,
-                        { prefix: ClientPrefix.V3 },
-                    );
+                    return await this.request<{ room_id?: string }>({
+                        method: Method.Get,
+                        path: `/directory/room/${encodeURIComponent(roomIdOrAlias)}`,
+                        prefix: ClientPrefix.V3,
+                    });
                 }, "canJoinRoom");
                 return !!response?.room_id;
             }
@@ -395,15 +394,11 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
     public async getGuestInfoFromServer(): Promise<IServerGuestInfo> {
         try {
             const response = (await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Get,
-                    gp("/account/guest"),
-                    undefined,
-                    undefined,
-                    {
-                        prefix: ClientPrefix.V3,
-                    },
-                );
+                return await this.request({
+                    method: Method.Get,
+                    path: gp("/account/guest"),
+                    prefix: ClientPrefix.V3,
+                });
             }, "getGuestInfoFromServer")) as IServerGuestInfoResponse;
 
             const guestInfo = "guest" in response ? response.guest : response;
@@ -435,13 +430,12 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }
 
             const response = (await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    gp("/account/guest/upgrade"),
-                    undefined,
-                    body,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({
+                    method: Method.Post,
+                    path: gp("/account/guest/upgrade"),
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
             }, "upgradeGuestAccountOnServer")) as IUpgradeGuestResponse;
 
             this.guestInfo = null;
@@ -470,7 +464,10 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }
 
             const response = (await this.withRetry(async () => {
-                return await this.client.http.request(Method.Post, gp("/register/guest"), undefined, body, {
+                return await this.request({
+                    method: Method.Post,
+                    path: gp("/register/guest"),
+                    body: body,
                     prefix: ClientPrefix.V3,
                 });
             }, "registerGuestOnServer")) as IGuestRegisterResponse;
