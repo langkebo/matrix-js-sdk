@@ -250,13 +250,12 @@ export class E2EEManager extends BaseManager {
 
     public async getKeyChanges(params: { from?: string; to?: string } = {}): Promise<KeyChangesResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<KeyChangesResponse>(
-                Method.Get,
-                ep("/keys/changes"),
-                params,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<KeyChangesResponse>({
+                method: Method.Get,
+                path: ep("/keys/changes"),
+                queryParams: params,
+                prefix: ClientPrefix.V3,
+            });
         }, "getKeyChanges");
     }
 
@@ -286,39 +285,33 @@ export class E2EEManager extends BaseManager {
 
     public async listRoomKeyRequests(): Promise<RoomKeyRequestResponse[]> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<RoomKeyRequestResponse[]>(
-                Method.Get,
-                ep("/room_keys/request"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<RoomKeyRequestResponse[]>({
+                method: Method.Get,
+                path: ep("/room_keys/request"),
+                prefix: ClientPrefix.V3,
+            });
         }, "listRoomKeyRequests");
     }
 
     public async deleteRoomKeyRequest(requestId: string): Promise<void> {
         this.requireNonEmptyString(requestId, "requestId");
         return await this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Delete,
-                ep(`/room_keys/request/${encodeURIComponent(requestId)}` as StripV3<E2eePathPattern>),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            await this.request({
+                method: Method.Delete,
+                path: ep(`/room_keys/request/${encodeURIComponent(requestId)}` as StripV3<E2eePathPattern>),
+                prefix: ClientPrefix.V3,
+            });
         }, "deleteRoomKeyRequest");
     }
 
     public async getRoomKeyDistribution(roomId: string): Promise<RoomKeyDistributionResponse> {
         this.requireNonEmptyString(roomId, "roomId");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<RoomKeyDistributionResponse>(
-                Method.Get,
-                ep(`/rooms/${encodeURIComponent(roomId)}/keys/distribution` as StripV3<E2eePathPattern>),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<RoomKeyDistributionResponse>({
+                method: Method.Get,
+                path: ep(`/rooms/${encodeURIComponent(roomId)}/keys/distribution` as StripV3<E2eePathPattern>),
+                prefix: ClientPrefix.V3,
+            });
         }, "getRoomKeyDistribution");
     }
 
@@ -336,13 +329,12 @@ export class E2EEManager extends BaseManager {
             v3: ClientPrefix.V3,
         };
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<SendToDeviceResponse>(
-                Method.Put,
-                `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
-                undefined,
-                { messages },
-                { prefix: prefixMap[version] },
-            );
+            return await this.request<SendToDeviceResponse>({
+                method: Method.Put,
+                path: `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`,
+                body: { messages },
+                prefix: prefixMap[version],
+            });
         }, "sendToDevice");
     }
 
@@ -380,50 +372,42 @@ export class E2EEManager extends BaseManager {
     public async getDeviceVerificationStatus(token: string): Promise<DeviceVerificationStatusResponse> {
         this.requireNonEmptyString(token, "token");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<DeviceVerificationStatusResponse>(
-                Method.Get,
-                ep(`/device_verification/status/${encodeURIComponent(token)}` as StripV3<E2eePathPattern>),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<DeviceVerificationStatusResponse>({
+                method: Method.Get,
+                path: ep(`/device_verification/status/${encodeURIComponent(token)}` as StripV3<E2eePathPattern>),
+                prefix: ClientPrefix.V3,
+            });
         }, "getDeviceVerificationStatus");
     }
 
     public async getDeviceTrustList(): Promise<Record<string, DeviceTrustInfo>> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, DeviceTrustInfo>>(
-                Method.Get,
-                ep("/device_trust"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<Record<string, DeviceTrustInfo>>({
+                method: Method.Get,
+                path: ep("/device_trust"),
+                prefix: ClientPrefix.V3,
+            });
         }, "getDeviceTrustList");
     }
 
     public async getDeviceTrust(deviceId: string): Promise<DeviceTrustInfo> {
         this.requireNonEmptyString(deviceId, "deviceId");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<DeviceTrustInfo>(
-                Method.Get,
-                ep(`/device_trust/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<DeviceTrustInfo>({
+                method: Method.Get,
+                path: ep(`/device_trust/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),
+                prefix: ClientPrefix.V3,
+            });
         }, "getDeviceTrust");
     }
 
     public async getSecuritySummary(): Promise<SecuritySummaryResponse> {
         try {
-            return await this.client.http.authedRequest<SecuritySummaryResponse>(
-                Method.Get,
-                ep("/security/summary"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<SecuritySummaryResponse>({
+                method: Method.Get,
+                path: ep("/security/summary"),
+                prefix: ClientPrefix.V3,
+            });
         } catch (e) {
             logger.warn("E2EEManager.getSecuritySummary failed", e);
             return { devices_total: 0, devices_verified: 0, devices_unverified: 0, cross_signing_ready: false };
@@ -444,39 +428,33 @@ export class E2EEManager extends BaseManager {
      */
     public async getSecureBackupList(): Promise<{ backups: SecureBackupInfo[] }> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<{ backups: SecureBackupInfo[] }>(
-                Method.Get,
-                ep("/keys/backup/secure"),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<{ backups: SecureBackupInfo[] }>({
+                method: Method.Get,
+                path: ep("/keys/backup/secure"),
+                prefix: ClientPrefix.V3,
+            });
         }, "getSecureBackupList");
     }
 
     public async getSecureBackup(backupId: string): Promise<SecureBackupInfo> {
         this.requireNonEmptyString(backupId, "backupId");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<SecureBackupInfo>(
-                Method.Get,
-                ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            return await this.request<SecureBackupInfo>({
+                method: Method.Get,
+                path: ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
+                prefix: ClientPrefix.V3,
+            });
         }, "getSecureBackup");
     }
 
     public async deleteSecureBackup(backupId: string): Promise<void> {
         this.requireNonEmptyString(backupId, "backupId");
         return await this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Delete,
-                ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            await this.request({
+                method: Method.Delete,
+                path: ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
+                prefix: ClientPrefix.V3,
+            });
         }, "deleteSecureBackup");
     }
 
@@ -524,13 +502,12 @@ export class E2EEManager extends BaseManager {
         label: string,
     ): Promise<T> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<T>(
-                Method.Post,
+            return await this.request<T>({
+                method: Method.Post,
                 path,
-                undefined,
                 body,
-                { prefix: ClientPrefix.V3 },
-            );
+                prefix: ClientPrefix.V3,
+            });
         }, label);
     }
 
@@ -540,13 +517,12 @@ export class E2EEManager extends BaseManager {
         label: string,
     ): Promise<void> {
         return await this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Post,
+            await this.request({
+                method: Method.Post,
                 path,
-                undefined,
                 body,
-                { prefix: ClientPrefix.V3 },
-            );
+                prefix: ClientPrefix.V3,
+            });
         }, label);
     }
 
