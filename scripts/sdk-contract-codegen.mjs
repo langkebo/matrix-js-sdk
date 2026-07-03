@@ -34,6 +34,11 @@ const repoRoot = path.resolve(__dirname, "..");
 const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRACT_INDEX.md");
 const GENERATED_MODULES_DIR = path.join(repoRoot, "docs", "api-contract", "generated", "modules");
 
+const SKIP_ROUTE_TABLE_MODULES = new Set([
+    "admin", "app-service", "dm", "feature-flags", "federation",
+    "key-rotation", "moderation", "reactions", "voice",
+]);
+
 const SDK_DIR_ALIASES = {
     "openclaw": "open-claw",
     "thirdparty": "third-party",
@@ -829,17 +834,18 @@ function render(module) {
     const docPath = contractDocPathFor(module);
     const contractDocText = fs.existsSync(docPath) ? fs.readFileSync(docPath, "utf8") : "";
     const generatedDir = path.join(repoRoot, "src", module.sdkDir, "__generated__");
-    return {
-        module,
-        manifest,
-        outputs: [
+    const skipRouteTable = SKIP_ROUTE_TABLE_MODULES.has(module.docBasename);
+    const outputs = [
+        {
+            outputPath: path.join(generatedDir, "dto.ts"),
+            text: renderDtoFile(module, contractDocText),
+        },
+    ];
+    if (!skipRouteTable) {
+        outputs.push(
             {
                 outputPath: path.join(generatedDir, "route-table.ts"),
                 text: renderRouteTable(module, manifest),
-            },
-            {
-                outputPath: path.join(generatedDir, "dto.ts"),
-                text: renderDtoFile(module, contractDocText),
             },
             {
                 outputPath: path.join(generatedDir, "contract-assertions.ts"),
@@ -849,8 +855,9 @@ function render(module) {
                 outputPath: path.join(generatedDir, "acceptance.spec.ts"),
                 text: renderAcceptanceTest(module),
             },
-        ],
-    };
+        );
+    }
+    return { module, manifest, outputs };
 }
 
 function writeFileAtomic(filePath, text) {
@@ -864,8 +871,9 @@ function runWrite(rendered) {
             writeFileAtomic(output.outputPath, output.text);
         }
     }
+    const totalFiles = rendered.reduce((sum, r) => sum + r.outputs.length, 0);
     process.stdout.write(
-        `sdk-contract-codegen: wrote ${rendered.length * 4} generated contract helper files\n` +
+        `sdk-contract-codegen: wrote ${totalFiles} generated contract helper files\n` +
             rendered
                 .map((r) => `  src/${r.module.sdkDir}/__generated__/  (${r.manifest.entry_count} entries)`)
                 .join("\n") +

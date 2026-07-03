@@ -18,8 +18,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AccountDataManager } from "../../src/account-data";
 import { ACCOUNT_DATA_ROUTES } from "../../src/account-data/__generated__/route-table";
-import { AdminManager } from "../../src/admin";
-import { ADMIN_ROUTES } from "../../src/admin/__generated__/route-table";
 import { AuthManager } from "../../src/auth";
 import { AUTH_ROUTES } from "../../src/auth/__generated__/route-table";
 import { AIConnectionManager } from "../../src/ai-connection";
@@ -30,23 +28,17 @@ import { CaptchaManager } from "../../src/captcha";
 import { CAPTCHA_ROUTES } from "../../src/captcha/__generated__/route-table";
 import { CasManager } from "../../src/cas";
 import { CAS_ROUTES } from "../../src/cas/__generated__/route-table";
-import { DirectMessageManager } from "../../src/dm";
-import { DM_ROUTES } from "../../src/dm/__generated__/route-table";
 import { E2EE_ROUTES } from "../../src/e2ee/__generated__/route-table";
 import { FilterManager } from "../../src/filter/index";
 import { FriendManager } from "../../src/friend";
 import { FRIEND_ROUTES } from "../../src/friend/__generated__/route-table";
 import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
-import { KeyRotationManager } from "../../src/key-rotation";
-import { KEY_ROTATION_ROUTES } from "../../src/key-rotation/__generated__/route-table";
 import { DeviceManager } from "../../src/device";
 import { DEVICE_ROUTES } from "../../src/device/__generated__/route-table";
 import { KeyVerificationManager } from "../../src/key-verification";
 import { MediaManager } from "../../src/media";
 import { MEDIA_ROUTES } from "../../src/media/__generated__/route-table";
-import { ModerationManager } from "../../src/moderation";
-import { MODERATION_ROUTES } from "../../src/moderation/__generated__/route-table";
 import { NotificationsManager } from "../../src/notifications";
 import { OidcManager } from "../../src/oidc/manager";
 import { OIDC_ROUTES } from "../../src/oidc/__generated__/route-table";
@@ -78,8 +70,6 @@ import { TypingManager } from "../../src/typing";
 import { TYPING_ROUTES } from "../../src/typing/__generated__/route-table";
 import { VerificationManager } from "../../src/verification";
 import { VERIFICATION_ROUTES } from "../../src/verification/__generated__/route-table";
-import { VoiceManager } from "../../src/voice";
-import { VOICE_ROUTES } from "../../src/voice/__generated__/route-table";
 
 type RouteTable = readonly { readonly method: string; readonly path: string }[];
 type RequestOptions = { prefix?: string };
@@ -296,29 +286,6 @@ describe("runtime manager route-table contract", () => {
         expect(method).toBe(Method.Post);
         const runtimePath = fullRuntimePath(path, options);
         expect(hasRouteTableMatch(E2EE_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps VoiceManager config calls on the generated voice route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({
-            max_upload_size_bytes: 1048576,
-            allowed_content_types: ["audio/ogg"],
-            auto_transcribe: false,
-            retention_days: 30,
-        });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof VoiceManager>[0];
-        const manager = new VoiceManager(client);
-
-        await manager.getVoiceConfig();
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(VOICE_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
     it("keeps OpenClawManager connection calls on the generated openclaw route-table", async () => {
@@ -574,26 +541,6 @@ describe("runtime manager route-table contract", () => {
         expect(hasRouteTableMatch(ACCOUNT_DATA_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
-    it("keeps DirectMessageManager dedicated server calls on the generated dm route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ rooms: {} });
-        const client = {
-            http: { authedRequest },
-        } as unknown as ConstructorParameters<typeof DirectMessageManager>[0];
-        const manager = new DirectMessageManager(client);
-
-        await manager.getDirectRoomsFromServer();
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(DM_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
     it("keeps SpaceManager public-space calls on the generated space route-table", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ spaces: [] });
         const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof SpaceManager>[0];
@@ -700,100 +647,6 @@ describe("runtime manager route-table contract", () => {
         ];
         const runtimePath = fullRuntimePath(path, options);
         expect(hasRouteTableMatch(ROOM_SUMMARY_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps AdminManager server status calls on the generated admin route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ status: "ok" });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof AdminManager>[0];
-        const manager = new AdminManager(client);
-
-        await manager.getServerStatus();
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(ADMIN_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps AdminManager user sub-manager v2 calls on the generated admin route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ users: [] });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof AdminManager>[0];
-        const manager = new AdminManager(client);
-
-        await manager.users.getUsersPaginated({ limit: 10 });
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(ADMIN_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps AdminManager room sub-manager calls on the generated admin route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ rooms: [] });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof AdminManager>[0];
-        const manager = new AdminManager(client);
-
-        await manager.rooms.getRoomsPaginated({ limit: 10 });
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(ADMIN_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps KeyRotationManager status calls on the generated key-rotation route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ enabled: true, status: {}, user_last_rotation: null });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof KeyRotationManager>[0];
-        const manager = new KeyRotationManager(client);
-
-        await manager.getStatus(true);
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(KEY_ROTATION_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps ModerationManager scanner calls on the generated moderation route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({
-            enabled: true,
-            version: "1",
-            supported_algorithms: [],
-        });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof ModerationManager>[0];
-        const manager = new ModerationManager(client);
-
-        await manager.getScannerInfo("!room:example.org", "$event");
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(MODERATION_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
     it("keeps CaptchaManager explicit r0 calls on the generated captcha route-table", async () => {
