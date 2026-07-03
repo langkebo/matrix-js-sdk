@@ -53,7 +53,7 @@ describe("SendingManager", () => {
     // ─── sendMessage ──────────────────────────────────────────────────
 
     it("sendMessage should delegate to client.sendMessage with content", async () => {
-        const content = { body: "Hello", msgtype: "m.text" };
+        const content = { body: "Hello", msgtype: "m.text" } as any;
         mockClient.sendMessage.mockResolvedValue(mockResolvedEvent("$msg1"));
         const result = await manager.sendMessage("!room:example.com", content);
         expect(result.event_id).toBe("$msg1");
@@ -61,7 +61,7 @@ describe("SendingManager", () => {
     });
 
     it("sendMessage should pass threadId when provided", async () => {
-        const content = { body: "Hello", msgtype: "m.text" };
+        const content = { body: "Hello", msgtype: "m.text" } as any;
         await manager.sendMessage("!room:example.com", "$thread456", content);
         expect(mockClient.sendMessage).toHaveBeenCalledWith(
             "!room:example.com",
@@ -72,7 +72,7 @@ describe("SendingManager", () => {
     });
 
     it("sendMessage should pass null threadId correctly", async () => {
-        const content = { body: "Hello", msgtype: "m.text" };
+        const content = { body: "Hello", msgtype: "m.text" } as any;
         await manager.sendMessage("!room:example.com", null, content);
         expect(mockClient.sendMessage).toHaveBeenCalledWith(
             "!room:example.com",
