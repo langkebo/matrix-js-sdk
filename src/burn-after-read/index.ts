@@ -197,32 +197,27 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         const burnMs = burnAfterMs ?? this.config.default_expire_time ?? DEFAULT_BURN_AFTER_MS;
         this.validateBurnTime(burnMs);
 
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<IBurnSettings>(
-                        Method.Put,
-                        bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
-                        undefined,
-                        { enabled: true, burn_after_ms: burnMs },
-                        { prefix },
-                    ),
-                "enableBurn",
-            );
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<IBurnSettings>({
+                    method: Method.Put,
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
+                    body: { enabled: true, burn_after_ms: burnMs },
+                    prefix,
+                }),
+            "enableBurn",
+        );
 
-            const settings: IBurnSettings = {
-                enabled: response.enabled ?? true,
-                burn_after_ms: response.burn_after_ms ?? burnMs,
-            };
+        const settings: IBurnSettings = {
+            enabled: response.enabled ?? true,
+            burn_after_ms: response.burn_after_ms ?? burnMs,
+        };
 
-            this.roomSettings.set(roomId, settings);
-            this.emit(BurnAfterReadEvent.SettingsChanged, roomId, settings);
+        this.roomSettings.set(roomId, settings);
+        this.emit(BurnAfterReadEvent.SettingsChanged, roomId, settings);
 
-            return settings;
-        } catch (error) {
-            throw this.normalizeError(error, "enableBurn");
-        }
+        return settings;
     }
 
     public async disableBurn(roomId: string, version?: BurnAfterReadApiVersion): Promise<IBurnSettings> {
@@ -230,32 +225,27 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             throw new ValidationError("BurnAfterReadManager.disableBurn: roomId is required");
         }
 
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<IBurnSettings>(
-                        Method.Put,
-                        bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
-                        undefined,
-                        { enabled: false },
-                        { prefix },
-                    ),
-                "disableBurn",
-            );
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<IBurnSettings>({
+                    method: Method.Put,
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
+                    body: { enabled: false },
+                    prefix,
+                }),
+            "disableBurn",
+        );
 
-            const settings: IBurnSettings = {
-                enabled: response.enabled ?? false,
-                burn_after_ms: response.burn_after_ms ?? DEFAULT_BURN_AFTER_MS,
-            };
+        const settings: IBurnSettings = {
+            enabled: response.enabled ?? false,
+            burn_after_ms: response.burn_after_ms ?? DEFAULT_BURN_AFTER_MS,
+        };
 
-            this.roomSettings.set(roomId, settings);
-            this.emit(BurnAfterReadEvent.SettingsChanged, roomId, settings);
+        this.roomSettings.set(roomId, settings);
+        this.emit(BurnAfterReadEvent.SettingsChanged, roomId, settings);
 
-            return settings;
-        } catch (error) {
-            throw this.normalizeError(error, "disableBurn");
-        }
+        return settings;
     }
 
     public async getBurnSettings(roomId: string, version?: BurnAfterReadApiVersion): Promise<IBurnSettings> {
@@ -263,31 +253,25 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             throw new ValidationError("BurnAfterReadManager.getBurnSettings: roomId is required");
         }
 
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<IBurnSettings>(
-                        Method.Get,
-                        bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
-                        undefined,
-                        undefined,
-                        { prefix },
-                    ),
-                "getBurnSettings",
-            );
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<IBurnSettings>({
+                    method: Method.Get,
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
+                    prefix,
+                }),
+            "getBurnSettings",
+        );
 
-            const settings: IBurnSettings = {
-                enabled: response.enabled ?? false,
-                burn_after_ms: response.burn_after_ms ?? DEFAULT_BURN_AFTER_MS,
-            };
+        const settings: IBurnSettings = {
+            enabled: response.enabled ?? false,
+            burn_after_ms: response.burn_after_ms ?? DEFAULT_BURN_AFTER_MS,
+        };
 
-            this.roomSettings.set(roomId, settings);
+        this.roomSettings.set(roomId, settings);
 
-            return settings;
-        } catch (error) {
-            throw this.normalizeError(error, "getBurnSettings");
-        }
+        return settings;
     }
 
     public async getPendingBurns(roomId: string, version?: BurnAfterReadApiVersion): Promise<IBurnPendingEvent[]> {
@@ -295,24 +279,18 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             throw new ValidationError("BurnAfterReadManager.getPendingBurns: roomId is required");
         }
 
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<{ events?: IBurnPendingEvent[] }>(
-                        Method.Get,
-                        bp(`/rooms/${encodeURIComponent(roomId)}/burn/pending` as StripV1<BurnAfterReadPathPattern>),
-                        undefined,
-                        undefined,
-                        { prefix },
-                    ),
-                "getPendingBurns",
-            );
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<{ events?: IBurnPendingEvent[] }>({
+                    method: Method.Get,
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn/pending` as StripV1<BurnAfterReadPathPattern>),
+                    prefix,
+                }),
+            "getPendingBurns",
+        );
 
-            return response.events || [];
-        } catch (error) {
-            throw this.normalizeError(error, "getPendingBurns");
-        }
+        return response.events || [];
     }
 
     public async markBurnRead(
@@ -331,15 +309,13 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             const prefix = await this.resolveBurnPrefix(version);
             const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest<IMarkBurnReadResponse>(
-                        Method.Post,
-                        bp(
+                    this.request<IMarkBurnReadResponse>({
+                        method: Method.Post,
+                        path: bp(
                             `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
                         ),
-                        undefined,
-                        undefined,
-                        { prefix },
-                    ),
+                        prefix,
+                    }),
                 "markBurnRead",
             );
 
@@ -379,32 +355,26 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             throw new ValidationError("BurnAfterReadManager.cancelBurn: eventId is required");
         }
 
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<ICancelBurnResponse>(
-                        Method.Delete,
-                        bp(
-                            `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
-                        ),
-                        undefined,
-                        undefined,
-                        { prefix },
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<ICancelBurnResponse>({
+                    method: Method.Delete,
+                    path: bp(
+                        `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
                     ),
-                "cancelBurn",
-            );
+                    prefix,
+                }),
+            "cancelBurn",
+        );
 
-            this.clearBurnTimer(eventId);
-            this.burnRetryCount.delete(eventId);
-            this.emit(BurnAfterReadEvent.BurnCancelled, eventId);
+        this.clearBurnTimer(eventId);
+        this.burnRetryCount.delete(eventId);
+        this.emit(BurnAfterReadEvent.BurnCancelled, eventId);
 
-            return {
-                success: response.success ?? true,
-            };
-        } catch (error) {
-            throw this.normalizeError(error, "cancelBurn");
-        }
+        return {
+            success: response.success ?? true,
+        };
     }
 
     public async setBurnConfig(
@@ -413,56 +383,43 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
     ): Promise<ISetBurnConfigResponse> {
         this.validateBurnTime(defaultBurnMs);
 
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<ISetBurnConfigResponse>(
-                        Method.Put,
-                        bp("/user/burn/config"),
-                        undefined,
-                        { default_burn_ms: defaultBurnMs },
-                        { prefix },
-                    ),
-                "setBurnConfig",
-            );
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<ISetBurnConfigResponse>({
+                    method: Method.Put,
+                    path: bp("/user/burn/config"),
+                    body: { default_burn_ms: defaultBurnMs },
+                    prefix,
+                }),
+            "setBurnConfig",
+        );
 
-            const resultBurnMs = response.default_burn_ms ?? defaultBurnMs;
-            this.config.default_expire_time = resultBurnMs;
+        const resultBurnMs = response.default_burn_ms ?? defaultBurnMs;
+        this.config.default_expire_time = resultBurnMs;
 
-            return {
-                default_burn_ms: resultBurnMs,
-            };
-        } catch (error) {
-            throw this.normalizeError(error, "setBurnConfig");
-        }
+        return {
+            default_burn_ms: resultBurnMs,
+        };
     }
 
     public async getBurnStats(version?: BurnAfterReadApiVersion): Promise<IBurnStats> {
-        try {
-            const prefix = await this.resolveBurnPrefix(version);
-            const response = await this.withRetry(
-                () =>
-                    this.client.http.authedRequest<IBurnStats>(
-                        Method.Get,
-                        bp("/user/burn/stats"),
-                        undefined,
-                        undefined,
-                        {
-                            prefix,
-                        },
-                    ),
-                "getBurnStats",
-            );
+        const prefix = await this.resolveBurnPrefix(version);
+        const response = await this.withRetry(
+            () =>
+                this.request<IBurnStats>({
+                    method: Method.Get,
+                    path: bp("/user/burn/stats"),
+                    prefix,
+                }),
+            "getBurnStats",
+        );
 
-            return {
-                total_burned: response.total_burned ?? 0,
-                total_pending: response.total_pending ?? 0,
-                rooms_with_burn_enabled: response.rooms_with_burn_enabled ?? 0,
-            };
-        } catch (error) {
-            throw this.normalizeError(error, "getBurnStats");
-        }
+        return {
+            total_burned: response.total_burned ?? 0,
+            total_pending: response.total_pending ?? 0,
+            rooms_with_burn_enabled: response.rooms_with_burn_enabled ?? 0,
+        };
     }
 
     public async sendMessage(request: ISendBurnAfterReadMessageRequest): Promise<IBurnAfterReadMessageResponse> {
@@ -503,13 +460,12 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
 
             const response = await this.withRetry(
                 () =>
-                    this.client.http.authedRequest<{ event_id: string }>(
-                        Method.Put,
-                        `/rooms/${encodeURIComponent(request.room_id)}/send/m.room.message/${Date.now()}`,
-                        undefined,
-                        content,
-                        { prefix: ClientPrefix.V3 },
-                    ),
+                    this.request<{ event_id: string }>({
+                        method: Method.Put,
+                        path: `/rooms/${encodeURIComponent(request.room_id)}/send/m.room.message/${Date.now()}`,
+                        body: content,
+                        prefix: ClientPrefix.V3,
+                    }),
                 "sendMessage",
             );
 
@@ -556,13 +512,12 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         try {
             await this.withRetry(
                 () =>
-                    this.client.http.authedRequest(
-                        Method.Put,
-                        `/rooms/${encodeURIComponent(message.room_id)}/redact/${encodeURIComponent(eventId)}/${Date.now()}`,
-                        undefined,
-                        { reason: "Burn after read" },
-                        { prefix: ClientPrefix.V3 },
-                    ),
+                    this.request({
+                        method: Method.Put,
+                        path: `/rooms/${encodeURIComponent(message.room_id)}/redact/${encodeURIComponent(eventId)}/${Date.now()}`,
+                        body: { reason: "Burn after read" },
+                        prefix: ClientPrefix.V3,
+                    }),
                 "burnMessage",
             );
 
