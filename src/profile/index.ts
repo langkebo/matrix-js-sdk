@@ -480,7 +480,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         return getExtendedProfileRequest(
             userId,
             await this.getExtendedProfileRequestPrefix(),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 
@@ -501,7 +501,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             userId,
             key,
             await this.getExtendedProfileRequestPrefix(),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 
@@ -521,7 +521,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             key,
             value,
             await this.getExtendedProfileRequestPrefix(),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 
@@ -539,7 +539,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             this.client.getUserId(),
             key,
             await this.getExtendedProfileRequestPrefix(),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 
@@ -559,7 +559,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             this.client.getUserId(),
             profile,
             await this.getExtendedProfileRequestPrefix(),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 
@@ -578,7 +578,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             this.client.getUserId(),
             profile,
             await this.getExtendedProfileRequestPrefix(),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 

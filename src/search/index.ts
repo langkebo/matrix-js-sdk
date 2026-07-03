@@ -114,7 +114,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         }
         return this.withRetry(async () => {
             const body = buildSearchMessageRequestBody({ query: opts.term, keys: opts.keys });
-            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.client.http.authedRequest.bind(this.client.http));
+            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.transport.request.bind(this.transport));
         }, "searchMessageText");
     }
 
@@ -144,7 +144,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
                     room_events: roomEvents,
                 },
             };
-            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.client.http.authedRequest.bind(this.client.http));
+            return performSearchRequest<ISearchResponse>(body, undefined, undefined, this.transport.request.bind(this.transport));
         }, "searchRoomEvents");
     }
 
@@ -210,7 +210,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         return this.withRetry(
             () =>
                 searchRecipientsRequest<{ results: unknown[]; count: number; next_batch: string | null }>(
-                    this.client.http.authedRequest.bind(this.client.http),
+                    this.transport.request.bind(this.transport),
                     opts.term,
                     opts.limit,
                 ),
@@ -227,7 +227,7 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
                     body,
                     next_batch,
                     abortSignal,
-                    this.client.http.authedRequest.bind(this.client.http),
+                    this.transport.request.bind(this.transport),
                 ),
             "search",
         );

@@ -69,7 +69,7 @@ export class FakeTransport implements Transport {
     }
 
     /** Assert request was called with specific method + path */
-    public expectCalledWith(method: Method, path: string, body?: unknown): void {
+    public expectCalledWith(method: Method | string, path: string, body?: unknown): void {
         const calls = this.request.mock.calls;
         const match = calls.some(
             ([m, p, _q, b]) =>
@@ -90,7 +90,7 @@ export class FakeTransport implements Transport {
 
     /** Assert request was called with the given arguments */
     public expectCalledWithArgs(
-        method: Method,
+        method: Method | string,
         path: string,
         queryParams?: QueryDict,
         body?: Body,

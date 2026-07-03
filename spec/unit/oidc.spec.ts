@@ -119,7 +119,7 @@ describe("OidcManager", () => {
                 code_challenge_method: "S256",
             });
 
-            const callQuery = transport.request.mock.calls[0][2];
+            const callQuery = transport.request.mock.calls[0][2] as Record<string, string>;
             expect(callQuery.state).toBe("state123");
             expect(callQuery.nonce).toBe("nonce123");
             expect(callQuery.code_challenge).toBe("challenge123");

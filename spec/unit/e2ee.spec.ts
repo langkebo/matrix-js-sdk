@@ -36,7 +36,7 @@ describe("E2EEManager", () => {
             transport.respondWith({ one_time_key_counts: { signed_curve25519: 50 } });
 
             const result = await e2eeManager.uploadKeys({
-                device_keys: { algorithms: ["m.olm.v1.curve25519-aes-sha2"] },
+                deviceKeys: { algorithms: ["m.olm.v1.curve25519-aes-sha2"] } as any,
             });
 
             expect(result.one_time_key_counts).toEqual({ signed_curve25519: 50 });
@@ -78,11 +78,11 @@ describe("E2EEManager", () => {
 
     describe("getKeyChanges", () => {
         it("should get key changes between tokens", async () => {
-            transport.respondWith({ changes: ["@alice:example.com"], left: [] });
+            transport.respondWith({ changed: ["@alice:example.com"], left: [] });
 
             const result = await e2eeManager.getKeyChanges({ from: "t1", to: "t2" });
 
-            expect(result.changes).toEqual(["@alice:example.com"]);
+            expect(result.changed).toEqual(["@alice:example.com"]);
             transport.expectCalledWithArgs(
                 Method.Get,
                 "/keys/changes",

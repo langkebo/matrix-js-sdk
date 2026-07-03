@@ -204,7 +204,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
             async () =>
                 (await this.client.doesServerSupportUnstableFeature("org.matrix.msc2285.stable")) ||
                 (await this.client.isVersionSupported("v1.4")),
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 

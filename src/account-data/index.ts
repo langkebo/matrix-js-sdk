@@ -147,7 +147,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
             this.client.credentials.userId,
             eventType as string,
             content as IContent,
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
         );
     }
 
@@ -182,7 +182,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
             return await getUserAccountDataRequest<AccountDataEvents[K]>(
                 this.client.credentials.userId,
                 eventType as string,
-                this.client.http.authedRequest.bind(this.client.http),
+                this.transport.request.bind(this.transport),
             );
         // @swallow-error { owner: "account-data", expires: "2026-12-31" }
         } catch (e) {
@@ -291,7 +291,7 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
         return await deleteUserAccountDataRequest(
             this.client.getSafeUserId(),
             eventType as string,
-            this.client.http.authedRequest.bind(this.client.http),
+            this.transport.request.bind(this.transport),
             selectDeleteAccountDataRequestOptions(msc3391DeleteAccountDataServerSupport),
         );
     }
