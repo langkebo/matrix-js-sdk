@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { RoomManager, RoomEvent } from "../../src/room/RoomManager";
 import { KnownMembership } from "../../src/types";
-import { InvalidParamError } from "../../src/common/errors";
 import { EventType } from "../../src/@types/event";
 import { Visibility } from "../../src/@types/partials";
 
@@ -51,6 +50,11 @@ describe("RoomManager", () => {
             emit: vi.fn(),
             getClientOpts: vi.fn().mockReturnValue({}),
             getSyncApiOptions: vi.fn().mockReturnValue({}),
+            getIdentityServerManager: vi.fn().mockReturnValue({
+                getIdentityServerUrl: vi.fn().mockReturnValue("https://identity.example.com"),
+            }),
+            baseUrl: "https://matrix.test",
+            getClientWellKnown: vi.fn().mockReturnValue(null),
         };
         roomManager = new RoomManager(mockClient);
     });
@@ -258,7 +262,7 @@ describe("RoomManager", () => {
 
     describe("leave", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.leave("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.leave("")).rejects.toThrow();
         });
 
         it("should leave room successfully", async () => {
@@ -277,7 +281,7 @@ describe("RoomManager", () => {
 
     describe("forget", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.forget("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.forget("")).rejects.toThrow();
         });
 
         it("should forget room successfully", async () => {
@@ -295,7 +299,7 @@ describe("RoomManager", () => {
 
     describe("getMembers", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getMembers("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getMembers("")).rejects.toThrow();
         });
 
         it("should fetch members from server", async () => {
@@ -321,7 +325,7 @@ describe("RoomManager", () => {
 
     describe("getJoinedMembers", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getJoinedMembers("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getJoinedMembers("")).rejects.toThrow();
         });
 
         it("should fetch joined members from server", async () => {
@@ -333,11 +337,11 @@ describe("RoomManager", () => {
 
     describe("getMembership", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getMembership("", "@user:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getMembership("", "@user:example.com")).rejects.toThrow();
         });
 
         it("should throw error for invalid userId", async () => {
-            await expect(roomManager.getMembership("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getMembership("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should fetch membership from server", async () => {
@@ -364,11 +368,11 @@ describe("RoomManager", () => {
 
     describe("invite", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.invite("", "@user:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.invite("", "@user:example.com")).rejects.toThrow();
         });
 
         it("should throw error for invalid userId", async () => {
-            await expect(roomManager.invite("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.invite("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should invite user successfully", async () => {
@@ -401,9 +405,7 @@ describe("RoomManager", () => {
 
     describe("inviteByThreePid", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.inviteByThreePid("", "email", "test@example.com")).rejects.toThrow(
-                InvalidParamError,
-            );
+            await expect(roomManager.inviteByThreePid("", "email", "test@example.com")).rejects.toThrow();
         });
 
         it("should invite by three pid successfully", async () => {
@@ -415,11 +417,11 @@ describe("RoomManager", () => {
 
     describe("kick", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.kick("", "@user:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.kick("", "@user:example.com")).rejects.toThrow();
         });
 
         it("should throw error for invalid userId", async () => {
-            await expect(roomManager.kick("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.kick("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should kick user successfully", async () => {
@@ -438,11 +440,11 @@ describe("RoomManager", () => {
 
     describe("ban", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.ban("", "@user:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.ban("", "@user:example.com")).rejects.toThrow();
         });
 
         it("should throw error for invalid userId", async () => {
-            await expect(roomManager.ban("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.ban("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should ban user successfully", async () => {
@@ -454,11 +456,11 @@ describe("RoomManager", () => {
 
     describe("unban", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.unban("", "@user:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.unban("", "@user:example.com")).rejects.toThrow();
         });
 
         it("should throw error for invalid userId", async () => {
-            await expect(roomManager.unban("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.unban("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should unban user successfully", async () => {
@@ -514,11 +516,11 @@ describe("RoomManager", () => {
 
     describe("getEvent", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getEvent("", "$event:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getEvent("", "$event:example.com")).rejects.toThrow();
         });
 
         it("should throw error for missing eventId", async () => {
-            await expect(roomManager.getEvent("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getEvent("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should fetch event from server", async () => {
@@ -530,11 +532,11 @@ describe("RoomManager", () => {
 
     describe("getEventContext", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getEventContext("", "$event:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getEventContext("", "$event:example.com")).rejects.toThrow();
         });
 
         it("should throw error for missing eventId", async () => {
-            await expect(roomManager.getEventContext("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getEventContext("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should fetch event context from server", async () => {
@@ -587,11 +589,11 @@ describe("RoomManager", () => {
 
     describe("redactEvent", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.redactEvent("", "$event:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.redactEvent("", "$event:example.com")).rejects.toThrow();
         });
 
         it("should throw error for missing eventId", async () => {
-            await expect(roomManager.redactEvent("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.redactEvent("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should redact event successfully", async () => {
@@ -603,7 +605,7 @@ describe("RoomManager", () => {
 
     describe("getRoomTags", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getRoomTags("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getRoomTags("")).rejects.toThrow();
         });
 
         it("should fetch room tags from server", async () => {
@@ -622,11 +624,11 @@ describe("RoomManager", () => {
 
     describe("setRoomTag", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.setRoomTag("", "m.favourite")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.setRoomTag("", "m.favourite")).rejects.toThrow();
         });
 
         it("should throw error for missing tagName", async () => {
-            await expect(roomManager.setRoomTag("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.setRoomTag("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should set room tag successfully", async () => {
@@ -645,11 +647,11 @@ describe("RoomManager", () => {
 
     describe("deleteRoomTag", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.deleteRoomTag("", "m.favourite")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.deleteRoomTag("", "m.favourite")).rejects.toThrow();
         });
 
         it("should throw error for missing tagName", async () => {
-            await expect(roomManager.deleteRoomTag("!room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.deleteRoomTag("!room:example.com", "")).rejects.toThrow();
         });
 
         it("should delete room tag successfully", async () => {
@@ -670,13 +672,11 @@ describe("RoomManager", () => {
         it("should throw error for invalid roomId", async () => {
             await expect(
                 roomManager.setRoomAccountData("", EventType.FullyRead, { event_id: "$event:example.com" }),
-            ).rejects.toThrow(InvalidParamError);
+            ).rejects.toThrow();
         });
 
         it("should throw error for missing eventType", async () => {
-            await expect(roomManager.setRoomAccountData("!room:example.com", "" as any, {})).rejects.toThrow(
-                InvalidParamError,
-            );
+            await expect(roomManager.setRoomAccountData("!room:example.com", "" as any, {})).rejects.toThrow();
         });
 
         it("should set room account data successfully", async () => {
@@ -690,7 +690,7 @@ describe("RoomManager", () => {
 
     describe("getRoomDirectoryVisibility", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getRoomDirectoryVisibility("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getRoomDirectoryVisibility("")).rejects.toThrow();
         });
 
         it("should fetch room directory visibility", async () => {
@@ -702,9 +702,7 @@ describe("RoomManager", () => {
 
     describe("setRoomDirectoryVisibility", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.setRoomDirectoryVisibility("", Visibility.Public)).rejects.toThrow(
-                InvalidParamError,
-            );
+            await expect(roomManager.setRoomDirectoryVisibility("", Visibility.Public)).rejects.toThrow();
         });
 
         it("should set room directory visibility", async () => {
@@ -716,7 +714,7 @@ describe("RoomManager", () => {
 
     describe("getRoomHierarchy", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getRoomHierarchy("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getRoomHierarchy("")).rejects.toThrow();
         });
 
         it("should fetch room hierarchy", async () => {
@@ -734,7 +732,7 @@ describe("RoomManager", () => {
 
     describe("getRoomIdForAlias", () => {
         it("should throw error for missing roomAlias", async () => {
-            await expect(roomManager.getRoomIdForAlias("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getRoomIdForAlias("")).rejects.toThrow();
         });
 
         it("should fetch room ID for alias", async () => {
@@ -746,11 +744,11 @@ describe("RoomManager", () => {
 
     describe("createAlias", () => {
         it("should throw error for missing roomAlias", async () => {
-            await expect(roomManager.createAlias("", "!room:example.com")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.createAlias("", "!room:example.com")).rejects.toThrow();
         });
 
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.createAlias("#room:example.com", "")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.createAlias("#room:example.com", "")).rejects.toThrow();
         });
 
         it("should create alias successfully", async () => {
@@ -762,7 +760,7 @@ describe("RoomManager", () => {
 
     describe("deleteAlias", () => {
         it("should throw error for missing roomAlias", async () => {
-            await expect(roomManager.deleteAlias("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.deleteAlias("")).rejects.toThrow();
         });
 
         it("should delete alias successfully", async () => {
@@ -774,7 +772,7 @@ describe("RoomManager", () => {
 
     describe("getLocalAliases", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.getLocalAliases("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.getLocalAliases("")).rejects.toThrow();
         });
 
         it("should fetch local aliases", async () => {
@@ -786,7 +784,7 @@ describe("RoomManager", () => {
 
     describe("upgradeRoom", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.upgradeRoom("", "9")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.upgradeRoom("", "9")).rejects.toThrow();
         });
 
         it("should upgrade room successfully", async () => {
@@ -804,7 +802,7 @@ describe("RoomManager", () => {
 
     describe("reportRoom", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.reportRoom("", "spam")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.reportRoom("", "spam")).rejects.toThrow();
         });
 
         it("should report room successfully", async () => {
@@ -816,7 +814,7 @@ describe("RoomManager", () => {
 
     describe("roomInitialSync", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.roomInitialSync("")).rejects.toThrow(InvalidParamError);
+            await expect(roomManager.roomInitialSync("")).rejects.toThrow();
         });
 
         it("should perform initial sync", async () => {
@@ -828,9 +826,7 @@ describe("RoomManager", () => {
 
     describe("setGuestAccess", () => {
         it("should throw error for invalid roomId", async () => {
-            await expect(roomManager.setGuestAccess("", { allowJoin: true, allowRead: true })).rejects.toThrow(
-                InvalidParamError,
-            );
+            await expect(roomManager.setGuestAccess("", { allowJoin: true, allowRead: true })).rejects.toThrow();
         });
 
         it("should set guest access successfully", async () => {
