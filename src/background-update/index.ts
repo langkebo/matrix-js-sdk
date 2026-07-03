@@ -137,7 +137,11 @@ export class BackgroundUpdateManager extends BaseManager<string, Record<string, 
         queryParams?: Record<string, string>,
         body?: unknown,
     ): Promise<T> {
-        return this.client.http.authedRequest<T>(method, path, queryParams, body as Body | undefined, {
+        return this.request<T>({
+            method: method,
+            path: path,
+            queryParams: queryParams,
+            body: body as Body | undefined,
             prefix: AdminPrefix.V1,
         });
     }

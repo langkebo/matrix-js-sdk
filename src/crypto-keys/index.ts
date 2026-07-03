@@ -110,13 +110,12 @@ export class CryptoKeysManager extends BaseManager {
     async uploadKeys(content: IKeysUploadRequest): Promise<IKeysUploadResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IKeysUploadResponse>(
-                    Method.Post,
-                    "/keys/upload",
-                    undefined,
-                    content,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IKeysUploadResponse>({
+                    method: Method.Post,
+                    path: "/keys/upload",
+                    body: content,
+                    prefix: ClientPrefix.V3,
+                });
             }, "uploadKeys");
 
             return response;
@@ -152,13 +151,12 @@ export class CryptoKeysManager extends BaseManager {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IDownloadKeyResult>(
-                    Method.Post,
-                    "/keys/query",
-                    undefined,
-                    content,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IDownloadKeyResult>({
+                    method: Method.Post,
+                    path: "/keys/query",
+                    body: content,
+                    prefix: ClientPrefix.V3,
+                });
             }, "queryKeys");
 
             for (const [userId, devices] of Object.entries(response.device_keys || {})) {
@@ -193,13 +191,12 @@ export class CryptoKeysManager extends BaseManager {
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IClaimOTKsResult>(
-                    Method.Post,
-                    "/keys/claim",
-                    undefined,
-                    content,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IClaimOTKsResult>({
+                    method: Method.Post,
+                    path: "/keys/claim",
+                    body: content,
+                    prefix: ClientPrefix.V3,
+                });
             }, "claimKeys");
 
             return response;
@@ -211,13 +208,12 @@ export class CryptoKeysManager extends BaseManager {
     async getKeysChanges(from: string, to: string): Promise<IKeysChangesResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IKeysChangesResponse>(
-                    Method.Get,
-                    "/keys/changes",
-                    { from, to },
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IKeysChangesResponse>({
+                    method: Method.Get,
+                    path: "/keys/changes",
+                    queryParams: { from, to },
+                    prefix: ClientPrefix.V3,
+                });
             }, "getKeysChanges");
 
             return response;
@@ -229,13 +225,12 @@ export class CryptoKeysManager extends BaseManager {
     async updateDeviceList(): Promise<void> {
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    "/keys/device_list/update",
-                    undefined,
-                    {},
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({
+                    method: Method.Post,
+                    path: "/keys/device_list/update",
+                    body: {},
+                    prefix: ClientPrefix.V3,
+                });
             }, "updateDeviceList");
         } catch (error) {
             throw this.normalizeError(error, "updateDeviceList");
@@ -247,13 +242,12 @@ export class CryptoKeysManager extends BaseManager {
     ): Promise<IUploadKeySignaturesResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IUploadKeySignaturesResponse>(
-                    Method.Post,
-                    "/keys/signatures/upload",
-                    undefined,
-                    { signatures },
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IUploadKeySignaturesResponse>({
+                    method: Method.Post,
+                    path: "/keys/signatures/upload",
+                    body: { signatures },
+                    prefix: ClientPrefix.V3,
+                });
             }, "uploadKeySignatures");
 
             return response;
@@ -269,13 +263,12 @@ export class CryptoKeysManager extends BaseManager {
 
         try {
             await this.withRetry(async () => {
-                return await this.client.http.authedRequest(
-                    Method.Post,
-                    "/keys/device_signing/upload",
-                    undefined,
-                    content,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request({
+                    method: Method.Post,
+                    path: "/keys/device_signing/upload",
+                    body: content,
+                    prefix: ClientPrefix.V3,
+                });
             }, "uploadDeviceSigning");
         } catch (error) {
             throw this.normalizeError(error, "uploadDeviceSigning");
@@ -292,13 +285,11 @@ export class CryptoKeysManager extends BaseManager {
     async getRoomKeyDistribution(roomId: string, throwOnError = true): Promise<IRoomKeyDistributionResponse | null> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.client.http.authedRequest<IRoomKeyDistributionResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/keys/distribution`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                );
+                return await this.request<IRoomKeyDistributionResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/keys/distribution`,
+                    prefix: ClientPrefix.V3,
+                });
             }, "getRoomKeyDistribution");
 
             return response;

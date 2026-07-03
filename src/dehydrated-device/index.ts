@@ -69,13 +69,12 @@ export class DehydratedDeviceManager extends BaseManager {
         this.requireNonEmptyString(data.device_data.account, "device_data.account");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<CreateDehydratedDeviceResponse>(
-                Method.Post,
-                "/dehydrated_device",
-                undefined,
-                data,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<CreateDehydratedDeviceResponse>({
+                method: Method.Post,
+                path: "/dehydrated_device",
+                body: data,
+                prefix: MSC3814_PREFIX,
+            });
         }, "createDevice");
     }
 
@@ -83,25 +82,21 @@ export class DehydratedDeviceManager extends BaseManager {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<DeviceInfo>(
-                Method.Get,
-                `/dehydrated_device/${encodeURIComponent(deviceId)}`,
-                undefined,
-                undefined,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<DeviceInfo>({
+                method: Method.Get,
+                path: `/dehydrated_device/${encodeURIComponent(deviceId)}`,
+                prefix: MSC3814_PREFIX,
+            });
         }, "getDevice");
     }
 
     public async getDevices(): Promise<GetDevicesResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<GetDevicesResponse>(
-                Method.Get,
-                "/dehydrated_device",
-                undefined,
-                undefined,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<GetDevicesResponse>({
+                method: Method.Get,
+                path: "/dehydrated_device",
+                prefix: MSC3814_PREFIX,
+            });
         }, "getDevices");
     }
 
@@ -112,13 +107,12 @@ export class DehydratedDeviceManager extends BaseManager {
         this.requireNonEmptyString(data.rehydrate_data.account, "rehydrate_data.account");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ClaimDehydratedDeviceResponse>(
-                Method.Post,
-                `/dehydrated_device/${encodeURIComponent(deviceId)}/claim`,
-                undefined,
-                data,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<ClaimDehydratedDeviceResponse>({
+                method: Method.Post,
+                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/claim`,
+                body: data,
+                prefix: MSC3814_PREFIX,
+            });
         }, "claimDevice");
     }
 
@@ -129,13 +123,12 @@ export class DehydratedDeviceManager extends BaseManager {
         this.requireNonEmptyString(data.device_data.account, "device_data.account");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<UpdateDehydratedDeviceResponse>(
-                Method.Put,
-                `/dehydrated_device/${encodeURIComponent(deviceId)}`,
-                undefined,
-                data,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<UpdateDehydratedDeviceResponse>({
+                method: Method.Put,
+                path: `/dehydrated_device/${encodeURIComponent(deviceId)}`,
+                body: data,
+                prefix: MSC3814_PREFIX,
+            });
         }, "updateDeviceData");
     }
 
@@ -143,13 +136,11 @@ export class DehydratedDeviceManager extends BaseManager {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, never>>(
-                Method.Delete,
-                `/dehydrated_device/${encodeURIComponent(deviceId)}`,
-                undefined,
-                undefined,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<Record<string, never>>({
+                method: Method.Delete,
+                path: `/dehydrated_device/${encodeURIComponent(deviceId)}`,
+                prefix: MSC3814_PREFIX,
+            });
         }, "deleteDevice");
     }
 
@@ -157,13 +148,11 @@ export class DehydratedDeviceManager extends BaseManager {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */>(
-                Method.Get,
-                `/dehydrated_device/${encodeURIComponent(deviceId)}/initial_device`,
-                undefined,
-                undefined,
-                { prefix: MSC3814_PREFIX },
-            );
+            return await this.request<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */>({
+                method: Method.Get,
+                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/initial_device`,
+                prefix: MSC3814_PREFIX,
+            });
         }, "getDeviceEvent");
     }
 }

@@ -138,7 +138,11 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
     ): Promise<T> {
         const resolvedVersion = await this.resolveApiVersion(version);
         return this.withRetry(async () => {
-            return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
+            return this.request({
+                method: method,
+                path: path,
+                queryParams: queryParams,
+                body: body as Body | undefined,
                 prefix: this.getPrefix(resolvedVersion),
             }) as Promise<T>;
         }, "request");
