@@ -10,7 +10,6 @@
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
-import { type Body } from "../http-api/interface";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import { validateUserId, validateRoomId } from "../common/validators";
@@ -145,13 +144,12 @@ export class EventReportManager extends BaseManager {
             validateUserId(body.reported_user_id);
         }
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse>(
-                Method.Post,
-                er("/event_reports"),
-                undefined,
-                body as Body,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse>({
+                method: Method.Post,
+                path: er("/event_reports"),
+                body,
+                prefix: AdminPrefix.V1,
+            });
         }, "createReport");
     }
 
@@ -169,13 +167,12 @@ export class EventReportManager extends BaseManager {
      */
     async listReports(params?: QueryParams): Promise<ReportResponse[]> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse[]>(
-                Method.Get,
-                er("/event_reports"),
-                this.buildQueryParams(params),
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse[]>({
+                method: Method.Get,
+                path: er("/event_reports"),
+                queryParams: this.buildQueryParams(params),
+                prefix: AdminPrefix.V1,
+            });
         }, "listReports");
     }
 
@@ -185,13 +182,11 @@ export class EventReportManager extends BaseManager {
      */
     async getReportsCount(): Promise<EventReportCountResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<EventReportCountResponse>(
-                Method.Get,
-                er("/event_reports/count"),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<EventReportCountResponse>({
+                method: Method.Get,
+                path: er("/event_reports/count"),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReportsCount");
     }
 
@@ -202,13 +197,11 @@ export class EventReportManager extends BaseManager {
     async getReport(id: number): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse>(
-                Method.Get,
-                er(`/event_reports/${id}`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse>({
+                method: Method.Get,
+                path: er(`/event_reports/${id}`),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReport");
     }
 
@@ -219,13 +212,11 @@ export class EventReportManager extends BaseManager {
     async getReportsByEvent(eventId: string): Promise<ReportResponse[]> {
         this.requireNonEmptyString(eventId, "eventId");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse[]>(
-                Method.Get,
-                er(`/event_reports/event/${encodeURIComponent(eventId)}`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse[]>({
+                method: Method.Get,
+                path: er(`/event_reports/event/${encodeURIComponent(eventId)}`),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReportsByEvent");
     }
 
@@ -236,13 +227,12 @@ export class EventReportManager extends BaseManager {
     async getReportsByRoom(roomId: string, params?: QueryParams): Promise<ReportResponse[]> {
         validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse[]>(
-                Method.Get,
-                er(`/event_reports/room/${encodeURIComponent(roomId)}`),
-                this.buildQueryParams(params),
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse[]>({
+                method: Method.Get,
+                path: er(`/event_reports/room/${encodeURIComponent(roomId)}`),
+                queryParams: this.buildQueryParams(params),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReportsByRoom");
     }
 
@@ -256,13 +246,12 @@ export class EventReportManager extends BaseManager {
     ): Promise<ReportResponse[]> {
         validateUserId(reporterUserId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse[]>(
-                Method.Get,
-                er(`/event_reports/reporter/${encodeURIComponent(reporterUserId)}`),
-                this.buildQueryParams(params),
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse[]>({
+                method: Method.Get,
+                path: er(`/event_reports/reporter/${encodeURIComponent(reporterUserId)}`),
+                queryParams: this.buildQueryParams(params),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReportsByReporter");
     }
 
@@ -276,13 +265,12 @@ export class EventReportManager extends BaseManager {
     ): Promise<ReportResponse[]> {
         this.requireNonEmptyString(status, "status");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse[]>(
-                Method.Get,
-                er(`/event_reports/status/${encodeURIComponent(status)}`),
-                this.buildQueryParams(params),
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse[]>({
+                method: Method.Get,
+                path: er(`/event_reports/status/${encodeURIComponent(status)}`),
+                queryParams: this.buildQueryParams(params),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReportsByStatus");
     }
 
@@ -293,13 +281,11 @@ export class EventReportManager extends BaseManager {
     async getStatusCount(status: ReportStatus): Promise<StatusCountResponse> {
         this.requireNonEmptyString(status, "status");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<StatusCountResponse>(
-                Method.Get,
-                er(`/event_reports/status/${encodeURIComponent(status)}/count`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<StatusCountResponse>({
+                method: Method.Get,
+                path: er(`/event_reports/status/${encodeURIComponent(status)}/count`),
+                prefix: AdminPrefix.V1,
+            });
         }, "getStatusCount");
     }
 
@@ -310,13 +296,12 @@ export class EventReportManager extends BaseManager {
     async updateReport(id: number, body: UpdateReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse>(
-                Method.Put,
-                er(`/event_reports/${id}`),
-                undefined,
-                body as Body,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse>({
+                method: Method.Put,
+                path: er(`/event_reports/${id}`),
+                body,
+                prefix: AdminPrefix.V1,
+            });
         }, "updateReport");
     }
 
@@ -327,13 +312,12 @@ export class EventReportManager extends BaseManager {
     async resolveReport(id: number, body?: ResolveReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse>(
-                Method.Post,
-                er(`/event_reports/${id}/resolve`),
-                undefined,
-                body as Body,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse>({
+                method: Method.Post,
+                path: er(`/event_reports/${id}/resolve`),
+                body,
+                prefix: AdminPrefix.V1,
+            });
         }, "resolveReport");
     }
 
@@ -344,13 +328,12 @@ export class EventReportManager extends BaseManager {
     async dismissReport(id: number, body?: DismissReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse>(
-                Method.Post,
-                er(`/event_reports/${id}/dismiss`),
-                undefined,
-                body as Body,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse>({
+                method: Method.Post,
+                path: er(`/event_reports/${id}/dismiss`),
+                body,
+                prefix: AdminPrefix.V1,
+            });
         }, "dismissReport");
     }
 
@@ -361,13 +344,12 @@ export class EventReportManager extends BaseManager {
     async escalateReport(id: number, body?: EscalateReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse>(
-                Method.Post,
-                er(`/event_reports/${id}/escalate`),
-                undefined,
-                body as Body,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse>({
+                method: Method.Post,
+                path: er(`/event_reports/${id}/escalate`),
+                body,
+                prefix: AdminPrefix.V1,
+            });
         }, "escalateReport");
     }
 
@@ -378,13 +360,11 @@ export class EventReportManager extends BaseManager {
     async deleteReport(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
         await this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Delete,
-                er(`/event_reports/${id}`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request<void>({
+                method: Method.Delete,
+                path: er(`/event_reports/${id}`),
+                prefix: AdminPrefix.V1,
+            });
         }, "deleteReport");
     }
 
@@ -395,13 +375,11 @@ export class EventReportManager extends BaseManager {
     async getReportHistory(id: number): Promise<ReportResponse[]> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<ReportResponse[]>(
-                Method.Get,
-                er(`/event_reports/${id}/history`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<ReportResponse[]>({
+                method: Method.Get,
+                path: er(`/event_reports/${id}/history`),
+                prefix: AdminPrefix.V1,
+            });
         }, "getReportHistory");
     }
 
@@ -411,13 +389,11 @@ export class EventReportManager extends BaseManager {
      */
     async getStats(): Promise<StatsResponse> {
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<StatsResponse>(
-                Method.Get,
-                er("/event_reports/stats"),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            return await this.request<StatsResponse>({
+                method: Method.Get,
+                path: er("/event_reports/stats"),
+                prefix: AdminPrefix.V1,
+            });
         }, "getStats");
     }
 
@@ -430,17 +406,15 @@ export class EventReportManager extends BaseManager {
     ): Promise<{ is_allowed: boolean; remaining_reports: number; block_reason?: string }> {
         validateUserId(userId);
         return await this.withRetry(async () => {
-            return await this.client.http.authedRequest<{
+            return await this.request<{
                 is_allowed: boolean;
                 remaining_reports: number;
                 block_reason?: string;
-            }>(
-                Method.Get,
-                er(`/event_reports/rate_limit/${encodeURIComponent(userId)}`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            }>({
+                method: Method.Get,
+                path: er(`/event_reports/rate_limit/${encodeURIComponent(userId)}`),
+                prefix: AdminPrefix.V1,
+            });
         }, "checkRateLimit");
     }
 
@@ -451,13 +425,12 @@ export class EventReportManager extends BaseManager {
     async blockUser(userId: string, blockedUntil: number, reason: string): Promise<void> {
         validateUserId(userId);
         await this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Post,
-                er(`/event_reports/rate_limit/${encodeURIComponent(userId)}/block`),
-                undefined,
-                { blocked_until: blockedUntil, reason } as Body,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request<void>({
+                method: Method.Post,
+                path: er(`/event_reports/rate_limit/${encodeURIComponent(userId)}/block`),
+                body: { blocked_until: blockedUntil, reason },
+                prefix: AdminPrefix.V1,
+            });
         }, "blockUser");
     }
 
@@ -468,13 +441,11 @@ export class EventReportManager extends BaseManager {
     async unblockUser(userId: string): Promise<void> {
         validateUserId(userId);
         await this.withRetry(async () => {
-            await this.client.http.authedRequest<void>(
-                Method.Post,
-                er(`/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`),
-                undefined,
-                undefined,
-                { prefix: AdminPrefix.V1 },
-            );
+            await this.request<void>({
+                method: Method.Post,
+                path: er(`/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`),
+                prefix: AdminPrefix.V1,
+            });
         }, "unblockUser");
     }
 }
