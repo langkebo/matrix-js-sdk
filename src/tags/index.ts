@@ -79,15 +79,13 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
             }
             const response = await this.withRetry(
                 async () =>
-                    await this.client.http.authedRequest<{ tags?: IRoomTags }>(
-                        Method.Get,
-                        tp(
+                    await this.request<{ tags?: IRoomTags }>({
+                        method: Method.Get,
+                        path: tp(
                             `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags` as StripV3<TagsPathPattern>,
                         ),
-                        undefined,
-                        undefined,
-                        { prefix: ClientPrefix.V3 },
-                    ),
+                        prefix: ClientPrefix.V3,
+                    }),
                 "getRoomTags",
             );
 
@@ -120,15 +118,14 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
 
             await this.withRetry(
                 async () =>
-                    await this.client.http.authedRequest(
-                        Method.Put,
-                        tp(
+                    await this.request({
+                        method: Method.Put,
+                        path: tp(
                             `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
                         ),
-                        undefined,
-                        body,
-                        { prefix: ClientPrefix.V3 },
-                    ),
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    }),
                 "addRoomTag",
             );
 
@@ -157,15 +154,13 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
 
             await this.withRetry(
                 async () =>
-                    await this.client.http.authedRequest(
-                        Method.Delete,
-                        tp(
+                    await this.request({
+                        method: Method.Delete,
+                        path: tp(
                             `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
                         ),
-                        undefined,
-                        undefined,
-                        { prefix: ClientPrefix.V3 },
-                    ),
+                        prefix: ClientPrefix.V3,
+                    }),
                 "removeRoomTag",
             );
 

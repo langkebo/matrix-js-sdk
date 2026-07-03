@@ -175,13 +175,11 @@ export class ServerCapabilitiesManager extends BaseManager<
             return this.cachedCapabilities;
         }
         return this.withRetry(async () => {
-            const resp = await this.client.http.authedRequest<{ capabilities: Capabilities }>(
-                Method.Get,
-                "/capabilities",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            const resp = await this.request<{ capabilities: Capabilities }>({
+                method: Method.Get,
+                path: "/capabilities",
+                prefix: ClientPrefix.V3,
+            });
             this.cachedCapabilities = resp["capabilities"];
             this.capabilitiesFetchedAt = Date.now();
             return this.cachedCapabilities!;
@@ -398,10 +396,13 @@ export class ServerCapabilitiesManager extends BaseManager<
                 tokenQuery["batch_token"] = token;
             }
 
-            const res = await this.client.http.authedRequest<{
+            const res = await this.request<{
                 joined: string[];
                 next_batch_token?: string;
-            }>(Method.Get, path, { ...query, ...tokenQuery } as QueryDict, undefined, {
+            }>({
+                method: Method.Get,
+                path: path,
+                queryParams: { ...query, ...tokenQuery } as QueryDict,
                 prefix: ClientPrefix.Unstable,
             });
 
@@ -424,9 +425,11 @@ export class ServerCapabilitiesManager extends BaseManager<
      */
     public async _unstable_getRTCTransports(): Promise<Record<string, unknown>[]> { // Dynamic: RTC transport configs vary by transport type
         return (
-            await this.client.http.authedRequest<{
+            await this.request<{
                 rtc_transports: Record<string, unknown>[]; // Dynamic: RTC transport configs vary by transport type
-            }>(Method.Get, "/rtc/transports", undefined, undefined, {
+            }>({
+                method: Method.Get,
+                path: "/rtc/transports",
                 prefix: `${ClientPrefix.Unstable}/org.matrix.msc4143`,
             })
         ).rtc_transports;

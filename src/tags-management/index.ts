@@ -68,21 +68,32 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
     ): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
-            return this.client.http.authedRequest<EmptyObject>(Method.Put, path, undefined, content);
+            return this.request<EmptyObject>({
+                method: Method.Put,
+                path: path,
+                body: content,
+            });
         }, "setRoomAccountData");
     }
 
     public async addRoomTag(roomId: string, tag: string, content?: ITagContent): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomTagPath(this.client.credentials.userId!, roomId, tag);
-            return this.client.http.authedRequest<EmptyObject>(Method.Put, path, undefined, content || {});
+            return this.request<EmptyObject>({
+                method: Method.Put,
+                path: path,
+                body: content || {},
+            });
         }, "addRoomTag");
     }
 
     public async removeRoomTag(roomId: string, tag: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomTagPath(this.client.credentials.userId!, roomId, tag);
-            return this.client.http.authedRequest<EmptyObject>(Method.Delete, path);
+            return this.request<EmptyObject>({
+                method: Method.Delete,
+                path: path,
+            });
         }, "removeRoomTag");
     }
 }

@@ -382,13 +382,12 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
 
         return this.withRetry(async () => {
             const query = eventType ? { event_type: eventType } : undefined;
-            const response = (await this.client.http.authedRequest(
-                Method.Get,
-                `/rooms/${encodeURIComponent(roomId)}/sticky_events`,
-                query,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            )) as IServerStickyEventsResponse;
+            const response = (await this.request({
+                method: Method.Get,
+                path: `/rooms/${encodeURIComponent(roomId)}/sticky_events`,
+                queryParams: query,
+                prefix: ClientPrefix.V3,
+            })) as IServerStickyEventsResponse;
 
             const events = response.events || [];
             this.serverEventsCache.set(cacheKey, events);
@@ -406,13 +405,12 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         }
 
         return this.withRetry(async () => {
-            await this.client.http.authedRequest(
-                Method.Post,
-                `/rooms/${encodeURIComponent(roomId)}/sticky_events`,
-                undefined,
-                events,
-                { prefix: ClientPrefix.V3 },
-            );
+            await this.request({
+                method: Method.Post,
+                path: `/rooms/${encodeURIComponent(roomId)}/sticky_events`,
+                body: events,
+                prefix: ClientPrefix.V3,
+            });
 
             this.serverEventsCache.delete(`${roomId}:all`);
             this.emit(StickyEvent.StickyUpdated, roomId, {
@@ -436,13 +434,11 @@ export class StickyEventManager extends BaseManager<StickyEvent, StickyEventMana
         }
 
         return this.withRetry(async () => {
-            await this.client.http.authedRequest(
-                Method.Delete,
-                `/rooms/${encodeURIComponent(roomId)}/sticky_events/${encodeURIComponent(eventType)}`,
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+            await this.request({
+                method: Method.Delete,
+                path: `/rooms/${encodeURIComponent(roomId)}/sticky_events/${encodeURIComponent(eventType)}`,
+                prefix: ClientPrefix.V3,
+            });
 
             this.stickyEventsCache.delete(roomId);
             this.serverEventsCache.delete(`${roomId}:all`);
