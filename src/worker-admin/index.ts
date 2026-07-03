@@ -140,7 +140,11 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     private doRequest<T>(method: Method, path: string, queryParams?: Record<string, string>, body?: unknown): Promise<T> {
         return this.withRetry(async () => {
-            return this.client.http.authedRequest(method, path, queryParams, body as Body | undefined, {
+            return this.request({
+                method: method,
+                path: path,
+                queryParams: queryParams,
+                body: body as Body | undefined,
                 prefix: WORKER_PREFIX,
             }) as Promise<T>;
         }, "request");

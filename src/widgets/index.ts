@@ -183,13 +183,19 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     private doRequest<T>(method: Method, path: string, body?: unknown): Promise<T> {
-        return this.client.http.authedRequest(method, path, undefined, body as Body | undefined, {
+        return this.request({
+            method: method,
+            path: path,
+            body: body as Body | undefined,
             prefix: ClientPrefix.V1,
         }) as Promise<T>;
     }
 
     private doRequestV3<T>(method: Method, path: string, body?: unknown): Promise<T> {
-        return this.client.http.authedRequest(method, path, undefined, body as Body | undefined, {
+        return this.request({
+            method: method,
+            path: path,
+            body: body as Body | undefined,
             prefix: ClientPrefix.V3,
         }) as Promise<T>;
     }

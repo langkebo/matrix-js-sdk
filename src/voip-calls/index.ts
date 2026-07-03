@@ -128,13 +128,11 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
         }
 
         return this.withRetry(async () => {
-            const response = await this.client.http.authedRequest<ITurnServerResponse>(
-                Method.Get,
-                "/voip/turnServer",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.request<ITurnServerResponse>({
+                method: Method.Get,
+                path: "/voip/turnServer",
+                prefix: ClientPrefix.R0,
+            });
             this.cachedTurnServers = response;
             this.turnServerExpiry = Date.now() + (response.ttl ?? 3600) * 1000;
             this.emit("turnServersUpdated", { servers: response });
@@ -148,13 +146,11 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
         }
 
         return this.withRetry(async () => {
-            const response = await this.client.http.authedRequest<IVoipConfigResponse>(
-                Method.Get,
-                "/voip/config",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.R0 },
-            );
+            const response = await this.request<IVoipConfigResponse>({
+                method: Method.Get,
+                path: "/voip/config",
+                prefix: ClientPrefix.R0,
+            });
             this.cachedVoipConfig = response;
             return response;
         }, "getVoipConfig");
@@ -163,13 +159,11 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
     public async getGuestTurnCredentials(): Promise<ITurnServerResponse> {
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<ITurnServerResponse>(
-                    Method.Get,
-                    "/voip/turnServer/guest",
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.R0 },
-                ),
+                this.request<ITurnServerResponse>({
+                    method: Method.Get,
+                    path: "/voip/turnServer/guest",
+                    prefix: ClientPrefix.R0,
+                }),
             "getGuestTurnCredentials",
         );
     }
@@ -184,13 +178,11 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<ICallSessionResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.R0 },
-                ),
+                this.request<ICallSessionResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`,
+                    prefix: ClientPrefix.R0,
+                }),
             "getCallSession",
         );
     }
@@ -205,13 +197,11 @@ export class VoIPCallsManager extends BaseManager<keyof VoIPCallsManagerEvents, 
 
         return this.withRetry(
             () =>
-                this.client.http.authedRequest<ICallSessionResponse>(
-                    Method.Get,
-                    `/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`,
-                    undefined,
-                    undefined,
-                    { prefix: ClientPrefix.V3 },
-                ),
+                this.request<ICallSessionResponse>({
+                    method: Method.Get,
+                    path: `/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`,
+                    prefix: ClientPrefix.V3,
+                }),
             "getCallTracking",
         );
     }
