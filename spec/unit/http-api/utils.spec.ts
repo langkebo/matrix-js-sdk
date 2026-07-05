@@ -25,9 +25,9 @@ import {
     retryNetworkOperation,
     timeoutSignal,
 } from "../../../src";
-import { sleep } from "../../../src/utils";
+import { sleep } from "../../../src/common/async";
 
-vi.mock("../../../src/utils");
+vi.mock("../../../src/common/async");
 // setupTests mocks `timeoutSignal` due to hanging timers
 vi.unmock("../../../src/http-api/utils");
 
