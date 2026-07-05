@@ -19,7 +19,7 @@ import { type WidgetApi } from "matrix-widget-api";
 import { extendMatrixClient as extendAccount } from "./account";
 import { extendMatrixClient as extendAccountData } from "./account-data";
 import { extendMatrixClient as extendAuth } from "./auth";
-import { extendMatrixClient as extendCredentials } from "./credentials";
+
 import { MemoryCryptoStore } from "./crypto/store/memory-crypto-store";
 import { extendMatrixClient as extendDevice } from "./device";
 import { extendMatrixClient as extendIdentityServer } from "./identity-server";
@@ -185,7 +185,6 @@ function installSynchronousCoreManagerExtensions(): void {
     extendAccount();
     extendAccountData();
     extendAuth();
-    extendCredentials();
     extendDevice();
     extendIdentityServer();
     extendPresence();

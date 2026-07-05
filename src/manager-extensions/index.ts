@@ -100,7 +100,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml" },
-    { option: "includeCredentials", module: "credentials" },
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },
@@ -187,7 +186,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeOpenClaw: true,
     includeVoice: true,
     includeSamlAuth: true,
-    includeCredentials: true,
     includeCas: true,
     includeExternalService: true,
     includeDehydratedDevice: true,
@@ -558,12 +556,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeVoice || all) {
                 promises.push(safeDynamicImport(import("../voice/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeCredentials || all) {
-                promises.push(
-                    safeDynamicImport(import("../credentials/index.js").then((m) => m?.extendMatrixClient())),
-                );
             }
 
             if (currentOptions.includeCas || all) {

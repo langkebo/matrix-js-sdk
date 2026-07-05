@@ -168,7 +168,7 @@ export interface MatrixClientExtensionMethods {
         ignoreCertificateErrors?: boolean,
     ): string | null;
     getAuthManager(): import("./auth/index").AuthManager;
-    getCredentialsManager(): import("./credentials/index").CredentialsManager;
+
     getDeviceManager(): import("./device/index").DeviceManager;
     getDevices(): Promise<import("./device/index").IDevice[]>;
     getDevice(deviceId: string): Promise<import("./device/index").IDevice>;
@@ -283,7 +283,7 @@ export interface MatrixClientExtensionMethods {
     getDeviceKeysManager(): import("./device-keys/index").DeviceKeysManager;
     getKeyVerificationManager(): import("./key-verification/index").KeyVerificationManager;
     getKeyForwardingManager(): import("./key-forwarding/index").KeyForwardingManager;
-    getKeyClaimManager(): import("./key-claim/index").KeyClaimManager;
+
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getSecurityManager(): import("./security/index").SecurityManager;
     getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
@@ -337,7 +337,7 @@ export interface MatrixClientExtensionMethods {
     getSyncAccumulatorManager(): import("./sync-accumulator/index").SyncAccumulatorManager;
 
     // ============ Storage & Persistence ============
-    getStoresManager(): import("./stores/index").StoresManager;
+
     getUploadsManager(): import("./uploads/index").UploadsManager;
 
     // ============ Admin & Moderation ============
@@ -377,12 +377,12 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Other Features ============
     getThirdPartyManager(): import("./third-party/index").ThirdPartyManager;
-    getUrlPreviewManager(): import("./url-preview/index").UrlPreviewManager;
+
     getGuestManager(): import("./guest/index").GuestManager;
     getCaptchaManager(): import("./captcha/index").CaptchaManager;
     getRetentionManager(): import("./retention/index").RetentionManager;
     getBeaconManager(): import("./beacon/index").BeaconManager;
-    getLoggerManager(): import("./logger/index").LoggerManager;
+
     getLifecycleManager(): import("./lifecycle/index").LifecycleManager;
     setUserPowerLevel(roomId: string, userId: string, powerLevel: number): Promise<void>;
     getMembershipManager(): import("./membership/index").MembershipManager;

@@ -1132,7 +1132,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns MXID for the logged-in user, or null if not logged in
      */
     public getUserId(): string | null {
-        return this.getCredentialsManager().getUserId();
+        return this.credentials?.userId ?? null;
     }
 
     /**
@@ -1142,7 +1142,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @throws Error if not logged in
      */
     public getSafeUserId(): string {
-        const userId = this.getCredentialsManager().getUserId();
+        const userId = this.credentials?.userId ?? null;
         if (!userId) {
             throw new Error("Expected logged in user but found none.");
         }
@@ -1154,7 +1154,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Domain of this MXID
      */
     public getDomain(): string | null {
-        const userId = this.getCredentialsManager().getUserId();
+        const userId = this.credentials?.userId ?? null;
         if (userId) {
             return userId.split(":")[1] || null;
         }
@@ -1174,7 +1174,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns device ID
      */
     public getDeviceId(): string | null {
-        return this.getCredentialsManager().getDeviceId() ?? null;
+        return this.deviceId ?? null;
     }
 
     /**
@@ -3408,7 +3408,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Homeserver URL of this client
      */
     public getHomeserverUrl(): string {
-        return this.getCredentialsManager().getBaseUrl();
+        return this.baseUrl;
     }
 
     /**
@@ -3441,7 +3441,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns true if there is a valid access_token for this client.
      */
     public isLoggedIn(): boolean {
-        return this.getCredentialsManager().isLoggedIn();
+        return !!this.credentials?.userId;
     }
 
     /**

@@ -41,10 +41,9 @@ describe("SDK manager initialization", () => {
         });
 
         // Synchronous core managers installed by installSynchronousCoreManagerExtensions:
-        // Room, Event, Account, AccountData, Auth, Credentials, Device, IdentityServer, Presence, Profile
+        // Room, Event, Account, AccountData, Auth, Device, IdentityServer, Presence, Profile
         expect(typeof client.getRoomManager).toBe("function");
         expect(typeof client.getAccountManager).toBe("function");
-        expect(typeof client.getCredentialsManager).toBe("function");
         expect(typeof client.getDeviceManager).toBe("function");
         expect(typeof client.getProfileManager).toBe("function");
         expect(typeof client.getPresenceManager).toBe("function");
@@ -52,7 +51,6 @@ describe("SDK manager initialization", () => {
         // Verify instances are non-null
         expect(client.getRoomManager()).toBeTruthy();
         expect(client.getAccountManager()).toBeTruthy();
-        expect(client.getCredentialsManager()).toBeTruthy();
         expect(client.getDeviceManager()).toBeTruthy();
         expect(client.getProfileManager()).toBeTruthy();
         expect(client.getPresenceManager()).toBeTruthy();

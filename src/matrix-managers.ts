@@ -141,7 +141,6 @@ export {
     type ISetBurnConfigResponse,
 } from "./burn-after-read";
 export { CaptchaManager } from "./captcha";
-export { CredentialsManager } from "./credentials";
 export { CrossSigningManager } from "./cross-signing";
 export { CryptoBackupManager } from "./crypto-backup";
 export { CryptoEncryptionManager } from "./crypto-encryption";
@@ -171,10 +170,8 @@ export {
     type UpdateDehydratedDeviceRequest,
     type UpdateDehydratedDeviceResponse,
 } from "./dehydrated-device";
-export { KeyClaimManager } from "./key-claim";
 export { KeyForwardingManager } from "./key-forwarding";
 export { LifecycleManager } from "./lifecycle";
-export { LoggerManager } from "./logger/index";
 export { MediaQuotaManager } from "./media-quota";
 export { MembershipManager } from "./membership";
 export { NotificationsManager } from "./notifications";
@@ -216,7 +213,6 @@ export {
 export { ServerTimeManager } from "./server-time";
 export { SessionManager } from "./session";
 export { SessionsManager } from "./sessions";
-export { StoresManager } from "./stores";
 export { SyncAccumulatorManager } from "./sync-accumulator/index";
 export { SyncManager } from "./sync-management";
 export { TagsManager } from "./tags-management";
@@ -227,7 +223,6 @@ export { ToDeviceManager } from "./to-device";
 export { TokenManager } from "./token-management";
 export { TurnServerManager } from "./turn-server";
 export { UploadsManager } from "./uploads";
-export { UrlPreviewManager } from "./url-preview";
 export { UserDirectoryManager } from "./user-directory";
 export { UserPresenceManager } from "./user-presence";
 export { VoIPCallsManager } from "./voip-calls";

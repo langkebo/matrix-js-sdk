@@ -72,7 +72,6 @@ export interface ManagerExtensionsOptions {
     includeOpenClaw?: boolean;
     includeVoice?: boolean;
     includeSamlAuth?: boolean;
-    includeCredentials?: boolean;
     includeCas?: boolean;
     includeExternalService?: boolean;
     includeDehydratedDevice?: boolean;

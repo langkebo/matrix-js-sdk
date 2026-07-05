@@ -80,7 +80,6 @@ export type ManagerName =
     | "capabilities"
     | "captcha"
     | "cas"
-    | "credentials"
     | "crossSigning"
     | "cryptoBackup"
     | "cryptoEncryption"
@@ -110,12 +109,10 @@ export type ManagerName =
     | "inviteBlocklist"
     | "invites"
     | "keyBackup"
-    | "keyClaim"
     | "keyForwarding"
     | "keyRotation"
     | "keyVerification"
     | "lifecycle"
-    | "logger"
     | "media"
     | "mediaQuota"
     | "membership"
@@ -167,7 +164,6 @@ export type ManagerName =
     | "space"
     | "stateSend"
     | "stickyEvent"
-    | "stores"
     | "syncAccumulator"
     | "syncManagement"
     | "tagsManagement"
@@ -182,7 +178,6 @@ export type ManagerName =
     | "turnServer"
     | "typing"
     | "uploads"
-    | "urlPreview"
     | "user"
     | "userDirectory"
     | "userPresence"
@@ -213,7 +208,6 @@ export interface ManagerTypeMap {
     capabilities: import("../capabilities/index").CapabilitiesManager;
     captcha: import("../captcha/index").CaptchaManager;
     cas: import("../cas/index").CasManager;
-    credentials: import("../credentials/index").CredentialsManager;
     crossSigning: import("../cross-signing/index").CrossSigningManager;
     cryptoBackup: import("../crypto-backup/index").CryptoBackupManager;
     cryptoEncryption: import("../crypto-encryption/index").CryptoEncryptionManager;
@@ -243,12 +237,10 @@ export interface ManagerTypeMap {
     inviteBlocklist: import("../invite-blocklist/index").InviteBlocklistManager;
     invites: import("../invites/index").InvitesManager;
     keyBackup: import("../key-backup/index").KeyBackupManager;
-    keyClaim: import("../key-claim/index").KeyClaimManager;
     keyForwarding: import("../key-forwarding/index").KeyForwardingManager;
     keyRotation: import("../key-rotation/index").KeyRotationManager;
     keyVerification: import("../key-verification/index").KeyVerificationManager;
     lifecycle: import("../lifecycle/index").LifecycleManager;
-    logger: import("../logger/index").LoggerManager;
     media: import("../media/index").MediaManager;
     mediaQuota: import("../media-quota/index").MediaQuotaManager;
     membership: import("../membership/index").MembershipManager;
@@ -300,7 +292,6 @@ export interface ManagerTypeMap {
     space: import("../space/index").SpaceManager;
     stateSend: import("../state-send/index").StateSendManager;
     stickyEvent: import("../sticky-event/index").StickyEventManager;
-    stores: import("../stores/index").StoresManager;
     syncAccumulator: import("../sync-accumulator/index").SyncAccumulatorManager;
     syncManagement: import("../sync-management/index").SyncManager;
     tagsManagement: import("../tags-management/index").TagsManager;
@@ -315,7 +306,6 @@ export interface ManagerTypeMap {
     turnServer: import("../turn-server/index").TurnServerManager;
     typing: import("../typing/index").TypingManager;
     uploads: import("../uploads/index").UploadsManager;
-    urlPreview: import("../url-preview/index").UrlPreviewManager;
     user: import("../user/index").UserManager;
     userDirectory: import("../user-directory/index").UserDirectoryManager;
     userPresence: import("../user-presence/index").UserPresenceManager;
