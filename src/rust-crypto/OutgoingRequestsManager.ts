@@ -18,9 +18,7 @@ import { type OlmMachine, type OutgoingRequest } from "@matrix-org/matrix-sdk-cr
 
 import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
 import { type Logger } from "../logger";
-import { logDuration } from "../utils";
-
-/**
+import { logDuration } from "../common/async";/**
  * OutgoingRequestsManager: responsible for processing outgoing requests from the OlmMachine.
  * Ensure that only one loop is going on at once, and that the requests are processed in order.
  */

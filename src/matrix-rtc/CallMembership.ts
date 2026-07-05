@@ -15,8 +15,7 @@ limitations under the License.
 */
 
 import { MXID_PATTERN } from "../models/room-member";
-import { deepCompare } from "../utils";
-import { type LivekitFocusSelection } from "./LivekitTransport";
+import { deepCompare } from "../common/collections";import { type LivekitFocusSelection } from "./LivekitTransport";
 import { slotDescriptionToId, slotIdToDescription, type SlotDescription } from "./MatrixRTCSession";
 import type { RTCCallIntent, Transport } from "./types";
 import { type MatrixEvent, type IContent } from "../models/event";

@@ -20,12 +20,10 @@ import {
     type WrappedReceipt,
 } from "../@types/read_receipts";
 import { type ListenerMap, TypedEventEmitter } from "./typed-event-emitter";
-import { isSupportedReceiptType } from "../utils";
-import { MatrixEvent } from "./event";
+import { isSupportedReceiptType } from "../common/safety";import { MatrixEvent } from "./event";
 import { EventType } from "../@types/event";
 import { type EventTimelineSet } from "./event-timeline-set";
-import { MapWithDefault } from "../utils";
-import { NotificationCountType } from "./room";
+import { MapWithDefault } from "../common/collections";import { NotificationCountType } from "./room";
 import { logger } from "../logger";
 import { inMainTimelineForReceipt, threadIdForReceipt } from "../client";
 

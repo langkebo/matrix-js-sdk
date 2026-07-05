@@ -31,8 +31,8 @@ import type { IContextResponse } from "../@types/requests";
 import type { IMessagesResponse } from "../client-internal-types";
 import type { IRelationsResponse } from "../@types/requests";
 import { Filter } from "../filter";
-import { noUnsafeEventProps, sleep } from "../utils";
-import { mapStateAndChunkFromMessages, deriveBackPaginationTokenFromMessages } from "../client-timeline-core";
+import { noUnsafeEventProps } from "../common/safety";
+import { sleep } from "../common/async";import { mapStateAndChunkFromMessages, deriveBackPaginationTokenFromMessages } from "../client-timeline-core";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface TimelineManagerEvents {

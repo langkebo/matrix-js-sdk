@@ -15,8 +15,7 @@ limitations under the License.
 */
 
 import { getHttpUriForMxc } from "../content-repo";
-import { removeDirectionOverrideChars, removeHiddenChars } from "../utils";
-import { type User } from "./user";
+import { removeDirectionOverrideChars, removeHiddenChars } from "../common/strings";import { type User } from "./user";
 import { type MatrixEvent } from "./event";
 import { type RoomState } from "./room-state";
 import { logger } from "../logger";

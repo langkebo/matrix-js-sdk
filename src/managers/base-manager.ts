@@ -27,7 +27,7 @@ limitations under the License.
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { HTTPError, MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
-import type { QueryDict } from "../utils";
+import type { QueryDict } from "../http-api/utils";
 import type { Body, IRequestOpts } from "../http-api/interface";
 import { Method } from "../http-api/method";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";

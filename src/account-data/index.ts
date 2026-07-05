@@ -46,8 +46,7 @@ import {
     shouldFallbackDeleteAccountDataToEmptyContent,
 } from "../client-account-data-core";
 import { Feature } from "../feature";
-import { deepCompare } from "../utils";
-import { logger } from "../logger";
+import { deepCompare } from "../common/collections";import { logger } from "../logger";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";

@@ -16,8 +16,8 @@ limitations under the License.
 
 import { RoomMember } from "./room-member";
 import { logger } from "../logger";
-import { isNumber, removeHiddenChars } from "../utils";
-import { EventType, UNSTABLE_MSC2716_MARKER } from "../@types/event";
+import { isNumber } from "../common/safety";
+import { removeHiddenChars } from "../common/strings";import { EventType, UNSTABLE_MSC2716_MARKER } from "../@types/event";
 import { type IContent, type MatrixEvent } from "./event";
 import { type MatrixClient } from "../client";
 import { GuestAccess, HistoryVisibility, JoinRule } from "../@types/partials";

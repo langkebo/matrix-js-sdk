@@ -26,8 +26,7 @@ import { type MatrixClient } from "../client";
 import { logger } from "../logger";
 import { type MSC4108SecureChannel } from "./channels/MSC4108SecureChannel";
 import { MatrixError } from "../http-api/index";
-import { sleep } from "../utils";
-import { OAuthGrantType, type OidcClientConfig } from "../oidc/index";
+import { sleep } from "../common/async";import { OAuthGrantType, type OidcClientConfig } from "../oidc/index";
 import { type CryptoApi } from "../crypto-api/index";
 
 /**

@@ -17,8 +17,7 @@ limitations under the License.
 import * as RustSdkCryptoJs from "@matrix-org/matrix-sdk-crypto-wasm";
 
 import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
-import { encodeUri } from "../utils";
-import { type IHttpOpts, type MatrixError, type MatrixHttpApi, Method } from "../http-api/index";
+import { encodeUri } from "../http-api/utils";import { type IHttpOpts, type MatrixError, type MatrixHttpApi, Method } from "../http-api/index";
 import { type IToDeviceEvent } from "../sync-accumulator";
 import { type ServerSideSecretStorage } from "../secret-storage";
 import { decodeBase64 } from "../base64";

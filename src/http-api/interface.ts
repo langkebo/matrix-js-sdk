@@ -16,9 +16,7 @@ limitations under the License.
 
 import { type MatrixError } from "./errors";
 import { type Logger } from "../logger";
-import { type QueryDict } from "../utils";
-
-export type RequestPriority = "high" | "low" | "auto";
+import { type QueryDict } from "./utils";export type RequestPriority = "high" | "low" | "auto";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Body = Record<string, any> | BodyInit;

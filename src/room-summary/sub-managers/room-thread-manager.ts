@@ -18,8 +18,7 @@ import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { InvalidParamError } from "../../common/errors";
 import { logger } from "../../logger";
-import { encodeUri } from "../../utils";
-import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
+import { encodeUri } from "../../http-api/utils";import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type { RoomThreadResult, RoomThreadDetailResult, EventKeysResult } from "../types";
 
 /**

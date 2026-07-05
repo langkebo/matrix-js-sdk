@@ -22,8 +22,8 @@ import { CryptoEvent } from "../crypto-api/index";
 import { type Logger } from "../logger";
 import { ClientPrefix, type IHttpOpts, MatrixError, type MatrixHttpApi, Method } from "../http-api/index";
 import { type RustBackupManager } from "./backup";
-import { encodeUri, sleep } from "../utils";
-import { type BackupDecryptor } from "../common-crypto/CryptoBackend";
+import { encodeUri } from "../http-api/utils";
+import { sleep } from "../common/async";import { type BackupDecryptor } from "../common-crypto/CryptoBackend";
 
 // The minimum time to wait between two retries in case of errors. To avoid hammering the server.
 const KEY_BACKUP_BACKOFF = 5000; // ms

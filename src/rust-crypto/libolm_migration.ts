@@ -24,8 +24,7 @@ import { requestKeyBackupVersion } from "./backup";
 import { type CrossSigningKeyInfo, type Curve25519AuthData } from "../crypto-api/index";
 import { type RustCrypto } from "./rust-crypto";
 import { type KeyBackupInfo } from "../crypto-api/keybackup";
-import { sleep } from "../utils";
-import { encodeBase64 } from "../base64";
+import { sleep } from "../common/async";import { encodeBase64 } from "../base64";
 import decryptAESSecretStorageItem from "../utils/decryptAESSecretStorageItem";
 import { type AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
 

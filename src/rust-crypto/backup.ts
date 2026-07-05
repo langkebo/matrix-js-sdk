@@ -31,10 +31,9 @@ import {
 import { type Logger } from "../logger";
 import { ClientPrefix, type IHttpOpts, MatrixError, type MatrixHttpApi, Method, HTTPError } from "../http-api/index";
 import { TypedEventEmitter } from "../models/typed-event-emitter";
-import { encodeUri, logDuration } from "../utils";
-import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
-import { sleep } from "../utils";
-import { type BackupDecryptor } from "../common-crypto/CryptoBackend";
+import { encodeUri } from "../http-api/utils";
+import { logDuration } from "../common/async";import { type OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
+import { sleep } from "../common/async";import { type BackupDecryptor } from "../common-crypto/CryptoBackend";
 import {
     type ImportRoomKeyProgressData,
     type ImportRoomKeysOpts,

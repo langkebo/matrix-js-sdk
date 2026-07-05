@@ -26,8 +26,7 @@ import { CallMembership } from "./CallMembership";
 import { RoomStateEvent } from "../models/room-state";
 import { MembershipManager, StickyEventMembershipManager } from "./MembershipManager";
 import { type CallMembershipIdentityParts, EncryptionManager, type IEncryptionManager } from "./EncryptionManager";
-import { logDurationSync } from "../utils";
-import type {
+import { logDurationSync } from "../common/async";import type {
     Statistics,
     RTCNotificationType,
     Status,

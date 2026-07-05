@@ -30,8 +30,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { type Capabilities } from "../serverCapabilities";
 import { type IServerVersions } from "../client-api-types";
-import { type QueryDict } from "../utils";
-import { buildFeatureSupportMap } from "../feature";
+import { type QueryDict } from "../http-api/utils";import { buildFeatureSupportMap } from "../feature";
 import * as utils from "../utils";
 
 const UNSTABLE_MSC2666_SHARED_ROOMS = "uk.half-shot.msc2666";

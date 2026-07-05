@@ -23,8 +23,7 @@ import { EventType } from "../@types/event";
 import { CallEventHandlerEvent } from "./callEventHandler";
 import { GroupCallEventHandlerEvent } from "./groupCallEventHandler";
 import { type IScreensharingOpts } from "./mediaHandler";
-import { mapsEqual } from "../utils";
-import { GroupCallStats } from "./stats/groupCallStats";
+import { mapsEqual } from "../common/collections";import { GroupCallStats } from "./stats/groupCallStats";
 import {
     type ByteSentStatsReport,
     type CallFeedReport,

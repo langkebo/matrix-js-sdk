@@ -18,8 +18,7 @@ import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../utils";
-import { encodeUri } from "../../utils";
-import { InvalidParamError } from "../../common/errors";
+import { encodeUri } from "../../http-api/utils";import { InvalidParamError } from "../../common/errors";
 import type { IContent } from "../../models/event";
 
 /** 翻译事件请求体 */

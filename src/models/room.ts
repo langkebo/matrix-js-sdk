@@ -23,8 +23,9 @@ import {
 import { Direction, EventTimeline } from "./event-timeline";
 import { getHttpUriForMxc } from "../content-repo";
 import * as utils from "../utils";
-import { normalize, noUnsafeEventProps, removeElement } from "../utils";
-import {
+import { normalize } from "../common/strings";
+import { noUnsafeEventProps } from "../common/safety";
+import { removeElement } from "../common/collections";import {
     type IEvent,
     type IThreadBundledRelationship,
     MatrixEvent,

@@ -20,8 +20,7 @@ import { CallMembership } from "./CallMembership";
 import { decodeBase64, encodeBase64 } from "../base64";
 import { type IKeyTransport, type KeyTransportEventListener, KeyTransportEvents } from "./IKeyTransport";
 import { type Logger } from "../logger";
-import { sleep } from "../utils";
-import {
+import { sleep } from "../common/async";import {
     type EncryptionKeyMapKey,
     type InboundEncryptionSession,
     type OutboundEncryptionSession,

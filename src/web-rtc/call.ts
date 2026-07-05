@@ -25,8 +25,7 @@ import { v4 as uuidv4 } from "uuid";
 import { parse as parseSdp, write as writeSdp } from "sdp-transform";
 
 import { logger } from "../logger";
-import { checkObjectHasKeys, isNullOrUndefined, recursivelyAssign } from "../utils";
-import { type MatrixEvent } from "../models/event";
+import { checkObjectHasKeys, isNullOrUndefined, recursivelyAssign } from "../common/safety";import { type MatrixEvent } from "../models/event";
 import { EventType, type TimelineEvents, ToDeviceMessageId } from "../@types/event";
 import { type RoomMember } from "../models/room-member";
 import { secureRandomString } from "../randomstring";

@@ -6,7 +6,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import type { ThirdpartyPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
-import type { QueryDict } from "../utils";
+import type { QueryDict } from "../http-api/utils";
 import * as utils from "../utils";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.

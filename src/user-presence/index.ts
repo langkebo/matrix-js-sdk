@@ -30,8 +30,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
-import { encodeUri } from "../utils";
-import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import { encodeUri } from "../http-api/utils";import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface IPresenceResponse {
     presence: string;

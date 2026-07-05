@@ -44,7 +44,7 @@ import {
 import { Method } from "../http-api/method";
 import type { Body } from "../http-api/interface";
 import type { IRequestOpts } from "../http-api/interface";
-import type { QueryDict } from "../utils";
+import type { QueryDict } from "../http-api/utils";
 import {
     startDeviceSigningVerificationRequest,
     acceptDeviceSigningVerificationRequest,
