@@ -63,16 +63,6 @@ describe("utils", function () {
         });
     });
 
-    describe("decodeParams", () => {
-        it("should be able to decode multiple values into an array", () => {
-            const params = "foo=bar&via=a&via=b&via=c";
-            expect(utils.decodeParams(params)).toEqual({
-                foo: "bar",
-                via: ["a", "b", "c"],
-            });
-        });
-    });
-
     describe("encodeUri", function () {
         it("should replace based on object keys and url encode", function () {
             const path = "foo/bar/%something/%here";
@@ -108,22 +98,6 @@ describe("utils", function () {
             const arr = [55, 66, 77];
             utils.removeElement(arr, matchFn);
             expect(arr).toEqual(arr);
-        });
-    });
-
-    describe("isFunction", function () {
-        it("should return true for functions", function () {
-            expect(utils.isFunction([])).toBe(false);
-            expect(utils.isFunction([5, 3, 7])).toBe(false);
-            expect(utils.isFunction(undefined)).toBe(false);
-            expect(utils.isFunction(null)).toBe(false);
-            expect(utils.isFunction({})).toBe(false);
-            expect(utils.isFunction("foo")).toBe(false);
-            expect(utils.isFunction(555)).toBe(false);
-
-            expect(utils.isFunction(function () {})).toBe(true);
-            const s = { foo: function () {} };
-            expect(utils.isFunction(s.foo)).toBe(true);
         });
     });
 
@@ -235,26 +209,6 @@ describe("utils", function () {
             assert.isFalse(utils.deepCompare(func, func2));
             assert.isTrue(utils.deepCompare({ a: { b: func } }, { a: { b: func } }));
             assert.isFalse(utils.deepCompare({ a: { b: func } }, { a: { b: func2 } }));
-        });
-    });
-
-    describe("chunkPromises", function () {
-        it("should execute promises in chunks", async function () {
-            let promiseCount = 0;
-
-            async function fn1() {
-                await utils.sleep(1);
-                expect(promiseCount).toEqual(0);
-                ++promiseCount;
-            }
-
-            async function fn2() {
-                expect(promiseCount).toEqual(1);
-                ++promiseCount;
-            }
-
-            await utils.chunkPromises([fn1, fn2], 1);
-            expect(promiseCount).toEqual(2);
         });
     });
 

@@ -17,7 +17,7 @@ limitations under the License.
 import { parse as parseContentType, type ParsedMediaType } from "content-type";
 
 import { logger } from "../logger";
-import { sleep } from "../utils";
+import { sleep } from "../common/async";
 import {
     ConnectionError,
     HTTPError,
@@ -215,4 +215,74 @@ export function calculateRetryBackoff(err: unknown, attempts: number, retryConne
     }
 
     return safeGetRetryAfterMs(err, 1000 * Math.pow(2, attempts));
+}
+
+export type QueryDict = Record<string, string[] | string | number | boolean | undefined>;
+
+/**
+ * Encode a dictionary of query parameters.
+ * Omits any undefined/null values.
+ * @param params - A dict of key/values to encode e.g.
+ * `{"foo": "bar", "baz": "taz"}`
+ * @returns The encoded string e.g. foo=bar&baz=taz
+ */
+export function encodeParams(params: QueryDict, urlSearchParams?: URLSearchParams): URLSearchParams {
+    const searchParams = urlSearchParams ?? new URLSearchParams();
+    for (const [key, val] of Object.entries(params)) {
+        if (val !== undefined && val !== null) {
+            if (Array.isArray(val)) {
+                val.forEach((v) => {
+                    searchParams.append(key, String(v));
+                });
+            } else {
+                searchParams.append(key, String(val));
+            }
+        }
+    }
+    return searchParams;
+}
+
+/**
+ * Replace a stable parameter with the unstable naming for params
+ */
+export function replaceParam(stable: string, unstable: string, dict: QueryDict): QueryDict {
+    const result = {
+        ...dict,
+        [unstable]: dict[stable],
+    };
+    delete result[stable];
+    return result;
+}
+
+/**
+ * Encodes a URI according to a set of template variables. Variables will be
+ * passed through encodeURIComponent.
+ * @param pathTemplate - The path with template variables e.g. '/foo/$bar'.
+ * @param variables - The key/value pairs to replace the template
+ * variables with. E.g. `{ "$bar": "baz" }`.
+ * @returns The result of replacing all template variables e.g. '/foo/baz'.
+ */
+export function encodeUri(pathTemplate: string, variables: Record<string, string | null | undefined>): string {
+    for (const key in variables) {
+        if (!variables.hasOwnProperty(key)) {
+            continue;
+        }
+        const value = variables[key];
+        if (value === undefined || value === null) {
+            continue;
+        }
+        pathTemplate = pathTemplate.replace(key, encodeURIComponent(value));
+    }
+    return pathTemplate;
+}
+
+export function ensureNoTrailingSlash(url: string): string;
+export function ensureNoTrailingSlash(url: undefined): undefined;
+export function ensureNoTrailingSlash(url?: string): string | undefined;
+export function ensureNoTrailingSlash(url?: string): string | undefined {
+    if (url?.endsWith("/")) {
+        return url.slice(0, -1);
+    } else {
+        return url;
+    }
 }
