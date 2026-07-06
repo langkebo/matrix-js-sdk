@@ -166,7 +166,7 @@ import {
 import { TypedEventEmitter } from "./models/typed-event-emitter";
 import { type MSC3575SlidingSyncRequest, type MSC3575SlidingSyncResponse } from "./sliding-sync";
 import { SlidingSyncSdk } from "./sliding-sync-sdk";
-import { FeatureSupport, Thread, THREAD_RELATION_TYPE, ThreadFilterType } from "./models/thread";
+import { FeatureSupport, THREAD_RELATION_TYPE, ThreadFilterType } from "./models/thread";
 import { NamespacedValue, UnstableValue } from "./NamespacedValue";
 import { ToDeviceMessageQueue } from "./ToDeviceMessageQueue";
 import { IgnoredInvites } from "./models/invites-ignorer";
@@ -267,6 +267,13 @@ import {
 } from "./client-request-delegates";
 import { uploadDeviceSigningKeysHttpRequest } from "./client-crypto-requests";
 import { createFileTreeSpaceRequest, getFileTreeSpaceReference } from "./client-room-access";
+import {
+    buildSyncApiOptions as buildSyncApiOptionsHelper,
+    startClientLifecycleServices,
+} from "./client-lifecycle-start";
+import { stopClientLifecycleServices } from "./client-lifecycle-stop";
+import { clearClientStores } from "./client-store-cleanup";
+import { createGroupCallForRoom } from "./client-voip-group-call";
 import { EventManager } from "./event/EventManager";
 
 export type {
@@ -341,7 +348,7 @@ export type Store = IStore;
 
 export type ResetTimelineCallback = (roomId: string) => boolean;
 
-const TURN_CHECK_INTERVAL = 10 * 60 * 1000; // poll for turn credentials every 10 minutes
+export { TURN_CHECK_INTERVAL } from "./client-lifecycle-start";
 
 export const UNSTABLE_MSC3852_LAST_SEEN_UA = new UnstableValue(
     "last_seen_user_agent",
@@ -657,7 +664,7 @@ export interface MatrixClient extends MatrixClientExtensionMethods, MatrixClient
 export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHandlerMap> {
     public static readonly RESTORE_BACKUP_ERROR_BAD_KEY = "RESTORE_BACKUP_ERROR_BAD_KEY";
 
-    private readonly logger: Logger;
+    public readonly logger: Logger; // Intended private, used in lifecycle helpers.
 
     public reEmitter = new TypedReEmitter<EmittedEvents, ClientEventHandlerMap>(this);
     public olmVersion: [number, number, number] | null = null; // populated after initLegacyCrypto
@@ -690,7 +697,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         requestOpts?: IRequestOpts,
     ): Promise<T> => this.http.authedRequest(method, path, queryParams, body, requestOpts);
 
-    private cryptoBackend?: CryptoBackend; // one of crypto or rustCrypto
+    public cryptoBackend?: CryptoBackend; // Intended private, used in lifecycle helpers.
 
     /**
      * Support MSC4362: Simplified Encrypted State Events.
@@ -728,24 +735,24 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     // We don't technically support this usage, but have reasons to do this.
 
     protected canSupportVoip = false;
-    protected peekSync: SyncApi | null = null;
+    public peekSync: SyncApi | null = null; // Intended protected, used in lifecycle helpers.
     protected isGuestAccount = false;
 
     /**
      * Legacy crypto store used for migration from the legacy crypto to the rust crypto
      * @private
      */
-    private readonly legacyCryptoStore?: CryptoStore;
+    public readonly legacyCryptoStore?: CryptoStore; // Intended private, used in lifecycle helpers.
     protected verificationMethods?: string[];
     protected fallbackICEServerAllowed = false;
-    protected syncApi?: SlidingSyncSdk | SyncApi;
+    public syncApi?: SlidingSyncSdk | SyncApi; // Intended protected, used in lifecycle helpers.
     public roomNameGenerator?: ICreateClientOpts["roomNameGenerator"];
     public pushRules?: IPushRules;
     protected syncLeftRoomsPromise?: Promise<Room[]>;
     protected syncedLeftRooms = false;
     protected clientOpts?: IStoredClientOpts;
-    protected clientWellKnownIntervalID?: ReturnType<typeof setInterval>;
-    protected canResetTimelineCallback?: ResetTimelineCallback;
+    public clientWellKnownIntervalID?: ReturnType<typeof setInterval>; // Intended protected, used in lifecycle helpers.
+    public canResetTimelineCallback?: ResetTimelineCallback; // Intended protected, used in lifecycle helpers.
 
     public canSupport = new Map<Feature, ServerSupport>();
 
@@ -760,7 +767,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     protected clientWellKnownPromise?: Promise<IClientWellKnown>;
     protected turnServers: ITurnServer[] = [];
     protected turnServersExpiry = 0;
-    protected checkTurnServersIntervalID?: ReturnType<typeof setInterval>;
+    public checkTurnServersIntervalID?: ReturnType<typeof setInterval>; // Intended protected, used in lifecycle helpers.
     protected txnCtr = 0;
     protected mediaHandler = new MediaHandler(this);
     protected sessionId: string;
@@ -773,7 +780,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     private eventsBeingEncrypted = new Set<string>();
 
     private useE2eForGroupCall = true;
-    private toDeviceMessageQueue: ToDeviceMessageQueue;
+    public toDeviceMessageQueue: ToDeviceMessageQueue; // Intended private, used in lifecycle helpers.
     public livekitServiceURL?: string;
 
     private _secretStorage: ServerSideSecretStorageImpl;
@@ -793,7 +800,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public readonly matrixRTC: MatrixRTCSessionManager;
 
-    private serverCapabilitiesService: ServerCapabilities;
+    public serverCapabilitiesService: ServerCapabilities; // Intended private, used in lifecycle helpers.
 
     public constructor(opts: IMatrixClientCreateOpts) {
         super();
@@ -944,83 +951,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
         this.on(ClientEvent.Sync, this.startMatrixRTC);
 
-        // Create our own user object artificially (instead of waiting for sync)
-        // so it's always available, even if the user is not in any rooms etc.
-        const userId = this.getUserId();
-        if (userId) {
-            this.store.storeUser(new User(userId));
-        }
-
-        // periodically poll for turn servers if we support voip
-        if (this.supportsVoip()) {
-            this.checkTurnServersIntervalID = setInterval(() => {
-                this.checkTurnServers();
-            }, TURN_CHECK_INTERVAL);
-            // noinspection ES6MissingAwait
-            this.checkTurnServers();
-        }
-
-        if (this.syncApi) {
-            // This shouldn't happen since we thought the client was not running
-            this.logger.error("Still have sync object whilst not running: stopping old one");
-            this.syncApi.stop();
-        }
-
-        try {
-            await this.getVersions();
-
-            // This should be done with `canSupport`
-            // Tracking issue: https://github.com/vector-im/element-web/issues/23643
-            const { threads, list, fwdPagination } = await this.doesServerSupportThread();
-            Thread.setServerSideSupport(threads);
-            Thread.setServerSideListSupport(list);
-            Thread.setServerSideFwdPaginationSupport(fwdPagination);
-        } catch (e) {
-            this.logger.error(
-                "Can't fetch server versions, continuing to initialise sync, this will be retried later",
-                e,
-            );
-        }
-
         this.clientOpts = opts ?? {};
-        if (this.clientOpts.slidingSync) {
-            this.syncApi = new SlidingSyncSdk(
-                this.clientOpts.slidingSync,
-                this,
-                this.clientOpts,
-                this.buildSyncApiOptions(),
-            );
-        } else {
-            this.syncApi = new SyncApi(this, this.clientOpts, this.buildSyncApiOptions());
-        }
-
-        this.syncApi.sync().catch((e) => this.logger.info("Sync startup aborted with an error:", e));
-
-        if (this.clientOpts.clientWellKnownPollPeriod !== undefined) {
-            this.clientWellKnownIntervalID = setInterval(() => {
-                this.fetchClientWellKnown();
-            }, 1000 * this.clientOpts.clientWellKnownPollPeriod);
-            this.fetchClientWellKnown();
-        }
-
-        this.toDeviceMessageQueue.start();
-        this.serverCapabilitiesService.start();
+        await startClientLifecycleServices(this, this.clientOpts);
     }
 
     /**
      * Construct a SyncApiOptions for this client, suitable for passing into the SyncApi constructor
      */
     protected buildSyncApiOptions(): SyncApiOptions {
-        return {
-            cryptoCallbacks: this.cryptoBackend,
-            canResetEntireTimeline: (roomId: string): boolean => {
-                if (!this.canResetTimelineCallback) {
-                    return false;
-                }
-                return this.canResetTimelineCallback(roomId);
-            },
-            logger: this.logger.getChild("sync"),
-        };
+        return buildSyncApiOptionsHelper(this);
     }
 
     /**
@@ -1037,29 +976,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.logger.debug("stopping MatrixClient");
 
         this.clientRunning = false;
-
-        this.syncApi?.stop();
-        this.syncApi = undefined;
-
-        this.peekSync?.stopPeeking();
-
-        this.callEventHandler?.stop();
-        this.groupCallEventHandler?.stop();
-        this.callEventHandler = undefined;
-        this.groupCallEventHandler = undefined;
-
-        globalThis.clearInterval(this.checkTurnServersIntervalID);
-        this.checkTurnServersIntervalID = undefined;
-
-        if (this.clientWellKnownIntervalID !== undefined) {
-            globalThis.clearInterval(this.clientWellKnownIntervalID);
-        }
-
-        this.toDeviceMessageQueue.stop();
-
-        this.matrixRTC.stop();
-
-        this.serverCapabilitiesService.stop();
+        stopClientLifecycleServices(this);
     }
 
     /**
@@ -1073,57 +990,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             cryptoDatabasePrefix?: string;
         } = {},
     ): Promise<void> {
-        if (this.clientRunning) {
-            throw new Error("Cannot clear stores while client is running");
-        }
-
-        const promises: Promise<void>[] = [];
-
-        promises.push(this.store.deleteAllData());
-        if (this.legacyCryptoStore) {
-            promises.push(this.legacyCryptoStore.deleteAllData());
-        }
-
-        // delete the stores used by the rust matrix-sdk-crypto, in case they were used
-        const deleteRustSdkStore = async (): Promise<void> => {
-            let indexedDB: IDBFactory;
-            try {
-                indexedDB = globalThis.indexedDB;
-                if (!indexedDB) return; // No indexedDB support
-            } catch {
-                // No indexedDB support
-                return;
-            }
-            for (const dbname of [
-                `${args.cryptoDatabasePrefix ?? RUST_SDK_STORE_PREFIX}::matrix-sdk-crypto`,
-                `${args.cryptoDatabasePrefix ?? RUST_SDK_STORE_PREFIX}::matrix-sdk-crypto-meta`,
-            ]) {
-                const prom = new Promise((resolve) => {
-                    this.logger.info(`Removing IndexedDB instance ${dbname}`);
-                    const req = indexedDB.deleteDatabase(dbname);
-                    req.onsuccess = (_): void => {
-                        this.logger.info(`Removed IndexedDB instance ${dbname}`);
-                        resolve(0);
-                    };
-                    req.onerror = (e): void => {
-                        // In private browsing, Firefox has a globalThis.indexedDB, but attempts to delete an indexeddb
-                        // (even a non-existent one) fail with "DOMException: A mutation operation was attempted on a
-                        // database that did not allow mutations."
-                        //
-                        // it seems like the only thing we can really do is ignore the error.
-                        this.logger.warn(`Failed to remove IndexedDB instance ${dbname}:`, e);
-                        resolve(0);
-                    };
-                    req.onblocked = (): void => {
-                        this.logger.info(`cannot yet remove IndexedDB instance ${dbname}`);
-                    };
-                });
-                await prom;
-            }
-        };
-        promises.push(deleteRustSdkStore());
-
-        await Promise.all(promises);
+        return clearClientStores(this, args);
     }
 
     /**
@@ -1252,31 +1119,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         dataChannelsEnabled?: boolean,
         dataChannelOptions?: IGroupCallDataChannelOptions,
     ): Promise<GroupCall> {
-        if (this.getGroupCallForRoom(roomId)) {
-            throw new Error(`${roomId} already has an existing group call`);
-        }
-
-        const room = this.getRoom(roomId);
-
-        if (!room) {
-            throw new Error(`Cannot find room ${roomId}`);
-        }
-
-        // Because without Media section a WebRTC connection is not possible, so need a RTCDataChannel to set up a
-        // no media WebRTC connection anyway.
-        return new GroupCall(
-            this,
-            room,
-            type,
-            isPtt,
-            intent,
-            undefined,
-            dataChannelsEnabled || this.isVoipWithNoMediaAllowed,
-            dataChannelOptions,
-            this.isVoipWithNoMediaAllowed,
-            this.useLivekitForGroupCalls,
-            this.livekitServiceURL,
-        ).create();
+        return createGroupCallForRoom(this, roomId, type, isPtt, intent, dataChannelsEnabled, dataChannelOptions);
     }
 
     public getLivekitServiceURL(): string | undefined {
@@ -3213,7 +3056,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAdminManager().deactivateSynapseUser(userId);
     }
 
-    protected async fetchClientWellKnown(): Promise<void> {
+    public async fetchClientWellKnown(): Promise<void> {
         // `getRawClientConfig` does not throw or reject on network errors, instead
         // it absorbs errors and returns `{}`.
         this.clientWellKnownPromise = AutoDiscovery.getRawClientConfig(this.getDomain() ?? undefined);

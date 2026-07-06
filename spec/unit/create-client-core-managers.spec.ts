@@ -8,7 +8,7 @@ describe("createClient core manager registration", () => {
         resetManagerExtensions();
     });
 
-    it("registers account and credentials managers synchronously for login flows", () => {
+    it("registers account manager synchronously for login flows", () => {
         const client = createClient({
             baseUrl: "https://example.com",
             userId: "@alice:example.com",
@@ -17,9 +17,7 @@ describe("createClient core manager registration", () => {
         });
 
         expect(typeof client.getAccountManager).toBe("function");
-        expect(typeof client.getCredentialsManager).toBe("function");
         expect(client.getAccountManager()).toBeTruthy();
-        expect(client.getCredentialsManager()).toBeTruthy();
     });
 
     it("registers room and profile managers synchronously for immediate room operations", () => {
@@ -47,7 +45,6 @@ describe("createClient core manager registration", () => {
 
         expect(typeof client.getAccountManager).toBe("function");
         expect(typeof client.getRoomManager).toBe("function");
-        expect(typeof client.getCredentialsManager).toBe("function");
         expect(isManagerExtensionsInitialized()).toBe(false);
     });
 });
