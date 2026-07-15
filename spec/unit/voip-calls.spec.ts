@@ -19,6 +19,7 @@ describe("VoIPCallsManager", () => {
             createCall,
             setSupportsCallTransfer,
             callEventHandler: { calls: new Map() },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
@@ -32,6 +33,7 @@ describe("VoIPCallsManager", () => {
                 ttl: 3600,
             });
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("turnServersUpdated" as any, (p: unknown) => emitted.push(p));
 
             const res = await manager.getTurnServers();
@@ -148,6 +150,7 @@ describe("VoIPCallsManager", () => {
         });
 
         it("getCall / getAllCalls / getCallsForRoom use callEventHandler.calls", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const calls = new Map<string, any>([
                 ["c1", { roomId: "!r:e" }],
                 ["c2", { roomId: "!s:e" }],
@@ -155,6 +158,7 @@ describe("VoIPCallsManager", () => {
             manager = new VoIPCallsManager({
                 http: { authedRequest },
                 callEventHandler: { calls },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
 
             expect(manager.getCall("!r:e")).toEqual({ roomId: "!r:e" });

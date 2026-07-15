@@ -5,6 +5,7 @@ import { ValidationError } from "../../src/errors";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("AdminManager extended endpoints (retention/audit/feature-flags/federation)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: AdminManager;
     let req: ReturnType<typeof vi.fn>;
@@ -155,6 +156,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -206,6 +208,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ admissions: [{ server_name: "legacy.example" }] });
@@ -228,6 +231,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ pending_servers: [], total: 0 });
@@ -371,6 +375,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -408,6 +413,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ healthy: true });
@@ -422,6 +428,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ server_name: "example.org" });
@@ -648,6 +655,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ devices: [{ device_id: "DEV1" }] });
@@ -664,6 +672,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -679,6 +688,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ overridden: true });
@@ -693,6 +703,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -706,6 +717,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -729,6 +741,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ total_users: 1, total_rooms: 2 });
@@ -872,6 +885,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -936,6 +950,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -961,6 +976,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({});
@@ -991,6 +1007,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ users: [{ user_id: "@u:x" }], total: 1 });
@@ -1009,6 +1026,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
             req.mockResolvedValueOnce({ user_id: "@u:x", admin: false });

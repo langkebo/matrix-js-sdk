@@ -22,6 +22,7 @@ import { Method } from "../../src/http-api/method";
 describe("CasManager", () => {
     let transport: FakeTransport;
     let manager: CasManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {

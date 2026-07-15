@@ -41,6 +41,7 @@ describe("client send event helper", () => {
             getThread: () =>
                 ({
                     lastReply: () => null,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 }) as any,
         });
 

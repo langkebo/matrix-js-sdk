@@ -4,6 +4,7 @@ import { RoomStateManager } from "../../src/room-state";
 import { Method } from "../../src/http-api";
 
 describe("RoomStateManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: RoomStateManager;
 

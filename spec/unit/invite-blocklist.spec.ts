@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { InviteBlocklistManager } from "../../src/invite-blocklist/index";
 
 describe("InviteBlocklistManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: InviteBlocklistManager;
     let authedRequest: ReturnType<typeof vi.fn>;

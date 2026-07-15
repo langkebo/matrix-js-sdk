@@ -4,6 +4,7 @@ import { CryptoKeysManager } from "../../src/crypto-keys";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("CryptoKeysManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: CryptoKeysManager;
 
@@ -14,7 +15,9 @@ describe("CryptoKeysManager", () => {
             },
         };
         manager = new CryptoKeysManager(mockClient);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (manager as any).maxRetries = 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (manager as any).retryDelay = 0;
     });
 

@@ -137,6 +137,7 @@ export function getSyncResponse(
  * @param name - The name of the class
  * @returns An instantiated object with spied methods/properties.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mock<T>(constr: { new (...args: any[]): T }, name: string): T {
     // Based on http://eclipsesource.com/blogs/2014/03/27/mocks-in-jasmine-tests/
     const HelperConstr = new Function(); // jshint ignore:line
@@ -499,20 +500,24 @@ export function mkEdit(
  * A mock implementation of webstorage
  */
 export class MockStorageApi implements Storage {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private data: Record<string, any> = {};
 
     public get length() {
         return Object.keys(this.data).length;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public key(i: number): any {
         return Object.keys(this.data)[i];
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public setItem(k: string, v: any): void {
         this.data[k] = v;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public getItem(k: string): any {
         return this.data[k] || null;
     }
@@ -576,6 +581,7 @@ export const mkPusher = (extra: Partial<IPusher> = {}): IPusher => ({
     ...extra,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const emitPromise = (e: EventEmitter, k: string): Promise<any> => new Promise((r) => e.once(k, r));
 
 /**
@@ -643,6 +649,7 @@ export function waitFor<T>(
     } = {},
 ): Promise<T> {
     return new Promise((resolve, reject) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let lastError: any;
         let finished = false;
         let intervalId: ReturnType<typeof setTimeout> | undefined;

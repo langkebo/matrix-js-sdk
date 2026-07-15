@@ -215,10 +215,12 @@ describe("CallStatsReportGatherer", () => {
     });
 
     describe("on signal state change event", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let events: { [key: string]: any };
         beforeEach(() => {
             events = [];
             // Define the addEventListener method with a mock function
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             rtcSpy.addEventListener = vi.fn((event: any, callback: any) => {
                 events[event] = callback;
             });

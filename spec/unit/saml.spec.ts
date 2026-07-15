@@ -22,6 +22,7 @@ import { Method } from "../../src/http-api/method";
 describe("SamlAuthManager", () => {
     let transport: FakeTransport;
     let manager: SamlAuthManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {

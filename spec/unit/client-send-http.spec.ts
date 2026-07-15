@@ -15,6 +15,7 @@ describe("client send http helper", () => {
             isState: vi.fn(() => false),
             isRedaction: vi.fn(() => false),
             getWireContent: vi.fn(() => ({ body: "hi" })),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
         const http = {
             authedRequest: vi.fn().mockResolvedValue({ event_id: "$sent" }),
@@ -52,6 +53,7 @@ describe("client send http helper", () => {
             isState: vi.fn(() => false),
             isRedaction: vi.fn(() => false),
             getWireContent: vi.fn(() => ({ body: "later" })),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
         const http = {
             authedRequest: vi.fn().mockResolvedValue({ event_id: "$delayed" }),

@@ -95,6 +95,7 @@ describe("validateOIDCIssuerWellKnown", () => {
         });
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     type TestCase = [string, any];
     it.each<TestCase>([
         ["authorization_endpoint", undefined],

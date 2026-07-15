@@ -231,6 +231,7 @@ describe("Burn After Read 集成测试", () => {
         it(
             "should not allow sending burn message when disabled",
             async () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const manager = new BurnAfterReadManager({} as any, { enabled: false });
 
                 await expect(
@@ -246,6 +247,7 @@ describe("Burn After Read 集成测试", () => {
         it(
             "should reject burn time exceeding maximum",
             async () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const manager = new BurnAfterReadManager({} as any);
 
                 await expect(manager.enableBurn("!room:test", 999999999)).rejects.toThrow(ValidationError);

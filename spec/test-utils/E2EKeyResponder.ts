@@ -25,10 +25,14 @@ import { type E2EKeyReceiver } from "./E2EKeyReceiver";
  * An object which intercepts `/keys/query` fetches via fetch-mock.
  */
 export class E2EKeyResponder {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private deviceKeysByUserByDevice = new MapWithDefault<string, Map<string, any>>(() => new Map());
     private e2eKeyReceiversByUser = new Map<string, E2EKeyReceiver>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private masterKeysByUser: Record<string, any> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private selfSigningKeysByUser: Record<string, any> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private userSigningKeysByUser: Record<string, any> = {};
 
     /**

@@ -443,6 +443,7 @@ export async function expectSendRoomKey(
 ): Promise<Olm.InboundGroupSession> {
     const testRecipientKey = JSON.parse(recipientOlmAccount.identity_keys())["curve25519"];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function onSendRoomKey(content: any): Olm.InboundGroupSession {
         const m = content.messages[recipientUserID].DEVICE_ID;
         const ct = m.ciphertext[testRecipientKey];
@@ -518,6 +519,7 @@ export async function expectSendMegolmMessageEvent(
     // In some of the tests, the room key is sent *after* the actual event, so we may need to wait for it now.
     const inboundGroupSession = await inboundGroupSessionPromise;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r: any = inboundGroupSession.decrypt(encryptedMessageContent!.ciphertext as string);
     logger.log("Decrypted received megolm message", r);
     return JSON.parse(r.plaintext);
@@ -541,6 +543,7 @@ export async function expectSendMegolmStateEvent(
     // In some of the tests, the room key is sent *after* the actual event, so we may need to wait for it now.
     const inboundGroupSession = await inboundGroupSessionPromise;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r: any = inboundGroupSession.decrypt(encryptedStateContent!.ciphertext as string);
     logger.log("Decrypted received megolm state event", r);
     return JSON.parse(r.plaintext);

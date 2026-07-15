@@ -22,6 +22,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -73,6 +74,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const call = await (client as any).getScheduledCall("test-call-id");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Scheduled call not available");
         }
@@ -82,6 +84,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const calls = await (client as any).getScheduledCalls();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get scheduled calls not available");
         }
@@ -95,6 +98,7 @@ async function main(): Promise<void> {
                 room_id: testRoomId,
                 intent: "m.call.invite",
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Create scheduled call not available");
         }
@@ -104,6 +108,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).cancelScheduledCall("test-call-id");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Cancel scheduled call not available");
         }
@@ -123,6 +128,7 @@ async function main(): Promise<void> {
                 },
                 Date.now() + 60000,
             );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Schedule event not available");
         }
@@ -132,6 +138,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events = await (client as any).getScheduledEvents(testRoomId!);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get scheduled events not available");
         }
@@ -141,6 +148,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).cancelScheduledEvent(testRoomId!, "test-event-id");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Cancel scheduled event not available");
         }
@@ -155,6 +163,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const beacon = await (client as any).getLiveBeacon(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get live beacon not available");
         }
@@ -169,6 +178,7 @@ async function main(): Promise<void> {
                     description: "test beacon",
                 });
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Publish beacon not available");
         }
@@ -180,6 +190,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const locations = await (client as any).getBeaconLocations(testRoomId, "test-beacon-id");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get beacon locations not available");
         }
@@ -194,6 +205,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const policy = await (client as any).getRetentionPolicy(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get retention policy not available");
         }
@@ -208,6 +220,7 @@ async function main(): Promise<void> {
                     max_lifetime: 604800,
                 });
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set retention policy not available");
         }
@@ -219,6 +232,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const retention = await (client as any).getRoomRetention(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get room retention not available");
         }
@@ -231,6 +245,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const captcha = await (client as any).getCaptchaPublicKey();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Captcha not available");
         }
@@ -240,6 +255,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const picture = await (client as any).getCaptchaPicture("test-session-id");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Captcha picture not available");
         }
@@ -252,6 +268,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const quota = await (client as any).getMediaQuotaInformation();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Media quota not available");
         }
@@ -261,6 +278,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const quota = await (client as any).getUploadQuota();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Upload quota not available");
         }
@@ -273,6 +291,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const keys = await (client as any).claimOneTimeKeys(["@test2:cjystx.top"], "signed_curve25519");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Claim one-time keys not available");
         }
@@ -282,6 +301,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const changes = await (client as any).getKeyChanges("test-from", "test-to");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get key changes not available");
         }
@@ -297,6 +317,7 @@ async function main(): Promise<void> {
                 room_id: testRoomId,
                 event_id: "test-event",
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Request room key not available");
         }
@@ -306,6 +327,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).shareRoomKey(testRoomId!, ["@test2:cjystx.top"]);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Share room key not available");
         }
@@ -320,6 +342,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const algo = await (client as any).getEncryptionAlgorithm(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get encryption algorithm not available");
         }
@@ -331,6 +354,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await (client as any).setEncryptionAlgorithm(testRoomId, "m.megolm.v1.aes-sha2");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set encryption algorithm not available");
         }
@@ -340,6 +364,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).rotateOlmKeys();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Rotate Olm keys not available");
         }
@@ -352,6 +377,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 const data = client!.getRoomAccountData(testRoomId, "m.test");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get room account data not available");
             }
@@ -362,6 +388,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 await client!.setRoomAccountData(testRoomId, "m.test", { key: "value" });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Set room account data not available");
             }
@@ -373,6 +400,7 @@ async function main(): Promise<void> {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const data = await (client as any).getRoomAccountDataByType(testRoomId, "m.test");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get room account data by type not available");
             }

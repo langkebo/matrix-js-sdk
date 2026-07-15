@@ -100,6 +100,7 @@ const fakeIncomingCall = async (client: TestClient, call: MatrixCall, version: s
     await callPromise;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeMockEvent(sender: string, content: Record<string, any>): MatrixEvent {
     return {
         getContent: () => {
@@ -135,6 +136,7 @@ describe("Call", function () {
         client.client.sendEvent = mockSendEvent = vi.fn();
         {
             // in which we do naughty assignments to private members
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const untypedClient = client.client as any;
             untypedClient.mediaHandler = new MockMediaHandler();
             untypedClient.turnServersExpiry = Date.now() + 60 * 60 * 1000;
@@ -188,6 +190,7 @@ describe("Call", function () {
             // Mock setRemoteDescription to fail
             const mockPC = new MockRTCPeerConnection();
             mockPC.setRemoteDescription = vi.fn().mockRejectedValue(new Error("SDP Error"));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(call as any, "createPeerConnection").mockReturnValue(mockPC);
 
             await expect(call.initWithInvite(inviteEvent)).rejects.toThrow("SDP Error");
@@ -207,6 +210,7 @@ describe("Call", function () {
 
             const mockPC = new MockRTCPeerConnection();
             mockPC.setRemoteDescription = vi.fn().mockRejectedValue(new Error("SDP Error"));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(call as any, "createPeerConnection").mockReturnValue(mockPC);
 
             await call.initWithInvite(inviteEvent, false);
@@ -368,6 +372,7 @@ describe("Call", function () {
             }),
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).pushRemoteFeed(
             new MockMediaStream("remote_stream", [
                 new MockMediaStreamTrack("remote_audio_track", "audio"),
@@ -394,6 +399,7 @@ describe("Call", function () {
             }),
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mockScreenshareNoMetadata = ((call as any).setScreensharingEnabledWithoutMetadataSupport = vi.fn());
 
         call.setScreensharingEnabled(true);
@@ -403,6 +409,7 @@ describe("Call", function () {
     it("should fallback to answering with no video", async () => {
         await client.httpBackend!.flush("");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).shouldAnswerWithMediaType = (wantedValue: boolean) => wantedValue;
         client.client.getMediaHandler().getUserMediaStream = vi.fn().mockRejectedValue("reject");
 
@@ -443,6 +450,7 @@ describe("Call", function () {
         );
 
         // XXX: Lots of inspecting the prvate state of the call object here
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transceivers: Map<string, RTCRtpTransceiver> = (call as any).transceivers;
 
         expect(call.localUsermediaStream!.id).toBe("stream");
@@ -470,9 +478,11 @@ describe("Call", function () {
 
         // XXX Should probably test using the public interfaces, ie.
         // setLocalVideoMuted probably?
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (call as any).upgradeCall(false, true);
 
         // XXX: More inspecting private state of the call object
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transceivers: Map<string, RTCRtpTransceiver> = (call as any).transceivers;
 
         expect(call.localUsermediaStream!.getAudioTracks()[0].id).toBe("usermedia_audio_track");
@@ -536,6 +546,7 @@ describe("Call", function () {
     it("should handle SDPStreamMetadata changes", async () => {
         await startVoiceCall(client, call);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).updateRemoteSDPStreamMetadata({
             remote_stream: {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
@@ -543,6 +554,7 @@ describe("Call", function () {
                 video_muted: false,
             },
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).pushRemoteFeed(new MockMediaStream("remote_stream", []));
         const feed = call.getFeeds().find((feed) => feed.stream.id === "remote_stream");
 
@@ -589,6 +601,7 @@ describe("Call", function () {
             "m.call.transferee": true,
             "m.call.dtmf": false,
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).chooseOpponent(
             makeMockEvent(opponentMember.userId, {
                 version: 1,
@@ -598,7 +611,9 @@ describe("Call", function () {
         );
 
         expect(call.getOpponentMember()).toBe(opponentMember);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((call as any).opponentPartyId).toBe("party_id");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((call as any).opponentCaps).toBe(opponentCaps);
         expect(call.opponentCanBeTransferred()).toBe(true);
         expect(call.opponentSupportsDTMF()).toBe(false);
@@ -628,6 +643,7 @@ describe("Call", function () {
         it("if no video", async () => {
             call.getOpponentMember = vi.fn().mockReturnValue({ userId: "@bob:bar.uk" });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushRemoteFeed(new MockMediaStream("remote_stream1", []));
             expect(call.type).toBe(CallType.Voice);
         });
@@ -635,6 +651,7 @@ describe("Call", function () {
         it("if remote video", async () => {
             call.getOpponentMember = vi.fn().mockReturnValue({ userId: "@bob:bar.uk" });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushRemoteFeed(
                 new MockMediaStream("remote_stream1", [new MockMediaStreamTrack("track_id", "video")]),
             );
@@ -649,8 +666,10 @@ describe("Call", function () {
             const mockTrack = new MockMediaStreamTrack("track_id", "video");
             const mockTransceiver = new MockRTCRtpTransceiver(call.peerConn as unknown as MockRTCPeerConnection);
             mockTransceiver.sender = new MockRTCRtpSender(mockTrack) as unknown as RTCRtpSender;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).transceivers.set("m.usermedia:video", mockTransceiver);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushNewLocalFeed(
                 new MockMediaStream("remote_stream1", [mockTrack]),
                 SDPStreamMetadataPurpose.Usermedia,
@@ -679,6 +698,7 @@ describe("Call", function () {
         await callPromise;
         call.getOpponentMember = vi.fn().mockReturnValue({ userId: "@bob:bar.uk" });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).pushNewLocalFeed(
             new MockMediaStream("local_stream2", [
                 new MockMediaStreamTrack("track_id", "video"),
@@ -687,6 +707,7 @@ describe("Call", function () {
         );
         await call.setMicrophoneMuted(true);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((call as any).getLocalSDPStreamMetadata()).toStrictEqual({
             local_stream1: {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
@@ -731,6 +752,7 @@ describe("Call", function () {
         await callPromise;
         call.getOpponentMember = vi.fn().mockReturnValue({ userId: "@bob:bar.uk" });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).updateRemoteSDPStreamMetadata({
             remote_usermedia_stream_id: {
                 purpose: SDPStreamMetadataPurpose.Usermedia,
@@ -744,7 +766,9 @@ describe("Call", function () {
                 video_muted: false,
             },
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).pushRemoteFeed(remoteUsermediaStream);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (call as any).pushRemoteFeed(remoteScreensharingStream);
 
         expect(call.localUsermediaFeed!.stream).toBe(localUsermediaStream);
@@ -784,6 +808,7 @@ describe("Call", function () {
                 roomId: "!room_id",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((localCall as any).turnServers).toStrictEqual([{ urls: ["stun:turn.matrix.org"] }]);
         });
 
@@ -794,6 +819,7 @@ describe("Call", function () {
                 roomId: "!room_id",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((localCall as any).turnServers).toStrictEqual([]);
         });
 
@@ -806,6 +832,7 @@ describe("Call", function () {
                 turnServers,
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((localCall as any).turnServers).toStrictEqual(turnServers);
         });
     });
@@ -905,7 +932,9 @@ describe("Call", function () {
                 }),
             );
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushRemoteFeed(new MockMediaStream(STREAM_ID));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushRemoteFeed(new MockMediaStream(STREAM_ID));
 
             expect(call.getRemoteFeeds().length).toBe(1);
@@ -913,7 +942,9 @@ describe("Call", function () {
         });
 
         it("should ignore stream passed to pushRemoteFeedWithoutMetadata()", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushRemoteFeedWithoutMetadata(new MockMediaStream(STREAM_ID));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushRemoteFeedWithoutMetadata(new MockMediaStream(STREAM_ID));
 
             expect(call.getRemoteFeeds().length).toBe(1);
@@ -921,7 +952,9 @@ describe("Call", function () {
         });
 
         it("should ignore stream passed to pushNewLocalFeed()", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushNewLocalFeed(new MockMediaStream(STREAM_ID), SDPStreamMetadataPurpose.Screenshare);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).pushNewLocalFeed(new MockMediaStream(STREAM_ID), SDPStreamMetadataPurpose.Screenshare);
 
             // We already have one local feed from placeVoiceCall()
@@ -937,6 +970,7 @@ describe("Call", function () {
             const sendEvent = vi.spyOn(client.client, "sendEvent");
             await call.transferToCall(targetCall);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newCallId = (sendEvent.mock.calls[0][2] as any)!.await_call;
             expect(sendEvent).toHaveBeenCalledWith(
                 call.roomId,
@@ -951,6 +985,7 @@ describe("Call", function () {
     describe("muting", () => {
         let mockSendVoipEvent: Mock<MatrixCall["sendVoipEvent"]>;
         beforeEach(async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).sendVoipEvent = mockSendVoipEvent = vi.fn();
             await startVideoCall(client, call);
         });
@@ -961,6 +996,7 @@ describe("Call", function () {
 
         it("should not remove video sender on video mute", async () => {
             await call.setLocalVideoMuted(true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((call as any).hasUserMediaVideoSender).toBe(true);
         });
 
@@ -1041,6 +1077,7 @@ describe("Call", function () {
                         video_muted: video,
                     },
                 };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (call as any).pushRemoteFeed(
                     new MockMediaStream("stream", [
                         new MockMediaStreamTrack("track1", "audio"),
@@ -1057,6 +1094,7 @@ describe("Call", function () {
 
             it("should handle incoming sdp_stream_metadata_changed with audio muted", async () => {
                 const metadata = setupCall(true, false);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 expect((call as any).remoteSDPStreamMetadata).toStrictEqual(metadata);
                 expect(call.getRemoteFeeds()[0].isAudioMuted()).toBe(true);
                 expect(call.getRemoteFeeds()[0].isVideoMuted()).toBe(false);
@@ -1064,6 +1102,7 @@ describe("Call", function () {
 
             it("should handle incoming sdp_stream_metadata_changed with video muted", async () => {
                 const metadata = setupCall(false, true);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 expect((call as any).remoteSDPStreamMetadata).toStrictEqual(metadata);
                 expect(call.getRemoteFeeds()[0].isAudioMuted()).toBe(false);
                 expect(call.getRemoteFeeds()[0].isVideoMuted()).toBe(true);
@@ -1139,6 +1178,7 @@ describe("Call", function () {
             await fakeIncomingCall(client, call, "1");
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const untilEventSent = async (...args: any[]) => {
             const maxTries = 20;
 
@@ -1416,6 +1456,7 @@ describe("Call", function () {
         });
 
         it("returns false when enabling screensharing fails", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const mockMediaHandler = (client.client as any).mediaHandler as MockMediaHandler;
             mockMediaHandler.getScreensharingStream.mockRejectedValueOnce(new Error("denied"));
 
@@ -1488,6 +1529,7 @@ describe("Call", function () {
             }),
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mockMediaHandler = (client.client as any).mediaHandler as MockMediaHandler;
         mockMediaHandler.getScreensharingStream.mockRejectedValueOnce(new Error("denied"));
 
@@ -1639,6 +1681,7 @@ describe("Call", function () {
         it("ends call on onHangupReceived() if state is ringing", async () => {
             expect(call.callHasEnded()).toBe(false);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).state = CallState.Ringing;
             call.onHangupReceived({} as MCallHangupReject);
 
@@ -1674,6 +1717,7 @@ describe("Call", function () {
         async (state: CallState) => {
             expect(call.callHasEnded()).toBe(false);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (call as any).state = state;
             call.onRejectReceived({} as MCallHangupReject);
 

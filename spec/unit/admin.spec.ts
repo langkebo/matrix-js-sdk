@@ -14,6 +14,7 @@ describe("AdminManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         adminManager = new AdminManager({} as any, { transport });
     });
 
@@ -287,6 +288,7 @@ describe("AdminManager", () => {
             await expect(adminManager.getUsersPaginated({ limit: 0 })).rejects.toThrow(ValidationError);
             await expect(adminManager.getUsersPaginated({ limit: -1 })).rejects.toThrow(ValidationError);
             await expect(adminManager.getUsersPaginated({ limit: 10001 })).rejects.toThrow(ValidationError);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(adminManager.getUsersPaginated({ limit: 1.5 as any })).rejects.toThrow(ValidationError);
         });
 
@@ -585,6 +587,7 @@ describe("AdminManager", () => {
 
         it("should have correct prototype methods", () => {
             const testTransport = new FakeTransport();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const manager = new AdminManager({} as any, { transport: testTransport });
             expect(typeof manager.getUsersPaginated).toBe("function");
             expect(typeof manager.getUser).toBe("function");
@@ -610,6 +613,7 @@ describe("AdminManager", () => {
             // prefix 应该是独立的
             expect(opts!.prefix).toBe("/_synapse/admin");
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl: "https://matrix.test",
                 prefix: "/_matrix/client/v3",
@@ -659,6 +663,7 @@ describe("AdminManager", () => {
             expect(path).not.toContain("_synapse/admin");
             expect(opts!.prefix).toBe("/_synapse/admin/v1");
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const httpApi = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl: "https://matrix.test",
                 prefix: "/_matrix/client/v3",

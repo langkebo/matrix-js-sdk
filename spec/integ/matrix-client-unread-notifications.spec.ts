@@ -143,6 +143,7 @@ describe("MatrixClient syncing", () => {
 
         const reactionEventId = `$9-${Math.random()}-${Math.random()}`;
         let lastEvent: MatrixEvent | null = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(client! as any, "sendEventHttpRequest").mockImplementation((event) => {
             lastEvent = event as MatrixEvent;
             return { event_id: reactionEventId };

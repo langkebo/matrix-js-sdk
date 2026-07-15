@@ -22,6 +22,7 @@ import { Method } from "../../src/http-api";
 import { Feature, ServerSupport } from "../../src/feature";
 
 describe("AccountDataManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let accountDataManager: AccountDataManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
@@ -63,7 +64,9 @@ describe("AccountDataManager", () => {
             mockAuthedRequest.mockResolvedValue({});
 
             await accountDataManager.setAccountData(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 "m.direct" as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { "@bob:example.com": ["!room:example.com"] } as any,
             );
 
@@ -79,6 +82,7 @@ describe("AccountDataManager", () => {
             mockClient.clientRunning = false;
             mockAuthedRequest.mockResolvedValue({});
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await accountDataManager.setAccountData("com.example.custom" as any, { data: "value" } as any);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -94,6 +98,7 @@ describe("AccountDataManager", () => {
         it("should set account data raw via http", async () => {
             mockAuthedRequest.mockResolvedValue({});
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await accountDataManager.setAccountDataRaw("m.push_rules" as any, { global: {} } as any);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -113,6 +118,7 @@ describe("AccountDataManager", () => {
             });
             mockClient.store.accountData.set("m.direct", event);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = accountDataManager.getAccountData("m.direct" as any);
 
             expect(result).toBe(event);
@@ -120,6 +126,7 @@ describe("AccountDataManager", () => {
         });
 
         it("should return undefined for non-existent data", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = accountDataManager.getAccountData("m.nonexistent" as any);
 
             expect(result).toBeUndefined();
@@ -133,6 +140,7 @@ describe("AccountDataManager", () => {
             mockClient.store.getAccountData = vi.fn().mockReturnValue(event);
             mockClient.isInitialSyncComplete = vi.fn().mockReturnValue(true);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await accountDataManager.getAccountDataFromServer("m.direct" as any);
 
             expect(result).toEqual(content);
@@ -144,6 +152,7 @@ describe("AccountDataManager", () => {
             const error = { data: { errcode: "M_NOT_FOUND" } };
             mockAuthedRequest.mockRejectedValue(error);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await accountDataManager.getAccountDataFromServer("m.nonexistent" as any);
 
             expect(result).toBeNull();
@@ -212,6 +221,7 @@ describe("AccountDataManager", () => {
             mockClient.canSupport.set(Feature.AccountDataDeletion, ServerSupport.Stable);
             mockAuthedRequest.mockResolvedValue(undefined);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await accountDataManager.deleteAccountData("m.direct" as any);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -228,6 +238,7 @@ describe("AccountDataManager", () => {
             mockClient.clientRunning = false;
             mockAuthedRequest.mockResolvedValue({});
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await accountDataManager.deleteAccountData("m.direct" as any);
 
             // Should call PUT with empty content as fallback
@@ -334,6 +345,7 @@ describe("AccountDataManager", () => {
         it("should reject data_type longer than 128 characters", async () => {
             const longType = "a".repeat(129);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(accountDataManager.setAccountData(longType as any, { data: "value" } as any)).rejects.toThrow(
                 "data_type too long (max 128 characters)",
             );
@@ -342,6 +354,7 @@ describe("AccountDataManager", () => {
         it("should reject content larger than 64KB", async () => {
             const largeContent = { data: "x".repeat(65537) };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(accountDataManager.setAccountData("m.test" as any, largeContent as any)).rejects.toThrow(
                 "Account data too large (max 65536 bytes)",
             );
@@ -355,6 +368,7 @@ describe("AccountDataManager", () => {
             const error = new Error("Server error");
             mockAuthedRequest.mockRejectedValue(error);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(accountDataManager.getAccountDataFromServer("m.direct" as any)).rejects.toThrow(
                 "Server error",
             );
@@ -365,6 +379,7 @@ describe("AccountDataManager", () => {
             const error = new Error("Delete failed");
             mockAuthedRequest.mockRejectedValue(error);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(accountDataManager.deleteAccountData("m.direct" as any)).rejects.toThrow("Delete failed");
         });
     });

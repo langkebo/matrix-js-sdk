@@ -19,6 +19,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { CapabilitiesManager } from "../../src/capabilities/index";
 
 describe("CapabilitiesManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let capabilitiesManager: CapabilitiesManager;
     let mockGetCachedCapabilities: ReturnType<typeof vi.fn>;

@@ -32,6 +32,7 @@ describe("Thread", () => {
         it("should explode for element-web#22141 logging", () => {
             // Logging/debugging for https://github.com/vector-im/element-web/issues/22141
             expect(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new Thread("$event", undefined, {} as any); // deliberate cast to test error case
             }).toThrow("element-web#22141: A thread requires a room in order to function");
         });

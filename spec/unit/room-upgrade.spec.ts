@@ -46,6 +46,7 @@ describe("Room upgrades", function () {
 });
 
 ///
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createClient(): { client: MatrixClient; authedRequest: any } {
     const authedRequest = vi.fn();
     const client = new MatrixClient({

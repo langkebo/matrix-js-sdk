@@ -119,10 +119,12 @@ describe("utils", function () {
 
     describe("deepCompare", function () {
         const assert = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             isTrue: function (x: any) {
                 // eslint-disable-next-line vitest/no-standalone-expect
                 expect(x).toBe(true);
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             isFalse: function (x: any) {
                 // eslint-disable-next-line vitest/no-standalone-expect
                 expect(x).toBe(false);
@@ -216,6 +218,7 @@ describe("utils", function () {
         it("should retry", async () => {
             let count = 0;
             const val = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const fn = (attempt: any) => {
                 count++;
 
@@ -423,6 +426,7 @@ describe("utils", function () {
                 },
                 [72]: "test",
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const output: any = [
                 ["72", "test"],
                 ["a", 42],
@@ -543,6 +547,7 @@ describe("utils", function () {
             },
             // one level map
             {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 map: new Map<any, any>([
                     ["key1", "value 1"],
                     ["key2", 23],
@@ -554,9 +559,11 @@ describe("utils", function () {
             },
             // two level map
             {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 map: new Map<any, any>([
                     [
                         "key1",
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         new Map<any, any>([
                             ["key1_1", "value 1"],
                             ["key1_2", "value 1.2"],
@@ -568,16 +575,20 @@ describe("utils", function () {
             },
             // multi level map
             {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 map: new Map<any, any>([
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ["key1", new Map<any, any>([["key1_1", new Map<any, any>([["key1_1_1", "value 1.1.1"]])]])],
                 ]),
                 expected: { key1: { key1_1: { key1_1_1: "value 1.1.1" } } },
             },
             // list of maps
             {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 map: new Map<any, any>([
                     [
                         "key1",
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         [new Map<any, any>([["key1_1", "value 1.1"]]), new Map<any, any>([["key1_2", "value 1.2"]])],
                     ],
                 ]),
@@ -585,6 +596,7 @@ describe("utils", function () {
             },
             // map → array → array → map
             {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 map: new Map<any, any>([["key1", [[new Map<any, any>([["key2", "value 2"]])]]]]),
                 expected: {
                     key1: [

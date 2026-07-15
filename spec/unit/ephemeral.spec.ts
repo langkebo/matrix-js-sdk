@@ -5,6 +5,7 @@ import { EphemeralEvent, EphemeralManager } from "../../src/ephemeral";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("EphemeralManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: EphemeralManager;
 

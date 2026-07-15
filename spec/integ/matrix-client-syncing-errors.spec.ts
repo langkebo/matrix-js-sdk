@@ -48,6 +48,7 @@ const makeQueryablePromise = <T = void>(promise: Promise<T>) => {
 
 const queryablePromise = <T = void>() => {
     let resolve!: (value: T | PromiseLike<T>) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let reject!: (reason?: any) => void;
 
     const promise = makeQueryablePromise<T>(

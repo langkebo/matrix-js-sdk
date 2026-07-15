@@ -5,6 +5,7 @@ import { extendMatrixClientWithManagers, resetManagerExtensions } from "../../sr
 import { MatrixClient } from "../../src/client";
 
 describe("KeyVerificationManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let client: any;
     let manager: KeyVerificationManager;
 
@@ -34,7 +35,9 @@ describe("KeyVerificationManager", () => {
 
         manager = new KeyVerificationManager(client);
         resetManagerExtensions();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (MatrixClient.prototype as any).getKeyVerificationManager;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (MatrixClient.prototype as any).getRoomKeySharingManager;
     });
 

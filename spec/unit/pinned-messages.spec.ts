@@ -4,6 +4,7 @@ import { PinnedMessagesManager } from "../../src/pinned-messages";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("PinnedMessagesManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: PinnedMessagesManager;
 

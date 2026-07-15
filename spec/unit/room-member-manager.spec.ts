@@ -4,6 +4,7 @@ import { RoomMemberManager } from "../../src/room-member";
 import { Method } from "../../src/http-api";
 
 describe("RoomMemberManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: RoomMemberManager;
 

@@ -30,6 +30,7 @@ describe("PushNotificationsManager", () => {
             removePusher: vi.fn(),
             getPusherData: vi.fn(),
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new PushNotificationsManager(client as any);
     });
 

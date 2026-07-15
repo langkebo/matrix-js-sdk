@@ -40,6 +40,7 @@ describe("RoomStickyEvents", () => {
             stickyEvents.addStickyEvents([new MatrixEvent({ ...stickyEvent, msc4354_sticky: undefined })]);
             expect([...stickyEvents.getStickyEvents()]).toHaveLength(0);
             stickyEvents.addStickyEvents([
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new MatrixEvent({ ...stickyEvent, msc4354_sticky: { duration_ms: undefined } as any }),
             ]);
             expect([...stickyEvents.getStickyEvents()]).toHaveLength(0);
@@ -365,6 +366,7 @@ describe("RoomStickyEvents", () => {
             middleEv.setUnsigned({
                 redacted_because: {
                     event_id: "$foo",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any,
             });
             // Redact the newer event
@@ -397,6 +399,7 @@ describe("RoomStickyEvents", () => {
             middleEv.setUnsigned({
                 redacted_because: {
                     event_id: "$foo",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any,
             });
             // Redact the newer event

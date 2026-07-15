@@ -5,6 +5,7 @@ import { MatrixError } from "../../src/http-api/errors";
 import * as dmExports from "../../src/dm/index";
 
 describe("DirectMessageManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let dmManager: DirectMessageManager;
 
@@ -893,10 +894,12 @@ describe("DirectMessageManager", () => {
 
         describe("getDmRoomInfos", () => {
             it("should return all cached DM room infos", async () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (dmManager as any).dmRoomsCache.set("!dm1:example.com", {
                     roomId: "!dm1:example.com",
                     invitees: ["@user1:example.com"],
                 });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (dmManager as any).dmRoomsCache.set("!dm2:example.com", {
                     roomId: "!dm2:example.com",
                     invitees: ["@user2:example.com"],
@@ -1001,6 +1004,7 @@ describe("DirectMessageManager", () => {
             });
 
             it("should report cache size after inserting DM room", () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (dmManager as any).dmRoomsCache.set("!dm1:example.com", {
                     roomId: "!dm1:example.com",
                     invitees: ["@user1:example.com"],

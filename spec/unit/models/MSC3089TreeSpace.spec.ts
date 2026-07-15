@@ -32,6 +32,7 @@ import { type EncryptedFile } from "../../../src/@types/media";
 
 describe("MSC3089TreeSpace", () => {
     let client: MatrixClient;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let room: any;
     let tree: MSC3089TreeSpace;
     const roomId = "!tree:localhost";
@@ -65,6 +66,7 @@ describe("MSC3089TreeSpace", () => {
         makePowerLevels(DEFAULT_TREE_POWER_LEVELS_TEMPLATE);
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function makePowerLevels(content: any) {
         powerLevels = new MatrixEvent({
             type: EventType.RoomPowerLevels,
@@ -89,6 +91,7 @@ describe("MSC3089TreeSpace", () => {
         const newName = "NEW NAME";
         const fn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((stateRoomId: string, eventType: EventType, content: any, stateKey: string) => {
                 expect(stateRoomId).toEqual(roomId);
                 expect(eventType).toEqual(EventType.RoomName);
@@ -161,10 +164,12 @@ describe("MSC3089TreeSpace", () => {
         expect(fn).toHaveBeenCalledTimes(4);
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function evaluatePowerLevels(pls: any, role: TreePermissions, expectedPl: number) {
         makePowerLevels(pls);
         const fn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((stateRoomId: string, eventType: EventType, content: any, stateKey: string) => {
                 expect(stateRoomId).toEqual(roomId);
                 expect(eventType).toEqual(EventType.RoomPowerLevels);
@@ -310,6 +315,7 @@ describe("MSC3089TreeSpace", () => {
         });
         const sendStateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation(async (roomId: string, eventType: EventType, content: any, stateKey: string) => {
                 expect([tree.roomId, subspaceId]).toContain(roomId);
 
@@ -386,8 +392,11 @@ describe("MSC3089TreeSpace", () => {
         client.getRoom = () => ({}) as Room; // to appease the TreeSpace constructor
 
         // Only mocking used API
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const firstSubdirectory = { roomId: "!first:example.org" } as any as MSC3089TreeSpace;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const searchedSubdirectory = { roomId: "!find_me:example.org" } as any as MSC3089TreeSpace;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const thirdSubdirectory = { roomId: "!third:example.org" } as any as MSC3089TreeSpace;
         tree.getDirectories = () => [firstSubdirectory, searchedSubdirectory, thirdSubdirectory];
 
@@ -400,9 +409,11 @@ describe("MSC3089TreeSpace", () => {
 
     it("should be able to delete itself", async () => {
         const delete1 = vi.fn().mockImplementation(() => Promise.resolve());
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subdir1 = { delete: delete1 } as any as MSC3089TreeSpace; // mock tested bits
 
         const delete2 = vi.fn().mockImplementation(() => Promise.resolve());
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subdir2 = { delete: delete2 } as any as MSC3089TreeSpace; // mock tested bits
 
         const joinMemberId = "@join:example.org";
@@ -453,8 +464,10 @@ describe("MSC3089TreeSpace", () => {
         // Danger: these are partial implementations for testing purposes only
 
         // @ts-ignore - "MatrixEvent is a value but used as a type", which is true but not important
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let childState: { [roomId: string]: any[] } = {};
         // @ts-ignore - "MatrixEvent is a value but used as a type", which is true but not important
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let parentState: any[] = [];
         let parentRoom: Room;
         let childTrees: MSC3089TreeSpace[];
@@ -547,11 +560,13 @@ describe("MSC3089TreeSpace", () => {
             childTrees = [];
             rooms = {};
             rooms[tree.roomId] = parentRoom;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (<any>tree).room = parentRoom; // override readonly
             client.getRoom = (r) => rooms[r ?? ""];
 
             clientSendStateFn = vi
                 .fn()
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .mockImplementation((roomId: string, eventType: EventType, content: any, stateKey: string) => {
                     expect(roomId).toEqual(tree.roomId);
                     expect(eventType).toEqual(EventType.SpaceChild);
@@ -917,6 +932,7 @@ describe("MSC3089TreeSpace", () => {
         const fileName = "My File.txt";
         const fileContents = "This is a test file";
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const uploadFn = vi.fn().mockImplementation((contents: Buffer, opts: any) => {
             expect(contents.length).toEqual(fileContents.length);
             expect(opts).toMatchObject({
@@ -926,6 +942,7 @@ describe("MSC3089TreeSpace", () => {
         });
         client.uploadContent = uploadFn;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sendMsgFn = vi.fn().mockImplementation((roomId: string, contents: any) => {
             expect(roomId).toEqual(tree.roomId);
             expect(contents).toMatchObject({
@@ -943,6 +960,7 @@ describe("MSC3089TreeSpace", () => {
 
         const sendStateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(tree.roomId);
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test to ensure we're definitely using unstable
@@ -977,6 +995,7 @@ describe("MSC3089TreeSpace", () => {
         const fileName = "My File.txt";
         const fileContents = "This is a test file";
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const uploadFn = vi.fn().mockImplementation((contents: Buffer, opts: any) => {
             expect(contents.length).toEqual(fileContents.length);
             expect(opts).toMatchObject({
@@ -986,6 +1005,7 @@ describe("MSC3089TreeSpace", () => {
         });
         client.uploadContent = uploadFn;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sendMsgFn = vi.fn().mockImplementation((roomId: string, contents: any) => {
             expect(roomId).toEqual(tree.roomId);
             const content = {
@@ -1006,6 +1026,7 @@ describe("MSC3089TreeSpace", () => {
 
         const sendStateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(tree.roomId);
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test to ensure we're definitely using unstable

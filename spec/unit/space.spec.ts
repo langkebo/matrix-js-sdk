@@ -9,6 +9,7 @@ function makeManager(authedRequest = vi.fn(), extraClient: Record<string, unknow
         http: { authedRequest },
         getRoom: vi.fn(),
         ...extraClient,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 }
 

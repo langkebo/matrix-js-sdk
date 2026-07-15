@@ -43,6 +43,7 @@ describe("GlobalLogoutManager", () => {
             getDeviceManager: vi.fn().mockReturnValue(mockDeviceManager),
             deviceId: "DEVICE_1",
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new GlobalLogoutManager(mockClient as any);
     });
 

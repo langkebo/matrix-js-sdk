@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { RoomJoiningManager } from "../../src/room-joining";
 
 describe("RoomJoiningManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: RoomJoiningManager;
 

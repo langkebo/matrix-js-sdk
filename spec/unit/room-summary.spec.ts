@@ -11,6 +11,7 @@ import { ClientPrefix, Method } from "../../src/http-api";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("RoomSummaryManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let summaryManager: RoomSummaryManager;
     let authedRequest: ReturnType<typeof vi.fn>;
@@ -1342,6 +1343,7 @@ describe("RoomSummaryManager", () => {
                     throw new MatrixError({
                         errcode: "M_LIMIT_EXCEEDED",
                         httpStatus: 429,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as any);
                 }
                 return {};
@@ -1357,6 +1359,7 @@ describe("RoomSummaryManager", () => {
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
 
@@ -1401,6 +1404,7 @@ describe("RoomSummaryManager", () => {
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
                     httpStatus: 404,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
 

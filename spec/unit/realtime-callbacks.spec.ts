@@ -144,9 +144,11 @@ describe("realtime-callbacks", function () {
             callbacks.setTimeout(callback1, 0);
             callbacks.setTimeout(callback2, 0);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(<any>callback1).not.toHaveBeenCalled();
             expect(callback2).not.toHaveBeenCalled();
             tick(0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(<any>callback1).toHaveBeenCalled();
             expect(callback2).toHaveBeenCalled();
         });

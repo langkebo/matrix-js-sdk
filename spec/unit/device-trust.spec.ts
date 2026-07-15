@@ -20,6 +20,7 @@ import { DeviceTrustManager, DeviceTrustEvent } from "../../src/device-trust/ind
 import { Method } from "../../src/http-api";
 
 describe("DeviceTrustManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let deviceTrustManager: DeviceTrustManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

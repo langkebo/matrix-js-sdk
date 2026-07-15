@@ -23,6 +23,7 @@ import { MatrixEvent } from "../../src/models/event";
 describe("InviteListManager", () => {
     let transport: FakeTransport;
     let manager: InviteListManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -37,6 +38,7 @@ describe("InviteListManager", () => {
         manager = new InviteListManager(mockClient, { transport });
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function createMockRoom(overrides: Partial<any> = {}): any {
         return {
             roomId: "!room:example.com",
@@ -122,6 +124,7 @@ describe("InviteListManager", () => {
             mockClient.joinRoom.mockResolvedValue({});
 
             // First add the invite to cache
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", {
                 roomId: "!room:example.com",
                 inviterId: "@alice:example.com",
@@ -161,6 +164,7 @@ describe("InviteListManager", () => {
             const emitSpy = vi.spyOn(manager, "emit");
             mockClient.leave.mockResolvedValue({});
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", {
                 roomId: "!room:example.com",
                 inviterId: "@alice:example.com",
@@ -182,7 +186,9 @@ describe("InviteListManager", () => {
     describe("batch operations", () => {
         it("acceptAllInvites should accept all cached invites", async () => {
             mockClient.joinRoom.mockResolvedValue({});
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room1:example.com", { roomId: "!room1:example.com" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room2:example.com", { roomId: "!room2:example.com" });
 
             await manager.acceptAllInvites();
@@ -194,7 +200,9 @@ describe("InviteListManager", () => {
 
         it("rejectAllInvites should reject all cached invites", async () => {
             mockClient.leave.mockResolvedValue({});
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room1:example.com", { roomId: "!room1:example.com" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room2:example.com", { roomId: "!room2:example.com" });
 
             await manager.rejectAllInvites();
@@ -206,7 +214,9 @@ describe("InviteListManager", () => {
 
         it("acceptAllInvites should continue if one fails", async () => {
             mockClient.joinRoom.mockRejectedValueOnce(new Error("Room 1 failed")).mockResolvedValueOnce({});
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room1:example.com", { roomId: "!room1:example.com" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room2:example.com", { roomId: "!room2:example.com" });
 
             await manager.acceptAllInvites();
@@ -223,12 +233,14 @@ describe("InviteListManager", () => {
 
         it("getInvite should return cached invite", () => {
             const invite = { roomId: "!room:example.com", inviterId: "@alice:example.com", timestamp: 1000 };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", invite);
 
             expect(manager.getInvite("!room:example.com")).toEqual(invite);
         });
 
         it("hasInvite should return true for cached room", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", { roomId: "!room:example.com" });
 
             expect(manager.hasInvite("!room:example.com")).toBe(true);
@@ -241,9 +253,11 @@ describe("InviteListManager", () => {
         it("getInviteCount should return the number of cached invites", () => {
             expect(manager.getInviteCount()).toBe(0);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room1:example.com", { roomId: "!room1:example.com" });
             expect(manager.getInviteCount()).toBe(1);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room2:example.com", { roomId: "!room2:example.com" });
             expect(manager.getInviteCount()).toBe(2);
         });
@@ -251,7 +265,9 @@ describe("InviteListManager", () => {
         it("getCachedInvites should return all cached invites", () => {
             const invite1 = { roomId: "!room1:example.com" };
             const invite2 = { roomId: "!room2:example.com" };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room1:example.com", invite1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room2:example.com", invite2);
 
             const cached = manager.getCachedInvites();
@@ -277,6 +293,7 @@ describe("InviteListManager", () => {
 
     describe("handleMembershipChange", () => {
         it("should remove invite when membership is not 'invite'", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", { roomId: "!room:example.com" });
 
             manager.handleMembershipChange("!room:example.com", "join");
@@ -285,6 +302,7 @@ describe("InviteListManager", () => {
         });
 
         it("should not modify cache when membership is still 'invite'", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", { roomId: "!room:example.com" });
 
             manager.handleMembershipChange("!room:example.com", "invite");
@@ -295,6 +313,7 @@ describe("InviteListManager", () => {
 
     describe("clear / lifecycle", () => {
         it("clear should empty the invite cache", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", { roomId: "!room:example.com" });
             expect(manager.getInviteCount()).toBe(1);
 
@@ -323,11 +342,14 @@ describe("InviteListManager", () => {
         });
 
         it("stop should clear cache and reset initialized flag", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).initialized = true;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (manager as any).invites.set("!room:example.com", { roomId: "!room:example.com" });
 
             manager.stop();
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((manager as any).initialized).toBe(false);
             expect(manager.getInviteCount()).toBe(0);
         });

@@ -9,6 +9,7 @@ describe("VerificationManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new VerificationManager({} as any, { transport });
     });
 

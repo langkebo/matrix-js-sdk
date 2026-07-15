@@ -66,6 +66,7 @@ describe("StubStore", () => {
 
         it("should not throw on storeRoom", () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(() => store.storeRoom({} as any)).not.toThrow();
         });
 
@@ -93,11 +94,13 @@ describe("StubStore", () => {
 
         it("should not throw on storeUser", () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(() => store.storeUser({} as any)).not.toThrow();
         });
 
         it("should not throw on setUserCreator", () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(() => store.setUserCreator(() => ({}) as any)).not.toThrow();
         });
     });
@@ -105,6 +108,7 @@ describe("StubStore", () => {
     describe("scrollback", () => {
         it("should return empty array", () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(store.scrollback({} as any, 10)).toEqual([]);
         });
     });
@@ -112,6 +116,7 @@ describe("StubStore", () => {
     describe("storeEvents", () => {
         it("should not throw", () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(() => store.storeEvents({} as any, [], null, false)).not.toThrow();
         });
     });
@@ -129,6 +134,7 @@ describe("StubStore", () => {
 
         it("should not throw on storeFilter", () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(() => store.storeFilter({} as any)).not.toThrow();
         });
 
@@ -153,6 +159,7 @@ describe("StubStore", () => {
     describe("sync data operations", () => {
         it("should resolve setSyncData", async () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(store.setSyncData({} as any)).resolves.toBeUndefined();
         });
 
@@ -214,6 +221,7 @@ describe("StubStore", () => {
 
         it("should resolve storeClientOptions", async () => {
             const store = new StubStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(store.storeClientOptions({} as any)).resolves.toBeUndefined();
         });
     });

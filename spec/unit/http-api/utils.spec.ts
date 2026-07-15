@@ -241,6 +241,7 @@ describe("parseErrorResponse", () => {
         }
 
         function compareHeaders(expectedHeaders: Headers, otherHeaders: Headers | undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(new Map(otherHeaders as any)).toEqual(new Map(expectedHeaders as any));
         }
 

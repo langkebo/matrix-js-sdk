@@ -11,6 +11,7 @@ import { WorkerBodyManager } from "../../src/worker-body/index.ts";
 import { Method } from "../../src/http-api/method.ts";
 
 describe("WorkerBodyManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: WorkerBodyManager;
 

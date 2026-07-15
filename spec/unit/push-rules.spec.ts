@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PushRulesManager } from "../../src/push-rules";
 
 describe("PushRulesManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: PushRulesManager;
 

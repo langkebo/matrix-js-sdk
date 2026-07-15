@@ -41,6 +41,7 @@ describe("SecurityManager", () => {
             },
             getDeviceManager: vi.fn().mockReturnValue(mockDeviceManager),
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new SecurityManager(mockClient as any);
     });
 

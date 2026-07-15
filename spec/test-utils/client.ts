@@ -21,6 +21,7 @@ import { TypedEventEmitter } from "../../src/models/typed-event-emitter";
 import { User } from "../../src/models/user";
 
 // Cribbed from https://github.com/jestjs/jest/blob/94830794dc5dfca1b49bc435b7b031b27838a798/packages/jest-mock/src/index.ts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FunctionLike = (...args: any) => any;
 type MethodLikeKeys<T> = keyof {
     [K in keyof T as Required<T>[K] extends FunctionLike ? K : never]: T[K];

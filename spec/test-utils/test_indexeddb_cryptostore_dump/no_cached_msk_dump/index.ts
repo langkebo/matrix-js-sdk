@@ -21,6 +21,7 @@ import { type DumpDataSetInfo } from "../index";
  * A key query response containing the current keys of the tested user.
  * To be used during tests with fetchmock.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const KEY_QUERY_RESPONSE: any = {
     device_keys: {
         "@migration:localhost": {
@@ -136,6 +137,7 @@ const KEY_QUERY_RESPONSE: any = {
  * A new  key query response for the same user simulating a cross-signing key reset.
  * To be used during tests with fetchmock.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ROTATED_KEY_QUERY_RESPONSE: any = {
     device_keys: {
         "@migration:localhost": {

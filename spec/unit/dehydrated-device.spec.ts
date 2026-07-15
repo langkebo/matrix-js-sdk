@@ -25,6 +25,7 @@ describe("DehydratedDeviceManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new DehydratedDeviceManager({} as any, { transport });
     });
 
@@ -43,6 +44,7 @@ describe("DehydratedDeviceManager", () => {
         });
 
         it("should throw if device_data is missing", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.createDevice({ device_data: null as any })).rejects.toThrow("device_data is required");
         });
 
@@ -100,6 +102,7 @@ describe("DehydratedDeviceManager", () => {
         });
 
         it("should throw if rehydrate_data is missing", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.claimDevice("dev123", { rehydrate_data: null as any })).rejects.toThrow(
                 "rehydrate_data is required",
             );

@@ -26,6 +26,7 @@ import { type EncryptedFile } from "../../../src/@types/media";
 describe("MSC3089Branch", () => {
     let client: MatrixClient;
     // @ts-ignore - TS doesn't know that this is a type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let indexEvent: any;
     let directory: MSC3089TreeSpace;
     let branch: MSC3089Branch;
@@ -38,6 +39,7 @@ describe("MSC3089Branch", () => {
     const staticTimelineSets = {} as EventTimelineSet;
     const staticRoom = {
         getUnfilteredTimelineSet: () => staticTimelineSets,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any as Room; // partial
 
     beforeEach(() => {
@@ -87,6 +89,7 @@ describe("MSC3089Branch", () => {
 
         const stateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(branchRoomId);
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test that we're definitely using the unstable value
@@ -129,6 +132,7 @@ describe("MSC3089Branch", () => {
         indexEvent.getContent = () => ({ active: true, retained: true });
         const stateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(branchRoomId);
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test that we're definitely using the unstable value
@@ -185,6 +189,7 @@ describe("MSC3089Branch", () => {
         indexEvent.getContent = () => ({ active: true, retained: true });
         const stateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(branchRoomId);
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test that we're definitely using the unstable value
@@ -265,6 +270,7 @@ describe("MSC3089Branch", () => {
         const stateKeyOrder = [fileEventId2, fileEventId];
         const stateFn = vi
             .fn()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(branchRoomId);
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test that we're definitely using the unstable value

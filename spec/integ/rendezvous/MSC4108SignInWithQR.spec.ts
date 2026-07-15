@@ -268,6 +268,7 @@ describe("MSC4108SignInWithQR", () => {
             vi.spyOn(globalThis, "setTimeout").mockImplementation((fn) => {
                 fn();
                 // TODO: mock timers properly
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return -1 as any;
             });
             vi.spyOn(Date, "now").mockImplementation(() => {
@@ -323,6 +324,7 @@ describe("MSC4108SignInWithQR", () => {
             vi.spyOn(globalThis, "setTimeout").mockImplementation((fn) => {
                 fn();
                 // TODO: mock timers properly
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return -1 as any;
             });
 

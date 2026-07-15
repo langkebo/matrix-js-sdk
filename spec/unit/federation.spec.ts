@@ -21,6 +21,7 @@ describe("FederationManager", () => {
             },
             getUserId: vi.fn(() => "@user:example.com"),
             baseUrl: "https://example.com",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
         federationManager = new FederationManager(mockClient);
     });

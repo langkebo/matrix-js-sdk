@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { UploadsManager } from "../../src/uploads/index";
 
 describe("UploadsManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let uploadsManager: UploadsManager;
 

@@ -250,6 +250,7 @@ describe("initRustCrypto", () => {
                 algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
             });
             // The cached key should be valid for the backup
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const mockBackupDecryptionKey: any = {
                 megolmV1PublicKey: {
                     publicKeyBase64: "backup_key_public",
@@ -695,6 +696,7 @@ describe("RustCrypto", () => {
 
     it("bootstrapSecretStorage creates new backup when requested", async () => {
         const secretStorageCallbacks = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             getSecretStorageKey: async (keys: any, name: string) => {
                 return [[...Object.keys(keys.keys)][0], new Uint8Array(32)];
             },
@@ -720,6 +722,7 @@ describe("RustCrypto", () => {
         rustCrypto["checkKeyBackupAndEnable"] = async () => {
             return null;
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (rustCrypto["crossSigningIdentity"] as any)["outgoingRequestProcessor"] = outgoingRequestProcessor;
         const resetKeyBackup = (rustCrypto["resetKeyBackup"] = vi.fn());
 
@@ -768,12 +771,14 @@ describe("RustCrypto", () => {
 
     describe("upload existing key backup key to new 4S store", () => {
         const secretStorageCallbacks = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             getSecretStorageKey: async (keys: any, name: string) => {
                 return [[...Object.keys(keys.keys)][0], new Uint8Array(32)];
             },
         } as SecretStorageCallbacks;
         let secretStorage: ServerSideSecretStorageImpl;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let backupAuthData: any;
         let backupAlg: string;
 
@@ -803,6 +808,7 @@ describe("RustCrypto", () => {
 
         it("bootstrapSecretStorage saves megolm backup key if already cached", async () => {
             const rustCrypto = await makeTestRustCrypto(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchMock as unknown as MatrixHttpApi<any>,
                 testData.TEST_USER_ID,
                 undefined,
@@ -831,6 +837,7 @@ describe("RustCrypto", () => {
 
         it("resetKeyBackup forwards UIA auth when creating a new backup version", async () => {
             const rustCrypto = await makeTestRustCrypto(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchMock as unknown as MatrixHttpApi<any>,
                 testData.TEST_USER_ID,
                 undefined,
@@ -877,6 +884,7 @@ describe("RustCrypto", () => {
             });
 
             const rustCrypto = await makeTestRustCrypto(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchMock as unknown as MatrixHttpApi<any>,
                 testData.TEST_USER_ID,
                 undefined,
@@ -917,6 +925,7 @@ describe("RustCrypto", () => {
             });
 
             const rustCrypto = await makeTestRustCrypto(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchMock as unknown as MatrixHttpApi<any>,
                 testData.TEST_USER_ID,
                 undefined,
@@ -948,6 +957,7 @@ describe("RustCrypto", () => {
             const rustCrypto = new RustCrypto(
                 new DebugLogger(debug("matrix-js-sdk:test:RustCrypto")),
                 mockOlmMachine,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchMock as unknown as MatrixHttpApi<any>,
                 TEST_USER,
                 TEST_DEVICE_ID,
@@ -1015,6 +1025,7 @@ describe("RustCrypto", () => {
 
         /** A list of results to be returned from olmMachine.outgoingRequest. Each call will shift a result off
          *  the front of the queue, until it is empty. */
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let outgoingRequestQueue: Array<Array<any>>;
 
         /** wait for a call to outgoingRequestProcessor.makeOutgoingRequest.
@@ -1056,6 +1067,7 @@ describe("RustCrypto", () => {
             rustCrypto = new RustCrypto(
                 logger,
                 olmMachine,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 {} as MatrixHttpApi<any>,
                 TEST_USER,
                 TEST_DEVICE_ID,
@@ -1080,6 +1092,7 @@ describe("RustCrypto", () => {
 
         it("should go round the loop again if another sync completes while the first `outgoingRequests` is running", async () => {
             // the first call to `outgoingMessages` will return a promise which blocks for a while
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const firstOutgoingRequestsResolvers = Promise.withResolvers<Array<any>>();
             vi.mocked(olmMachine.outgoingRequests).mockReturnValueOnce(firstOutgoingRequestsResolvers.promise);
 
@@ -1127,6 +1140,7 @@ describe("RustCrypto", () => {
             let deviceKeys: object;
             let deviceKeysAbsent = false;
             outgoingRequestProcessor.makeOutgoingRequest = vi.fn(async (request, uiaCallback?) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let resp: any = {};
                 if (request instanceof RustSdkCryptoJs.KeysUploadRequest) {
                     if (keysUploadCount == 0) {
@@ -1670,6 +1684,7 @@ describe("RustCrypto", () => {
 
         beforeEach(async () => {
             const secretStorageCallbacks = {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 getSecretStorageKey: async (keys: any, name: string) => {
                     return [[...Object.keys(keys.keys)][0], new Uint8Array(32)];
                 },
@@ -1920,6 +1935,7 @@ describe("RustCrypto", () => {
 
         it("should load the dehydration key from SSSS if available", async () => {
             const secretStorageCallbacks = {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 getSecretStorageKey: async (keys: any, name: string) => {
                     return [[...Object.keys(keys.keys)][0], new Uint8Array(32)];
                 },
@@ -1964,6 +1980,7 @@ describe("RustCrypto", () => {
                     error: "Not found",
                 },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let dehydratedDeviceBody: any;
             fetchMock.put("path:/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device", (callLog) => {
                 dehydratedDeviceBody = JSON.parse(callLog.options.body as string);
@@ -2028,6 +2045,7 @@ describe("RustCrypto", () => {
         describe("start dehydration options", () => {
             let rustCrypto: RustCrypto;
             let secretStorage: ServerSideSecretStorageImpl;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let dehydratedDeviceInfo: Record<string, any> | undefined;
 
             // Function that is called when `GET /dehydrated_device` is called
@@ -2070,6 +2088,7 @@ describe("RustCrypto", () => {
 
                 // Set up a RustCrypto object with secret storage and cross-signing.
                 const secretStorageCallbacks = {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     getSecretStorageKey: async (keys: any, name: string) => {
                         return [[...Object.keys(keys.keys)][0], new Uint8Array(32)];
                     },
@@ -2744,6 +2763,7 @@ class DummyAccountDataClient
     extends TypedEventEmitter<ClientEvent.AccountData, ClientEventHandlerMap>
     implements AccountDataClient
 {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private storage: Map<string, any> = new Map();
 
     public constructor() {

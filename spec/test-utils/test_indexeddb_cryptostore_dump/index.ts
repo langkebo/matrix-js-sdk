@@ -103,6 +103,7 @@ function upgradeDatabase(oldVersion: number, db: IDBDatabase) {
 
 async function importData(db: IDBDatabase, dumpPath: string) {
     const path = resolve(dumpPath);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const json: Record<string, Array<{ key?: any; value: any }>> = JSON.parse(
         await readFile(path, { encoding: "utf8" }),
     );
@@ -146,9 +147,12 @@ export interface DumpDataSetInfo {
     /** The pickle key to use for the dumped account.*/
     pickleKey: string;
     /** The response to use for the keys query. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     keyQueryResponse: any;
     /** The response to use for the backup query.*/
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     backupResponse?: any;
     /** Additional dump info specific for some tests.*/
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }

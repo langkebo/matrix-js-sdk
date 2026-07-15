@@ -22,6 +22,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -94,6 +95,7 @@ async function main(): Promise<void> {
             const result = await client!.searchUserDirectory({
                 term: "test",
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ User search not available");
         }
@@ -115,6 +117,7 @@ async function main(): Promise<void> {
     await runTest("getFilter", async () => {
         try {
             const filter = await client!.getFilter(client!.getUserId() || "", "test-filter-id", true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get filter not available");
         }
@@ -125,7 +128,9 @@ async function main(): Promise<void> {
 
     await runTest("sync (initial)", async () => {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await (client as any).sync({}, "");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Sync not available");
         }
@@ -133,7 +138,9 @@ async function main(): Promise<void> {
 
     await runTest("sync (增量)", async () => {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await (client as any).sync({}, "test-token");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Sync with token not available");
         }
@@ -143,6 +150,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await (client as any).syncNext();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ SyncNext not available");
         }
@@ -155,6 +163,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const accumulator = await (client as any).getSyncAccumulator();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Sync accumulator not available");
         }
@@ -179,6 +188,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const sessions = await (client as any).getSessions();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get sessions not available");
         }
@@ -188,6 +198,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const sessionId = await (client as any).getSessionId();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get session id not available");
         }
@@ -208,6 +219,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const versions = await (client as any).getSupportedVersions();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Supported versions not available");
         }
@@ -220,6 +232,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const timestamp = await (client as any).getServerTimestamp();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Server timestamp not available");
         }
@@ -229,6 +242,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const msg = await (client as any).getTimestampToDeviceMessage(Date.now());
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Timestamp to device message not available");
         }
@@ -243,7 +257,9 @@ async function main(): Promise<void> {
 
     await runTest("getIdentityServerAccessToken", async () => {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const token = (client as any).getIdentityServerAccessToken();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Identity access token not available");
         }
@@ -251,7 +267,9 @@ async function main(): Promise<void> {
 
     await runTest("requestIdentity3pidOwnership", async () => {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).requestIdentity3pidOwnership("test", "test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Request 3pid ownership not available");
         }
@@ -260,6 +278,7 @@ async function main(): Promise<void> {
     await runTest("lookupThreePids", async () => {
         try {
             await client!.lookupThreePid("email", "test@example.com", "test-access-token");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Lookup three pids not available");
         }
@@ -272,6 +291,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const wellKnown = await (client as any).getClientWellKnown();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Well-known not available");
         }
@@ -281,6 +301,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const discovery = await (client as any).getPushGatewayDiscovery();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Push gateway discovery not available");
         }

@@ -34,6 +34,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -165,6 +166,7 @@ async function main(): Promise<void> {
         await clientA.initRustCrypto({ useIndexedDB: false });
         await clientB.initRustCrypto({ useIndexedDB: false });
         console.log("   ✅ 双端加密模块已初始化\n");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.log(`   ⚠️ 加密初始化: ${e.message}\n`);
     }
@@ -258,6 +260,7 @@ async function main(): Promise<void> {
         try {
             const version = await clientA!.getKeyBackupManager().getLatestBackupVersion();
             console.log(`      密钥备份版本: ${version?.version || "无"}`);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(`      密钥备份: ${e.message}`);
         }
@@ -273,6 +276,7 @@ async function main(): Promise<void> {
         try {
             const result = await crypto.checkKeyBackupAndEnable();
             console.log(`      密钥备份状态: ${result ? "enabled" : "disabled"}`);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(`      密钥备份: ${e.message}`);
         }
@@ -424,6 +428,7 @@ async function main(): Promise<void> {
         try {
             const exportResult = await clientA!.getKeyBackupManager().exportKeys();
             console.log(`      导出房间数: ${Object.keys(exportResult.room_keys || {}).length}`);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(`      导出密钥: ${e.message}`);
         }
@@ -436,6 +441,7 @@ async function main(): Promise<void> {
             console.log(
                 `      导入结果: count=${importResult.count}, failed=${importResult.failed}, total=${importResult.total}`,
             );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(`      导入密钥: ${e.message}`);
         }
@@ -475,6 +481,7 @@ async function main(): Promise<void> {
         try {
             await clientA!.storeSecret("test_secret", "test_value");
             console.log("      密钥存储: 成功");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(`      密钥存储: ${e.message}`);
         }
@@ -484,6 +491,7 @@ async function main(): Promise<void> {
         try {
             const secret = await clientA!.getSecret("test_secret");
             console.log(`      密钥获取: ${secret ? "成功" : "未找到"}`);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log(`      密钥获取: ${e.message}`);
         }

@@ -9,6 +9,7 @@ describe("UserReportManager", () => {
 
     beforeEach(() => {
         authedRequest = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new UserReportManager({ http: { authedRequest } } as any);
     });
 

@@ -58,6 +58,7 @@ describe("SearchManager", () => {
         const client = {
             http: { authedRequest },
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SearchManager(client as any);
         manager.setRetryOptions({ maxRetries: 0 });
 
@@ -76,6 +77,7 @@ describe("SearchManager", () => {
         const client = {
             http: { authedRequest },
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SearchManager(client as any);
         manager.setRetryOptions({ maxRetries: 0 });
 
@@ -95,6 +97,7 @@ describe("SearchManager", () => {
     });
 
     it("rejects empty searchRecipients term", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SearchManager({ http: { authedRequest: vi.fn() } } as any);
         await expect(manager.searchRecipients({ term: "   " })).rejects.toThrow("Search term is required");
     });
@@ -106,6 +109,7 @@ describe("SearchManager", () => {
         const client = {
             http: { authedRequest },
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SearchManager(client as any);
         manager.setRetryOptions({ maxRetries: 0 });
 
@@ -129,6 +133,7 @@ describe("SearchManager", () => {
         const client = {
             http: { authedRequest },
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SearchManager(client as any);
         manager.setRetryOptions({ maxRetries: 0 });
 

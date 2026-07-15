@@ -6,6 +6,7 @@ import { ClientPrefix } from "../../src/http-api/prefix";
 
 describe("ThirdPartyManager", () => {
     let thirdPartyManager: ThirdPartyManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {

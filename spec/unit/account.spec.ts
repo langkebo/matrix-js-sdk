@@ -4,6 +4,7 @@ import { AccountManager } from "../../src/account/index";
 import { SSOAction } from "../../src/@types/auth";
 
 describe("AccountManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let accountManager: AccountManager;
 

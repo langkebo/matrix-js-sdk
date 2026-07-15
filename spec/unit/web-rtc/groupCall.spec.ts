@@ -405,6 +405,7 @@ describe("Group Call", function () {
 
                 const deviceCallMap = new Map<string, MatrixCall>();
                 deviceCallMap.set(FAKE_DEVICE_ID_1, call.typed());
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (groupCall as any).calls.set(FAKE_USER_ID_1, deviceCallMap);
             });
 
@@ -635,6 +636,7 @@ describe("Group Call", function () {
             const fakeSendStateEvents = (
                 roomId: string,
                 eventType: keyof StateEvents,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 content: any,
                 statekey: string = "",
             ) => {
@@ -1452,6 +1454,7 @@ describe("Group Call", function () {
         beforeEach(() => {
             client = new MatrixClient({ baseUrl: "https://example.org", userId: "my_user_id" });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "sendStateEvent").mockResolvedValue({} as any);
         });
 
@@ -1621,6 +1624,7 @@ describe("Group Call", function () {
             mockClient.getDeviceManager = () =>
                 ({
                     getDevices: async () => [bobWeb, bobDesktop, bobDesktopOffline, bobDesktopNeverOnline],
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 }) as any;
         });
 

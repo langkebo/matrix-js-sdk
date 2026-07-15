@@ -20,6 +20,7 @@ import { AuthManager, AuthEvent } from "../../src/auth/index";
 import { Method } from "../../src/http-api";
 
 describe("AuthManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let authManager: AuthManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

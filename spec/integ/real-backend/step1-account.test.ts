@@ -21,6 +21,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -132,6 +133,7 @@ async function main(): Promise<void> {
     console.log("\n7. HTTP 模块测试...");
 
     await runTest("http backend exists", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const http = (client as any).http;
         if (!http) throw new Error("HTTP backend not available");
     });

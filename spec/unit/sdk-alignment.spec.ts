@@ -7,6 +7,7 @@ import { SendingManager } from "../../src/sending/index";
 
 describe("SDK alignment managers", () => {
     describe("SendingManager", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let client: any;
         let manager: SendingManager;
 
@@ -43,6 +44,7 @@ describe("SDK alignment managers", () => {
     });
 
     describe("FriendManager", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let authedRequest: any;
         let manager: FriendManager;
 
@@ -53,6 +55,7 @@ describe("SDK alignment managers", () => {
             manager = new FriendManager({
                 getUserId: vi.fn().mockReturnValue("@me:test"),
                 http: { authedRequest },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
         });
 
@@ -71,6 +74,7 @@ describe("SDK alignment managers", () => {
     });
 
     describe("BurnAfterReadManager", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let authedRequest: any;
         let manager: BurnAfterReadManager;
 
@@ -83,6 +87,7 @@ describe("SDK alignment managers", () => {
             manager = new BurnAfterReadManager({
                 getUserId: vi.fn().mockReturnValue("@me:test"),
                 http: { authedRequest },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
         });
 
@@ -110,6 +115,7 @@ describe("SDK alignment managers", () => {
             const client = {
                 getRooms: vi.fn().mockReturnValue([{ roomId: "!room:test" }]),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const manager = new RoomListManager(client as any);
 
             const result = await manager.getMyRooms();

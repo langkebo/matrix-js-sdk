@@ -412,6 +412,7 @@ describe("cross-signing", () => {
          * @returns the cross signing keys
          */
         function awaitCrossSigningKeysUpload() {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return new Promise<any>((resolve) => {
                 fetchMock.modifyRoute("upload-cross-signing-keys", {
                     response: (callLog) => {
@@ -435,6 +436,7 @@ describe("cross-signing", () => {
             // Get the cross signing keys
             const crossSigningKeys = await crossSigningKeysPromise;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const getPubKey = (crossSigningKey: any) => Object.values(crossSigningKey!.keys)[0];
 
             const masterKeyId = await aliceClient.getCrypto()!.getCrossSigningKeyId();

@@ -20,6 +20,7 @@ import { AdminManager, AdminEvent } from "../../src/admin/index";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("AdminManager - Extended Tests", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let adminManager: AdminManager;
 

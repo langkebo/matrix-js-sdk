@@ -26,5 +26,6 @@ import { type MockInstance } from "vitest";
  * expect(beaconLivenessEmits.length).toBe(1);
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const filterEmitCallsByEventType = (eventType: string, spy: MockInstance<(...args: any[]) => any>) =>
     spy.mock.calls.filter((args) => args[0] === eventType);

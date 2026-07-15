@@ -9,6 +9,7 @@ describe("ThreePidsManager", () => {
 
     beforeEach(() => {
         authedRequest = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new ThreePidsManager({ http: { authedRequest } } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
@@ -69,6 +70,7 @@ describe("ThreePidsManager", () => {
         it("POSTs /account/3pid/bind and emits threepid_bound", async () => {
             authedRequest.mockResolvedValueOnce({});
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("threepid_bound" as any, (d: unknown) => emitted.push(d));
 
             await manager.bindThreePid("secret", "sid", "https://id.example.com", "id-token");
@@ -85,6 +87,7 @@ describe("ThreePidsManager", () => {
         it("does not emit when the backend rejects", async () => {
             authedRequest.mockRejectedValueOnce(Object.assign(new Error("nope"), { httpStatus: 403 }));
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("threepid_bound" as any, (d: unknown) => emitted.push(d));
 
             await expect(manager.bindThreePid("secret", "sid", "https://id.example.com", null)).rejects.toMatchObject({
@@ -98,6 +101,7 @@ describe("ThreePidsManager", () => {
         it("POSTs /account/3pid/unbind and emits threepid_unbound", async () => {
             authedRequest.mockResolvedValueOnce({ id_server_unbind_result: "success" });
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("threepid_unbound" as any, (d: unknown) => emitted.push(d));
 
             await manager.unbindThreePid("email", "a@b.com", "https://id.example.com");
@@ -115,6 +119,7 @@ describe("ThreePidsManager", () => {
         it("POSTs /account/3pid/delete and emits threepid_deleted", async () => {
             authedRequest.mockResolvedValueOnce({ id_server_unbind_result: "success" });
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("threepid_deleted" as any, (d: unknown) => emitted.push(d));
 
             await manager.deleteThreePid("msisdn", "+441234567");
@@ -132,6 +137,7 @@ describe("ThreePidsManager", () => {
                 Object.assign(new Error("Not Found"), { httpStatus: 404, errcode: "M_NOT_FOUND" }),
             );
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("threepid_deleted" as any, (d: unknown) => emitted.push(d));
 
             await expect(manager.deleteThreePid("email", "a@b.com")).rejects.toMatchObject({

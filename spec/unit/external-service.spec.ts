@@ -10,6 +10,7 @@ describe("ExternalServiceManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new ExternalServiceManager({} as any, { transport });
     });
 

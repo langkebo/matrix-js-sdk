@@ -238,6 +238,7 @@ describe("RoomWidgetClient", () => {
                 );
                 expect(widgetApi.requestCapabilityForRoomTimeline).toHaveBeenCalledWith("!1:example.org");
                 expect(widgetApi.requestCapabilityToReceiveEvent).toHaveBeenCalledWith("org.matrix.rageshake_request");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const injectSpy = vi.spyOn((client as any).syncApi, "injectRoomEvents");
                 const widgetSendEmitter = new EventEmitter();
                 const widgetSendPromise = new Promise<void>((resolve) =>
@@ -285,6 +286,7 @@ describe("RoomWidgetClient", () => {
                 await new Promise<void>((resolve) => client.once(ClientEvent.Event, () => resolve()));
                 expect(injectSpy).toHaveBeenCalled();
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const call = injectSpy.mock.calls[0] as any;
                 const injectedEv = call[3][0];
                 expect(injectedEv.getType()).toBe("org.matrix.rageshake_request");
@@ -311,6 +313,7 @@ describe("RoomWidgetClient", () => {
                 await new Promise<void>((resolve) => client.once(ClientEvent.Event, () => resolve()));
                 expect(injectSpy).toHaveBeenCalled();
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const call = injectSpy.mock.calls[0] as any;
                 const injectedEv = call[3][0];
                 expect(injectedEv.getType()).toBe("org.matrix.rageshake_request");
@@ -350,12 +353,14 @@ describe("RoomWidgetClient", () => {
                 expect(injectSpy).toHaveBeenCalled();
 
                 // it has been called with the event sent by ourselves
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const call = injectSpy.mock.calls[0] as any;
                 const injectedEv = call[3][0];
                 expect(injectedEv.getType()).toBe("org.matrix.rageshake_request");
                 expect(injectedEv.getUnsigned().transaction_id).toBe("widgetTxId");
 
                 // It has been called by the event we blocked because of our send right afterwards
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const call2 = injectSpy.mock.calls[1] as any;
                 const injectedEv2 = call2[3][0];
                 expect(injectedEv2.getType()).toBe("org.matrix.rageshake_request");
@@ -368,6 +373,7 @@ describe("RoomWidgetClient", () => {
             vi.mocked(widgetApi.transport.send).mockRejectedValue(error);
 
             await makeClient({ sendEvent: ["org.matrix.rageshake_request"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             widgetApi.sendRoomEvent.mockImplementation(widgetApi.transport.send as any);
 
             await expect(
@@ -396,6 +402,7 @@ describe("RoomWidgetClient", () => {
             vi.mocked(widgetApi.transport.send).mockRejectedValue(widgetError);
 
             await makeClient({ sendEvent: ["org.matrix.rageshake_request"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             widgetApi.sendRoomEvent.mockImplementation(widgetApi.transport.send as any);
 
             await expect(
@@ -1142,6 +1149,7 @@ describe("RoomWidgetClient", () => {
             vi.mocked(widgetApi.transport.sendComplete).mockRejectedValue(error);
 
             await makeClient({});
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             widgetApi.requestOpenIDConnectToken.mockImplementation(widgetApi.transport.sendComplete as any);
 
             await expect(client.getOpenIdToken()).rejects.toThrow(error);
@@ -1168,6 +1176,7 @@ describe("RoomWidgetClient", () => {
             vi.mocked(widgetApi.transport.sendComplete).mockRejectedValue(widgetError);
 
             await makeClient({});
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             widgetApi.requestOpenIDConnectToken.mockImplementation(widgetApi.transport.sendComplete as any);
 
             await expect(client.getOpenIdToken()).rejects.toThrow(matrixError);

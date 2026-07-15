@@ -4,6 +4,7 @@ import { DeviceManager, DeviceEvent, UIAError } from "../../src/device/index";
 import { MatrixError } from "../../src/http-api/errors.ts";
 
 describe("DeviceManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let deviceManager: DeviceManager;
     const mockDevices = [

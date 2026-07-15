@@ -22,6 +22,7 @@ describe("API encapsulation audit", () => {
     it("uses a public request for auth login flows", async () => {
         const request = vi.fn().mockResolvedValue({ flows: [] });
         const authedRequest = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new AuthManager({ http: { request, authedRequest } } as any);
 
         await manager.getSupportedLoginFlows();
@@ -32,6 +33,7 @@ describe("API encapsulation audit", () => {
 
     it("uses relative device paths with the v3 client prefix", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ devices: [] });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new DeviceManager({ http: { authedRequest }, deviceId: "DEVICE" } as any);
 
         await manager.getDevices();
@@ -46,6 +48,7 @@ describe("API encapsulation audit", () => {
         const manager = new PresenceManager({
             http: { authedRequest },
             getUserId: () => "@alice:test",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.setPresence("online", "ready");
@@ -69,6 +72,7 @@ describe("API encapsulation audit", () => {
         const manager = new PresenceManager({
             http: { authedRequest },
             getUserId: () => "@alice:test",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.subscribeToPresence(["@bob:test"]);
@@ -115,6 +119,7 @@ describe("API encapsulation audit", () => {
         const manager = new MediaManager({
             http: { authedRequest },
             baseUrl: "https://hs.example.com",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.uploadContentWithId("test", "media", new Blob(["data"]), "text/plain");
@@ -158,6 +163,7 @@ describe("API encapsulation audit", () => {
         const manager = new FriendManager({
             http: { authedRequest },
             getUserId: () => "@alice:test",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.getFriends();
@@ -181,6 +187,7 @@ describe("API encapsulation audit", () => {
         const manager = new FederationManager({
             http: { authedRequest },
             getUserId: () => "@admin:test",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.getBlacklist();
@@ -195,6 +202,7 @@ describe("API encapsulation audit", () => {
         const manager = new FederationManager({
             http: { authedRequest: vi.fn(), request },
             getUserId: () => "@admin:test",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.getPublicRoomsOnServer("example.com", 20, "s123");
@@ -213,6 +221,7 @@ describe("API encapsulation audit", () => {
         const manager = new ApplicationServiceManager({
             http: { authedRequest },
             getDomain: () => "test",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.listApplicationServices();
@@ -228,6 +237,7 @@ describe("API encapsulation audit", () => {
             device_id: "DEVICE",
             access_token: "TOKEN",
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new GuestManager({ http: { request } } as any, "http://example");
 
         await manager.registerGuest();
@@ -244,6 +254,7 @@ describe("API encapsulation audit", () => {
     it("uses public well-known discovery without inheriting the client prefix", async () => {
         const request = vi.fn().mockResolvedValue({ "m.homeserver": { base_url: "https://hs" } });
         const authedRequest = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new DiscoveryManager({ http: { request, authedRequest }, baseUrl: "https://hs" } as any);
 
         await manager.getServerDiscoveryInfo();
@@ -256,6 +267,7 @@ describe("API encapsulation audit", () => {
 
     it("uses the directory lookup endpoint for guest join probes on aliases", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ room_id: "!room:test" });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new GuestManager({ http: { authedRequest }, getRoom: vi.fn() } as any, "http://example");
 
         await manager.canJoinRoom("#room:test");
@@ -271,6 +283,7 @@ describe("API encapsulation audit", () => {
 
     it("uses the v1 thread list endpoint with include_all query mapping", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ threads: [], next_batch: null, total: 0 });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.getRoomThreadList("!room:test", {
@@ -321,6 +334,7 @@ describe("API encapsulation audit", () => {
                 is_fetched: true,
                 created_ts: 456,
             });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         const globalResult = await manager.createGlobalThread({
@@ -403,6 +417,7 @@ describe("API encapsulation audit", () => {
                 room_id: "!room:test",
                 sender: "@alice:test",
             });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.createGlobalThread({ roomId: "!room:test", rootEventId: "$root1" });
@@ -437,6 +452,7 @@ describe("API encapsulation audit", () => {
 
     it("uses the v1 thread search and replies endpoints", async () => {
         const authedRequest = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.searchRoomThreads("!room:test", { q: "hello", limit: 5 });
@@ -477,6 +493,7 @@ describe("API encapsulation audit", () => {
             subscribed_ts: 1,
             updated_ts: 1,
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.subscribeToThread("!room:test", "$thread", "mentions");
@@ -492,6 +509,7 @@ describe("API encapsulation audit", () => {
 
     it("uses the v1 thread lifecycle endpoints for delete freeze unfreeze and redact", async () => {
         const authedRequest = vi.fn().mockResolvedValue(undefined);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.deleteRoomThread("!room:test", "$thread");
@@ -544,6 +562,7 @@ describe("API encapsulation audit", () => {
             unread_count: 0,
             updated_ts: 123,
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.addThreadReply("!room:test", "$thread", {
@@ -584,6 +603,7 @@ describe("API encapsulation audit", () => {
 
     it("uses the v3 legacy thread search endpoint", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ chunk: [], next_batch: null });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
 
         await manager.getLegacyRoomThreadList("@alice:test", "!room:test", {
@@ -607,6 +627,7 @@ describe("API encapsulation audit", () => {
 
     it("uses relative spaces endpoints with the v3 client prefix", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ spaces: [] });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SpaceManager({ http: { authedRequest } } as any);
 
         await manager.getUserSpaces(true);
@@ -626,6 +647,7 @@ describe("API encapsulation audit", () => {
             getRoomHierarchy: vi.fn(),
             publicRooms: vi.fn(),
             getRooms: vi.fn().mockReturnValue([]),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await manager.syncSummary("!room:test");

@@ -24,6 +24,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -195,6 +196,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             await client!.sendStateEvent(
                 testRoomId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 "m.room.avatar" as any,
                 {
                     url: "mxc://test-avatar",
@@ -215,6 +217,7 @@ async function main(): Promise<void> {
         // 注意：部分服务器可能不支持房间升级
         try {
             await client!.upgradeRoom(oldRoom.room_id, "v6");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             // 服务器不支持，跳过
             console.log("    ⚠️ Room upgrade not supported");

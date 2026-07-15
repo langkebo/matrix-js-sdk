@@ -21,6 +21,7 @@ import { Method } from "../../src/http-api/method.ts";
 import { ClientPrefix } from "../../src/http-api/prefix.ts";
 
 describe("NotificationsManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: NotificationsManager;
 

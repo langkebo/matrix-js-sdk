@@ -15,6 +15,7 @@ describe("EventReportManager", () => {
             http: {
                 authedRequest: mockAuthedRequest,
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
     });
 

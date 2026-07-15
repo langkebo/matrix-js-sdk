@@ -12,6 +12,7 @@ import { ThreadFilterType } from "../../src/models/thread";
 describe("EventManager", () => {
     let transport: FakeTransport;
     let manager: EventManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     const roomId = "!test:example.org";

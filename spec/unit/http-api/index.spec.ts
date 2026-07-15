@@ -67,6 +67,7 @@ describe("MatrixHttpApi", () => {
     it("should fall back to `fetch` where xhr is unavailable", async () => {
         globalThis.XMLHttpRequest = undefined!;
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({}) });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
         upload = api.uploadContent({} as File);
         await upload;
@@ -75,6 +76,7 @@ describe("MatrixHttpApi", () => {
 
     it("should prefer xhr where available", () => {
         const fetchFn = vi.fn().mockResolvedValue({ ok: true });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, fetchFn, onlyData: true });
         upload = api.uploadContent({} as File);
         expect(fetchFn).not.toHaveBeenCalled();
@@ -82,6 +84,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should send access token in query params if header disabled", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -99,6 +102,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should send access token in header by default", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -114,6 +118,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should include filename by default", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File, { name: "name" });
         expect(getRequest()!.open).toHaveBeenCalledWith(
@@ -123,6 +128,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should allow not sending the filename", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File, { name: "name", includeFilename: false });
         expect(getRequest()!.open).toHaveBeenCalledWith(
@@ -132,6 +138,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should abort xhr when the upload is aborted", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
         api.cancelUpload(upload);
@@ -140,6 +147,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should timeout if no progress in 30s", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
         vi.advanceTimersByTime(25000);
@@ -152,6 +160,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should call progressHandler", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         const progressHandler = vi.fn();
         upload = api.uploadContent({} as File, { progressHandler });
@@ -168,6 +177,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should error when no response body", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
 
@@ -181,6 +191,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should error on a 400-code", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
 
@@ -198,6 +209,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should return response on successful upload", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
 
@@ -212,6 +224,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should abort xhr when calling `cancelUpload`", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
         expect(api.cancelUpload(upload)).toBeTruthy();
@@ -219,6 +232,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should return false when `cancelUpload` is called but unsuccessful", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
 
@@ -234,6 +248,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should return active uploads in `getCurrentUploads`", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), { baseUrl, prefix, onlyData: true });
         upload = api.uploadContent({} as File);
         expect(api.getCurrentUploads().find((u) => u.promise === upload)).toBeTruthy();
@@ -242,6 +257,7 @@ describe("MatrixHttpApi", () => {
     });
 
     it("should return expected object from `getContentUri`", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,

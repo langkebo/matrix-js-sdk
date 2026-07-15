@@ -4,6 +4,7 @@ import { RoomSettingsManager } from "../../src/room-settings";
 import { EventType } from "../../src/@types/event";
 
 describe("RoomSettingsManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: RoomSettingsManager;
 

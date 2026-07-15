@@ -14,6 +14,7 @@ describe("ModerationManager", () => {
 
     function createManager(retryOpts = {}) {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new ModerationManager({} as any, { transport, ...retryOpts });
     }
 

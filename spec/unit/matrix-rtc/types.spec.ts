@@ -63,6 +63,7 @@ describe("IRTCNotificationContent", () => {
             parseCallNotificationContent({
                 ...validBase,
                 "m.mentions": "not an object",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("malformed m.mentions");
     });
@@ -72,13 +73,16 @@ describe("IRTCNotificationContent", () => {
             parseCallNotificationContent({
                 ...validBase,
                 notification_type: undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Missing or invalid notification_type");
 
         expect(() =>
             parseCallNotificationContent({
                 ...validBase,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 notification_type: 123 as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Missing or invalid notification_type");
     });
@@ -88,13 +92,16 @@ describe("IRTCNotificationContent", () => {
             parseCallNotificationContent({
                 ...validBase,
                 sender_ts: undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Missing or invalid sender_ts");
 
         expect(() =>
             parseCallNotificationContent({
                 ...validBase,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 sender_ts: "123" as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Missing or invalid sender_ts");
     });
@@ -104,13 +111,16 @@ describe("IRTCNotificationContent", () => {
             parseCallNotificationContent({
                 ...validBase,
                 lifetime: undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Missing or invalid lifetime");
 
         expect(() =>
             parseCallNotificationContent({
                 ...validBase,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 lifetime: "1000" as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Missing or invalid lifetime");
     });
@@ -120,6 +130,7 @@ describe("IRTCNotificationContent", () => {
         const res = parseCallNotificationContent({
             ...validBase,
             relation: { rel_type: "m.reference", event_id: "$ev" },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         expect(res).toBeTruthy();
     });
@@ -129,6 +140,7 @@ describe("IRTCNotificationContent", () => {
             parseCallNotificationContent({
                 ...validBase,
                 relation: { rel_type: "m.annotation", event_id: "$ev" },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toThrow("Invalid relation");
     });

@@ -10,6 +10,7 @@ describe("KeyBackupManager", () => {
 
     beforeEach(() => {
         authedRequest = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         keyBackupManager = new KeyBackupManager({ http: { authedRequest } } as any);
     });
 

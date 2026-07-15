@@ -117,8 +117,10 @@ type HttpLookup = {
     method: string;
     path: string;
     prefix?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: Record<string, any> | Record<string, any>[];
     error?: object;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expectBody?: Record<string, any>;
     expectQueryParams?: QueryDict;
     thenCall?: () => void;
@@ -130,6 +132,7 @@ interface Options extends ICreateRoomOpts {
 
 type WrappedRoom = Room & {
     _options: Options;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _state: Map<string, any>;
 };
 
@@ -225,6 +228,7 @@ describe("MatrixClient", function () {
     let httpLookups: HttpLookup[] = [];
     let acceptKeepalives: boolean;
     let pendingLookup: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         promise: Promise<any>;
         method: string;
         path: string;
@@ -328,6 +332,7 @@ describe("MatrixClient", function () {
             baseUrl: "https://my.home.server",
             idBaseUrl: identityServerUrl,
             accessToken: "my.access.token",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fetchFn: function () {} as any, // NOP
             store: store,
             scheduler: scheduler,
@@ -340,8 +345,11 @@ describe("MatrixClient", function () {
         ).reduce((r, k) => {
             r[k] = vi.fn();
             return r;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }, {} as MatrixHttpApi<any>);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(client.http.authedRequest).mockImplementation(httpReq as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(client.http.request).mockImplementation(httpReq as any);
     }
 
@@ -415,6 +423,7 @@ describe("MatrixClient", function () {
     describe("mxcUrlToHttp", () => {
         it("should call getHttpUriForMxc", () => {
             // Mock ProfileManager
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).getProfileManager = vi.fn().mockReturnValue({
                 mxcUrlToHttp: (
                     mxc: string,
@@ -657,6 +666,7 @@ describe("MatrixClient", function () {
             const notLoggedInClient = new MatrixClient({
                 baseUrl: "https://my.home.server",
                 idBaseUrl: identityServerUrl,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchFn: function () {} as any, // NOP
                 store: store,
                 scheduler: scheduler,
@@ -2253,6 +2263,7 @@ describe("MatrixClient", function () {
     describe("getPresence", function () {
         it("should send a presence HTTP GET", function () {
             // Mock PresenceManager
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).getPresenceManager = vi.fn().mockReturnValue({
                 getPresence: (userId: string) => {
                     return client.http.authedRequest(Method.Get, `/presence/${encodeURIComponent(userId)}/status`);
@@ -2622,6 +2633,7 @@ describe("MatrixClient", function () {
                 .mockClear()
                 .mockResolvedValue({
                     user_ids: ["@alice:bar", "@bob:example.org"],
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any);
 
             await expect(client.getRoomTyping("!room:example.org")).resolves.toEqual([
@@ -2642,6 +2654,7 @@ describe("MatrixClient", function () {
     describe("setRoomTopic", () => {
         const roomId = "!foofoofoofoofoofoo:matrix.org";
         const createSendStateEventMock = (topic: string, htmlTopic?: string) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return vi.fn().mockImplementation((roomId: string, eventType: string, content: any, stateKey: string) => {
                 expect(roomId).toEqual(roomId);
                 expect(eventType).toEqual(EventType.RoomTopic);
@@ -2682,6 +2695,7 @@ describe("MatrixClient", function () {
                     device_id: "DEVICE1",
                 }),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getAuthManager").mockReturnValue(authManager as any);
 
             await expect(client.register("alice", "password123", null, { type: "m.login.dummy" })).resolves.toEqual({
@@ -2704,6 +2718,7 @@ describe("MatrixClient", function () {
         it("calls the register email token helper route", async () => {
             vi.mocked(client.http.request)
                 .mockClear()
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .mockResolvedValue({ sid: "sid123" } as any);
 
             await expect(
@@ -2740,6 +2755,7 @@ describe("MatrixClient", function () {
                 .mockResolvedValue({
                     user_id: "@alice:bar",
                     device_id: "DEVICE1",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any);
 
             await expect(client.whoami()).resolves.toEqual({
@@ -2759,9 +2775,11 @@ describe("MatrixClient", function () {
                 deleteThreePid: vi.fn().mockResolvedValue({ id_server_unbind_result: "success" }),
                 unbindThreePid: vi.fn().mockResolvedValue({ id_server_unbind_result: "no-support" }),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getThreePidsManager").mockReturnValue(threePidsManager as any);
             vi.spyOn(client, "getIdentityServerManager").mockReturnValue({
                 getIdentityServerUrl: vi.fn().mockReturnValue("https://identity.example.org"),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
 
             await expect(client.getThreePidsManager().getThreePids()).resolves.toEqual({
@@ -2795,6 +2813,7 @@ describe("MatrixClient", function () {
                 requestPasswordEmailToken: vi.fn().mockResolvedValue({ sid: "sid-email" }),
                 requestPasswordMsisdnToken: vi.fn().mockResolvedValue({ sid: "sid-msisdn" }),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getPasswordResetManager").mockReturnValue(passwordResetManager as any);
 
             await expect(
@@ -2826,6 +2845,7 @@ describe("MatrixClient", function () {
                 getIdentityServerUrl: vi.fn().mockReturnValue("identity.example.org"),
                 setIdentityServerUrl: vi.fn(),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getIdentityServerManager").mockReturnValue(identityServerManager as any);
 
             expect(client.getIdentityServerManager().getIdentityServerUrl(true)).toBe("identity.example.org");
@@ -2840,6 +2860,7 @@ describe("MatrixClient", function () {
         const auth = { session: "abcdef", type: "foo" };
         const newPassword = "newpassword";
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const passwordTest = (expectedRequestContent: any) => {
             const [method, path, queryParams, requestContent] = vi.mocked(client.http.authedRequest).mock.calls[0];
             expect(method).toBe("POST");
@@ -3465,6 +3486,7 @@ describe("MatrixClient", function () {
                 setRoomTag: vi.fn().mockResolvedValue({}),
                 deleteRoomTag: vi.fn().mockResolvedValue({}),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getRoomManager").mockReturnValue(roomManager as any);
 
             await expect(client.getRoomTags("!room:example.org")).resolves.toEqual({
@@ -3488,6 +3510,7 @@ describe("MatrixClient", function () {
                     prev_batch: "prev",
                 }),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getRelationsManager").mockReturnValue(relationsManager as any);
 
             await expect(
@@ -3513,12 +3536,15 @@ describe("MatrixClient", function () {
             const originalEvent = { event_id: "$event", sender: "@alice:bar" };
             const relatedEvent = { event_id: "$rel-1", sender: "@bob:bar" };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "fetchRoomEvent").mockResolvedValue(originalEvent as any);
             vi.spyOn(client, "fetchRelations").mockResolvedValue({
                 chunk: [relatedEvent],
                 next_batch: "next",
                 prev_batch: "prev",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(client, "getEventMapper").mockReturnValue(((event: unknown) => event) as any);
 
             await expect(
@@ -3634,7 +3660,9 @@ describe("MatrixClient", function () {
             } as unknown as ITurnServerResponse;
             vi.spyOn(client, "turnServer").mockResolvedValue(turnServer);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events: any[][] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const onTurnServers = (...args: any[]) => events.push(args);
             client.on(ClientEvent.TurnServers, onTurnServers);
             expect(await client.checkTurnServers()).toBe(true);
@@ -3656,7 +3684,9 @@ describe("MatrixClient", function () {
             const error = new Error(":(");
             vi.spyOn(client, "turnServer").mockRejectedValue(error);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events: any[][] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const onTurnServersError = (...args: any[]) => events.push(args);
             client.on(ClientEvent.TurnServersError, onTurnServersError);
             expect(await client.checkTurnServers()).toBe(false);
@@ -3668,7 +3698,9 @@ describe("MatrixClient", function () {
             const error = { httpStatus: 403 };
             vi.spyOn(client, "turnServer").mockRejectedValue(error);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events: any[][] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const onTurnServersError = (...args: any[]) => events.push(args);
             client.on(ClientEvent.TurnServersError, onTurnServersError);
             expect(await client.checkTurnServers()).toBe(false);
@@ -3751,6 +3783,7 @@ describe("MatrixClient", function () {
             const rooms = new Map();
             client.createRoom = function (options: Options = {}) {
                 const roomId = options["_roomId"] || `!room-${rooms.size}:example.org`;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const state = new Map<string, any>();
                 const room = {
                     roomId,
@@ -3785,12 +3818,14 @@ describe("MatrixClient", function () {
             };
 
             // Mockup state events
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).sendStateEvent = function (
                 roomId: string,
                 eventType: string,
                 content: Record<string, unknown>,
             ) {
                 const room = this.getRoom(roomId) as WrappedRoom;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const state: Map<string, any> = room._state;
                 let store = state.get(eventType as string);
                 if (!store) {
@@ -3813,6 +3848,7 @@ describe("MatrixClient", function () {
             };
             client.redactEvent = function (roomId, eventId) {
                 const room = this.getRoom(roomId) as WrappedRoom;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const state: Map<string, any> = room._state;
                 for (const store of state.values()) {
                     delete store[eventId!];
@@ -4295,8 +4331,10 @@ describe("MatrixClient", function () {
         it("createFilter persists a filter created through the MatrixClient compatibility API", async () => {
             const testClient = createClient({ baseUrl: TEST_HOMESERVER_URL, userId });
             const storeFilterSpy = vi.spyOn(testClient.store, "storeFilter");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(testClient.http, "authedRequest").mockResolvedValue({ filter_id: "f123" } as any);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const definition = { room: { timeline: { limit: 20 } } } as any;
             const created = await testClient.createFilter(definition);
 
@@ -4315,6 +4353,7 @@ describe("MatrixClient", function () {
             const testClient = createClient({ baseUrl: TEST_HOMESERVER_URL, userId });
             const storeFilterSpy = vi.spyOn(testClient.store, "storeFilter");
             vi.spyOn(testClient.store, "getFilter").mockReturnValue(null);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(testClient.http, "authedRequest").mockResolvedValue({ room: { timeline: { limit: 10 } } } as any);
 
             const filter = await testClient.getFilter(userId, "f321", false);
@@ -4869,6 +4908,7 @@ describe("MatrixClient", function () {
                 ts: 12345,
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const setNotifsResponse = (notifications: any[] = []): void => {
                 const response: HttpLookup = {
                     method: "GET",
@@ -4917,9 +4957,11 @@ describe("MatrixClient", function () {
                 makeClient();
 
                 // Set push rules on client so pushProcessor can use them
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 client.pushRules = pushRules as any;
 
                 // Mock PushManager
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (client as any).getPushManager = vi.fn().mockReturnValue({
                     getPushRules: vi.fn().mockResolvedValue(pushRules),
                 });
@@ -4996,6 +5038,7 @@ describe("MatrixClient", function () {
     describe("notification timeline compatibility helpers", () => {
         it("resetNotifTimelineSet resets the live timeline token to end", () => {
             const resetLiveTimeline = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             client.setNotifTimelineSet({ resetLiveTimeline } as any);
 
             client.resetNotifTimelineSet();
@@ -5019,7 +5062,9 @@ describe("MatrixClient", function () {
             makeClient();
 
             // Mock PushManager
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).getPushManager = vi.fn().mockReturnValue({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setPusher: (pusher: any) => {
                     return client.http.authedRequest(Method.Post, "/pushers/set", undefined, pusher);
                 },

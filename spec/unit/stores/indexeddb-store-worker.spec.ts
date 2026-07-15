@@ -20,7 +20,9 @@ import { type LocalIndexedDBStoreBackend } from "../../../src/store/indexeddb-lo
 import { IndexedDBStoreWorker } from "../../../src/store/indexeddb-store-worker";
 
 function setupWorker(worker: IndexedDBStoreWorker): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     worker.onMessage({ data: { command: "setupWorker", args: [] } } as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     worker.onMessage({ data: { command: "connect", seq: 1 } } as any);
 }
 

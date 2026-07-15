@@ -12,6 +12,7 @@ describe("client-lifecycle-start", () => {
                 logger: { getChild: vi.fn().mockReturnValue({}) },
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const opts = buildSyncApiOptions(client as any);
             expect(opts.cryptoCallbacks).toBe(mockCrypto);
             expect(typeof opts.canResetEntireTimeline).toBe("function");
@@ -24,6 +25,7 @@ describe("client-lifecycle-start", () => {
                 logger: { getChild: vi.fn().mockReturnValue({}) },
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const opts = buildSyncApiOptions(client as any);
             expect(opts.canResetEntireTimeline!("!room:example.org")).toBe(false);
         });
@@ -36,6 +38,7 @@ describe("client-lifecycle-start", () => {
                 logger: { getChild: vi.fn().mockReturnValue({}) },
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const opts = buildSyncApiOptions(client as any);
             expect(opts.canResetEntireTimeline!("!room:example.org")).toBe(true);
             expect(cb).toHaveBeenCalledWith("!room:example.org");
@@ -56,6 +59,7 @@ describe("client-lifecycle-start", () => {
 
             // We can't easily test Thread.setServerSideSupport side effects
             // without importing Thread, but we verify the flow completes
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(detectServerCapabilities(client as any)).resolves.toBeUndefined();
             expect(client.getVersions).toHaveBeenCalled();
             expect(client.doesServerSupportThread).toHaveBeenCalled();
@@ -68,6 +72,7 @@ describe("client-lifecycle-start", () => {
                 logger: { error: vi.fn() },
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(detectServerCapabilities(client as any)).resolves.toBeUndefined();
             expect(client.logger.error).toHaveBeenCalled();
             expect(client.doesServerSupportThread).not.toHaveBeenCalled();

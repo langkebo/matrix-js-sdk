@@ -18,6 +18,7 @@ describe("client timeline core helpers", () => {
         const normalized = normalizeEventContextResponse({
             start: "s",
             end: "e",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             event: { room_id: "!r:example.org", type: "m.room.message", content: {}, event_id: "$e" } as any,
         });
 
@@ -59,6 +60,7 @@ describe("client timeline core helpers", () => {
     });
 
     it("maps state and chunk from messages in one helper", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapper = (e: any) => new MatrixEvent({ type: e.type, content: e.content });
         const { matrixEvents, stateEvents } = mapStateAndChunkFromMessages(
             {
@@ -68,6 +70,7 @@ describe("client timeline core helpers", () => {
                 ],
                 state: [{ ok: true, type: "m.room.name", content: { name: "r" } }],
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (e: any) => e.ok === true,
             mapper,
         );
@@ -80,14 +83,18 @@ describe("client timeline core helpers", () => {
             deriveBackPaginationTokenFromMessages({
                 start: "t0",
                 end: "t1",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 chunk: [{} as any],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toBe("t1");
         expect(
             deriveBackPaginationTokenFromMessages({
                 start: "t0",
                 end: "t0",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 chunk: [{} as any],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toBeNull();
         expect(
@@ -95,6 +102,7 @@ describe("client timeline core helpers", () => {
                 start: "t0",
                 end: "t1",
                 chunk: [],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
         ).toBeNull();
     });
@@ -105,6 +113,7 @@ describe("client timeline core helpers", () => {
             getState: vi.fn().mockReturnValue({ setUnknownStateEvents }),
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapper = (e: any) => new MatrixEvent({ type: e.type, content: e.content });
         applyUnknownStateEvents(
             holder,
@@ -140,6 +149,7 @@ describe("client timeline core helpers", () => {
             request: Promise.resolve({
                 notifications: [],
                 next_token: "next",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
             onSuccess: (res) => res.next_token,
         });
@@ -164,6 +174,7 @@ describe("client timeline core helpers", () => {
             request: Promise.resolve({
                 notifications: [],
                 next_token: undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any),
             onSuccess: () => null,
         });

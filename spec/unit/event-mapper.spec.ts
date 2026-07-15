@@ -29,6 +29,7 @@ describe("eventMapperFor", function () {
         client = new MatrixClient({
             baseUrl: "https://my.home.server",
             accessToken: "my.access.token",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fetchFn: function () {} as any, // NOP
             store: {
                 getRoom(roomId: string): Room | null {

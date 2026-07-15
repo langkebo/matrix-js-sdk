@@ -1655,6 +1655,7 @@ describe("MatrixClient syncing", () => {
 
         it("should sync receipts from /sync.", () => {
             const ackEvent = syncData.rooms.join[roomOne].timeline.events[0];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const receipt: Record<string, any> = {};
             receipt[ackEvent.event_id!] = {
                 "m.read": {},

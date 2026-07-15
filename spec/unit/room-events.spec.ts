@@ -4,6 +4,7 @@ import { RoomEventsManager } from "../../src/room-events";
 import { Method } from "../../src/http-api";
 
 describe("RoomEventsManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: RoomEventsManager;
     const roomId = "!room:hs";

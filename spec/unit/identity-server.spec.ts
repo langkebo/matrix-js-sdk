@@ -5,6 +5,7 @@ import { IdentityServerManager } from "../../src/identity-server/index.ts";
 describe("IdentityServerManager", () => {
     let setIdBaseUrl: ReturnType<typeof vi.fn>;
     let manager: IdentityServerManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let client: any;
 
     beforeEach(() => {

@@ -21,6 +21,7 @@ import { ClientPrefix, MatrixError, Method } from "../../src/http-api";
 import { NotFoundError } from "../../src/errors";
 
 describe("SpaceManager - Extended Tests", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let spaceManager: SpaceManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

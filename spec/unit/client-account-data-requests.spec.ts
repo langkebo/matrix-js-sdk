@@ -44,6 +44,7 @@ describe("client account-data request helpers", () => {
     it("dispatches set/get/delete user account-data requests", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ ok: true });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await setUserAccountDataRequest("@alice:example.org", "m.fully_read", { event_id: "$a" }, authedRequest as any);
         expect(authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -53,6 +54,7 @@ describe("client account-data request helpers", () => {
             { event_id: "$a" },
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await getUserAccountDataRequest("@alice:example.org", "m.fully_read", authedRequest as any);
         expect(authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -63,9 +65,11 @@ describe("client account-data request helpers", () => {
         await deleteUserAccountDataRequest(
             "@alice:example.org",
             "m.fully_read",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             authedRequest as any,
             {
                 prefix: "/_matrix/client/v3",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any,
         );
         expect(authedRequest).toHaveBeenNthCalledWith(

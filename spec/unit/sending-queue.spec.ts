@@ -13,6 +13,7 @@ describe("SendingQueueManager", () => {
 
     beforeEach(() => {
         client = { sendingQueue: [] };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new SendingQueueManager(client as any);
     });
 

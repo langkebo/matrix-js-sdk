@@ -65,8 +65,11 @@ describe("Pushers", () => {
 
             const response = await promise;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((response[0] as any)[PUSHER_ENABLED.name]).toBe(true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((response[1] as any)[PUSHER_ENABLED.name]).toBe(true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((response[2] as any)[PUSHER_ENABLED.name]).toBe(false);
         });
     });

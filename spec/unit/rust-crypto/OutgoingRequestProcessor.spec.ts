@@ -81,6 +81,7 @@ describe("OutgoingRequestProcessor", () => {
     });
 
     /* simple requests that map directly to the request body */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tests: Array<[string, any, "POST" | "PUT", string]> = [
         ["KeysUploadRequest", KeysUploadRequest, "POST", "https://example.com/_matrix/client/v3/keys/upload"],
         ["KeysQueryRequest", KeysQueryRequest, "POST", "https://example.com/_matrix/client/v3/keys/query"],

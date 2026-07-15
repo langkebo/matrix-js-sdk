@@ -5,11 +5,13 @@ import { InvalidParamError } from "../../src/common/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
 
 describe("PresenceManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let presenceManager: PresenceManager;
 
     const createMockClient = () => ({
         http: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             authedRequest: vi.fn().mockImplementation((method: any, path: string) => {
                 if (path.includes("/presence/") && path.includes("/status")) {
                     return Promise.resolve({
@@ -48,6 +50,7 @@ describe("PresenceManager", () => {
     beforeEach(() => {
         mockClient = createMockClient();
         presenceManager = new PresenceManager(mockClient);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(presenceManager as any, "sleep").mockResolvedValue(undefined);
     });
 
@@ -223,6 +226,7 @@ describe("PresenceManager", () => {
 
         it("should throw InvalidParamError when userIds is empty", async () => {
             await expect(presenceManager.subscribeToPresence([])).rejects.toThrow(InvalidParamError);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(presenceManager.subscribeToPresence(null as any)).rejects.toThrow(InvalidParamError);
         });
 

@@ -4,6 +4,7 @@ import { ToDeviceManager } from "../../src/to-device";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("ToDeviceManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: ToDeviceManager;
 
@@ -14,6 +15,7 @@ describe("ToDeviceManager", () => {
             },
         };
         manager = new ToDeviceManager(mockClient);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (manager as any).retryDelay = 0;
     });
 

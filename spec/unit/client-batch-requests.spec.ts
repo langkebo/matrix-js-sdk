@@ -173,6 +173,7 @@ describe("client-batch-requests", () => {
             const mockResponse = { room_id: "!room:server" };
             mockAuthedRequest.mockResolvedValue(mockResponse);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await roomInitialSyncRequest("!room:server", undefined as any, mockAuthedRequest);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/rooms/!room%3Aserver/initialSync", {

@@ -15,6 +15,7 @@ describe("ThreadingManager", () => {
             http: { authedRequest },
             getRooms,
             getRoom: vi.fn(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });

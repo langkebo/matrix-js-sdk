@@ -104,6 +104,7 @@ describe("Random strings", () => {
         // mock once to fill with 255 the first time: 255 should be unusable because
         // we give 10 possible characters below and 256 is not evenly divisible by 10, so
         // this should force it to call for more entropy.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementationOnce((arr: any) => {
             if (arr === null) throw new Error("Buffer is null");
             new Uint8Array(arr.buffer).fill(255);

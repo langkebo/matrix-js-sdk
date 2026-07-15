@@ -31,6 +31,7 @@ describe("ServerCapabilitiesManager", () => {
 
     describe("getServerCapabilities", () => {
         it("should fetch capabilities via the transport", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(createMockClient() as any, { transport });
             transport.respondWith({ capabilities: { "m.change_password": { enabled: true } } });
 
@@ -41,6 +42,7 @@ describe("ServerCapabilitiesManager", () => {
         });
 
         it("should cache capabilities and not re-fetch within TTL", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(createMockClient() as any, { transport });
             transport.respondWith({ capabilities: { "m.change_password": { enabled: true } } });
             await manager.getServerCapabilities();
@@ -59,7 +61,9 @@ describe("ServerCapabilitiesManager", () => {
         it("should return true when feature is Supported (value 0)", () => {
             const mockClient = createMockClient();
             // ServerSupport.Stable = 0, ServerSupport.Unsupported = 2
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             mockClient.canSupport.set("m.room_versions" as any, 0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.hasServerSupport("m.room_versions")).toBe(true);
@@ -67,7 +71,9 @@ describe("ServerCapabilitiesManager", () => {
 
         it("should return false when feature is Unsupported (value 2)", () => {
             const mockClient = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             mockClient.canSupport.set("m.unknown_feature" as any, 2);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.hasServerSupport("m.unknown_feature")).toBe(false);
@@ -80,6 +86,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should return the first version from getVersions", async () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({ versions: ["v1.11", "v1.12"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const version = await manager.getServerVersion();
@@ -90,6 +97,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should return empty string when no versions", async () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({ versions: [] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const version = await manager.getServerVersion();
@@ -104,6 +112,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should return true when version is in the list", async () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({ versions: ["v1.11", "v1.12"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const supported = await manager.isVersionSupported("v1.11");
@@ -114,6 +123,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should return false when version is not in the list", async () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const supported = await manager.isVersionSupported("v1.99");
@@ -131,6 +141,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: { "org.matrix.msc1234": true },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerSupportUnstableFeature("org.matrix.msc1234");
@@ -144,6 +155,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: { "org.matrix.msc1234": false },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerSupportUnstableFeature("org.matrix.msc9999");
@@ -161,6 +173,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: { openclaw: true },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({ capabilities: {} });
 
@@ -175,6 +188,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: {},
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({ capabilities: { "io.hula.friends": { enabled: true } } });
 
@@ -193,6 +207,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: { openclaw: true, "io.hula.friends": true },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({ capabilities: {} });
 
@@ -214,6 +229,7 @@ describe("ServerCapabilitiesManager", () => {
                 // The preset name "private_chat" has the "_chat" suffix stripped → "io.element.e2ee_forced.private"
                 unstable_features: { "io.element.e2ee_forced.private": true },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerForceEncryptionForPreset(Preset.PrivateChat);
@@ -227,6 +243,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: {},
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerForceEncryptionForPreset(Preset.PublicChat);
@@ -241,6 +258,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should return stable support for v1.4+", async () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({ versions: ["v1.4", "v1.11"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerSupportThread();
@@ -256,6 +274,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: { "org.matrix.msc3440.stable": true },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.doesServerSupportThread();
@@ -269,6 +288,7 @@ describe("ServerCapabilitiesManager", () => {
     describe("sync helper methods", () => {
         it("supportsThreads should return client option value", () => {
             const mockClient = createMockClient({ getClientOpts: vi.fn().mockReturnValue({ threadSupport: true }) });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.supportsThreads()).toBe(true);
@@ -276,6 +296,7 @@ describe("ServerCapabilitiesManager", () => {
 
         it("supportsThreads should default to false", () => {
             const mockClient = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.supportsThreads()).toBe(false);
@@ -285,6 +306,7 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             // ServerSupport.Stable = 0 → passes check `0 !== 2`
             mockClient.canSupport.set(Feature.IntentionalMentions, 0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.supportsIntentionalMentions()).toBe(true);
@@ -292,6 +314,7 @@ describe("ServerCapabilitiesManager", () => {
 
         it("hasLazyLoadMembersEnabled should return client option", () => {
             const mockClient = createMockClient({ getClientOpts: vi.fn().mockReturnValue({ lazyLoadMembers: true }) });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.hasLazyLoadMembersEnabled()).toBe(true);
@@ -301,6 +324,7 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             // ServerSupport.Stable = 0 → passes check `0 !== 2`
             mockClient.canSupport.set(Feature.Location, 0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             expect(manager.supportsLocation()).toBe(true);
@@ -313,6 +337,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should fetch and cache server versions", async () => {
             const authedRequest = vi.fn().mockResolvedValue({ versions: ["v1.11"] });
             const mockClient = createMockClient({ http: { authedRequest } });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             const result = await manager.getVersions();
@@ -326,6 +351,7 @@ describe("ServerCapabilitiesManager", () => {
         it("should return cached promise on subsequent calls", async () => {
             const authedRequest = vi.fn().mockResolvedValue({ versions: ["v1.11"] });
             const mockClient = createMockClient({ http: { authedRequest } });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             await manager.getVersions();
@@ -344,6 +370,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: {},
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
 
             await expect(manager._unstable_getSharedRooms("@user:example.com")).rejects.toThrow(
@@ -357,6 +384,7 @@ describe("ServerCapabilitiesManager", () => {
                 versions: ["v1.11"],
                 unstable_features: { "uk.half-shot.msc2666.query_mutual_rooms": true },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({
                 joined: ["!room1:example.com", "!room2:example.com"],
@@ -373,6 +401,7 @@ describe("ServerCapabilitiesManager", () => {
 
     describe("_unstable_getRTCTransports", () => {
         it("should fetch RTC transports via the transport", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(createMockClient() as any, { transport });
             transport.respondWith({ rtc_transports: [{ type: "stun", urls: ["stun:example.com"] }] });
 

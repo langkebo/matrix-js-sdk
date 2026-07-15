@@ -4,6 +4,7 @@ import { logger } from "../../src/logger";
 import { TagManager } from "../../src/tags";
 
 describe("TagManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: TagManager;
 

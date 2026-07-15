@@ -26,6 +26,7 @@ describe("E2EEManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         e2eeManager = new E2EEManager({} as any, { transport });
     });
 
@@ -36,6 +37,7 @@ describe("E2EEManager", () => {
             transport.respondWith({ one_time_key_counts: { signed_curve25519: 50 } });
 
             const result = await e2eeManager.uploadKeys({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 deviceKeys: { algorithms: ["m.olm.v1.curve25519-aes-sha2"] } as any,
             });
 

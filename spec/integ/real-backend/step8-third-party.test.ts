@@ -21,6 +21,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -62,6 +63,7 @@ async function main(): Promise<void> {
     await runTest("getThirdPartyProtocols", async () => {
         try {
             const protocols = await client!.getThirdpartyProtocols();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Third party protocols not available");
         }
@@ -71,6 +73,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const protocol = await (client as any).getThirdPartyProtocol("test-protocol");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Third party protocol not available");
         }
@@ -83,6 +86,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await (client as any).thirdPartyProtocol("http", "test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Third party protocol (http) not available");
         }
@@ -92,6 +96,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await (client as any).thirdPartyProtocol("https", "test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Third party protocol (https) not available");
         }
@@ -105,6 +110,7 @@ async function main(): Promise<void> {
             const user = await client!.getThirdpartyUser("test-protocol", {
                 userid: "test-user",
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Third party user not available");
         }
@@ -118,6 +124,7 @@ async function main(): Promise<void> {
             const location = await client!.getThirdpartyLocation("test-protocol", {
                 searchFields: ["uri"],
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Third party location not available");
         }
@@ -130,6 +137,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const sigs = await (client as any).getVoipEventSignatures();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ VoIP event signatures not available");
         }
@@ -138,6 +146,7 @@ async function main(): Promise<void> {
     await runTest("turnServer", async () => {
         try {
             const turn = await client!.turnServer();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ TURN server not available");
         }
@@ -147,6 +156,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const url = await (client as any).getTurnServersUrl();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ TURN servers URL not available");
         }
@@ -167,6 +177,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const names = await (client as any).getAppserviceNames();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Appservice names not available");
         }
@@ -176,6 +187,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const appService = await (client as any).getAppservice("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Appservice not available");
         }
@@ -185,6 +197,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const isConfigured = await (client as any).isAppserviceConfigured();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Appservice config not available");
         }
@@ -197,6 +210,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const info = await (client as any).getBridgeInfo("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Bridge info not available");
         }
@@ -206,6 +220,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).setBridgeInfo("test", {});
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set bridge info not available");
         }
@@ -218,6 +233,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const protocols = await (client as any).getProtocols();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Protocols not available");
         }
@@ -227,6 +243,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const integrations = await (client as any).getIntegrations("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Integrations not available");
         }
@@ -236,6 +253,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const widgets = await (client as any).getIntegrationWidgets("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Integration widgets not available");
         }
@@ -245,6 +263,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).addIntegrationWidgets("test", []);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Add integration widgets not available");
         }

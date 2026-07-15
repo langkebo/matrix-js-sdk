@@ -38,6 +38,7 @@ import type { Body, IRequestOpts } from "../../src/http-api/interface";
  * ```
  */
 export class FakeTransport implements Transport {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public request = vi.fn<(...args: Parameters<Transport["request"]>) => Promise<any>>();
 
     constructor() {

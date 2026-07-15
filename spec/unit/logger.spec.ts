@@ -53,6 +53,7 @@ describe("logger", () => {
 describe("DebugLogger", () => {
     it("should handle empty log messages", () => {
         const mockTarget = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const logger = new DebugLogger(mockTarget as any);
         logger.info();
         expect(mockTarget).toHaveBeenCalledTimes(1);
@@ -61,6 +62,7 @@ describe("DebugLogger", () => {
 
     it("should handle logging an Error", () => {
         const mockTarget = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const logger = new DebugLogger(mockTarget as any);
 
         // If there is a stack and a message, we use the stack.
@@ -80,6 +82,7 @@ describe("DebugLogger", () => {
 
     it("should handle logging an object", () => {
         const mockTarget = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const logger = new DebugLogger(mockTarget as any);
 
         const obj = { a: 1 };

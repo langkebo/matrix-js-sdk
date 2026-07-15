@@ -24,6 +24,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -160,6 +161,7 @@ async function main(): Promise<void> {
             try {
                 await client!.getRoomEventsManager().getEvent(testRoomId, "$invalid-event-id");
                 // 如果没抛错，说明API返回了空结果
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 // 预期会抛出错误
             }
@@ -203,6 +205,7 @@ async function main(): Promise<void> {
             // 后端可能不支持Reaction API
             try {
                 await client!.sendReaction(testRoomId, msgResult.event_id, "👍");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Reaction API not supported by backend");
             }
@@ -218,6 +221,7 @@ async function main(): Promise<void> {
             // 后端可能不支持Reaction API
             try {
                 await client!.sendReaction(testRoomId, msgResult.event_id, "🎉");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Reaction API not supported by backend");
             }
@@ -233,6 +237,7 @@ async function main(): Promise<void> {
             try {
                 await client!.relations(testRoomId, testEventId, "m.annotation");
                 // API可能返回空或不支持
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Relations API not supported");
             }

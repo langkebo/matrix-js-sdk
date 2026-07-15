@@ -104,10 +104,12 @@ describe("Encrypted State Events", () => {
         aliceClient.stopClient();
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function expectAliceKeyQuery(response: any) {
         fetchMock.postOnce(new RegExp("/keys/query"), (callLog) => response);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function expectAliceKeyClaim(response: any) {
         fetchMock.postOnce(new RegExp("/keys/claim"), response);
     }

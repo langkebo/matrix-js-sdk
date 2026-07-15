@@ -55,6 +55,7 @@ describe("client-membership", () => {
     });
 
     it("selects leave chain targets", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rooms = [{ roomId: "!a:hs" }, { roomId: "!b:hs" }, { roomId: "!c:hs" }] as any[];
         expect(selectLeaveRoomChainTargets(rooms, "!b:hs", false).map((r) => r.roomId)).toEqual(["!a:hs", "!b:hs"]);
         expect(selectLeaveRoomChainTargets(rooms, "!b:hs", true).map((r) => r.roomId)).toEqual([

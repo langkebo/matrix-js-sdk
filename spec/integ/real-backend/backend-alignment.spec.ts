@@ -145,6 +145,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             try {
                 const policy = await admin.getRetentionPolicy();
                 expect(policy).toHaveProperty("expire_on_clients");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 // Non-admin token will 403; treat as skipped
                 if (e?.httpStatus !== 403) throw e;
@@ -158,6 +159,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
                 const s = await admin.getRetentionStatus();
                 expect(s).toHaveProperty("server_policy_enabled");
                 expect(s).toHaveProperty("lifecycle_cleanup_enabled");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -173,6 +175,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
                 expect(page).toHaveProperty("flags");
                 expect(page).toHaveProperty("total");
                 expect(Array.isArray(page.flags)).toBe(true);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -188,6 +191,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
                 expect(page).toHaveProperty("events");
                 expect(page).toHaveProperty("total");
                 expect(Object.prototype.hasOwnProperty.call(page, "next_token")).toBe(true);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -203,6 +207,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
                 expect(q).toHaveProperty("total_size");
                 expect(q).toHaveProperty("total_count");
                 expect(q).toHaveProperty("default_size_limit");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -218,6 +223,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
                 expect(res).toHaveProperty("server_name", "matrix.org");
                 expect(res).toHaveProperty("resolved");
                 expect(res).toHaveProperty("blacklisted");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -231,6 +237,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             try {
                 const status = await admin.getAccountStatus(client.getUserId()!);
                 expect(status).not.toBeNull();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 // 403 for non-admin
                 if (e?.httpStatus !== 403) throw e;
@@ -248,6 +255,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
                 const page = await worker.listWorkers(5);
                 expect(page).toHaveProperty("workers");
                 expect(Array.isArray(page.workers)).toBe(true);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -259,6 +267,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             try {
                 const stats = await worker.getStatistics();
                 expect(typeof stats).toBe("object");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403) throw e;
             }
@@ -275,6 +284,7 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             try {
                 const page = await widgets.listRoomWidgets(room.room_id);
                 expect(page).toHaveProperty("widgets");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 if (e?.httpStatus !== 403 && e?.httpStatus !== 404) throw e;
             }

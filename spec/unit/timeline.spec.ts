@@ -6,6 +6,7 @@ describe("TimelineManager", () => {
     let manager: TimelineManager;
 
     // Helper to create a mock room
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function createMockRoom(roomId: string, timelineSet?: any) {
         const mockTimelineSet = timelineSet ?? {
             getTimelineForEvent: vi.fn().mockReturnValue(null),
@@ -46,6 +47,7 @@ describe("TimelineManager", () => {
             const mockTimelineSet = { name: "timeline" };
             const room = createMockRoom("!room:example.com", mockTimelineSet);
             const client = createMockClient({ getRoom: vi.fn().mockReturnValue(room) });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = manager.getTimelineForRoom("!room:example.com");
@@ -56,6 +58,7 @@ describe("TimelineManager", () => {
 
         it("should return null for an unknown room", () => {
             const client = createMockClient({ getRoom: vi.fn().mockReturnValue(null) });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = manager.getTimelineForRoom("!nonexistent:example.com");
@@ -74,6 +77,7 @@ describe("TimelineManager", () => {
             };
             const room = createMockRoom("!room:example.com", mockTimelineSet);
             const client = createMockClient({ getRoom: vi.fn().mockReturnValue(room) });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = manager.getEventTimelineSync("!room:example.com", "$event123");
@@ -83,6 +87,7 @@ describe("TimelineManager", () => {
 
         it("should return null when room is not found", () => {
             const client = createMockClient({ getRoom: vi.fn().mockReturnValue(null) });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = manager.getEventTimelineSync("!unknown:example.com", "$event123");
@@ -103,6 +108,7 @@ describe("TimelineManager", () => {
             const client = createMockClient({
                 getRooms: vi.fn().mockReturnValue([room]),
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = manager.getEventAndComments("$event123");
@@ -120,6 +126,7 @@ describe("TimelineManager", () => {
             const client = createMockClient({
                 getRooms: vi.fn().mockReturnValue([room]),
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = manager.getEventAndComments("$nonexistent");
@@ -136,6 +143,7 @@ describe("TimelineManager", () => {
             const client = createMockClient({
                 peekInRoom: vi.fn().mockResolvedValue(mockRoom),
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const result = await manager.peekRoom("!peeked:example.com");
@@ -149,6 +157,7 @@ describe("TimelineManager", () => {
         it("should delegate to client.stopPeeking", async () => {
             const stopPeeking = vi.fn();
             const client = createMockClient({ stopPeeking });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             await manager.stopPeeking();
@@ -158,7 +167,9 @@ describe("TimelineManager", () => {
 
         it("should handle missing stopPeeking method gracefully", async () => {
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             delete (client as any).stopPeeking;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             // Should not throw
@@ -171,12 +182,14 @@ describe("TimelineManager", () => {
     describe("getEventTimeline", () => {
         it("should throw when timeline support is disabled", async () => {
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
             const mockTimelineSet = {
                 getTimelineForEvent: vi.fn().mockReturnValue(null),
                 room: { roomId: "!r:example.com" },
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.getEventTimeline(mockTimelineSet as any, "$evt")).rejects.toThrow(
                 "timeline support is disabled",
             );
@@ -184,10 +197,13 @@ describe("TimelineManager", () => {
 
         it("should throw when timeline set has no room", async () => {
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).timelineSupport = true;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
             const mockTimelineSet = { getTimelineForEvent: vi.fn().mockReturnValue(null), room: null };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.getEventTimeline(mockTimelineSet as any, "$evt")).rejects.toThrow(
                 "only supports room timelines",
             );
@@ -200,9 +216,12 @@ describe("TimelineManager", () => {
                 room: { roomId: "!r:example.com" },
             };
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).timelineSupport = true;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await manager.getEventTimeline(mockTimelineSet as any, "$evt");
 
             expect(result).toBe(mockTimeline);
@@ -214,16 +233,21 @@ describe("TimelineManager", () => {
     describe("getLatestTimeline", () => {
         it("should throw when timeline support is disabled", async () => {
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.getLatestTimeline({} as any)).rejects.toThrow("timeline support is disabled");
         });
 
         it("should throw when timeline set has no room", async () => {
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).timelineSupport = true;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.getLatestTimeline({ room: null } as any)).rejects.toThrow(
                 "only supports room timelines",
             );
@@ -236,9 +260,12 @@ describe("TimelineManager", () => {
         it("should delegate to room.processThreadedEvents", () => {
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events: any[] = [];
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processThreadEvents(room as any, events, true);
 
             expect(room.processThreadedEvents).toHaveBeenCalledWith(events, true);
@@ -251,9 +278,12 @@ describe("TimelineManager", () => {
         it("should delegate to room.processThreadRoots when threads are supported", () => {
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events: any[] = [];
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processThreadRoots(room as any, events, true, true);
 
             expect(room.processThreadRoots).toHaveBeenCalledWith(events, true);
@@ -262,8 +292,10 @@ describe("TimelineManager", () => {
         it("should be a no-op when threads are not supported", () => {
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processThreadRoots(room as any, [], true, false);
 
             expect(room.processThreadRoots).not.toHaveBeenCalled();
@@ -277,27 +309,34 @@ describe("TimelineManager", () => {
             expect.assertions(0);
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             // Should not throw
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processAggregatedTimelineEvents(room as any, []);
         });
 
         it("should be a no-op when room is undefined", () => {
             expect.assertions(0);
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             // Should not throw
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processAggregatedTimelineEvents(undefined, [{ getId: () => "$e1" } as any]);
         });
 
         it("should process events through room relations and state", () => {
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events = [{ getId: () => "$e1" } as any];
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processAggregatedTimelineEvents(room as any, events);
 
             expect(room.relations.aggregateChildEvent).toHaveBeenCalledWith(events[0]);
@@ -311,10 +350,13 @@ describe("TimelineManager", () => {
         it("should delegate to processAggregatedTimelineEvents", () => {
             const room = createMockRoom("!r:example.com");
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events = [{ getId: () => "$e1" } as any];
             const processAggregatedSpy = vi.spyOn(manager, "processAggregatedTimelineEvents");
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processBeaconEvents(room as any, events);
 
             expect(processAggregatedSpy).toHaveBeenCalledWith(room, events);
@@ -326,6 +368,7 @@ describe("TimelineManager", () => {
     describe("processPaginationEvents", () => {
         it("should add events to timeline and process aggregated events", () => {
             const client = createMockClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new TimelineManager(client as any, { transport });
 
             const mockTimelineSet = {
@@ -334,8 +377,10 @@ describe("TimelineManager", () => {
             const mockTimeline = {
                 getTimelineSet: vi.fn().mockReturnValue(mockTimelineSet),
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const events = [{ getId: () => "$e1" } as any];
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.processPaginationEvents(mockTimeline as any, events, true, "token");
 
             expect(mockTimelineSet.addEventsToTimeline).toHaveBeenCalledWith(

@@ -25,6 +25,7 @@ export const makeThreadEvent = ({
     rootEventId,
     replyToEventId,
     ...props
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any & {
     rootEventId: string;
     replyToEventId: string;

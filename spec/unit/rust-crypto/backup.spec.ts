@@ -143,17 +143,21 @@ describe("Upload keys to backup", () => {
     });
 
     it("throws on backup check failure by default and returns null when explicitly downgraded", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
         await expect(rustBackupManager.checkKeyBackupAndEnable(true)).rejects.toThrow("Boom");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
         await expect(rustBackupManager.checkKeyBackupAndEnable(true, false)).resolves.toBeNull();
     });
 
     it("throws on backup secret validation failure by default and returns false when explicitly downgraded", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
         await expect(rustBackupManager.handleBackupSecretReceived("secret")).rejects.toThrow("Boom");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
         await expect(rustBackupManager.handleBackupSecretReceived("secret", false)).resolves.toBe(false);
     });

@@ -23,6 +23,7 @@ import { ReceiptType } from "../../src/@types/read_receipts";
 describe("ReadReceiptsManager", () => {
     let transport: FakeTransport;
     let manager: ReadReceiptsManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
 
     beforeEach(() => {
@@ -50,6 +51,7 @@ describe("ReadReceiptsManager", () => {
             roomId: string | null;
             eventId: string;
         }> = {},
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): any {
         return {
             getRoomId: vi.fn().mockReturnValue(overrides.roomId ?? "!room:example.com"),
@@ -58,6 +60,7 @@ describe("ReadReceiptsManager", () => {
         };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function makeMockRoom(overrides: Partial<any> = {}): any {
         return {
             hasPendingEvent: vi.fn().mockReturnValue(false),

@@ -18,6 +18,7 @@ describe("RetentionManager", () => {
             http: { authedRequest },
             getRoom,
             getRooms,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
@@ -51,6 +52,7 @@ describe("RetentionManager", () => {
         it("POSTs the policy with null-filled defaults and emits", async () => {
             authedRequest.mockResolvedValueOnce({ max_lifetime: 86400000 });
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("serverPolicyUpdated" as any, (p: unknown) => emitted.push(p));
 
             await manager.setServerRetentionPolicy({ max_lifetime: 86400000 });
@@ -94,6 +96,7 @@ describe("RetentionManager", () => {
         it("emits retentionPolicyUpdated on success", async () => {
             authedRequest.mockResolvedValueOnce({ room_id: "!r:ex", max_lifetime: 1000 });
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("retentionPolicyUpdated" as any, (p: unknown) => emitted.push(p));
 
             await manager.setRoomRetentionPolicy("!r:ex", { max_lifetime: 1000 });
@@ -121,6 +124,7 @@ describe("RetentionManager", () => {
         it("includes room_id when given, and emits retentionRunCompleted", async () => {
             authedRequest.mockResolvedValueOnce({ started: true, events_deleted: 5 });
             const emitted: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("retentionRunCompleted" as any, (p: unknown) => emitted.push(p));
 
             await manager.runRetention("!r:ex");

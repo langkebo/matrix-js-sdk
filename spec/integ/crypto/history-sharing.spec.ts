@@ -153,6 +153,7 @@ describe("History Sharing", () => {
                 sender: aliceClient.getSafeUserId(),
                 content: sentMessage,
                 event_id: "$event_id",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             }) as any,
         );
         bobSyncResponder.sendOrQueueSyncResponse(bobSyncResponse);
@@ -234,6 +235,7 @@ describe("History Sharing", () => {
                 sender: aliceClient.getSafeUserId(),
                 content: sentMessage,
                 event_id: "$event_id",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             }) as any,
         );
         bobSyncResponder.sendOrQueueSyncResponse(bobSyncResponse);

@@ -53,6 +53,7 @@ describe("ContentRepo", function () {
         });
 
         it("should return the empty string for null input", function () {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(getHttpUriForMxc(null as any, "")).toEqual("");
         });
 

@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { BeaconManager } from "../../src/beacon";
 
 describe("BeaconManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: BeaconManager;
 
@@ -20,9 +21,11 @@ describe("BeaconManager", () => {
     });
 
     it("creates/updates beacons and forwards processing", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await manager.createLiveBeacon("!r:hs", { timeout: 1 } as any);
         expect(mockClient.unstable_createLiveBeacon).toHaveBeenCalledWith("!r:hs", { timeout: 1 });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await manager.setLiveBeacon("!r:hs", { timeout: 2 } as any);
         expect(mockClient.unstable_setLiveBeacon).toHaveBeenCalledWith("!r:hs", { timeout: 2 });
 
@@ -72,7 +75,9 @@ describe("BeaconManager", () => {
 
     it("subscribes and unsubscribes beacon events", () => {
         const handler = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager.subscribeToBeaconEvents("Beacon.new" as any, handler);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager.unsubscribeFromBeaconEvents("Beacon.new" as any, handler);
         expect(mockClient.on).toHaveBeenCalledWith("Beacon.new", handler);
         expect(mockClient.off).toHaveBeenCalledWith("Beacon.new", handler);

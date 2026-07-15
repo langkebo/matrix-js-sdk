@@ -58,6 +58,7 @@ describe("AutoDiscovery", function () {
                 },
             ),
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             AutoDiscovery.findClientConfig(null as any).then(
                 () => {
                     throw new Error("Expected a failure, not success with null");
@@ -67,6 +68,7 @@ describe("AutoDiscovery", function () {
                 },
             ),
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             AutoDiscovery.findClientConfig(true as any).then(
                 () => {
                     throw new Error("Expected a failure, not success with a non-string");

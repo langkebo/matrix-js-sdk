@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { QrLoginManager } from "../../src/qr-login/index";
 
 describe("QrLoginManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: QrLoginManager;
     let authedRequest: ReturnType<typeof vi.fn>;
@@ -25,6 +26,7 @@ describe("QrLoginManager", () => {
 
     it("startQrLogin POSTs to /login/qr/start (unauthenticated)", async () => {
         request.mockResolvedValue({ transaction_id: "tx-1" });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await manager.startQrLogin({ device_id: "D1" } as any);
         expect(request.mock.calls[0][0]).toBe("POST");
         expect(request.mock.calls[0][1]).toBe("/login/qr/start");
@@ -32,6 +34,7 @@ describe("QrLoginManager", () => {
     });
 
     it("confirmQrLogin uses authedRequest", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await manager.confirmQrLogin({ transaction_id: "tx-1" } as any);
         expect(authedRequest).toHaveBeenCalled();
     });
@@ -44,6 +47,7 @@ describe("QrLoginManager", () => {
     });
 
     it("invalidateQrLogin uses request", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await manager.invalidateQrLogin({ transaction_id: "tx-1" } as any);
         expect(request).toHaveBeenCalled();
     });

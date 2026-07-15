@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { RoomAliasManager } from "../../src/room-alias/index";
 
 describe("RoomAliasManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let roomAliasManager: RoomAliasManager;
 

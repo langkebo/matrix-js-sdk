@@ -6,6 +6,7 @@ describe("client-store-cleanup", () => {
     it("throws when client is running", async () => {
         const client = { clientRunning: true };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await expect(clearClientStores(client as any)).rejects.toThrow("Cannot clear stores while client is running");
     });
 
@@ -17,6 +18,7 @@ describe("client-store-cleanup", () => {
             logger: { info: vi.fn(), warn: vi.fn() },
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await clearClientStores(client as any);
 
         expect(client.store.deleteAllData).toHaveBeenCalled();
@@ -30,6 +32,7 @@ describe("client-store-cleanup", () => {
             logger: { info: vi.fn(), warn: vi.fn() },
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await clearClientStores(client as any);
 
         expect(client.store.deleteAllData).toHaveBeenCalled();

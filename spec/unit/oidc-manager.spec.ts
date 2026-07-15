@@ -5,6 +5,7 @@ import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
 
 describe("OidcManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: OidcManager;
     let request: ReturnType<typeof vi.fn>;

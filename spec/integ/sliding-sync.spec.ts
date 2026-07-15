@@ -102,6 +102,7 @@ describe("SlidingSync", () => {
                     is_dm: true,
                 },
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const ext: Extension<any, any> = {
                 name: () => "custom_extension",
                 onRequest: async (_) => {
@@ -817,14 +818,19 @@ describe("SlidingSync", () => {
 
         // Pre-extensions get called BEFORE processing the sync response
         const preExtName = "foobar";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let onPreExtensionRequest: Extension<any, any>["onRequest"];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let onPreExtensionResponse: Extension<any, any>["onResponse"];
 
         // Post-extensions get called AFTER processing the sync response
         const postExtName = "foobar2";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let onPostExtensionRequest: Extension<any, any>["onRequest"];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let onPostExtensionResponse: Extension<any, any>["onResponse"];
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const extPre: Extension<any, any> = {
             name: () => preExtName,
             onRequest: async (initial) => {
@@ -835,6 +841,7 @@ describe("SlidingSync", () => {
             },
             when: () => ExtensionState.PreProcess,
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const extPost: Extension<any, any> = {
             name: () => postExtName,
             onRequest: async (initial) => {
@@ -1011,6 +1018,7 @@ function timeout(delayMs: number, reason: string): { promise: Promise<never>; ca
 function listenUntil<T>(
     emitter: EventEmitter,
     eventName: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (...args: any[]) => T,
     timeoutMs = 500,
 ): Promise<T> {
@@ -1018,6 +1026,7 @@ function listenUntil<T>(
     const t = timeout(timeoutMs, "timed out waiting for event " + eventName + " " + trace);
     return Promise.race([
         new Promise<T>((resolve, reject) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const wrapper = (...args: any[]) => {
                 try {
                     const data = callback(...args);

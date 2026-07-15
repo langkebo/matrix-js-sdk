@@ -19,6 +19,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MediaManager } from "../../src/media/index";
 
 describe("MediaManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let mediaManager: MediaManager;
 

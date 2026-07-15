@@ -5,6 +5,7 @@ import { ThreadManager } from "../../src/thread/index";
 import { Method } from "../../src/http-api";
 
 describe("ThreadManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let threadManager: ThreadManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
@@ -356,6 +357,7 @@ describe("ThreadManager", () => {
 
         it("should throw if content is missing", async () => {
             await expect(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 threadManager.createThreadReply("!room:example.com", "t1", { content: undefined as any }),
             ).rejects.toThrow("content is required");
         });

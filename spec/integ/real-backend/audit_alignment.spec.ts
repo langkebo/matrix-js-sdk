@@ -52,6 +52,7 @@ describe("SDK 与后端对齐审计自动化测试套件", () => {
         async () => {
             if (!backendAvailable) return;
             const content = { msgtype: "m.text", body: "Hello World" };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const response = await (client as any).sendEvent(roomId, "m.room.message", content);
             expect(response.event_id).toBeTruthy();
         },
@@ -86,7 +87,8 @@ describe("SDK 与后端对齐审计自动化测试套件", () => {
         async () => {
             const burnManager = backendAvailable
                 ? client.getBurnAfterReadManager()
-                : new BurnAfterReadManager({} as any);
+                : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  new BurnAfterReadManager({} as any);
             const config = burnManager.getBurnConfig();
             expect(config.default_expire_time).toBe(60000);
             if (!backendAvailable) return;

@@ -47,6 +47,7 @@ describe("FetchHttpApi", () => {
 
     it("should support aborting multiple times", () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -77,6 +78,7 @@ describe("FetchHttpApi", () => {
     it("should fall back to global fetch if fetchFn not provided", () => {
         const spy = (globalThis.fetch = vi.fn());
         expect(spy).not.toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -88,6 +90,7 @@ describe("FetchHttpApi", () => {
     });
 
     it("should update identity server base url", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi<IHttpOpts>(new TypedEventEmitter<any, any>(), {
             baseUrl: secureBaseUrl,
             prefix,
@@ -100,6 +103,7 @@ describe("FetchHttpApi", () => {
 
     describe("idServerRequest", () => {
         it("should throw if no idBaseUrl", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl: secureBaseUrl,
                 prefix,
@@ -112,6 +116,7 @@ describe("FetchHttpApi", () => {
 
         it("should send params as query string for GET requests", () => {
             const fetchFn = makeMockFetchFn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl,
                 idBaseUrl,
@@ -127,6 +132,7 @@ describe("FetchHttpApi", () => {
 
         it("should send params as body for non-GET requests", () => {
             const fetchFn = makeMockFetchFn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl,
                 idBaseUrl,
@@ -143,6 +149,7 @@ describe("FetchHttpApi", () => {
 
         it("should add Authorization header if token provided", () => {
             const fetchFn = makeMockFetchFn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                 baseUrl,
                 idBaseUrl,
@@ -152,6 +159,7 @@ describe("FetchHttpApi", () => {
                 allowInsecureHttp: true,
             });
             api.idServerRequest(Method.Post, "/test", {}, IdentityPrefix.V2, "token");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>).Authorization).toBe("Bearer token");
         });
     });
@@ -159,6 +167,7 @@ describe("FetchHttpApi", () => {
     it("should complain if constructed without `onlyData: true`", async () => {
         expect(
             () =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                     baseUrl,
                     prefix,
@@ -170,6 +179,7 @@ describe("FetchHttpApi", () => {
     it("should reject insecure baseUrl by default", () => {
         expect(
             () =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                     baseUrl,
                     prefix,
@@ -183,6 +193,7 @@ describe("FetchHttpApi", () => {
     it("should allow insecure baseUrl when allowInsecureHttp is enabled", () => {
         expect(
             () =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                     baseUrl,
                     prefix,
@@ -195,6 +206,7 @@ describe("FetchHttpApi", () => {
     it("should reject insecure idBaseUrl by default", () => {
         expect(
             () =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new FetchHttpApi(new TypedEventEmitter<any, any>(), {
                     baseUrl: secureBaseUrl,
                     idBaseUrl,
@@ -207,6 +219,7 @@ describe("FetchHttpApi", () => {
     });
 
     it("should reject insecure override baseUrl in getUrl without allowInsecureHttp", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl: secureBaseUrl,
             prefix,
@@ -221,6 +234,7 @@ describe("FetchHttpApi", () => {
     it("should set an Accept header, and parse the response as JSON, by default", async () => {
         const result = { a: 1 };
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue(result) });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -235,6 +249,7 @@ describe("FetchHttpApi", () => {
     it("should not set an Accept header, and should return text if json=false", async () => {
         const text = "418 I'm a teapot";
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, text: vi.fn().mockResolvedValue(text) });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -253,6 +268,7 @@ describe("FetchHttpApi", () => {
     it("should not set an Accept header, and should return a blob, if rawResponseBody is true", async () => {
         const blob = new Blob(["blobby"]);
         const fetchFn = vi.fn().mockResolvedValue({ ok: true, blob: vi.fn().mockResolvedValue(blob) });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -269,6 +285,7 @@ describe("FetchHttpApi", () => {
     });
 
     it("should throw an error if both `json` and `rawResponseBody` are defined", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -283,6 +300,7 @@ describe("FetchHttpApi", () => {
 
     it("should send token via query params if useAuthorizationHeader=false", async () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -298,6 +316,7 @@ describe("FetchHttpApi", () => {
 
     it("should send token via headers by default", async () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -307,11 +326,13 @@ describe("FetchHttpApi", () => {
             allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer token");
     });
 
     it("should not send a token if not calling `authedRequest`", () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -322,11 +343,13 @@ describe("FetchHttpApi", () => {
         });
         api.request(Method.Get, "/path");
         expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBeFalsy();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBeFalsy();
     });
 
     it("should ensure no token is leaked out via query params if sending via headers", async () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -338,11 +361,13 @@ describe("FetchHttpApi", () => {
         });
         await api.authedRequest(Method.Get, "/path", { access_token: "123" });
         expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBeFalsy();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer token");
     });
 
     it("should not override manually specified access token via query params", async () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -358,6 +383,7 @@ describe("FetchHttpApi", () => {
 
     it("should not override manually specified access token via header", async () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -370,11 +396,13 @@ describe("FetchHttpApi", () => {
         await api.authedRequest(Method.Get, "/path", undefined, undefined, {
             headers: { Authorization: "Bearer RealToken" },
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer RealToken");
     });
 
     it("should not override Accept header", async () => {
         const fetchFn = makeMockFetchFn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -385,6 +413,7 @@ describe("FetchHttpApi", () => {
         await api.authedRequest(Method.Get, "/path", undefined, undefined, {
             headers: { Accept: "text/html" },
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Accept"]).toBe("text/html");
     });
 
@@ -424,6 +453,7 @@ describe("FetchHttpApi", () => {
                 allowInsecureHttp: true,
             });
             await api.authedRequest(Method.Post, "/account/password");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>).Authorization).toBeUndefined();
         });
 
@@ -669,6 +699,7 @@ describe("FetchHttpApi", () => {
     describe("getUrl()", () => {
         const localBaseUrl = "http://baseurl";
         const baseUrlWithTrailingSlash = "http://baseurl/";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const makeApi = (thisBaseUrl = baseUrl): FetchHttpApi<any> => {
             const fetchFn = vi.fn();
             const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
@@ -728,6 +759,7 @@ describe("FetchHttpApi", () => {
         });
 
         describe("extraParams handling", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const makeApiWithExtraParams = (extraParams: QueryDict): FetchHttpApi<any> => {
                 const fetchFn = vi.fn();
                 const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
@@ -825,6 +857,7 @@ describe("FetchHttpApi", () => {
         const mockLogger = {
             debug: vi.fn(),
         } as unknown as Mocked<Logger>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -870,6 +903,7 @@ describe("FetchHttpApi", () => {
         });
         const tokenRefreshFunction = vi.fn().mockReturnValue(deferredTokenRefresh.promise);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,
@@ -927,6 +961,7 @@ describe("FetchHttpApi", () => {
         });
         const tokenRefreshFunction = vi.fn().mockReturnValue(deferredTokenRefresh.promise);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
             prefix,

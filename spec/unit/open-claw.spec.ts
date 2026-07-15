@@ -10,6 +10,7 @@ describe("OpenClawManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new OpenClawManager({} as any, { transport });
     });
 
@@ -133,6 +134,7 @@ describe("OpenClawManager", () => {
         });
 
         it("should delete a connection and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -232,6 +234,7 @@ describe("OpenClawManager", () => {
         });
 
         it("should delete a conversation and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -290,6 +293,7 @@ describe("OpenClawManager", () => {
         });
 
         it("should delete a message and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -371,6 +375,7 @@ describe("OpenClawManager", () => {
         });
 
         it("should delete a generation and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -467,6 +472,7 @@ describe("OpenClawManager", () => {
         });
 
         it("should delete a chat role and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -481,6 +487,7 @@ describe("OpenClawManager", () => {
 
     describe("validation", () => {
         it("should reject getConnection with non-integer id", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.getConnection(1.5 as any)).rejects.toThrow(ValidationError);
         });
 
@@ -511,6 +518,7 @@ describe("OpenClawManager", () => {
         });
 
         it("should include retry config in requests", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith({ id: 1 } as any);
 
             await manager.getConnection(1);

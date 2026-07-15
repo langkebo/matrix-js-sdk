@@ -195,8 +195,10 @@ describe("MatrixClient events", function () {
         });
 
         it("should emit User events when presence data is absent in first sync", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const MODIFIED_SYNC_DATA: any = structuredClone(SYNC_DATA);
             delete MODIFIED_SYNC_DATA["presence"];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const MODIFIED_NEXT_SYNC_DATA: any = structuredClone(NEXT_SYNC_DATA);
             MODIFIED_NEXT_SYNC_DATA.presence = {
                 events: [

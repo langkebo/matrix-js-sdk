@@ -20,6 +20,7 @@ import { type DumpDataSetInfo } from "../index";
  * A key query response containing the current keys of the tested user.
  * To be used during tests with fetchmock.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const KEYS_QUERY_RESPONSE: any = {
     device_keys: {
         "@vdhtest200713:matrix.org": {
@@ -93,6 +94,7 @@ const KEYS_QUERY_RESPONSE: any = {
  * A `/room_keys/version` response containing the current server-side backup info.
  * To be used during tests with fetchmock.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const BACKUP_RESPONSE: any = {
     auth_data: {
         public_key: "q+HZiJdHl2Yopv9GGvv7EYSzDMrAiRknK4glSdoaomI",

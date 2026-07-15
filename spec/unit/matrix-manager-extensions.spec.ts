@@ -131,6 +131,7 @@ describe("matrix manager extension defaults", () => {
     it("createRoomWidgetClient should also trigger manager extension initialization", async () => {
         expect(isManagerExtensionsInitialized()).toBe(false);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const widgetApi = new EventEmitter() as any;
         widgetApi.transport = {
             send: async () => ({}),
@@ -139,6 +140,7 @@ describe("matrix manager extension defaults", () => {
         widgetApi.start = () => undefined;
         widgetApi.sendContentLoaded = () => undefined;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const capabilities = {} as any;
         const roomId = "!room:example.com";
         const opts = {
@@ -148,6 +150,7 @@ describe("matrix manager extension defaults", () => {
         };
 
         // Mock createRoomWidgetClient as it's not directly imported
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const createRoomWidgetClient = (widgetApi: any, capabilities: any, roomId: string, opts: any) => {
             extendMatrixClientWithManagers();
             return {};
@@ -163,6 +166,7 @@ describe("matrix manager extension defaults", () => {
     it("createRoomWidgetClient should skip dynamic manager extension initialization when disabled", async () => {
         expect(isManagerExtensionsInitialized()).toBe(false);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const widgetApi = new EventEmitter() as any;
         widgetApi.transport = {
             send: async () => ({}),
@@ -171,6 +175,7 @@ describe("matrix manager extension defaults", () => {
         widgetApi.start = () => undefined;
         widgetApi.sendContentLoaded = () => undefined;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const capabilities = {} as any;
         const roomId = "!room:example.com";
         const opts = {
@@ -180,6 +185,7 @@ describe("matrix manager extension defaults", () => {
             disableDynamicExtensions: true,
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const createRoomWidgetClient = (widgetApi: any, capabilities: any, roomId: string, options: any) => {
             if (!options.disableDynamicExtensions) {
                 extendMatrixClientWithManagers();

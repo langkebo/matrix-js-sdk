@@ -18,6 +18,7 @@ describe("UserPresenceManager", () => {
             http: { authedRequest },
             getUserId,
             isGuest,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
@@ -32,6 +33,7 @@ describe("UserPresenceManager", () => {
             });
 
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("presenceUpdated" as any, (p: unknown) => events.push(p));
 
             const res = await manager.getUserPresence("@alice:example.com");
@@ -92,6 +94,7 @@ describe("UserPresenceManager", () => {
         });
 
         it("rejects invalid presence states", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.setPresence("invalid" as any)).rejects.toBeInstanceOf(InvalidParamError);
             expect(authedRequest).not.toHaveBeenCalled();
         });
@@ -120,6 +123,7 @@ describe("UserPresenceManager", () => {
         it("POSTs /presence/list with the user_ids array and emits", async () => {
             authedRequest.mockResolvedValueOnce(undefined);
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("presenceSubscribed" as any, (p: unknown) => events.push(p));
 
             await manager.subscribeToPresence(["@a:e.com", "@b:e.com"]);

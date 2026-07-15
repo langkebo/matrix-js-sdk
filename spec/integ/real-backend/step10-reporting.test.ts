@@ -24,6 +24,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -84,6 +85,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.reportRoom(testRoomId, "Test reason");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Report room not available");
         }
@@ -94,6 +96,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.reportEvent(testRoomId, testEventId, -100, "Test reason");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Report event not available");
         }
@@ -106,6 +109,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).scanContent("test-content");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Scan content not available");
         }
@@ -115,6 +119,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getContentScannerInfo();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get content scanner info not available");
         }
@@ -128,6 +133,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getStateEvents(testRoomId, "m.room.power_levels");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get power levels not available");
         }
@@ -138,6 +144,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.setPowerLevel(testRoomId, client!.getUserId()!, 100);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set power level not available");
         }
@@ -148,6 +155,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getUserPowerLevel(testRoomId, client!.getUserId()!);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get user power level not available");
         }
@@ -161,6 +169,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getMembership(testRoomId, client!.getUserId()!);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get membership not available");
         }
@@ -171,6 +180,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getMembers(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get members not available");
         }
@@ -181,6 +191,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getMembersWithProfiles(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get members with profiles not available");
         }
@@ -194,6 +205,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getPinnedEvents(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get pinned events not available");
         }
@@ -204,6 +216,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.pinEvent(testRoomId, testEventId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Pin event not available");
         }
@@ -214,6 +227,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.unpinEvent(testRoomId, testEventId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Unpin event not available");
         }
@@ -230,6 +244,7 @@ async function main(): Promise<void> {
                     body: "Updated message",
                 });
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Replace event not available");
         }
@@ -240,6 +255,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.editEvent(testRoomId, testEventId, "Updated message");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Edit event not available");
         }
@@ -250,6 +266,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.redactEvent(testRoomId, testEventId, "Test reason");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Redact event not available");
         }
@@ -263,6 +280,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.getThread(testRoomId, testEventId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get thread not available");
         }
@@ -273,6 +291,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getThreads(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get threads not available");
         }
@@ -283,6 +302,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.createThread(testRoomId, testEventId, "Thread reply");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Create thread not available");
         }
@@ -297,6 +317,7 @@ async function main(): Promise<void> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await (client as any).getAggregatedTimeline(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get aggregated timeline not available");
         }
@@ -307,6 +328,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.getRelations(testRoomId, testEventId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get relations not available");
         }
@@ -317,6 +339,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.getEventAggregations(testRoomId, testEventId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get event aggregations not available");
         }
@@ -327,6 +350,7 @@ async function main(): Promise<void> {
             if (testRoomId && testEventId) {
                 await client!.getReactionCount(testRoomId, testEventId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get reaction count not available");
         }

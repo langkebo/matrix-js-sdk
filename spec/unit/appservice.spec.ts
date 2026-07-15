@@ -7,6 +7,7 @@ import { ClientPrefix } from "../../src/http-api/prefix.ts";
 describe("ApplicationServiceManager", () => {
     let manager: ApplicationServiceManager;
     let authedRequest: ReturnType<typeof vi.fn>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let client: any;
 
     beforeEach(() => {

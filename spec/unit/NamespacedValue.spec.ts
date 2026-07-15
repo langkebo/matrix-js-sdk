@@ -61,6 +61,7 @@ describe("UnstableValue", () => {
     it("should return unstable if there is no stable", () => {
         const ns = new UnstableValue(null!, "unstable");
         expect(ns.name).toBe(ns.unstable);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect(<any>ns.altName).toBeFalsy();
         expect(ns.names).toEqual([ns.unstable]);
     });

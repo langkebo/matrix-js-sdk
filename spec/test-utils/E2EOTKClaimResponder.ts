@@ -44,6 +44,7 @@ export class E2EOTKClaimResponder {
     private onKeyClaimRequest(options: RequestInit) {
         const content = JSON.parse(options.body as string) as IClaimKeysRequest;
         const response = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             one_time_keys: {} as { [userId: string]: any },
         };
         for (const [userId, devices] of Object.entries(content["one_time_keys"])) {

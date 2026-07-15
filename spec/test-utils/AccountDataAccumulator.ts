@@ -32,10 +32,12 @@ export class AccountDataAccumulator {
      * The account data events to be returned by the sync.
      * Will be updated when fetchMock intercepts calls to PUT `/_matrix/client/v3/user/:userId/account_data/`.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public accountDataEvents: Map<string, any> = new Map();
 
     public constructor(private syncResponder: ISyncResponder) {}
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private accountDataResolvers = new Map<string, PromiseWithResolvers<any>>();
     private setInterceptRunning = false;
 
@@ -82,7 +84,9 @@ export class AccountDataAccumulator {
      *
      * @returns a Promise which will resolve (with the content of the account data) once it is set.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public waitForAccountData(type: string): Promise<any> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const resolvers = Promise.withResolvers<any>();
         this.accountDataResolvers.set(type, resolvers);
         this.interceptSetAccountData();

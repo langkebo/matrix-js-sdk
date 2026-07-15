@@ -18,6 +18,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -108,6 +109,7 @@ async function main(): Promise<void> {
         try {
             await friendManager.sendFriendRequest(TestConfig.secondaryUser.userId, "测试好友请求");
             console.log("      已发送好友请求");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             if (e.message?.includes("already")) {
                 console.log("      ⚠️ 好友请求已存在");
@@ -128,6 +130,7 @@ async function main(): Promise<void> {
         try {
             await friendManager.addFriend(TestConfig.secondaryUser.userId, "测试添加好友");
             console.log("      已发送添加好友请求");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             if (e.message?.includes("already")) {
                 console.log("      ⚠️ 好友请求已存在");

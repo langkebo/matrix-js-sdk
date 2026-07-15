@@ -15,9 +15,11 @@ describe("RelationsManager", () => {
         const manager = new RelationsManager({
             http: { authedRequest },
             canSupport: new Map(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.fetchRelations("!room:example.org", "$ctx", "m.reference", "m.room.message", { limit: 5 } as any),
         ).resolves.toEqual({
             chunk: [],
@@ -42,6 +44,7 @@ describe("RelationsManager", () => {
         const manager = new RelationsManager({
             http: { authedRequest },
             canSupport: new Map(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await expect(manager.getAggregations("!room:example.org", "$ctx", "m.annotation")).resolves.toEqual({
@@ -71,7 +74,9 @@ describe("RelationsManager", () => {
         const manager = new RelationsManager({
             http: { authedRequest },
             canSupport: new Map(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(manager as any, "emit").mockImplementation(emit);
 
         await expect(
@@ -107,7 +112,9 @@ describe("RelationsManager", () => {
         const manager = new RelationsManager({
             http: { authedRequest },
             canSupport: new Map(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.spyOn(manager as any, "emit").mockImplementation(emit);
 
         await expect(
@@ -118,8 +125,10 @@ describe("RelationsManager", () => {
 
     // ---------- Helper aggregations ----------
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const identityMapper = (event: any) => event;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function makeManager(resolvedValue: any, options: { reject?: boolean } = {}) {
         const authedRequest = options.reject
             ? vi.fn().mockRejectedValue(resolvedValue)
@@ -128,6 +137,7 @@ describe("RelationsManager", () => {
             http: { authedRequest },
             canSupport: new Map(),
             getEventMapper: () => identityMapper,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         return { manager, authedRequest };
     }
@@ -141,6 +151,7 @@ describe("RelationsManager", () => {
 
         const result = await manager.getAnnotations("!room:example.org", "$ctx");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect(result.events.map((e: any) => e.event_id)).toEqual(["$a", "$b"]);
         expect(result.nextBatch).toBe("next");
         expect(result.total).toBe(2);
@@ -171,6 +182,7 @@ describe("RelationsManager", () => {
     it("getLatestRelation returns the first chunk entry mapped to an event", async () => {
         const { manager } = makeManager({ chunk: [{ event_id: "$latest" }, { event_id: "$older" }] });
         const latest = await manager.getLatestRelation("!room:example.org", "$ctx", "m.replace");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((latest as any)?.event_id).toBe("$latest");
     });
 
@@ -227,6 +239,7 @@ describe("RelationsManager", () => {
             http: { authedRequest },
             canSupport: new Map(),
             getEventMapper: () => identityMapper,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         await expect(manager.getRelationTypes("!room:example.org", "$ctx")).resolves.toEqual([

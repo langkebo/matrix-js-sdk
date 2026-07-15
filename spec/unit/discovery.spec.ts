@@ -21,6 +21,7 @@ import { RoomType } from "../../src/@types/event.ts";
 import { Method } from "../../src/http-api";
 
 describe("DiscoveryManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let discoveryManager: DiscoveryManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

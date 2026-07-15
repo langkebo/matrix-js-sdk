@@ -4,6 +4,7 @@ import { WidgetsManager } from "../../src/widgets/index";
 import type { MatrixEvent } from "../../src/models/event";
 
 describe("WidgetsManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let widgetsManager: WidgetsManager;
 

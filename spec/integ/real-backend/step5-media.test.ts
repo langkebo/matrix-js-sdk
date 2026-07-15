@@ -21,6 +21,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -75,6 +76,7 @@ async function main(): Promise<void> {
                 filename: "test.txt",
             });
             // 可能返回 content URI
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Upload may require different format");
         }
@@ -91,6 +93,7 @@ async function main(): Promise<void> {
         try {
             const mxcUrl = "mxc://test-server.com/test-media";
             const link = await client!.getDownloadLink(mxcUrl);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Download link not available");
         }
@@ -100,6 +103,7 @@ async function main(): Promise<void> {
         try {
             const mxcUrl = "mxc://test-server.com/test-media";
             const thumb = await client!.getThumbnail(mxcUrl, 100, 100);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Thumbnail not available");
         }
@@ -111,6 +115,7 @@ async function main(): Promise<void> {
     await runTest("getUrlPreview", async () => {
         try {
             const preview = await client!.getUrlPreview("https://matrix.org");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ URL preview not supported");
         }
@@ -119,6 +124,7 @@ async function main(): Promise<void> {
     await runTest("getOEmbedUrl", async () => {
         try {
             const oembed = await client!.getOEmbedUrl("https://matrix.org", true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ OEmbed not supported");
         }
@@ -130,6 +136,7 @@ async function main(): Promise<void> {
     await runTest("getPushers", async () => {
         try {
             const pushers = await client!.getPushers();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Pushers not supported");
         }
@@ -146,6 +153,7 @@ async function main(): Promise<void> {
                     url: "https://test.com",
                 },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set pusher not supported");
         }
@@ -157,6 +165,7 @@ async function main(): Promise<void> {
     await runTest("getPushRules", async () => {
         try {
             const rules = await client!.getPushRules();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Push rules not supported");
         }
@@ -165,6 +174,7 @@ async function main(): Promise<void> {
     await runTest("getPushRule", async () => {
         try {
             const rule = await client!.getPushRule("global", "room", testRoomId || "");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get push rule not supported");
         }
@@ -175,6 +185,7 @@ async function main(): Promise<void> {
             await client!.setPushRule("global", "room", testRoomId || "", {
                 actions: ["notify"],
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set push rule not supported");
         }
@@ -186,6 +197,7 @@ async function main(): Promise<void> {
     await runTest("getPushNotifications", async () => {
         try {
             const notifications = await client!.getPushNotifications({}, 10);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Push notifications not supported");
         }
@@ -197,6 +209,7 @@ async function main(): Promise<void> {
     await runTest("getNotifications", async () => {
         try {
             const notifications = await client!.getNotifications();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Notifications not supported");
         }
@@ -207,6 +220,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 const notifications = await client!.getRoomNotifications(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Room notifications not supported");
         }
@@ -219,6 +233,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 await client!.sendReadReceipt(testRoomId, "$test-event");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Send read receipt may require event");
             }
@@ -229,6 +244,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 const receipt = await client!.getReadReceipt(testRoomId, client!.getUserId() || "");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get read receipt not supported");
             }
@@ -239,6 +255,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 const receipts = await client!.getReadReceiptsForEvent(testRoomId, "$test-event");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get receipts for event not supported");
             }
@@ -252,6 +269,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 await client!.sendTyping(testRoomId, client!.getUserId() || "", true, 5000);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Send typing not supported");
             }
@@ -262,6 +280,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 const users = await client!.getTypingUsers(testRoomId);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get typing users not supported");
             }
@@ -275,6 +294,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 const tags = await client!.getRoomTags(testRoomId);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get room tags not supported");
             }
@@ -287,6 +307,7 @@ async function main(): Promise<void> {
                 await client!.setRoomTag(testRoomId, "m.favorite", {
                     order: 1,
                 });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Set room tag not supported");
             }
@@ -297,6 +318,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 await client!.removeRoomTag(testRoomId, "m.favorite");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Remove room tag not supported");
             }
@@ -310,6 +332,7 @@ async function main(): Promise<void> {
         if (testRoomId) {
             try {
                 await client!.setRoomAccountData(testRoomId, "m.tag", { tags: {} });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Room account data not supported");
             }

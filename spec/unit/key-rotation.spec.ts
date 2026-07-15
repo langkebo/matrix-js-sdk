@@ -32,6 +32,7 @@ describe("KeyRotationManager", () => {
 
         const client = {
             http: mockHttp,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
 
         manager = new KeyRotationManager(client);

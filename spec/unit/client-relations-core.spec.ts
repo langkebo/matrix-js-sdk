@@ -7,6 +7,7 @@ function createEvent(type: string, sender: string) {
     return {
         getType: () => type,
         getSender: () => sender,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 }
 

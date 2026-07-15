@@ -138,6 +138,7 @@ describe("client-receipts", () => {
                 event_id: "$event_id",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockClient.getUserId).toHaveBeenCalled();
@@ -161,6 +162,7 @@ describe("client-receipts", () => {
             });
             vi.spyOn(event, "getId").mockReturnValue(undefined);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockClient.getUserId).toHaveBeenCalled();
@@ -185,6 +187,7 @@ describe("client-receipts", () => {
                 event_id: "$event_id",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockRoom.findEventById).toHaveBeenCalledWith("$event_id");
@@ -211,6 +214,7 @@ describe("client-receipts", () => {
             });
             vi.spyOn(event, "threadRootId", "get").mockReturnValue(undefined);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockRoom.hasUserReadEvent).toHaveBeenCalledWith("@user:server", "$event_id");
@@ -242,6 +246,7 @@ describe("client-receipts", () => {
             });
             vi.spyOn(event, "threadRootId", "get").mockReturnValue(undefined);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockRoom.setUnreadNotificationCount).toHaveBeenCalledWith(NotificationCountType.Highlight, 1);
@@ -272,6 +277,7 @@ describe("client-receipts", () => {
             });
             vi.spyOn(event, "threadRootId", "get").mockReturnValue(undefined);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockRoom.setUnreadNotificationCount).toHaveBeenCalledWith(NotificationCountType.Total, 1);
@@ -307,6 +313,7 @@ describe("client-receipts", () => {
             vi.spyOn(event, "threadRootId", "get").mockReturnValue("$thread_root");
             vi.spyOn(event, "isThreadRoot", "get").mockReturnValue(false);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fixNotificationCountOnDecryption(mockClient as unknown as any, event);
 
             expect(mockRoom.getThread).toHaveBeenCalledWith("$thread_root");

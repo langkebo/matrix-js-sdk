@@ -10,6 +10,7 @@ describe("client-voip-group-call", () => {
         };
 
         await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             createGroupCallForRoom(client as any, "!room:example.org", "video" as any, false, "ring" as any),
         ).rejects.toThrow("already has an existing group call");
     });
@@ -21,6 +22,7 @@ describe("client-voip-group-call", () => {
         };
 
         await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             createGroupCallForRoom(client as any, "!room:example.org", "video" as any, false, "ring" as any),
         ).rejects.toThrow("Cannot find room");
     });

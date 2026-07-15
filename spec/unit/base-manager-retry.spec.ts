@@ -53,6 +53,7 @@ describe("BaseManager.withRetry", () => {
             .mockRejectedValueOnce(new MatrixError({ errcode: "M_LIMIT_EXCEEDED", retry_after_ms: 1234 }, 429))
             .mockResolvedValueOnce("ok");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sleepSpy = vi.spyOn(manager as any, "sleep");
 
         await expect(
@@ -69,6 +70,7 @@ describe("BaseManager.withRetry", () => {
             .mockRejectedValueOnce(new HTTPError("rate limited", 429))
             .mockResolvedValueOnce("ok");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sleepSpy = vi.spyOn(manager as any, "sleep");
 
         await expect(manager.run(fn, { maxRetries: 1, retryDelay: 10, idempotent: true })).resolves.toBe("ok");

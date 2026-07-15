@@ -197,6 +197,7 @@ describe("PerSessionKeyBackupDownloader", () => {
             blockOnServerRequest.resolve();
 
             await awaitKey2Imported.promise;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(<any>spy).toHaveBeenCalledTimes(2);
         });
 
@@ -493,9 +494,11 @@ describe("PerSessionKeyBackupDownloader", () => {
 
             keyQuerySpy.mockImplementation(
                 // @ts-ignore
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 async (targetRoomId: string, targetSessionId: string, configuration: any) => {
                     try {
                         return await originalImplementation(targetRoomId, targetSessionId, configuration);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } catch (err: any) {
                         if (err.name === "KeyDownloadRateLimitError") {
                             rateDeferred.resolve();
@@ -549,9 +552,11 @@ describe("PerSessionKeyBackupDownloader", () => {
 
             keyQuerySpy.mockImplementation(
                 // @ts-ignore
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 async (targetRoomId: string, targetSessionId: string, configuration: any) => {
                     try {
                         return await originalImplementation(targetRoomId, targetSessionId, configuration);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } catch (err: any) {
                         if (err.name === "KeyDownloadError") {
                             errorDeferred.resolve();

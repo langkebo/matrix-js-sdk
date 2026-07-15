@@ -45,6 +45,7 @@ describe("client.manager() accessor", () => {
     });
 
     // Helper: manager() is typed — use any to test runtime behavior with test classes
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mgr = (c: MatrixClient, name: string): any => (c as any).manager(name);
 
     // ── Basic access ────────────────────────────────────────────

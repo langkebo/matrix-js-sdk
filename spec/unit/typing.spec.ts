@@ -6,6 +6,7 @@ import { Method } from "../../src/http-api";
 import { ClientPrefix } from "../../src/http-api/prefix";
 
 describe("TypingManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let typingManager: TypingManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

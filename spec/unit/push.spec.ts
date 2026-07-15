@@ -7,11 +7,13 @@ import { HTTPError } from "../../src/http-api/errors";
 import { PushRuleKind, PushRuleActionName, TweakName } from "../../src/@types/PushRules";
 
 describe("PushManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let pushManager: PushManager;
 
     const createMockClient = () => ({
         http: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             authedRequest: vi.fn().mockImplementation((method: any, path: string) => {
                 if (path === "/pushers") {
                     return Promise.resolve({
@@ -165,6 +167,7 @@ describe("PushManager", () => {
                     app_display_name: "Test",
                     device_display_name: "Device",
                     lang: "en",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             ).rejects.toThrow(InvalidParamError);
         });
@@ -176,6 +179,7 @@ describe("PushManager", () => {
                     app_display_name: "Test",
                     device_display_name: "Device",
                     lang: "en",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             ).rejects.toThrow(InvalidParamError);
         });
@@ -258,6 +262,7 @@ describe("PushManager", () => {
         });
 
         it("should throw InvalidParamError when kind is missing", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(pushManager.getPushRulesByKind("global", "" as any)).rejects.toThrow(InvalidParamError);
         });
     });
@@ -287,6 +292,7 @@ describe("PushManager", () => {
 
         it("should throw InvalidParamError when parameters are missing", async () => {
             await expect(pushManager.getPushRule("", PushRuleKind.Override, "rule")).rejects.toThrow(InvalidParamError);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(pushManager.getPushRule("global", "" as any, "rule")).rejects.toThrow(InvalidParamError);
             await expect(pushManager.getPushRule("global", PushRuleKind.Override, "")).rejects.toThrow(
                 InvalidParamError,

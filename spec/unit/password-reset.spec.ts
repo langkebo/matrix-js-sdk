@@ -13,6 +13,7 @@ describe("PasswordResetManager", () => {
         request = vi.fn();
         manager = new PasswordResetManager({
             http: { authedRequest, request },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
@@ -21,10 +22,12 @@ describe("PasswordResetManager", () => {
         it("posts auth + new password to /account/password and emits password_changed", async () => {
             authedRequest.mockResolvedValueOnce({});
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("password_changed" as any, () => events.push("changed"));
 
             await expect(
                 manager.setPassword(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     { type: "m.login.password", user: "@alice:example.com", password: "old" } as any,
                     "n3w-pass",
                     true,
@@ -46,8 +49,10 @@ describe("PasswordResetManager", () => {
             });
             authedRequest.mockRejectedValueOnce(err);
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("password_changed" as any, () => events.push("changed"));
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.setPassword({} as any, "n3w-pass")).rejects.toMatchObject({
                 httpStatus: 401,
                 errcode: "M_FORBIDDEN",
@@ -60,6 +65,7 @@ describe("PasswordResetManager", () => {
         it("POSTs to /account/password/email/requestToken via http.request", async () => {
             request.mockResolvedValueOnce({ sid: "sid1", submit_url: "https://example.com" });
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("password_reset_token_requested" as any, (d: unknown) => events.push(d));
 
             const out = await manager.requestPasswordEmailToken("a@b.com", "secret", 1, "https://next");
@@ -85,6 +91,7 @@ describe("PasswordResetManager", () => {
             });
             request.mockRejectedValueOnce(err);
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("password_reset_token_requested" as any, (d: unknown) => events.push(d));
 
             await expect(manager.requestPasswordEmailToken("a@b.com", "secret", 1)).rejects.toMatchObject({
@@ -99,6 +106,7 @@ describe("PasswordResetManager", () => {
         it("POSTs to /account/password/msisdn/requestToken via http.request", async () => {
             request.mockResolvedValueOnce({ sid: "sid-msisdn", submit_url: "https://example.com/msisdn" });
             const events: unknown[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager.on("password_reset_token_requested" as any, (d: unknown) => events.push(d));
 
             const out = await manager.requestPasswordMsisdnToken("GB", "07123456789", "secret", 2, "https://next");

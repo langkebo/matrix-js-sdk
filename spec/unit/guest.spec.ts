@@ -24,6 +24,7 @@ describe("GuestManager", () => {
                 getRooms,
                 joinRoom,
                 getHomeserverUrl: () => "https://h",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any,
             "https://h",
         );
@@ -137,6 +138,7 @@ describe("GuestManager", () => {
 
     describe("upgradeGuestAccountOnServer", () => {
         it("requires username for the backend guest upgrade route", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.upgradeGuestAccountOnServer({ password: "pw" } as any)).rejects.toThrow(
                 "username is required",
             );

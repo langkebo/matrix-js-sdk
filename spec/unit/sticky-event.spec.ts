@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { StickyEventManager } from "../../src/sticky-event/index";
 
 describe("StickyEventManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: StickyEventManager;
     let authedRequest: ReturnType<typeof vi.fn>;
@@ -31,6 +32,7 @@ describe("StickyEventManager", () => {
                 sender: "@me:x",
                 ts: 100,
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await manager.setStickyEvent("!r:x", "$e1", content as any);
             expect(sendStateEvent).toHaveBeenCalled();
             expect(sendStateEvent.mock.calls[0][0]).toBe("!r:x");
@@ -57,6 +59,7 @@ describe("StickyEventManager", () => {
                 sender: "@me:x",
                 ts: 100,
             };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await manager.setStickyEvent("!r:x", "$e1", content as any);
             const fromCache = await manager.getStickyEvent("!r:x");
             expect(fromCache?.eventId).toBe("$e1");
@@ -71,6 +74,7 @@ describe("StickyEventManager", () => {
                 content: {},
                 sender: "@me:x",
                 ts: 1,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
             expect(await manager.hasStickyEvent("!r:x")).toBe(true);
         });
@@ -89,6 +93,7 @@ describe("StickyEventManager", () => {
                 content: {},
                 sender: "@me:x",
                 ts: 1,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
             sendStateEvent.mockClear();
             await manager.clearStickyEvent("!r:x");

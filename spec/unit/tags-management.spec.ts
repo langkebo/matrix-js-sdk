@@ -17,14 +17,18 @@ describe("TagsManager", () => {
             http: { authedRequest },
             credentials: { userId: "@alice:example.com" },
             getRoom: vi.fn().mockImplementation((roomId: string) => ({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 tags: ((getRoomTagsStub as any)(roomId) || []).reduce(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (acc: any, t: string) => ({ ...acc, [t]: {} }),
                     {},
                 ),
                 getAccountData: (type: string) => ({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     getContent: () => (getRoomAccountDataStub as any)(roomId, type),
                 }),
             })),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });

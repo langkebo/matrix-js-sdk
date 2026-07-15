@@ -21,6 +21,7 @@ describe("CrossSigningManager", () => {
             getCrypto: vi.fn().mockReturnValue(mockCrypto),
             getUserId: vi.fn().mockReturnValue("@alice:example.org"),
         };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new CrossSigningManager(client as any);
     }
 

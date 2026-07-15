@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { SessionManager } from "../../src/session/index";
 
 describe("SessionManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let sessionManager: SessionManager;
 

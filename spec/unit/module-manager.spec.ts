@@ -11,6 +11,7 @@ describe("ModuleManager", () => {
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new ModuleManager({} as any, { transport });
     });
 
@@ -76,6 +77,7 @@ describe("ModuleManager", () => {
         });
 
         it("should delete a module and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -98,6 +100,7 @@ describe("ModuleManager", () => {
         });
 
         it("should enable a module and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -108,6 +111,7 @@ describe("ModuleManager", () => {
         });
 
         it("should disable a module and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -297,6 +301,7 @@ describe("ModuleManager", () => {
     describe("account validity", () => {
         it("should check account validity", async () => {
             expect.assertions(0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
 
             await manager.checkAccountValidity();
@@ -317,6 +322,7 @@ describe("ModuleManager", () => {
         });
 
         it("should renew account validity and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 

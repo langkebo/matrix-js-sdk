@@ -9,6 +9,7 @@ describe("ReportingManager", () => {
 
     beforeEach(() => {
         authedRequest = vi.fn();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new ReportingManager({ http: { authedRequest } } as any);
         // Disable retries so 4xx-style assertions stay deterministic.
         manager.setRetryOptions({ maxRetries: 0 });

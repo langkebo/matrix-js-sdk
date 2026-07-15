@@ -22,6 +22,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -141,6 +142,7 @@ async function main(): Promise<void> {
                 term: "test",
             });
             // API可能不支持
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ User directory search not supported");
         }
@@ -156,6 +158,7 @@ async function main(): Promise<void> {
                 "GET",
                 "/user_directory",
             );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ User directory API not supported");
         }
@@ -228,6 +231,7 @@ async function main(): Promise<void> {
         try {
             const ignored = await client!.getIgnoredUsers();
             // 可能为空
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Ignored users API not supported");
         }
@@ -236,6 +240,7 @@ async function main(): Promise<void> {
     await runTest("ignoreUser", async () => {
         try {
             await client!.ignoreUser(TestConfig.secondaryUser.userId);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Ignore user not supported");
         }
@@ -244,6 +249,7 @@ async function main(): Promise<void> {
     await runTest("unignoreUser", async () => {
         try {
             await client!.unignoreUser(TestConfig.secondaryUser.userId);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Unignore user not supported");
         }
@@ -256,6 +262,7 @@ async function main(): Promise<void> {
         try {
             const caps = await client!.getCapabilities();
             // 可能不支持
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Capabilities API not supported");
         }
@@ -265,6 +272,7 @@ async function main(): Promise<void> {
         try {
             const versions = await client!.getVersions();
             // 可能不支持
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Versions API not supported");
         }

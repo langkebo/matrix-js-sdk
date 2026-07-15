@@ -41,6 +41,7 @@ describe("FriendManager", () => {
                 authedRequest: mockAuthedRequest,
             },
             getUserId: () => "@alice:example.com",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
 
         friendManager = new FriendManager(client);
@@ -52,9 +53,11 @@ describe("FriendManager", () => {
         });
 
         it("uses centralized synapse-rust friends discovery when available", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client as any).doesServerAdvertiseSynapseRustFeature = vi.fn().mockResolvedValue(false);
 
             await expect(friendManager.isSupported()).resolves.toBe(false);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((client as any).doesServerAdvertiseSynapseRustFeature).toHaveBeenCalledWith("io.hula.friends");
         });
     });
@@ -294,6 +297,7 @@ describe("FriendManager", () => {
                 room_id: "!friends:example.com",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const roomId = await (friendManager as any).ensureFriendListRoom();
 
             expect(roomId).toBe("!friends:example.com");
@@ -306,6 +310,7 @@ describe("FriendManager", () => {
         it("should not fall back to posting /friends when room_id is absent", async () => {
             mockAuthedRequest.mockResolvedValueOnce({ friends: [] });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const roomId = await (friendManager as any).ensureFriendListRoom();
 
             expect(roomId).toBe("");

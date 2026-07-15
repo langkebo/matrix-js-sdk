@@ -199,6 +199,7 @@ export class TestClient implements IE2EKeyReceiver, ISyncResponder {
     public expectKeyQuery(response: IDownloadKeyResult) {
         this.httpBackend.when("POST", "/keys/query").respond<IDownloadKeyResult>(200, (_path, content) => {
             Object.keys(response.device_keys).forEach((userId) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 expect((content.device_keys! as Record<string, any>)[userId]).toEqual([]);
             });
             return response;

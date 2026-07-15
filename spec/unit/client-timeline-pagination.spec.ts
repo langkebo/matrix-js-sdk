@@ -32,6 +32,7 @@ describe("client timeline pagination helper", () => {
             getFilter: () => undefined,
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = paginateEventTimelineRequest(eventTimeline as any, { backwards: true }, { ...baseDeps });
         await expect(result).resolves.toBe(true);
         expect(result).toBe(pending);
@@ -52,10 +53,12 @@ describe("client timeline pagination helper", () => {
 
         expect(() =>
             paginateEventTimelineRequest(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 eventTimeline as any,
                 { backwards: false },
                 {
                     ...baseDeps,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     notifTimelineSet: notifTimelineSet as any,
                 },
             ),
@@ -77,6 +80,7 @@ describe("client timeline pagination helper", () => {
 
         expect(() =>
             paginateEventTimelineRequest(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 eventTimeline as any,
                 { backwards: true },
                 {

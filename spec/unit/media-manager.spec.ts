@@ -25,6 +25,7 @@ describe("MediaManager", () => {
             },
             baseUrl: "https://hs.example.com",
             getClientWellKnown: vi.fn().mockReturnValue(undefined),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
@@ -41,6 +42,7 @@ describe("MediaManager", () => {
         });
 
         it("throws ValidationError when file is missing", () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect(() => manager.uploadContent(undefined as any)).toThrow(ValidationError);
             expect(uploadContent).not.toHaveBeenCalled();
         });
@@ -162,6 +164,7 @@ describe("MediaManager", () => {
 
         it("cancelUpload delegates to http.cancelUpload", () => {
             cancelUpload.mockReturnValueOnce(true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const p = Promise.resolve({ content_uri: "mxc://hs/x" } as any);
             expect(manager.cancelUpload(p)).toBe(true);
             expect(cancelUpload).toHaveBeenCalledWith(p);

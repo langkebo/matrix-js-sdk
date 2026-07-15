@@ -4,6 +4,7 @@ import { E2EEManager } from "../../src/e2ee/index";
 import { logger } from "../../src/logger";
 
 describe("E2EEManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: E2EEManager;
 
@@ -97,6 +98,7 @@ describe("E2EEManager", () => {
         ).resolves.toEqual({ backup_id: "b2" });
 
         // Neither passphrase nor algorithm → error
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await expect(manager.createSecureBackup({} as any)).rejects.toThrow(
             "Either passphrase or algorithm must be provided",
         );

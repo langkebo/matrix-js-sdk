@@ -248,6 +248,7 @@ describe("VerificationRequest", () => {
             bobOlmMachine,
             bobDeviceKeys,
             bobCrossSigningKeys,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             async (request): Promise<any> => {
                 // If the request is sending the m.key.verification.start
                 // event, we delay sending it until after Bob has also started
@@ -480,6 +481,7 @@ describe("VerificationRequest", () => {
  *
  * Modify the content of the supplied content to include `msgtype: m.key.verification.request`.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function todoFixupVerificationRequestContent(content: any) {
     content.msgtype = "m.key.verification.request";
 }
@@ -545,8 +547,11 @@ function makeMockedInner(): Mocked<RustSdkCryptoJs.VerificationRequest> {
 }
 
 interface CrossSigningKeys {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     master_key: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     self_signing_key: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     user_signing_key: any;
 }
 
@@ -580,6 +585,7 @@ async function initOlmMachineAndKeys(
     return [olmMachine, deviceKeys, crossSigningKeys];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CustomRequestHandler = (request: OutgoingRequest | RustSdkCryptoJs.UploadSigningKeysRequest) => Promise<any>;
 
 /** Loop for handling outgoing requests from an Olm machine.
@@ -606,14 +612,18 @@ function makeRequestLoop(
     const theirUserId = theirOlmMachine.userId.toString();
     const theirDeviceId = theirOlmMachine.deviceId.toString();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function defaultHandler(request: OutgoingRequest | RustSdkCryptoJs.UploadSigningKeysRequest): any {
         if (request instanceof RustSdkCryptoJs.KeysQueryRequest) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const resp: Record<string, any> = {
                 device_keys: {},
             };
             const body = JSON.parse(request.body);
             const query = body.device_keys;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const masterKeys: Record<string, any> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const selfSigningKeys: Record<string, any> = {};
             if (ourUserId in query) {
                 resp.device_keys[ourUserId] = { [ourDeviceId]: ourDeviceKeys };
@@ -662,6 +672,7 @@ function makeRequestLoop(
 
     async function makeOutgoingRequest(
         request: OutgoingRequest | RustSdkCryptoJs.UploadSigningKeysRequest,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<any> {
         const resp = (await customHandler?.(request)) ?? defaultHandler(request);
         if (!(request instanceof RustSdkCryptoJs.UploadSigningKeysRequest) && request.id) {

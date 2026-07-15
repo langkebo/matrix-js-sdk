@@ -4,6 +4,7 @@ import { ValidationError } from "../../src/errors";
 import { BackgroundUpdateManager } from "../../src/background-update/index";
 
 describe("BackgroundUpdateManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
     let manager: BackgroundUpdateManager;

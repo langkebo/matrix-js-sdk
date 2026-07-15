@@ -94,6 +94,7 @@ describe("Cross-signing + secret storage real backend integration", () => {
                 authUploadDeviceSigningKeys: async (makeRequest) => {
                     try {
                         return await makeRequest(null);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } catch (e: any) {
                         if (e.errcode === "M_UIA_REQUIRED") {
                             const session = e.data.session;

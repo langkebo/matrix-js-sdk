@@ -4,6 +4,7 @@ import { DirectoryManager } from "../../src/directory";
 import { Method } from "../../src/http-api";
 
 describe("DirectoryManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: DirectoryManager;
 

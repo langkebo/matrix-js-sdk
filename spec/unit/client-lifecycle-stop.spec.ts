@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { stopClientLifecycleServices } from "../../src/client-lifecycle-stop";
 
 describe("client-lifecycle-stop", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let client: Record<string, any>;
     let syncApiMock: { stop: ReturnType<typeof vi.fn> };
     let callEventHandlerMock: { stop: ReturnType<typeof vi.fn> };
@@ -28,6 +29,7 @@ describe("client-lifecycle-stop", () => {
     });
 
     it("stops all lifecycle services", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stopClientLifecycleServices(client as any);
 
         expect(client.cryptoBackend.stop).toHaveBeenCalled();
@@ -48,6 +50,7 @@ describe("client-lifecycle-stop", () => {
     it("clears turn server interval ID", () => {
         client.checkTurnServersIntervalID = 456;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stopClientLifecycleServices(client as any);
 
         expect(client.checkTurnServersIntervalID).toBeUndefined();
@@ -59,6 +62,7 @@ describe("client-lifecycle-stop", () => {
         client.callEventHandler = undefined;
         client.groupCallEventHandler = undefined;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect(() => stopClientLifecycleServices(client as any)).not.toThrow();
     });
 });

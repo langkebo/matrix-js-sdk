@@ -41,6 +41,7 @@ import { MembershipManager, StickyEventMembershipManager } from "../../../src/ma
  * @param returnVal Provide an optional value that the mocked method should return. (use Promise.resolve(val) or Promise.reject(err))
  * @returns The promise that resolves once the method is called.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function waitForMockCall(method: MockedFunction<(...args: any[]) => any>, returnVal?: Promise<any>): Promise<void> {
     const { promise, resolve } = Promise.withResolvers<void>();
     method.mockImplementation(() => {
@@ -51,6 +52,7 @@ function waitForMockCall(method: MockedFunction<(...args: any[]) => any>, return
 }
 
 /** See waitForMockCall */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function waitForMockCallOnce(method: MockedFunction<(...args: any[]) => any>, returnVal?: Promise<any>) {
     const { promise, resolve } = Promise.withResolvers<void>();
     method.mockImplementationOnce(() => {
@@ -65,6 +67,7 @@ function waitForMockCallOnce(method: MockedFunction<(...args: any[]) => any>, re
  * @param method The method to control the resolve timing.
  * @returns
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createAsyncHandle<T>(method: MockedFunction<(...args: any[]) => any>) {
     const { reject, resolve, promise } = Promise.withResolvers<T>();
     method.mockImplementation(() => promise);
@@ -392,6 +395,7 @@ describe("MembershipManager", () => {
             //   (onRTCSessionMemberUpdate)
             // - Only then do we resolve the sending of the delayed event.
             // - We test that the manager acknowledges the leave and sends a new membership state event.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_restartScheduledDelayedEvent as Mock<any>).mockRejectedValueOnce(
                 new MatrixError({ errcode: "M_NOT_FOUND" }),
             );
@@ -462,6 +466,7 @@ describe("MembershipManager", () => {
             const manager = new MembershipManager({}, room, client, callSession);
             manager.join([focus]);
             await vi.advanceTimersByTimeAsync(1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendScheduledDelayedEvent as Mock<any>).mockRejectedValue("unknown");
             await manager.leave();
 
@@ -480,6 +485,7 @@ describe("MembershipManager", () => {
             const manager = new MembershipManager({}, room, client, callSession);
             manager.join([focus]);
             await vi.advanceTimersByTimeAsync(1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendScheduledDelayedEvent as Mock<any>).mockRejectedValue(
                 new MatrixError({ errcode: "M_NOT_FOUND" }, 404),
             );
@@ -568,6 +574,7 @@ describe("MembershipManager", () => {
             vi.mocked(client._unstable_restartScheduledDelayedEvent).mockClear();
             vi.mocked(client._unstable_sendDelayedStateEvent).mockClear();
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_restartScheduledDelayedEvent as Mock<any>).mockRejectedValueOnce(
                 new MatrixError({ errcode: "M_NOT_FOUND" }),
             );
@@ -706,6 +713,7 @@ describe("MembershipManager", () => {
                 expect(client._unstable_sendDelayedStateEvent).toHaveBeenCalledTimes(2);
             });
             it("abandons retry loop and sends new own membership if not present anymore", async () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(
                     new MatrixError(
                         { errcode: "M_LIMIT_EXCEEDED" },
@@ -722,6 +730,7 @@ describe("MembershipManager", () => {
                 await vi.advanceTimersByTimeAsync(1);
 
                 expect(client._unstable_sendDelayedStateEvent).toHaveBeenCalledTimes(1);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (client._unstable_sendDelayedStateEvent as Mock<any>).mockResolvedValue({ delay_id: "id" });
                 // Remove our own membership so that there is no reason the send the delayed leave anymore.
                 // the membership is no longer present on the homeserver
@@ -761,6 +770,7 @@ describe("MembershipManager", () => {
         });
         describe("retries sending update delayed leave event restart", () => {
             it("resends the initial check delayed update event", async () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (client._unstable_restartScheduledDelayedEvent as Mock<any>).mockRejectedValue(
                     new MatrixError(
                         { errcode: "M_LIMIT_EXCEEDED" },
@@ -782,6 +792,7 @@ describe("MembershipManager", () => {
                 expect(client._unstable_restartScheduledDelayedEvent).toHaveBeenCalledTimes(2);
 
                 // Setup resolve
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (client._unstable_restartScheduledDelayedEvent as Mock<any>).mockResolvedValue(undefined);
                 await vi.advanceTimersByTimeAsync(1000);
 
@@ -794,6 +805,7 @@ describe("MembershipManager", () => {
         // because legacy does not have a retry limit and no mechanism to communicate unrecoverable errors.
         it("throws, when reaching maximum number of retries for initial delayed event creation", async () => {
             const delayEventSendError = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(
                 new MatrixError(
                     { errcode: "M_LIMIT_EXCEEDED" },
@@ -814,6 +826,7 @@ describe("MembershipManager", () => {
         // because legacy does not have a retry limit and no mechanism to communicate unrecoverable errors.
         it("throws, when reaching maximum number of retries", async () => {
             const delayEventRestartError = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_restartScheduledDelayedEvent as Mock<any>).mockRejectedValue(
                 new MatrixError(
                     { errcode: "M_LIMIT_EXCEEDED" },
@@ -833,6 +846,7 @@ describe("MembershipManager", () => {
         });
         it("falls back to using pure state events when some error occurs while sending delayed events", async () => {
             const unrecoverableError = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(new HTTPError("unknown", 601));
             const manager = new MembershipManager({}, room, client, callSession);
             manager.join([focus], focusActive, unrecoverableError);
@@ -842,6 +856,7 @@ describe("MembershipManager", () => {
         });
         it("retries before failing in case its a network error", async () => {
             const unrecoverableError = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(new HTTPError("unknown", 501));
             const manager = new MembershipManager(
                 { networkErrorRetryMs: 1000, maximumNetworkErrorRetryCount: 7 },
@@ -862,6 +877,7 @@ describe("MembershipManager", () => {
         });
         it("retries before failing in case of fetch network type error", async () => {
             const unrecoverableError = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(new TypeError("Failed to fetch"));
             const manager = new MembershipManager(
                 { networkErrorRetryMs: 1000, maximumNetworkErrorRetryCount: 3 },
@@ -882,6 +898,7 @@ describe("MembershipManager", () => {
         });
         it("falls back to using pure state events when UnsupportedDelayedEventsEndpointError encountered for delayed events", async () => {
             const unrecoverableError = vi.fn();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendDelayedStateEvent as Mock<any>).mockRejectedValue(
                 new UnsupportedDelayedEventsEndpointError("not supported", "sendDelayedStateEvent"),
             );
@@ -929,6 +946,7 @@ describe("MembershipManager", () => {
                 expect(probablyLeftEmit).not.toHaveBeenCalledWith(true);
 
                 // Reset mocks before we setup the next delayed event restart by advancing the timers 1 more ms.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (client._unstable_restartScheduledDelayedEvent as Mock<any>).mockResolvedValue({});
 
                 // Emit after 10s
@@ -992,7 +1010,9 @@ describe("MembershipManager", () => {
     describe("StickyEventMembershipManager", () => {
         beforeEach(() => {
             // Provide a default mock that is like the default "non error" server behaviour.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendStickyDelayedEvent as Mock<any>).mockResolvedValue({ delay_id: "id" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (client._unstable_sendStickyEvent as Mock<any>).mockResolvedValue(undefined);
         });
 

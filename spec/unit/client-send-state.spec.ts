@@ -79,6 +79,7 @@ describe("client send state helper", () => {
             stateKey: "@alice:example.org",
             delayOpts: { parent_delay_id: "parent-1" },
             http,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             requestOpts: { prefix: "/_matrix/client/v3" } as any,
             unstableDelayFeatureName: "org.matrix.msc4140",
         });

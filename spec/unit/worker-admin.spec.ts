@@ -4,6 +4,7 @@ import { WorkerAdminManager } from "../../src/worker-admin/index.ts";
 import { ValidationError } from "../../src/errors.ts";
 
 describe("WorkerAdminManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: WorkerAdminManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

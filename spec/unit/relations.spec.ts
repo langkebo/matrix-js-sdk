@@ -17,6 +17,7 @@ describe("RelationsManager", () => {
         const mockClient = {
             getEventMapper: () => mockMapper,
             canSupport: { get: () => false },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
         manager = new RelationsManager(mockClient, { transport });
     });

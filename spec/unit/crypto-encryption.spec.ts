@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CryptoEncryptionManager } from "../../src/crypto-encryption";
 
 describe("CryptoEncryptionManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: CryptoEncryptionManager;
 
@@ -32,9 +33,11 @@ describe("CryptoEncryptionManager", () => {
     });
 
     it("delegates encrypt/decrypt and device verification methods", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await expect(manager.encryptEvent({} as any, {} as any)).resolves.toMatchObject({
             encryptedContent: { algorithm: "m.megolm.v1.aes-sha2" },
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await expect(manager.decryptEvent({} as any)).resolves.toMatchObject({ clearEvent: { body: "x" } });
         await expect(manager.getUserDevices("@a:hs")).resolves.toEqual({ D1: {} });
         await manager.setDeviceVerified("@a:hs", "D1");

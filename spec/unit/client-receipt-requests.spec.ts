@@ -121,6 +121,7 @@ describe("client-receipt-requests", () => {
                 userId: null,
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await sendReceiptRequest(mockClient as any, options);
 
             expect(result).toEqual({});
@@ -154,6 +155,7 @@ describe("client-receipt-requests", () => {
                 userId: "@user:server",
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await sendReceiptRequest(mockClient as any, options);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -190,6 +192,7 @@ describe("client-receipt-requests", () => {
                 userId: "@user:server",
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await sendReceiptRequest(mockClient as any, options);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
@@ -211,6 +214,7 @@ describe("client-receipt-requests", () => {
                 rpEventId: "$read_private",
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await setRoomReadMarkersHttpRequest(mockClient as any, options);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -238,6 +242,7 @@ describe("client-receipt-requests", () => {
                 rmEventId: "$fully_read",
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await setRoomReadMarkersHttpRequest(mockClient as any, options);
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -269,6 +274,7 @@ describe("client-receipt-requests", () => {
             const httpHandler = vi.fn();
 
             await expect(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setRoomReadMarkersWithLocalEcho(mockClient as any, mockRoom as any, options, httpHandler),
             ).rejects.toThrow("Cannot set read marker to a pending event");
         });
@@ -295,6 +301,7 @@ describe("client-receipt-requests", () => {
             const httpHandler = vi.fn();
 
             await expect(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setRoomReadMarkersWithLocalEcho(mockClient as any, mockRoom as any, options, httpHandler),
             ).rejects.toThrow("Cannot set read receipt to a pending event");
         });
@@ -327,6 +334,7 @@ describe("client-receipt-requests", () => {
 
             const httpHandler = vi.fn().mockResolvedValue({});
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await setRoomReadMarkersWithLocalEcho(mockClient as any, mockRoom as any, options, httpHandler);
 
             expect(httpHandler).toHaveBeenCalledWith("!room:server", "$fully_read", "$read", "$read_private");
@@ -345,6 +353,7 @@ describe("client-receipt-requests", () => {
 
             const httpHandler = vi.fn().mockResolvedValue({});
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await setRoomReadMarkersWithLocalEcho(mockClient as any, null, options, httpHandler);
 
             expect(httpHandler).toHaveBeenCalledWith("!room:server", "$fully_read", undefined, undefined);

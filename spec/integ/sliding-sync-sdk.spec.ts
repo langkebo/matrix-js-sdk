@@ -147,11 +147,13 @@ describe("SlidingSyncSdk", () => {
     };
 
     // find an extension on a SlidingSyncSdk instance
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const findExtension = (name: string): Extension<any, any> => {
         expect(mockSlidingSync!.registerExtension).toHaveBeenCalled();
         const mockFn = vi.mocked(mockSlidingSync!.registerExtension);
         // find the extension
         for (let i = 0; i < mockFn.mock.calls.length; i++) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const calledExtension = mockFn.mock.calls[i][0] as Extension<any, any>;
             if (calledExtension?.name() === name) {
                 return calledExtension;
@@ -635,6 +637,7 @@ describe("SlidingSyncSdk", () => {
     });
 
     describe("ExtensionE2EE", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let ext: Extension<any, any>;
 
         beforeAll(async () => {
@@ -685,6 +688,7 @@ describe("SlidingSyncSdk", () => {
     });
 
     describe("ExtensionAccountData", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let ext: Extension<any, any>;
 
         beforeAll(async () => {
@@ -815,6 +819,7 @@ describe("SlidingSyncSdk", () => {
     });
 
     describe("ExtensionToDevice", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let ext: Extension<any, any>;
 
         beforeAll(async () => {
@@ -826,6 +831,7 @@ describe("SlidingSyncSdk", () => {
         });
 
         it("gets enabled all the time", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let reqJson: any = await ext.onRequest(true);
             expect(reqJson.enabled).toEqual(true);
             expect(reqJson.limit).toBeGreaterThan(0);
@@ -916,6 +922,7 @@ describe("SlidingSyncSdk", () => {
     });
 
     describe("ExtensionTyping", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let ext: Extension<any, any>;
 
         beforeAll(async () => {
@@ -1016,6 +1023,7 @@ describe("SlidingSyncSdk", () => {
     });
 
     describe("ExtensionReceipts", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let ext: Extension<any, any>;
 
         const generateReceiptResponse = (

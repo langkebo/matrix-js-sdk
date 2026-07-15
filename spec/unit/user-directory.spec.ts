@@ -20,6 +20,7 @@ describe("UserDirectoryManager", () => {
             searchUserDirectory,
             getUser,
             getUsers,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
     });
 

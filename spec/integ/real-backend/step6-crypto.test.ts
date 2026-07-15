@@ -22,6 +22,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -77,6 +78,7 @@ async function main(): Promise<void> {
     await runTest("getCrypto", async () => {
         try {
             const crypto = client!.getCrypto();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Crypto not available");
         }
@@ -89,6 +91,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const devices = await (client as any).getDeviceList();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Device list not available");
         }
@@ -98,6 +101,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const keyIds = await (client as any).getCrossSigningKeyIds("master");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Cross-signing not available");
         }
@@ -110,6 +114,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const store = await (client as any).getCrypto()?.getSessionStore();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Session store not available");
         }
@@ -121,6 +126,7 @@ async function main(): Promise<void> {
     await runTest("getKeyBackupEnabled", async () => {
         try {
             const enabled = await client!.getKeyBackupEnabled();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Key backup not available");
         }
@@ -129,6 +135,7 @@ async function main(): Promise<void> {
     await runTest("getKeyBackupVersion", async () => {
         try {
             const version = await client!.getKeyBackupVersion();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Key backup version not available");
         }
@@ -137,6 +144,7 @@ async function main(): Promise<void> {
     await runTest("checkKeyBackupAndEnable", async () => {
         try {
             const result = await client!.checkKeyBackupAndEnable();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Check key backup not available");
         }
@@ -149,6 +157,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const request = await (client as any).getKeyVerificationRequest("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Verification request not available");
         }
@@ -158,6 +167,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const requests = await (client as any).getVerificationRequestsForUser("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Verification requests not available");
         }
@@ -169,6 +179,7 @@ async function main(): Promise<void> {
     await runTest("getCrossSigningStatus", async () => {
         try {
             const status = await client!.getCrossSigningStatus();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Cross-signing status not available");
         }
@@ -178,6 +189,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cached = await (client as any).crossSigningCacheStatus();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Cross-signing cache not available");
         }
@@ -189,6 +201,7 @@ async function main(): Promise<void> {
     await runTest("isSecretStorageReady", async () => {
         try {
             const ready = await client!.isSecretStorageReady();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Secret storage not available");
         }
@@ -197,6 +210,7 @@ async function main(): Promise<void> {
     await runTest("getSecretStorageKey", async () => {
         try {
             const key = await client!.getSecretStorageKey("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Secret storage key not available");
         }
@@ -205,6 +219,7 @@ async function main(): Promise<void> {
     await runTest("storeSecret", async () => {
         try {
             await client!.storeSecret("test", "test-value");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Store secret not available");
         }
@@ -213,6 +228,7 @@ async function main(): Promise<void> {
     await runTest("getSecret", async () => {
         try {
             const secret = await client!.getSecret("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get secret not available");
         }
@@ -229,6 +245,7 @@ async function main(): Promise<void> {
     await runTest("getDevices", async () => {
         try {
             const devices = await client!.getDevices();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get devices not available");
         }
@@ -237,6 +254,7 @@ async function main(): Promise<void> {
     await runTest("getDevice", async () => {
         try {
             const device = await client!.getDevice("test-device");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get device not available");
         }
@@ -247,6 +265,7 @@ async function main(): Promise<void> {
             await client!.setDeviceDetails("test-device", {
                 display_name: "Test Device",
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set device details not available");
         }
@@ -255,6 +274,7 @@ async function main(): Promise<void> {
     await runTest("deleteDevice", async () => {
         try {
             await client!.deleteDevice("test-device");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Delete device not available");
         }
@@ -266,6 +286,7 @@ async function main(): Promise<void> {
     await runTest("getAccountDataFromStore", async () => {
         try {
             const data = client!.getAccountData("m.test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Account data not available");
         }
@@ -274,6 +295,7 @@ async function main(): Promise<void> {
     await runTest("setAccountData", async () => {
         try {
             await client!.setAccountData("m.test", { key: "value" });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set account data not available");
         }

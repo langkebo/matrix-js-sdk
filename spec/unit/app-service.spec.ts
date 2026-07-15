@@ -9,6 +9,7 @@ describe("ApplicationServiceManager", () => {
     let manager: ApplicationServiceManager;
     const mockClient = {
         getDomain: () => "example.com",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     beforeEach(() => {
@@ -45,6 +46,7 @@ describe("ApplicationServiceManager", () => {
 
         it("should reject registration with missing required fields", async () => {
             const req = { id: "", url: "", as_token: "", hs_token: "", sender_localpart: "" };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(manager.registerAppService(req as any)).rejects.toThrow(ValidationError);
         });
 
@@ -194,6 +196,7 @@ describe("ApplicationServiceManager", () => {
 
     describe("unregisterApplicationService", () => {
         it("should delete a service and emit event", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
@@ -269,6 +272,7 @@ describe("ApplicationServiceManager", () => {
 
     describe("pingApplicationService", () => {
         it("should ping and return a duration", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
 
             const result = await manager.pingApplicationService("my-bridge");
@@ -337,6 +341,7 @@ describe("ApplicationServiceManager", () => {
 
         it("should set application service state", async () => {
             expect.assertions(0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
 
             await manager.setApplicationServiceState("as1", "mykey", "myvalue");

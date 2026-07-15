@@ -139,10 +139,12 @@ describe("OidcTokenRefresher", () => {
         it("should persist the new tokens", async () => {
             const refresher = new OidcTokenRefresher(authConfig.issuer, clientId, redirectUri, deviceId, idTokenClaims);
             // spy on our stub
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.spyOn(refresher as any, "persistTokens");
 
             await refresher.doRefreshAccessToken("refresh-token");
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             expect((refresher as any).persistTokens).toHaveBeenCalledWith(
                 expect.objectContaining({
                     accessToken: "new-access-token",

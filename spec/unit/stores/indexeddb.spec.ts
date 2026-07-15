@@ -278,6 +278,7 @@ describe("IndexedDBStore", () => {
     it("should use remote backend if workerFactory passed", async () => {
         const workerPostMessageResolvers = Promise.withResolvers<void>();
         class MockWorker {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             postMessage(data: any) {
                 if (data.command === "setupWorker") {
                     workerPostMessageResolvers.resolve();
@@ -297,6 +298,7 @@ describe("IndexedDBStore", () => {
 
     it("remote worker should pass closed event", async () => {
         const worker = new (class MockWorker {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             postMessage(data: any) {}
         })() as Worker;
 
@@ -310,13 +312,16 @@ describe("IndexedDBStore", () => {
 
         const storeClosedResolvers = Promise.withResolvers<void>();
         store.on("closed", storeClosedResolvers.resolve);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (worker as any).onmessage({ data: { command: "closed" } });
         await expect(storeClosedResolvers.promise).resolves.toBeUndefined();
     });
 
     it("remote worker should pass command failures", async () => {
         const worker = new (class MockWorker {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             private onmessage!: (data: any) => void;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             postMessage(data: any) {
                 if (data.command === "setupWorker" || data.command === "connect") {
                     this.onmessage({
@@ -350,7 +355,9 @@ describe("IndexedDBStore", () => {
     it("remote worker should terminate upon destroy call", async () => {
         const terminate = vi.fn();
         const worker = new (class MockWorker {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             private onmessage!: (data: any) => void;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             postMessage(data: any) {
                 this.onmessage({
                     data: {

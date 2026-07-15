@@ -4,6 +4,7 @@ import { RoomKeysManager } from "../../src/room-keys";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("RoomKeysManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: RoomKeysManager;
 

@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MediaQuotaManager } from "../../src/media-quota";
 
 describe("MediaQuotaManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: MediaQuotaManager;
 

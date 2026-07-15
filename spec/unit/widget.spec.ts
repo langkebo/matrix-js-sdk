@@ -5,6 +5,7 @@ import { WidgetManager } from "../../src/widget/index";
 import { Method } from "../../src/http-api";
 
 describe("WidgetManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let widgetManager: WidgetManager;
     let mockAuthedRequest: ReturnType<typeof vi.fn>;

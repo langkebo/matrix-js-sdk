@@ -1594,6 +1594,7 @@ describe("verification", () => {
  * @param msgtype - type of to-device message we expect
  * @returns A Promise which resolves with the body of the HTTP request
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function expectSendToDeviceMessage(msgtype: string): Promise<{ messages: any }> {
     return new Promise((resolve) => {
         fetchMock.putOnce(
@@ -1623,6 +1624,7 @@ function mockSecretRequestAndGetPromises(): Map<string, Promise<string>> {
     fetchMock.put(new RegExp(`/_matrix/client/(r0|v3)/sendToDevice/m.secret.request`), (callLog): RouteResponse => {
         const messages = JSON.parse(callLog.options.body as string).messages[TEST_USER_ID];
         // rust crypto broadcasts to all devices, old crypto to a specific device, take the first one
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const content = Object.values(messages)[0] as any;
         if (content.action == "request") {
             const name = content.name;

@@ -5,6 +5,7 @@ import { FilterManager as CanonicalFilterManager } from "../../src/filter/index"
 import { FilterManager as ExportedFilterManager } from "../../src/matrix";
 
 describe("FilterManager compatibility", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: CanonicalFilterManager;
 

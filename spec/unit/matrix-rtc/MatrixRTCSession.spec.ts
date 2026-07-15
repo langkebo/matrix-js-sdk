@@ -1208,6 +1208,7 @@ describe("MatrixRTCSession", () => {
                         manageMediaKeys: true,
                         makeKeyDelay: KEY_DELAY,
                     });
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const sendKeySpy = vi.spyOn((sess as unknown as any).encryptionManager.transport, "sendKey");
                     const firstKeysPayload = await keysSentPromise1;
                     expect(firstKeysPayload.keys).toHaveLength(1);
@@ -1238,6 +1239,7 @@ describe("MatrixRTCSession", () => {
                     );
                     // fake a condition in which we send another encryption key event.
                     // this could happen do to someone joining the call.
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (sess as unknown as any).encryptionManager.sendEncryptionKeysEvent();
                     expect(sendKeySpy).toHaveBeenLastCalledWith(
                         expect.any(String),

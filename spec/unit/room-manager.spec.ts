@@ -6,6 +6,7 @@ import { EventType } from "../../src/@types/event";
 import { Visibility } from "../../src/@types/partials";
 
 describe("RoomManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let roomManager: RoomManager;
 
@@ -351,6 +352,7 @@ describe("RoomManager", () => {
         });
 
         it("should return null on 404 when throwOnError is false", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const error = new Error("Not found") as any;
             error.httpStatus = 404;
             mockClient.http.authedRequest.mockRejectedValue(error);
@@ -359,6 +361,7 @@ describe("RoomManager", () => {
         });
 
         it("should throw on 404 by default", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const error = new Error("Not found") as any;
             error.httpStatus = 404;
             mockClient.http.authedRequest.mockRejectedValue(error);
@@ -676,6 +679,7 @@ describe("RoomManager", () => {
         });
 
         it("should throw error for missing eventType", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(roomManager.setRoomAccountData("!room:example.com", "" as any, {})).rejects.toThrow();
         });
 

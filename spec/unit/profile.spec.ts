@@ -22,6 +22,7 @@ describe("ProfileManager", () => {
             getUserId: () => "@alice:example.com",
             getUser: () => null,
             getHomeserverUrl: () => "https://example.com",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
     });
 

@@ -103,14 +103,14 @@ export function makeMockRoom(
             getState: vi.fn().mockReturnValue(roomState),
         }),
         getVersion: vi.fn().mockReturnValue("default"),
-        _unstable_getStickyEvents: vi
-            .fn()
-            .mockImplementation(() =>
-                useStickyEvents ? membershipData.map((m) => mockRTCEvent(m, roomId, 10000, ts)) : [],
-            ) as any,
+        _unstable_getStickyEvents: vi.fn().mockImplementation(
+            () => (useStickyEvents ? membershipData.map((m) => mockRTCEvent(m, roomId, 10000, ts)) : []),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ) as any,
     });
     return Object.assign(room, {
         emitTimelineEvent: (event: MatrixEvent) =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             room.emit(RoomEvent.Timeline, event, room, undefined, false, {} as any),
     }) as unknown as Mocked<Room & { emitTimelineEvent: (event: MatrixEvent) => void }>;
 }
@@ -154,6 +154,7 @@ export function makeMockEvent(
     type: string,
     sender: string,
     roomId: string | undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     content: any,
     timestamp?: number,
     stateKey?: string,

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { ReactionsManager } from "../../src/reactions";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mkReaction(opts: { sender?: string; key?: string; id?: string } = {}): any {
     return {
         getSender: vi.fn(() => opts.sender),
@@ -12,6 +13,7 @@ function mkReaction(opts: { sender?: string; key?: string; id?: string } = {}): 
 }
 
 describe("ReactionsManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let manager: ReactionsManager;
     const roomId = "!room:hs";

@@ -148,8 +148,10 @@ describe("crypto", () => {
      * @param response -   response to the query.
      */
     function expectAliceKeyQuery(response: IDownloadKeyResult) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         function onQueryRequest(content: any): object {
             Object.keys(response.device_keys).forEach((userId) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 expect((content.device_keys! as Record<string, any>)[userId]).toEqual([]);
             });
             return response;
@@ -1199,6 +1201,7 @@ describe("crypto", () => {
             // and wait for the outgoing requests
             const inboundGroupSession = await inboundGroupSessionPromise;
             const encryptedMessageContent = await reqProm;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const msg: any = inboundGroupSession.decrypt(encryptedMessageContent!.ciphertext as string);
             logger.log("Decrypted received megolm message", msg);
 

@@ -37,6 +37,7 @@ describe("Device dehydration", () => {
             userId: "@alice:localhost",
             deviceId: "aliceDevice",
             cryptoCallbacks: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 getSecretStorageKey: async (keys: any, name: string) => {
                     return [[...Object.keys(keys.keys)][0], new Uint8Array(32)];
                 },
@@ -75,6 +76,7 @@ describe("Device dehydration", () => {
             },
             { name: "get-dehydrated-device" },
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let dehydratedDeviceBody: any;
         let dehydrationCount = 0;
         let resolveDehydrationPromise: () => void;

@@ -20,6 +20,7 @@ import { OidcManager } from "../../src/oidc/manager";
 import { FakeTransport } from "../test-utils/FakeTransport";
 
 describe("OidcManager", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
     let transport: FakeTransport;
     let oidcManager: OidcManager;
@@ -33,6 +34,7 @@ describe("OidcManager", () => {
             baseUrl: "https://matrix.test",
         };
         transport = new FakeTransport();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         oidcManager = new OidcManager(mockClient as any, { transport });
     });
 
@@ -129,6 +131,7 @@ describe("OidcManager", () => {
                     redirect_uri: "https://app.test/callback",
                     response_type: "code",
                     scope: "openid",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             ).rejects.toThrow();
         });
@@ -172,6 +175,7 @@ describe("OidcManager", () => {
         });
 
         it("should reject missing grant_type", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await expect(oidcManager.token({ grant_type: "" } as any)).rejects.toThrow();
         });
     });
@@ -265,6 +269,7 @@ describe("OidcManager", () => {
                     redirect_uri: "https://app.test/callback",
                     username: "",
                     password: "secret",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             ).rejects.toThrow();
         });

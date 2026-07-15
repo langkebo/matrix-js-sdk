@@ -23,6 +23,7 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
         await fn();
         testResults.push({ name, passed: true });
         console.log(`    ✅ PASSED`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         testResults.push({ name, passed: false, error: error.message });
         console.log(`    ❌ FAILED: ${error.message}`);
@@ -82,6 +83,7 @@ async function main(): Promise<void> {
 
     await runTest("isStarted", async () => {
         // SDK 中已添加 isStarted() 方法
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const started = (client as any).isStarted?.();
         if (started !== undefined) {
             console.log(`    isStarted() returned: ${started}`);
@@ -92,9 +94,12 @@ async function main(): Promise<void> {
 
     await runTest("awaitSync", async () => {
         // SDK 中已添加 awaitSync() 方法，但需要完整客户端
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((client as any).awaitSync) {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await (client as any).awaitSync(100);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log(`    ⚠️ awaitSync timeout (expected): ${e.message}`);
             }
@@ -117,6 +122,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getOlmExport();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Olm export not available");
         }
@@ -144,6 +150,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getEventRenderer();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Event renderer not available");
         }
@@ -153,6 +160,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getRoomRenderer();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Room renderer not available");
         }
@@ -162,6 +170,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getMessageTemplates();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Message templates not available");
         }
@@ -174,6 +183,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).awaitSync();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Await sync not available");
         }
@@ -183,6 +193,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).isSynchronous();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Is synchronous not available");
         }
@@ -192,6 +203,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).setGlobalScalar("test", 100);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set global scalar not available");
         }
@@ -201,6 +213,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getGlobalScalar("test");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get global scalar not available");
         }
@@ -212,6 +225,7 @@ async function main(): Promise<void> {
     await runTest("getNotifications", async () => {
         try {
             await client!.getNotifications();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get notifications not available");
         }
@@ -222,6 +236,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getRoomNotifications(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get room notifications not available");
         }
@@ -231,6 +246,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getThreadsNotifications();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get threads notifications not available");
         }
@@ -239,6 +255,7 @@ async function main(): Promise<void> {
     await runTest("getPushRules", async () => {
         try {
             await client!.getPushRules();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get push rules not available");
         }
@@ -247,6 +264,7 @@ async function main(): Promise<void> {
     await runTest("getPushRule", async () => {
         try {
             await client!.getPushRule("global", PushRuleKind.RoomSpecific, testRoomId || "");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get push rule not available");
         }
@@ -257,6 +275,7 @@ async function main(): Promise<void> {
             await client!.setPushRule("global", PushRuleKind.RoomSpecific, testRoomId || "", {
                 actions: [PushRuleActionName.Notify],
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set push rule not available");
         }
@@ -270,6 +289,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.getEphemeralEvents(testRoomId);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get ephemeral events not available");
         }
@@ -280,6 +300,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.sendTyping(testRoomId, true, 5000);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Send typing not available");
         }
@@ -290,6 +311,7 @@ async function main(): Promise<void> {
             if (testRoomId) {
                 await client!.sendTyping(testRoomId, true, 5000);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set typing not available");
         }
@@ -304,6 +326,7 @@ async function main(): Promise<void> {
                     await client!.sendReadReceipt(events[0]);
                 }
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Send read receipt not available");
         }
@@ -321,6 +344,7 @@ async function main(): Promise<void> {
                     }
                 }
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Set room read markers not available");
         }
@@ -333,6 +357,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getPendingEvents(testRoomId!);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get pending events not available");
         }
@@ -342,6 +367,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).hasPendingEvent(testRoomId!);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Has pending event not available");
         }
@@ -351,6 +377,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getProtocol("irc");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get protocol not available");
         }
@@ -360,6 +387,7 @@ async function main(): Promise<void> {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (client as any).getPublicRoomKeys();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get public room keys not available");
         }

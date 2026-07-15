@@ -12,6 +12,7 @@ describe("IdentityManager", () => {
         manager = new IdentityManager({
             http: { authedRequest },
             idBaseUrl: "https://id.example.com",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         manager.setRetryOptions({ maxRetries: 0 });
     });
