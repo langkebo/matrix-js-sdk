@@ -238,6 +238,12 @@ export class MatrixError extends HTTPError {
  * @param defaultMs - The delay to use if the error was not due to rate-limiting or if no valid delay is recommended.
  */
 export function safeGetRetryAfterMs(error: unknown, defaultMs: number): number {
+    // Handle SdkError (e.g., RetryableError) that wraps the original HTTP error
+    // and exposes retryAfter as a top-level property after error normalization.
+    const sdkErr = error as { retryAfter?: number };
+    if (typeof sdkErr?.retryAfter === "number" && sdkErr.retryAfter > 0) {
+        return sdkErr.retryAfter;
+    }
     if (!(error instanceof HTTPError) || !error.isRateLimitError()) {
         return defaultMs;
     }

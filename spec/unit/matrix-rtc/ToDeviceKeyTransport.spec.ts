@@ -35,7 +35,8 @@ describe("ToDeviceKeyTransport", () => {
 
     beforeEach(() => {
         mockClient = getMockClientWithEventEmitter({});
-        const mockEncryptAndSendToDevice = vi.fn().mockImplementation(() => Promise.resolve());
+        mockEncryptAndSendToDevice.mockImplementation(() => Promise.resolve());
+        mockEncryptAndSendToDevice.mockClear();
         mockClient.getToDeviceManager = vi.fn().mockReturnValue({
             encryptAndSendToDevice: mockEncryptAndSendToDevice,
         });
