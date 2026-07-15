@@ -18,7 +18,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { AccountDataManager } from "../../src/account-data/index";
 import { MatrixEvent } from "../../src/models/event";
-import { Method } from "../../src/http-api";
+import { Method, ClientPrefix } from "../../src/http-api";
 import { Feature, ServerSupport } from "../../src/feature";
 
 describe("AccountDataManager", () => {
@@ -75,6 +75,7 @@ describe("AccountDataManager", () => {
                 "/user/%40alice%3Aexample.com/account_data/m.direct",
                 undefined,
                 { "@bob:example.com": ["!room:example.com"] },
+                {},
             );
         });
 
@@ -90,6 +91,7 @@ describe("AccountDataManager", () => {
                 "/user/%40alice%3Aexample.com/account_data/com.example.custom",
                 undefined,
                 { data: "value" },
+                {},
             );
         });
     });
@@ -106,6 +108,7 @@ describe("AccountDataManager", () => {
                 "/user/%40alice%3Aexample.com/account_data/m.push_rules",
                 undefined,
                 { global: {} },
+                {},
             );
         });
     });
@@ -171,7 +174,13 @@ describe("AccountDataManager", () => {
 
             const result = await accountDataManager.listAccountData();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/user/%40alice%3Aexample.com/account_data/");
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/user/%40alice%3Aexample.com/account_data/",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
             expect(result).toEqual(response);
         });
 
@@ -197,6 +206,9 @@ describe("AccountDataManager", () => {
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/account_data/m.tag",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
             );
             expect(result).toBeInstanceOf(MatrixEvent);
             expect(result?.getType()).toBe("m.tag");
@@ -229,7 +241,7 @@ describe("AccountDataManager", () => {
                 "/user/%40alice%3Aexample.com/account_data/m.direct",
                 undefined,
                 undefined,
-                undefined,
+                {},
             );
         });
 
@@ -246,6 +258,7 @@ describe("AccountDataManager", () => {
                 Method.Put,
                 "/user/%40alice%3Aexample.com/account_data/m.direct",
                 undefined,
+                {},
                 {},
             );
         });
@@ -264,6 +277,7 @@ describe("AccountDataManager", () => {
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/account_data/m.fully_read",
                 undefined,
                 { event_id: "$event:example.com" },
+                { prefix: ClientPrefix.V3 },
             );
         });
     });
@@ -277,6 +291,9 @@ describe("AccountDataManager", () => {
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Delete,
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/account_data/m.fully_read",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
             );
         });
     });
@@ -315,6 +332,7 @@ describe("AccountDataManager", () => {
                 "/user/%40alice%3Aexample.com/account_data/m.ignored_user_list",
                 undefined,
                 { ignored_users: { "@bob:example.com": {} } },
+                {},
             );
         });
     });

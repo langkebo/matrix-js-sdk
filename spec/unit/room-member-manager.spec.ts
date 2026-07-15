@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { RoomMemberManager } from "../../src/room-member";
-import { Method } from "../../src/http-api";
+import { Method, ClientPrefix } from "../../src/http-api";
 
 describe("RoomMemberManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +27,7 @@ describe("RoomMemberManager", () => {
             "/rooms/!r%3Ahs/invite",
             undefined,
             { user_id: "@a:hs" },
+            { prefix: ClientPrefix.V3 },
         );
     });
 

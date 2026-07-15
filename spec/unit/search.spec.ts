@@ -142,9 +142,15 @@ describe("SearchManager", () => {
             limited: false,
         });
 
-        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/user_directory/search", undefined, {
-            search_term: "bob",
-            limit: 5,
-        });
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/user_directory/search",
+            undefined,
+            {
+                search_term: "bob",
+                limit: 5,
+            },
+            { prefix: "/_matrix/client/v3" },
+        );
     });
 });

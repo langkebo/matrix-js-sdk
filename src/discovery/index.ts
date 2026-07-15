@@ -145,6 +145,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/.well-known/matrix/client"),
                 prefix: "",
+                authenticated: false,
             });
         }, "getServerDiscoveryInfo");
     }
@@ -166,6 +167,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/.well-known/matrix/server"),
                 prefix: "",
+                authenticated: false,
             });
         }, "getServerWellKnown");
     }
@@ -176,6 +178,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/.well-known/matrix/support"),
                 prefix: "",
+                authenticated: false,
             });
         }, "getSupportWellKnown");
     }
@@ -190,6 +193,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/_matrix/server_version"),
                 prefix: "",
+                authenticated: false,
             });
         }, "getMatrixServerVersion");
     }
@@ -200,6 +204,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/health"),
                 prefix: "",
+                authenticated: false,
             });
         }, "getHealth");
     }
@@ -210,6 +215,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/_health"),
                 prefix: "",
+                authenticated: false,
             });
         }, "getUnderscoreHealth");
     }
@@ -301,6 +307,7 @@ export class DiscoveryManager extends BaseManager {
                 method: Method.Get,
                 path: ap("/publicRooms"),
                 queryParams: queryParams,
+                authenticated: false,
             });
         }, "getPublicRooms");
     }
@@ -325,6 +332,7 @@ export class DiscoveryManager extends BaseManager {
                 body: {
                     filter,
                 },
+                authenticated: false,
             });
         }, "queryPublicRooms");
     }

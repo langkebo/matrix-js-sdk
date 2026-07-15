@@ -205,6 +205,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             return await this.request<ILoginFlowsResponse>({
                 method: Method.Get,
                 path: ap("/login"),
+                authenticated: false,
             });
         });
 
@@ -232,6 +233,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             return await this.request<RegisterFlowsResponse>({
                 method: Method.Get,
                 path: ap("/register"),
+                authenticated: false,
             });
         });
 
@@ -406,6 +408,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                     path: ap("/register"),
                     body: params,
                     prefix: ClientPrefix.V3,
+                    authenticated: false,
                 }),
             "register",
         );
@@ -425,6 +428,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                     path: ap("/register"),
                     body: body || {},
                     prefix: ClientPrefix.V3,
+                    authenticated: false,
                 }),
             "registerGuest",
         );
@@ -606,7 +610,13 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
         if (kind) {
             params.kind = kind;
         }
-        return this.request({ method: Method.Post, path: "/register", queryParams: params, body: data });
+        return this.request({
+            method: Method.Post,
+            path: "/register",
+            queryParams: params,
+            body: data,
+            authenticated: false,
+        });
     }
 
     /**
@@ -615,12 +625,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * @returns Promise which resolves to the new token.
      */
     public async refreshToken(refreshToken: string): Promise<IRefreshTokenResponse> {
-        const performRefreshRequestWithPrefix = (_prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>
+        const performRefreshRequestWithPrefix = (prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>
             this.request({
                 method: Method.Post,
                 path: "/refresh",
                 body: { refresh_token: refreshToken },
-                prefix: ClientPrefix.V3,
+                prefix,
             });
 
         try {

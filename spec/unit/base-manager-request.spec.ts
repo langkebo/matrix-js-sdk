@@ -42,7 +42,7 @@ describe("BaseManager.request", () => {
         const call = requestSpy.mock.calls[0];
         expect(call[0]).toBe(Method.Get);
         expect(call[1]).toBe("/test");
-        expect(call[4]).toEqual({ prefix: ClientPrefix.V3 });
+        expect(call[4]).toMatchObject({ prefix: ClientPrefix.V3 });
     });
 
     it("dispatches POST with body", async () => {
@@ -76,7 +76,7 @@ describe("BaseManager.request", () => {
         await mgr.doRequest({ method: Method.Get, path: "/data", prefix: "/_synapse/admin" });
 
         expect(requestSpy).toHaveBeenCalledTimes(1);
-        expect(requestSpy.mock.calls[0][4]).toEqual({ prefix: "/_synapse/admin" });
+        expect(requestSpy.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
     });
 
     it("uses manager defaultPrefix when no per-request prefix", async () => {
@@ -85,7 +85,7 @@ describe("BaseManager.request", () => {
 
         await mgr.doRequest({ method: Method.Get, path: "/v1" });
 
-        expect(requestSpy.mock.calls[0][4]).toEqual({ prefix: ClientPrefix.V1 });
+        expect(requestSpy.mock.calls[0][4]).toMatchObject({ prefix: ClientPrefix.V1 });
     });
 
     // ── Retry behaviour ───────────────────────────────────────

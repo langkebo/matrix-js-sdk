@@ -104,6 +104,7 @@ export class AccountManager extends BaseManager {
             return await this.request<ILoginFlowsResponse>({
                 method: Method.Get,
                 path: ap("/login"),
+                authenticated: false,
             });
         }, "loginFlows");
     }
@@ -161,6 +162,7 @@ export class AccountManager extends BaseManager {
                 method: Method.Post,
                 path: ap("/login"),
                 body: data,
+                authenticated: false,
             });
         }, "loginRequest");
     }
@@ -212,6 +214,7 @@ export class AccountManager extends BaseManager {
                     client_secret: clientSecret,
                     token,
                 },
+                authenticated: false,
             });
         }, "submitEmailToken");
     }

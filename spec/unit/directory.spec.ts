@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DirectoryManager } from "../../src/directory";
-import { Method } from "../../src/http-api";
+import { Method, ClientPrefix } from "../../src/http-api";
 
 describe("DirectoryManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,6 +12,7 @@ describe("DirectoryManager", () => {
         mockClient = {
             http: {
                 authedRequest: vi.fn().mockResolvedValue({ chunk: [], aliases: ["#r:hs"] }),
+                request: vi.fn().mockResolvedValue({ chunk: [], aliases: ["#r:hs"] }),
             },
         };
         manager = new DirectoryManager(mockClient);
@@ -19,17 +20,29 @@ describe("DirectoryManager", () => {
 
     it("gets public rooms by get/post", async () => {
         await manager.getPublicRoomsList({ server: "hs", limit: 10 });
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/publicRooms", {
-            server: "hs",
-            limit: 10,
-        });
+        expect(mockClient.http.request).toHaveBeenCalledWith(
+            Method.Get,
+            "/publicRooms",
+            {
+                server: "hs",
+                limit: 10,
+            },
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
 
         await manager.getPublicRooms("hs", 20, "next");
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/publicRooms", undefined, {
-            server: "hs",
-            limit: 20,
-            since: "next",
-        });
+        expect(mockClient.http.request).toHaveBeenCalledWith(
+            Method.Post,
+            "/publicRooms",
+            undefined,
+            {
+                server: "hs",
+                limit: 20,
+                since: "next",
+            },
+            { prefix: ClientPrefix.V3 },
+        );
     });
 
     it("handles alias create/read/delete and room aliases", async () => {

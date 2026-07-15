@@ -111,6 +111,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                     path: cp("/register/captcha/send"),
                     body: body,
                     prefix: captchaPrefix(version),
+                    authenticated: false,
                 });
             }, "sendCaptcha");
 
@@ -138,6 +139,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                     path: cp("/register/captcha/verify"),
                     body: { captcha_id: captchaId, code },
                     prefix: captchaPrefix(version),
+                    authenticated: false,
                 });
             }, "verifyCaptcha");
 
@@ -159,6 +161,7 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
                     path: cp("/register/captcha/status"),
                     queryParams: { captcha_id: captchaId },
                     prefix: captchaPrefix(version),
+                    authenticated: false,
                 });
             }, "getCaptchaStatus");
         } catch (error) {

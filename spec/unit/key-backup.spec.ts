@@ -35,10 +35,7 @@ describe("KeyBackupManager", () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
         manager = new KeyBackupManager(client);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (manager as any).maxRetries = 0;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (manager as any).retryDelay = 0;
+        manager.setRetryOptions({ maxRetries: 0, retryDelay: 0 });
     });
 
     describe("Version Management", () => {

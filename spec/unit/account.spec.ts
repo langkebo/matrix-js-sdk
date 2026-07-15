@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { AccountManager } from "../../src/account/index";
 import { SSOAction } from "../../src/@types/auth";
+import { Method, ClientPrefix } from "../../src/http-api";
 
 describe("AccountManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,11 +179,17 @@ describe("AccountManager", () => {
             });
 
             expect(response.access_token).toBe("token");
-            expect(mockClient.http.request).toHaveBeenCalledWith("POST", "/login", undefined, {
-                type: "m.login.password",
-                user: "@user:example.com",
-                password: "password",
-            });
+            expect(mockClient.http.request).toHaveBeenCalledWith(
+                "POST",
+                "/login",
+                undefined,
+                {
+                    type: "m.login.password",
+                    user: "@user:example.com",
+                    password: "password",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -192,7 +199,9 @@ describe("AccountManager", () => {
 
             await accountManager.logout();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/logout");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/logout", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
         });
 
         it("should stop client when stopClient is true", async () => {
@@ -211,7 +220,13 @@ describe("AccountManager", () => {
 
             await accountManager.logoutAll();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/logout/all");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/logout/all",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("should stop client when logoutAll is called with stopClient=true", async () => {
@@ -232,11 +247,17 @@ describe("AccountManager", () => {
                 success: true,
             });
 
-            expect(mockClient.http.request).toHaveBeenCalledWith("POST", "/register/email/submitToken", undefined, {
-                sid: "sid123",
-                client_secret: "secret456",
-                token: "token789",
-            });
+            expect(mockClient.http.request).toHaveBeenCalledWith(
+                "POST",
+                "/register/email/submitToken",
+                undefined,
+                {
+                    sid: "sid123",
+                    client_secret: "secret456",
+                    token: "token789",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -246,9 +267,15 @@ describe("AccountManager", () => {
 
             await accountManager.deactivateAccount(undefined, true);
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("POST", "/account/deactivate", undefined, {
-                erase: true,
-            });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/account/deactivate",
+                undefined,
+                {
+                    erase: true,
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -276,6 +303,7 @@ describe("AccountManager", () => {
                     auth: { type: "m.login.password" },
                     erase: true,
                 }),
+                { prefix: ClientPrefix.V3 },
             );
         });
     });
@@ -312,10 +340,16 @@ describe("AccountManager", () => {
                 allowRead: false,
             });
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("PUT", expect.any(String), undefined, {
-                allowJoin: true,
-                allowRead: false,
-            });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "PUT",
+                expect.any(String),
+                undefined,
+                {
+                    allowJoin: true,
+                    allowRead: false,
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 });

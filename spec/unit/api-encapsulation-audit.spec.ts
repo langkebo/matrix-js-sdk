@@ -27,7 +27,9 @@ describe("API encapsulation audit", () => {
 
         await manager.getSupportedLoginFlows();
 
-        expect(request).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, { prefix: undefined });
+        expect(request).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
         expect(authedRequest).not.toHaveBeenCalled();
     });
 

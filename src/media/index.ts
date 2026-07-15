@@ -218,13 +218,14 @@ export class MediaManager extends BaseManager {
         serverName: string,
         mediaId: string,
         content: ArrayBuffer | Blob,
-        _contentType: string,
+        contentType: string,
     ): Promise<{ content_uri: string }> {
         const response = await this.request<{ content_uri: string }>({
             method: Method.Put,
             path: mp(`/upload/${serverName}/${mediaId}` as MediaRelativePathPattern),
             body: content,
             prefix: MediaPrefix.V3,
+            headers: { "Content-Type": contentType },
         });
         return response;
     }

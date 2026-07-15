@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { UserDirectoryManager } from "../../src/user-directory/index.ts";
 
 describe("UserDirectoryManager", () => {
     let request: ReturnType<typeof vi.fn>;
+    let authedRequest: ReturnType<typeof vi.fn>;
     let searchUserDirectory: ReturnType<typeof vi.fn>;
     let getUser: ReturnType<typeof vi.fn>;
     let getUsers: ReturnType<typeof vi.fn>;
@@ -12,11 +13,12 @@ describe("UserDirectoryManager", () => {
 
     beforeEach(() => {
         request = vi.fn();
+        authedRequest = vi.fn();
         searchUserDirectory = vi.fn();
         getUser = vi.fn();
         getUsers = vi.fn();
         manager = new UserDirectoryManager({
-            http: { request },
+            http: { request, authedRequest },
             searchUserDirectory,
             getUser,
             getUsers,
@@ -33,21 +35,29 @@ describe("UserDirectoryManager", () => {
     });
 
     it("lists user directory via POST /user_directory/list", async () => {
-        request.mockResolvedValueOnce({ users: [{ user_id: "@alice:example.com" }] });
+        authedRequest.mockResolvedValueOnce({ users: [{ user_id: "@alice:example.com" }] });
 
         await expect(manager.listUserDirectory()).resolves.toEqual({
             users: [{ user_id: "@alice:example.com" }],
         });
-        expect(request).toHaveBeenCalledWith(Method.Post, "/user_directory/list");
+        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/user_directory/list", undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
     });
 
     it("fetches user directory profile directly", async () => {
-        request.mockResolvedValueOnce({ displayname: "Alice" });
+        authedRequest.mockResolvedValueOnce({ displayname: "Alice" });
 
         await expect(manager.getProfile("@alice:example.com")).resolves.toEqual({
             displayname: "Alice",
         });
-        expect(request).toHaveBeenCalledWith(Method.Get, "/user_directory/profiles/%40alice%3Aexample.com");
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/user_directory/profiles/%40alice%3Aexample.com",
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
     });
 
     it("propagates 404 errors from the user directory profile endpoint", async () => {
@@ -55,7 +65,7 @@ describe("UserDirectoryManager", () => {
             httpStatus: 404,
             errcode: "M_NOT_FOUND",
         });
-        request.mockRejectedValueOnce(httpError);
+        authedRequest.mockRejectedValueOnce(httpError);
 
         await expect(manager.getProfile("@missing:example.com")).rejects.toMatchObject({
             httpStatus: 404,

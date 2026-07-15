@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { UserReportManager } from "../../src/user-report/index.ts";
 
 describe("UserReportManager", () => {
@@ -19,9 +19,15 @@ describe("UserReportManager", () => {
         await manager.reportUser("@bad:example.com", "spam");
 
         expect(authedRequest).toHaveBeenCalledTimes(1);
-        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/users/%40bad%3Aexample.com/report", undefined, {
-            reason: "spam",
-        });
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/users/%40bad%3Aexample.com/report",
+            undefined,
+            {
+                reason: "spam",
+            },
+            { prefix: ClientPrefix.V3 },
+        );
     });
 
     it("includes room_id in the body when provided", async () => {
@@ -29,10 +35,16 @@ describe("UserReportManager", () => {
 
         await manager.reportUser("@bad:example.com", "harassment", "!room:example.com");
 
-        expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/users/%40bad%3Aexample.com/report", undefined, {
-            reason: "harassment",
-            room_id: "!room:example.com",
-        });
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/users/%40bad%3Aexample.com/report",
+            undefined,
+            {
+                reason: "harassment",
+                room_id: "!room:example.com",
+            },
+            { prefix: ClientPrefix.V3 },
+        );
     });
 
     it("propagates 4xx errors from the backend", async () => {

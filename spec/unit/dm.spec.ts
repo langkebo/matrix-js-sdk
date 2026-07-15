@@ -18,6 +18,7 @@ describe("DirectMessageManager", () => {
             leave: vi.fn(),
             getRoom: vi.fn(),
             setRoomReadMarkers: vi.fn(),
+            getReadReceiptsManager: vi.fn(),
             sendEvent: vi.fn(),
             getUserId: vi.fn().mockReturnValue("@test:example.com"),
             getHomeserverUrl: vi.fn().mockReturnValue("https://example.com"),
@@ -834,15 +835,12 @@ describe("DirectMessageManager", () => {
                     getLiveTimeline: vi.fn().mockReturnValue(mockTimeline),
                 };
                 mockClient.getRoom.mockReturnValue(mockRoom);
-                mockClient.setRoomReadMarkers.mockResolvedValue({});
+                const setRoomReadMarkers = vi.fn().mockResolvedValue({});
+                mockClient.getReadReceiptsManager.mockReturnValue({ setRoomReadMarkers });
 
                 await dmManager.markDmAsRead("!dm:example.com");
 
-                expect(mockClient.setRoomReadMarkers).toHaveBeenCalledWith(
-                    "!dm:example.com",
-                    "$event:example.com",
-                    mockEvent,
-                );
+                expect(setRoomReadMarkers).toHaveBeenCalledWith("!dm:example.com", "$event:example.com", mockEvent);
             });
 
             it("should handle room with no events", async () => {
@@ -853,10 +851,12 @@ describe("DirectMessageManager", () => {
                     getLiveTimeline: vi.fn().mockReturnValue(mockTimeline),
                 };
                 mockClient.getRoom.mockReturnValue(mockRoom);
+                const setRoomReadMarkers = vi.fn().mockResolvedValue({});
+                mockClient.getReadReceiptsManager.mockReturnValue({ setRoomReadMarkers });
 
                 await dmManager.markDmAsRead("!dm:example.com");
 
-                expect(mockClient.setRoomReadMarkers).not.toHaveBeenCalled();
+                expect(setRoomReadMarkers).not.toHaveBeenCalled();
             });
         });
 

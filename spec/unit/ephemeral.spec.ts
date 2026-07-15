@@ -17,6 +17,7 @@ describe("EphemeralManager", () => {
             getRoom: vi.fn(),
             getUserId: vi.fn().mockReturnValue("@alice:example.com"),
             sendToDevice: vi.fn(),
+            getToDeviceManager: vi.fn(),
         };
 
         manager = new EphemeralManager(mockClient);
@@ -98,13 +99,14 @@ describe("EphemeralManager", () => {
     });
 
     it("sendEphemeralEvent forwards room-scoped payloads through sendToDevice", async () => {
-        mockClient.sendToDevice.mockResolvedValueOnce(undefined);
+        const sendToDeviceFromContentMap = vi.fn().mockResolvedValue(undefined);
+        mockClient.getToDeviceManager.mockReturnValue({ sendToDeviceFromContentMap });
 
         await manager.sendEphemeralEvent("!room:example.com", "m.typing", { user_ids: ["@alice:example.com"] });
 
-        expect(mockClient.sendToDevice).toHaveBeenCalledWith("m.typing", expect.any(Map));
+        expect(sendToDeviceFromContentMap).toHaveBeenCalledWith("m.typing", expect.any(Map));
 
-        const contentMap = mockClient.sendToDevice.mock.calls[0][1] as Map<
+        const contentMap = sendToDeviceFromContentMap.mock.calls[0][1] as Map<
             string,
             Map<string, Record<string, unknown>>
         >;

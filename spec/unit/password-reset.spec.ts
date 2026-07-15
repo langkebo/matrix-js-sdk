@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { PasswordResetManager } from "../../src/password-reset/index.ts";
 
 describe("PasswordResetManager", () => {
@@ -34,11 +34,17 @@ describe("PasswordResetManager", () => {
                 ),
             ).resolves.toEqual({});
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/account/password", undefined, {
-                auth: { type: "m.login.password", user: "@alice:example.com", password: "old" },
-                new_password: "n3w-pass",
-                logout_devices: true,
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/account/password",
+                undefined,
+                {
+                    auth: { type: "m.login.password", user: "@alice:example.com", password: "old" },
+                    new_password: "n3w-pass",
+                    logout_devices: true,
+                },
+                { prefix: ClientPrefix.V3 },
+            );
             expect(events).toEqual(["changed"]);
         });
 

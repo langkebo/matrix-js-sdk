@@ -50,6 +50,23 @@ export interface ToDeviceResult {
     failures?: Record<string, Record<string, { error: string }>>;
 }
 
+/**
+ * Optional widget-aware overrides exposed by {@link RoomWidgetClient}.
+ *
+ * The base {@link MatrixClient} does not define these methods, so their
+ * presence is used as a runtime signal that to-device traffic must be routed
+ * through the widget API instead of the HTTP `/sendToDevice` endpoint.
+ */
+interface WidgetAwareToDeviceClient {
+    sendToDevice?(eventType: string, contentMap: SendToDeviceContentMap): Promise<EmptyObject>;
+    queueToDevice?(batch: ModelToDeviceBatch): Promise<void>;
+    encryptAndSendToDevice?(
+        eventType: string,
+        devices: { userId: string; deviceId: string }[],
+        payload: ToDevicePayload,
+    ): Promise<void>;
+}
+
 export class ToDeviceManager extends BaseManager {
     private txnId = 0;
 
@@ -86,6 +103,14 @@ export class ToDeviceManager extends BaseManager {
         contentMap: SendToDeviceContentMap,
         txnId?: string,
     ): Promise<EmptyObject> {
+        // When running inside a widget (RoomWidgetClient), delegate to the
+        // widget-aware override so to-device traffic flows through the widget
+        // API instead of the HTTP endpoint.
+        const widgetClient = this.client as unknown as WidgetAwareToDeviceClient;
+        if (typeof widgetClient.sendToDevice === "function") {
+            return widgetClient.sendToDevice(eventType, contentMap);
+        }
+
         const transactionId = txnId ?? this.makeTxnId();
         const path = `/sendToDevice/${encodeURIComponent(eventType)}/${encodeURIComponent(transactionId)}`;
 
@@ -111,6 +136,13 @@ export class ToDeviceManager extends BaseManager {
      * Queue a ToDeviceBatch for batch sending via the client's ToDeviceMessageQueue.
      */
     async queueToDeviceBatch(batch: ModelToDeviceBatch): Promise<void> {
+        // When running inside a widget (RoomWidgetClient), delegate to the
+        // widget-aware override so the batch is sent through the widget API.
+        const widgetClient = this.client as unknown as WidgetAwareToDeviceClient;
+        if (typeof widgetClient.queueToDevice === "function") {
+            return widgetClient.queueToDevice(batch);
+        }
+
         return (
             this.client as unknown as { toDeviceMessageQueue: { queueBatch(batch: ModelToDeviceBatch): Promise<void> } }
         ).toDeviceMessageQueue.queueBatch(batch);
@@ -154,6 +186,14 @@ export class ToDeviceManager extends BaseManager {
         devices: { userId: string; deviceId: string }[],
         payload: ToDevicePayload,
     ): Promise<void> {
+        // When running inside a widget (RoomWidgetClient), delegate to the
+        // widget-aware override which routes encrypted to-device traffic
+        // through the widget API. The widget host performs the encryption.
+        const widgetClient = this.client as unknown as WidgetAwareToDeviceClient;
+        if (typeof widgetClient.encryptAndSendToDevice === "function") {
+            return widgetClient.encryptAndSendToDevice(eventType, devices, payload);
+        }
+
         const client = this.client as unknown as {
             cryptoBackend?: import("../common-crypto/CryptoBackend").CryptoBackend;
         };

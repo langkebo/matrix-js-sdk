@@ -82,6 +82,7 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
                 method: Method.Get,
                 path: path,
                 queryParams: opts as Record<string, string>,
+                authenticated: false,
             });
         }, "getPublicRoomsList");
     }
@@ -100,6 +101,7 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
                 method: Method.Post,
                 path: path,
                 body: reqOpts,
+                authenticated: false,
             });
         }, "getPublicRooms");
     }

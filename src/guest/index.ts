@@ -174,6 +174,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                     path: "/register",
                     body: body,
                     prefix: ClientPrefix.V3,
+                    authenticated: false,
                 });
             }, "registerGuest");
 
@@ -215,6 +216,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                     path: "/login",
                     body: body,
                     prefix: ClientPrefix.V3,
+                    authenticated: false,
                 });
             }, "loginGuest");
 
@@ -469,6 +471,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                     path: gp("/register/guest"),
                     body: body,
                     prefix: ClientPrefix.V3,
+                    authenticated: false,
                 });
             }, "registerGuestOnServer")) as IGuestRegisterResponse;
 

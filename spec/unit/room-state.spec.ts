@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { RoomStateManager } from "../../src/room-state";
-import { Method } from "../../src/http-api";
+import { Method, ClientPrefix } from "../../src/http-api";
 
 describe("RoomStateManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,6 +47,7 @@ describe("RoomStateManager", () => {
             "/rooms/!r%3Ahs/state/m.room.encryption/",
             undefined,
             { algorithm: "m.megolm.v1.aes-sha2" },
+            { prefix: ClientPrefix.V3 },
         );
     });
 });

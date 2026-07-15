@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { TagsManager } from "../../src/tags-management/index.ts";
 
 describe("TagsManager", () => {
@@ -59,6 +59,7 @@ describe("TagsManager", () => {
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/account_data/m.hidden",
                 undefined,
                 { hidden: true },
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -85,6 +86,7 @@ describe("TagsManager", () => {
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/tags/m.favourite",
                 undefined,
                 {},
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -98,6 +100,7 @@ describe("TagsManager", () => {
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/tags/u.work",
                 undefined,
                 { order: 0.5 },
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -122,6 +125,9 @@ describe("TagsManager", () => {
             expect(authedRequest).toHaveBeenCalledWith(
                 Method.Delete,
                 "/user/%40alice%3Aexample.com/rooms/!room%3Aexample.com/tags/m.favourite",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
             );
         });
 

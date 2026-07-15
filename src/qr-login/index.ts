@@ -104,6 +104,7 @@ export class QrLoginManager extends BaseManager {
                     method: Method.Get,
                     path: ap("/login/get_qr_code"),
                     prefix: ClientPrefix.V1,
+                    authenticated: false,
                 }),
             "getQrCode",
         );
@@ -117,6 +118,7 @@ export class QrLoginManager extends BaseManager {
                     path: ap("/login/qr/start"),
                     body: request,
                     prefix: ClientPrefix.V1,
+                    authenticated: false,
                 }),
             "startQrLogin",
         );
@@ -140,6 +142,7 @@ export class QrLoginManager extends BaseManager {
                     method: Method.Get,
                     path: path,
                     prefix: ClientPrefix.V1,
+                    authenticated: false,
                 }),
             "getQrStatus",
         );
@@ -153,6 +156,7 @@ export class QrLoginManager extends BaseManager {
                     path: ap("/login/qr/invalidate"),
                     body: request,
                     prefix: ClientPrefix.V1,
+                    authenticated: false,
                 }),
             "invalidateQrLogin",
         );

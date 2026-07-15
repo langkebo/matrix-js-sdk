@@ -100,7 +100,13 @@ export class FakeTransport implements Transport {
                 p === path &&
                 (queryParams === undefined || JSON.stringify(q) === JSON.stringify(queryParams)) &&
                 (body === undefined || JSON.stringify(b) === JSON.stringify(body)) &&
-                (opts === undefined || JSON.stringify(o) === JSON.stringify(opts)),
+                (opts === undefined ||
+                    (o !== undefined &&
+                        Object.keys(opts).every(
+                            (k) =>
+                                JSON.stringify((o as Record<string, unknown>)[k]) ===
+                                JSON.stringify((opts as Record<string, unknown>)[k]),
+                        ))),
         );
         if (!match) {
             throw new Error(

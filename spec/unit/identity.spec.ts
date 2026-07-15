@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { IdentityManager } from "../../src/identity/index.ts";
 
 describe("IdentityManager", () => {
@@ -28,10 +28,16 @@ describe("IdentityManager", () => {
             await expect(manager.lookup3pid("email", "a@b.com")).resolves.toEqual({
                 mxid: "@alice:example.com",
             });
-            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/identity/v1/lookup", {
-                medium: "email",
-                address: "a@b.com",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/_matrix/identity/v1/lookup",
+                {
+                    medium: "email",
+                    address: "a@b.com",
+                },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("propagates 404 errors", async () => {
@@ -58,11 +64,17 @@ describe("IdentityManager", () => {
 
             await manager.store3pid("email", "a@b.com", "validation-token");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/_matrix/identity/v1/store-invite", undefined, {
-                medium: "email",
-                address: "a@b.com",
-                token: "validation-token",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/_matrix/identity/v1/store-invite",
+                undefined,
+                {
+                    medium: "email",
+                    address: "a@b.com",
+                    token: "validation-token",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("propagates 403 typed errors", async () => {
@@ -90,6 +102,7 @@ describe("IdentityManager", () => {
                 "/_matrix/identity/v1/validate/email/requestToken",
                 undefined,
                 { email: "a@b.com", sendAttempt: 1 },
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -117,11 +130,17 @@ describe("IdentityManager", () => {
 
             await manager.bind3pid("email", "a@b.com", "@alice:example.com", "sid-token");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/_matrix/identity/v1/3pid/bind", undefined, {
-                sid: "sid-token",
-                client_secret: "@alice:example.com",
-                mxid: "@alice:example.com",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/_matrix/identity/v1/3pid/bind",
+                undefined,
+                {
+                    sid: "sid-token",
+                    client_secret: "@alice:example.com",
+                    mxid: "@alice:example.com",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("propagates 401 errors", async () => {

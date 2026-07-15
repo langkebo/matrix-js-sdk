@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 
 import { RoomEventsManager } from "../../src/room-events";
-import { Method } from "../../src/http-api";
+import { Method, ClientPrefix } from "../../src/http-api";
 
 describe("RoomEventsManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,6 +46,9 @@ describe("RoomEventsManager", () => {
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Get,
             expect.stringContaining("/rooms/!room%3Ahs/event/%24e"),
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 },
         );
 
         await manager.getMessages(roomId, "b", 30, "t1");
@@ -53,6 +56,8 @@ describe("RoomEventsManager", () => {
             Method.Get,
             expect.stringContaining("/rooms/!room%3Ahs/messages"),
             { dir: "b", limit: "30", from: "t1" },
+            undefined,
+            { prefix: ClientPrefix.V3 },
         );
 
         await manager.getMessages(roomId, "f", 10);
@@ -60,6 +65,8 @@ describe("RoomEventsManager", () => {
             Method.Get,
             expect.stringContaining("/rooms/!room%3Ahs/messages"),
             { dir: "f", limit: "10" },
+            undefined,
+            { prefix: ClientPrefix.V3 },
         );
     });
 
@@ -77,6 +84,7 @@ describe("RoomEventsManager", () => {
                     key: "👍",
                 },
             },
+            { prefix: ClientPrefix.V3 },
         );
     });
 });

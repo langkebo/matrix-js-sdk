@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { ThreePidsManager } from "../../src/three-pids/index.ts";
 
 describe("ThreePidsManager", () => {
@@ -23,7 +23,9 @@ describe("ThreePidsManager", () => {
             await expect(manager.getThreePids()).resolves.toEqual({
                 threepids: [{ medium: "email", address: "a@b.com" }],
             });
-            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/account/3pid");
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/account/3pid", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
         });
 
         it("propagates 401 errors", async () => {
@@ -46,10 +48,16 @@ describe("ThreePidsManager", () => {
 
             await manager.addThreePidOnly("secret", "sid-1");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/account/3pid/add", undefined, {
-                client_secret: "secret",
-                sid: "sid-1",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/account/3pid/add",
+                undefined,
+                {
+                    client_secret: "secret",
+                    sid: "sid-1",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("propagates 400 typed errors", async () => {
@@ -75,12 +83,18 @@ describe("ThreePidsManager", () => {
 
             await manager.bindThreePid("secret", "sid", "https://id.example.com", "id-token");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/account/3pid/bind", undefined, {
-                client_secret: "secret",
-                sid: "sid",
-                id_server: "https://id.example.com",
-                id_access_token: "id-token",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/account/3pid/bind",
+                undefined,
+                {
+                    client_secret: "secret",
+                    sid: "sid",
+                    id_server: "https://id.example.com",
+                    id_access_token: "id-token",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
             expect(emitted).toHaveLength(1);
         });
 
@@ -106,11 +120,17 @@ describe("ThreePidsManager", () => {
 
             await manager.unbindThreePid("email", "a@b.com", "https://id.example.com");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/account/3pid/unbind", undefined, {
-                medium: "email",
-                address: "a@b.com",
-                id_server: "https://id.example.com",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/account/3pid/unbind",
+                undefined,
+                {
+                    medium: "email",
+                    address: "a@b.com",
+                    id_server: "https://id.example.com",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
             expect(emitted).toEqual([{ medium: "email", address: "a@b.com" }]);
         });
     });
@@ -124,11 +144,17 @@ describe("ThreePidsManager", () => {
 
             await manager.deleteThreePid("msisdn", "+441234567");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/account/3pid/delete", undefined, {
-                medium: "msisdn",
-                address: "+441234567",
-                id_server: undefined,
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/account/3pid/delete",
+                undefined,
+                {
+                    medium: "msisdn",
+                    address: "+441234567",
+                    id_server: undefined,
+                },
+                { prefix: ClientPrefix.V3 },
+            );
             expect(emitted).toEqual([{ medium: "msisdn", address: "+441234567" }]);
         });
 

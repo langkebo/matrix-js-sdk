@@ -17,31 +17,43 @@ limitations under the License.
 import { MatrixClient } from "../../src/client";
 
 describe("Room upgrades", function () {
-    it("Sends an HTTP request upgrading the room", () => {
+    it("Sends an HTTP request upgrading the room", async () => {
         // Given a client with a fake authedRequest method
         const { client, authedRequest } = createClient();
 
         // When we upgrade the room to version 12
-        client.upgradeRoom("!r1", "12");
+        await client.upgradeRoom("!r1:s.co", "12");
 
         // Then we make an HTTP request to the correct endpoint, with the
         // version provided in the JSON.
-        expect(authedRequest).toHaveBeenCalledWith("POST", "/rooms/!r1/upgrade", undefined, { new_version: "12" });
+        expect(authedRequest).toHaveBeenCalledWith(
+            "POST",
+            "/rooms/!r1%3As.co/upgrade",
+            undefined,
+            { new_version: "12" },
+            { prefix: "/_matrix/client/v3" },
+        );
     });
 
-    it("Includes additional_creators if provided", () => {
+    it("Includes additional_creators if provided", async () => {
         // Given a client with a fake authedRequest method
         const { client, authedRequest } = createClient();
 
         // When we upgrade the room to version 13 and supply additionalCreators
-        client.upgradeRoom("!r1", "13", ["@u:s.co", "@v:a.b"]);
+        await client.upgradeRoom("!r1:s.co", "13", ["@u:s.co", "@v:a.b"]);
 
         // Then we make an HTTP request to the correct endpoint, with the
         // version and additional creators provided.
-        expect(authedRequest).toHaveBeenCalledWith("POST", "/rooms/!r1/upgrade", undefined, {
-            new_version: "13",
-            additional_creators: ["@u:s.co", "@v:a.b"],
-        });
+        expect(authedRequest).toHaveBeenCalledWith(
+            "POST",
+            "/rooms/!r1%3As.co/upgrade",
+            undefined,
+            {
+                new_version: "13",
+                additional_creators: ["@u:s.co", "@v:a.b"],
+            },
+            { prefix: "/_matrix/client/v3" },
+        );
     });
 });
 

@@ -17,7 +17,7 @@ limitations under the License.
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { AuthManager, AuthEvent } from "../../src/auth/index";
-import { Method } from "../../src/http-api";
+import { Method, ClientPrefix } from "../../src/http-api";
 
 describe("AuthManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,7 +200,7 @@ describe("AuthManager", () => {
             const result = await authManager.getSupportedLoginFlows();
 
             expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/login", undefined, undefined, {
-                prefix: undefined,
+                prefix: ClientPrefix.V3,
             });
             expect(result).toEqual(flows);
         });
@@ -282,7 +282,7 @@ describe("AuthManager", () => {
             const result = await authManager.getRegisterFlows();
 
             expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/register", undefined, undefined, {
-                prefix: undefined,
+                prefix: ClientPrefix.V3,
             });
             expect(result).toEqual(flows);
         });

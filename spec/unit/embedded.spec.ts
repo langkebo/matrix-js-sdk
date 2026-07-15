@@ -565,7 +565,7 @@ describe("RoomWidgetClient", () => {
                             break;
                         case UpdateDelayedEventAction.Restart:
                             await client._unstable_restartScheduledDelayedEvent("id");
-                            updateDelayedEvent = widgetApi.cancelScheduledDelayedEvent;
+                            updateDelayedEvent = widgetApi.restartScheduledDelayedEvent;
                             break;
                         case UpdateDelayedEventAction.Send:
                             await client._unstable_sendScheduledDelayedEvent("id");

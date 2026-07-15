@@ -17,6 +17,7 @@ limitations under the License.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { GlobalLogoutManager } from "../../../src/auth/global-logout";
+import { Method, ClientPrefix } from "../../../src/http-api";
 
 describe("GlobalLogoutManager", () => {
     let manager: GlobalLogoutManager;
@@ -51,7 +52,13 @@ describe("GlobalLogoutManager", () => {
         it("should call logout/all endpoint", async () => {
             await manager.logoutAll();
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/logout/all");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/logout/all",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -69,7 +76,13 @@ describe("GlobalLogoutManager", () => {
         it("should call delete device endpoint", async () => {
             await manager.logoutDevice("DEVICE_2");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/devices/DEVICE_2");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/devices/DEVICE_2",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -78,7 +91,13 @@ describe("GlobalLogoutManager", () => {
             await manager.logoutOtherDevices();
 
             expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(1);
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(expect.anything(), "/devices/DEVICE_2");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/devices/DEVICE_2",
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("should not call http if only one device", async () => {

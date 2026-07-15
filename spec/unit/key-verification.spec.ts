@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { KeyVerificationManager } from "../../src/key-verification/index";
+import { Method, ClientPrefix } from "../../src/http-api";
 import { extendMatrixClientWithManagers, resetManagerExtensions } from "../../src/manager-extensions/index";
 import { MatrixClient } from "../../src/client";
 
@@ -46,46 +47,58 @@ describe("KeyVerificationManager", () => {
         await manager.requestRoomKeyVerification("!room:test", "@bob:test", "r0");
         await manager.beginKeyVerification("m.qr_code.show.v1", "@carol:test", "CAROL", "r0");
 
-        expect(client.startDeviceSigningVerification).toHaveBeenNthCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             1,
+            Method.Post,
+            "/keys/device_signing/verify_start",
+            undefined,
             {
                 from_device: "DEVICE",
                 to_user: "@alice:test",
                 method: "m.sas.v1",
             },
-            "v1",
+            { prefix: ClientPrefix.V1 },
         );
-        expect(client.startDeviceSigningVerification).toHaveBeenNthCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             2,
+            Method.Post,
+            "/keys/device_signing/verify_start",
+            undefined,
             {
                 from_device: "DEVICE",
                 to_user: "@bob:test",
                 method: "sas",
             },
-            "r0",
+            { prefix: ClientPrefix.R0 },
         );
-        expect(client.startDeviceSigningVerification).toHaveBeenNthCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             3,
+            Method.Post,
+            "/keys/device_signing/verify_start",
+            undefined,
             {
                 from_device: "DEVICE",
                 to_user: "@carol:test",
                 to_device: "CAROL",
                 method: "m.qr_code.show.v1",
             },
-            "r0",
+            { prefix: ClientPrefix.R0 },
         );
     });
 
     it("uses the typed cancel endpoint with default code and reason", async () => {
         await manager.cancelKeyVerification("txn-1");
 
-        expect(client.cancelDeviceSigningVerification).toHaveBeenCalledWith(
+        expect(client.http.authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/keys/device_signing/verify_cancel",
+            undefined,
             {
                 transaction_id: "txn-1",
                 code: "m.user",
                 reason: "Cancelled by user",
             },
-            "v1",
+            { prefix: ClientPrefix.V1 },
         );
     });
 
@@ -94,16 +107,34 @@ describe("KeyVerificationManager", () => {
         await manager.getVerificationRequests("r0");
         await manager.getVerificationRequests("@ignored:test", "v1");
 
-        expect(client.cancelDeviceSigningVerification).toHaveBeenCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            1,
+            Method.Post,
+            "/keys/device_signing/verify_cancel",
+            undefined,
             {
                 transaction_id: "txn-2",
                 code: "m.timeout",
                 reason: "Timed out",
             },
-            "r0",
+            { prefix: ClientPrefix.R0 },
         );
-        expect(client.getVerificationRequests).toHaveBeenNthCalledWith(1, "r0");
-        expect(client.getVerificationRequests).toHaveBeenNthCalledWith(2, "v1");
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            2,
+            Method.Get,
+            "/keys/device_signing/requests",
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.R0 },
+        );
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            3,
+            Method.Get,
+            "/keys/device_signing/requests",
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V1 },
+        );
     });
 
     it("routes verification handshake steps to the typed client helpers", async () => {
@@ -131,29 +162,48 @@ describe("KeyVerificationManager", () => {
         );
         await manager.completeKeyVerification("txn-done");
 
-        expect(client.acceptDeviceSigningVerification).toHaveBeenCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            1,
+            Method.Put,
+            "/keys/device_signing/verify_accept",
+            undefined,
             {
                 transaction_id: "txn-accept",
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             },
-            "r0",
+            { prefix: ClientPrefix.R0 },
         );
-        expect(client.sendDeviceSigningVerificationKeyAgreement).toHaveBeenCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            2,
+            Method.Post,
+            "/keys/device_signing/verify_key_agreement",
+            undefined,
             {
                 transaction_id: "txn-key",
                 pubkey: "curve25519:key",
             },
-            "v1",
+            { prefix: ClientPrefix.V1 },
         );
-        expect(client.confirmDeviceSigningVerificationMac).toHaveBeenCalledWith(
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            3,
+            Method.Post,
+            "/keys/device_signing/verify_mac",
+            undefined,
             {
                 transaction_id: "txn-mac",
                 mac: "mac-value",
             },
-            "r0",
+            { prefix: ClientPrefix.R0 },
         );
-        expect(client.completeDeviceSigningVerification).toHaveBeenCalledWith({ transaction_id: "txn-done" }, "v1");
+        expect(client.http.authedRequest).toHaveBeenNthCalledWith(
+            4,
+            Method.Post,
+            "/keys/device_signing/verify_done",
+            undefined,
+            { transaction_id: "txn-done" },
+            { prefix: ClientPrefix.V1 },
+        );
     });
 
     it("routes QR helpers through the verification contract paths", async () => {

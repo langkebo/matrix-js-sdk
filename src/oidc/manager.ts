@@ -170,6 +170,7 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                 method: Method.Get,
                 path: publicPath("/.well-known/openid-configuration"),
                 prefix: "",
+                authenticated: false,
             });
             this.discoveryCache = response;
             this.currentProvider = response.issuer;
@@ -224,6 +225,7 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                 path: op("/oidc/authorize"),
                 queryParams: queryParams,
                 prefix: ClientPrefix.V3,
+                authenticated: false,
             });
             return response.url || response.code || "";
         }, "authorize");
@@ -347,6 +349,7 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                         password: request.password,
                     },
                     prefix: ClientPrefix.V3,
+                    authenticated: false,
                 }),
             "builtinLogin",
         );
@@ -364,6 +367,7 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
                 path: op("/login/sso/redirect"),
                 queryParams: queryParams,
                 prefix: ClientPrefix.V3,
+                authenticated: false,
             });
             return response.url;
         }, "ssoRedirect");

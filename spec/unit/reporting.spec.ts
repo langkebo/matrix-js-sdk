@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Method } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix } from "../../src/http-api/index.ts";
 import { ReportingManager } from "../../src/reporting/index.ts";
 
 describe("ReportingManager", () => {
@@ -22,9 +22,15 @@ describe("ReportingManager", () => {
             await manager.reportRoom("!abuse:example.com", "spam");
 
             expect(authedRequest).toHaveBeenCalledTimes(1);
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/rooms/!abuse%3Aexample.com/report", undefined, {
-                reason: "spam",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/rooms/!abuse%3Aexample.com/report",
+                undefined,
+                {
+                    reason: "spam",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("propagates 4xx errors from the backend without retrying", async () => {
@@ -53,6 +59,7 @@ describe("ReportingManager", () => {
                 "/rooms/!abuse%3Aexample.com/report/%24evt%3Aexample.com",
                 undefined,
                 { score: -50, reason: "spam" },
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -78,9 +85,15 @@ describe("ReportingManager", () => {
 
             await manager.reportUser("@bad:example.com", "harassment");
 
-            expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/users/%40bad%3Aexample.com/report", undefined, {
-                reason: "harassment",
-            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/users/%40bad%3Aexample.com/report",
+                undefined,
+                {
+                    reason: "harassment",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
         });
 
         it("propagates 401 errors", async () => {
