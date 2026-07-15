@@ -29,7 +29,8 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 
 import { validateRoomId, validateUserId, validateEventType } from "../common/validators";
-import { type QueryDict, encodeUri } from "../http-api/utils";import { BaseManager, type ManagerOpts } from "../managers/base-manager";
+import { type QueryDict, encodeUri } from "../http-api/utils";
+import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 
 export type RoomSummaryErrorCallback = (error: Error) => void;

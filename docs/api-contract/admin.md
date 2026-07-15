@@ -49,42 +49,42 @@ last_reviewed: 2026-05-11
 
 ## 房间与 Space 管理
 
-| 方法       | 路径                                                          | 说明                |
-| ---------- | ------------------------------------------------------------- | ------------------- |
-| GET        | `/_synapse/admin/v1/rooms`                                    | 房间列表            |
-| GET/DELETE | `/_synapse/admin/v1/rooms/{room_id}`                          | 房间详情 / 删除房间 |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/delete`                   | 兼容删除房间        |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/members`                  | 房间成员            |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/state`                    | 房间状态            |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/messages`                 | 房间消息            |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/aliases`                  | 房间别名            |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/version`                  | 房间版本            |
-| POST/GET   | `/_synapse/admin/v1/rooms/{room_id}/block`                    | 封禁 / 查询封禁状态 |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/unblock`                  | 解封房间            |
-| POST/PUT   | `/_synapse/admin/v1/rooms/{room_id}/make_admin`               | 设置房间管理员      |
+| 方法       | 路径                                                          | 说明                                                          |
+| ---------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| GET        | `/_synapse/admin/v1/rooms`                                    | 房间列表                                                      |
+| GET/DELETE | `/_synapse/admin/v1/rooms/{room_id}`                          | 房间详情 / 删除房间                                           |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/delete`                   | 兼容删除房间                                                  |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/members`                  | 房间成员                                                      |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/state`                    | 房间状态                                                      |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/messages`                 | 房间消息                                                      |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/aliases`                  | 房间别名                                                      |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/version`                  | 房间版本                                                      |
+| POST/GET   | `/_synapse/admin/v1/rooms/{room_id}/block`                    | 封禁 / 查询封禁状态                                           |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/unblock`                  | 解封房间                                                      |
+| POST/PUT   | `/_synapse/admin/v1/rooms/{room_id}/make_admin`               | 设置房间管理员                                                |
 | POST       | `/_synapse/admin/v1/purge_history`                            | 清理历史；响应含 `purge_id` 和可选 `audit_id`（v10 审计字段） |
-| POST       | `/_synapse/admin/v1/purge_room`                               | 清空房间            |
-| POST       | `/_synapse/admin/v1/shutdown_room`                            | 关闭房间            |
-| GET        | `/_synapse/admin/v1/spaces`                                   | space 列表          |
-| GET/DELETE | `/_synapse/admin/v1/spaces/{space_id}`                        | space 详情 / 删除   |
-| GET        | `/_synapse/admin/v1/spaces/{space_id}/users`                  | space 用户          |
-| GET        | `/_synapse/admin/v1/spaces/{space_id}/rooms`                  | space 房间          |
-| GET        | `/_synapse/admin/v1/spaces/{space_id}/stats`                  | space 统计          |
-| GET        | `/_synapse/admin/v1/room_stats`                               | 房间统计列表        |
-| GET        | `/_synapse/admin/v1/room_stats/{room_id}`                     | 单房间统计          |
-| PUT/DELETE | `/_synapse/admin/v1/rooms/{room_id}/members/{user_id}`        | 加入 / 移除成员     |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/ban/{user_id}`            | 封禁指定用户        |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/ban`                      | 封禁请求体指定用户  |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/unban/{user_id}`          | 解封指定用户        |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/kick/{user_id}`           | 踢出指定用户        |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/kick`                     | 踢出请求体指定用户  |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/listings`                 | 房间公开列表项      |
-| PUT/DELETE | `/_synapse/admin/v1/rooms/{room_id}/listings/public`          | 设置/移除公开列表   |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/event_context/{event_id}` | 事件上下文          |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/token_sync`               | token 同步          |
-| POST       | `/_synapse/admin/v1/rooms/{room_id}/search`                   | 房间内搜索          |
-| POST       | `/_synapse/admin/v1/rooms/search`                             | 全局房间搜索        |
-| GET        | `/_synapse/admin/v1/rooms/{room_id}/forward_extremities`      | extremities         |
+| POST       | `/_synapse/admin/v1/purge_room`                               | 清空房间                                                      |
+| POST       | `/_synapse/admin/v1/shutdown_room`                            | 关闭房间                                                      |
+| GET        | `/_synapse/admin/v1/spaces`                                   | space 列表                                                    |
+| GET/DELETE | `/_synapse/admin/v1/spaces/{space_id}`                        | space 详情 / 删除                                             |
+| GET        | `/_synapse/admin/v1/spaces/{space_id}/users`                  | space 用户                                                    |
+| GET        | `/_synapse/admin/v1/spaces/{space_id}/rooms`                  | space 房间                                                    |
+| GET        | `/_synapse/admin/v1/spaces/{space_id}/stats`                  | space 统计                                                    |
+| GET        | `/_synapse/admin/v1/room_stats`                               | 房间统计列表                                                  |
+| GET        | `/_synapse/admin/v1/room_stats/{room_id}`                     | 单房间统计                                                    |
+| PUT/DELETE | `/_synapse/admin/v1/rooms/{room_id}/members/{user_id}`        | 加入 / 移除成员                                               |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/ban/{user_id}`            | 封禁指定用户                                                  |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/ban`                      | 封禁请求体指定用户                                            |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/unban/{user_id}`          | 解封指定用户                                                  |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/kick/{user_id}`           | 踢出指定用户                                                  |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/kick`                     | 踢出请求体指定用户                                            |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/listings`                 | 房间公开列表项                                                |
+| PUT/DELETE | `/_synapse/admin/v1/rooms/{room_id}/listings/public`          | 设置/移除公开列表                                             |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/event_context/{event_id}` | 事件上下文                                                    |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/token_sync`               | token 同步                                                    |
+| POST       | `/_synapse/admin/v1/rooms/{room_id}/search`                   | 房间内搜索                                                    |
+| POST       | `/_synapse/admin/v1/rooms/search`                             | 全局房间搜索                                                  |
+| GET        | `/_synapse/admin/v1/rooms/{room_id}/forward_extremities`      | extremities                                                   |
 
 ## 安全、通知、媒体、服务器
 
@@ -190,54 +190,54 @@ last_reviewed: 2026-05-11
 
 ### 修正（breaking）
 
-| SDK 方法                        | 变更                                                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `setAdmin`                      | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                     |
-| `addToFederationBlacklist`      | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}` |
-| `removeFromFederationBlacklist` | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**            |
-| `getRoomStats(roomId)`          | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                 |
-| `getAccountStatus`              | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                      |
-| `getServerInfo`                 | 主路径 **`GET /v1/info`**，对旧部署保留 `404 -> /v1/server_info` 兼容回退                               |
-| `getServerHealth`               | 主路径 **`GET /v1/health`**，对旧部署保留 `404 -> /v1/server_health` 兼容回退                            |
-| `getServerStats`                | 主路径 **`GET /v1/statistics`**，对旧部署保留 `404 -> /v1/server_stats` 兼容回退                         |
-| `getRateLimit` / `setRateLimit` / `deleteRateLimit` | 主路径统一为 **`/v1/users/{user_id}/rate_limit`**，兼容旧路径 `/override_ratelimit` 回退 |
-| `deleteUserDevice`              | 主路径 **`DELETE /v1/users/{user_id}/devices/{device_id}`**，兼容旧路径 `POST .../devices/{device_id}/delete` 回退 |
-| `getUserDevices`                | 主路径 **`GET /v1/users/{user_id}/devices`**，兼容旧路径 `GET /v2/users/{user_id}/devices` 回退 |
-| `getUsersPaginated` / `getUser` | 主路径 **`/v2/users...`**，对仅暴露 v1 的部署保留 `404 -> /v1/users...` 兼容回退 |
-| `resetPassword(userId, pw)`     | 移除 `logout_devices` 参数（后端忽略）                                                                  |
-| `deactivateUser(userId)`        | 移除 `erase` body 参数（后端无 body extractor）                                                         |
-| `disconnectFederation`          | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）          |
+| SDK 方法                                                     | 变更                                                                                                                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setAdmin`                                                   | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                                                         |
+| `addToFederationBlacklist`                                   | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}`                                     |
+| `removeFromFederationBlacklist`                              | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**                                                |
+| `getRoomStats(roomId)`                                       | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                                                     |
+| `getAccountStatus`                                           | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                                                          |
+| `getServerInfo`                                              | 主路径 **`GET /v1/info`**，对旧部署保留 `404 -> /v1/server_info` 兼容回退                                                                   |
+| `getServerHealth`                                            | 主路径 **`GET /v1/health`**，对旧部署保留 `404 -> /v1/server_health` 兼容回退                                                               |
+| `getServerStats`                                             | 主路径 **`GET /v1/statistics`**，对旧部署保留 `404 -> /v1/server_stats` 兼容回退                                                            |
+| `getRateLimit` / `setRateLimit` / `deleteRateLimit`          | 主路径统一为 **`/v1/users/{user_id}/rate_limit`**，兼容旧路径 `/override_ratelimit` 回退                                                    |
+| `deleteUserDevice`                                           | 主路径 **`DELETE /v1/users/{user_id}/devices/{device_id}`**，兼容旧路径 `POST .../devices/{device_id}/delete` 回退                          |
+| `getUserDevices`                                             | 主路径 **`GET /v1/users/{user_id}/devices`**，兼容旧路径 `GET /v2/users/{user_id}/devices` 回退                                             |
+| `getUsersPaginated` / `getUser`                              | 主路径 **`/v2/users...`**，对仅暴露 v1 的部署保留 `404 -> /v1/users...` 兼容回退                                                            |
+| `resetPassword(userId, pw)`                                  | 移除 `logout_devices` 参数（后端忽略）                                                                                                      |
+| `deactivateUser(userId)`                                     | 移除 `erase` body 参数（后端无 body extractor）                                                                                             |
+| `disconnectFederation`                                       | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）                                              |
 | `getFederationAdmissionList` / `getPendingFederationServers` | 统一主路径到 **`GET /v1/federation/pending`**，并保留对旧路径 `/v1/federation/admissions`、`/v1/federation/pending_servers` 的 404 兼容回退 |
 
 ### 新增封装
 
-| 领域               | SDK 方法                                                                                                                                                              |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Retention policy   | `getRetentionPolicy` / `setRetentionPolicy` / `getRoomRetentionPolicy` / `setRoomRetentionPolicy` / `runRetention` / `getRetentionStatus`                             |
-| Audit events       | `listAuditEvents` / `getAuditEvent` / `createAuditEvent`                                                                                                              |
-| Feature flags      | `listFeatureFlags` / `getFeatureFlag` / `createFeatureFlag` / `updateFeatureFlag`                                                                                     |
-| Federation detail  | `resolveFederation` / `rewriteFederation` / `confirmFederation` / `deleteFederationDestination` / `resetFederationDestination` / `getFederationDestinationRooms` / `getFederationCache` / `clearFederationCache` / `deleteFederationCacheEntry` |
-| Notifications      | `listNotifications` / `createNotification` / `listActiveNotifications` / `getNotification` / `updateNotification` / `deactivateNotification` / `deleteNotification` / `getUserNotification` / `setUserNotification` |
-| Server notices     | `getServerNotices` / `sendServerNotice` / `deleteServerNotice` / `getServerNotice`                                                                                 |
-| User pushers       | `getUserPushers` / `deleteUserPusher`                                                                                                                                 |
-| Register admin     | `getRegisterNonce` / `registerAdmin`                                                                                                                                   |
-| Reports            | `listReports` / `getReport` / `deleteReport` / `listRoomReports` / `getRoomReport`                                                                                   |
-| Registration token | `getRegistrationToken` / `updateRegistrationToken`（主路径 `POST /v1/registration_tokens/{token}`，兼容回退 `PUT`）                                                 |
-| Spaces             | `listSpaces` / `getSpace` / `deleteSpace` / `getSpaceRooms` / `getSpaceStats` / `getSpaceUsers`                                                                     |
-| User media         | `getUserMedia` / `deleteUserMedia`                                                                                                                                     |
-| User tokens        | `getUserTokens` / `deleteUserToken` / `getUserRefreshTokens` / `deleteUserRefreshToken`                                                                               |
-| User lifecycle     | `deleteUser`（主路径 `DELETE /v1/users/{user_id}`，404 回退 `DELETE /v2/users/{user_id}`） / `batchCreateUsers`（`POST /v1/users/batch`） / `batchDeactivateUsers`（`POST /v1/users/batch_deactivate`） |
-| User session/auth  | `getUserSession` / `invalidateUserSession` / `loginAsUser` / `logoutUser` / `evictUser`                                                                               |
-| User rooms/stats   | `getUserRooms` / `getUserStats` / `listUserStats`                                                                                                                      |
-| Room statistics    | `getRoomStatsByRoom`（`GET /v1/room_stats/{room_id}`）                                                                                                                 |
+| 领域               | SDK 方法                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Retention policy   | `getRetentionPolicy` / `setRetentionPolicy` / `getRoomRetentionPolicy` / `setRoomRetentionPolicy` / `runRetention` / `getRetentionStatus`                                                                                                                                                                                                                                  |
+| Audit events       | `listAuditEvents` / `getAuditEvent` / `createAuditEvent`                                                                                                                                                                                                                                                                                                                   |
+| Feature flags      | `listFeatureFlags` / `getFeatureFlag` / `createFeatureFlag` / `updateFeatureFlag`                                                                                                                                                                                                                                                                                          |
+| Federation detail  | `resolveFederation` / `rewriteFederation` / `confirmFederation` / `deleteFederationDestination` / `resetFederationDestination` / `getFederationDestinationRooms` / `getFederationCache` / `clearFederationCache` / `deleteFederationCacheEntry`                                                                                                                            |
+| Notifications      | `listNotifications` / `createNotification` / `listActiveNotifications` / `getNotification` / `updateNotification` / `deactivateNotification` / `deleteNotification` / `getUserNotification` / `setUserNotification`                                                                                                                                                        |
+| Server notices     | `getServerNotices` / `sendServerNotice` / `deleteServerNotice` / `getServerNotice`                                                                                                                                                                                                                                                                                         |
+| User pushers       | `getUserPushers` / `deleteUserPusher`                                                                                                                                                                                                                                                                                                                                      |
+| Register admin     | `getRegisterNonce` / `registerAdmin`                                                                                                                                                                                                                                                                                                                                       |
+| Reports            | `listReports` / `getReport` / `deleteReport` / `listRoomReports` / `getRoomReport`                                                                                                                                                                                                                                                                                         |
+| Registration token | `getRegistrationToken` / `updateRegistrationToken`（主路径 `POST /v1/registration_tokens/{token}`，兼容回退 `PUT`）                                                                                                                                                                                                                                                        |
+| Spaces             | `listSpaces` / `getSpace` / `deleteSpace` / `getSpaceRooms` / `getSpaceStats` / `getSpaceUsers`                                                                                                                                                                                                                                                                            |
+| User media         | `getUserMedia` / `deleteUserMedia`                                                                                                                                                                                                                                                                                                                                         |
+| User tokens        | `getUserTokens` / `deleteUserToken` / `getUserRefreshTokens` / `deleteUserRefreshToken`                                                                                                                                                                                                                                                                                    |
+| User lifecycle     | `deleteUser`（主路径 `DELETE /v1/users/{user_id}`，404 回退 `DELETE /v2/users/{user_id}`） / `batchCreateUsers`（`POST /v1/users/batch`） / `batchDeactivateUsers`（`POST /v1/users/batch_deactivate`）                                                                                                                                                                    |
+| User session/auth  | `getUserSession` / `invalidateUserSession` / `loginAsUser` / `logoutUser` / `evictUser`                                                                                                                                                                                                                                                                                    |
+| User rooms/stats   | `getUserRooms` / `getUserStats` / `listUserStats`                                                                                                                                                                                                                                                                                                                          |
+| Room statistics    | `getRoomStatsByRoom`（`GET /v1/room_stats/{room_id}`）                                                                                                                                                                                                                                                                                                                     |
 | Room admin extra   | `getRoomEventContext` / `getRoomForwardExtremities` / `getRoomTokenSync` / `searchRoomEvents` / `getRoomListings` / `setRoomPublicListing` / `deleteRoomPublicListing` / `addRoomMember` / `removeRoomMember` / `banRoomMember` / `kickRoomMember` / `unbanRoomMember` / `banRoom` / `kickRoom` / `makeRoomAdmin` / `deleteRoomAdmin` / `purgeRoomHistory` / `unblockRoom` |
-| Room global search | `searchRooms`（`GET /v1/rooms/search`） / `searchRoomsPost`（`POST /v1/rooms/search`）                                                                                |
-| Server maintenance | `getInviteAllowlist` / `getInviteBlocklist` / `getJitsiConfig` / `cleanupAll` / `cleanupRooms`（主路径 `POST /v1/rooms/cleanup`，404 回退 `/v1/cleanup/rooms`） / `cleanupTokens` / `purgeRoom` / `purgeHistory` / `shutdownRoom` / `restartServer` / `whoisByDevice` / `getAdminInfo`（`GET /info`） |
-| Modules            | `listModules` / `listModulesByType` / `getModule` / `createModule` / `updateModuleConfig` / `setModuleEnabled` / `deleteModule` / `checkModuleSpam` / `getModuleLogs` |
-| Event report limit | `checkEventReportRateLimit` / `blockEventReportUser` / `unblockEventReportUser`                                                                                       |
-| Telemetry          | `listTelemetryAlerts` / `acknowledgeTelemetryAlert`                                                                                                                   |
-| Media quota        | `getMediaQuota`                                                                                                                                                       |
-| Account detail     | `updateAccountDetails`（`POST /v1/account/{user_id}`）                                                                                                               |
+| Room global search | `searchRooms`（`GET /v1/rooms/search`） / `searchRoomsPost`（`POST /v1/rooms/search`）                                                                                                                                                                                                                                                                                     |
+| Server maintenance | `getInviteAllowlist` / `getInviteBlocklist` / `getJitsiConfig` / `cleanupAll` / `cleanupRooms`（主路径 `POST /v1/rooms/cleanup`，404 回退 `/v1/cleanup/rooms`） / `cleanupTokens` / `purgeRoom` / `purgeHistory` / `shutdownRoom` / `restartServer` / `whoisByDevice` / `getAdminInfo`（`GET /info`）                                                                      |
+| Modules            | `listModules` / `listModulesByType` / `getModule` / `createModule` / `updateModuleConfig` / `setModuleEnabled` / `deleteModule` / `checkModuleSpam` / `getModuleLogs`                                                                                                                                                                                                      |
+| Event report limit | `checkEventReportRateLimit` / `blockEventReportUser` / `unblockEventReportUser`                                                                                                                                                                                                                                                                                            |
+| Telemetry          | `listTelemetryAlerts` / `acknowledgeTelemetryAlert`                                                                                                                                                                                                                                                                                                                        |
+| Media quota        | `getMediaQuota`                                                                                                                                                                                                                                                                                                                                                            |
+| Account detail     | `updateAccountDetails`（`POST /v1/account/{user_id}`）                                                                                                                                                                                                                                                                                                                     |
 
 ### 分页规范
 

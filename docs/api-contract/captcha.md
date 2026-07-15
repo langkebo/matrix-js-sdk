@@ -13,24 +13,24 @@ last_reviewed: 2026-06-01
 
 ## 真实后端路由
 
-| 方法 | 路径 | 说明 | 认证 |
-| ---- | ---- | ---- | ---- |
-| POST | `/_matrix/client/r0/register/captcha/send` | r0 发送验证码挑战 | 公开 |
-| GET | `/_matrix/client/r0/register/captcha/status` | r0 查询验证码状态 | 公开 |
-| POST | `/_matrix/client/r0/register/captcha/verify` | r0 验证验证码 | 公开 |
-| POST | `/_matrix/client/v3/register/captcha/send` | v3 发送验证码挑战 | 公开 |
-| GET | `/_matrix/client/v3/register/captcha/status` | v3 查询验证码状态 | 公开 |
-| POST | `/_matrix/client/v3/register/captcha/verify` | v3 验证验证码 | 公开 |
-| POST | `/_synapse/admin/v1/captcha/cleanup` | 清理过期验证码 | 管理员 |
+| 方法 | 路径                                         | 说明              | 认证   |
+| ---- | -------------------------------------------- | ----------------- | ------ |
+| POST | `/_matrix/client/r0/register/captcha/send`   | r0 发送验证码挑战 | 公开   |
+| GET  | `/_matrix/client/r0/register/captcha/status` | r0 查询验证码状态 | 公开   |
+| POST | `/_matrix/client/r0/register/captcha/verify` | r0 验证验证码     | 公开   |
+| POST | `/_matrix/client/v3/register/captcha/send`   | v3 发送验证码挑战 | 公开   |
+| GET  | `/_matrix/client/v3/register/captcha/status` | v3 查询验证码状态 | 公开   |
+| POST | `/_matrix/client/v3/register/captcha/verify` | v3 验证验证码     | 公开   |
+| POST | `/_synapse/admin/v1/captcha/cleanup`         | 清理过期验证码    | 管理员 |
 
 ## SDK 对齐状态
 
-| 端点 | SDK Manager | 方法 | 状态 |
-| ---- | ----------- | ---- | ---- |
-| `POST /{r0,v3}/register/captcha/send` | `CaptchaManager` | `sendCaptcha(..., version?)` | ✅ |
-| `GET /{r0,v3}/register/captcha/status` | `CaptchaManager` | `getCaptchaStatus(..., version?)` | ✅ |
-| `POST /{r0,v3}/register/captcha/verify` | `CaptchaManager` | `verifyCaptcha(..., version?)` | ✅ |
-| `POST /_synapse/admin/v1/captcha/cleanup` | `CaptchaManager` | `cleanupExpiredCaptchas()` | ✅ |
+| 端点                                      | SDK Manager      | 方法                              | 状态 |
+| ----------------------------------------- | ---------------- | --------------------------------- | ---- |
+| `POST /{r0,v3}/register/captcha/send`     | `CaptchaManager` | `sendCaptcha(..., version?)`      | ✅   |
+| `GET /{r0,v3}/register/captcha/status`    | `CaptchaManager` | `getCaptchaStatus(..., version?)` | ✅   |
+| `POST /{r0,v3}/register/captcha/verify`   | `CaptchaManager` | `verifyCaptcha(..., version?)`    | ✅   |
+| `POST /_synapse/admin/v1/captcha/cleanup` | `CaptchaManager` | `cleanupExpiredCaptchas()`        | ✅   |
 
 ## 覆盖率口径
 
@@ -45,10 +45,10 @@ last_reviewed: 2026-06-01
 
 ## 常见状态码
 
-| 状态码 | 说明 |
-| ------ | ---- |
-| `200` | 发送、查询或验证成功 |
-| `400` | 参数缺失或验证码格式不合法 |
-| `401` | 管理清理接口缺少管理员身份 |
-| `404` | 指定 `captcha_id` 不存在 |
-| `429` | 验证码请求或校验触发限流 |
+| 状态码 | 说明                       |
+| ------ | -------------------------- |
+| `200`  | 发送、查询或验证成功       |
+| `400`  | 参数缺失或验证码格式不合法 |
+| `401`  | 管理清理接口缺少管理员身份 |
+| `404`  | 指定 `captcha_id` 不存在   |
+| `429`  | 验证码请求或校验触发限流   |

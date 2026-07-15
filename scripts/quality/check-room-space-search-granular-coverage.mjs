@@ -131,11 +131,7 @@ function readRelative(file) {
 }
 
 function hasMethod(content, method) {
-    return (
-        content.includes(`${method}(`) ||
-        content.includes(`${method}:`) ||
-        content.includes(`.${method}(`)
-    );
+    return content.includes(`${method}(`) || content.includes(`${method}:`) || content.includes(`.${method}(`);
 }
 
 function collectMissing(items, predicate) {

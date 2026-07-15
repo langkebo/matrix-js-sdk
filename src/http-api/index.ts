@@ -25,7 +25,8 @@ import {
 } from "./interface";
 import { MediaPrefix } from "./prefix";
 import { type QueryDict } from "./utils";
-import { removeElement } from "../common/collections";import * as callbacks from "../realtime-callbacks";
+import { removeElement } from "../common/collections";
+import * as callbacks from "../realtime-callbacks";
 import { Method } from "./method";
 import { ConnectionError } from "./errors";
 import { parseErrorResponse } from "./utils";

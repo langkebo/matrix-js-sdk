@@ -12,7 +12,13 @@ const CHECKS = [
             {
                 name: "ExternalServiceManager service CRUD and registration-state APIs",
                 ownerFile: "src/external-service/index.ts",
-                methods: ["registerService", "updateService", "listServices", "unregisterService", "isServiceRegistered"],
+                methods: [
+                    "registerService",
+                    "updateService",
+                    "listServices",
+                    "unregisterService",
+                    "isServiceRegistered",
+                ],
                 testFiles: ["spec/unit/external-service.spec.ts"],
             },
             {

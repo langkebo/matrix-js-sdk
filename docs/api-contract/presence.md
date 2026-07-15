@@ -104,16 +104,30 @@ last_reviewed: 2026-05-03
 ```typescript
 export type PresenceState = "online" | "offline" | "unavailable" | "away" | "busy";
 export interface PresenceUserState {
-    presence: PresenceState; status_msg?: string;
-    last_active_ago?: number; currently_active?: boolean;
+    presence: PresenceState;
+    status_msg?: string;
+    last_active_ago?: number;
+    currently_active?: boolean;
 }
 export interface PresenceUser {
-    user_id: string; presence: PresenceState; status_msg?: string;
-    last_active_ago?: number; currently_active?: boolean;
+    user_id: string;
+    presence: PresenceState;
+    status_msg?: string;
+    last_active_ago?: number;
+    currently_active?: boolean;
 }
-export interface SetPresenceRequest { presence: PresenceState; status_msg?: string; }
+export interface SetPresenceRequest {
+    presence: PresenceState;
+    status_msg?: string;
+}
 export type GetPresenceResponse = PresenceUserState;
-export interface PresenceListResponse { presences: PresenceUser[]; }
-export interface SubscribePresenceRequest { subscribe: string[]; }
-export interface UnsubscribePresenceRequest { unsubscribe: string[]; }
+export interface PresenceListResponse {
+    presences: PresenceUser[];
+}
+export interface SubscribePresenceRequest {
+    subscribe: string[];
+}
+export interface UnsubscribePresenceRequest {
+    unsubscribe: string[];
+}
 ```

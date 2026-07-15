@@ -34,7 +34,8 @@ import { type KeyClaimManager } from "./KeyClaimManager";
 import { type RoomMember } from "../models/room-member";
 import { HistoryVisibility } from "../@types/partials";
 import { type OutgoingRequestsManager } from "./OutgoingRequestsManager";
-import { logDuration } from "../common/async";import { KnownMembership } from "../@types/membership";
+import { logDuration } from "../common/async";
+import { KnownMembership } from "../@types/membership";
 import { type DeviceIsolationMode, DeviceIsolationModeKind } from "../crypto-api/index";
 
 /**

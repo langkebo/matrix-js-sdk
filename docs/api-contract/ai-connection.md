@@ -26,10 +26,10 @@ last_reviewed: 2026-05-11
 - 所有端点需要 `AuthenticatedUser`
 - 路由直接挂在主路由树上，SDK 通过 `authedRequest(..., { prefix: "" })` 访问
 - 真实路径:
-  - `/connections`
-  - `/connections/{id}`
-  - `/mcp/tools`
-  - `/mcp/tools/call`
+    - `/connections`
+    - `/connections/{id}`
+    - `/mcp/tools`
+    - `/mcp/tools/call`
 
 ## 三、核心请求与响应形状
 
@@ -72,14 +72,14 @@ interface McpToolCallRequest {
 
 ## 四、路由与 SDK 对齐表
 
-| 方法 | 路径 | SDK 方法 |
-| ---- | ---- | -------- |
-| GET | `/connections` | `getConnections()` |
-| POST | `/connections` | `createConnection()` |
-| GET | `/connections/{id}` | `getConnection()` |
+| 方法   | 路径                | SDK 方法             |
+| ------ | ------------------- | -------------------- |
+| GET    | `/connections`      | `getConnections()`   |
+| POST   | `/connections`      | `createConnection()` |
+| GET    | `/connections/{id}` | `getConnection()`    |
 | DELETE | `/connections/{id}` | `deleteConnection()` |
-| GET | `/mcp/tools` | `listMcpTools()` |
-| POST | `/mcp/tools/call` | `callMcpTool()` |
+| GET    | `/mcp/tools`        | `listMcpTools()`     |
+| POST   | `/mcp/tools/call`   | `callMcpTool()`      |
 
 ## 五、SDK 对齐状态
 
@@ -92,7 +92,7 @@ interface McpToolCallRequest {
 
 ## 六、变更历史
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
+| 日期       | 变更                                                                                | 影响             |
+| ---------- | ----------------------------------------------------------------------------------- | ---------------- |
 | 2026-05-11 | 修正文档中错误的路径前缀、字段命名与 MCP 请求/响应口径，并补充 SDK 生成路由绑定说明 | 修复长期文档漂移 |
-| 2026-04-27 | 初版 | -    |
+| 2026-04-27 | 初版                                                                                | -                |

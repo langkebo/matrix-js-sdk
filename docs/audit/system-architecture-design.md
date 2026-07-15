@@ -67,16 +67,16 @@
 
 ### 1.2 现有模块 vs 新增/增强
 
-| 层级 | 现有 | 本次任务 |
-|------|------|---------|
-| **用户搜索** | `storage/user.rs:search_users()` ✅ 已实现 | 暴露路由 + 限流 + 缓存 + 前端封装 |
-| **好友搜索** | ❌ 不存在 | 新增全链路（plan A） |
-| **好友通知** | ❌ 不存在 | 新增 to-device message 通知 |
-| **好友分页** | `get_friends()` 全量 | 新增分页+排序+在线状态 |
-| **房间联动** | ❌ 无联动 | 新增权限联动 + 成员同步 |
-| **note E2EE** | ❌ 明文 | 新增可选客户端加密 |
-| **限流中间件** | `rate_limit.rs` ✅ Token Bucket | 接入搜索路由 |
-| **缓存层** | Redis/user profile cache ✅ | 接入搜索结果缓存 |
+| 层级           | 现有                                       | 本次任务                          |
+| -------------- | ------------------------------------------ | --------------------------------- |
+| **用户搜索**   | `storage/user.rs:search_users()` ✅ 已实现 | 暴露路由 + 限流 + 缓存 + 前端封装 |
+| **好友搜索**   | ❌ 不存在                                  | 新增全链路（plan A）              |
+| **好友通知**   | ❌ 不存在                                  | 新增 to-device message 通知       |
+| **好友分页**   | `get_friends()` 全量                       | 新增分页+排序+在线状态            |
+| **房间联动**   | ❌ 无联动                                  | 新增权限联动 + 成员同步           |
+| **note E2EE**  | ❌ 明文                                    | 新增可选客户端加密                |
+| **限流中间件** | `rate_limit.rs` ✅ Token Bucket            | 接入搜索路由                      |
+| **缓存层**     | Redis/user profile cache ✅                | 接入搜索结果缓存                  |
 
 ---
 
@@ -113,16 +113,16 @@ Matrix E2EE（Olm/Megolm）是 **room-scoped** 的。用户搜索和好友元数
 
 ### 2.2 各数据字段安全等级
 
-| 字段 | 等级 | 存储 | 传输 | 说明 |
-|------|:---:|------|------|------|
-| `user_id` | 🟢 公开 | 明文 | HTTPS | Matrix 固有公开标识符 |
-| `display_name` | 🟢 公开 | 明文 | HTTPS | 用户自行设置的公开名 |
-| `avatar_url` | 🟢 公开 | 明文 | HTTPS | 公开头像 URL |
-| `email` | 🟡 私密 | 明文 | HTTPS | 仅搜索匹配用，不返回 |
-| `note` | 🔴 敏感 | 明文/可选加密 | HTTPS | 用户自定义备注 |
-| `friend_relationship` | 🟡 私密 | 明文 | HTTPS | 社交图谱，access-token 保护 |
-| `room messages` | 🔴 私密 | Olm/Megolm | Olm/Megolm | ✅ 已有 E2EE |
-| `to-device notifications` | 🔴 私密 | Plain JSON | HTTPS | SignalX/Curve25519 可选加密 |
+| 字段                      |  等级   | 存储          | 传输       | 说明                        |
+| ------------------------- | :-----: | ------------- | ---------- | --------------------------- |
+| `user_id`                 | 🟢 公开 | 明文          | HTTPS      | Matrix 固有公开标识符       |
+| `display_name`            | 🟢 公开 | 明文          | HTTPS      | 用户自行设置的公开名        |
+| `avatar_url`              | 🟢 公开 | 明文          | HTTPS      | 公开头像 URL                |
+| `email`                   | 🟡 私密 | 明文          | HTTPS      | 仅搜索匹配用，不返回        |
+| `note`                    | 🔴 敏感 | 明文/可选加密 | HTTPS      | 用户自定义备注              |
+| `friend_relationship`     | 🟡 私密 | 明文          | HTTPS      | 社交图谱，access-token 保护 |
+| `room messages`           | 🔴 私密 | Olm/Megolm    | Olm/Megolm | ✅ 已有 E2EE                |
+| `to-device notifications` | 🔴 私密 | Plain JSON    | HTTPS      | SignalX/Curve25519 可选加密 |
 
 ---
 
@@ -131,6 +131,7 @@ Matrix E2EE（Olm/Megolm）是 **room-scoped** 的。用户搜索和好友元数
 ### 3.1 架构复用
 
 **现有实现（`storage/user.rs:L386`）已覆盖核心搜索逻辑：**
+
 ```rust
 // ✅ 已实现 — 直接复用
 pub async fn search_users(query: &str, limit: i64) -> Result<Vec<UserSearchResult>, Error>
@@ -218,7 +219,7 @@ async fn user_search(
     state.rate_limiter.check_user(&auth_user.user_id, "user_search")?;
 
     // 3. 缓存尝试 (TTL 30s)
-    let cache_key = format!("search:user:{}:{}:{}:{}", 
+    let cache_key = format!("search:user:{}:{}:{}:{}",
         &params.q, limit, offset, &params.sort);
     if let Some(cached) = state.cache.get::<Value>(&cache_key).await {
         return Ok(Json(cached));
@@ -226,7 +227,7 @@ async fn user_search(
 
     // 4. 执行搜索 (复用现有 storage::UserStorage)
     let results = state.storage.user.search_users(&params.q, limit + offset).await?;
-    
+
     // 5. 增强结果 — 标注好友关系 + 共同好友数
     let friend_ids = state.storage.friend_room
         .get_user_friend_ids(&auth_user.user_id).await?;
@@ -262,21 +263,21 @@ async fn user_search(
 
 ### 3.4 搜索缓存策略
 
-| 缓存层 | TTL | 容量 | 用途 |
-|--------|:---:|------|------|
-| L1: Redis (搜索词→结果) | 30s | 全局 | 热门搜索命中 |
+| 缓存层                       | TTL  | 容量        | 用途                |
+| ---------------------------- | :--: | ----------- | ------------------- |
+| L1: Redis (搜索词→结果)      | 30s  | 全局        | 热门搜索命中        |
 | L2: In-memory (user profile) | 5min | per-service | 用户资料不重复查 DB |
-| L3: PostgreSQL ILIKE | — | 全量 | 冷查询直接查 DB |
+| L3: PostgreSQL ILIKE         |  —   | 全量        | 冷查询直接查 DB     |
 
 ### 3.5 搜索频率限制
 
 ```yaml
 User Search Rate Limit:
-  endpoint: GET /user/search
-  per_user: 10 requests/second (token bucket, burst 20)
-  per_ip:   30 requests/second
-  per_anon: 1 request/second (未登录则更严格，防止爬虫)
-  block_after: 连续 10 次 RateLimitExceeded → 封禁 5 分钟
+    endpoint: GET /user/search
+    per_user: 10 requests/second (token bucket, burst 20)
+    per_ip: 30 requests/second
+    per_anon: 1 request/second (未登录则更严格，防止爬虫)
+    block_after: 连续 10 次 RateLimitExceeded → 封禁 5 分钟
 ```
 
 现有 `rate_limit.rs` 的 Token Bucket 可直接接入，仅需添加 endpoint key。
@@ -287,20 +288,20 @@ User Search Rate Limit:
 
 ### 4.1 新增功能 vs 现有功能
 
-| 功能 | 现有状态 | 本次新增/增强 |
-|------|:---:|------|
-| 发送/接受/拒绝/取消请求 | ✅ | — |
-| 删除好友 | ✅ | — |
-| 好友分组 CRUD | ✅ | — |
-| 好友备注 | ✅ | + 客户端可选加密 |
-| 好友显示名 | ✅ | — |
-| 好友状态 | ✅ | — |
-| 好友建议(recommendations) | ✅ | — |
-| **好友搜索** | ❌ | ✅ NEW (Plan A: `GET /friends/search`) |
-| **好友列表分页+排序** | ❌ | ✅ NEW |
-| **好友在线状态** | ❌ | ✅ NEW |
-| **好友状态变更通知** | ❌ | ✅ NEW |
-| **共同好友查询** | ❌ | ✅ NEW |
+| 功能                      | 现有状态 | 本次新增/增强                          |
+| ------------------------- | :------: | -------------------------------------- |
+| 发送/接受/拒绝/取消请求   |    ✅    | —                                      |
+| 删除好友                  |    ✅    | —                                      |
+| 好友分组 CRUD             |    ✅    | —                                      |
+| 好友备注                  |    ✅    | + 客户端可选加密                       |
+| 好友显示名                |    ✅    | —                                      |
+| 好友状态                  |    ✅    | —                                      |
+| 好友建议(recommendations) |    ✅    | —                                      |
+| **好友搜索**              |    ❌    | ✅ NEW (Plan A: `GET /friends/search`) |
+| **好友列表分页+排序**     |    ❌    | ✅ NEW                                 |
+| **好友在线状态**          |    ❌    | ✅ NEW                                 |
+| **好友状态变更通知**      |    ❌    | ✅ NEW                                 |
+| **共同好友查询**          |    ❌    | ✅ NEW                                 |
 
 ### 4.2 好友搜索（Plan A — 复用之前分析）
 
@@ -353,6 +354,7 @@ Response:
 ```
 
 前端 `Friend` 接口扩展：
+
 ```typescript
 interface Friend {
     user_id: string;
@@ -361,11 +363,11 @@ interface Friend {
     note?: string;
     status?: "favorite" | "normal" | "blocked" | "hidden";
     dm_room_id?: string;
-    
+
     // ★ NEW fields
-    presence?: "online" | "offline" | "unavailable";   // 在线状态
-    last_active?: number;                                // 最后活跃时间 ms
-    since?: number;                                      // 成为好友的时间
+    presence?: "online" | "offline" | "unavailable"; // 在线状态
+    last_active?: number; // 最后活跃时间 ms
+    since?: number; // 成为好友的时间
 }
 ```
 
@@ -410,7 +412,7 @@ POST /_matrix/client/v3/sendToDevice/m.room.friend_status/{txnId}
 ```
 A 发送好友请求 → B 接受 → 建立好友关系
                              │
-                             ├──→ FriendManager.createDmRoom(B) 
+                             ├──→ FriendManager.createDmRoom(B)
                              │       (friend_room service 自动创建 DM)
                              │       └──→ create_room(encrypted=true) ✅
                              │
@@ -434,12 +436,13 @@ CREATE TABLE friend_room_permissions (
     permission      TEXT NOT NULL,     -- "invite" | "join" | "read" | "admin"
     granted_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW(),
-    
+
     PRIMARY KEY (user_id, friend_id, shared_room_id)
 );
 ```
 
 权限策略：
+
 ```
 is_friend(A, B) AND A.is_member(room) → B.has_permission(room, "join")
 is_friend(A, B) AND A.is_admin(room)  → B.has_permission(room, "invite")
@@ -465,8 +468,8 @@ Event: A.remove_friend(B)
 ```typescript
 // Friend 对象扩展 dm_room_id 关联
 interface Friend {
-    dm_room_id?: string;   // ✅ 已有 — DM 房间 ID
-    shared_room_ids?: string[];  // ★ NEW — 共有的非 DM 房间
+    dm_room_id?: string; // ✅ 已有 — DM 房间 ID
+    shared_room_ids?: string[]; // ★ NEW — 共有的非 DM 房间
 }
 ```
 
@@ -478,21 +481,21 @@ interface Friend {
 
 ```sql
 -- [users 表] — 搜索加速
-CREATE INDEX IF NOT EXISTS idx_users_search 
+CREATE INDEX IF NOT EXISTS idx_users_search
     ON users USING GIN (username gin_trgm_ops, displayname gin_trgm_ops);   -- ★ pg_trgm 扩展
-CREATE INDEX IF NOT EXISTS idx_users_user_id_pattern 
+CREATE INDEX IF NOT EXISTS idx_users_user_id_pattern
     ON users (user_id text_pattern_ops);
 
 -- [friend_relationships 表] — 好友查询加速
-CREATE INDEX IF NOT EXISTS idx_friend_rel_user_friend 
+CREATE INDEX IF NOT EXISTS idx_friend_rel_user_friend
     ON friend_relationships (user_id, friend_id);
-CREATE INDEX IF NOT EXISTS idx_friend_rel_status 
+CREATE INDEX IF NOT EXISTS idx_friend_rel_status
     ON friend_relationships (status) WHERE status = 'accepted';
-CREATE INDEX IF NOT EXISTS idx_friend_rel_displayname 
+CREATE INDEX IF NOT EXISTS idx_friend_rel_displayname
     ON friend_relationships (display_name text_pattern_ops);   -- ★ 搜索加速
 
 -- [friend_rooms 表] — 房间联动
-CREATE INDEX IF NOT EXISTS idx_friend_rooms_user 
+CREATE INDEX IF NOT EXISTS idx_friend_rooms_user
     ON friend_rooms (user_id);
 ```
 
@@ -503,9 +506,9 @@ CREATE INDEX IF NOT EXISTS idx_friend_rooms_user
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- GiST/GIN 索引 — ILIKE 查询性能提升 100x
-CREATE INDEX idx_friend_rel_friend_trgm 
+CREATE INDEX idx_friend_rel_friend_trgm
     ON friend_relationships USING GIN (friend_id gin_trgm_ops);
-CREATE INDEX idx_friend_rel_note_trgm  
+CREATE INDEX idx_friend_rel_note_trgm
     ON friend_relationships USING GIN (note gin_trgm_ops);
 ```
 
@@ -516,9 +519,9 @@ CREATE INDEX idx_friend_rel_note_trgm
 SELECT * FROM users WHERE displayname ILIKE '%pattern%';   -- Seq Scan
 
 -- ✅ 优化: pg_trgm GIN 索引 + LIMIT
-SELECT user_id, displayname FROM users 
-WHERE displayname ILIKE '%pattern%' 
-ORDER BY displayname 
+SELECT user_id, displayname FROM users
+WHERE displayname ILIKE '%pattern%'
+ORDER BY displayname
 LIMIT 20;   -- Bitmap Index Scan → Limit
 ```
 
@@ -538,15 +541,15 @@ search_cache_ttl_s = 30   # 搜索结果缓存 TTL
 
 ### 7.1 错误码矩阵
 
-| 场景 | HTTP Code | Errcode | Retry-After |
-|------|:---:|------|:---:|
-| 查询为空或过长 | 400 | `M_BAD_REQUEST` | — |
-| 未认证 | 401 | `M_UNKNOWN_TOKEN` | — |
-| 频率限制 | 429 | `M_LIMIT_EXCEEDED` | ✅ 15s |
-| 搜索超时 | 500 | `M_SEARCH_TIMEOUT` | ❌ 不重试 |
-| DB 不可用 | 503 | `M_UNAVAILABLE` | ✅ 30s |
-| 用户已停用 | 404 | `M_NOT_FOUND` | — |
-| 敏感词命中 | 403 | `M_FORBIDDEN` | — |
+| 场景           | HTTP Code | Errcode            | Retry-After |
+| -------------- | :-------: | ------------------ | :---------: |
+| 查询为空或过长 |    400    | `M_BAD_REQUEST`    |      —      |
+| 未认证         |    401    | `M_UNKNOWN_TOKEN`  |      —      |
+| 频率限制       |    429    | `M_LIMIT_EXCEEDED` |   ✅ 15s    |
+| 搜索超时       |    500    | `M_SEARCH_TIMEOUT` |  ❌ 不重试  |
+| DB 不可用      |    503    | `M_UNAVAILABLE`    |   ✅ 30s    |
+| 用户已停用     |    404    | `M_NOT_FOUND`      |      —      |
+| 敏感词命中     |    403    | `M_FORBIDDEN`      |      —      |
 
 ### 7.2 限流中间件接入
 
@@ -569,11 +572,11 @@ Router::new()
 ```typescript
 // 前端 APIError → User-facing message mapping
 const errorMessages = {
-    "M_LIMIT_EXCEEDED":     "搜索过于频繁，请 {retry_after} 秒后再试",
-    "M_SEARCH_TIMEOUT":     "搜索超时，请尝试更精确的关键词",
-    "M_UNKNOWN_TOKEN":      "登录已过期，请重新登录",
-    "M_BAD_REQUEST":        "请输入 1-256 个字符的关键词",
-    "default":              "搜索服务暂不可用，请稍后重试"
+    M_LIMIT_EXCEEDED: "搜索过于频繁，请 {retry_after} 秒后再试",
+    M_SEARCH_TIMEOUT: "搜索超时，请尝试更精确的关键词",
+    M_UNKNOWN_TOKEN: "登录已过期，请重新登录",
+    M_BAD_REQUEST: "请输入 1-256 个字符的关键词",
+    default: "搜索服务暂不可用，请稍后重试",
 };
 ```
 
@@ -595,16 +598,13 @@ class SearchManager extends BaseManager {
      */
     async searchUsers(
         query: string,
-        opts?: { limit?: number; offset?: number; sort?: "relevance" | "active" }
+        opts?: { limit?: number; offset?: number; sort?: "relevance" | "active" },
     ): Promise<UserSearchResponse>;
 
     /**
      * 搜索好友（仅限已建立关系的好友）
      */
-    async searchFriends(
-        query: string,
-        opts?: { limit?: number; offset?: number }
-    ): Promise<FriendSearchResponse>;
+    async searchFriends(query: string, opts?: { limit?: number; offset?: number }): Promise<FriendSearchResponse>;
 
     /**
      * 获取搜索建议（实时补全，debounce 300ms）
@@ -654,7 +654,7 @@ interface UserSearchResult {
     user_id: string;
     display_name: string;
     avatar_url?: string;
-    is_friend: boolean;           // ★ 是否已是好友
+    is_friend: boolean; // ★ 是否已是好友
     mutual_friend_count?: number; // ★ 共同好友数
 }
 
@@ -670,12 +670,12 @@ interface Friend {
     user_id: string;
     display_name?: string;
     avatar_url?: string;
-    note?: string;                // ★ 启用 L1 加密则为 ciphertext
+    note?: string; // ★ 启用 L1 加密则为 ciphertext
     status?: FriendStatus;
     dm_room_id?: string;
-    presence?: PresenceState;     // ★ NEW
-    last_active?: number;         // ★ NEW
-    shared_room_ids?: string[];   // ★ NEW
+    presence?: PresenceState; // ★ NEW
+    last_active?: number; // ★ NEW
+    shared_room_ids?: string[]; // ★ NEW
 }
 ```
 
@@ -685,15 +685,15 @@ interface Friend {
 
 ### 9.1 单元测试覆盖
 
-| 模块 | 测试重点 | 预计用例 |
-|------|---------|:---:|
-| `search_users()` | exact/prefix/fuzzy 匹配、空输入、超长输入、deactivated 过滤 | 8 |
-| `search_friends()` | ILIKE on user_id/display_name/note、note 加密后搜索、分页 | 7 |
-| `friend_relationship` | 完整请求流程、并发重复请求、幂等性 | 6 |
-| `friend permissions` | is_friend→permission 映射、非好友的拒绝逻辑 | 4 |
-| `rate_limiter` | Token Bucket 消耗/补充、burst 溢出、block 超限 | 5 |
-| `notification` | to-device message 发送/接收、加密/解密 | 4 |
-| **合计** | | **~34** |
+| 模块                  | 测试重点                                                    | 预计用例 |
+| --------------------- | ----------------------------------------------------------- | :------: |
+| `search_users()`      | exact/prefix/fuzzy 匹配、空输入、超长输入、deactivated 过滤 |    8     |
+| `search_friends()`    | ILIKE on user_id/display_name/note、note 加密后搜索、分页   |    7     |
+| `friend_relationship` | 完整请求流程、并发重复请求、幂等性                          |    6     |
+| `friend permissions`  | is_friend→permission 映射、非好友的拒绝逻辑                 |    4     |
+| `rate_limiter`        | Token Bucket 消耗/补充、burst 溢出、block 超限              |    5     |
+| `notification`        | to-device message 发送/接收、加密/解密                      |    4     |
+| **合计**              |                                                             | **~34**  |
 
 ### 9.2 端到端测试场景
 
@@ -713,13 +713,13 @@ Test Flow:
 
 ### 9.3 性能测试基准
 
-| 指标 | 目标 (P50) | P99 | 条件 |
-|------|:---:|:---:|------|
-| `GET /user/search` | < 200ms | < 500ms | 100万用户表 |
-| `GET /friends/search` | < 100ms | < 300ms | 500好友 |
-| `POST /friends/request` | < 50ms | < 200ms | — |
-| `GET /friends` (paginated 20) | < 80ms | < 250ms | 500好友+presence |
-| concurrent: 1000 req/s | < 400ms avg | < 1s | pg_trgm index + Redis cache |
+| 指标                          | 目标 (P50)  |   P99   | 条件                        |
+| ----------------------------- | :---------: | :-----: | --------------------------- |
+| `GET /user/search`            |   < 200ms   | < 500ms | 100万用户表                 |
+| `GET /friends/search`         |   < 100ms   | < 300ms | 500好友                     |
+| `POST /friends/request`       |   < 50ms    | < 200ms | —                           |
+| `GET /friends` (paginated 20) |   < 80ms    | < 250ms | 500好友+presence            |
+| concurrent: 1000 req/s        | < 400ms avg |  < 1s   | pg_trgm index + Redis cache |
 
 ### 9.4 安全测试
 
@@ -736,56 +736,56 @@ Test Flow:
 
 ### Phase 1: 用户搜索 (2-3 天)
 
-| # | 任务 | 依赖 | 文件 |
-|:---:|------|------|------|
-| P1.1 | 暴露 `GET /user/search` 路由 | — | `src/web/routes/user.rs` |
-| P1.2 | 接入限流中间件 | rate_limit.rs ✅ | 路由 `.layer()` |
-| P1.3 | 搜索结果增强 (is_friend + mutual) | P1.1 | service layer |
-| P1.4 | Redis 缓存层接入 | — | P1.1 cache logic |
-| P1.5 | `SearchManager.searchUsers()` | P1.1 | `src/search/index.ts` |
-| P1.6 | 单元测试 | P1.3 | `spec/unit/search.spec.ts` |
-| P1.7 | contract:sync → contract:codegen | P1.1 | docs/api-contract/ |
+|  #   | 任务                              | 依赖             | 文件                       |
+| :--: | --------------------------------- | ---------------- | -------------------------- |
+| P1.1 | 暴露 `GET /user/search` 路由      | —                | `src/web/routes/user.rs`   |
+| P1.2 | 接入限流中间件                    | rate_limit.rs ✅ | 路由 `.layer()`            |
+| P1.3 | 搜索结果增强 (is_friend + mutual) | P1.1             | service layer              |
+| P1.4 | Redis 缓存层接入                  | —                | P1.1 cache logic           |
+| P1.5 | `SearchManager.searchUsers()`     | P1.1             | `src/search/index.ts`      |
+| P1.6 | 单元测试                          | P1.3             | `spec/unit/search.spec.ts` |
+| P1.7 | contract:sync → contract:codegen  | P1.1             | docs/api-contract/         |
 
 ### Phase 2: 好友搜索 + 分页 (2-3 天)
 
-| # | 任务 | 依赖 | 文件 |
-|:---:|------|------|------|
-| P2.1 | FriendRoomStorage::search_friends() | — | `storage/friend_room.rs` |
-| P2.2 | FriendRoomService::search_friends() | P2.1 | `services/friend_room_service.rs` |
-| P2.3 | `GET /friends/search` 路由 | P2.2 | `friend_room.rs` |
-| P2.4 | `GET /friends` 支持 pagination | — | `friend_room.rs` |
-| P2.5 | `FriendManager.searchFriends()` | P2.3 | `friend/index.ts` |
-| P2.6 | `FriendManager.getFriendsPaginated()` | P2.4 | `friend/index.ts` |
-| P2.7 | 单元测试 + 合约更新 | P2.5 | spec/ doc/ |
+|  #   | 任务                                  | 依赖 | 文件                              |
+| :--: | ------------------------------------- | ---- | --------------------------------- |
+| P2.1 | FriendRoomStorage::search_friends()   | —    | `storage/friend_room.rs`          |
+| P2.2 | FriendRoomService::search_friends()   | P2.1 | `services/friend_room_service.rs` |
+| P2.3 | `GET /friends/search` 路由            | P2.2 | `friend_room.rs`                  |
+| P2.4 | `GET /friends` 支持 pagination        | —    | `friend_room.rs`                  |
+| P2.5 | `FriendManager.searchFriends()`       | P2.3 | `friend/index.ts`                 |
+| P2.6 | `FriendManager.getFriendsPaginated()` | P2.4 | `friend/index.ts`                 |
+| P2.7 | 单元测试 + 合约更新                   | P2.5 | spec/ doc/                        |
 
 ### Phase 3: 在线状态 + 通知 (2 天)
 
-| # | 任务 | 依赖 |
-|:---:|------|------|
-| P3.1 | Friend with presence (合入 presence 数据) | Phase 2 |
-| P3.2 | to-device friend status notification | P3.1 |
-| P3.3 | `FriendManager` 监听 to-device → emit Notification | P3.2 |
-| P3.4 | `FriendEvent.NotificationReceived` 事件 | P3.3 |
+|  #   | 任务                                               | 依赖    |
+| :--: | -------------------------------------------------- | ------- |
+| P3.1 | Friend with presence (合入 presence 数据)          | Phase 2 |
+| P3.2 | to-device friend status notification               | P3.1    |
+| P3.3 | `FriendManager` 监听 to-device → emit Notification | P3.2    |
+| P3.4 | `FriendEvent.NotificationReceived` 事件            | P3.3    |
 
 ### Phase 4: 房间集成 (2-3 天)
 
-| # | 任务 | 依赖 |
-|:---:|------|------|
-| P4.1 | friend_room_permissions 表 (DB migration) | — |
-| P4.2 | 好友关系 → 房间权限映射逻辑 | P4.1 + Phase 1 |
-| P4.3 | 房间 member sync ↔ friend status | P4.2 |
-| P4.4 | `Friend.shared_room_ids` 补充 | P4.3 |
-| P4.5 | remove_friend → revoke room permissions | P4.4 |
+|  #   | 任务                                      | 依赖           |
+| :--: | ----------------------------------------- | -------------- |
+| P4.1 | friend_room_permissions 表 (DB migration) | —              |
+| P4.2 | 好友关系 → 房间权限映射逻辑               | P4.1 + Phase 1 |
+| P4.3 | 房间 member sync ↔ friend status          | P4.2           |
+| P4.4 | `Friend.shared_room_ids` 补充             | P4.3           |
+| P4.5 | remove_friend → revoke room permissions   | P4.4           |
 
 ### Phase 5: 安全加固 + 性能测试 (2 天)
 
-| # | 任务 |
-|:---:|------|
-| P5.1 | note 客户端可选加密 (Layer 1) — SDK CryptoModule |
-| P5.2 | pg_trgm 索引验证 + EXPLAIN ANALYZE |
-| P5.3 | load-test (wrk/k6: 1000 concurrent search requests) |
+|  #   | 任务                                                     |
+| :--: | -------------------------------------------------------- |
+| P5.1 | note 客户端可选加密 (Layer 1) — SDK CryptoModule         |
+| P5.2 | pg_trgm 索引验证 + EXPLAIN ANALYZE                       |
+| P5.3 | load-test (wrk/k6: 1000 concurrent search requests)      |
 | P5.4 | 安全审计 (SQL injection, auth bypass, rate limit bypass) |
-| P5.5 | 文档终稿 + API 合约更新 |
+| P5.5 | 文档终稿 + API 合约更新                                  |
 
 ### 总时长估算
 
@@ -803,20 +803,20 @@ Total:   ██████████████████  10-13 个工作
 
 ## 附录 A: 关键决策记录
 
-| ID | 决策 | 理由 |
-|----|------|------|
-| AD-01 | 用户搜索复用现有 `search_users()` storage | 数据库层已实现 ILIKE + 排序，避免重复开发 |
-| AD-02 | 好友搜索用专用端点而非复用 `/search` | 遵循好友 API 前缀一致性 `/friends/*` |
-| AD-03 | note 加密为可选客户端功能（非强制） | 强制加密则搜索退化为客户端全量遍历，性能开销大 |
-| AD-04 | 通知用 to-device message 而非 room event | to-device 是1:1，不走 room scope，语义更精确 |
-| AD-05 | pg_trgm GIN 索引（非 B-tree LIKE） | ILIKE with `%pattern%` 无法用 B-tree，trgm 是最佳实践 |
+| ID    | 决策                                      | 理由                                                  |
+| ----- | ----------------------------------------- | ----------------------------------------------------- |
+| AD-01 | 用户搜索复用现有 `search_users()` storage | 数据库层已实现 ILIKE + 排序，避免重复开发             |
+| AD-02 | 好友搜索用专用端点而非复用 `/search`      | 遵循好友 API 前缀一致性 `/friends/*`                  |
+| AD-03 | note 加密为可选客户端功能（非强制）       | 强制加密则搜索退化为客户端全量遍历，性能开销大        |
+| AD-04 | 通知用 to-device message 而非 room event  | to-device 是1:1，不走 room scope，语义更精确          |
+| AD-05 | pg_trgm GIN 索引（非 B-tree LIKE）        | ILIKE with `%pattern%` 无法用 B-tree，trgm 是最佳实践 |
 
 ## 附录 B: 变更文件汇总
 
-| 仓库 | 新增文件 | 修改文件 |
-|------|---------|---------|
-| synapse-rust | `routes/user_search.rs`、`services/user_search_service.rs` | `routes/friend_room.rs`、`services/friend_room_service.rs`、`storage/friend_room.rs`、`routes/mod.rs` |
-| matrix-js-sdk | `src/search/index.ts`、`src/search/__generated__/` | `src/friend/index.ts`、`docs/api-contract/friend.md`、`spec/unit/search.spec.ts`、`spec/unit/friend.spec.ts` |
+| 仓库          | 新增文件                                                   | 修改文件                                                                                                     |
+| ------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| synapse-rust  | `routes/user_search.rs`、`services/user_search_service.rs` | `routes/friend_room.rs`、`services/friend_room_service.rs`、`storage/friend_room.rs`、`routes/mod.rs`        |
+| matrix-js-sdk | `src/search/index.ts`、`src/search/__generated__/`         | `src/friend/index.ts`、`docs/api-contract/friend.md`、`spec/unit/search.spec.ts`、`spec/unit/friend.spec.ts` |
 
 ## 附录 C: 后续迭代
 

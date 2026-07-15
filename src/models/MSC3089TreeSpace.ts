@@ -19,8 +19,15 @@ import { EventType, MsgType, UNSTABLE_MSC3089_BRANCH, UNSTABLE_MSC3089_LEAF } fr
 import { type Room } from "./room";
 import { logger } from "../logger";
 import { type IContent, type MatrixEvent } from "./event";
-import { averageBetweenStrings, DEFAULT_ALPHABET, lexicographicCompare, nextString, prevString } from "../common/strings";
-import { simpleRetryOperation } from "../common/async";import { MSC3089Branch } from "./MSC3089Branch";
+import {
+    averageBetweenStrings,
+    DEFAULT_ALPHABET,
+    lexicographicCompare,
+    nextString,
+    prevString,
+} from "../common/strings";
+import { simpleRetryOperation } from "../common/async";
+import { MSC3089Branch } from "./MSC3089Branch";
 import { type ISendEventResponse } from "../@types/requests";
 import { type FileType, MatrixError } from "../http-api/index";
 import { KnownMembership } from "../@types/membership";

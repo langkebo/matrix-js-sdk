@@ -127,7 +127,7 @@ last_reviewed: 2026-05-03
 | POST           | `/_matrix/client/r0/user_directory/list`                         | r0      | 列举用户目录                            | 用户            |
 | POST           | `/_matrix/client/v3/user_directory/list`                         | v3      | 列举用户目录                            | 用户            |
 | GET            | `/_matrix/client/r0/user_directory/profiles/{user_id}`           | r0      | 获取目录资料                            | 公开            |
-        | GET            | `/_matrix/client/v3/user_directory/profiles/{user_id}`           | v3      | 获取目录资料                            | 公开            |
+| GET            | `/_matrix/client/v3/user_directory/profiles/{user_id}`           | v3      | 获取目录资料                            | 公开            |
 | GET/PUT        | `/_matrix/client/r0/directory/list/room/{room_id}`               | r0      | 读取/设置房间可见性                     | 用户            |
 | GET/PUT        | `/_matrix/client/v3/directory/list/room/{room_id}`               | v3      | 读取/设置房间可见性                     | 用户            |
 | GET/PUT/DELETE | `/_matrix/client/r0/directory/room/{room_alias}`                 | r0      | 解析/设置/删除别名                      | 用户            |
@@ -287,51 +287,51 @@ last_reviewed: 2026-05-03
 
 ### 目录与公开房间端点 SDK 封装
 
-| 端点                                          | SDK Manager        | 方法                                                           |
-| --------------------------------------------- | ------------------ | -------------------------------------------------------------- |
-| `POST /user_directory/search`                 | `UserDirectoryManager` | `searchUserDirectory()`                                        |
-| `POST /user_directory/list`                   | `UserDirectoryManager` | `listUserDirectory()`                                          |
-| `GET /user_directory/profiles/{user_id}`      | `DiscoveryManager` | `getUserDirectoryProfile()`                                    |
-| `GET/PUT /directory/list/room/{room_id}`      | `DiscoveryManager` | `getRoomVisibility()` / `setRoomVisibility()`                  |
-| `GET/PUT/DELETE /directory/room/{room_alias}` | `DiscoveryManager` | `getRoomIdForAlias()` / `setRoomAlias()` / `deleteRoomAlias()` |
-| `GET /directory/room/{room_id}/alias`          | `DiscoveryManager` | `getAliasesForRoom()`                                          |
-| `PUT/DELETE /directory/room/{room_id}/alias/{room_alias}` | `DiscoveryManager` | `addRoomAliasForRoom()` / `deleteRoomAliasForRoom()` |
-| `GET/POST /publicRooms`                       | `DiscoveryManager` | `getPublicRooms()` / `queryPublicRooms()`                      |
-| `GET /_matrix/client/v1/config/client`       | `DiscoveryManager` | `getClientConfig()`                                            |
-| `GET /.well-known/matrix/client`              | `DiscoveryManager` | `getServerDiscoveryInfo()`                                     |
-| `GET /.well-known/matrix/server`              | `DiscoveryManager` | `getServerWellKnown()`                                         |
-| `GET /.well-known/matrix/support`             | `DiscoveryManager` | `getSupportWellKnown()`                                        |
-| `GET /_matrix/client/versions`                | `DiscoveryManager` | `getVersions()`                                                |
-| `GET /_matrix/server_version`                 | `DiscoveryManager` | `getMatrixServerVersion()`                                     |
-| `GET /health`                                 | `DiscoveryManager` | `getHealth()`                                                  |
-| `GET /_health`                                | `DiscoveryManager` | `getUnderscoreHealth()`                                        |
+| 端点                                                      | SDK Manager            | 方法                                                           |
+| --------------------------------------------------------- | ---------------------- | -------------------------------------------------------------- |
+| `POST /user_directory/search`                             | `UserDirectoryManager` | `searchUserDirectory()`                                        |
+| `POST /user_directory/list`                               | `UserDirectoryManager` | `listUserDirectory()`                                          |
+| `GET /user_directory/profiles/{user_id}`                  | `DiscoveryManager`     | `getUserDirectoryProfile()`                                    |
+| `GET/PUT /directory/list/room/{room_id}`                  | `DiscoveryManager`     | `getRoomVisibility()` / `setRoomVisibility()`                  |
+| `GET/PUT/DELETE /directory/room/{room_alias}`             | `DiscoveryManager`     | `getRoomIdForAlias()` / `setRoomAlias()` / `deleteRoomAlias()` |
+| `GET /directory/room/{room_id}/alias`                     | `DiscoveryManager`     | `getAliasesForRoom()`                                          |
+| `PUT/DELETE /directory/room/{room_id}/alias/{room_alias}` | `DiscoveryManager`     | `addRoomAliasForRoom()` / `deleteRoomAliasForRoom()`           |
+| `GET/POST /publicRooms`                                   | `DiscoveryManager`     | `getPublicRooms()` / `queryPublicRooms()`                      |
+| `GET /_matrix/client/v1/config/client`                    | `DiscoveryManager`     | `getClientConfig()`                                            |
+| `GET /.well-known/matrix/client`                          | `DiscoveryManager`     | `getServerDiscoveryInfo()`                                     |
+| `GET /.well-known/matrix/server`                          | `DiscoveryManager`     | `getServerWellKnown()`                                         |
+| `GET /.well-known/matrix/support`                         | `DiscoveryManager`     | `getSupportWellKnown()`                                        |
+| `GET /_matrix/client/versions`                            | `DiscoveryManager`     | `getVersions()`                                                |
+| `GET /_matrix/server_version`                             | `DiscoveryManager`     | `getMatrixServerVersion()`                                     |
+| `GET /health`                                             | `DiscoveryManager`     | `getHealth()`                                                  |
+| `GET /_health`                                            | `DiscoveryManager`     | `getUnderscoreHealth()`                                        |
 
 ### 其他端点 SDK 封装
 
-| 端点                                      | SDK Manager         | 方法              |
-| ----------------------------------------- | ------------------- | ----------------- |
-| `GET /user/{user_id}/appservice`          | `ApplicationServiceManager` | `getUserAppservices()` |
-| `GET /thirdparty/location`                | `ThirdPartyManager` | `searchAllLocations()` |
-| `GET /thirdparty/protocols`               | `ThirdPartyManager` | `getProtocols()` |
-| `GET /thirdparty/protocol/{protocol}`     | `ThirdPartyManager` | `getProtocol()` |
-| `GET /thirdparty/location/{protocol}`     | `ThirdPartyManager` | `searchLocations()` |
-| `GET /thirdparty/user`                    | `ThirdPartyManager` | `searchAllUsers()` |
-| `GET /thirdparty/user/{protocol}`         | `ThirdPartyManager` | `searchUsers()` |
-| `GET /capabilities`                       | `CapabilitiesManager` | `getCapabilities()` |
-| `GET /voip/turnServer`                    | `TurnServerManager` | `getTurnServer()` |
-| `GET /voip/config`                        | `VoIPCallsManager`  | `getVoipConfig()` |
-| `GET /voip/turnServer/guest`              | `VoIPCallsManager`  | `getGuestTurnCredentials()` |
-| `POST /search`                            | `SearchManager`     | `search()`        |
-| `PUT /sendToDevice/{event_type}/{txn_id}` | `MatrixClient`      | `sendToDevice()`  |
-| `POST /users/{user_id}/report`            | `UserReportManager` | `reportUser()`    |
+| 端点                                      | SDK Manager                 | 方法                        |
+| ----------------------------------------- | --------------------------- | --------------------------- |
+| `GET /user/{user_id}/appservice`          | `ApplicationServiceManager` | `getUserAppservices()`      |
+| `GET /thirdparty/location`                | `ThirdPartyManager`         | `searchAllLocations()`      |
+| `GET /thirdparty/protocols`               | `ThirdPartyManager`         | `getProtocols()`            |
+| `GET /thirdparty/protocol/{protocol}`     | `ThirdPartyManager`         | `getProtocol()`             |
+| `GET /thirdparty/location/{protocol}`     | `ThirdPartyManager`         | `searchLocations()`         |
+| `GET /thirdparty/user`                    | `ThirdPartyManager`         | `searchAllUsers()`          |
+| `GET /thirdparty/user/{protocol}`         | `ThirdPartyManager`         | `searchUsers()`             |
+| `GET /capabilities`                       | `CapabilitiesManager`       | `getCapabilities()`         |
+| `GET /voip/turnServer`                    | `TurnServerManager`         | `getTurnServer()`           |
+| `GET /voip/config`                        | `VoIPCallsManager`          | `getVoipConfig()`           |
+| `GET /voip/turnServer/guest`              | `VoIPCallsManager`          | `getGuestTurnCredentials()` |
+| `POST /search`                            | `SearchManager`             | `search()`                  |
+| `PUT /sendToDevice/{event_type}/{txn_id}` | `MatrixClient`              | `sendToDevice()`            |
+| `POST /users/{user_id}/report`            | `UserReportManager`         | `reportUser()`              |
 
 - `/_matrix/app/v1/*` 这组应用服务协议端点当前面向 AS token / 协议交互，不作为普通客户端 manager 的稳定封装面；`auth.md` 仅保留路由与认证边界说明，不强制映射到通用 SDK manager。
 - 当前按“有意不封装”处理的协议端点白名单：
-  - `POST /_matrix/app/v1/ping`
-  - `PUT /_matrix/app/v1/transactions/{as_id}/{txn_id}`
-  - `GET /_matrix/app/v1/users/{user_id}`
-  - `GET /_matrix/app/v1/rooms/{alias}`
-  - `GET /_matrix/app/v1/{as_id}`
+    - `POST /_matrix/app/v1/ping`
+    - `PUT /_matrix/app/v1/transactions/{as_id}/{txn_id}`
+    - `GET /_matrix/app/v1/users/{user_id}`
+    - `GET /_matrix/app/v1/rooms/{alias}`
+    - `GET /_matrix/app/v1/{as_id}`
 
 ### Manager 初始化
 

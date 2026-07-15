@@ -94,17 +94,17 @@ last_reviewed: 2026-05-11
 
 ### 媒体上传下载
 
-| 端点                                                              | SDK Manager       | 方法                    | 状态        |
-| ----------------------------------------------------------------- | ----------------- | ----------------------- | ----------- |
-| `POST /_matrix/media/{v1,v3,r0}/upload`                           | `MediaManager`    | `uploadContent()`       | ✅ 已封装 |
-| `PUT /_matrix/media/v3/upload/{server_name}/{media_id}`           | `MediaManager`    | `uploadContentWithId()` | ✅ 已封装 |
-| `GET /_matrix/media/{v1,v3,r1}/download/{server_name}/{media_id}` | `MediaManager`    | `getDownloadUrl()`      | ✅ 已封装 |
-| `GET /_matrix/media/v3/thumbnail/{server_name}/{media_id}`        | `MediaManager`    | `getThumbnailUrl()`     | ✅ 已封装 |
+| 端点                                                              | SDK Manager    | 方法                    | 状态      |
+| ----------------------------------------------------------------- | -------------- | ----------------------- | --------- |
+| `POST /_matrix/media/{v1,v3,r0}/upload`                           | `MediaManager` | `uploadContent()`       | ✅ 已封装 |
+| `PUT /_matrix/media/v3/upload/{server_name}/{media_id}`           | `MediaManager` | `uploadContentWithId()` | ✅ 已封装 |
+| `GET /_matrix/media/{v1,v3,r1}/download/{server_name}/{media_id}` | `MediaManager` | `getDownloadUrl()`      | ✅ 已封装 |
+| `GET /_matrix/media/v3/thumbnail/{server_name}/{media_id}`        | `MediaManager` | `getThumbnailUrl()`     | ✅ 已封装 |
 
 ### 媒体管理
 
-| 端点                                                     | SDK Manager         | 方法               | 状态        |
-| -------------------------------------------------------- | ------------------- | ------------------ | ----------- |
+| 端点                                                     | SDK Manager         | 方法                    | 状态      |
+| -------------------------------------------------------- | ------------------- | ----------------------- | --------- |
 | `GET /_matrix/media/{v1,r0,v3}/config`                   | `MediaQuotaManager` | `getMediaConfig(false)` | ✅ 已封装 |
 | `GET /_matrix/client/v1/media/config`                    | `MediaQuotaManager` | `getMediaConfig(true)`  | ✅ 已封装 |
 | `GET /_matrix/media/v1/preview_url`                      | `MediaManager`      | `previewUrl()`          | ✅ 已封装 |
@@ -112,26 +112,26 @@ last_reviewed: 2026-05-11
 
 ### 配额管理
 
-| 端点                                 | SDK Manager         | 方法                    | 状态        |
-| ------------------------------------ | ------------------- | ----------------------- | ----------- |
-| `GET /_matrix/media/v1/quota/check`  | `MediaQuotaManager` | `checkQuota()` / `hasStorageSpace()`       | ✅ 已封装 |
+| 端点                                 | SDK Manager         | 方法                                        | 状态      |
+| ------------------------------------ | ------------------- | ------------------------------------------- | --------- |
+| `GET /_matrix/media/v1/quota/check`  | `MediaQuotaManager` | `checkQuota()` / `hasStorageSpace()`        | ✅ 已封装 |
 | `GET /_matrix/media/v1/quota/stats`  | `MediaQuotaManager` | `getQuotaStats()` / `getUserStorageUsage()` | ✅ 已封装 |
-| `GET /_matrix/media/v1/quota/alerts` | `MediaQuotaManager` | `getQuotaAlerts()`                         | ✅ 已封装 |
+| `GET /_matrix/media/v1/quota/alerts` | `MediaQuotaManager` | `getQuotaAlerts()`                          | ✅ 已封装 |
 
 ## 人工 Review 对齐
 
 - `src/media/index.ts` 已引入生成的 `MediaPathPattern`，并将 `uploadContentWithId()`、`deleteMedia()`、`previewUrl()` 绑定到 media 路由模板。
 - `MediaManager.getDownloadUrl()` 新增显式高层 helper，覆盖:
-  - `/_matrix/media/v3/download/{server_name}/{media_id}`
-  - `/_matrix/media/v1/download/{server_name}/{media_id}`
-  - `/_matrix/media/r1/download/{server_name}/{media_id}`
-  - `filename` 变体路径
+    - `/_matrix/media/v3/download/{server_name}/{media_id}`
+    - `/_matrix/media/v1/download/{server_name}/{media_id}`
+    - `/_matrix/media/r1/download/{server_name}/{media_id}`
+    - `filename` 变体路径
 - `MediaManager.getThumbnailUrl()` 新增显式高层 helper，覆盖:
-  - `/_matrix/media/v3/thumbnail/{server_name}/{media_id}`
-  - `/_matrix/client/v1/media/thumbnail/{server_name}/{media_id}` authenticated media 变体
+    - `/_matrix/media/v3/thumbnail/{server_name}/{media_id}`
+    - `/_matrix/client/v1/media/thumbnail/{server_name}/{media_id}` authenticated media 变体
 - `MediaQuotaManager.getMediaConfig(useAuthenticatedMedia)` 现显式透传 `false/true`，分别对应:
-  - `/_matrix/media/v3/config`
-  - `/_matrix/client/v1/media/config`
+    - `/_matrix/media/v3/config`
+    - `/_matrix/client/v1/media/config`
 - `MediaQuotaManager` 现新增 `checkQuota()` 与 `getQuotaStats()`，其余 `hasStorageSpace()`、`getUserStorageUsage()`、`getStorageQuota()`、`getStorageUsagePercent()` 都基于这两个真实端点复用。
 - `spec/unit/media-manager.spec.ts` 与 `spec/unit/media-quota.spec.ts` 已补 URL helper、authenticated media、quota/config 的专用断言。
 
@@ -159,22 +159,43 @@ last_reviewed: 2026-05-11
 > Source: `src/media/__generated__/dto.ts`
 
 ```typescript
-export interface UploadRequest { name?: string; type?: string; }
-export interface UploadResponse { content_uri: string; }
-export interface MediaConfig { "m.upload.size"?: number; }
+export interface UploadRequest {
+    name?: string;
+    type?: string;
+}
+export interface UploadResponse {
+    content_uri: string;
+}
+export interface MediaConfig {
+    "m.upload.size"?: number;
+}
 export interface UrlPreview {
-    url?: string; title?: string; description?: string; image_url?: string;
-    image?: string; og_image?: string; "matrix:image"?: string;
+    url?: string;
+    title?: string;
+    description?: string;
+    image_url?: string;
+    image?: string;
+    og_image?: string;
+    "matrix:image"?: string;
 }
 export interface MediaDownloadUrlOptions {
-    filename?: string; allowDirectLinks?: boolean; allowRedirects?: boolean;
-    useAuthentication?: boolean; version?: "v1" | "v3" | "r1";
-    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
+    filename?: string;
+    allowDirectLinks?: boolean;
+    allowRedirects?: boolean;
+    useAuthentication?: boolean;
+    version?: "v1" | "v3" | "r1";
+    signature?: string;
+    timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 export interface MediaThumbnailUrlOptions {
-    width?: number; height?: number; method?: "crop" | "scale";
-    allowDirectLinks?: boolean; allowRedirects?: boolean;
-    useAuthentication?: boolean; animated?: boolean;
-    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
+    width?: number;
+    height?: number;
+    method?: "crop" | "scale";
+    allowDirectLinks?: boolean;
+    allowRedirects?: boolean;
+    useAuthentication?: boolean;
+    animated?: boolean;
+    signature?: string;
+    timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 ```

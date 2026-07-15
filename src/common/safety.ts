@@ -102,4 +102,3 @@ export function safeSet<O extends Record<any, any>, K extends keyof O>(obj: O, p
 export function noUnsafeEventProps(event: Partial<IEvent>): boolean {
     return !(unsafeProp(event.room_id) || unsafeProp(event.sender) || unsafeProp(event.event_id));
 }
-

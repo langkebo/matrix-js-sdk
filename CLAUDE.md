@@ -101,14 +101,15 @@ The CI gate `contract:codegen:check` ensures generated files stay in sync with t
 
 **MatrixClient** (`src/client.ts`) is the main entry point. Its implementation has been decomposed into ~60+ focused modules under `src/client-*.ts`:
 
-| Pattern | Purpose | Examples |
-|---|---|---|
-| `client-send-*.ts` | Event sending pipeline | `client-send-event.ts`, `client-send-message.ts`, `client-send-http.ts` |
-| `client-*-requests.ts` | API request methods | `client-room-management-requests.ts`, `client-profile-requests.ts` |
-| `client-*-core.ts` | Core logic | `client-relations-core.ts`, `client-profile-core.ts` |
-| `client-auth.ts`, `client-crypto-requests.ts` | Auth and crypto | |
+| Pattern                                       | Purpose                | Examples                                                                |
+| --------------------------------------------- | ---------------------- | ----------------------------------------------------------------------- |
+| `client-send-*.ts`                            | Event sending pipeline | `client-send-event.ts`, `client-send-message.ts`, `client-send-http.ts` |
+| `client-*-requests.ts`                        | API request methods    | `client-room-management-requests.ts`, `client-profile-requests.ts`      |
+| `client-*-core.ts`                            | Core logic             | `client-relations-core.ts`, `client-profile-core.ts`                    |
+| `client-auth.ts`, `client-crypto-requests.ts` | Auth and crypto        |                                                                         |
 
 **Manager infrastructure** lives in `src/client-infra/`:
+
 - `manager-registry.ts` — centralized manager registration (70+ managers)
 - `request-context.ts` — shared request context types
 
@@ -122,6 +123,7 @@ Domain-specific managers handle specialized operations. Each manager is register
 **Manager Extensions** (`src/manager-extensions/index.ts`): unified initialization entry point. Call `extendMatrixClientWithManagers()` to register all managers, or selectively with `ManagerExtensionsOptions`.
 
 **Admin Sub-Managers** (`src/admin/sub-managers/`): the admin domain is further decomposed into focused sub-managers:
+
 - `AdminUserManager`, `AdminRoomManager`, `AdminServerManager`, `AdminFederationManager`, `AdminMediaManager`, `AdminConfigManager`
 
 ### Module Organization and Entry Points

@@ -9,12 +9,12 @@
 
 ### 1.1 排查范围
 
-| 层级 | 文件 | 搜索能力 |
-|------|------|:---:|
-| 路由层 | `synapse-rust/src/web/routes/friend_room.rs` | ❌ 无 `/friends/search` 路由 |
-| 路由层 | `synapse-rust/src/web/routes/handlers/search.rs` | ❌ 仅支持 `room_events` 搜索，不支持好友/用户搜索 |
-| 服务层 | `synapse-rust/src/services/friend_room_service.rs` | ❌ 28 个方法中无搜索方法 |
-| 存储层 | `synapse-rust/src/storage/friend_room.rs` | ❌ 有 `get_user_friend_ids()` 但不支持 LIKE 条件搜索 |
+| 层级   | 文件                                               |                       搜索能力                       |
+| ------ | -------------------------------------------------- | :--------------------------------------------------: |
+| 路由层 | `synapse-rust/src/web/routes/friend_room.rs`       |             ❌ 无 `/friends/search` 路由             |
+| 路由层 | `synapse-rust/src/web/routes/handlers/search.rs`   |  ❌ 仅支持 `room_events` 搜索，不支持好友/用户搜索   |
+| 服务层 | `synapse-rust/src/services/friend_room_service.rs` |               ❌ 28 个方法中无搜索方法               |
+| 存储层 | `synapse-rust/src/storage/friend_room.rs`          | ❌ 有 `get_user_friend_ids()` 但不支持 LIKE 条件搜索 |
 
 ### 1.2 结论
 
@@ -26,18 +26,19 @@
 
 ### 2.1 方案对比
 
-| 维度 | 方案 A：专用端点 | 方案 B：复用 /search | 方案 C：前端本地搜索 |
-|------|:---:|:---:|:---:|
-| 后端改动 | 🟡 新增路由+服务+存储 | 🔴 扩展 search.rs | 🟢 无需 |
-| 前端改动 | 🟡 新增方法 | 🟡 新增方法 | 🟡 新增本地方法 |
-| 搜索体验 | ⭐⭐⭐⭐⭐ 精确搜索 | ⭐⭐⭐⭐ 自定义分类 | ⭐⭐ 全量拉取后过滤 |
-| 大数据量性能 | ⭐⭐⭐⭐⭐ 数据库索引 | ⭐⭐⭐⭐ 通用索引 | ⭐ 全量内存过滤 |
-| 一致性 | ⭐⭐⭐⭐⭐ 遵循现有模式 | ⭐⭐⭐ 非标准模式 | ⭐⭐ 仅 SDK 层面 |
-| 可扩展性 | ⭐⭐⭐⭐⭐ 独立演进 | ⭐⭐⭐ 耦合到 search | ⭐ 不可扩展 |
+| 维度         |    方案 A：专用端点     | 方案 B：复用 /search | 方案 C：前端本地搜索 |
+| ------------ | :---------------------: | :------------------: | :------------------: |
+| 后端改动     |  🟡 新增路由+服务+存储  |  🔴 扩展 search.rs   |       🟢 无需        |
+| 前端改动     |       🟡 新增方法       |     🟡 新增方法      |   🟡 新增本地方法    |
+| 搜索体验     |   ⭐⭐⭐⭐⭐ 精确搜索   | ⭐⭐⭐⭐ 自定义分类  | ⭐⭐ 全量拉取后过滤  |
+| 大数据量性能 |  ⭐⭐⭐⭐⭐ 数据库索引  |  ⭐⭐⭐⭐ 通用索引   |   ⭐ 全量内存过滤    |
+| 一致性       | ⭐⭐⭐⭐⭐ 遵循现有模式 |  ⭐⭐⭐ 非标准模式   |   ⭐⭐ 仅 SDK 层面   |
+| 可扩展性     |   ⭐⭐⭐⭐⭐ 独立演进   | ⭐⭐⭐ 耦合到 search |     ⭐ 不可扩展      |
 
 ### 2.2 推荐方案：方案 A — 专用 `GET /friends/search` 端点
 
 #### 理由
+
 1. 遵循现有好友 API 设计模式（所有端点以 `/friends/` 为前缀）
 2. 独立演进，不与通用搜索耦合
 3. 可利用数据库索引实现高效 LIKE/ILIKE 查询
@@ -58,10 +59,10 @@ pub async fn search_friends(
     offset: i64,
 ) -> Result<Vec<serde_json::Value>, sqlx::Error> {
     let search_pattern = format!("%{}%", query);
-    
+
     sqlx::query_as::<_, (String, String, Option<String>, Option<String>, chrono::DateTime<chrono::Utc>)>(
         r#"
-        SELECT 
+        SELECT
             f.friend_id AS user_id,
             COALESCE(f.display_name, '') AS display_name,
             COALESCE(f.avatar_url, '') AS avatar_url,
@@ -71,7 +72,7 @@ pub async fn search_friends(
         WHERE f.user_id = $1
           AND f.status = 'accepted'
           AND (
-              f.friend_id ILIKE $2 
+              f.friend_id ILIKE $2
               OR f.display_name ILIKE $2
               OR f.note ILIKE $2
           )
@@ -271,17 +272,17 @@ it("should respect limit and offset", async () => {
 
 #### 2.4 工作量估算
 
-| 步骤 | 工作量 | 负责方 |
-|------|:---:|------|
-| 后端存储层 | 30min | Rust |
-| 后端服务层 | 15min | Rust |
-| 后端路由层 + 校验 | 30min | Rust |
-| 合约同步 | 5min | DevOps |
-| 前端 SDK 方法 | 20min | TS |
-| 合约文档更新 | 15min | TS |
-| 单元测试 | 20min | TS |
-| 集成测试 | 15min | 全栈 |
-| **合计** | **~2.5h** | |
+| 步骤              |  工作量   | 负责方 |
+| ----------------- | :-------: | ------ |
+| 后端存储层        |   30min   | Rust   |
+| 后端服务层        |   15min   | Rust   |
+| 后端路由层 + 校验 |   30min   | Rust   |
+| 合约同步          |   5min    | DevOps |
+| 前端 SDK 方法     |   20min   | TS     |
+| 合约文档更新      |   15min   | TS     |
+| 单元测试          |   20min   | TS     |
+| 集成测试          |   15min   | 全栈   |
+| **合计**          | **~2.5h** |        |
 
 ---
 
@@ -292,12 +293,12 @@ it("should respect limit and offset", async () => {
 
 ### E2.1 现有好友模块全链路加密现状
 
-| 层级 | 文件 | 加密机制 | 数据传输方式 |
-|------|------|:---:|------|
-| 前端 SDK | `src/friend/index.ts` | ❌ 零加密引用（全文搜索 `encrypt/crypto/olm/megolm/e2ee` 无结果） | `authedRequest` → HTTPS + Bearer Token |
-| 后端路由 | `synapse-rust/src/web/routes/friend_room.rs` | ❌ 无加密变换（handler 直接透传 body/query 到 service 层） | Axum JSON/Query 反序列化 |
-| 后端服务 | `synapse-rust/src/services/friend_room_service.rs` | ❌ 无加密处理（28 个方法均为纯业务逻辑） | 直接操作数据库 |
-| 后端存储 | `synapse-rust/src/storage/friend_room.rs` | ❌ 数据库列以明文存储 `display_name`、`note`、`avatar_url` | PostgreSQL 明文列 |
+| 层级     | 文件                                               |                             加密机制                              | 数据传输方式                           |
+| -------- | -------------------------------------------------- | :---------------------------------------------------------------: | -------------------------------------- |
+| 前端 SDK | `src/friend/index.ts`                              | ❌ 零加密引用（全文搜索 `encrypt/crypto/olm/megolm/e2ee` 无结果） | `authedRequest` → HTTPS + Bearer Token |
+| 后端路由 | `synapse-rust/src/web/routes/friend_room.rs`       |    ❌ 无加密变换（handler 直接透传 body/query 到 service 层）     | Axum JSON/Query 反序列化               |
+| 后端服务 | `synapse-rust/src/services/friend_room_service.rs` |             ❌ 无加密处理（28 个方法均为纯业务逻辑）              | 直接操作数据库                         |
+| 后端存储 | `synapse-rust/src/storage/friend_room.rs`          |    ❌ 数据库列以明文存储 `display_name`、`note`、`avatar_url`     | PostgreSQL 明文列                      |
 
 **结论：好友模块 4 层全链路均以明文传输和存储，无任何端到端加密。**
 
@@ -334,6 +335,7 @@ if (opts.isEncrypted !== false) {
 ```
 
 这确保了 DM **房间内的消息**是加密的，但：
+
 - DM 房间映射（谁和谁是 DM 关系）存储在 `m.direct` account data，明文
 - 好友关系（谁和谁是好友）存储在 `friend_relationships` 表，明文
 - 好友搜索将在好友关系表上执行 LIKE 查询，服务器能读取所有字段
@@ -366,14 +368,14 @@ if (opts.isEncrypted !== false) {
 
 ### E2.5 敏感数据泄漏风险矩阵
 
-| 数据字段 | 风险等级 | 说明 |
-|---------|:---:|------|
-| `user_id` | 🟢 低 | Matrix user ID 本身就是公开标识符，存在于用户目录 |
-| `display_name` | 🟢 低 | 用户已选择公开的显示名 |
-| `avatar_url` | 🟢 低 | 公开的头像 URL |
+| 数据字段       | 风险等级  | 说明                                                                        |
+| -------------- | :-------: | --------------------------------------------------------------------------- |
+| `user_id`      |   🟢 低   | Matrix user ID 本身就是公开标识符，存在于用户目录                           |
+| `display_name` |   🟢 低   | 用户已选择公开的显示名                                                      |
+| `avatar_url`   |   🟢 低   | 公开的头像 URL                                                              |
 | `note`（备注） | 🔴 **高** | 用户自定义备注可能包含敏感信息（"老板""女朋友""欠我500块"），明文存储和搜索 |
-| `q`（搜索词） | 🟡 中 | 搜索内容暴露用户意图和行为模式 |
-| 搜索结果集 | 🟡 中 | 返回结果暴露用户的好友关系图谱 |
+| `q`（搜索词）  |   🟡 中   | 搜索内容暴露用户意图和行为模式                                              |
+| 搜索结果集     |   🟡 中   | 返回结果暴露用户的好友关系图谱                                              |
 
 ### E2.6 结论
 
@@ -386,11 +388,11 @@ if (opts.isEncrypted !== false) {
 
 ### E2.7 建议
 
-| 优先级 | 建议 | 适用场景 |
-|:---:|------|---------|
-| 🔴 立即 | 在方案文档和 API 文档中**显式声明**好友模块数据以明文存储和传输 | 安全合规审计 |
+| 优先级  | 建议                                                                                                                                                      | 适用场景         |
+| :-----: | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 🔴 立即 | 在方案文档和 API 文档中**显式声明**好友模块数据以明文存储和传输                                                                                           | 安全合规审计     |
 | 🟡 中期 | 对 `note` 字段提供 **客户端可选加密**：写入前 `encrypt(localKey, note)` → 存储密文 → 读取后 `decrypt(localKey, note)` → 搜索变为客户端搜索（方案 C 范式） | 有隐私需求的用户 |
-| 🟢 长期 | 研究 Matrix MSC（Matrix Spec Change）提案，探索将 friend metadata 纳入 E2EE scope | 协议演进 |
+| 🟢 长期 | 研究 Matrix MSC（Matrix Spec Change）提案，探索将 friend metadata 纳入 E2EE scope                                                                         | 协议演进         |
 
 > **对于方案 A 本身，只需补充本分析中 E2.7 的「立即」项即可，无需修改实现代码。**
 
@@ -401,6 +403,7 @@ if (opts.isEncrypted !== false) {
 `docs/api-contract/generated/modules/friend_room.json` 中的 `synapse_rust_commit` 字段值为 `"0000000000000000000000000000000000000000"`（40 个零的占位符）。
 
 **链路跟踪：**
+
 1. `pnpm run contract:sync` → `scripts/contract-sync.mjs` 扫描 synapse-rust 生成 manifest
 2. manifest 中的 `synapse_rust_commit` 来自 profile 配置文件
 3. profile 配置中未设置实际 hash → 默认为全零占位符
@@ -411,12 +414,12 @@ if (opts.isEncrypted !== false) {
 
 ### 3.2 解决方案对比
 
-| 方案 | 描述 | 优点 | 缺点 |
-|------|------|------|------|
-| **A：手动修复** | 直接在 JSON 中写入实际 commit | 立即生效，零风险 | 下次 sync 会覆盖 |
-| **B：同步时自动捕获** | 修改 `contract-sync.mjs`，sync 时读取 git hash | 一次修改永久生效 | 需修改脚本 |
-| **C：CI 注入** | CI 流程中在 sync 前设置环境变量/配置 | 自动化 | 依赖 CI 配置 |
-| **D：Git Hook** | pre-sync hook 自动更新 | 本地开发友好 | 需配置 hook |
+| 方案                  | 描述                                           | 优点             | 缺点             |
+| --------------------- | ---------------------------------------------- | ---------------- | ---------------- |
+| **A：手动修复**       | 直接在 JSON 中写入实际 commit                  | 立即生效，零风险 | 下次 sync 会覆盖 |
+| **B：同步时自动捕获** | 修改 `contract-sync.mjs`，sync 时读取 git hash | 一次修改永久生效 | 需修改脚本       |
+| **C：CI 注入**        | CI 流程中在 sync 前设置环境变量/配置           | 自动化           | 依赖 CI 配置     |
+| **D：Git Hook**       | pre-sync hook 自动更新                         | 本地开发友好     | 需配置 hook      |
 
 ### 3.3 推荐方案：A + B 组合
 
@@ -448,15 +451,16 @@ console.log('Updated synapse_rust_commit to', data.synapse_rust_commit);
 
 ```javascript
 function detectSynapseRustCommit() {
-    const synapseRustRoot = process.env.SYNAPSE_RUST_ROOT 
-        || path.resolve(repoRoot, "..", "synapse-rust");
-    
+    const synapseRustRoot = process.env.SYNAPSE_RUST_ROOT || path.resolve(repoRoot, "..", "synapse-rust");
+
     try {
-        const head = cp.execSync("git rev-parse HEAD", {
-            cwd: synapseRustRoot,
-            encoding: "utf8",
-        }).trim();
-        
+        const head = cp
+            .execSync("git rev-parse HEAD", {
+                cwd: synapseRustRoot,
+                encoding: "utf8",
+            })
+            .trim();
+
         if (/^[0-9a-f]{40}$/.test(head)) {
             return head;
         }
@@ -477,8 +481,8 @@ function detectSynapseRustCommit() {
 // synapse_rust_commit: profiles.default.parsed.synapse_rust_commit ?? null,
 
 // 修改为：
-synapse_rust_commit: 
-    profiles.default.parsed.synapse_rust_commit 
+synapse_rust_commit:
+    profiles.default.parsed.synapse_rust_commit
         && profiles.default.parsed.synapse_rust_commit !== "0".repeat(40)
     ? profiles.default.parsed.synapse_rust_commit
     : detectSynapseRustCommit(),
@@ -500,29 +504,29 @@ grep -l "0000000000000000000000000000000000000000" docs/api-contract/generated/m
 
 ### 阶段 1：立即修复（今日完成）
 
-| 任务 | 命令/操作 |
-|------|----------|
-| ✅ 修复 `friend_room.json` commit hash | 直接替换 + 运行 `codegen --check` |
-| ✅ 运行全量 friend 测试 | `vitest run spec/unit/friend.spec.ts` |
+| 任务                                   | 命令/操作                             |
+| -------------------------------------- | ------------------------------------- |
+| ✅ 修复 `friend_room.json` commit hash | 直接替换 + 运行 `codegen --check`     |
+| ✅ 运行全量 friend 测试                | `vitest run spec/unit/friend.spec.ts` |
 
 ### 阶段 2：好友搜索实现（1 次迭代）
 
-| 排序 | 任务 | 依赖 |
-|:---:|------|------|
-| 1 | 后端存储层 `search_friends` | — |
-| 2 | 后端服务层 `search_friends` | 1 |
-| 3 | 后端路由层 `GET /friends/search` | 2 |
-| 4 | `contract:sync` 生成新合约 | 3 |
-| 5 | `contract:codegen` 生成路由表 | 4 |
-| 6 | 前端 SDK `searchFriends()` 方法 | 5 |
-| 7 | 更新 `friend.md` 合约文档 | 5 |
-| 8 | 单元测试 | 6 |
-| 9 | 集成测试 | 8 |
+| 排序 | 任务                             | 依赖 |
+| :--: | -------------------------------- | ---- |
+|  1   | 后端存储层 `search_friends`      | —    |
+|  2   | 后端服务层 `search_friends`      | 1    |
+|  3   | 后端路由层 `GET /friends/search` | 2    |
+|  4   | `contract:sync` 生成新合约       | 3    |
+|  5   | `contract:codegen` 生成路由表    | 4    |
+|  6   | 前端 SDK `searchFriends()` 方法  | 5    |
+|  7   | 更新 `friend.md` 合约文档        | 5    |
+|  8   | 单元测试                         | 6    |
+|  9   | 集成测试                         | 8    |
 
 ### 阶段 3：Commit Hash 长期修复
 
-| 任务 | 说明 |
-|------|------|
-| 修改 `contract-sync.mjs` | 新增 `detectSynapseRustCommit()` 函数 |
-| 验证修复 | 运行 `contract:sync` 确认 hash 正确写入 |
-| 批量修复其他模块 | `grep` 找到所有占位符并逐个修复 |
+| 任务                     | 说明                                    |
+| ------------------------ | --------------------------------------- |
+| 修改 `contract-sync.mjs` | 新增 `detectSynapseRustCommit()` 函数   |
+| 验证修复                 | 运行 `contract:sync` 确认 hash 正确写入 |
+| 批量修复其他模块         | `grep` 找到所有占位符并逐个修复         |

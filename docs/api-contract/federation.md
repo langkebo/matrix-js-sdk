@@ -87,23 +87,23 @@ last_reviewed: 2026-05-03
 
 ### 已封装方法
 
-| SDK 方法                    | 路径                                            | 认证       |
-| --------------------------- | ----------------------------------------------- | ---------- |
-| `getBlacklist()`            | `GET /_synapse/admin/v1/federation/blacklist`   | 管理员 token |
-| `addToBlacklist()`          | `POST /_synapse/admin/v1/federation/blacklist/add` | 管理员 token |
-| `removeFromBlacklist()`     | `POST /_synapse/admin/v1/federation/blacklist/remove` | 管理员 token |
-| `getServerStatus()`         | `GET /_synapse/admin/v1/federation/status/{serverName}` | 管理员 token |
-| `getFederationDestinations()` | `GET /_synapse/admin/v1/federation/destinations` | 管理员 token |
-| `disconnectServer()`        | `POST /_synapse/admin/v1/federation/disconnect/{serverName}` | 管理员 token |
-| `reconnectServer()`         | `POST /_synapse/admin/v1/federation/reconnect/{serverName}` | 管理员 token |
-| `getServerVersion()`        | `GET /_matrix/federation/v1/version`            | 无         |
-| `getPublicRoomsOnServer()`  | `GET /_matrix/federation/v1/publicRooms`        | 无         |
-| `queryProfile()`            | `GET /_matrix/federation/v1/query/profile/{userId}` | 无         |
-| `queryDirectory()`          | `GET /_matrix/federation/v1/query/directory`    | 无         |
-| `getHierarchy()`            | `GET /_matrix/federation/v1/hierarchy/{roomId}` | 无         |
-| `getFederationInfo()`       | `GET /_matrix/federation/v1`                    | 无         |
-| `queryDestination()`        | `GET /_matrix/federation/v1/query/destination`  | 无         |
-| `getRoomEvent()`            | `GET /_matrix/federation/v1/room/{roomId}/{eventId}` | 无     |
-| `downloadMedia()`           | `GET /_matrix/federation/v1/media/download/{serverName}/{mediaId}` | 无 |
-| `getMediaThumbnail()`       | `GET /_matrix/federation/v1/media/thumbnail/{serverName}/{mediaId}` | 无 |
-| `sendFederationEvent()`     | `PUT /_matrix/federation/v1/send/{txnId}`     | 联邦签名  |
+| SDK 方法                      | 路径                                                                | 认证         |
+| ----------------------------- | ------------------------------------------------------------------- | ------------ |
+| `getBlacklist()`              | `GET /_synapse/admin/v1/federation/blacklist`                       | 管理员 token |
+| `addToBlacklist()`            | `POST /_synapse/admin/v1/federation/blacklist/add`                  | 管理员 token |
+| `removeFromBlacklist()`       | `POST /_synapse/admin/v1/federation/blacklist/remove`               | 管理员 token |
+| `getServerStatus()`           | `GET /_synapse/admin/v1/federation/status/{serverName}`             | 管理员 token |
+| `getFederationDestinations()` | `GET /_synapse/admin/v1/federation/destinations`                    | 管理员 token |
+| `disconnectServer()`          | `POST /_synapse/admin/v1/federation/disconnect/{serverName}`        | 管理员 token |
+| `reconnectServer()`           | `POST /_synapse/admin/v1/federation/reconnect/{serverName}`         | 管理员 token |
+| `getServerVersion()`          | `GET /_matrix/federation/v1/version`                                | 无           |
+| `getPublicRoomsOnServer()`    | `GET /_matrix/federation/v1/publicRooms`                            | 无           |
+| `queryProfile()`              | `GET /_matrix/federation/v1/query/profile/{userId}`                 | 无           |
+| `queryDirectory()`            | `GET /_matrix/federation/v1/query/directory`                        | 无           |
+| `getHierarchy()`              | `GET /_matrix/federation/v1/hierarchy/{roomId}`                     | 无           |
+| `getFederationInfo()`         | `GET /_matrix/federation/v1`                                        | 无           |
+| `queryDestination()`          | `GET /_matrix/federation/v1/query/destination`                      | 无           |
+| `getRoomEvent()`              | `GET /_matrix/federation/v1/room/{roomId}/{eventId}`                | 无           |
+| `downloadMedia()`             | `GET /_matrix/federation/v1/media/download/{serverName}/{mediaId}`  | 无           |
+| `getMediaThumbnail()`         | `GET /_matrix/federation/v1/media/thumbnail/{serverName}/{mediaId}` | 无           |
+| `sendFederationEvent()`       | `PUT /_matrix/federation/v1/send/{txnId}`                           | 联邦签名     |

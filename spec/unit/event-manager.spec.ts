@@ -95,7 +95,11 @@ describe("EventManager", () => {
         it("sends GET to thread list endpoint", async () => {
             transport.respondWith({ chunk: [], prev_batch: "p1", next_batch: "n1" });
             const result = await manager.createThreadListMessagesRequest(
-                roomId, "tok", 10, Direction.Backward, ThreadFilterType.All,
+                roomId,
+                "tok",
+                10,
+                Direction.Backward,
+                ThreadFilterType.All,
             );
             expect(result.chunk).toEqual([]);
             expect(result.start).toBe("p1");
@@ -231,11 +235,20 @@ describe("EventManager", () => {
         });
 
         it("fetches a single event", async () => {
-            const event = { content: { body: "hi" }, type: "m.room.message", event_id: eventId, sender: "@a:ex.com", origin_server_ts: 1000 };
+            const event = {
+                content: { body: "hi" },
+                type: "m.room.message",
+                event_id: eventId,
+                sender: "@a:ex.com",
+                origin_server_ts: 1000,
+            };
             transport.respondWith(event);
             const result = await manager.getEvent(roomId, eventId);
             expect(result).toEqual(event);
-            transport.expectCalledWith(Method.Get, `/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`);
+            transport.expectCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`,
+            );
         });
     });
 
@@ -249,7 +262,13 @@ describe("EventManager", () => {
 
         it("fetches event context", async () => {
             const response = {
-                event: { content: {}, type: "m.room.message", event_id: eventId, sender: "@a:ex.com", origin_server_ts: 1000 },
+                event: {
+                    content: {},
+                    type: "m.room.message",
+                    event_id: eventId,
+                    sender: "@a:ex.com",
+                    origin_server_ts: 1000,
+                },
                 events_before: [],
                 events_after: [],
                 start: "s1",
@@ -265,7 +284,11 @@ describe("EventManager", () => {
         it("passes limit and filter params", async () => {
             transport.respondWith({
                 event: { content: {}, type: "x", event_id: eventId, sender: "@a:ex.com", origin_server_ts: 1000 },
-                events_before: [], events_after: [], start: "s", end: "e", state: [],
+                events_before: [],
+                events_after: [],
+                start: "s",
+                end: "e",
+                state: [],
             });
             await manager.getEventContext(roomId, eventId, { limit: 5, filter: { types: ["m.room.message"] } });
             const queryParams = transport.request.mock.calls[0][2] as Record<string, unknown>;
@@ -334,11 +357,13 @@ describe("EventManager", () => {
             const event = new MatrixEvent({ event_id: "$e", type: "m.room.message", content: {} });
             event.status = EventStatus.SENT;
 
-            expect(() => manager.cancelPendingEvent(event, {
-                eventsBeingEncrypted: new Set(),
-                getRoom: vi.fn(),
-                updatePendingEventStatus: vi.fn(),
-            })).toThrow("cannot cancel an event with status");
+            expect(() =>
+                manager.cancelPendingEvent(event, {
+                    eventsBeingEncrypted: new Set(),
+                    getRoom: vi.fn(),
+                    updatePendingEventStatus: vi.fn(),
+                }),
+            ).toThrow("cannot cancel an event with status");
         });
 
         it("removes event from encryption set when ENCRYPTING", () => {

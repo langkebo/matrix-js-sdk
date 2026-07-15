@@ -270,13 +270,11 @@ describe("MSC3089Branch", () => {
                 expect(eventType).toEqual(UNSTABLE_MSC3089_BRANCH.unstable); // test that we're definitely using the unstable value
                 expect(stateKey).toEqual(stateKeyOrder[stateFn.mock.calls.length - 1]);
                 if (stateKey === fileEventId) {
-                     
                     expect(content).toMatchObject({
                         retained: true, // canary for copying state
                         active: false,
                     });
                 } else if (stateKey === fileEventId2) {
-                     
                     expect(content).toMatchObject({
                         active: true,
                         version: 2,

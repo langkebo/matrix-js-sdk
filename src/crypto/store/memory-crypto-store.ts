@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { safeSet } from "../../common/safety";import {
+import { safeSet } from "../../common/safety";
+import {
     type CryptoStore,
     type ISession,
     type SessionExtended,

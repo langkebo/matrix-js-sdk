@@ -21,11 +21,11 @@ last_reviewed: 2026-05-03
 
 ## Pushers
 
-| 方法 | 路径                                  | 主要请求参数                                                                                | 主要响应字段           |
-| ---- | ------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------- |
-| GET  | `/_matrix/client/{r0,v3}/pushers`     | 无                                                                                          | `{ "pushers": [...] }` |
+| 方法 | 路径                                  | 主要请求参数                                                                                            | 主要响应字段           |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------- |
+| GET  | `/_matrix/client/{r0,v3}/pushers`     | 无                                                                                                      | `{ "pushers": [...] }` |
 | POST | `/_matrix/client/{r0,v3}/pushers`     | `pushkey` `kind` `app_id` `app_display_name` `device_display_name` `device_id` `lang` `data?` `append?` | 空对象                 |
-| POST | `/_matrix/client/{r0,v3}/pushers/set` | 同上，`kind: null` 时删除；**device_id 必填（P2 #32 鉴权要求）**                           | 空对象                 |
+| POST | `/_matrix/client/{r0,v3}/pushers/set` | 同上，`kind: null` 时删除；**device_id 必填（P2 #32 鉴权要求）**                                        | 空对象                 |
 
 ## Push Rules
 

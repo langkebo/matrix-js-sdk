@@ -35,13 +35,20 @@ const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRAC
 const GENERATED_MODULES_DIR = path.join(repoRoot, "docs", "api-contract", "generated", "modules");
 
 const SKIP_ROUTE_TABLE_MODULES = new Set([
-    "admin", "app-service", "dm", "feature-flags", "federation",
-    "key-rotation", "moderation", "reactions", "voice",
+    "admin",
+    "app-service",
+    "dm",
+    "feature-flags",
+    "federation",
+    "key-rotation",
+    "moderation",
+    "reactions",
+    "voice",
 ]);
 
 const SDK_DIR_ALIASES = {
-    "openclaw": "open-claw",
-    "thirdparty": "third-party",
+    openclaw: "open-claw",
+    thirdparty: "third-party",
 };
 
 const LEDGER_MODULE_ALIASES = {
@@ -50,17 +57,17 @@ const LEDGER_MODULE_ALIASES = {
     "app-service": "app_service",
     "background-update": "background_update",
     "burn-after-read": "burn_after_read",
-    "e2ee": "e2ee_routes",
+    e2ee: "e2ee_routes",
     "event-report": "event_report",
     "external-service": "external_service",
     "feature-flags": "feature_flags",
-    "friend": "friend_room",
+    friend: "friend_room",
     "key-backup": "key_backup",
     "key-rotation": "key_rotation",
-    "notifications": "push_notification",
+    notifications: "push_notification",
     "room-summary": "room_summary",
     "sliding-sync": "sliding_sync",
-    "verification": "verification_routes",
+    verification: "verification_routes",
     "worker-admin": "worker_body",
 };
 

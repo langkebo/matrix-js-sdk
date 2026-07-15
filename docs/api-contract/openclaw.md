@@ -17,31 +17,31 @@ OpenClaw 模块提供 AI 连接管理、对话、消息发送、内容生成以�
 
 ## 真实后端路由
 
-| 方法   | 路径                                                                                     | 说明                 | 认证 |
-| ------ | ---------------------------------------------------------------------------------------- | -------------------- | ---- |
-| GET    | `/connections`                                                                           | 列出所有 AI 连接     | 用户 |
-| POST   | `/connections`                                                                           | 创建 AI 连接         | 用户 |
-| GET    | `/connections/{id}`                                                                      | 获取指定连接详情     | 用户 |
-| PUT    | `/connections/{id}`                                                                      | 更新指定连接详情     | 用户 |
-| DELETE | `/connections/{id}`                                                                      | 删除指定连接         | 用户 |
-| POST   | `/connections/{id}/test`                                                                 | 测试连接可用性       | 用户 |
-| GET    | `/conversations`                                                                         | 列出所有对话         | 用户 |
-| POST   | `/conversations`                                                                         | 创建对话             | 用户 |
-| GET    | `/conversations/{id}`                                                                    | 获取指定对话详情     | 用户 |
-| PUT    | `/conversations/{id}`                                                                    | 更新指定对话详情     | 用户 |
-| DELETE | `/conversations/{id}`                                                                    | 删除指定对话         | 用户 |
-| GET    | `/conversations/{id}/messages`                                                           | 列出指定对话的所有消息 | 用户 |
-| POST   | `/conversations/{id}/messages`                                                           | 向对话发送消息       | 用户 |
-| DELETE | `/messages/{id}`                                                                         | 删除指定消息         | 用户 |
-| GET    | `/generations`                                                                           | 列出所有生成记录     | 用户 |
-| POST   | `/generations`                                                                           | 创建生成任务         | 用户 |
-| GET    | `/generations/{id}`                                                                      | 获取指定生成记录详情 | 用户 |
-| DELETE | `/generations/{id}`                                                                      | 删除指定生成记录     | 用户 |
-| GET    | `/roles`                                                                                 | 列出所有聊天角色     | 用户 |
-| POST   | `/roles`                                                                                 | 创建聊天角色         | 用户 |
-| GET    | `/roles/{id}`                                                                            | 获取指定角色详情     | 用户 |
-| PUT    | `/roles/{id}`                                                                            | 更新指定角色详情     | 用户 |
-| DELETE | `/roles/{id}`                                                                            | 删除指定角色         | 用户 |
+| 方法   | 路径                           | 说明                   | 认证 |
+| ------ | ------------------------------ | ---------------------- | ---- |
+| GET    | `/connections`                 | 列出所有 AI 连接       | 用户 |
+| POST   | `/connections`                 | 创建 AI 连接           | 用户 |
+| GET    | `/connections/{id}`            | 获取指定连接详情       | 用户 |
+| PUT    | `/connections/{id}`            | 更新指定连接详情       | 用户 |
+| DELETE | `/connections/{id}`            | 删除指定连接           | 用户 |
+| POST   | `/connections/{id}/test`       | 测试连接可用性         | 用户 |
+| GET    | `/conversations`               | 列出所有对话           | 用户 |
+| POST   | `/conversations`               | 创建对话               | 用户 |
+| GET    | `/conversations/{id}`          | 获取指定对话详情       | 用户 |
+| PUT    | `/conversations/{id}`          | 更新指定对话详情       | 用户 |
+| DELETE | `/conversations/{id}`          | 删除指定对话           | 用户 |
+| GET    | `/conversations/{id}/messages` | 列出指定对话的所有消息 | 用户 |
+| POST   | `/conversations/{id}/messages` | 向对话发送消息         | 用户 |
+| DELETE | `/messages/{id}`               | 删除指定消息           | 用户 |
+| GET    | `/generations`                 | 列出所有生成记录       | 用户 |
+| POST   | `/generations`                 | 创建生成任务           | 用户 |
+| GET    | `/generations/{id}`            | 获取指定生成记录详情   | 用户 |
+| DELETE | `/generations/{id}`            | 删除指定生成记录       | 用户 |
+| GET    | `/roles`                       | 列出所有聊天角色       | 用户 |
+| POST   | `/roles`                       | 创建聊天角色           | 用户 |
+| GET    | `/roles/{id}`                  | 获取指定角色详情       | 用户 |
+| PUT    | `/roles/{id}`                  | 更新指定角色详情       | 用户 |
+| DELETE | `/roles/{id}`                  | 删除指定角色           | 用户 |
 
 ## 端点详情
 
@@ -50,6 +50,7 @@ OpenClaw 模块提供 AI 连接管理、对话、消息发送、内容生成以�
 连接定义了如何接入外部 AI 提供商（如 OpenAI, Claude 等）。
 
 **响应体 (IOpenClawConnection)**:
+
 ```typescript
 export interface IOpenClawConnection {
     id: number;
@@ -68,6 +69,7 @@ export interface IOpenClawConnection {
 ### 2. 对话 (Conversations)
 
 **响应体 (IOpenClawConversation)**:
+
 ```typescript
 export interface IOpenClawConversation {
     id: number;
@@ -86,6 +88,7 @@ export interface IOpenClawConversation {
 ### 3. 消息 (Messages)
 
 **响应体 (IOpenClawMessage)**:
+
 ```typescript
 export interface IOpenClawMessage {
     id: number;
@@ -103,6 +106,7 @@ export interface IOpenClawMessage {
 角色预设了 AI 的身份和行为（System Message）。
 
 **响应体 (IOpenClawChatRole)**:
+
 ```typescript
 export interface IOpenClawChatRole {
     id: number;

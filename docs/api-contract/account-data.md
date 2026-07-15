@@ -72,56 +72,56 @@ last_reviewed: 2026-05-03
 
 ### Account Data（用户级）
 
-| 方法 | 后端路由 | SDK 入口 | 说明 |
-|------|---------|---------|------|
-| `GET`    | `/user/{user_id}/account_data/`           | `AccountDataManager.listAccountData()` | ✅ 返回 `{ account_data: { [type]: content } }` |
-| `GET`    | `/user/{user_id}/account_data/{type}`     | `AccountDataManager.getAccountDataFromServer(type)` / `getAccountData(type)` (本地缓存) | ✅ 缓存命中走 `store`；未命中时才发网络请求 |
-| `PUT`    | `/user/{user_id}/account_data/{type}`     | `AccountDataManager.setAccountData(type, content)` | ✅ 写前校验 `data_type ≤ 128`、`content ≤ 64KB`，触发 `AccountDataUpdated` |
-| `DELETE` | `/user/{user_id}/account_data/{type}`     | `AccountDataManager.deleteAccountData(type)` | ✅ 触发 `AccountDataUpdated`；错误触发 `AccountDataError` |
+| 方法     | 后端路由                              | SDK 入口                                                                                | 说明                                                                       |
+| -------- | ------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `GET`    | `/user/{user_id}/account_data/`       | `AccountDataManager.listAccountData()`                                                  | ✅ 返回 `{ account_data: { [type]: content } }`                            |
+| `GET`    | `/user/{user_id}/account_data/{type}` | `AccountDataManager.getAccountDataFromServer(type)` / `getAccountData(type)` (本地缓存) | ✅ 缓存命中走 `store`；未命中时才发网络请求                                |
+| `PUT`    | `/user/{user_id}/account_data/{type}` | `AccountDataManager.setAccountData(type, content)`                                      | ✅ 写前校验 `data_type ≤ 128`、`content ≤ 64KB`，触发 `AccountDataUpdated` |
+| `DELETE` | `/user/{user_id}/account_data/{type}` | `AccountDataManager.deleteAccountData(type)`                                            | ✅ 触发 `AccountDataUpdated`；错误触发 `AccountDataError`                  |
 
 ### Room Account Data（房间级）
 
-| 方法 | 后端路由 | SDK 入口 | 说明 |
-|------|---------|---------|------|
-| `GET`    | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.getRoomAccountDataFromServer(roomId, type)` | ✅ 404 统一经 `normalizeError` |
-| `PUT`    | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.setRoomAccountData(roomId, type, content)` | ✅ 与用户级一致，写前 `validateDataType` + `validateContentSize` |
-| `DELETE` | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.deleteRoomAccountData(roomId, type)` | ✅ 后端删除不存在的记录也返回 `{}` |
+| 方法     | 后端路由                                              | SDK 入口                                                        | 说明                                                             |
+| -------- | ----------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `GET`    | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.getRoomAccountDataFromServer(roomId, type)` | ✅ 404 统一经 `normalizeError`                                   |
+| `PUT`    | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.setRoomAccountData(roomId, type, content)`  | ✅ 与用户级一致，写前 `validateDataType` + `validateContentSize` |
+| `DELETE` | `/user/{user_id}/rooms/{room_id}/account_data/{type}` | `AccountDataManager.deleteRoomAccountData(roomId, type)`        | ✅ 后端删除不存在的记录也返回 `{}`                               |
 
 ### Filter
 
-| 方法 | 后端路由 | SDK 入口 | 说明 |
-|------|---------|---------|------|
-| `POST` / `PUT` | `/user/{user_id}/filter`               | `MatrixClient.createFilter(filter)` | ℹ️ 基类封装；返回 `{ filter_id }` |
-| `GET`          | `/user/{user_id}/filter/{filter_id}`   | `MatrixClient.getFilter(userId, filterId, allowCached?)` | ℹ️ 基类封装；`FilterComponent`/`Filter` 模型 |
-| `DELETE`       | `/user/{user_id}/filter/{filter_id}`   | — | 后端支持，SDK 当前未暴露删除入口（保留兼容别名） |
+| 方法           | 后端路由                             | SDK 入口                                                 | 说明                                             |
+| -------------- | ------------------------------------ | -------------------------------------------------------- | ------------------------------------------------ |
+| `POST` / `PUT` | `/user/{user_id}/filter`             | `MatrixClient.createFilter(filter)`                      | ℹ️ 基类封装；返回 `{ filter_id }`                |
+| `GET`          | `/user/{user_id}/filter/{filter_id}` | `MatrixClient.getFilter(userId, filterId, allowCached?)` | ℹ️ 基类封装；`FilterComponent`/`Filter` 模型     |
+| `DELETE`       | `/user/{user_id}/filter/{filter_id}` | —                                                        | 后端支持，SDK 当前未暴露删除入口（保留兼容别名） |
 
 ### OpenID Token
 
-| 方法 | 后端路由 | SDK 入口 | 说明 |
-|------|---------|---------|------|
+| 方法           | 后端路由                               | SDK 入口                        | 说明                                                                             |
+| -------------- | -------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------- |
 | `GET` / `POST` | `/user/{user_id}/openid/request_token` | `MatrixClient.getOpenIdToken()` | ℹ️ 基类封装；返回 `{ access_token, token_type, matrix_server_name, expires_in }` |
 
 ### Tags
 
-| 方法 | 后端路由 | SDK 入口 | 说明 |
-|------|---------|---------|------|
-| `GET`    | `/user/{user_id}/tags`                         | — | 全量标签读取后端已就绪，SDK 以 sync `tag` EDU 聚合到 `Room.tags` 为准 |
-| `GET`    | `/user/{user_id}/rooms/{room_id}/tags`         | `MatrixClient` 内部经由 sync / `Room.getTags()` 暴露 | ℹ️ 默认走 sync，也可经由 `http.authedRequest` 直接调用 |
-| `PUT`    | `/user/{user_id}/rooms/{room_id}/tags/{tag}`   | `MatrixClient.setRoomTag(roomId, tag, metadata)` | ℹ️ `metadata.order` 可选 |
-| `DELETE` | `/user/{user_id}/rooms/{room_id}/tags/{tag}`   | `MatrixClient.deleteRoomTag(roomId, tag)` | ℹ️ 删除未命中也返回 `{}` |
+| 方法     | 后端路由                                     | SDK 入口                                             | 说明                                                                  |
+| -------- | -------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| `GET`    | `/user/{user_id}/tags`                       | —                                                    | 全量标签读取后端已就绪，SDK 以 sync `tag` EDU 聚合到 `Room.tags` 为准 |
+| `GET`    | `/user/{user_id}/rooms/{room_id}/tags`       | `MatrixClient` 内部经由 sync / `Room.getTags()` 暴露 | ℹ️ 默认走 sync，也可经由 `http.authedRequest` 直接调用                |
+| `PUT`    | `/user/{user_id}/rooms/{room_id}/tags/{tag}` | `MatrixClient.setRoomTag(roomId, tag, metadata)`     | ℹ️ `metadata.order` 可选                                              |
+| `DELETE` | `/user/{user_id}/rooms/{room_id}/tags/{tag}` | `MatrixClient.deleteRoomTag(roomId, tag)`            | ℹ️ 删除未命中也返回 `{}`                                              |
 
 ### SDK 事件（`AccountDataManager`）
 
-| 事件 | 触发时机 |
-|------|---------|
-| `AccountDataEvent.AccountDataUpdated` | `setAccountData` / `getAccountDataFromServer` / `deleteAccountData` 成功时 |
+| 事件                                  | 触发时机                                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AccountDataEvent.AccountDataUpdated` | `setAccountData` / `getAccountDataFromServer` / `deleteAccountData` 成功时                                                                                                      |
 | `AccountDataEvent.AccountDataError`   | 上述方法 `catch` 分支；`setRoomAccountData` / `getRoomAccountDataFromServer` / `deleteRoomAccountData` / `listAccountData` 目前只 throw，不额外 emit（与契约只 throw 保持一致） |
 
 ### 校验常量
 
-| 常量 | 值 | 位置 | 对齐的后端校验 |
-|------|----|----|-------------|
-| `MAX_DATA_TYPE_LENGTH` | `128` | `src/account-data/index.ts:52` | 用户级 `PUT /account_data/{type}` |
+| 常量                   | 值             | 位置                           | 对齐的后端校验                                                                  |
+| ---------------------- | -------------- | ------------------------------ | ------------------------------------------------------------------------------- |
+| `MAX_DATA_TYPE_LENGTH` | `128`          | `src/account-data/index.ts:52` | 用户级 `PUT /account_data/{type}`                                               |
 | `MAX_CONTENT_SIZE`     | `65536` (64KB) | `src/account-data/index.ts:53` | 用户级 `PUT /account_data/{type}` body 上限；SDK 主动把同一约束对齐到房间级写入 |
 
 ## 关键行为对齐

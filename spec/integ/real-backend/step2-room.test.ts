@@ -193,7 +193,6 @@ async function main(): Promise<void> {
 
     await runTest("setRoomAvatar", async () => {
         if (testRoomId) {
-             
             await client!.sendStateEvent(
                 testRoomId,
                 "m.room.avatar" as any,

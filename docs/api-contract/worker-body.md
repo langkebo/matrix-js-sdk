@@ -12,19 +12,19 @@ last_reviewed: 2026-05-03
 
 ## 真实后端路由
 
-| 方法 | 路径                                                        | 说明                                      | 认证   |
-| ---- | ----------------------------------------------------------- | ----------------------------------------- | ------ |
-| POST | `/_synapse/worker/v1/workers/{worker_id}/heartbeat`         | worker 心跳上报                           | Worker |
-| POST | `/_synapse/worker/v1/workers/{worker_id}/connect`           | 建立 worker 连接                          | Worker |
-| POST | `/_synapse/worker/v1/workers/{worker_id}/disconnect`        | 断开 worker 连接                          | Worker |
-| GET  | `/_synapse/worker/v1/workers/{worker_id}/commands`          | 拉取待处理命令                            | Worker |
-| POST | `/_synapse/worker/v1/commands/{command_id}/complete`        | 标记命令完成                              | Worker |
-| POST | `/_synapse/worker/v1/commands/{command_id}/fail`            | 标记命令失败                              | Worker |
-| POST | `/_synapse/worker/v1/tasks/{task_id}/complete`              | 标记任务完成                              | Worker |
-| POST | `/_synapse/worker/v1/tasks/{task_id}/fail`                  | 标记任务失败                              | Worker |
-| GET  | `/_synapse/worker/v1/replication/{worker_id}/position`      | 查询复制位点                               | Worker |
-| PUT  | `/_synapse/worker/v1/replication/{worker_id}/{stream_name}` | 更新复制位点                               | Worker |
-| GET  | `/_synapse/worker/v1/events`                                | 获取自某个 `stream_id` 之后的事件          | Worker |
+| 方法 | 路径                                                        | 说明                              | 认证   |
+| ---- | ----------------------------------------------------------- | --------------------------------- | ------ |
+| POST | `/_synapse/worker/v1/workers/{worker_id}/heartbeat`         | worker 心跳上报                   | Worker |
+| POST | `/_synapse/worker/v1/workers/{worker_id}/connect`           | 建立 worker 连接                  | Worker |
+| POST | `/_synapse/worker/v1/workers/{worker_id}/disconnect`        | 断开 worker 连接                  | Worker |
+| GET  | `/_synapse/worker/v1/workers/{worker_id}/commands`          | 拉取待处理命令                    | Worker |
+| POST | `/_synapse/worker/v1/commands/{command_id}/complete`        | 标记命令完成                      | Worker |
+| POST | `/_synapse/worker/v1/commands/{command_id}/fail`            | 标记命令失败                      | Worker |
+| POST | `/_synapse/worker/v1/tasks/{task_id}/complete`              | 标记任务完成                      | Worker |
+| POST | `/_synapse/worker/v1/tasks/{task_id}/fail`                  | 标记任务失败                      | Worker |
+| GET  | `/_synapse/worker/v1/replication/{worker_id}/position`      | 查询复制位点                      | Worker |
+| PUT  | `/_synapse/worker/v1/replication/{worker_id}/{stream_name}` | 更新复制位点                      | Worker |
+| GET  | `/_synapse/worker/v1/events`                                | 获取自某个 `stream_id` 之后的事件 | Worker |
 
 ## SDK 对齐状态
 

@@ -30,7 +30,8 @@ import {
     UNSIGNED_MEMBERSHIP_FIELD,
 } from "../@types/event";
 import { deepSortedObjectEntries } from "../common/collections";
-import { internaliseString } from "../common/strings";import { type RoomMember } from "./room-member";
+import { internaliseString } from "../common/strings";
+import { type RoomMember } from "./room-member";
 import { type Thread, THREAD_RELATION_TYPE, ThreadEvent, type ThreadEventHandlerMap } from "./thread";
 import { type IActionsObject } from "../pushprocessor";
 import { TypedReEmitter } from "../ReEmitter";

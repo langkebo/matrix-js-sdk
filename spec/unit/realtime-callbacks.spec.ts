@@ -54,8 +54,8 @@ describe("realtime-callbacks", function () {
         it("should set 'this' to the global object", function () {
             let passed = false;
             const callback = function (this: typeof globalThis) {
-                expect(this).toBe(globalThis);  
-                expect(this.console).toBeTruthy();  
+                expect(this).toBe(globalThis);
+                expect(this.console).toBeTruthy();
                 passed = true;
             };
             callbacks.setTimeout(callback, 0);

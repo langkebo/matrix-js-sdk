@@ -103,7 +103,7 @@ function escapeRegex(value) {
 function hasMethod(content, method) {
     const escapedMethod = escapeRegex(method);
     const methodCall = new RegExp(`\\b${escapedMethod}(?:<[^>]+>)?\\s*\\(`);
-    const propertyShape = new RegExp(`\\b${escapedMethod}\\s*:`); 
+    const propertyShape = new RegExp(`\\b${escapedMethod}\\s*:`);
     const delegatedCall = new RegExp(`\\.${escapedMethod}(?:<[^>]+>)?\\s*\\(`);
     return methodCall.test(content) || propertyShape.test(content) || delegatedCall.test(content);
 }

@@ -21,11 +21,11 @@ last_reviewed: 2026-05-11
 
 ## 真实后端路由
 
-| 方法 | 路径                                     | 说明     | 认证 |
-| ---- | ---------------------------------------- | -------- | ---- |
-| POST | `/_matrix/client/v3/register/guest`      | 注册访客 | 公开 |
-| GET  | `/_matrix/client/v3/account/guest`       | 查询当前登录用户是否为 guest | 访问令牌 |
-| POST | `/_matrix/client/v3/account/guest/upgrade` | 将 guest 账号升级为正式账号 | 访问令牌 |
+| 方法 | 路径                                       | 说明                         | 认证     |
+| ---- | ------------------------------------------ | ---------------------------- | -------- |
+| POST | `/_matrix/client/v3/register/guest`        | 注册访客                     | 公开     |
+| GET  | `/_matrix/client/v3/account/guest`         | 查询当前登录用户是否为 guest | 访问令牌 |
+| POST | `/_matrix/client/v3/account/guest/upgrade` | 将 guest 账号升级为正式账号  | 访问令牌 |
 
 ## 核心请求与响应形状
 
@@ -62,10 +62,10 @@ interface UpgradeGuestResponse {
 
 ## SDK 对齐状态
 
-| 端点 | SDK Manager | 方法 | 状态 |
-| ---- | ----------- | ---- | ---- |
-| `POST /register/guest` | `GuestManager` | `registerGuestOnServer()` | ✅ 已封装 |
-| `GET /account/guest` | `GuestManager` | `getGuestInfoFromServer()` | ✅ 已封装 |
+| 端点                          | SDK Manager    | 方法                            | 状态      |
+| ----------------------------- | -------------- | ------------------------------- | --------- |
+| `POST /register/guest`        | `GuestManager` | `registerGuestOnServer()`       | ✅ 已封装 |
+| `GET /account/guest`          | `GuestManager` | `getGuestInfoFromServer()`      | ✅ 已封装 |
 | `POST /account/guest/upgrade` | `GuestManager` | `upgradeGuestAccountOnServer()` | ✅ 已封装 |
 
 - **总端点数**: 3
@@ -77,31 +77,31 @@ interface UpgradeGuestResponse {
 
 ## 常见状态码
 
-| 状态码 | 说明                                   |
-| ------ | -------------------------------------- |
-| `200`  | 请求成功 |
+| 状态码 | 说明                                             |
+| ------ | ------------------------------------------------ |
+| `200`  | 请求成功                                         |
 | `400`  | 升级请求参数不合法，例如用户名或密码长度校验失败 |
-| `403`  | 服务器禁用注册，或当前用户不是 guest |
-| `409`  | 升级为正式账号时用户名已存在 |
-| `500`  | 创建 guest 用户、设备或 token 失败 |
+| `403`  | 服务器禁用注册，或当前用户不是 guest             |
+| `409`  | 升级为正式账号时用户名已存在                     |
+| `500`  | 创建 guest 用户、设备或 token 失败               |
 
 ## 错误语义对齐（BaseManager）
 
-| 场景 | HTTP / errcode | SDK 统一错误类型 | 调用方建议 |
-| ---- | -------------- | ---------------- | ---------- |
-| 服务器禁用注册 | `403` / `M_FORBIDDEN` | `ApiError` | 改走普通注册或联系管理员开启注册 |
-| 当前用户不是 guest | `403` / `M_FORBIDDEN` | `ApiError` | 不要对正式账号调用 guest 升级接口 |
-| 升级参数校验失败 | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError` | 修正 `username` / `password` 后重试 |
-| 升级用户名冲突 | `409` / `M_CONFLICT` | `ApiError` | 更换用户名 |
+| 场景               | HTTP / errcode                         | SDK 统一错误类型 | 调用方建议                          |
+| ------------------ | -------------------------------------- | ---------------- | ----------------------------------- |
+| 服务器禁用注册     | `403` / `M_FORBIDDEN`                  | `ApiError`       | 改走普通注册或联系管理员开启注册    |
+| 当前用户不是 guest | `403` / `M_FORBIDDEN`                  | `ApiError`       | 不要对正式账号调用 guest 升级接口   |
+| 升级参数校验失败   | `400` / `M_BAD_JSON` `M_INVALID_PARAM` | `ApiError`       | 修正 `username` / `password` 后重试 |
+| 升级用户名冲突     | `409` / `M_CONFLICT`                   | `ApiError`       | 更换用户名                          |
 
 ## 典型 errcode
 
-| errcode            | 常见 HTTP | 说明                           |
-| ------------------ | --------- | ------------------------------ |
-| `M_BAD_JSON`       | `400`     | 升级请求体结构不合法或校验失败 |
-| `M_INVALID_PARAM`  | `400`     | 用户名或密码不符合要求 |
-| `M_FORBIDDEN`      | `403`     | 服务器禁用注册或当前用户不是 guest |
-| `M_CONFLICT`       | `409`     | 用户名已存在 |
+| errcode           | 常见 HTTP | 说明                               |
+| ----------------- | --------- | ---------------------------------- |
+| `M_BAD_JSON`      | `400`     | 升级请求体结构不合法或校验失败     |
+| `M_INVALID_PARAM` | `400`     | 用户名或密码不符合要求             |
+| `M_FORBIDDEN`     | `403`     | 服务器禁用注册或当前用户不是 guest |
+| `M_CONFLICT`      | `409`     | 用户名已存在                       |
 
 ## 代码生成产物
 

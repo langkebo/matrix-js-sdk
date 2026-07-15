@@ -22,9 +22,11 @@
 ### Task 1: Add 3 missing getter declarations to matrix-client-extensions.ts
 
 **Files:**
+
 - Modify: `src/matrix-client-extensions.ts`
 
 **Interfaces:**
+
 - Produces: `getCasManager()`, `getExternalServiceManager()`, `getDehydratedDeviceManager()` in `MatrixClientExtensionMethods`
 
 Three per-module `declare module "../client.ts"` blocks are NOT redundant — they declare getters missing from the central `MatrixClientExtensionMethods` interface. Add them so the per-module blocks can be safely removed in Task 2.
@@ -60,9 +62,11 @@ declare module blocks."
 ### Task 2: Remove 122 redundant `declare module` blocks from manager files
 
 **Files:**
+
 - Modify: 122 files under `src/*/index.ts` (and a few non-standard paths)
 
 **Interfaces:**
+
 - Consumes: Task 1's 3 new getter declarations in `MatrixClientExtensionMethods`
 - Produces: Cleaner per-module files without redundant type augmentations
 
@@ -79,6 +83,7 @@ declare module "../client.ts" {
 ```
 
 Keep the blocks in these files (they are NOT redundant):
+
 - `src/client-infra/manager-accessor.ts` — provides the `manager()` accessor type
 - `src/matrix-client-extensions.ts` — the central declaration itself
 - 5 files with extra non-getter methods that ARE already in `MatrixClientExtensionMethods` — these blocks ARE still redundant, so remove them too (the non-getter methods like `setPresence`, `sendTyping`, `getRoom`, `setDisplayName`, `getUser` are all in `MatrixClientExtensionMethods`)
@@ -145,9 +150,11 @@ were added to MatrixClientExtensionMethods in the prior commit."
 ### Task 3: Migrate device-keys/index.ts from authedRequest to this.request()
 
 **Files:**
+
 - Modify: `src/device-keys/index.ts`
 
 **Interfaces:**
+
 - Consumes: `BaseManager.request()` from `src/managers/base-manager.ts`
 - Produces: All 18 methods in DeviceKeysManager use `this.request()` instead of `this.client.http.authedRequest()`
 
@@ -158,7 +165,9 @@ DeviceKeysManager has 18 direct `authedRequest` calls — the most of any BaseMa
 For each of the 18 methods, replace:
 
 ```typescript
-return this.client.http.authedRequest<ResponseType>(Method.Get, path, queryParams, undefined, { prefix: ClientPrefix.V1 });
+return this.client.http.authedRequest<ResponseType>(Method.Get, path, queryParams, undefined, {
+    prefix: ClientPrefix.V1,
+});
 ```
 
 with:
@@ -168,6 +177,7 @@ return this.request<ResponseType>({ method: Method.Get, path, queryParams, prefi
 ```
 
 The methods to convert (in `src/device-keys/index.ts`):
+
 - `uploadKeys` (~line 249)
 - `queryKeys` (~line 273)
 - `claimKeys` (~line 297)
@@ -214,9 +224,11 @@ transport seam, removing manual normalizeError handling."
 ### Task 4: Migrate room-summary-base-manager.ts from authedRequest to this.request()
 
 **Files:**
+
 - Modify: `src/room-summary/room-summary-base-manager.ts`
 
 **Interfaces:**
+
 - Consumes: `BaseManager.request()` from `src/managers/base-manager.ts`
 - Produces: `requestV3()` and `requestInternal()` use `this.request()` instead of `this.client.http.authedRequest()`
 
@@ -264,11 +276,13 @@ git commit -m "refactor: migrate RoomSummaryBaseManager from authedRequest to th
 ### Task 5: Migrate remaining 3 modules from authedRequest to this.request()
 
 **Files:**
+
 - Modify: `src/qr-login/index.ts`
 - Modify: `src/media-quota/index.ts`
 - Modify: `src/open-claw/index.ts`
 
 **Interfaces:**
+
 - Consumes: `BaseManager.request()` from `src/managers/base-manager.ts`
 - Produces: All 3 modules use `this.request()` transport seam
 
@@ -279,7 +293,11 @@ In `confirmQrLogin()` (~line 121), replace:
 ```typescript
 return this.withRetry(async () => {
     const response = await this.client.http.authedRequest<QrLoginConfirmResponse>(
-        Method.Post, ap("/login/qr/confirm"), undefined, request, { prefix: ClientPrefix.V1 }
+        Method.Post,
+        ap("/login/qr/confirm"),
+        undefined,
+        request,
+        { prefix: ClientPrefix.V1 },
     );
     return response;
 }, "confirmQrLogin");
@@ -337,6 +355,7 @@ Expected: PASS
 ```bash
 npx vitest run spec/unit/qr-login.spec.ts spec/unit/media-quota.spec.ts spec/unit/open-claw.spec.ts
 ```
+
 Expected: All tests pass
 
 - [ ] **Step 6: Run full test suite**
@@ -359,10 +378,12 @@ All BaseManager subclasses now use the this.request() transport seam."
 ### Task 6: Remove 61 deprecated methods from client.ts
 
 **Files:**
+
 - Modify: `src/client.ts`
 - Modify: `spec/` test files that call deprecated methods (if any)
 
 **Interfaces:**
+
 - Consumes: `manager()` accessor on MatrixClient (already implemented)
 - Produces: Leaner client.ts with 61 fewer public methods
 
@@ -370,19 +391,19 @@ All 61 deprecated methods are dead code — zero internal callers in `src/`. The
 
 The methods to remove (grouped by manager):
 
-| Manager key | Methods |
-|---|---|
-| `readReceipts` | `sendReceipt`, `sendReadReceipt`, `setRoomReadMarkers`, `setRoomReadMarkersHttpRequest` |
-| `identityServer` | `getIdentityServerUrl`, `setIdentityServerUrl`, `registerWithIdentityServer`, `requestEmailToken`, `requestMsisdnToken`, `submitMsisdnToken`, `submitMsisdnTokenOtherUrl`, `getIdentityHashDetails`, `identityHashedLookup`, `lookupThreePid`, `bulkLookupThreePids`, `getTerms`, `agreeToTerms`, `getIdentityAccount` |
-| `threepids` | `getThreePids`, `addThreePidOnly`, `bindThreePid`, `unbindThreePid`, `deleteThreePid` |
-| `keyVerification` | `startDeviceSigningVerification`, `acceptDeviceSigningVerification`, `sendDeviceSigningVerificationKeyAgreement`, `confirmDeviceSigningVerificationMac`, `completeDeviceSigningVerification`, `cancelDeviceSigningVerification`, `getVerificationRequests`, `showQrCode`, `scanQrCode` |
-| `toDevice` | `sendToDeviceFromContentMap`, `encryptAndSendToDevice`, `queueToDeviceBatch` |
-| `reporting` | `reportEvent`, `scoreReport`, `getScannerInfo`, `reportRoom` |
-| `crossSigning` | `checkCrossSigningStatus`, `getCrossSigningKeys`, `isCrossSigningReady`, `getUserCrossSigningKeys`, `checkAndTrustCrossSigning` |
-| `cryptoBackup` | `isCryptoBackupEnabled`, `enableCryptoBackup`, `disableCryptoBackup`, `getCryptoBackup`, `restoreCryptoBackup` |
-| `roomSettings` | `getRoomName`, `getRoomTopic`, `getRoomAvatarUrl`, `setRoomAvatar`, `getRoomHistoryVisibility`, `setRoomHistoryVisibility`, `getRoomGuestAccess`, `setRoomGuestAccess`, `getRoomJoinRule`, `setRoomJoinRule` |
-| `account` | `login` (deprecated in favor of `loginRequest`) |
-| (inline) | `_unstable_updateDelayedEvent` (has inline logic, not pure delegation) |
+| Manager key       | Methods                                                                                                                                                                                                                                                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `readReceipts`    | `sendReceipt`, `sendReadReceipt`, `setRoomReadMarkers`, `setRoomReadMarkersHttpRequest`                                                                                                                                                                                                                                |
+| `identityServer`  | `getIdentityServerUrl`, `setIdentityServerUrl`, `registerWithIdentityServer`, `requestEmailToken`, `requestMsisdnToken`, `submitMsisdnToken`, `submitMsisdnTokenOtherUrl`, `getIdentityHashDetails`, `identityHashedLookup`, `lookupThreePid`, `bulkLookupThreePids`, `getTerms`, `agreeToTerms`, `getIdentityAccount` |
+| `threepids`       | `getThreePids`, `addThreePidOnly`, `bindThreePid`, `unbindThreePid`, `deleteThreePid`                                                                                                                                                                                                                                  |
+| `keyVerification` | `startDeviceSigningVerification`, `acceptDeviceSigningVerification`, `sendDeviceSigningVerificationKeyAgreement`, `confirmDeviceSigningVerificationMac`, `completeDeviceSigningVerification`, `cancelDeviceSigningVerification`, `getVerificationRequests`, `showQrCode`, `scanQrCode`                                 |
+| `toDevice`        | `sendToDeviceFromContentMap`, `encryptAndSendToDevice`, `queueToDeviceBatch`                                                                                                                                                                                                                                           |
+| `reporting`       | `reportEvent`, `scoreReport`, `getScannerInfo`, `reportRoom`                                                                                                                                                                                                                                                           |
+| `crossSigning`    | `checkCrossSigningStatus`, `getCrossSigningKeys`, `isCrossSigningReady`, `getUserCrossSigningKeys`, `checkAndTrustCrossSigning`                                                                                                                                                                                        |
+| `cryptoBackup`    | `isCryptoBackupEnabled`, `enableCryptoBackup`, `disableCryptoBackup`, `getCryptoBackup`, `restoreCryptoBackup`                                                                                                                                                                                                         |
+| `roomSettings`    | `getRoomName`, `getRoomTopic`, `getRoomAvatarUrl`, `setRoomAvatar`, `getRoomHistoryVisibility`, `setRoomHistoryVisibility`, `getRoomGuestAccess`, `setRoomGuestAccess`, `getRoomJoinRule`, `setRoomJoinRule`                                                                                                           |
+| `account`         | `login` (deprecated in favor of `loginRequest`)                                                                                                                                                                                                                                                                        |
+| (inline)          | `_unstable_updateDelayedEvent` (has inline logic, not pure delegation)                                                                                                                                                                                                                                                 |
 
 - [ ] **Step 1: Remove the 60 delegation methods from client.ts**
 
@@ -439,6 +460,7 @@ internal callers. ~350 lines of dead code removed."
 ### Task 7: Consolidate duplicate validators from room-summary into common/validators.ts
 
 **Files:**
+
 - Modify: `src/common/validators.ts`
 - Modify: `src/room-summary/room-summary-base-manager.ts`
 - Modify: `src/room-summary/index.ts`
@@ -446,6 +468,7 @@ internal callers. ~350 lines of dead code removed."
 - Modify: `src/event/EventManager.ts`
 
 **Interfaces:**
+
 - Produces: Updated `validateRoomId` in `common/validators.ts` that supports `#` room alias prefix; `validateUserId` with consistent behavior
 
 The shared `common/validators.ts` has `validateRoomId` and `validateUserId`, but room-summary and room modules define their own private/protected copies with slightly different logic (supporting `#` prefix for room aliases). Unify them.
@@ -460,9 +483,7 @@ export function validateRoomId(roomId: string, opts?: { allowAlias?: boolean }):
         throw new ValidationError("Room ID is required and must be a string");
     }
     const aliasOk = opts?.allowAlias === true;
-    const pattern = aliasOk
-        ? /^[!#][a-z0-9._=\-\/]+:[a-z0-9.\-]+$/i
-        : /^![a-z0-9._=\-\/]+:[a-z0-9.\-]+$/i;
+    const pattern = aliasOk ? /^[!#][a-z0-9._=\-\/]+:[a-z0-9.\-]+$/i : /^![a-z0-9._=\-\/]+:[a-z0-9.\-]+$/i;
     if (!pattern.test(roomId)) {
         throw new ValidationError(`Invalid room ID format: ${roomId}`);
     }
@@ -512,11 +533,13 @@ validateRoomId with allowAlias option for room-summary's # alias support."
 ### Task 8: Auto-generate manager-extensions/index.ts from ManagerName union
 
 **Files:**
+
 - Create: `scripts/generate-manager-extensions.mjs`
 - Modify: `src/manager-extensions/index.ts` → replaced by generated output
 - Modify: `package.json` (add generation script)
 
 **Interfaces:**
+
 - Consumes: `ManagerName` union and `ManagerTypeMap` from `src/client-infra/manager-registry.ts`
 - Produces: Generated `src/manager-extensions/index.ts` that exactly mirrors the current hand-written 737-line file
 
@@ -557,6 +580,7 @@ console.log("Generated src/manager-extensions/index.ts");
 - [ ] **Step 3: Add npm script**
 
 In `package.json`, add:
+
 ```json
 "generate:manager-extensions": "node scripts/generate-manager-extensions.mjs"
 ```
@@ -583,14 +607,16 @@ defaults, and dynamic import blocks automatically."
 ### Task 9: Eliminate 3 dead micro-files under 30 lines
 
 **Files:**
+
 - Remove: `src/client-profile-core.ts` (5 lines, zero imports)
 - Remove: `src/client-room-peek.ts` (23 lines, zero imports)
 - Remove: `src/client-account-data-core.ts` (26 lines, zero imports)
 
 **Interfaces:**
+
 - Produces: Cleaner `src/` directory with dead code removed
 
-Three client-*.ts micro-files are NOT imported by any production code or test code. The deletion test confirms they are dead code — deleting them does not break anything.
+Three client-\*.ts micro-files are NOT imported by any production code or test code. The deletion test confirms they are dead code — deleting them does not break anything.
 
 - [ ] **Step 1: Remove the 3 files**
 
@@ -621,11 +647,13 @@ codebase. Deletion test confirms they are dead code."
 ### Task 10: Stop generating 9 unused route tables
 
 **Files:**
+
 - Modify: `scripts/sdk-contract-codegen.mjs` (add exclusion list)
 - Remove: 9 `src/*/__generated__/` directories (admin, app-service, dm, feature-flags, federation, key-rotation, moderation, reactions, voice)
 - Modify: `docs/api-contract/CONTRACT_INDEX.md` (if needed)
 
 **Interfaces:**
+
 - Produces: Cleaner `__generated__/` footprint; faster codegen
 
 9 modules generate route-table.ts files whose `XxxPathPattern` types are never imported by any production code. They only serve contract-assertions.ts (compile-time entry count check) and acceptance.spec.ts (test). The contract assertions and acceptance tests for these modules can be disabled or moved to a contract-only check.
@@ -636,8 +664,15 @@ In `scripts/sdk-contract-codegen.mjs`, add:
 
 ```javascript
 const SKIP_ROUTE_TABLE_MODULES = new Set([
-    "admin", "app-service", "dm", "feature-flags", "federation",
-    "key-rotation", "moderation", "reactions", "voice",
+    "admin",
+    "app-service",
+    "dm",
+    "feature-flags",
+    "federation",
+    "key-rotation",
+    "moderation",
+    "reactions",
+    "voice",
 ]);
 ```
 
@@ -676,10 +711,12 @@ Removing them saves ~164K of generated code and speeds up contract:codegen."
 ### Task 11: Create reusable FakeTransport for tests
 
 **Files:**
+
 - Create: `spec/test-utils/FakeTransport.ts`
 - Modify: `spec/unit/admin.spec.ts` (representative migration)
 
 **Interfaces:**
+
 - Consumes: `Transport` interface from `src/managers/base-manager.ts`
 - Produces: `FakeTransport` class implementing `Transport` for use in unit tests
 
@@ -713,12 +750,7 @@ export class FakeTransport implements Transport {
 
         // Default implementation: lookup response by "METHOD /path"
         this.request.mockImplementation(
-            async <T>(
-                method: Method,
-                path: string,
-                _queryParams?: QueryDict,
-                _body?: Body,
-            ): Promise<T> => {
+            async <T>(method: Method, path: string, _queryParams?: QueryDict, _body?: Body): Promise<T> => {
                 const key = `${method} ${path}`;
                 const response = this.responseMap.get(key);
                 if (response !== undefined) {
@@ -757,6 +789,7 @@ export class FakeTransport implements Transport {
 Replace the `mockClient.http.authedRequest` pattern with `FakeTransport`:
 
 Before:
+
 ```typescript
 const mockAuthedRequest = vi.fn();
 const mockClient = {
@@ -767,6 +800,7 @@ mockAuthedRequest.mockResolvedValue({ users: [] });
 ```
 
 After:
+
 ```typescript
 const transport = new FakeTransport();
 transport.request.mockResolvedValue({ users: [] });

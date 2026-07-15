@@ -31,8 +31,8 @@ last_reviewed: 2026-06-01
 
 ## SAS 设备校验流程
 
-| 方法 | 路径                                                               | 版本  | 主要请求参数                                                     | 主要响应字段                                                                                         |
-| ---- | ------------------------------------------------------------------ | ----- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 方法 | 路径                                                                  | 版本     | 主要请求参数                                                     | 主要响应字段                                                                                         |
+| ---- | --------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_start`         | v1/r0/v3 | `from_device` `to_user` `to_device?` `transaction_id?` `method?` | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string`              |
 | PUT  | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_accept`        | v1/r0/v3 | `transaction_id` `key_agreement_protocol` `hash` `commitment?`   | `transaction_id` `method` `key_agreement_protocol` `hash` `short_authentication_string` `commitment` |
 | POST | `/_matrix/client/{v1,r0,v3}/keys/device_signing/verify_key_agreement` | v1/r0/v3 | `transaction_id` `pubkey`                                        | `transaction_id` `confirmed` `short_authentication_string`                                           |
@@ -43,8 +43,8 @@ last_reviewed: 2026-06-01
 
 ## 二维码校验
 
-| 方法 | 路径                                        | 版本  | 主要请求参数                                                                                      | 主要响应字段                                                                                      |
-| ---- | ------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 方法 | 路径                                           | 版本     | 主要请求参数                                                                                      | 主要响应字段                                                                                      |
+| ---- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | GET  | `/_matrix/client/{v1,r0,v3}/keys/qr_code/show` | v1/r0/v3 | 无                                                                                                | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` |
 | POST | `/_matrix/client/{v1,r0,v3}/keys/qr_code/scan` | v1/r0/v3 | `transaction_id` `server_name` `user_id` `device_id` `device_ed25519_key` `device_curve25519_key` | `transaction_id` `state`                                                                          |
 
@@ -80,17 +80,17 @@ last_reviewed: 2026-06-01
 由 `extendMatrixClient()` 注册 `MatrixClient.getVerificationManager()`；同时登记在
 `matrix-client-extensions.d.ts` 与 `manager-extensions/index.ts` 的默认扩展列表。
 
-| 端点                                                 | SDK 方法                     |
-| ---------------------------------------------------- | ---------------------------- |
-| `POST .../keys/device_signing/verify_start`          | `startVerification()`        |
-| `PUT  .../keys/device_signing/verify_accept`         | `acceptVerification()`       |
-| `POST .../keys/device_signing/verify_key_agreement`  | `exchangeKeys()`             |
-| `POST .../keys/device_signing/verify_mac`            | `confirmMac()`               |
-| `POST .../keys/device_signing/verify_done`           | `completeVerification()`     |
-| `POST .../keys/device_signing/verify_cancel`         | `cancelVerification()`       |
-| `GET  .../keys/device_signing/requests`              | `listPendingVerifications()` |
-| `GET  .../keys/qr_code/show`                         | `showQrCode()`               |
-| `POST .../keys/qr_code/scan`                         | `scanQrCode()`               |
+| 端点                                                | SDK 方法                     |
+| --------------------------------------------------- | ---------------------------- |
+| `POST .../keys/device_signing/verify_start`         | `startVerification()`        |
+| `PUT  .../keys/device_signing/verify_accept`        | `acceptVerification()`       |
+| `POST .../keys/device_signing/verify_key_agreement` | `exchangeKeys()`             |
+| `POST .../keys/device_signing/verify_mac`           | `confirmMac()`               |
+| `POST .../keys/device_signing/verify_done`          | `completeVerification()`     |
+| `POST .../keys/device_signing/verify_cancel`        | `cancelVerification()`       |
+| `GET  .../keys/device_signing/requests`             | `listPendingVerifications()` |
+| `GET  .../keys/qr_code/show`                        | `showQrCode()`               |
+| `POST .../keys/qr_code/scan`                        | `scanQrCode()`               |
 
 > SDK 默认用 `ClientPrefix.V1` 保持兼容；调用方可在 `VerificationManager` 方法上传入 `"r0"` 或 `"v3"`，显式绑定生成契约中的对应前缀。`device_verification/*` 仍归 `e2ee_routes`。
 
@@ -113,43 +113,95 @@ last_reviewed: 2026-06-01
 
 ```typescript
 export interface VerificationStartRequest {
-    from_device: string; to_user: string; to_device?: string;
-    transaction_id?: string; method?: string;
+    from_device: string;
+    to_user: string;
+    to_device?: string;
+    transaction_id?: string;
+    method?: string;
 }
 export interface VerificationStartResponse {
-    transaction_id: string; method: string;
-    key_agreement_protocol: string[]; hash: string[]; short_authentication_string: string[];
+    transaction_id: string;
+    method: string;
+    key_agreement_protocol: string[];
+    hash: string[];
+    short_authentication_string: string[];
 }
 export interface VerificationAcceptRequest {
-    transaction_id: string; key_agreement_protocol: string; hash: string; commitment?: string;
+    transaction_id: string;
+    key_agreement_protocol: string;
+    hash: string;
+    commitment?: string;
 }
-export interface VerificationAcceptResponse extends VerificationStartResponse { commitment?: string; }
-export interface VerificationKeyAgreementRequest { transaction_id: string; pubkey: string; }
+export interface VerificationAcceptResponse extends VerificationStartResponse {
+    commitment?: string;
+}
+export interface VerificationKeyAgreementRequest {
+    transaction_id: string;
+    pubkey: string;
+}
 export interface VerificationKeyAgreementResponse {
-    transaction_id: string; confirmed: boolean;
+    transaction_id: string;
+    confirmed: boolean;
     short_authentication_string: { emoji?: string[]; decimal?: { points: number[] } };
 }
-export interface VerificationMacRequest { transaction_id: string; mac: string; }
-export interface VerificationMacResponse { transaction_id: string; verified: boolean; }
-export interface VerificationDoneRequest { transaction_id: string; mac: string; }
-export interface VerificationDoneResponse { transaction_id: string; }
-export interface VerificationCancelRequest { transaction_id: string; code: string; reason: string; }
+export interface VerificationMacRequest {
+    transaction_id: string;
+    mac: string;
+}
+export interface VerificationMacResponse {
+    transaction_id: string;
+    verified: boolean;
+}
+export interface VerificationDoneRequest {
+    transaction_id: string;
+    mac: string;
+}
+export interface VerificationDoneResponse {
+    transaction_id: string;
+}
+export interface VerificationCancelRequest {
+    transaction_id: string;
+    code: string;
+    reason: string;
+}
 export interface VerificationCancelResponse {
-    transaction_id: string; state: "cancelled"; code: string; reason: string;
+    transaction_id: string;
+    state: "cancelled";
+    code: string;
+    reason: string;
 }
 export interface VerificationRequestEntry {
-    transaction_id: string; from_user: string; from_device: string;
-    to_user: string; to_device?: string; method: string; state: string;
-    created_ts: number; updated_ts: number;
+    transaction_id: string;
+    from_user: string;
+    from_device: string;
+    to_user: string;
+    to_device?: string;
+    method: string;
+    state: string;
+    created_ts: number;
+    updated_ts: number;
 }
-export interface ListVerificationRequestsResponse { requests: VerificationRequestEntry[]; }
+export interface ListVerificationRequestsResponse {
+    requests: VerificationRequestEntry[];
+}
 export interface QrCodeShowResponse {
-    transaction_id: string; server_name: string; user_id: string; device_id: string;
-    device_ed25519_key: string; device_curve25519_key: string;
+    transaction_id: string;
+    server_name: string;
+    user_id: string;
+    device_id: string;
+    device_ed25519_key: string;
+    device_curve25519_key: string;
 }
 export interface ScanQrCodeRequest {
-    transaction_id: string; server_name: string; user_id: string; device_id: string;
-    device_ed25519_key: string; device_curve25519_key: string;
+    transaction_id: string;
+    server_name: string;
+    user_id: string;
+    device_id: string;
+    device_ed25519_key: string;
+    device_curve25519_key: string;
 }
-export interface ScanQrCodeResponse { transaction_id: string; state: "pending" | "verified" | "cancelled"; }
+export interface ScanQrCodeResponse {
+    transaction_id: string;
+    state: "pending" | "verified" | "cancelled";
+}
 ```

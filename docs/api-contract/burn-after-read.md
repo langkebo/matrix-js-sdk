@@ -19,10 +19,10 @@ last_reviewed: 2026-05-11
 - `generated/modules/burn_after_read.json` 当前记录 **7** 条后端路由，不是旧文档中的 `6` 条。
 - SDK 已有 `BurnAfterReadManager`，并已补上生成路由类型绑定，覆盖全部后端管理端点。
 - 旧文档中的多个字段名已与后端实现不符:
-  - `timeout_ms` 应为 `burn_after_ms`
-  - `burn_at` 实际为 `created_at` / `delete_at`
-  - 用户配置不是 `default_enabled/default_timeout_ms`，而是 `default_burn_ms`
-  - 统计响应包含 `total_pending` 和 `rooms_with_burn_enabled`
+    - `timeout_ms` 应为 `burn_after_ms`
+    - `burn_at` 实际为 `created_at` / `delete_at`
+    - 用户配置不是 `default_enabled/default_timeout_ms`，而是 `default_burn_ms`
+    - 统计响应包含 `total_pending` 和 `rooms_with_burn_enabled`
 - `DELETE /_matrix/client/v1/rooms/{room_id}/burn/{event_id}` 真实存在，但旧文档遗漏了它在覆盖统计中的作用。
 
 ## 二、路由前缀与认证
@@ -87,15 +87,15 @@ interface BurnStats {
 
 ## 四、路由与 SDK 对齐表
 
-| 方法 | 路径 | SDK 方法 |
-| ---- | ---- | -------- |
-| GET | `/_matrix/client/v1/rooms/{room_id}/burn` | `getBurnSettings()` |
-| PUT | `/_matrix/client/v1/rooms/{room_id}/burn` | `enableBurn()` / `disableBurn()` |
-| GET | `/_matrix/client/v1/rooms/{room_id}/burn/pending` | `getPendingBurns()` |
-| POST | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `markBurnRead()` |
-| DELETE | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `cancelBurn()` |
-| PUT | `/_matrix/client/v1/user/burn/config` | `setBurnConfig()` |
-| GET | `/_matrix/client/v1/user/burn/stats` | `getBurnStats()` |
+| 方法   | 路径                                                 | SDK 方法                         |
+| ------ | ---------------------------------------------------- | -------------------------------- |
+| GET    | `/_matrix/client/v1/rooms/{room_id}/burn`            | `getBurnSettings()`              |
+| PUT    | `/_matrix/client/v1/rooms/{room_id}/burn`            | `enableBurn()` / `disableBurn()` |
+| GET    | `/_matrix/client/v1/rooms/{room_id}/burn/pending`    | `getPendingBurns()`              |
+| POST   | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `markBurnRead()`                 |
+| DELETE | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `cancelBurn()`                   |
+| PUT    | `/_matrix/client/v1/user/burn/config`                | `setBurnConfig()`                |
+| GET    | `/_matrix/client/v1/user/burn/stats`                 | `getBurnStats()`                 |
 
 ## 五、SDK 对齐状态
 
@@ -108,7 +108,7 @@ interface BurnStats {
 
 ## 六、变更历史
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
+| 日期       | 变更                                                                     | 影响             |
+| ---------- | ------------------------------------------------------------------------ | ---------------- |
 | 2026-05-11 | 按后端真实 7 条路由重写字段、返回体与覆盖率口径，并补充 SDK 路径绑定说明 | 修复长期文档漂移 |
-| 2026-04-27 | 初版 | -    |
+| 2026-04-27 | 初版                                                                     | -                |

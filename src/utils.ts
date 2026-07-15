@@ -25,7 +25,14 @@ limitations under the License.
  */
 
 // Async utilities
-export { sleep, logDuration, logDurationSync, promiseMapSeries, promiseTry, simpleRetryOperation } from "./common/async";
+export {
+    sleep,
+    logDuration,
+    logDurationSync,
+    promiseMapSeries,
+    promiseTry,
+    simpleRetryOperation,
+} from "./common/async";
 
 // String utilities
 export {

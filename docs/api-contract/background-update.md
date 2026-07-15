@@ -18,11 +18,11 @@ last_reviewed: 2026-05-11
 
 - `generated/modules/background_update.json` 当前记录 **19** 条后台更新管理路由。
 - 后端实际支持:
-  - 任务列表分页
-  - 创建任务
-  - 按状态统计
-  - 单任务读取 / 启动 / 进度推进 / 完成 / 失败 / 取消 / 删除
-  - 历史记录与统计信息查询
+    - 任务列表分页
+    - 创建任务
+    - 按状态统计
+    - 单任务读取 / 启动 / 进度推进 / 完成 / 失败 / 取消 / 删除
+    - 历史记录与统计信息查询
 - SDK 现已提供 `BackgroundUpdateManager`，并通过生成的 `BackgroundUpdatePathPattern` 绑定所有管理端路径。
 - 旧文档中 “10 条端点 / 0% 覆盖率 / count 返回 `{ count }` / pending 返回字符串数组” 均已过期，不再准确。
 
@@ -117,27 +117,27 @@ interface BackgroundUpdateStatusResponse {
 
 ## 四、路由与 SDK 对齐表
 
-| 方法 | 路径 | SDK 方法 |
-| ---- | ---- | -------- |
-| GET | `/_synapse/admin/v1/background_updates` | `listBackgroundUpdates()` |
-| POST | `/_synapse/admin/v1/background_updates` | `createBackgroundUpdate()` |
-| POST | `/_synapse/admin/v1/background_updates/cleanup_locks` | `cleanupLocks()` |
-| GET | `/_synapse/admin/v1/background_updates/count` | `getUpdateCount()` |
-| GET | `/_synapse/admin/v1/background_updates/next` | `getNextPendingUpdate()` |
-| GET | `/_synapse/admin/v1/background_updates/pending` | `listPendingUpdates()` |
-| POST | `/_synapse/admin/v1/background_updates/retry_failed` | `retryFailedUpdates()` |
-| GET | `/_synapse/admin/v1/background_updates/running` | `listRunningUpdates()` |
-| GET | `/_synapse/admin/v1/background_updates/stats` | `getStats()` |
-| GET | `/_synapse/admin/v1/background_updates/status` | `getStatus()` |
-| GET | `/_synapse/admin/v1/background_updates/status/{status}/count` | `countByStatus()` |
-| GET | `/_synapse/admin/v1/background_updates/{job_name}` | `getUpdate()` |
-| DELETE | `/_synapse/admin/v1/background_updates/{job_name}` | `deleteUpdate()` |
-| POST | `/_synapse/admin/v1/background_updates/{job_name}/start` | `startUpdate()` |
-| POST | `/_synapse/admin/v1/background_updates/{job_name}/progress` | `updateProgress()` |
-| POST | `/_synapse/admin/v1/background_updates/{job_name}/complete` | `completeUpdate()` |
-| POST | `/_synapse/admin/v1/background_updates/{job_name}/fail` | `failUpdate()` |
-| POST | `/_synapse/admin/v1/background_updates/{job_name}/cancel` | `cancelUpdate()` |
-| GET | `/_synapse/admin/v1/background_updates/{job_name}/history` | `getHistory()` |
+| 方法   | 路径                                                          | SDK 方法                   |
+| ------ | ------------------------------------------------------------- | -------------------------- |
+| GET    | `/_synapse/admin/v1/background_updates`                       | `listBackgroundUpdates()`  |
+| POST   | `/_synapse/admin/v1/background_updates`                       | `createBackgroundUpdate()` |
+| POST   | `/_synapse/admin/v1/background_updates/cleanup_locks`         | `cleanupLocks()`           |
+| GET    | `/_synapse/admin/v1/background_updates/count`                 | `getUpdateCount()`         |
+| GET    | `/_synapse/admin/v1/background_updates/next`                  | `getNextPendingUpdate()`   |
+| GET    | `/_synapse/admin/v1/background_updates/pending`               | `listPendingUpdates()`     |
+| POST   | `/_synapse/admin/v1/background_updates/retry_failed`          | `retryFailedUpdates()`     |
+| GET    | `/_synapse/admin/v1/background_updates/running`               | `listRunningUpdates()`     |
+| GET    | `/_synapse/admin/v1/background_updates/stats`                 | `getStats()`               |
+| GET    | `/_synapse/admin/v1/background_updates/status`                | `getStatus()`              |
+| GET    | `/_synapse/admin/v1/background_updates/status/{status}/count` | `countByStatus()`          |
+| GET    | `/_synapse/admin/v1/background_updates/{job_name}`            | `getUpdate()`              |
+| DELETE | `/_synapse/admin/v1/background_updates/{job_name}`            | `deleteUpdate()`           |
+| POST   | `/_synapse/admin/v1/background_updates/{job_name}/start`      | `startUpdate()`            |
+| POST   | `/_synapse/admin/v1/background_updates/{job_name}/progress`   | `updateProgress()`         |
+| POST   | `/_synapse/admin/v1/background_updates/{job_name}/complete`   | `completeUpdate()`         |
+| POST   | `/_synapse/admin/v1/background_updates/{job_name}/fail`       | `failUpdate()`             |
+| POST   | `/_synapse/admin/v1/background_updates/{job_name}/cancel`     | `cancelUpdate()`           |
+| GET    | `/_synapse/admin/v1/background_updates/{job_name}/history`    | `getHistory()`             |
 
 ## 五、SDK 对齐状态
 
@@ -150,7 +150,7 @@ interface BackgroundUpdateStatusResponse {
 
 ## 六、变更历史
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
+| 日期       | 变更                                                                           | 影响               |
+| ---------- | ------------------------------------------------------------------------------ | ------------------ |
 | 2026-05-11 | 按后端真实 19 条路由重写文档，并补齐 `BackgroundUpdateManager`、测试与路径绑定 | 修复旧文档长期漂移 |
-| 2026-04-27 | 初版 | -    |
+| 2026-04-27 | 初版                                                                           | -                  |

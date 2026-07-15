@@ -31,7 +31,7 @@ vi.setConfig({ testTimeout: 15000 });
 afterEach(() => {
     // reset fake-indexeddb after each test, to make sure we don't leak connections
     // cf https://github.com/dumbmatter/fakeIndexedDB#wipingresetting-the-indexeddb-for-a-fresh-state
-     
+
     indexedDB = new IDBFactory();
 });
 
@@ -495,7 +495,6 @@ describe("MatrixClient.clearStores", () => {
 
     // eslint-disable-next-line vitest/expect-expect
     it("should not fail in environments without indexedDB", async () => {
-         
         indexedDB = undefined!;
         const matrixClient = createClient({
             baseUrl: "http://test.server",

@@ -25,6 +25,7 @@
 ### Task 1.1: Fix 19 swallow-fallback violations
 
 **Files:**
+
 - Modify: `src/account-data/index.ts:187`
 - Modify: `src/admin/sub-managers/admin-federation-manager.ts:105`
 - Modify: `src/admin/sub-managers/admin-room-manager.ts:144`
@@ -46,6 +47,7 @@ Each violation has a catch block that either is empty (`catch {}`) or conditiona
 - [ ] **Step 1: Audit each violation**
 
 For each of the 19 violations, read the surrounding code to understand whether:
+
 - A) The catch should properly log the error (add `logger.warn(...)`)
 - B) The swallow is intentional/necessary (add `@swallow-error` annotation with reason)
 
@@ -54,21 +56,23 @@ For each of the 19 violations, read the surrounding code to understand whether:
 Fix one module at a time, starting with the files that have the most violations:
 
 **Batch A — `src/app-service/index.ts` (3 violations at lines 347, 370, 387):**
+
 ```typescript
 // Line ~347 — replace empty catch with logged error
 try {
-  // existing code
+    // existing code
 } catch (error) {
-  logger.warn("Failed to ... in app-service", error);
+    logger.warn("Failed to ... in app-service", error);
 }
 ```
 
 **Batch B — `src/admin/sub-managers/admin-user-manager.ts` (2 violations at 429, 445):**
+
 ```typescript
 try {
-  // existing code
+    // existing code
 } catch (error) {
-  logger.warn("Admin user operation failed", error);
+    logger.warn("Admin user operation failed", error);
 }
 ```
 
@@ -80,6 +84,7 @@ Apply the same pattern — read context, add `logger.warn(...)` with a meaningfu
 ```bash
 pnpm quality:swallow-fallbacks
 ```
+
 Expected: exit 0, no violations reported.
 
 - [ ] **Step 4: Commit after all fixes**
@@ -94,6 +99,7 @@ git commit -m "fix: eliminate 19 swallow-fallback violations across 12 files"
 ### Task 1.2: Fix type-coverage script crash (webrtc → web-rtc)
 
 **Files:**
+
 - Modify: `scripts/quality/check-type-coverage.mjs`
 
 **Produces:** `pnpm quality:type-coverage` runs without ENOENT crash.
@@ -115,6 +121,7 @@ Use `replace_all` to change every `src/webrtc` to `src/web-rtc` in the file.
 ```bash
 pnpm quality:type-coverage
 ```
+
 Expected: script runs and outputs a type coverage report (may report existing `any` usage as violations — that's expected and addressed in Phase 2).
 
 - [ ] **Step 4: Commit**
@@ -129,6 +136,7 @@ git commit -m "fix(quality): correct webrtc path to web-rtc in type-coverage che
 ### Task 1.3: Fix the 1 ESLint error (unused variable)
 
 **Files:**
+
 - Modify: `spec/integ/matrix-client-syncing-errors.spec.ts:39`
 
 **Produces:** `pnpm lint:js` passes with 0 errors.
@@ -146,6 +154,7 @@ If the variable is genuinely unused, remove the assignment line. If it should be
 ```bash
 pnpm lint:js
 ```
+
 Expected: 0 errors (warnings are OK for now — addressed in Phase 2).
 
 - [ ] **Step 4: Commit**
@@ -160,6 +169,7 @@ git commit -m "fix: remove unused authorizationEndpoint variable in sync errors 
 ### Task 1.4: Clean up duplicate empty stub directories
 
 **Files:**
+
 - Remove: `src/appservice/` (only contains `__generated__/`)
 - Remove: `src/openclaw/` (only contains `__generated__/`)
 - Remove: `src/thirdparty/` (only contains `__generated__/`)
@@ -193,6 +203,7 @@ rm -rf src/appservice src/openclaw src/thirdparty
 ```bash
 pnpm contract:codegen
 ```
+
 Expected: no errors; `__generated__/` files in `src/app-service/`, `src/open-claw/`, `src/third-party/` are updated.
 
 - [ ] **Step 5: Run full contract check**
@@ -213,6 +224,7 @@ git commit -m "refactor: remove duplicate empty stub directories (appservice, op
 ### Task 1.5: Fix OidcManager export from entry point
 
 **Files:**
+
 - Modify: `src/oidc/index.ts`
 
 **Produces:** `OidcManager` class is importable via `matrix-js-sdk/oidc`.
@@ -244,7 +256,7 @@ git commit -m "fix(oidc): export OidcManager from module entry point"
 
 ## Phase 2: Reduce Any/Unknown Type Usage
 
-### Task 2.1: Reduce ESLint `any` warnings by 50%+ 
+### Task 2.1: Reduce ESLint `any` warnings by 50%+
 
 **Files:** `src/**/*.ts` (files with `@typescript-eslint/no-explicit-any` warnings)
 
@@ -261,12 +273,14 @@ pnpm lint:js 2>&1 | grep "@typescript-eslint/no-explicit-any" | grep -v "spec/" 
 - [ ] **Step 2: Fix admin module first (highest impact)**
 
 For each `any` in `src/admin/` files:
+
 - Replace with the correct concrete type from `src/admin/types.ts` or generate an appropriate interface
 - For truly dynamic values, use `unknown` instead of `any` (it's stricter and forces type narrowing)
 
 - [ ] **Step 3: Fix crypto module**
 
 For each `any` in `src/rust-crypto/` and `src/crypto-api/`:
+
 - Import and use types from `@matrix-org/matrix-sdk-crypto-wasm` where available
 - Define local interfaces for crypto callback parameters
 
@@ -297,6 +311,7 @@ git commit -m "refactor(admin): replace any types with concrete interfaces"
 - [ ] **Step 1: Replace with specific interfaces where the shape is known**
 
 Focus on files with the most instances:
+
 - `src/oidc/validate.ts` (7) — define `OidcMetadata` interface
 - `src/errors.ts` (7) — define `ErrorContext` interface
 - `src/external-service/index.ts` (5) — define request/response types
@@ -322,6 +337,7 @@ pnpm lint:types
 ### Task 3.1: Remove 30+ deprecated items from client.ts
 
 **Files:**
+
 - Modify: `src/client.ts`
 - Modify: Callers that still use the deprecated methods (in `src/` and `spec/`)
 
@@ -332,6 +348,7 @@ Many of the 64 deprecated methods in `client.ts` are simple delegations to manag
 - [ ] **Step 1: Identify candidates for removal**
 
 For each of the 64 deprecated methods, check:
+
 - Does it have a manager replacement that's been stable for ≥ 2 minor versions?
 - Are there still callers in `src/` or `spec/` that use the deprecated path?
 
@@ -346,6 +363,7 @@ Target: Remove at least 30 methods that have stable manager equivalents.
 - [ ] **Step 4: Remove 20+ deprecated items from other files**
 
 Focus on:
+
 - `src/module/index.ts` (6 deprecated items)
 - `src/oidc/discovery.ts`, `src/oidc/manager.ts`
 - `src/matrix-rtc/` (3 files)
@@ -357,6 +375,7 @@ Focus on:
 ```bash
 pnpm test
 ```
+
 Expected: all tests pass (update spec references if needed).
 
 - [ ] **Step 6: Commit**
@@ -373,6 +392,7 @@ git commit -m "refactor: remove 50+ deprecated API items, migrate callers to man
 ### Task 4.1: Implement 12 federation manager methods for uncovered routes
 
 **Files:**
+
 - Modify: `src/federation/index.ts`
 - Modify: `src/federation/__generated__/route-table.ts` (regenerated)
 
@@ -385,11 +405,11 @@ Implement methods for the highest-priority uncovered routes:
 ```typescript
 // spec/unit/federation-manager.spec.ts (add to existing or create)
 describe("FederationManager - backfill", () => {
-  it("GET /_matrix/federation/v1/backfill/{room_id}", async () => {
-    const result = await manager.backfillRoom("@room:example.com", { limit: 10 });
-    expect(result).toHaveProperty("events");
-    expect(result).toHaveProperty("origin");
-  });
+    it("GET /_matrix/federation/v1/backfill/{room_id}", async () => {
+        const result = await manager.backfillRoom("@room:example.com", { limit: 10 });
+        expect(result).toHaveProperty("events");
+        expect(result).toHaveProperty("origin");
+    });
 });
 ```
 
@@ -397,21 +417,21 @@ describe("FederationManager - backfill", () => {
 
 Implement these 12 methods:
 
-| Method | Route |
-|---|---|
-| `backfillRoom()` | `GET /backfill/{room_id}` |
-| `getEvent()` | `GET /event/{event_id}` |
-| `getMissingEvents()` | `POST /get_missing_events/{room_id}` |
-| `inviteUser()` | `PUT /invite/{room_id}/{event_id}` (v1) |
-| `inviteUserV2()` | `PUT /v2/invite/{room_id}/{event_id}` |
-| `makeJoin()` | `GET /make_join/{room_id}/{user_id}` |
-| `makeLeave()` | `GET /make_leave/{room_id}/{user_id}` |
-| `getMembers()` | `GET /members/{room_id}` |
-| `getJoinedMembers()` | `GET /members/{room_id}/joined` |
-| `getState()` | `GET /state/{room_id}` |
-| `getStateIds()` | `GET /state_ids/{room_id}` |
-| `sendJoinV2()` | `PUT /v2/send_join/{room_id}/{event_id}` |
-| `sendLeaveV2()` | `PUT /v2/send_leave/{room_id}/{event_id}` |
+| Method               | Route                                     |
+| -------------------- | ----------------------------------------- |
+| `backfillRoom()`     | `GET /backfill/{room_id}`                 |
+| `getEvent()`         | `GET /event/{event_id}`                   |
+| `getMissingEvents()` | `POST /get_missing_events/{room_id}`      |
+| `inviteUser()`       | `PUT /invite/{room_id}/{event_id}` (v1)   |
+| `inviteUserV2()`     | `PUT /v2/invite/{room_id}/{event_id}`     |
+| `makeJoin()`         | `GET /make_join/{room_id}/{user_id}`      |
+| `makeLeave()`        | `GET /make_leave/{room_id}/{user_id}`     |
+| `getMembers()`       | `GET /members/{room_id}`                  |
+| `getJoinedMembers()` | `GET /members/{room_id}/joined`           |
+| `getState()`         | `GET /state/{room_id}`                    |
+| `getStateIds()`      | `GET /state_ids/{room_id}`                |
+| `sendJoinV2()`       | `PUT /v2/send_join/{room_id}/{event_id}`  |
+| `sendLeaveV2()`      | `PUT /v2/send_leave/{room_id}/{event_id}` |
 
 - [ ] **Step 3: Run tests**
 
@@ -438,6 +458,7 @@ git commit -m "feat(federation): add 12 federation manager methods for uncovered
 ### Task 4.2: Add source implementations for 4 empty stub modules
 
 **Files:**
+
 - Create: `src/sliding-sync/index.ts`
 - Create: `src/sync/index.ts`
 - Create: `src/thread/index.ts`
@@ -472,6 +493,7 @@ export class SlidingSyncManager {
 - [ ] **Step 5: Register all new managers**
 
 In `src/matrix-client-extensions.ts`:
+
 ```typescript
 getSlidingSyncManager(): SlidingSyncManager;
 getSyncManager(): SyncManager;
@@ -480,6 +502,7 @@ getWidgetManager(): WidgetManager;
 ```
 
 In `src/manager-extensions/index.ts`:
+
 ```typescript
 includeSlidingSync?: boolean;
 includeSync?: boolean;
@@ -507,6 +530,7 @@ git commit -m "feat(sliding-sync): add SlidingSyncManager with Ledger route cove
 ### Task 4.3: Fill Admin DTO with actual types
 
 **Files:**
+
 - Modify: `src/admin/__generated__/dto.ts` (regenerated via codegen template improvement)
 - Modify: `scripts/sdk-contract-codegen.mjs` (improve DTO generation template)
 
@@ -517,6 +541,7 @@ The admin module's generated DTO is an empty placeholder, unlike other modules (
 - [ ] **Step 1: Investigate why admin DTO generation produces empty output**
 
 Check the admin module contract JSON for schema definitions:
+
 ```bash
 python3 -c "
 import json
@@ -552,6 +577,7 @@ git commit -m "fix(codegen): generate Admin DTO types from contract schemas"
 ### Task 4.4: Add missing package.json exports for 10+ modules
 
 **Files:**
+
 - Modify: `package.json`
 
 **Produces:** At least 10 additional modules have public entry points in `package.json` exports.
@@ -574,6 +600,7 @@ done
 - [ ] **Step 2: Add exports for high-priority modules**
 
 Priority modules to export:
+
 - `./federation` — FederationManager
 - `./room` — RoomManager + sub-managers
 - `./room-summary` — RoomSummaryManager
@@ -586,6 +613,7 @@ Priority modules to export:
 - `./feature-flags` — FeatureFlagManager
 
 Each export follows the pattern:
+
 ```json
 "./federation": {
   "import": "./lib/federation/index.js",
@@ -614,6 +642,7 @@ git commit -m "feat: add package.json exports for 10 previously unexported modul
 ### Task 5.1: Split `src/admin/types.ts` (1,122 lines) into sub-module type files
 
 **Files:**
+
 - Create: `src/admin/sub-managers/admin-user-types.ts`
 - Create: `src/admin/sub-managers/admin-room-types.ts`
 - Create: `src/admin/sub-managers/admin-server-types.ts`
@@ -658,6 +687,7 @@ git commit -m "refactor(admin): split types.ts into per-sub-manager type files"
 ### Task 5.2: Fix test OOM issue
 
 **Files:**
+
 - Modify: `vitest.config.ts`
 
 **Produces:** Full test suite runs without worker OOM errors.
@@ -669,14 +699,14 @@ The test suite has one worker that hits out-of-memory. This is a resource config
 ```typescript
 // vitest.config.ts
 export default defineConfig({
-  test: {
-    pool: "forks",
-    poolOptions: {
-      forks: {
-        execArgv: ["--max-old-space-size=4096"],
-      },
+    test: {
+        pool: "forks",
+        poolOptions: {
+            forks: {
+                execArgv: ["--max-old-space-size=4096"],
+            },
+        },
     },
-  },
 });
 ```
 
@@ -690,6 +720,7 @@ If increasing memory doesn't help, reduce `maxConcurrency` or use `--pool=forks 
 pnpm test
 pnpm test
 ```
+
 Expected: both runs pass with 0 failures, 0 OOM errors.
 
 - [ ] **Step 4: Commit**
@@ -704,6 +735,7 @@ git commit -m "fix(ci): increase Vitest worker memory to prevent OOM errors"
 ### Task 5.3: Decompose `src/friend/index.ts` (1,395 lines) into sub-managers
 
 **Files:**
+
 - Create: `src/friend/sub-managers/friend-request-manager.ts`
 - Create: `src/friend/sub-managers/friend-list-manager.ts`
 - Create: `src/friend/sub-managers/friend-block-manager.ts`
@@ -725,15 +757,15 @@ Group methods by: friend requests (send/accept/reject/cancel), friend list (list
 
 ```typescript
 export class FriendManager {
-  public readonly requests: FriendRequestManager;
-  public readonly list: FriendListManager;
-  public readonly blocks: FriendBlockManager;
-  
-  constructor(client: MatrixClient) {
-    this.requests = new FriendRequestManager(client);
-    this.list = new FriendListManager(client);
-    this.blocks = new FriendBlockManager(client);
-  }
+    public readonly requests: FriendRequestManager;
+    public readonly list: FriendListManager;
+    public readonly blocks: FriendBlockManager;
+
+    constructor(client: MatrixClient) {
+        this.requests = new FriendRequestManager(client);
+        this.list = new FriendListManager(client);
+        this.blocks = new FriendBlockManager(client);
+    }
 }
 ```
 

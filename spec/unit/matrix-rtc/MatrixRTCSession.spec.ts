@@ -119,10 +119,8 @@ describe("MatrixRTCSession", () => {
                 await flushPromises();
 
                 if (testConfig.listenForMemberStateEvents) {
-                     
                     expect(stateWarningWasLogged()).toBeTruthy();
                 } else {
-                     
                     expect(stateWarningWasLogged()).toBeFalsy();
                 }
             });
@@ -806,7 +804,7 @@ describe("MatrixRTCSession", () => {
         });
 
         // TODO: re-enable this test when expiry is implemented
-         
+
         // it("emits an event at the time a membership event expires", () => {
         //     vi.useFakeTimers();
         //     try {

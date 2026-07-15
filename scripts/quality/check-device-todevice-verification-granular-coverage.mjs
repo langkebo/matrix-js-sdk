@@ -12,7 +12,14 @@ const CHECKS = [
             {
                 name: "DeviceManager core device APIs",
                 ownerFile: "src/device/index.ts",
-                methods: ["getDevices", "getDevice", "updateDevice", "setDeviceDetails", "deleteDevice", "deleteDevices"],
+                methods: [
+                    "getDevices",
+                    "getDevice",
+                    "updateDevice",
+                    "setDeviceDetails",
+                    "deleteDevice",
+                    "deleteDevices",
+                ],
                 testFiles: ["spec/unit/device.spec.ts"],
             },
             {

@@ -64,10 +64,7 @@ export function buildSyncApiOptions(client: MatrixClient): SyncApiOptions {
  * Start all client lifecycle services (TURN polling, sync, well-known, queues).
  * Extracted from startClient to keep client.ts thin.
  */
-export async function startClientLifecycleServices(
-    client: MatrixClient,
-    opts: IStartClientOpts,
-): Promise<void> {
+export async function startClientLifecycleServices(client: MatrixClient, opts: IStartClientOpts): Promise<void> {
     // Create our own user object artificially (instead of waiting for sync)
     const userId = client.getUserId();
     if (userId) {

@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import { logger } from "../../logger";
-import { sleep } from "../../common/async";import { ClientRendezvousFailureReason, MSC4108FailureReason, type RendezvousFailureListener } from "../index";
+import { sleep } from "../../common/async";
+import { ClientRendezvousFailureReason, MSC4108FailureReason, type RendezvousFailureListener } from "../index";
 import { type MatrixClient, Method } from "../../matrix";
 import { ClientPrefix } from "../../http-api/index";
 

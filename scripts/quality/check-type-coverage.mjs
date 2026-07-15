@@ -73,7 +73,12 @@ const moduleTargets = [
     { label: "src/matrix-rtc", files: collectTypeScriptFiles(join(srcRoot, "matrix-rtc")) },
     { label: "src/rust-crypto", files: collectTypeScriptFiles(join(srcRoot, "rust-crypto")) },
     { label: "src/runtime-schemas", files: collectTypeScriptFiles(join(srcRoot, "runtime-schemas")) },
-].filter((target) => target.files.length > 0 && existsSync(join(PROJECT_ROOT, target.label)) && statSync(join(PROJECT_ROOT, target.label)).isDirectory());
+].filter(
+    (target) =>
+        target.files.length > 0 &&
+        existsSync(join(PROJECT_ROOT, target.label)) &&
+        statSync(join(PROJECT_ROOT, target.label)).isDirectory(),
+);
 
 const overall = runTypeCoverage("src", collectTypeScriptFiles(srcRoot), OVERALL_THRESHOLD);
 const modules = moduleTargets.map((target) => runTypeCoverage(target.label, target.files, MODULE_THRESHOLD));

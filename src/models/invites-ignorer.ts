@@ -18,7 +18,8 @@ import { type MatrixClient } from "../client";
 import { type MatrixEvent } from "./event";
 import { EventTimeline } from "./event-timeline";
 import { Preset } from "../@types/partials";
-import { globToRegexp } from "../common/strings";import { type Room } from "./room";
+import { globToRegexp } from "../common/strings";
+import { type Room } from "./room";
 import { EventType, type StateEvents, type Policies } from "../@types/event";
 import {
     IGNORE_INVITES_ACCOUNT_EVENT_KEY,

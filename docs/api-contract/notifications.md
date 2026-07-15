@@ -18,10 +18,10 @@ last_reviewed: 2026-05-11
 
 ## 真实后端路由
 
-| 方法 | 路径                                                          | 说明         | 认证 |
-| ---- | ------------------------------------------------------------- | ------------ | ---- |
-| GET  | `/_matrix/client/v3/notifications`                            | 获取通知历史 | 用户 |
-| POST | `/_matrix/client/v3/notifications/{notification_id}/ack`      | 确认通知     | 用户 |
+| 方法 | 路径                                                     | 说明         | 认证 |
+| ---- | -------------------------------------------------------- | ------------ | ---- |
+| GET  | `/_matrix/client/v3/notifications`                       | 获取通知历史 | 用户 |
+| POST | `/_matrix/client/v3/notifications/{notification_id}/ack` | 确认通知     | 用户 |
 
 ## 端点详情
 
@@ -31,11 +31,13 @@ last_reviewed: 2026-05-11
 **认证**: 用户认证
 
 **查询参数**:
+
 - `from` (string, optional): 分页起始位置
 - `limit` (number, optional): 返回数量限制
 - `only` (string, optional): 过滤条件，如 "highlight"
 
 **响应体 (INotificationsResponse)**:
+
 ```typescript
 export interface INotificationsResponse {
     next_token?: string;
@@ -59,10 +61,10 @@ export interface INotificationsResponse {
 
 ## SDK 对齐状态
 
-| 端点                               | SDK Manager           | 方法                   | 状态      |
-| ---------------------------------- | --------------------- | ---------------------- | --------- |
-| `GET /notifications`               | `NotificationsManager` | `getNotifications()`   | ✅ 已封装 |
-| `POST /notifications/{id}/ack`     | `NotificationsManager` | `ackNotification()`    | ✅ 已封装 |
+| 端点                           | SDK Manager            | 方法                 | 状态      |
+| ------------------------------ | ---------------------- | -------------------- | --------- |
+| `GET /notifications`           | `NotificationsManager` | `getNotifications()` | ✅ 已封装 |
+| `POST /notifications/{id}/ack` | `NotificationsManager` | `ackNotification()`  | ✅ 已封装 |
 
 ## 覆盖率口径
 

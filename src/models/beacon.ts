@@ -22,7 +22,8 @@ import {
     parseBeaconInfoContent,
 } from "../content-helpers";
 import { type MatrixEvent } from "./event";
-import { sortEventsByLatestContentTimestamp } from "../common/safety";import { TypedEventEmitter } from "./typed-event-emitter";
+import { sortEventsByLatestContentTimestamp } from "../common/safety";
+import { TypedEventEmitter } from "./typed-event-emitter";
 
 export enum BeaconEvent {
     New = "Beacon.new",

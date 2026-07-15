@@ -48,8 +48,12 @@ const OUTPUT = resolve(__dirname, "..", "src", "manager-extensions", "index.ts")
 
 const MODULE_DEFS = [
     // ── Group 1: core modules ──────────────────────────────────────
-    { option: "includeAdmin", module: "admin", path: "admin/index.js",
-        adminExtras: ["background-update/index.js", "worker-admin/index.js", "worker-body/index.js"] },
+    {
+        option: "includeAdmin",
+        module: "admin",
+        path: "admin/index.js",
+        adminExtras: ["background-update/index.js", "worker-admin/index.js", "worker-body/index.js"],
+    },
     { option: "includeAccount", module: "account" },
     { option: "includeAccountData", module: "account-data" },
     { option: "includeAuth", module: "auth" },
@@ -207,7 +211,7 @@ import type { ManagerExtensionsOptions, ManagerExtensionsLifecycleEvent, Manager
     for (let i = 0; i < MODULE_DEFS.length; i++) {
         const entry = MODULE_DEFS[i];
         const isLast = i === MODULE_DEFS.length - 1;
-        const groupGap = (i === 62 || i === 63) ? "" : null; // gap before group 2
+        const groupGap = i === 62 || i === 63 ? "" : null; // gap before group 2
 
         // Insert blank line between group 1 and group 2 (after index 62 = includeWidget)
         if (i === 63) {
@@ -330,12 +334,16 @@ function safeDynamicImport<T>(importPromise: Promise<T>): Promise<T | undefined>
             lines.push("");
         }
         lines.push(`            if (currentOptions.${opt} || all) {`);
-        lines.push(`                promises.push(safeDynamicImport(import("../${ipath}").then((m) => m?.extendMatrixClient())));`);
+        lines.push(
+            `                promises.push(safeDynamicImport(import("../${ipath}").then((m) => m?.extendMatrixClient())));`,
+        );
 
         // Admin extra imports
         if (entry.adminExtras) {
             for (const extraPath of entry.adminExtras) {
-                lines.push(`                promises.push(safeDynamicImport(import("../${extraPath}").then((m) => m?.extendMatrixClient())));`);
+                lines.push(
+                    `                promises.push(safeDynamicImport(import("../${extraPath}").then((m) => m?.extendMatrixClient())));`,
+                );
             }
         }
 

@@ -31,7 +31,8 @@ import {
 import { type Logger } from "../logger";
 import { calculateRetryBackoff, type IHttpOpts, type MatrixHttpApi, Method } from "../http-api/index";
 import { logDuration, sleep } from "../common/async";
-import { type QueryDict } from "../http-api/utils";import { type AuthDict, type UIAuthCallback } from "../interactive-auth";
+import { type QueryDict } from "../http-api/utils";
+import { type AuthDict, type UIAuthCallback } from "../interactive-auth";
 import { ToDeviceMessageId } from "../@types/event";
 import { UnstablePrefix as DehydrationUnstablePrefix } from "./DehydratedDeviceManager";
 

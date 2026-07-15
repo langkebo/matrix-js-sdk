@@ -32,7 +32,8 @@ import { logger } from "../logger";
 import { type IStateEventWithRoomId } from "../@types/search";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
 import { type IStoredClientOpts } from "../client";
-import { MapWithDefault } from "../common/collections";import { KnownMembership } from "../@types/membership";
+import { MapWithDefault } from "../common/collections";
+import { KnownMembership } from "../@types/membership";
 
 function isValidFilterId(filterId?: string | number | null): boolean {
     const isValidStr =

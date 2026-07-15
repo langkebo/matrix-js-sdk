@@ -45,7 +45,6 @@ const roomId = "!foo:bar";
 const otherUserId = "@bob:localhost";
 
 const withoutRoomId = (e: Partial<IEvent>): Partial<IEvent> => {
-     
     const { room_id: _, ...copy } = e;
     return copy;
 };
@@ -2050,7 +2049,6 @@ describe("MatrixClient event timelines", function () {
             expect(timeline!.getEvents()[1]!.event).toEqual(THREAD_REPLY);
         }
 
-         
         it("in stable mode", async () => {
             // @ts-ignore
             client.clientOpts.threadSupport = true;

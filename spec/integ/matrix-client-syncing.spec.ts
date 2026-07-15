@@ -997,7 +997,6 @@ describe("MatrixClient syncing", () => {
                     roomVersion: "org.matrix.msc2716v3",
                 },
             ].forEach((testMeta) => {
-                 
                 describe(testMeta.label, () => {
                     const roomCreateEvent = utils.mkEvent({
                         type: "m.room.create",

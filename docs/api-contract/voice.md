@@ -116,12 +116,12 @@ last_reviewed: 2026-05-03
 
 ## SDK Manager 对应关系
 
-| 后端端点                                      | SDK Manager           | 方法                       | 现状                                                      |
-| --------------------------------------------- | --------------------- | -------------------------- | --------------------------------------------------------- |
+| 后端端点                                      | SDK Manager           | 方法                         | 现状                                                      |
+| --------------------------------------------- | --------------------- | ---------------------------- | --------------------------------------------------------- |
 | `POST /_matrix/client/r0/voice/upload`        | `VoiceMessageManager` | `uploadVoiceMessageDirect()` | ✅ 已直连 `voice/upload`，按后端要求发送 base64 `content` |
-| `GET /_matrix/client/r0/voice/stats`          | `VoiceMessageManager` | `getVoiceStats()`          | ❌ SDK 统计来自本地房间时间线，不调用后端                 |
-| `GET /_matrix/client/r0/voice/{message_id}`   | `VoiceMessageManager` | `getVoiceMessageInfo()`    | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端       |
-| `POST /_matrix/client/v1/voice/transcription` | `VoiceMessageManager` | 本轮未纳入 Ledger 统计     | 文档保留说明，当前 codegen 不再生成该路径                 |
+| `GET /_matrix/client/r0/voice/stats`          | `VoiceMessageManager` | `getVoiceStats()`            | ❌ SDK 统计来自本地房间时间线，不调用后端                 |
+| `GET /_matrix/client/r0/voice/{message_id}`   | `VoiceMessageManager` | `getVoiceMessageInfo()`      | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端       |
+| `POST /_matrix/client/v1/voice/transcription` | `VoiceMessageManager` | 本轮未纳入 Ledger 统计       | 文档保留说明，当前 codegen 不再生成该路径                 |
 
 ## 当前对齐结论
 

@@ -1,6 +1,7 @@
 import { type Logger, logger as rootLogger } from "../logger";
 import { type EmptyObject } from "../matrix";
-import { sleep } from "../common/async";import { MembershipActionType } from "./MembershipManager";
+import { sleep } from "../common/async";
+import { MembershipActionType } from "./MembershipManager";
 
 /** @internal */
 export interface Action {

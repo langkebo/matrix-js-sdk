@@ -12,43 +12,43 @@ last_reviewed: 2026-05-03
 
 ## 真实后端路由
 
-| 方法 | 路径 | 说明 | 认证 |
-| ---- | ---- | ---- | ---- |
-| GET | `/.well-known/openid-configuration` | OIDC discovery | 公开 |
-| GET | `/.well-known/jwks.json` | JWKS 公钥集合 | 公开 |
-| GET | `/_matrix/client/r0/login/sso/redirect` | r0 SSO 重定向 | 公开 |
-| GET | `/_matrix/client/r0/login/sso/userinfo` | r0 SSO 用户信息 | 用户 |
-| GET | `/_matrix/client/r0/oidc/authorize` | r0 授权端点 | 公开 |
-| GET | `/_matrix/client/r0/oidc/callback` | r0 回调端点 | 公开 |
-| POST | `/_matrix/client/r0/oidc/logout` | r0 登出端点 | 用户 |
-| POST | `/_matrix/client/r0/oidc/register` | r0 动态客户端注册 | 公开 |
-| POST | `/_matrix/client/r0/oidc/token` | r0 令牌端点 | 公开 |
-| GET | `/_matrix/client/r0/oidc/userinfo` | r0 userinfo | 用户 |
-| GET | `/_matrix/client/v3/login/sso/redirect` | v3 SSO 重定向 | 公开 |
-| GET | `/_matrix/client/v3/login/sso/userinfo` | v3 SSO 用户信息 | 用户 |
-| GET | `/_matrix/client/v3/oidc/authorize` | v3 授权端点 | 公开 |
-| GET | `/_matrix/client/v3/oidc/callback` | v3 回调端点 | 公开 |
-| POST | `/_matrix/client/v3/oidc/login` | 内置 OIDC 登录 | 公开 |
-| POST | `/_matrix/client/v3/oidc/logout` | v3 登出端点 | 用户 |
-| POST | `/_matrix/client/v3/oidc/register` | v3 动态客户端注册 | 公开 |
-| POST | `/_matrix/client/v3/oidc/token` | v3 令牌端点 | 公开 |
-| GET | `/_matrix/client/v3/oidc/userinfo` | v3 userinfo | 用户 |
+| 方法 | 路径                                    | 说明              | 认证 |
+| ---- | --------------------------------------- | ----------------- | ---- |
+| GET  | `/.well-known/openid-configuration`     | OIDC discovery    | 公开 |
+| GET  | `/.well-known/jwks.json`                | JWKS 公钥集合     | 公开 |
+| GET  | `/_matrix/client/r0/login/sso/redirect` | r0 SSO 重定向     | 公开 |
+| GET  | `/_matrix/client/r0/login/sso/userinfo` | r0 SSO 用户信息   | 用户 |
+| GET  | `/_matrix/client/r0/oidc/authorize`     | r0 授权端点       | 公开 |
+| GET  | `/_matrix/client/r0/oidc/callback`      | r0 回调端点       | 公开 |
+| POST | `/_matrix/client/r0/oidc/logout`        | r0 登出端点       | 用户 |
+| POST | `/_matrix/client/r0/oidc/register`      | r0 动态客户端注册 | 公开 |
+| POST | `/_matrix/client/r0/oidc/token`         | r0 令牌端点       | 公开 |
+| GET  | `/_matrix/client/r0/oidc/userinfo`      | r0 userinfo       | 用户 |
+| GET  | `/_matrix/client/v3/login/sso/redirect` | v3 SSO 重定向     | 公开 |
+| GET  | `/_matrix/client/v3/login/sso/userinfo` | v3 SSO 用户信息   | 用户 |
+| GET  | `/_matrix/client/v3/oidc/authorize`     | v3 授权端点       | 公开 |
+| GET  | `/_matrix/client/v3/oidc/callback`      | v3 回调端点       | 公开 |
+| POST | `/_matrix/client/v3/oidc/login`         | 内置 OIDC 登录    | 公开 |
+| POST | `/_matrix/client/v3/oidc/logout`        | v3 登出端点       | 用户 |
+| POST | `/_matrix/client/v3/oidc/register`      | v3 动态客户端注册 | 公开 |
+| POST | `/_matrix/client/v3/oidc/token`         | v3 令牌端点       | 公开 |
+| GET  | `/_matrix/client/v3/oidc/userinfo`      | v3 userinfo       | 用户 |
 
 ## SDK 对齐状态
 
-| 端点 | SDK Manager | 方法 | 状态 |
-| ---- | ----------- | ---- | ---- |
-| `GET /.well-known/openid-configuration` | `OidcManager` | `discover()` | ✅ |
-| `GET /.well-known/jwks.json` | `OidcManager` | `getJwks()` | ✅ |
-| `GET /v3/oidc/authorize` | `OidcManager` | `authorize()` | ✅ |
-| `GET /v3/oidc/callback` | `OidcManager` | `buildCallbackUrl()` | ✅ URL helper |
-| `POST /v3/oidc/register` | `OidcManager` | `registerClient()` | ✅ |
-| `POST /v3/oidc/token` | `OidcManager` | `token()` / `refreshToken()` | ✅ |
-| `GET /v3/oidc/userinfo` | `OidcManager` | `getUserInfo()` | ✅ |
-| `POST /v3/oidc/logout` | `OidcManager` | `logout()` | ✅ |
-| `POST /v3/oidc/login` | `OidcManager` | `builtinLogin()` | ✅ |
-| `GET /v3/login/sso/redirect` | `OidcManager` | `ssoRedirect()` | ✅ |
-| `GET /v3/login/sso/userinfo` | `OidcManager` | `ssoUserInfo()` | ✅ |
+| 端点                                    | SDK Manager   | 方法                         | 状态          |
+| --------------------------------------- | ------------- | ---------------------------- | ------------- |
+| `GET /.well-known/openid-configuration` | `OidcManager` | `discover()`                 | ✅            |
+| `GET /.well-known/jwks.json`            | `OidcManager` | `getJwks()`                  | ✅            |
+| `GET /v3/oidc/authorize`                | `OidcManager` | `authorize()`                | ✅            |
+| `GET /v3/oidc/callback`                 | `OidcManager` | `buildCallbackUrl()`         | ✅ URL helper |
+| `POST /v3/oidc/register`                | `OidcManager` | `registerClient()`           | ✅            |
+| `POST /v3/oidc/token`                   | `OidcManager` | `token()` / `refreshToken()` | ✅            |
+| `GET /v3/oidc/userinfo`                 | `OidcManager` | `getUserInfo()`              | ✅            |
+| `POST /v3/oidc/logout`                  | `OidcManager` | `logout()`                   | ✅            |
+| `POST /v3/oidc/login`                   | `OidcManager` | `builtinLogin()`             | ✅            |
+| `GET /v3/login/sso/redirect`            | `OidcManager` | `ssoRedirect()`              | ✅            |
+| `GET /v3/login/sso/userinfo`            | `OidcManager` | `ssoUserInfo()`              | ✅            |
 
 ## 覆盖率口径
 
@@ -56,7 +56,7 @@ last_reviewed: 2026-05-03
 - **SDK 已封装路由数**: 11 (主干端点与 URL helpers)
 - **已绑定生成路由模板**: 11
 - **契约覆盖率**: 100%
-- **说明**: 
+- **说明**:
     - `OidcManager` 选择 `v3` 作为 canonical 封装面。
     - 后端保留的 8 条 `r0` 路径（如 `POST /r0/oidc/token`）在逻辑上与 `v3` 完全一致，SDK 统一采用 `v3` 封装，视为逻辑覆盖 100%。
     - `callback` 端点主要由浏览器跳转触发，SDK 通过 `buildCallbackUrl()` 提供 URL 构造能力。
@@ -98,46 +98,97 @@ last_reviewed: 2026-05-03
 
 ```typescript
 export interface OidcWellKnownResponse {
-    issuer: string; authorization_endpoint: string; token_endpoint: string;
-    userinfo_endpoint?: string; jwks_uri?: string; registration_endpoint?: string;
-    scopes_supported?: string[]; response_types_supported?: string[];
-    code_challenge_methods_supported?: string[]; revocation_endpoint?: string;
-    grant_types_supported?: string[]; account_management_uri?: string;
-    account_management_actions_supported?: string[]; prompt_values_supported?: string[];
+    issuer: string;
+    authorization_endpoint: string;
+    token_endpoint: string;
+    userinfo_endpoint?: string;
+    jwks_uri?: string;
+    registration_endpoint?: string;
+    scopes_supported?: string[];
+    response_types_supported?: string[];
+    code_challenge_methods_supported?: string[];
+    revocation_endpoint?: string;
+    grant_types_supported?: string[];
+    account_management_uri?: string;
+    account_management_actions_supported?: string[];
+    prompt_values_supported?: string[];
     device_authorization_endpoint?: string;
 }
 export interface OidcJwks {
     keys: Array<{ kty: string; kid: string; use?: string; alg?: string; n?: string; e?: string }>;
 }
 export interface OidcAuthRequest {
-    client_id: string; redirect_uri: string; response_type: string; scope: string;
-    state?: string; nonce?: string; code_challenge?: string; code_challenge_method?: string;
+    client_id: string;
+    redirect_uri: string;
+    response_type: string;
+    scope: string;
+    state?: string;
+    nonce?: string;
+    code_challenge?: string;
+    code_challenge_method?: string;
 }
-export interface OidcAuthResponse { url?: string; code?: string; }
+export interface OidcAuthResponse {
+    url?: string;
+    code?: string;
+}
 export interface OidcTokenRequest {
-    grant_type: string; code?: string; redirect_uri?: string; code_verifier?: string;
-    refresh_token?: string; client_id?: string; client_secret?: string;
+    grant_type: string;
+    code?: string;
+    redirect_uri?: string;
+    code_verifier?: string;
+    refresh_token?: string;
+    client_id?: string;
+    client_secret?: string;
 }
 export interface OidcTokenResponse {
-    access_token: string; refresh_token?: string; id_token?: string;
-    token_type: string; expires_in: number;
+    access_token: string;
+    refresh_token?: string;
+    id_token?: string;
+    token_type: string;
+    expires_in: number;
 }
-export interface OidcUserInfoResponse { sub: string; name?: string; picture?: string; email?: string; }
+export interface OidcUserInfoResponse {
+    sub: string;
+    name?: string;
+    picture?: string;
+    email?: string;
+}
 export interface OidcRegisterRequest {
-    client_name?: string; redirect_uris: string[]; grant_types?: string[];
-    response_types?: string[]; token_endpoint_auth_method?: string;
+    client_name?: string;
+    redirect_uris: string[];
+    grant_types?: string[];
+    response_types?: string[];
+    token_endpoint_auth_method?: string;
 }
 export interface OidcClientRegistration {
-    client_id: string; client_secret?: string; client_name?: string; redirect_uris: string[];
+    client_id: string;
+    client_secret?: string;
+    client_name?: string;
+    redirect_uris: string[];
 }
 export interface OidcLoginRequest {
-    client_id: string; redirect_uri: string; scope?: string; state?: string;
-    nonce?: string; code_verifier?: string; username: string; password: string;
+    client_id: string;
+    redirect_uri: string;
+    scope?: string;
+    state?: string;
+    nonce?: string;
+    code_verifier?: string;
+    username: string;
+    password: string;
 }
-export interface OidcLoginResponse { code: string; }
+export interface OidcLoginResponse {
+    code: string;
+}
 export interface OidcLogoutRequest {
-    client_id?: string; post_logout_redirect_uri?: string; id_token_hint?: string;
+    client_id?: string;
+    post_logout_redirect_uri?: string;
+    id_token_hint?: string;
 }
-export interface OidcCallbackRequest { code: string; state: string; }
-export interface SsoRedirectResponse { url: string; }
+export interface OidcCallbackRequest {
+    code: string;
+    state: string;
+}
+export interface SsoRedirectResponse {
+    url: string;
+}
 ```

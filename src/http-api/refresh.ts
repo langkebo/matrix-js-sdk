@@ -16,7 +16,7 @@ limitations under the License.
 
 import { MatrixError, TokenRefreshLogoutError } from "./errors";
 import { type IHttpOpts } from "./interface";
-import { sleep } from "../common/async";/**
+import { sleep } from "../common/async"; /**
  * This is an internal module. See {@link MatrixHttpApi} for the public class.
  */
 

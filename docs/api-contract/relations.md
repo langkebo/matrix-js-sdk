@@ -162,12 +162,12 @@ interface AggregationsResponse {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点                                                 | SDK 方法                         | 状态                                                                |
-| -------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
-| `GET /relations/{event_id}`                              | `RelationsManager.fetchRelations()` / `MatrixClient.relations()` | ✅ 已封装 |
-| `GET /relations/{event_id}/{rel_type}`                   | `RelationsManager.fetchRelations()` / `MatrixClient.relations()` | ✅ 已封装 |
+| 后端端点                                                 | SDK 方法                                                                | 状态      |
+| -------------------------------------------------------- | ----------------------------------------------------------------------- | --------- |
+| `GET /relations/{event_id}`                              | `RelationsManager.fetchRelations()` / `MatrixClient.relations()`        | ✅ 已封装 |
+| `GET /relations/{event_id}/{rel_type}`                   | `RelationsManager.fetchRelations()` / `MatrixClient.relations()`        | ✅ 已封装 |
 | `GET /aggregations/{event_id}/{rel_type}`                | `RelationsManager.getAggregations()` / `MatrixClient.getAggregations()` | ✅ 已封装 |
-| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `RelationsManager.sendRelation()` | ✅ 已封装 |
+| `PUT /relations/{event_id}/{rel_type}/{target_event_id}` | `RelationsManager.sendRelation()`                                       | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
@@ -199,7 +199,7 @@ interface AggregationsResponse {
 
 ## 五、变更历史
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
-| 2026-04-27 | 初版 | -    |
+| 日期       | 变更                                               | 影响              |
+| ---------- | -------------------------------------------------- | ----------------- |
+| 2026-04-27 | 初版                                               | -                 |
 | 2026-05-11 | 补齐 RelationsManager 的聚合查询与关系发送专用封装 | 覆盖率更新为 100% |

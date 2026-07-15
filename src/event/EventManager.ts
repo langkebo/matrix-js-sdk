@@ -22,7 +22,8 @@ import { InvalidParamError } from "../common/errors";
 import { validateRoomId } from "../common/validators";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import * as utils from "../utils";
-import { QueryDict } from "../http-api/utils";import { LRUCache } from "../utils/lru-cache";
+import { QueryDict } from "../http-api/utils";
+import { LRUCache } from "../utils/lru-cache";
 import { prepareSendCompleteEventLifecycle } from "../client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "../client-encrypt-send";
 import {

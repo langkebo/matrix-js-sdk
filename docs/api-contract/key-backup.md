@@ -22,31 +22,31 @@ last_reviewed: 2026-05-11
 
 ## 路由分组
 
-| 类别 | 逻辑端点数 | 后端实现 | SDK 封装 |
-| --- | --- | --- | --- |
-| 备份版本管理 | 5 | ✅ 完整 | ✅ 已封装 |
-| Spec 主路径密钥读写删除 | 9 | ✅ 完整 | ✅ 已封装 |
-| Legacy 路径别名 | 9 | ✅ 完整 | ℹ️ 不单独暴露，沿用同一 handler |
-| 恢复与校验 | 6 | ✅ 完整 | ✅ 已封装 |
-| 导入与导出 | 4 | ✅ 完整 | ✅ 已封装 |
+| 类别                    | 逻辑端点数 | 后端实现 | SDK 封装                        |
+| ----------------------- | ---------- | -------- | ------------------------------- |
+| 备份版本管理            | 5          | ✅ 完整  | ✅ 已封装                       |
+| Spec 主路径密钥读写删除 | 9          | ✅ 完整  | ✅ 已封装                       |
+| Legacy 路径别名         | 9          | ✅ 完整  | ℹ️ 不单独暴露，沿用同一 handler |
+| 恢复与校验              | 6          | ✅ 完整  | ✅ 已封装                       |
+| 导入与导出              | 4          | ✅ 完整  | ✅ 已封装                       |
 
 ## SDK 对齐结论
 
 - `src/key-backup/index.ts` 已绑定生成的 `KeyBackupPathPattern`，主链路统一走 `ClientPrefix.V3`。
 - `KeyBackupManager` 当前覆盖的 v3 主路径包括:
-  - `GET/POST /room_keys/version`
-  - `GET/PUT/DELETE /room_keys/version/{version}`
-  - `GET/PUT/DELETE /room_keys/keys`
-  - `GET/PUT/DELETE /room_keys/keys/{room_id}`
-  - `GET/PUT/DELETE /room_keys/keys/{room_id}/{session_id}`
-  - `POST /room_keys/recover`
-  - `GET /room_keys/recovery/{version}/progress`
-  - `GET /room_keys/verify/{version}`
-  - `POST /room_keys/batch_recover`
-  - `GET /room_keys/recover/{version}/{room_id}`
-  - `GET /room_keys/recover/{version}/{room_id}/{session_id}`
-  - `GET /room_keys/export[/{version}]`
-  - `POST /room_keys/import[/{version}]`
+    - `GET/POST /room_keys/version`
+    - `GET/PUT/DELETE /room_keys/version/{version}`
+    - `GET/PUT/DELETE /room_keys/keys`
+    - `GET/PUT/DELETE /room_keys/keys/{room_id}`
+    - `GET/PUT/DELETE /room_keys/keys/{room_id}/{session_id}`
+    - `POST /room_keys/recover`
+    - `GET /room_keys/recovery/{version}/progress`
+    - `GET /room_keys/verify/{version}`
+    - `POST /room_keys/batch_recover`
+    - `GET /room_keys/recover/{version}/{room_id}`
+    - `GET /room_keys/recover/{version}/{room_id}/{session_id}`
+    - `GET /room_keys/export[/{version}]`
+    - `POST /room_keys/import[/{version}]`
 - `/_matrix/client/{v1,r0}/room_keys/{version}/keys...` 这组 legacy 别名仍由后端同一 handler 承接，SDK 不再额外提供重复方法。
 
 ## 关键请求与返回
@@ -57,11 +57,11 @@ last_reviewed: 2026-05-11
 
 ```json
 {
-  "version": "1",
-  "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
-  "auth_data": { "public_key": "..." },
-  "count": 7,
-  "etag": "7"
+    "version": "1",
+    "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+    "auth_data": { "public_key": "..." },
+    "count": 7,
+    "etag": "7"
 }
 ```
 
@@ -69,13 +69,13 @@ last_reviewed: 2026-05-11
 
 ```json
 {
-  "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
-  "auth_data": { "public_key": "..." },
-  "auth": {
-    "type": "m.login.password",
-    "session": "uia-session",
-    "password": "secret"
-  }
+    "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
+    "auth_data": { "public_key": "..." },
+    "auth": {
+        "type": "m.login.password",
+        "session": "uia-session",
+        "password": "secret"
+    }
 }
 ```
 
@@ -85,18 +85,18 @@ last_reviewed: 2026-05-11
 
 ```json
 {
-  "rooms": {
-    "!room:example.com": {
-      "sessions": {
-        "sess1": {
-          "first_message_index": 0,
-          "forwarded_count": 0,
-          "is_verified": true,
-          "session_data": { "ciphertext": "...", "mac": "...", "ephemeral": "..." }
+    "rooms": {
+        "!room:example.com": {
+            "sessions": {
+                "sess1": {
+                    "first_message_index": 0,
+                    "forwarded_count": 0,
+                    "is_verified": true,
+                    "session_data": { "ciphertext": "...", "mac": "...", "ephemeral": "..." }
+                }
+            }
         }
-      }
     }
-  }
 }
 ```
 
@@ -104,14 +104,14 @@ last_reviewed: 2026-05-11
 
 ```json
 {
-  "sessions": {
-    "sess1": {
-      "first_message_index": 0,
-      "forwarded_count": 0,
-      "is_verified": true,
-      "session_data": { "ciphertext": "...", "mac": "...", "ephemeral": "..." }
+    "sessions": {
+        "sess1": {
+            "first_message_index": 0,
+            "forwarded_count": 0,
+            "is_verified": true,
+            "session_data": { "ciphertext": "...", "mac": "...", "ephemeral": "..." }
+        }
     }
-  }
 }
 ```
 
@@ -119,9 +119,9 @@ last_reviewed: 2026-05-11
 
 ```json
 {
-  "ciphertext": "...",
-  "mac": "...",
-  "ephemeral": "..."
+    "ciphertext": "...",
+    "mac": "...",
+    "ephemeral": "..."
 }
 ```
 
@@ -129,28 +129,28 @@ last_reviewed: 2026-05-11
 
 ```json
 {
-  "etag": "1_1715412345678",
-  "count": 4
+    "etag": "1_1715412345678",
+    "count": 4
 }
 ```
 
 ## 错误语义
 
-| 场景 | 后端行为 | SDK 表现 |
-| --- | --- | --- |
+| 场景                                  | 后端行为                 | SDK 表现                                                   |
+| ------------------------------------- | ------------------------ | ---------------------------------------------------------- |
 | `POST /room_keys/version` 缺少 `auth` | `401` + `M_UIA_REQUIRED` | `createBackupVersion()` 抛标准化错误，调用方可重试并补 UIA |
-| `auth_data` 缺少 `public_key` | `400 Bad Request` | `createBackupVersion()` 抛标准化错误 |
-| 备份版本不存在 | `404 Not Found` | 相关 `get* / put* / delete* / recover*` 方法抛标准化错误 |
-| 会话不存在 | `404 Not Found` | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误 |
+| `auth_data` 缺少 `public_key`         | `400 Bad Request`        | `createBackupVersion()` 抛标准化错误                       |
+| 备份版本不存在                        | `404 Not Found`          | 相关 `get* / put* / delete* / recover*` 方法抛标准化错误   |
+| 会话不存在                            | `404 Not Found`          | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误     |
 
 ## 人工 Review 对齐
 
 - `spec/unit/key-backup.spec.ts` 已补:
-  - 版本读取 `count` / `etag`
-  - `createBackupVersion()` 的 UIA `auth` 透传
-  - `putRoomKeys()`
-  - `deleteAllRoomKeys()` / `deleteRoomKeys()` / `deleteSessionKey()`
-  - `getSessionKey()` 的真实返回结构
+    - 版本读取 `count` / `etag`
+    - `createBackupVersion()` 的 UIA `auth` 透传
+    - `putRoomKeys()`
+    - `deleteAllRoomKeys()` / `deleteRoomKeys()` / `deleteSessionKey()`
+    - `getSessionKey()` 的真实返回结构
 - `MatrixClient.deleteKeysFromBackup()` 仍保留为较旧的客户端级 helper；`KeyBackupManager` 现在提供更完整、类型更清晰的高层封装。
 - Secure backup 相关接口已迁移到 `e2ee.md` / `secure-backup` 语义，不再混写进本模块的覆盖率统计。
 
@@ -167,59 +167,132 @@ last_reviewed: 2026-05-11
 > Source: `src/key-backup/__generated__/dto.ts`
 
 ```typescript
-export interface EncryptedData { ciphertext: string; ephemeral: string; mac: string; }
-export interface AuthData { public_key: string; signatures?: Record<string, Record<string, string>>; }
+export interface EncryptedData {
+    ciphertext: string;
+    ephemeral: string;
+    mac: string;
+}
+export interface AuthData {
+    public_key: string;
+    signatures?: Record<string, Record<string, string>>;
+}
 export interface SessionData {
-    first_message_index: number; forwarded_count: number; is_verified: boolean;
+    first_message_index: number;
+    forwarded_count: number;
+    is_verified: boolean;
     session_data: EncryptedData | Record<string, unknown>;
 }
 export interface BackupVersionInfo {
-    version: string; algorithm: string; auth_data: AuthData | Record<string, unknown>;
-    count?: number; etag?: string;
+    version: string;
+    algorithm: string;
+    auth_data: AuthData | Record<string, unknown>;
+    count?: number;
+    etag?: string;
 }
-export interface RoomSessions { sessions: Record<string, SessionData>; }
-export interface RoomKeyBackup { rooms: Record<string, RoomSessions>; etag: string; }
+export interface RoomSessions {
+    sessions: Record<string, SessionData>;
+}
+export interface RoomKeyBackup {
+    rooms: Record<string, RoomSessions>;
+    etag: string;
+}
 export interface RecoveryProgress {
-    user_id: string; version: string; total_keys: number; recovered_keys: number;
-    status: string; started_ts: number; updated_ts: number;
+    user_id: string;
+    version: string;
+    total_keys: number;
+    recovered_keys: number;
+    status: string;
+    started_ts: number;
+    updated_ts: number;
 }
 export interface BatchRecoverResult {
-    rooms: Record<string, RoomSessions>; total_sessions: number;
-    has_more: boolean; next_batch?: string;
+    rooms: Record<string, RoomSessions>;
+    total_sessions: number;
+    has_more: boolean;
+    next_batch?: string;
 }
 export interface ExportedRoomKey {
-    room_id: string; session_id: string;
+    room_id: string;
+    session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
-    first_message_index: number; forwarded_count: number; is_verified: boolean;
+    first_message_index: number;
+    forwarded_count: number;
+    is_verified: boolean;
 }
-export interface ExportResult { room_keys: ExportedRoomKey[]; version: string; }
-export interface ImportResult { count: number; failed: number; total: number; }
+export interface ExportResult {
+    room_keys: ExportedRoomKey[];
+    version: string;
+}
+export interface ImportResult {
+    count: number;
+    failed: number;
+    total: number;
+}
 export interface VerifyResult {
-    valid: boolean; algorithm: string; auth_data: AuthData | Record<string, unknown>;
-    key_count: number; signatures?: Record<string, Record<string, string>>;
+    valid: boolean;
+    algorithm: string;
+    auth_data: AuthData | Record<string, unknown>;
+    key_count: number;
+    signatures?: Record<string, Record<string, string>>;
 }
-export interface PutRoomKeysBody { rooms: Record<string, RoomSessions>; }
-export interface PutRoomSessionsBody { sessions: Record<string, SessionData>; }
+export interface PutRoomKeysBody {
+    rooms: Record<string, RoomSessions>;
+}
+export interface PutRoomSessionsBody {
+    sessions: Record<string, SessionData>;
+}
 export interface KeyBackupAuthData {
-    type: string; session?: string; password?: string; token?: string;
-    user?: string; [key: string]: unknown;
+    type: string;
+    session?: string;
+    password?: string;
+    token?: string;
+    user?: string;
+    [key: string]: unknown;
 }
 export interface CreateBackupVersionRequest {
-    algorithm: string; auth_data?: AuthData | Record<string, unknown>; auth?: KeyBackupAuthData;
+    algorithm: string;
+    auth_data?: AuthData | Record<string, unknown>;
+    auth?: KeyBackupAuthData;
 }
-export interface UpdateBackupVersionRequest { auth_data: AuthData | Record<string, unknown>; }
-export interface RecoverKeysRequest { version: string; rooms?: string[]; }
-export interface BatchRecoverRequest { version: string; room_ids: string[]; session_limit?: number; }
-export interface ImportKeysRequest { room_keys: ExportedRoomKey[]; version?: string; }
-export interface CreateBackupVersionResponse { version: string; }
-export interface DeleteBackupVersionResponse { deleted: boolean; version: string; }
-export interface UploadKeysResult { count: number; etag: string; }
+export interface UpdateBackupVersionRequest {
+    auth_data: AuthData | Record<string, unknown>;
+}
+export interface RecoverKeysRequest {
+    version: string;
+    rooms?: string[];
+}
+export interface BatchRecoverRequest {
+    version: string;
+    room_ids: string[];
+    session_limit?: number;
+}
+export interface ImportKeysRequest {
+    room_keys: ExportedRoomKey[];
+    version?: string;
+}
+export interface CreateBackupVersionResponse {
+    version: string;
+}
+export interface DeleteBackupVersionResponse {
+    deleted: boolean;
+    version: string;
+}
+export interface UploadKeysResult {
+    count: number;
+    etag: string;
+}
 export interface RecoverKeysResult {
-    rooms: Record<string, RoomSessions>; total_keys: number; recovered_keys: number;
+    rooms: Record<string, RoomSessions>;
+    total_keys: number;
+    recovered_keys: number;
 }
-export interface RecoverRoomKeysResult { room_id: string; sessions: SessionData[]; }
+export interface RecoverRoomKeysResult {
+    room_id: string;
+    sessions: SessionData[];
+}
 export interface RecoverSessionKeyResult {
-    room_id: string; session_id: string;
+    room_id: string;
+    session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
 }
 ```

@@ -9,50 +9,50 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `.`                        | 主入口白名单：`matrix` 聚合 API（客户端创建、主客户端类型）     | `createClient`, `createRoomWidgetClient`, `MatrixClient`                                   |
 | `./core`                   | Core 白名单：基础客户端能力 + HTTP/API 类型 + 核心模型类型      | `createClient`, `MatrixClient`, `ClientEvent`                                              |
 | `./advanced`               | Advanced 白名单：manager 扩展能力（admin/dm/friend/push/space） | `AdminManager`, `DirectMessageManager`, `SpaceManager`                                     |
-| `./legacy`                 | Legacy 白名单：filter 历史兼容类型与别名                        | `FilterManager`                                                                             |
-| `./manager-extensions`     | Manager Extensions 白名单：管理器扩展生命周期                   | `extendMatrixClientWithManagers`                                                            |
+| `./legacy`                 | Legacy 白名单：filter 历史兼容类型与别名                        | `FilterManager`                                                                            |
+| `./manager-extensions`     | Manager Extensions 白名单：管理器扩展生命周期                   | `extendMatrixClientWithManagers`                                                           |
 | `./admin`                  | Admin 白名单：管理端 manager 与领域类型                         | `AdminManager`, `UserInfo`, `RoomInfo`                                                     |
-| `./ai-connection`          | AI Connection 白名单：AI 连接 manager 与连接类型                | `AIConnectionEvent`, `AIConnection`                                                         |
-| `./app-service`            | App Service 白名单：应用服务 manager 与服务类型                  | `AppServiceEvent`, `ApplicationService`                                                    |
+| `./ai-connection`          | AI Connection 白名单：AI 连接 manager 与连接类型                | `AIConnectionEvent`, `AIConnection`                                                        |
+| `./app-service`            | App Service 白名单：应用服务 manager 与服务类型                 | `AppServiceEvent`, `ApplicationService`                                                    |
 | `./beacon`                 | Beacon 白名单：beacon manager 能力                              | `BeaconManager`, `extendMatrixClient`                                                      |
 | `./cache`                  | Cache 白名单：缓存工具入口（当前仅校验子路径存在）              | `-`                                                                                        |
 | `./client`                 | Client 白名单：`MatrixClient` 主类型与客户端事件/选项           | `MatrixClient`, `ClientEvent`, `ICreateClientOpts`                                         |
 | `./crypto`                 | Crypto 白名单：Rust Crypto API 与解密/隔离相关类型              | `CryptoApi`, `DecryptionFailureCode`, `DeviceIsolationModeKind`                            |
 | `./device`                 | Device 白名单：设备管理 manager 与设备类型                      | `DeviceManager`, `DeviceEvent`, `IDevice`                                                  |
-| `./device-keys`            | Device Keys 白名单：设备密钥类型                                | `DeviceKeys`, `OneTimeKeys`                                                                 |
+| `./device-keys`            | Device Keys 白名单：设备密钥类型                                | `DeviceKeys`, `OneTimeKeys`                                                                |
 | `./dm`                     | DM 白名单：直聊 manager 与直聊领域类型                          | `DirectMessageManager`, `DMEvent`, `DmRoomInfo`                                            |
-| `./e2ee`                   | E2EE 白名单：端到端加密 manager 与加密领域类型                  | `E2EEManager`                                                                               |
+| `./e2ee`                   | E2EE 白名单：端到端加密 manager 与加密领域类型                  | `E2EEManager`                                                                              |
 | `./errors`                 | Error 白名单：SDK 统一错误体系类型                              | `SdkError`, `AuthError`, `RetryableError`                                                  |
-| `./event-report`           | Event Report 白名单：事件举报类型                               | `ReportStatus`                                                                              |
-| `./external-service`       | External Service 白名单：外部服务 manager 与服务类型             | `ExternalServiceManager`                                                                    |
-| `./feature-flags`          | Feature Flags 白名单：特性开关 manager 与开关类型               | `FeatureFlagManager`                                                                        |
-| `./federation`             | Federation 白名单：联邦 manager 与联邦服务器类型                | `FederationManager`, `FederationEvent`                                                      |
+| `./event-report`           | Event Report 白名单：事件举报类型                               | `ReportStatus`                                                                             |
+| `./external-service`       | External Service 白名单：外部服务 manager 与服务类型            | `ExternalServiceManager`                                                                   |
+| `./feature-flags`          | Feature Flags 白名单：特性开关 manager 与开关类型               | `FeatureFlagManager`                                                                       |
+| `./federation`             | Federation 白名单：联邦 manager 与联邦服务器类型                | `FederationManager`, `FederationEvent`                                                     |
 | `./friend`                 | Friend 白名单：好友 manager 与好友领域类型                      | `FriendManager`, `FriendEvent`, `Friend`                                                   |
-| `./guest`                  | Guest 白名单：访客 manager 与访客类型                            | `GuestManager`, `GuestEvent`                                                                |
+| `./guest`                  | Guest 白名单：访客 manager 与访客类型                           | `GuestManager`, `GuestEvent`                                                               |
 | `./http-api`               | HTTP 白名单：HTTP API 基础能力与错误类型                        | `MatrixHttpApi`, `HTTPError`, `MatrixError`                                                |
 | `./http-api/errors`        | HTTP 错误白名单：传输层/协议层错误类型                          | `HTTPError`, `MatrixError`, `ConnectionError`                                              |
-| `./key-backup`             | Key Backup 白名单：密钥备份类型                                 | `EncryptedData`, `BackupVersion`                                                            |
-| `./key-verification`       | Key Verification 白名单：密钥验证 manager 与验证类型            | `KeyVerificationManager`                                                                    |
-| `./media`                  | Media 白名单：媒体 manager 与媒体类型                           | `MediaManager`                                                                              |
+| `./key-backup`             | Key Backup 白名单：密钥备份类型                                 | `EncryptedData`, `BackupVersion`                                                           |
+| `./key-verification`       | Key Verification 白名单：密钥验证 manager 与验证类型            | `KeyVerificationManager`                                                                   |
+| `./media`                  | Media 白名单：媒体 manager 与媒体类型                           | `MediaManager`                                                                             |
 | `./models`                 | Models 白名单：模型聚合入口（当前仅校验子路径存在）             | `-`                                                                                        |
 | `./models/event`           | Event 模型白名单：事件实体与状态相关类型                        | `EventStatus`, `IEvent`, `IContent`                                                        |
 | `./models/room`            | Room 模型白名单：房间实体与状态/计数相关类型                    | `RoomEvent`, `NotificationCountType`, `KNOWN_SAFE_ROOM_VERSION`                            |
-| `./models/room-state`      | Room State 模型白名单：房间状态相关类型                         | `RoomStateEvent`                                                                            |
+| `./models/room-state`      | Room State 模型白名单：房间状态相关类型                         | `RoomStateEvent`                                                                           |
 | `./notification`           | Notification 白名单：通知入口（当前仅校验子路径存在）           | `-`                                                                                        |
-| `./oidc`                   | OIDC 白名单：OIDC 认证 manager 与认证类型                      | `OidcManager`                                                                               |
-| `./presence`               | Presence 白名单：在线状态 manager 与状态类型                    | `PresenceManager`, `PresenceEvent`                                                          |
+| `./oidc`                   | OIDC 白名单：OIDC 认证 manager 与认证类型                       | `OidcManager`                                                                              |
+| `./presence`               | Presence 白名单：在线状态 manager 与状态类型                    | `PresenceManager`, `PresenceEvent`                                                         |
 | `./push`                   | Push 白名单：推送 manager 与规则/通知类型                       | `PushManager`, `PushEvent`, `IPushRules`                                                   |
-| `./room`                   | Room 白名单：房间 manager 与房间领域类型                        | `RoomManager`                                                                               |
-| `./room-summary`           | Room Summary 白名单：房间摘要 manager 与摘要领域类型            | `RoomSummaryManager`, `RoomSummaryEvent`                                                    |
+| `./room`                   | Room 白名单：房间 manager 与房间领域类型                        | `RoomManager`                                                                              |
+| `./room-summary`           | Room Summary 白名单：房间摘要 manager 与摘要领域类型            | `RoomSummaryManager`, `RoomSummaryEvent`                                                   |
 | `./runtime-schemas`        | Runtime Schemas 白名单：运行时 zod schema 与快照解析能力        | `matrixEventWireSchema`, `parseMatrixEventWire`, `createMatrixClientSnapshot`              |
-| `./saml`                   | SAML 白名单：SAML 认证 manager 与认证类型                      | `SamlAuthManager`                                                                           |
+| `./saml`                   | SAML 白名单：SAML 认证 manager 与认证类型                       | `SamlAuthManager`                                                                          |
 | `./space`                  | Space 白名单：空间 manager 与空间层级类型                       | `SpaceManager`, `SpaceEvent`, `SpaceHierarchy`                                             |
 | `./store`                  | Store 白名单：存储接口能力                                      | `IStore`, `ISavedSync`, `UserCreator`                                                      |
-| `./store/worker`           | Store Worker 白名单：IndexedDB Worker 存储                      | `IndexedDBStoreWorker`                                                                      |
-| `./sync`                   | Sync 白名单：同步入口                                           | `SyncApi`                                                                                   |
-| `./telemetry`              | Telemetry 白名单：遥测管理入口                                  | `TelemetryManager`                                                                          |
+| `./store/worker`           | Store Worker 白名单：IndexedDB Worker 存储                      | `IndexedDBStoreWorker`                                                                     |
+| `./sync`                   | Sync 白名单：同步入口                                           | `SyncApi`                                                                                  |
+| `./telemetry`              | Telemetry 白名单：遥测管理入口                                  | `TelemetryManager`                                                                         |
 | `./timeline-window`        | Timeline 白名单：timeline 窗口能力                              | `TimelineWindow`, `TimelineIndex`                                                          |
-| `./verification`           | Verification 白名单：密钥验证 manager 与验证类型                | `VerificationManager`                                                                       |
+| `./verification`           | Verification 白名单：密钥验证 manager 与验证类型                | `VerificationManager`                                                                      |
 | `./voice`                  | Voice 白名单：语音消息 manager 与语音领域类型                   | `VoiceManager`, `VoiceEvent`, `IVoiceMessage`                                              |
 | `./webrtc`                 | WebRTC 白名单：通话入口（当前仅校验子路径存在）                 | `-`                                                                                        |
 | `./@types/partials`        | 类型白名单：协议 partial/type 枚举集合                          | `Visibility`, `Preset`, `JoinRule`                                                         |

@@ -6,9 +6,7 @@ describe("client-store-cleanup", () => {
     it("throws when client is running", async () => {
         const client = { clientRunning: true };
 
-        await expect(clearClientStores(client as any)).rejects.toThrow(
-            "Cannot clear stores while client is running",
-        );
+        await expect(clearClientStores(client as any)).rejects.toThrow("Cannot clear stores while client is running");
     });
 
     it("deletes data from the main store", async () => {

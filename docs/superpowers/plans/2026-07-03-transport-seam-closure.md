@@ -23,9 +23,11 @@
 ### Task 1: Propagate ManagerOpts to all 63 manager constructors
 
 **Files:**
+
 - Modify: ~63 manager `index.ts` files under `src/*/`
 
 **Interfaces:**
+
 - Consumes: `ManagerOpts` from `src/managers/base-manager.ts`
 - Produces: Every manager constructor signature: `constructor(client: MatrixClient, opts?: ManagerOpts)` with `super(client, opts)` call
 
@@ -50,6 +52,7 @@ Some constructors have additional parameters (e.g., `GuestManager` takes `homese
 - [ ] **Step 1: Write script to add ManagerOpts to all constructors**
 
 Create and run a script that:
+
 1. Finds all `constructor(client: MatrixClient)` patterns in `src/*/index.ts` files (excluding already-migrated admin family)
 2. Changes signature to `constructor(client: MatrixClient, opts?: ManagerOpts)`
 3. Changes `super(client)` to `super(client, opts)`
@@ -65,13 +68,13 @@ for f in $(grep -rl "extends BaseManager" src/ --include="*.ts" | grep -v "admin
     echo "SKIP (already migrated): $f"
     continue
   fi
-  
+
   # Add opts parameter to constructor
   sed -i '' 's/constructor(client: MatrixClient)/constructor(client: MatrixClient, opts?: ManagerOpts)/g' "$f"
-  
+
   # Update super call
   sed -i '' 's/super(client);/super(client, opts);/g' "$f"
-  
+
   echo "MIGRATED: $f"
 done
 ```
@@ -94,6 +97,7 @@ done
 - [ ] **Step 3: Handle special cases manually**
 
 Files with extra constructor params need manual handling:
+
 - `src/guest/index.ts`: `constructor(client: MatrixClient, homeserverUrl: string)` → add `opts?: ManagerOpts` as 3rd param
 - `src/telemetry/index.ts`: `constructor(client: MatrixClient, config?: Partial<TelemetryConfig>)` → add `opts?: ManagerOpts` as 3rd param
 - `src/burn-after-read/index.ts`: check constructor signature
@@ -130,12 +134,14 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 2: Delete HttpManager — shallow passthrough with zero internal consumers
 
 **Files:**
+
 - Remove: `src/http/index.ts` (92 lines)
 - Modify: `src/matrix-client-extensions.ts` (remove 1 declaration)
 - Modify: `src/manager-extensions/index.ts` (regenerate or remove 1 import block)
 - Modify: `scripts/generate-manager-extensions.mjs` (remove http entry)
 
 **Interfaces:**
+
 - Produces: HttpManager module deleted; callers use `this.client.http` directly
 
 HttpManager has 6 methods, all pure delegation to `this.client.*`. Zero internal callers of `getHttpManager()` exist in `src/`. The deletion test passes cleanly.
@@ -149,6 +155,7 @@ rm src/http/index.ts
 - [ ] **Step 2: Remove from type declarations**
 
 In `src/matrix-client-extensions.ts`, remove:
+
 ```typescript
 getHttpManager(): import("./http/index").HttpManager;
 ```
@@ -164,6 +171,7 @@ node scripts/generate-manager-extensions.mjs
 - [ ] **Step 4: Remove from ManagerName and ManagerTypeMap**
 
 In `src/client-infra/manager-registry.ts`:
+
 - Remove `| "http"` from the `ManagerName` union
 - Remove `http: import("../http/index").HttpManager;` from `ManagerTypeMap`
 
@@ -193,38 +201,36 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 3: Migrate top 10 largest files from authedRequest to this.request()
 
 **Files:**
+
 - Modify: 10 files (see list below)
 
 **Interfaces:**
+
 - Consumes: `this.request()` from `BaseManager` (Task 1 enables ManagerOpts propagation)
 - Produces: All HTTP calls in these 10 files use `this.request()` transport seam
 
 Target the 10 highest-volume files identified in the architecture review:
 
-| File | Direct HTTP calls |
-|---|---|
-| `src/event-report/index.ts` | ~21 |
-| `src/app-service/index.ts` | ~21 |
-| `src/widget/index.ts` | ~18 |
-| `src/e2ee/index.ts` | ~14 |
-| `src/burn-after-read/index.ts` | ~10 |
-| `src/auth/index.ts` | ~9 |
-| `src/account-data/index.ts` | ~7 |
-| `src/reporting/index.ts` | ~5 |
-| `src/room-member/index.ts` | ~5 |
-| `src/account/index.ts` | ~5 |
+| File                           | Direct HTTP calls |
+| ------------------------------ | ----------------- |
+| `src/event-report/index.ts`    | ~21               |
+| `src/app-service/index.ts`     | ~21               |
+| `src/widget/index.ts`          | ~18               |
+| `src/e2ee/index.ts`            | ~14               |
+| `src/burn-after-read/index.ts` | ~10               |
+| `src/auth/index.ts`            | ~9                |
+| `src/account-data/index.ts`    | ~7                |
+| `src/reporting/index.ts`       | ~5                |
+| `src/room-member/index.ts`     | ~5                |
+| `src/account/index.ts`         | ~5                |
 
 Pattern to apply for each call:
 
 ```typescript
 // BEFORE:
-const response = await this.client.http.authedRequest<Type>(
-    Method.Post,
-    "/path",
-    queryParams,
-    body,
-    { prefix: ClientPrefix.V3 },
-);
+const response = await this.client.http.authedRequest<Type>(Method.Post, "/path", queryParams, body, {
+    prefix: ClientPrefix.V3,
+});
 
 // AFTER:
 const response = await this.request<Type>({
@@ -289,6 +295,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 4: Fix stray declare module + cross-domain util import
 
 **Files:**
+
 - Modify: `src/models/MSC3089TreeSpace.ts`
 - Modify: `src/matrix-client-extensions.ts`
 - Create: `src/common/pagination.ts`
@@ -296,6 +303,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 - Modify: `src/admin/utils.ts`
 
 **Interfaces:**
+
 - Produces: Zero stray `declare module` blocks outside authorized files; `buildPaginationParams` lives in `src/common/pagination.ts`
 
 - [ ] **Step 1: Move stray declare module**
@@ -307,7 +315,12 @@ Read `src/models/MSC3089TreeSpace.ts` line 81. Find the `declare module "../@typ
 Create `src/common/pagination.ts`:
 
 ```typescript
-export function buildPaginationParams(limit?: number, from?: string, to?: string, dir?: string): Record<string, string> {
+export function buildPaginationParams(
+    limit?: number,
+    from?: string,
+    to?: string,
+    dir?: string,
+): Record<string, string> {
     const params: Record<string, string> = {};
     if (limit !== undefined) params.limit = String(limit);
     if (from !== undefined) params.from = from;
@@ -318,11 +331,13 @@ export function buildPaginationParams(limit?: number, from?: string, to?: string
 ```
 
 Update `src/admin/utils.ts` to re-export from common:
+
 ```typescript
 export { buildPaginationParams } from "../../common/pagination";
 ```
 
 Update `src/module/index.ts` to import from common:
+
 ```typescript
 import { buildPaginationParams } from "../common/pagination";
 ```
@@ -350,6 +365,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 5: Backfill tests for top 5 untested managers using FakeTransport
 
 **Files:**
+
 - Create: `spec/unit/room-manager.spec.ts`
 - Create: `spec/unit/threading.spec.ts`
 - Create: `spec/unit/e2ee.spec.ts`
@@ -357,6 +373,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 - Create: `spec/unit/oidc.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `FakeTransport` from `spec/test-utils/FakeTransport.ts`, `ManagerOpts` from Task 1
 - Produces: Test coverage for 5 largest untested managers
 
@@ -427,9 +444,11 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 6: Migrate remaining 67 files from authedRequest to this.request()
 
 **Files:**
+
 - Modify: ~67 files across `src/`
 
 **Interfaces:**
+
 - Consumes: `this.request()` from BaseManager (enabled by Task 1)
 - Produces: Zero direct `this.client.http.authedRequest()` calls in any manager
 

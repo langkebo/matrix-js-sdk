@@ -58,12 +58,11 @@ describe("MatrixScheduler", function () {
         let yieldedA = false;
         scheduler.setProcessFunction(function (event) {
             if (yieldedA) {
-                 
                 expect(event).toEqual(eventB);
                 return deferB.promise;
             } else {
                 yieldedA = true;
-                 
+
                 expect(event).toEqual(eventA);
                 return deferA.promise;
             }
@@ -91,7 +90,6 @@ describe("MatrixScheduler", function () {
         scheduler.setProcessFunction(function (ev) {
             procCount += 1;
             if (procCount === 1) {
-                 
                 expect(ev).toEqual(eventA);
                 return deferred.promise;
             } else if (procCount === 2) {
@@ -132,11 +130,9 @@ describe("MatrixScheduler", function () {
         scheduler.setProcessFunction(function (ev) {
             procCount += 1;
             if (procCount === 1) {
-                 
                 expect(ev).toEqual(eventA);
                 return deferA.promise;
             } else if (procCount === 2) {
-                 
                 expect(ev).toEqual(eventB);
                 return deferB.promise;
             }

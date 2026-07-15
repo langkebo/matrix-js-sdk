@@ -15,48 +15,48 @@ last_reviewed: 2026-05-11
 
 - `generated/modules/search.json` 当前记录 **11** 条路由，不是旧文档中的单一 `POST /search`。
 - 路由能力分散在多个 SDK 入口：
-  - `POST /search` 由 `MatrixClient.search()` / `SearchManager.search()` / `searchMessageText()` 承接
-  - `POST /search_rooms` 由 `MatrixClient.searchRooms()` 承接
-  - `POST /search_recipients` 本轮新增 `MatrixClient.searchRecipients()` 与 `SearchManager.searchRecipients()`
-  - `/rooms/{room_id}/context/{event_id}` 由 `EventManager.getEventContext()` 承接
-  - `/rooms/{room_id}/hierarchy` 由 `RoomManager.getRoomHierarchy()` / `MatrixClient.getRoomHierarchy()` 承接
-  - `/rooms/{room_id}/timestamp_to_event` 由 `MatrixClient.timestampToEvent()` 承接
+    - `POST /search` 由 `MatrixClient.search()` / `SearchManager.search()` / `searchMessageText()` 承接
+    - `POST /search_rooms` 由 `MatrixClient.searchRooms()` 承接
+    - `POST /search_recipients` 本轮新增 `MatrixClient.searchRecipients()` 与 `SearchManager.searchRecipients()`
+    - `/rooms/{room_id}/context/{event_id}` 由 `EventManager.getEventContext()` 承接
+    - `/rooms/{room_id}/hierarchy` 由 `RoomManager.getRoomHierarchy()` / `MatrixClient.getRoomHierarchy()` 承接
+    - `/rooms/{room_id}/timestamp_to_event` 由 `MatrixClient.timestampToEvent()` 承接
 - `searchUserDirectory()` 实际走的是 `/user_directory/search`，不属于本模块 11 条后端路由统计。
 - 本轮已将 `POST /search`、`POST /search_rooms`、`POST /search_recipients` 绑定到生成的 `SearchPathPattern`。
 
 ## 真实后端路由
 
-| 方法 | 路径                        | 说明     | 认证 |
-| ---- | --------------------------- | -------- | ---- |
-| POST | `/_matrix/client/r0/search` | 全局搜索 | 用户 |
-| POST | `/_matrix/client/r0/search_recipients` | 搜索可作为收件人的用户 | 用户 |
-| POST | `/_matrix/client/r0/search_rooms` | 搜索房间 | 用户 |
-| GET  | `/_matrix/client/v1/rooms/{room_id}/context/{event_id}` | 获取事件上下文 | 房间成员 |
-| GET  | `/_matrix/client/v1/rooms/{room_id}/hierarchy` | 获取房间层级 | 房间可见 |
-| GET  | `/_matrix/client/v1/rooms/{room_id}/timestamp_to_event` | 时间戳定位事件 | 房间成员 |
-| POST | `/_matrix/client/v3/search` | 全局搜索 | 用户 |
-| POST | `/_matrix/client/v3/search_recipients` | 搜索可作为收件人的用户 | 用户 |
-| POST | `/_matrix/client/v3/search_rooms` | 搜索房间 | 用户 |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/context/{event_id}` | 获取事件上下文 | 房间成员 |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/hierarchy` | 获取房间层级 | 房间可见 |
+| 方法 | 路径                                                    | 说明                   | 认证     |
+| ---- | ------------------------------------------------------- | ---------------------- | -------- |
+| POST | `/_matrix/client/r0/search`                             | 全局搜索               | 用户     |
+| POST | `/_matrix/client/r0/search_recipients`                  | 搜索可作为收件人的用户 | 用户     |
+| POST | `/_matrix/client/r0/search_rooms`                       | 搜索房间               | 用户     |
+| GET  | `/_matrix/client/v1/rooms/{room_id}/context/{event_id}` | 获取事件上下文         | 房间成员 |
+| GET  | `/_matrix/client/v1/rooms/{room_id}/hierarchy`          | 获取房间层级           | 房间可见 |
+| GET  | `/_matrix/client/v1/rooms/{room_id}/timestamp_to_event` | 时间戳定位事件         | 房间成员 |
+| POST | `/_matrix/client/v3/search`                             | 全局搜索               | 用户     |
+| POST | `/_matrix/client/v3/search_recipients`                  | 搜索可作为收件人的用户 | 用户     |
+| POST | `/_matrix/client/v3/search_rooms`                       | 搜索房间               | 用户     |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/context/{event_id}` | 获取事件上下文         | 房间成员 |
+| GET  | `/_matrix/client/v3/rooms/{room_id}/hierarchy`          | 获取房间层级           | 房间可见 |
 
 ## SDK 对齐状态
 
-| 路由能力 | SDK 入口 | 方法 | 状态 |
-| -------- | -------- | ---- | ---- |
-| `POST /search` | `MatrixClient` / `SearchManager` | `search()` / `searchMessageText()` / `searchRoomEvents()` | ✅ 已封装 |
-| `POST /search_rooms` | `MatrixClient` | `searchRooms()` | ✅ 已封装 |
-| `POST /search_recipients` | `MatrixClient` / `SearchManager` | `searchRecipients()` | ✅ 已封装 |
-| `GET /rooms/{room_id}/context/{event_id}` | `EventManager` | `getEventContext()` | ✅ 已封装 |
-| `GET /rooms/{room_id}/hierarchy` | `RoomManager` / `MatrixClient` | `getRoomHierarchy()` | ✅ 已封装 |
-| `GET /rooms/{room_id}/timestamp_to_event` | `MatrixClient` | `timestampToEvent()` | ✅ 已封装 |
+| 路由能力                                  | SDK 入口                         | 方法                                                      | 状态      |
+| ----------------------------------------- | -------------------------------- | --------------------------------------------------------- | --------- |
+| `POST /search`                            | `MatrixClient` / `SearchManager` | `search()` / `searchMessageText()` / `searchRoomEvents()` | ✅ 已封装 |
+| `POST /search_rooms`                      | `MatrixClient`                   | `searchRooms()`                                           | ✅ 已封装 |
+| `POST /search_recipients`                 | `MatrixClient` / `SearchManager` | `searchRecipients()`                                      | ✅ 已封装 |
+| `GET /rooms/{room_id}/context/{event_id}` | `EventManager`                   | `getEventContext()`                                       | ✅ 已封装 |
+| `GET /rooms/{room_id}/hierarchy`          | `RoomManager` / `MatrixClient`   | `getRoomHierarchy()`                                      | ✅ 已封装 |
+| `GET /rooms/{room_id}/timestamp_to_event` | `MatrixClient`                   | `timestampToEvent()`                                      | ✅ 已封装 |
 
 - **总端点数**: 11
 - **已封装**: 11
 - **覆盖率**: 100%
 - **路径绑定**:
-  - `src/client-crypto-requests.ts` 绑定 `POST /search`
-  - `src/client-secure-backup-requests.ts` 绑定 `POST /search_rooms` 与 `POST /search_recipients`
+    - `src/client-crypto-requests.ts` 绑定 `POST /search`
+    - `src/client-secure-backup-requests.ts` 绑定 `POST /search_rooms` 与 `POST /search_recipients`
 - **验证状态**: `spec/unit/search.spec.ts`
 
 ## 关键响应口径
@@ -135,6 +135,6 @@ interface SearchRecipientsOrRoomsResponse {
 
 ## 变更历史
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
+| 日期       | 变更                                                                                                  | 影响                |
+| ---------- | ----------------------------------------------------------------------------------------------------- | ------------------- |
 | 2026-05-11 | 按后端 ledger 扩展为 11 条路由口径，新增 `search_recipients` SDK 入口，并补充多入口映射与路径绑定说明 | 修复文档与 SDK 漂移 |

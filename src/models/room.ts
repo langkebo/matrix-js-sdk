@@ -25,7 +25,8 @@ import { getHttpUriForMxc } from "../content-repo";
 import * as utils from "../utils";
 import { normalize } from "../common/strings";
 import { noUnsafeEventProps } from "../common/safety";
-import { removeElement } from "../common/collections";import {
+import { removeElement } from "../common/collections";
+import {
     type IEvent,
     type IThreadBundledRelationship,
     MatrixEvent,

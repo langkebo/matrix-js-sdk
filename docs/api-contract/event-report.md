@@ -169,27 +169,27 @@ interface EventReportDetail {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点                                      | SDK 方法                                | 状态      |
-| --------------------------------------------- | --------------------------------------- | --------- |
-| `POST /event_reports`                         | `eventReportManager.createReport()`     | ✅ 已封装 |
-| `GET /event_reports`                          | `eventReportManager.listReports()`      | ✅ 已封装 |
-| `GET /event_reports/count`                    | `eventReportManager.getReportsCount()`  | ✅ 已封装 |
-| `GET /event_reports/{id}`                     | `eventReportManager.getReport()`        | ✅ 已封装 |
-| `PUT /event_reports/{id}`                     | `eventReportManager.updateReport()`     | ✅ 已封装 |
-| `DELETE /event_reports/{id}`                  | `eventReportManager.deleteReport()`     | ✅ 已封装 |
-| `POST /event_reports/{id}/resolve`            | `eventReportManager.resolveReport()`    | ✅ 已封装 |
-| `POST /event_reports/{id}/dismiss`            | `eventReportManager.dismissReport()`    | ✅ 已封装 |
-| `POST /event_reports/{id}/escalate`           | `eventReportManager.escalateReport()`   | ✅ 已封装 |
-| `GET /event_reports/{id}/history`             | `eventReportManager.getReportHistory()` | ✅ 已封装 |
-| `GET /event_reports/event/{event_id}`         | `eventReportManager.getReportsByEvent()`| ✅ 已封装 |
-| `GET /event_reports/room/{room_id}`           | `eventReportManager.getReportsByRoom()` | ✅ 已封装 |
-| `GET /event_reports/reporter/{reporter_id}`   | `eventReportManager.getReportsByReporter()` | ✅ 已封装 |
-| `GET /event_reports/status/{status}`          | `eventReportManager.getReportsByStatus()` | ✅ 已封装 |
-| `GET /event_reports/status/{status}/count`    | `eventReportManager.getStatusCount()`   | ✅ 已封装 |
-| `GET /event_reports/stats`                    | `eventReportManager.getStats()`         | ✅ 已封装 |
-| `GET /event_reports/rate_limit/{user_id}`     | `eventReportManager.checkRateLimit()`   | ✅ 已封装 |
-| `POST /event_reports/rate_limit/{user_id}/block`   | `eventReportManager.blockUser()`    | ✅ 已封装 |
-| `POST /event_reports/rate_limit/{user_id}/unblock` | `eventReportManager.unblockUser()`  | ✅ 已封装 |
+| 后端端点                                           | SDK 方法                                    | 状态      |
+| -------------------------------------------------- | ------------------------------------------- | --------- |
+| `POST /event_reports`                              | `eventReportManager.createReport()`         | ✅ 已封装 |
+| `GET /event_reports`                               | `eventReportManager.listReports()`          | ✅ 已封装 |
+| `GET /event_reports/count`                         | `eventReportManager.getReportsCount()`      | ✅ 已封装 |
+| `GET /event_reports/{id}`                          | `eventReportManager.getReport()`            | ✅ 已封装 |
+| `PUT /event_reports/{id}`                          | `eventReportManager.updateReport()`         | ✅ 已封装 |
+| `DELETE /event_reports/{id}`                       | `eventReportManager.deleteReport()`         | ✅ 已封装 |
+| `POST /event_reports/{id}/resolve`                 | `eventReportManager.resolveReport()`        | ✅ 已封装 |
+| `POST /event_reports/{id}/dismiss`                 | `eventReportManager.dismissReport()`        | ✅ 已封装 |
+| `POST /event_reports/{id}/escalate`                | `eventReportManager.escalateReport()`       | ✅ 已封装 |
+| `GET /event_reports/{id}/history`                  | `eventReportManager.getReportHistory()`     | ✅ 已封装 |
+| `GET /event_reports/event/{event_id}`              | `eventReportManager.getReportsByEvent()`    | ✅ 已封装 |
+| `GET /event_reports/room/{room_id}`                | `eventReportManager.getReportsByRoom()`     | ✅ 已封装 |
+| `GET /event_reports/reporter/{reporter_id}`        | `eventReportManager.getReportsByReporter()` | ✅ 已封装 |
+| `GET /event_reports/status/{status}`               | `eventReportManager.getReportsByStatus()`   | ✅ 已封装 |
+| `GET /event_reports/status/{status}/count`         | `eventReportManager.getStatusCount()`       | ✅ 已封装 |
+| `GET /event_reports/stats`                         | `eventReportManager.getStats()`             | ✅ 已封装 |
+| `GET /event_reports/rate_limit/{user_id}`          | `eventReportManager.checkRateLimit()`       | ✅ 已封装 |
+| `POST /event_reports/rate_limit/{user_id}/block`   | `eventReportManager.blockUser()`            | ✅ 已封装 |
+| `POST /event_reports/rate_limit/{user_id}/unblock` | `eventReportManager.unblockUser()`          | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
@@ -205,7 +205,7 @@ interface EventReportDetail {
 
 ## 四、变更历史
 
-| 日期       | 变更 | 影响 |
-| ---------- | ---- | ---- |
-| 2026-04-27 | 初版 | -    |
+| 日期       | 变更                                         | 影响                  |
+| ---------- | -------------------------------------------- | --------------------- |
+| 2026-04-27 | 初版                                         | -                     |
 | 2026-05-10 | 补齐 `EventReportManager` 缺失端点并增加单测 | SDK 覆盖率提升至 100% |

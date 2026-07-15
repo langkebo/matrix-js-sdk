@@ -192,9 +192,7 @@ import { type EmptyObject } from "./@types/common";
 import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors";
 import { type Transport } from "./matrix-rtc/index";
 import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events";
-import {
-    updateScheduledDelayedEventWithFallback,
-} from "./client-delayed-events-updater";
+import { updateScheduledDelayedEventWithFallback } from "./client-delayed-events-updater";
 import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";

@@ -36,7 +36,8 @@ import { type IHttpOpts, type MatrixHttpApi, Method } from "../http-api/index";
 import { RoomEncryptor } from "./RoomEncryptor";
 import { OutgoingRequestProcessor } from "./OutgoingRequestProcessor";
 import { KeyClaimManager } from "./KeyClaimManager";
-import { MapWithDefault } from "../common/collections";import {
+import { MapWithDefault } from "../common/collections";
+import {
     AllDevicesIsolationMode,
     type BackupTrustInfo,
     type BootstrapCrossSigningOpts,

@@ -16,7 +16,8 @@ limitations under the License.
 
 import { type IMinimalEvent, type ISyncData, type ISyncResponse, SyncAccumulator } from "../sync-accumulator";
 import { deepCopy } from "../common/collections";
-import { promiseTry } from "../common/async";import { exists as idbExists } from "../indexeddb-helpers";
+import { promiseTry } from "../common/async";
+import { exists as idbExists } from "../indexeddb-helpers";
 import { logger } from "../logger";
 import { type IStateEventWithRoomId, type IStoredClientOpts } from "../matrix";
 import { type ISavedSync } from "./index";

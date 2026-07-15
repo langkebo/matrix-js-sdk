@@ -20,13 +20,13 @@
 
 ## File Structure
 
-| New file | Contents | ~Importers |
-|---|---|---|
-| `src/common/async.ts` | `sleep`, `logDuration`, `logDurationSync`, `promiseMapSeries`, `promiseTry`, `simpleRetryOperation` | 60+ (sleep alone has 26) |
-| `src/common/strings.ts` | `internaliseString`, `escapeRegExp`, `globToRegexp`, `removeHiddenChars`, `removeDirectionOverrideChars`, `normalize`, `DEFAULT_ALPHABET`, `alphabetPad`, `baseToString`, `stringToBase`, `averageBetweenStrings`, `nextString`, `prevString`, `lexicographicCompare` | 10+ |
-| `src/common/collections.ts` | `removeElement`, `deepCopy`, `deepCompare`, `deepSortedObjectEntries`, `recursiveMapToObject`, `mapsEqual`, `MapWithDefault` (class) | 15+ |
-| `src/common/safety.ts` | `checkObjectHasKeys`, `safeSet`, `unsafeProp`, `noUnsafeEventProps`, `isNullOrUndefined`, `isNumber`, `isSupportedReceiptType`, `sortEventsByLatestContentTimestamp`, `recursivelyAssign` | 10+ |
-| Merge into `src/http-api/utils.ts` | `encodeParams`, `encodeUri`, `replaceParam`, `ensureNoTrailingSlash`, `QueryDict` (type) | 40+ |
+| New file                           | Contents                                                                                                                                                                                                                                                              | ~Importers               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `src/common/async.ts`              | `sleep`, `logDuration`, `logDurationSync`, `promiseMapSeries`, `promiseTry`, `simpleRetryOperation`                                                                                                                                                                   | 60+ (sleep alone has 26) |
+| `src/common/strings.ts`            | `internaliseString`, `escapeRegExp`, `globToRegexp`, `removeHiddenChars`, `removeDirectionOverrideChars`, `normalize`, `DEFAULT_ALPHABET`, `alphabetPad`, `baseToString`, `stringToBase`, `averageBetweenStrings`, `nextString`, `prevString`, `lexicographicCompare` | 10+                      |
+| `src/common/collections.ts`        | `removeElement`, `deepCopy`, `deepCompare`, `deepSortedObjectEntries`, `recursiveMapToObject`, `mapsEqual`, `MapWithDefault` (class)                                                                                                                                  | 15+                      |
+| `src/common/safety.ts`             | `checkObjectHasKeys`, `safeSet`, `unsafeProp`, `noUnsafeEventProps`, `isNullOrUndefined`, `isNumber`, `isSupportedReceiptType`, `sortEventsByLatestContentTimestamp`, `recursivelyAssign`                                                                             | 10+                      |
+| Merge into `src/http-api/utils.ts` | `encodeParams`, `encodeUri`, `replaceParam`, `ensureNoTrailingSlash`, `QueryDict` (type)                                                                                                                                                                              | 40+                      |
 
 **Dead exports to delete:** `decodeParams`, `isFunction`, `chunkPromises`
 
@@ -37,11 +37,13 @@
 ### Task 1: Create src/common/async.ts
 
 **Files:**
+
 - Create: `src/common/async.ts`
 - Modify: `src/utils.ts` (add re-exports from common/async)
 - Test: `spec/unit/utils.spec.ts` (no changes needed — tests use `import * as utils`)
 
 **Interfaces:**
+
 - Produces: `sleep(ms, value?)`, `logDuration(logger, name, block)`, `logDurationSync(logger, name, block)`, `promiseMapSeries(promises, fn)`, `promiseTry(fn)`, `simpleRetryOperation(promiseFn, shouldRetry?)`
 
 - [ ] **Step 1: Create `src/common/async.ts`**
@@ -115,7 +117,14 @@ export function simpleRetryOperation<T>(
 Remove the extracted functions from `src/utils.ts` (lines 21-25 import section stays, but remove `p-retry` and `BaseLogger` if no longer needed). Add re-export:
 
 ```typescript
-export { sleep, logDuration, logDurationSync, promiseMapSeries, promiseTry, simpleRetryOperation } from "./common/async";
+export {
+    sleep,
+    logDuration,
+    logDurationSync,
+    promiseMapSeries,
+    promiseTry,
+    simpleRetryOperation,
+} from "./common/async";
 ```
 
 Keep `p-retry` import and `BaseLogger` import in utils.ts for now — other functions may depend on them.
@@ -138,10 +147,12 @@ git commit -m "refactor: extract async utilities to src/common/async.ts"
 ### Task 2: Create src/common/strings.ts
 
 **Files:**
+
 - Create: `src/common/strings.ts`
 - Modify: `src/utils.ts` (add re-exports)
 
 **Interfaces:**
+
 - Produces: `internaliseString`, `escapeRegExp`, `globToRegexp`, `removeHiddenChars`, `removeDirectionOverrideChars`, `normalize`, `DEFAULT_ALPHABET`, `alphabetPad`, `baseToString`, `stringToBase`, `averageBetweenStrings`, `nextString`, `prevString`, `lexicographicCompare`
 
 - [ ] **Step 1: Create `src/common/strings.ts`**
@@ -170,10 +181,12 @@ git commit -m "refactor: extract string utilities to src/common/strings.ts"
 ### Task 3: Create src/common/collections.ts
 
 **Files:**
+
 - Create: `src/common/collections.ts`
 - Modify: `src/utils.ts` (add re-exports)
 
 **Interfaces:**
+
 - Produces: `removeElement`, `deepCopy`, `deepCompare`, `deepSortedObjectEntries`, `recursiveMapToObject`, `mapsEqual`, `MapWithDefault` (class)
 
 - [ ] **Step 1: Create `src/common/collections.ts`**
@@ -202,10 +215,12 @@ git commit -m "refactor: extract collection utilities to src/common/collections.
 ### Task 4: Create src/common/safety.ts
 
 **Files:**
+
 - Create: `src/common/safety.ts`
 - Modify: `src/utils.ts` (add re-exports)
 
 **Interfaces:**
+
 - Produces: `checkObjectHasKeys`, `safeSet`, `unsafeProp`, `noUnsafeEventProps`, `isNullOrUndefined`, `isNumber`, `isSupportedReceiptType`, `sortEventsByLatestContentTimestamp`, `recursivelyAssign`
 
 - [ ] **Step 1: Create `src/common/safety.ts`**
@@ -234,10 +249,12 @@ git commit -m "refactor: extract safety/type-guard utilities to src/common/safet
 ### Task 5: Move HTTP functions to src/http-api/utils.ts + delete dead code
 
 **Files:**
+
 - Modify: `src/http-api/utils.ts` (add encodeParams, encodeUri, replaceParam, ensureNoTrailingSlash, QueryDict)
 - Modify: `src/utils.ts` (remove HTTP functions, remove dead exports, add re-exports)
 
 **Interfaces:**
+
 - Produces: `encodeParams`, `encodeUri`, `replaceParam`, `ensureNoTrailingSlash`, `QueryDict` (now exported from http-api/utils.ts)
 
 - [ ] **Step 1: Add HTTP functions to `src/http-api/utils.ts`**
@@ -270,6 +287,7 @@ git commit -m "refactor: move HTTP utilities to http-api/utils.ts, remove 3 dead
 ### Task 6: Update ~98 importers to use new module paths
 
 **Files:**
+
 - Modify: 58 files importing from `../utils`
 - Modify: 40 files importing from `./utils`
 

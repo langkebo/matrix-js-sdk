@@ -30,35 +30,35 @@ last_reviewed: 2026-05-03
 所有路径都挂在 `admin_auth_middleware` 之下，且受 `state.services.saml_service.is_enabled()` 门控——
 未启用 SAML 的部署下整组路由不会被挂载。
 
-| 方法   | 路径                                                | 说明                           |
-| ------ | --------------------------------------------------- | ------------------------------ |
-| POST   | `/_synapse/admin/v1/saml/metadata/refresh`          | 强制刷新 IdP 元数据            |
-| GET    | `/_synapse/admin/v1/saml/config`                    | 读取生效 SAML 配置（脱敏）     |
-| PUT    | `/_synapse/admin/v1/saml/config`                    | 应用运行时覆盖（白名单字段）   |
-| GET    | `/_synapse/admin/v1/saml/mappings`                  | 分页列出 name_id → user 映射   |
-| GET    | `/_synapse/admin/v1/saml/mapping/{name_id}`         | 读取单条映射（跨 issuer 首命中） |
-| PUT    | `/_synapse/admin/v1/saml/mapping/{name_id}`         | 更新 user_id / attributes      |
-| DELETE | `/_synapse/admin/v1/saml/mapping/{name_id}`         | 删除所有 issuer 下匹配项       |
-| POST   | `/_synapse/admin/v1/saml/logout`                    | 管理员发起 SLO（body: user_id） |
+| 方法   | 路径                                        | 说明                             |
+| ------ | ------------------------------------------- | -------------------------------- |
+| POST   | `/_synapse/admin/v1/saml/metadata/refresh`  | 强制刷新 IdP 元数据              |
+| GET    | `/_synapse/admin/v1/saml/config`            | 读取生效 SAML 配置（脱敏）       |
+| PUT    | `/_synapse/admin/v1/saml/config`            | 应用运行时覆盖（白名单字段）     |
+| GET    | `/_synapse/admin/v1/saml/mappings`          | 分页列出 name_id → user 映射     |
+| GET    | `/_synapse/admin/v1/saml/mapping/{name_id}` | 读取单条映射（跨 issuer 首命中） |
+| PUT    | `/_synapse/admin/v1/saml/mapping/{name_id}` | 更新 user_id / attributes        |
+| DELETE | `/_synapse/admin/v1/saml/mapping/{name_id}` | 删除所有 issuer 下匹配项         |
+| POST   | `/_synapse/admin/v1/saml/logout`            | 管理员发起 SLO（body: user_id）  |
 
 ## SDK 对齐状态
 
-| 端点                                              | SDK Manager        | 方法                      | 状态      |
-| ------------------------------------------------- | ------------------ | ------------------------- | --------- |
-| `POST /login/sso/redirect/saml`                   | `SamlAuthManager`  | `initiateLogin()`         | ✅ 已封装 |
-| `POST /login/saml/callback`                       | `SamlAuthManager`  | `handleCallback()`        | ✅ 已封装 |
-| `GET /logout/saml`                                | `SamlAuthManager`  | `logout()`                | ✅ 已封装 |
-| `GET /logout/saml/callback`                       | `SamlAuthManager`  | `handleLogoutCallback()`  | ✅ 已封装 |
-| `GET /saml/metadata`                              | `SamlAuthManager`  | `getIdpMetadata()`        | ✅ 已封装 |
-| `GET /saml/sp_metadata`                           | `SamlAuthManager`  | `getSpMetadata()`         | ✅ 已封装 |
-| `POST /_synapse/admin/v1/saml/metadata/refresh`   | `SamlAuthManager`  | `refreshMetadata()`       | ✅ 已封装 |
-| `GET /_synapse/admin/v1/saml/config`              | `SamlAuthManager`  | `getConfig()`             | ✅ 已封装 |
-| `PUT /_synapse/admin/v1/saml/config`              | `SamlAuthManager`  | `updateConfig()`          | ✅ 已封装 |
-| `GET /_synapse/admin/v1/saml/mappings`            | `SamlAuthManager`  | `getUserMappings()`       | ✅ 已封装 |
-| `GET /_synapse/admin/v1/saml/mapping/{name_id}`   | `SamlAuthManager`  | `getUserMapping()`        | ✅ 已封装 |
-| `PUT /_synapse/admin/v1/saml/mapping/{name_id}`   | `SamlAuthManager`  | `updateUserMapping()`     | ✅ 已封装 |
-| `DELETE /_synapse/admin/v1/saml/mapping/{name_id}`| `SamlAuthManager`  | `removeUserMapping()`     | ✅ 已封装 |
-| `POST /_synapse/admin/v1/saml/logout`             | `SamlAuthManager`  | `adminLogout()`           | ✅ 已封装 |
+| 端点                                               | SDK Manager       | 方法                     | 状态      |
+| -------------------------------------------------- | ----------------- | ------------------------ | --------- |
+| `POST /login/sso/redirect/saml`                    | `SamlAuthManager` | `initiateLogin()`        | ✅ 已封装 |
+| `POST /login/saml/callback`                        | `SamlAuthManager` | `handleCallback()`       | ✅ 已封装 |
+| `GET /logout/saml`                                 | `SamlAuthManager` | `logout()`               | ✅ 已封装 |
+| `GET /logout/saml/callback`                        | `SamlAuthManager` | `handleLogoutCallback()` | ✅ 已封装 |
+| `GET /saml/metadata`                               | `SamlAuthManager` | `getIdpMetadata()`       | ✅ 已封装 |
+| `GET /saml/sp_metadata`                            | `SamlAuthManager` | `getSpMetadata()`        | ✅ 已封装 |
+| `POST /_synapse/admin/v1/saml/metadata/refresh`    | `SamlAuthManager` | `refreshMetadata()`      | ✅ 已封装 |
+| `GET /_synapse/admin/v1/saml/config`               | `SamlAuthManager` | `getConfig()`            | ✅ 已封装 |
+| `PUT /_synapse/admin/v1/saml/config`               | `SamlAuthManager` | `updateConfig()`         | ✅ 已封装 |
+| `GET /_synapse/admin/v1/saml/mappings`             | `SamlAuthManager` | `getUserMappings()`      | ✅ 已封装 |
+| `GET /_synapse/admin/v1/saml/mapping/{name_id}`    | `SamlAuthManager` | `getUserMapping()`       | ✅ 已封装 |
+| `PUT /_synapse/admin/v1/saml/mapping/{name_id}`    | `SamlAuthManager` | `updateUserMapping()`    | ✅ 已封装 |
+| `DELETE /_synapse/admin/v1/saml/mapping/{name_id}` | `SamlAuthManager` | `removeUserMapping()`    | ✅ 已封装 |
+| `POST /_synapse/admin/v1/saml/logout`              | `SamlAuthManager` | `adminLogout()`          | ✅ 已封装 |
 
 ## 覆盖率口径
 
@@ -120,34 +120,68 @@ last_reviewed: 2026-05-03
 > Source: `src/saml/__generated__/dto.ts`
 
 ```typescript
-export interface SamlLoginResponse { redirect_url: string; }
-export interface SamlAuthResult {
-    user_id: string; access_token: string; device_id: string;
-    expires_in?: number; refresh_token?: string;
+export interface SamlLoginResponse {
+    redirect_url: string;
 }
-export interface SamlLogoutResponse { redirect_url?: string; }
+export interface SamlAuthResult {
+    user_id: string;
+    access_token: string;
+    device_id: string;
+    expires_in?: number;
+    refresh_token?: string;
+}
+export interface SamlLogoutResponse {
+    redirect_url?: string;
+}
 export interface SamlMetadata {
-    entity_id?: string; sso_url?: string; slo_url?: string;
-    x509_certificates?: string[]; nameid_format?: string; xml?: string;
+    entity_id?: string;
+    sso_url?: string;
+    slo_url?: string;
+    x509_certificates?: string[];
+    nameid_format?: string;
+    xml?: string;
     [key: string]: unknown;
 }
-export interface SamlSpMetadata { xml: string; }
+export interface SamlSpMetadata {
+    xml: string;
+}
 export interface SamlAdminConfig {
-    enabled: boolean; metadata_url?: string; sp_entity_id?: string;
-    sp_acs_url?: string; sp_sls_url?: string; nameid_format?: string;
-    allow_existing_users?: boolean; block_unknown_users?: boolean;
-    user_id_template?: string; sign_requests?: boolean;
-    want_response_signed?: boolean; want_assertions_signed?: boolean;
+    enabled: boolean;
+    metadata_url?: string;
+    sp_entity_id?: string;
+    sp_acs_url?: string;
+    sp_sls_url?: string;
+    nameid_format?: string;
+    allow_existing_users?: boolean;
+    block_unknown_users?: boolean;
+    user_id_template?: string;
+    sign_requests?: boolean;
+    want_response_signed?: boolean;
+    want_assertions_signed?: boolean;
     want_assertions_encrypted?: boolean;
     attribute_mapping?: { uid?: string; displayname?: string; email?: string };
-    session_lifetime?: number; metadata_refresh_interval?: number;
-    allowed_idp_entity_ids?: string[]; timeout?: number;
+    session_lifetime?: number;
+    metadata_refresh_interval?: number;
+    allowed_idp_entity_ids?: string[];
+    timeout?: number;
     [key: string]: unknown;
 }
 export interface SamlUserMapping {
-    name_id: string; user_id: string; displayname?: string; email?: string;
-    created_at?: number; updated_at?: number; [key: string]: unknown;
+    name_id: string;
+    user_id: string;
+    displayname?: string;
+    email?: string;
+    created_at?: number;
+    updated_at?: number;
+    [key: string]: unknown;
 }
-export interface SamlUserMappingPage { mappings: SamlUserMapping[]; total?: number; next_token?: string; }
-export interface SamlRefreshResult { status: string; [key: string]: unknown; }
+export interface SamlUserMappingPage {
+    mappings: SamlUserMapping[];
+    total?: number;
+    next_token?: string;
+}
+export interface SamlRefreshResult {
+    status: string;
+    [key: string]: unknown;
+}
 ```

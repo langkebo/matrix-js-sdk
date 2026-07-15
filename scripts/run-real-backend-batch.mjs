@@ -136,29 +136,26 @@ async function main() {
     }
 
     if (vitestFiles.length > 0) {
-        await runCommand(
-            "Vitest real-backend suites",
-            process.execPath,
-            [
-                caWrapper,
-                "pnpm",
-                "exec",
-                "vitest",
-                "run",
-                "--no-file-parallelism",
-                "--config",
-                vitestConfig,
-                ...vitestFiles.map(toRepoRelative),
-            ],
-        );
+        await runCommand("Vitest real-backend suites", process.execPath, [
+            caWrapper,
+            "pnpm",
+            "exec",
+            "vitest",
+            "run",
+            "--no-file-parallelism",
+            "--config",
+            vitestConfig,
+            ...vitestFiles.map(toRepoRelative),
+        ]);
     }
 
     for (const filePath of tsxFiles) {
-        await runCommand(
-            `TSX real-backend script: ${basename(filePath, extname(filePath))}`,
-            process.execPath,
-            [caWrapper, "npx", "tsx", toRepoRelative(filePath)],
-        );
+        await runCommand(`TSX real-backend script: ${basename(filePath, extname(filePath))}`, process.execPath, [
+            caWrapper,
+            "npx",
+            "tsx",
+            toRepoRelative(filePath),
+        ]);
     }
 
     console.log(

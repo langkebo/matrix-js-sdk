@@ -86,9 +86,8 @@ function findAllManagerClasses() {
         const classMatches = [...content.matchAll(/export\s+(?:default\s+)?class\s+(\w*Manager)\b/g)];
         if (classMatches.length === 0) continue;
 
-        const hasRuntimeCalls = /withRetry\(|\.authedRequest\(|\.requestOtherUrl\(|\.request\(|http\.|this\.client\.\w+\(/g.test(
-            content,
-        );
+        const hasRuntimeCalls =
+            /withRetry\(|\.authedRequest\(|\.requestOtherUrl\(|\.request\(|http\.|this\.client\.\w+\(/g.test(content);
         const endpointCount = (
             content.match(/withRetry\(|\.authedRequest\(|\.requestOtherUrl\(|\.request\(|this\.client\.\w+\(/g) || []
         ).length;
@@ -173,7 +172,9 @@ function main() {
 
         if (moduleName === "assembly") {
             summary.umbrella.push({ moduleName, routes: moduleInfo.entry_count });
-            console.log(`  UMBRELLA: ${moduleName} (${moduleInfo.entry_count} routes) -> governed by umbrella docs/manager mapping`);
+            console.log(
+                `  UMBRELLA: ${moduleName} (${moduleInfo.entry_count} routes) -> governed by umbrella docs/manager mapping`,
+            );
             continue;
         }
 
@@ -200,7 +201,9 @@ function main() {
             sdkDir,
             codegenRoutes: hasCodegen,
         });
-        console.log(`  MISSING: ${moduleName} (${moduleInfo.entry_count} routes) -> codegen=${sdkDir} (${hasCodegen} endpoints)`);
+        console.log(
+            `  MISSING: ${moduleName} (${moduleInfo.entry_count} routes) -> codegen=${sdkDir} (${hasCodegen} endpoints)`,
+        );
     }
 
     const effectiveTotal = summary.covered + summary.missing;
