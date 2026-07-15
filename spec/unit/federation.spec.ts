@@ -125,17 +125,13 @@ describe("FederationManager", () => {
     });
 
     it("should get server version", async () => {
-        mockAuthedRequest.mockResolvedValue({ server: { version: "1.0.0" } });
+        mockRequest.mockResolvedValue({ server: { version: "1.0.0" } });
 
         const result = await federationManager.getServerVersion("server7.com");
 
-        expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/_matrix/federation/v1/version",
-            undefined,
-            undefined,
-            { prefix: "" },
-        );
+        expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/federation/v1/version", undefined, undefined, {
+            prefix: "",
+        });
         expect(result).toEqual({ version: "1.0.0" });
     });
 

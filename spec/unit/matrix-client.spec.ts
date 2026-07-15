@@ -291,7 +291,6 @@ describe("MatrixClient", function () {
             }
 
             if (next.error) {
-                 
                 return Promise.reject(
                     new MatrixError(
                         {
@@ -1173,7 +1172,6 @@ describe("MatrixClient", function () {
             });
         });
 
-         
         // eslint-disable-next-line vitest/expect-expect
         it("can cancel scheduled delayed events (action in request path)", async () => {
             const delayId = "id";
@@ -1689,7 +1687,6 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                     
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1708,7 +1705,6 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                     
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1751,7 +1747,6 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                     
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1770,7 +1765,6 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                     
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1788,7 +1782,6 @@ describe("MatrixClient", function () {
             getMyMembership: () => KnownMembership.Join,
             currentState: {
                 getStateEvents: (eventType, stateKey) => {
-                     
                     if (eventType === EventType.RoomCreate) {
                         expect(stateKey).toEqual("");
                         return new MatrixEvent({
@@ -1806,7 +1799,6 @@ describe("MatrixClient", function () {
                     } else {
                         throw new Error("Unexpected event type or state key");
                     }
-                     
                 },
             } as Room["currentState"],
         } as unknown as Room;
@@ -1828,7 +1820,6 @@ describe("MatrixClient", function () {
         const syncPromise = new Promise<void>((resolve, reject) => {
             client.on(ClientEvent.Sync, function syncListener(state) {
                 if (state === "SYNCING") {
-                     
                     expect(httpLookups.length).toEqual(0);
                     client.removeListener(ClientEvent.Sync, syncListener);
                     resolve();
@@ -1961,7 +1952,6 @@ describe("MatrixClient", function () {
 
             const wasPreparedPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
-                     
                     if (state === "ERROR" && httpLookups.length > 0) {
                         expect(httpLookups.length).toEqual(2);
                         expect(client.retryImmediately()).toBe(true);
@@ -1973,7 +1963,6 @@ describe("MatrixClient", function () {
                         // unexpected state transition!
                         expect(state).toEqual(null);
                     }
-                     
                 });
             });
             await client.startClient();
@@ -1995,10 +1984,9 @@ describe("MatrixClient", function () {
             const isSyncingPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
                     if (state === "ERROR" && httpLookups.length > 0) {
-                         
                         expect(httpLookups.length).toEqual(1);
                         expect(client.retryImmediately()).toBe(true);
-                         
+
                         vi.advanceTimersByTime(1);
                     } else if (state === "RECONNECTING" && httpLookups.length > 0) {
                         vi.advanceTimersByTime(10000);
@@ -2025,7 +2013,6 @@ describe("MatrixClient", function () {
 
             const wasPreparedPromise = new Promise((resolve) => {
                 client.on(ClientEvent.Sync, function syncListener(state) {
-                     
                     if (state === "ERROR" && httpLookups.length > 0) {
                         expect(httpLookups.length).toEqual(3);
                         expect(client.retryImmediately()).toBe(true);
@@ -2037,7 +2024,6 @@ describe("MatrixClient", function () {
                         // unexpected state transition!
                         expect(state).toEqual(null);
                     }
-                     
                 });
             });
             await client.startClient();
@@ -2737,9 +2723,13 @@ describe("MatrixClient", function () {
 
             await expect(client.isUsernameAvailable("alice")).resolves.toBe(false);
 
-            expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/register/available", {
-                username: "alice",
-            });
+            expect(client.http.authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/register/available",
+                { username: "alice" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
         });
     });
 
@@ -3795,7 +3785,11 @@ describe("MatrixClient", function () {
             };
 
             // Mockup state events
-            (client as any).sendStateEvent = function (roomId: string, eventType: string, content: Record<string, unknown>) {
+            (client as any).sendStateEvent = function (
+                roomId: string,
+                eventType: string,
+                content: Record<string, unknown>,
+            ) {
                 const room = this.getRoom(roomId) as WrappedRoom;
                 const state: Map<string, any> = room._state;
                 let store = state.get(eventType as string);

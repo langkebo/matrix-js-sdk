@@ -65,6 +65,16 @@ export interface RequestSpec {
     retry?: RetryOptions;
     /** 用于日志和错误消息的标签，默认使用 `path` */
     label?: string;
+    /**
+     * 是否携带用户 access token。
+     *
+     * - `true`（默认）：走 `client.http.authedRequest`（经 transport）。
+     * - `false`：走 `client.http.request`（不带 token），用于 federation
+     *   查询等无需用户鉴权的端点。
+     */
+    authenticated?: boolean;
+    /** 透传至 IRequestOpts.localTimeoutMs，用于长轮询请求（如 sliding sync） */
+    localTimeoutMs?: number;
 }
 
 /**
@@ -144,6 +154,7 @@ export abstract class BaseManager<
         };
 
         const prefix = spec.prefix ?? this.defaultPrefix;
+        const useUnauthenticated = spec.authenticated === false;
 
         let lastError: unknown;
         let currentDelay = mergedRetry.retryDelay;
@@ -151,13 +162,25 @@ export abstract class BaseManager<
         for (let attempt = 0; attempt <= mergedRetry.maxRetries; attempt++) {
             try {
                 this.requestStats.total++;
-                const result = await this.transport.request<T>(
-                    spec.method,
-                    spec.path,
-                    spec.queryParams,
-                    spec.body as Body | undefined,
-                    { prefix },
-                );
+                const opts: IRequestOpts = { prefix };
+                if (spec.localTimeoutMs !== undefined) {
+                    opts.localTimeoutMs = spec.localTimeoutMs;
+                }
+                const result = useUnauthenticated
+                    ? await this.client.http.request<T>(
+                          spec.method,
+                          spec.path,
+                          spec.queryParams,
+                          spec.body as Body | undefined,
+                          opts,
+                      )
+                    : await this.transport.request<T>(
+                          spec.method,
+                          spec.path,
+                          spec.queryParams,
+                          spec.body as Body | undefined,
+                          opts,
+                      );
                 this.requestStats.successful++;
                 return result;
             } catch (error) {

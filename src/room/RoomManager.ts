@@ -40,7 +40,8 @@ import { logger } from "../logger";
 import { KnownMembership } from "../@types/membership";
 import { IThirdPartySigned, IJoinRequestBody, ITagMetadata, IRoomHierarchy } from "../client-internal-types";
 import { IRoomInitialSyncResponse, type IPreviewUrlResponse } from "../client-api-types";
-import { QueryDict } from "../http-api/utils";import { SyncApi } from "../sync";
+import { QueryDict } from "../http-api/utils";
+import { SyncApi } from "../sync";
 import { searchRoomsRequest } from "../client-secure-backup-requests";
 import type { Body, IRequestOpts } from "../http-api/interface";
 import { LRUCache } from "../utils/lru-cache";
@@ -1215,20 +1216,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         _proxyBaseUrl?: string,
         _abortSignal?: AbortSignal,
     ): Promise<MSC3575SlidingSyncResponse> {
-        const qps: Record<string, string | string[]> = {};
+        const qps: Record<string, string | string[] | number> = {};
         if (req.pos !== undefined) {
             qps.pos = req.pos;
         }
         if (req.timeout !== undefined) {
-            qps.timeout = String(req.timeout);
+            qps.timeout = req.timeout;
         }
-        const { pos: _pos, timeout: _timeout, clientTimeout: _clientTimeout, ...body } = req;
+        const { pos: _pos, timeout: _timeout, clientTimeout, ...body } = req;
         return this.request({
             method: Method.Post,
             path: rp("/sync"),
             queryParams: qps,
             body: body,
             prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
+            localTimeoutMs: clientTimeout,
         });
     }
 }

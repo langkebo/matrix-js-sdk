@@ -32,7 +32,7 @@ limitations under the License.
  *   (HTTP 502)。调用方可通过 `MatrixError.isServerNotTrustedError()` 检测。
  */
 
-import { BaseManager, type ManagerOpts } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts, type RequestSpec } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
@@ -82,6 +82,20 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
+    }
+
+    /**
+     * Federation 端点（`/_matrix/federation/v1/*`、`/_synapse/federation/v1/*`）
+     * 是 server-to-server 接口，不需要用户 access token。
+     *
+     * 当 `prefix === ""` 时自动走 `client.http.request`（不带 token）；
+     * admin 端点（`prefix === AdminPrefix.V1`）仍走默认的 `authedRequest`。
+     */
+    protected async request<T>(spec: RequestSpec): Promise<T> {
+        if (spec.prefix === "") {
+            return super.request<T>({ ...spec, authenticated: false });
+        }
+        return super.request<T>(spec);
     }
 
     /**

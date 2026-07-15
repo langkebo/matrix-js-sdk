@@ -246,13 +246,15 @@ export class KeyVerificationManager extends BaseManager {
             path: string,
             queryParams?: QueryDict,
             body?: Body,
-            _requestOpts?: IRequestOpts,
+            requestOpts?: IRequestOpts,
         ): Promise<T> =>
             this.request<T>({
                 method: method,
                 path: path,
                 queryParams: queryParams,
                 body: body,
+                prefix: requestOpts?.prefix,
+                localTimeoutMs: requestOpts?.localTimeoutMs,
             });
     }
 
