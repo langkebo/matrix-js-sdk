@@ -161,13 +161,21 @@ describe("codegen tools", () => {
         const friendAudit = audits.find((audit) => audit.moduleName === "friend");
 
         expect(audits.length).toBeGreaterThan(10);
-        expect(adminAudit).toMatchObject({
+        // `friend` is a fully-codegen'd module: all four artifacts present.
+        expect(friendAudit).toMatchObject({
             hasAcceptanceSpec: true,
             hasContractAssertions: true,
             hasDto: true,
             hasRouteTable: true,
         });
-        expect(friendAudit?.hasRouteTable).toBe(true);
+        // `admin` is in SKIP_ROUTE_TABLE_MODULES (scripts/sdk-contract-codegen.mjs):
+        // only dto.ts is generated, route-table/contract-assertions/acceptance-spec are skipped.
+        expect(adminAudit).toMatchObject({
+            hasAcceptanceSpec: false,
+            hasContractAssertions: false,
+            hasDto: true,
+            hasRouteTable: false,
+        });
     });
 
     it("reports partial generated artifact directories in temporary repos", () => {
