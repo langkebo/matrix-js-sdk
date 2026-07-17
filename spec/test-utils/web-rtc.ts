@@ -428,7 +428,8 @@ export class MockCallMatrixClient extends TypedEventEmitter<EmittedEvents, Emitt
     };
 
     public sendStateEvent = vi.fn<MatrixClient["sendStateEvent"]>();
-    public sendToDeviceFromContentMap = vi.fn();
+    public sendToDeviceFromContentMap =
+        vi.fn<ReturnType<MatrixClient["getToDeviceManager"]>["sendToDeviceFromContentMap"]>();
     public getToDeviceManager = vi.fn<MatrixClient["getToDeviceManager"]>().mockReturnValue({
         sendToDeviceFromContentMap: this.sendToDeviceFromContentMap,
     } as unknown as ReturnType<MatrixClient["getToDeviceManager"]>);
@@ -464,8 +465,8 @@ export class MockCallMatrixClient extends TypedEventEmitter<EmittedEvents, Emitt
     public getSyncState = vi.fn<MatrixClient["getSyncState"]>().mockReturnValue(SyncState.Syncing);
 
     public getRooms = vi.fn<MatrixClient["getRooms"]>().mockReturnValue([]);
-    public getRoom = vi.fn();
-    public getFoci = vi.fn();
+    public getRoom = vi.fn<(...args: unknown[]) => unknown>();
+    public getFoci = vi.fn<() => unknown[]>();
 
     public supportsThreads(): boolean {
         return true;

@@ -66,14 +66,14 @@ export const getMockClientWithEventEmitter = (
  * ```
  */
 export const mockClientMethodsUser = (userId = "@alice:domain") => ({
-    getUserId: vi.fn().mockReturnValue(userId),
-    getSafeUserId: vi.fn().mockReturnValue(userId),
-    getUser: vi.fn().mockReturnValue(new User(userId)),
-    isGuest: vi.fn().mockReturnValue(false),
-    mxcUrlToHttp: vi.fn().mockReturnValue("mock-mxcUrlToHttp"),
+    getUserId: vi.fn<MatrixClient["getUserId"]>().mockReturnValue(userId),
+    getSafeUserId: vi.fn<MatrixClient["getSafeUserId"]>().mockReturnValue(userId),
+    getUser: vi.fn<MatrixClient["getUser"]>().mockReturnValue(new User(userId)),
+    isGuest: vi.fn<MatrixClient["isGuest"]>().mockReturnValue(false),
+    mxcUrlToHttp: vi.fn<MatrixClient["mxcUrlToHttp"]>().mockReturnValue("mock-mxcUrlToHttp"),
     credentials: { userId },
-    getThreePids: vi.fn().mockResolvedValue({ threepids: [] }),
-    getAccessToken: vi.fn(),
+    getThreePids: vi.fn<(...args: unknown[]) => unknown>().mockResolvedValue({ threepids: [] }),
+    getAccessToken: vi.fn<MatrixClient["getAccessToken"]>(),
 });
 
 /**
@@ -85,8 +85,8 @@ export const mockClientMethodsUser = (userId = "@alice:domain") => ({
  * ```
  */
 export const mockClientMethodsEvents = () => ({
-    decryptEventIfNeeded: vi.fn(),
-    getPushActionsForEvent: vi.fn(),
+    decryptEventIfNeeded: vi.fn<MatrixClient["decryptEventIfNeeded"]>(),
+    getPushActionsForEvent: vi.fn<MatrixClient["getPushActionsForEvent"]>(),
 });
 
 /**

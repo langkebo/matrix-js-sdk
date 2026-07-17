@@ -1,6 +1,7 @@
 import { expectType } from "tsd";
 
 import {
+    type MatrixEvent,
     type MatrixEventWire,
     type MatrixEventSnapshot,
     matrixEventWireSchema,
@@ -30,11 +31,11 @@ const snapshot = createMatrixEventSnapshot({
     getType: () => "m.room.message",
     getSender: () => "@alice:example.org",
     getTs: () => 1,
-    getStateKey: () => null,
-    getContent: () => ({
+    getStateKey: () => undefined,
+    getContent: (() => ({
         body: "hello",
         msgtype: "m.text",
-    }),
+    })) as MatrixEvent["getContent"],
     getUnsigned: () => ({}),
 });
 
