@@ -9,83 +9,156 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface EncryptedData { ciphertext: string; ephemeral: string; mac: string; }
+export interface EncryptedData {
+    ciphertext: string;
+    ephemeral: string;
+    mac: string;
+}
 
-export interface AuthData { public_key: string; signatures?: Record<string, Record<string, string>>; }
+export interface AuthData {
+    public_key: string;
+    signatures?: Record<string, Record<string, string>>;
+}
 
 export interface SessionData {
-    first_message_index: number; forwarded_count: number; is_verified: boolean;
+    first_message_index: number;
+    forwarded_count: number;
+    is_verified: boolean;
     session_data: EncryptedData | Record<string, unknown>;
 }
 
 export interface BackupVersionInfo {
-    version: string; algorithm: string; auth_data: AuthData | Record<string, unknown>;
-    count?: number; etag?: string;
+    version: string;
+    algorithm: string;
+    auth_data: AuthData | Record<string, unknown>;
+    count?: number;
+    etag?: string;
 }
 
-export interface RoomSessions { sessions: Record<string, SessionData>; }
+export interface RoomSessions {
+    sessions: Record<string, SessionData>;
+}
 
-export interface RoomKeyBackup { rooms: Record<string, RoomSessions>; etag: string; }
+export interface RoomKeyBackup {
+    rooms: Record<string, RoomSessions>;
+    etag: string;
+}
 
 export interface RecoveryProgress {
-    user_id: string; version: string; total_keys: number; recovered_keys: number;
-    status: string; started_ts: number; updated_ts: number;
+    user_id: string;
+    version: string;
+    total_keys: number;
+    recovered_keys: number;
+    status: string;
+    started_ts: number;
+    updated_ts: number;
 }
 
 export interface BatchRecoverResult {
-    rooms: Record<string, RoomSessions>; total_sessions: number;
-    has_more: boolean; next_batch?: string;
+    rooms: Record<string, RoomSessions>;
+    total_sessions: number;
+    has_more: boolean;
+    next_batch?: string;
 }
 
 export interface ExportedRoomKey {
-    room_id: string; session_id: string;
+    room_id: string;
+    session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
-    first_message_index: number; forwarded_count: number; is_verified: boolean;
+    first_message_index: number;
+    forwarded_count: number;
+    is_verified: boolean;
 }
 
-export interface ExportResult { room_keys: ExportedRoomKey[]; version: string; }
+export interface ExportResult {
+    room_keys: ExportedRoomKey[];
+    version: string;
+}
 
-export interface ImportResult { count: number; failed: number; total: number; }
+export interface ImportResult {
+    count: number;
+    failed: number;
+    total: number;
+}
 
 export interface VerifyResult {
-    valid: boolean; algorithm: string; auth_data: AuthData | Record<string, unknown>;
-    key_count: number; signatures?: Record<string, Record<string, string>>;
+    valid: boolean;
+    algorithm: string;
+    auth_data: AuthData | Record<string, unknown>;
+    key_count: number;
+    signatures?: Record<string, Record<string, string>>;
 }
 
-export interface PutRoomKeysBody { rooms: Record<string, RoomSessions>; }
+export interface PutRoomKeysBody {
+    rooms: Record<string, RoomSessions>;
+}
 
-export interface PutRoomSessionsBody { sessions: Record<string, SessionData>; }
+export interface PutRoomSessionsBody {
+    sessions: Record<string, SessionData>;
+}
 
 export interface KeyBackupAuthData {
-    type: string; session?: string; password?: string; token?: string;
-    user?: string; [key: string]: unknown;
+    type: string;
+    session?: string;
+    password?: string;
+    token?: string;
+    user?: string;
+    [key: string]: unknown;
 }
 
 export interface CreateBackupVersionRequest {
-    algorithm: string; auth_data?: AuthData | Record<string, unknown>; auth?: KeyBackupAuthData;
+    algorithm: string;
+    auth_data?: AuthData | Record<string, unknown>;
+    auth?: KeyBackupAuthData;
 }
 
-export interface UpdateBackupVersionRequest { auth_data: AuthData | Record<string, unknown>; }
+export interface UpdateBackupVersionRequest {
+    auth_data: AuthData | Record<string, unknown>;
+}
 
-export interface RecoverKeysRequest { version: string; rooms?: string[]; }
+export interface RecoverKeysRequest {
+    version: string;
+    rooms?: string[];
+}
 
-export interface BatchRecoverRequest { version: string; room_ids: string[]; session_limit?: number; }
+export interface BatchRecoverRequest {
+    version: string;
+    room_ids: string[];
+    session_limit?: number;
+}
 
-export interface ImportKeysRequest { room_keys: ExportedRoomKey[]; version?: string; }
+export interface ImportKeysRequest {
+    room_keys: ExportedRoomKey[];
+    version?: string;
+}
 
-export interface CreateBackupVersionResponse { version: string; }
+export interface CreateBackupVersionResponse {
+    version: string;
+}
 
-export interface DeleteBackupVersionResponse { deleted: boolean; version: string; }
+export interface DeleteBackupVersionResponse {
+    deleted: boolean;
+    version: string;
+}
 
-export interface UploadKeysResult { count: number; etag: string; }
+export interface UploadKeysResult {
+    count: number;
+    etag: string;
+}
 
 export interface RecoverKeysResult {
-    rooms: Record<string, RoomSessions>; total_keys: number; recovered_keys: number;
+    rooms: Record<string, RoomSessions>;
+    total_keys: number;
+    recovered_keys: number;
 }
 
-export interface RecoverRoomKeysResult { room_id: string; sessions: SessionData[]; }
+export interface RecoverRoomKeysResult {
+    room_id: string;
+    sessions: SessionData[];
+}
 
 export interface RecoverSessionKeyResult {
-    room_id: string; session_id: string;
+    room_id: string;
+    session_id: string;
     session_data: EncryptedData | Record<string, unknown>;
 }

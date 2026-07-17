@@ -145,7 +145,7 @@ try {
         "./@types/membership",
         "./@types/search",
         "./@types/topic",
-        "./@types/threepids",
+        "./@types/three-pids",
         "./@types/partials",
         "./models/event-timeline",
         "./telemetry/index",

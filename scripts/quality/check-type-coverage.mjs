@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const PROJECT_ROOT = process.cwd();
@@ -39,7 +39,10 @@ function collectTypeScriptFiles(rootDir, recursive = true) {
 }
 
 function runTypeCoverage(label, files, threshold) {
-    const args = files.length > 0 ? [...COMMON_ARGS, "--", ...files] : COMMON_ARGS;
+    // type-coverage expects paths relative to the project root; absolute paths
+    // cause it to silently return 0/0.
+    const relativeFiles = files.map((f) => relative(PROJECT_ROOT, f));
+    const args = relativeFiles.length > 0 ? [...COMMON_ARGS, "--", ...relativeFiles] : COMMON_ARGS;
     const result = spawnSync("pnpm", args, {
         cwd: PROJECT_ROOT,
         encoding: "utf8",

@@ -57,15 +57,24 @@ export interface ClaimKeysResponse {
     failures: Record<string, { error?: string; message?: string }>;
 }
 
-export interface KeyChangesResponse { changed: string[]; left: string[]; }
+export interface KeyChangesResponse {
+    changed: string[];
+    left: string[];
+}
 
 export type SendToDeviceMessages = Record<string, Record<string, Record<string, unknown>>>;
 
-export interface SendToDeviceRequest { messages: SendToDeviceMessages; }
+export interface SendToDeviceRequest {
+    messages: SendToDeviceMessages;
+}
 
-export interface UploadSignaturesRequest { [userId: string]: Record<string, Record<string, unknown>>; }
+export interface UploadSignaturesRequest {
+    [userId: string]: Record<string, Record<string, unknown>>;
+}
 
-export interface UploadSignaturesResponse { failures: Record<string, Record<string, unknown>>; }
+export interface UploadSignaturesResponse {
+    failures: Record<string, Record<string, unknown>>;
+}
 
 export interface UploadDeviceSigningRequest {
     master_key?: CrossSigningKey;
@@ -85,67 +94,118 @@ export interface RoomKeyRequestRequest {
 }
 
 export interface DeviceVerificationRequest {
-    user_id?: string; new_device_id?: string; device_id?: string; method?: string;
+    user_id?: string;
+    new_device_id?: string;
+    device_id?: string;
+    method?: string;
 }
 
 export interface DeviceVerificationResponse {
-    transaction_id?: string; state?: string; device_id?: string; verified?: boolean;
+    transaction_id?: string;
+    state?: string;
+    device_id?: string;
+    verified?: boolean;
 }
 
 export interface DeviceVerificationStatusResponse {
-    token: string; state: "pending" | "verified" | "cancelled" | "expired";
-    device_id?: string; requested_ts?: number; completed_ts?: number;
+    token: string;
+    state: "pending" | "verified" | "cancelled" | "expired";
+    device_id?: string;
+    requested_ts?: number;
+    completed_ts?: number;
 }
 
 export interface DeviceTrustEntry {
-    device_id: string; user_id?: string;
+    device_id: string;
+    user_id?: string;
     trust_level?: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string; last_seen_ts?: number; last_seen_ip?: string;
+    display_name?: string;
+    last_seen_ts?: number;
+    last_seen_ip?: string;
 }
 
-export interface DeviceTrustListResponse { devices: DeviceTrustEntry[]; }
+export interface DeviceTrustListResponse {
+    devices: DeviceTrustEntry[];
+}
 
 export interface DeviceTrustResponse {
-    device_id: string; trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string; last_seen_ts?: number; last_seen_ip?: string;
+    device_id: string;
+    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
+    display_name?: string;
+    last_seen_ts?: number;
+    last_seen_ip?: string;
 }
 
 export interface SecuritySummaryResponse {
-    verified_devices: number; unverified_devices: number;
-    key_backup_configured: boolean; cross_signing_setup: boolean;
-    backed_up_sessions?: number; total_sessions?: number;
+    verified_devices: number;
+    unverified_devices: number;
+    key_backup_configured: boolean;
+    cross_signing_setup: boolean;
+    backed_up_sessions?: number;
+    total_sessions?: number;
 }
 
 export interface SecurityBackupCreateRequest {
-    algorithm?: string; auth_data?: Record<string, unknown>; passphrase?: string;
+    algorithm?: string;
+    auth_data?: Record<string, unknown>;
+    passphrase?: string;
 }
 
-export interface SecurityBackupCreateResponse { version: string; algorithm: string; }
+export interface SecurityBackupCreateResponse {
+    version: string;
+    algorithm: string;
+}
 
 export interface SecurityBackupListResponse {
     backups: Array<{ version: string; algorithm: string; auth_data?: Record<string, unknown> }>;
 }
 
 export interface SecurityBackupGetResponse {
-    version: string; algorithm: string; auth_data?: Record<string, unknown>;
-    count?: number; etag?: string;
+    version: string;
+    algorithm: string;
+    auth_data?: Record<string, unknown>;
+    count?: number;
+    etag?: string;
 }
 
-export interface SecureBackupStoreKeysRequest { keys: Record<string, Record<string, unknown>>; }
+export interface SecureBackupStoreKeysRequest {
+    keys: Record<string, Record<string, unknown>>;
+}
 
-export interface SecureBackupStoreKeysResponse { count: number; etag: string; }
+export interface SecureBackupStoreKeysResponse {
+    count: number;
+    etag: string;
+}
 
-export interface SecureBackupRestoreRequest { rooms?: string[]; passphrase?: string; key?: string; }
+export interface SecureBackupRestoreRequest {
+    rooms?: string[];
+    passphrase?: string;
+    key?: string;
+}
 
-export interface SecureBackupRestoreResponse { recovered_keys: number; total_keys: number; }
+export interface SecureBackupRestoreResponse {
+    recovered_keys: number;
+    total_keys: number;
+}
 
-export interface SecureBackupVerifyRequest { passphrase?: string; key?: string; }
+export interface SecureBackupVerifyRequest {
+    passphrase?: string;
+    key?: string;
+}
 
-export interface SecureBackupVerifyResponse { valid: boolean; algorithm?: string; }
+export interface SecureBackupVerifyResponse {
+    valid: boolean;
+    algorithm?: string;
+}
 
-export interface DeviceListUpdateRequest { users: string[]; }
+export interface DeviceListUpdateRequest {
+    users: string[];
+}
 
-export interface DeviceListUpdateResponse { changed?: string[]; left?: string[]; }
+export interface DeviceListUpdateResponse {
+    changed?: string[];
+    left?: string[];
+}
 
 export interface RoomKeyDistributionResponse {
     room_id: string;

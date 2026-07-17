@@ -133,12 +133,12 @@ interface ScannerInfo {
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点                              | SDK 方法                        | 状态      |
-| ------------------------------------- | ------------------------------- | --------- |
-| `POST /report/{event_id}`             | `MatrixClient.reportEvent()`    | ✅ 已封装 |
-| `PUT /report/{event_id}/score`        | `MatrixClient.scoreReport()`    | ✅ 已封装 |
-| `GET /report/{event_id}/scanner_info` | `MatrixClient.getScannerInfo()` | ✅ 已封装 |
-| `POST /rooms/{room_id}/report`        | `MatrixClient.reportRoom()`     | ✅ 已封装 |
+| 后端端点                              | SDK 方法                             | 状态      |
+| ------------------------------------- | ------------------------------------ | --------- |
+| `POST /report/{event_id}`             | `ModerationManager.reportEvent()`    | ✅ 已封装 |
+| `PUT /report/{event_id}/score`        | `ReportingManager.scoreReport()`     | ✅ 已封装 |
+| `GET /report/{event_id}/scanner_info` | `ModerationManager.getScannerInfo()` | ✅ 已封装 |
+| `POST /rooms/{room_id}/report`        | `ModerationManager.reportRoom()`     | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
@@ -152,8 +152,8 @@ interface ScannerInfo {
 
 ### 3.4 人工 Review 对齐
 
-- `src/moderation/index.ts` 已覆盖事件举报、房间举报、评分更新、扫描器信息四类端点。
-- `src/client.ts` 同时暴露 `reportEvent()`、`scoreReport()`、`getScannerInfo()`、`reportRoom()` 便捷方法。
+- `src/moderation/index.ts` 已覆盖事件举报、房间举报、扫描器信息三类端点。
+- `src/reporting/index.ts` 覆盖评分更新（`scoreReport`）以及 `reportEvent`/`reportRoom` 便捷方法。
 - 当前差异主要在文档口径，非实现缺失。
 
 ## 四、常见错误码

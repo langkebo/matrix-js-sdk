@@ -514,6 +514,68 @@ function getRequestCallPrefixVariants(callee, args, sourceFile, node) {
     return resolvePrefixVariants(args[4], sourceFile, node) ?? [undefined];
 }
 
+/**
+ * Extracts method, path, and prefix from a tracked request call,
+ * supporting BOTH calling conventions:
+ *
+ * 1. Positional: authedRequest(method, path, opts, body, prefix)
+ *    args[0]=method, args[1]=path, args[4]=prefix
+ *
+ * 2. Object literal (BaseManager pattern): this.request({ method, path, prefix, ... })
+ *    args[0] is an ObjectLiteralExpression; properties are extracted by name.
+ *
+ * Returns { methods, requestPathVariants, prefixExprs } or null if unrecognised.
+ */
+function extractRequestCallInfo(args, sourceFile, node) {
+    if (args.length === 0) return null;
+
+    // Pattern 2: single object-literal argument (BaseManager this.request({...}))
+    if (ts.isObjectLiteralExpression(args[0])) {
+        let methodNode = null;
+        let pathNode = null;
+        let prefixNode = null;
+        for (const prop of args[0].properties) {
+            let propName = null;
+            let initializer = null;
+            if (ts.isPropertyAssignment(prop)) {
+                propName = ts.isIdentifier(prop.name)
+                    ? prop.name.text
+                    : ts.isStringLiteral(prop.name)
+                      ? prop.name.text
+                      : null;
+                initializer = prop.initializer;
+            } else if (ts.isShorthandPropertyAssignment(prop)) {
+                // Shorthand: `{ path }` is equivalent to `{ path: path }`
+                propName = ts.isIdentifier(prop.name) ? prop.name.text : null;
+                initializer = prop.name; // the identifier itself
+            }
+            if (propName === "method") methodNode = initializer;
+            else if (propName === "path") pathNode = initializer;
+            else if (propName === "prefix") prefixNode = initializer;
+        }
+        if (!methodNode || !pathNode) return null;
+
+        const methods = resolveMethodVariants(methodNode, sourceFile, node) ?? [];
+        const requestPathVariants = (resolveStringVariants(pathNode, sourceFile, node) ?? [])
+            .map(normalizePathLiteral)
+            .filter(Boolean);
+        const prefixExprs = prefixNode
+            ? (resolvePrefixVariants(prefixNode, sourceFile, node) ?? [undefined])
+            : [undefined];
+        return { methods, requestPathVariants, prefixExprs };
+    }
+
+    // Pattern 1: positional args (authedRequest/request with separate arguments)
+    if (args.length < 2) return null;
+    const methods = resolveMethodVariants(args[0], sourceFile, node) ?? [];
+    const requestPathVariants = (resolveStringVariants(args[1], sourceFile, node) ?? [])
+        .map(normalizePathLiteral)
+        .filter(Boolean);
+    const prefixExprs =
+        args.length > 4 ? (resolvePrefixVariants(args[4], sourceFile, node) ?? [undefined]) : [undefined];
+    return { methods, requestPathVariants, prefixExprs };
+}
+
 function scanSourceRequestCalls(filePath) {
     const source = fs.readFileSync(filePath, "utf8");
     const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
@@ -524,34 +586,35 @@ function scanSourceRequestCalls(filePath) {
             const callMetadata = getRequestCallMetadata(node.expression);
             if (callMetadata && isTrackedRequestCall(callMetadata.callee)) {
                 const args = node.arguments;
-                const methods = resolveMethodVariants(args[0], sourceFile, node) ?? [];
-                const requestPathExpr = args[1]?.getText(sourceFile);
-                const requestPathVariants = (resolveStringVariants(args[1], sourceFile, node) ?? [])
-                    .map(normalizePathLiteral)
-                    .filter(Boolean);
-                const prefixExprs = getRequestCallPrefixVariants(callMetadata.callee, args, sourceFile, node);
+                const info = extractRequestCallInfo(args, sourceFile, node);
+                if (info) {
+                    const { methods, requestPathVariants, prefixExprs } = info;
+                    const requestPathExpr = ts.isObjectLiteralExpression(args[0])
+                        ? args[0].getText(sourceFile)
+                        : args[1]?.getText(sourceFile);
 
-                for (const method of methods) {
-                    for (const requestPath of requestPathVariants) {
-                        for (const prefixExpr of prefixExprs) {
-                            const pathIncludesAbsolutePrefix =
-                                typeof requestPath === "string" && requestPath.startsWith("/_");
-                            const prefix = resolvePrefix(prefixExpr);
-                            const effectivePrefix =
-                                prefix ??
-                                (callMetadata.callee === "requestOtherUrl" || pathIncludesAbsolutePrefix
-                                    ? undefined
-                                    : PREFIX_MAP["ClientPrefix.V3"]);
-                            const fullPath = joinPrefixAndPath(effectivePrefix, requestPath);
+                    for (const method of methods) {
+                        for (const requestPath of requestPathVariants) {
+                            for (const prefixExpr of prefixExprs) {
+                                const pathIncludesAbsolutePrefix =
+                                    typeof requestPath === "string" && requestPath.startsWith("/_");
+                                const prefix = resolvePrefix(prefixExpr);
+                                const effectivePrefix =
+                                    prefix ??
+                                    (callMetadata.callee === "requestOtherUrl" || pathIncludesAbsolutePrefix
+                                        ? undefined
+                                        : PREFIX_MAP["ClientPrefix.V3"]);
+                                const fullPath = joinPrefixAndPath(effectivePrefix, requestPath);
 
-                            requestCalls.push({
-                                file: path.relative(projectRoot, filePath),
-                                callee: callMetadata.callee,
-                                method,
-                                pathExpr: requestPathExpr,
-                                path: requestPath,
-                                fullPath,
-                            });
+                                requestCalls.push({
+                                    file: path.relative(projectRoot, filePath),
+                                    callee: callMetadata.callee,
+                                    method,
+                                    pathExpr: requestPathExpr,
+                                    path: requestPath,
+                                    fullPath,
+                                });
+                            }
                         }
                     }
                 }
@@ -768,11 +831,9 @@ function traceRequestsFromCallable(node, fileContext, traceIndex, ownerKey, visi
         if (!callMetadata || !isTrackedRequestCall(callMetadata.callee)) return;
 
         const args = nodeToScan.arguments;
-        const methods = resolveMethodVariants(args[0], fileContext.sourceFile, nodeToScan) ?? [];
-        const requestPathVariants = (resolveStringVariants(args[1], fileContext.sourceFile, nodeToScan) ?? [])
-            .map(normalizePathLiteral)
-            .filter(Boolean);
-        const prefixExprs = getRequestCallPrefixVariants(callMetadata.callee, args, fileContext.sourceFile, nodeToScan);
+        const info = extractRequestCallInfo(args, fileContext.sourceFile, nodeToScan);
+        if (!info) return;
+        const { methods, requestPathVariants, prefixExprs } = info;
 
         for (const method of methods) {
             for (const requestPath of requestPathVariants) {

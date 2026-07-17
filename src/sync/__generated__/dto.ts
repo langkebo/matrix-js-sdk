@@ -10,80 +10,142 @@
  */
 
 export interface SyncRequest {
-    filter?: string; full_state?: boolean; set_presence?: string;
-    timeout?: number; since?: string;
+    filter?: string;
+    full_state?: boolean;
+    set_presence?: string;
+    timeout?: number;
+    since?: string;
 }
 
 export interface SyncResponse {
-    next_batch: string; rooms?: SyncRooms; presence?: SyncPresence;
-    account_data?: SyncAccountData; to_device?: SyncToDevice;
-    device_lists?: SyncDeviceLists; device_one_time_keys_count?: Record<string, number>;
+    next_batch: string;
+    rooms?: SyncRooms;
+    presence?: SyncPresence;
+    account_data?: SyncAccountData;
+    to_device?: SyncToDevice;
+    device_lists?: SyncDeviceLists;
+    device_one_time_keys_count?: Record<string, number>;
     device_unused_fallback_key_types?: string[];
 }
 
 export interface SyncRooms {
-    join?: Record<string, SyncJoinedRoom>; invite?: Record<string, SyncInvitedRoom>;
-    leave?: Record<string, SyncLeftRoom>; knock?: Record<string, SyncKnockedRoom>;
+    join?: Record<string, SyncJoinedRoom>;
+    invite?: Record<string, SyncInvitedRoom>;
+    leave?: Record<string, SyncLeftRoom>;
+    knock?: Record<string, SyncKnockedRoom>;
 }
 
 export interface SyncJoinedRoom {
-    summary?: SyncRoomSummary; state?: SyncState; timeline: SyncTimeline;
-    ephemeral?: SyncEphemeral; account_data?: SyncAccountData;
+    summary?: SyncRoomSummary;
+    state?: SyncState;
+    timeline: SyncTimeline;
+    ephemeral?: SyncEphemeral;
+    account_data?: SyncAccountData;
     unread_notifications?: SyncUnreadNotifications;
     unread_thread_notifications?: Record<string, SyncUnreadNotifications>;
 }
 
-export interface SyncInvitedRoom { invite_state: SyncInviteState; }
-
-export interface SyncLeftRoom { state?: SyncState; timeline: SyncTimeline; account_data?: SyncAccountData; }
-
-export interface SyncKnockedRoom { knock_state: SyncKnockState; }
-
-export interface SyncRoomSummary {
-    "m.heroes"?: string[]; "m.joined_member_count"?: number; "m.invited_member_count"?: number;
+export interface SyncInvitedRoom {
+    invite_state: SyncInviteState;
 }
 
-export interface SyncState { events: SyncStateEvent[]; }
+export interface SyncLeftRoom {
+    state?: SyncState;
+    timeline: SyncTimeline;
+    account_data?: SyncAccountData;
+}
+
+export interface SyncKnockedRoom {
+    knock_state: SyncKnockState;
+}
+
+export interface SyncRoomSummary {
+    "m.heroes"?: string[];
+    "m.joined_member_count"?: number;
+    "m.invited_member_count"?: number;
+}
+
+export interface SyncState {
+    events: SyncStateEvent[];
+}
 
 export interface SyncStateEvent {
-    content: Record<string, unknown>; type: string; event_id: string;
-    sender: string; origin_server_ts: number; state_key: string;
-    prev_content?: Record<string, unknown>; unsigned?: Record<string, unknown>;
+    content: Record<string, unknown>;
+    type: string;
+    event_id: string;
+    sender: string;
+    origin_server_ts: number;
+    state_key: string;
+    prev_content?: Record<string, unknown>;
+    unsigned?: Record<string, unknown>;
 }
 
 export interface SyncTimeline {
-    events: SyncTimelineEvent[]; limited?: boolean; prev_batch: string | null;
+    events: SyncTimelineEvent[];
+    limited?: boolean;
+    prev_batch: string | null;
 }
 
 export interface SyncTimelineEvent {
-    content: Record<string, unknown>; type: string; event_id: string;
-    sender: string; origin_server_ts: number; room_id?: string; unsigned?: Record<string, unknown>;
+    content: Record<string, unknown>;
+    type: string;
+    event_id: string;
+    sender: string;
+    origin_server_ts: number;
+    room_id?: string;
+    unsigned?: Record<string, unknown>;
 }
 
-export interface SyncEphemeral { events: SyncMinimalEvent[]; }
+export interface SyncEphemeral {
+    events: SyncMinimalEvent[];
+}
 
-export interface SyncPresence { events: SyncMinimalEvent[]; }
+export interface SyncPresence {
+    events: SyncMinimalEvent[];
+}
 
-export interface SyncAccountData { events: SyncMinimalEvent[]; }
+export interface SyncAccountData {
+    events: SyncMinimalEvent[];
+}
 
 export interface SyncMinimalEvent {
-    content: Record<string, unknown>; type: string; room_id?: string; unsigned?: Record<string, unknown>;
+    content: Record<string, unknown>;
+    type: string;
+    room_id?: string;
+    unsigned?: Record<string, unknown>;
 }
 
-export interface SyncInviteState { events: SyncStrippedState[]; }
+export interface SyncInviteState {
+    events: SyncStrippedState[];
+}
 
 export interface SyncStrippedState {
-    content: Record<string, unknown>; state_key: string; type: string; sender: string;
+    content: Record<string, unknown>;
+    state_key: string;
+    type: string;
+    sender: string;
 }
 
-export interface SyncKnockState { events: SyncStrippedState[]; }
+export interface SyncKnockState {
+    events: SyncStrippedState[];
+}
 
-export interface SyncToDevice { events: SyncToDeviceEvent[]; }
+export interface SyncToDevice {
+    events: SyncToDeviceEvent[];
+}
 
 export interface SyncToDeviceEvent {
-    content: Record<string, unknown>; sender: string; type: string;
+    content: Record<string, unknown>;
+    sender: string;
+    type: string;
 }
 
-export interface SyncDeviceLists { changed?: string[]; left?: string[]; }
+export interface SyncDeviceLists {
+    changed?: string[];
+    left?: string[];
+}
 
-export interface SyncUnreadNotifications { highlight_count?: number; notification_count?: number; }
+export interface SyncUnreadNotifications {
+    highlight_count?: number;
+    notification_count?: number;
+}

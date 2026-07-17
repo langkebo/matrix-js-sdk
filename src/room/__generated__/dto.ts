@@ -10,99 +10,195 @@
  */
 
 export interface RoomEvent {
-    content: Record<string, unknown>; type: string; event_id: string;
-    sender: string; origin_server_ts: number; room_id?: string; unsigned?: Record<string, unknown>;
+    content: Record<string, unknown>;
+    type: string;
+    event_id: string;
+    sender: string;
+    origin_server_ts: number;
+    room_id?: string;
+    unsigned?: Record<string, unknown>;
 }
 
 export interface RoomStateEvent extends RoomEvent {
-    state_key: string; prev_content?: Record<string, unknown>;
+    state_key: string;
+    prev_content?: Record<string, unknown>;
 }
 
-export interface RoomVersionResponse { room_version: string; }
+export interface RoomVersionResponse {
+    room_version: string;
+}
 
-export interface RoomCapabilitiesResponse { capabilities: Record<string, unknown>; }
+export interface RoomCapabilitiesResponse {
+    capabilities: Record<string, unknown>;
+}
 
 export interface RoomMetadataResponse {
-    room_id: string; name?: string; topic?: string; avatar_url?: string;
-    join_rule?: string; history_visibility?: string; guest_access?: string; created_ts?: number;
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    join_rule?: string;
+    history_visibility?: string;
+    guest_access?: string;
+    created_ts?: number;
 }
 
 export interface CreateRoomRequest {
-    visibility?: "public" | "private"; room_alias_name?: string; name?: string;
-    topic?: string; room_version?: string; power_level_content_override?: Record<string, unknown>;
+    visibility?: "public" | "private";
+    room_alias_name?: string;
+    name?: string;
+    topic?: string;
+    room_version?: string;
+    power_level_content_override?: Record<string, unknown>;
     preset?: "private_chat" | "trusted_private_chat" | "public_chat";
     initial_state?: Array<{ type: string; state_key?: string; content: Record<string, unknown> }>;
     invite?: string[];
     invite_3pid?: Array<{ id_server: string; id_access_token: string; medium: string; address: string }>;
-    creation_content?: Record<string, unknown>; is_direct?: boolean;
-    predecessor?: { room_id: string; event_id: string }; space?: string;
+    creation_content?: Record<string, unknown>;
+    is_direct?: boolean;
+    predecessor?: { room_id: string; event_id: string };
+    space?: string;
 }
 
-export interface CreateRoomResponse { room_id: string; }
+export interface CreateRoomResponse {
+    room_id: string;
+}
 
 export interface JoinRoomRequest {
-    third_party_signed?: { sender: string; mixid: string;
-        signed: { mxid: string; signatures: Record<string, Record<string, string>>; token: string } };
+    third_party_signed?: {
+        sender: string;
+        mixid: string;
+        signed: { mxid: string; signatures: Record<string, Record<string, string>>; token: string };
+    };
 }
 
-export interface JoinRoomResponse { room_id: string; }
+export interface JoinRoomResponse {
+    room_id: string;
+}
 
-export interface KnockRoomRequest { reason?: string; }
+export interface KnockRoomRequest {
+    reason?: string;
+}
 
-export interface KnockRoomResponse { room_id: string; }
+export interface KnockRoomResponse {
+    room_id: string;
+}
 
-export interface RoomMember { display_name?: string; avatar_url?: string; }
+export interface RoomMember {
+    display_name?: string;
+    avatar_url?: string;
+}
 
-export interface GetMembersResponse { chunk: RoomStateEvent[]; }
+export interface GetMembersResponse {
+    chunk: RoomStateEvent[];
+}
 
-export interface JoinedMembersResponse { joined: Record<string, RoomMember>; }
+export interface JoinedMembersResponse {
+    joined: Record<string, RoomMember>;
+}
 
 export interface GetMessagesResponse {
-    chunk: RoomEvent[]; start: string; end?: string; state?: RoomStateEvent[];
+    chunk: RoomEvent[];
+    start: string;
+    end?: string;
+    state?: RoomStateEvent[];
 }
 
-export interface SendEventResponse { event_id: string; room_id?: string; }
+export interface SendEventResponse {
+    event_id: string;
+    room_id?: string;
+}
 
 export interface EventContextResponse {
-    event: RoomEvent; events_before: RoomEvent[]; events_after: RoomEvent[];
-    start: string; end: string; state: RoomStateEvent[];
+    event: RoomEvent;
+    events_before: RoomEvent[];
+    events_after: RoomEvent[];
+    start: string;
+    end: string;
+    state: RoomStateEvent[];
 }
 
-export interface InviteRequest { user_id: string; reason?: string; }
+export interface InviteRequest {
+    user_id: string;
+    reason?: string;
+}
 
-export interface KickRequest { user_id: string; reason?: string; }
+export interface KickRequest {
+    user_id: string;
+    reason?: string;
+}
 
-export interface BanRequest { user_id: string; reason?: string; }
+export interface BanRequest {
+    user_id: string;
+    reason?: string;
+}
 
-export interface UnbanRequest { user_id: string; }
+export interface UnbanRequest {
+    user_id: string;
+}
 
-export interface RedactEventRequest { reason?: string; }
+export interface RedactEventRequest {
+    reason?: string;
+}
 
-export interface UpgradeRoomRequest { new_version: string; additional_creators?: string[]; }
+export interface UpgradeRoomRequest {
+    new_version: string;
+    additional_creators?: string[];
+}
 
-export interface UpgradeRoomResponse { replacement_room: string; }
+export interface UpgradeRoomResponse {
+    replacement_room: string;
+}
 
-export interface ReportRoomRequest { reason: string; }
+export interface ReportRoomRequest {
+    reason: string;
+}
 
-export interface RoomDirectoryVisibilityResponse { visibility: "public" | "private"; }
+export interface RoomDirectoryVisibilityResponse {
+    visibility: "public" | "private";
+}
 
-export interface SetRoomDirectoryVisibilityRequest { visibility: "public" | "private"; }
+export interface SetRoomDirectoryVisibilityRequest {
+    visibility: "public" | "private";
+}
 
-export interface RoomIdForAliasResponse { room_id: string; servers: string[]; }
+export interface RoomIdForAliasResponse {
+    room_id: string;
+    servers: string[];
+}
 
-export interface CreateAliasRequest { room_id: string; }
+export interface CreateAliasRequest {
+    room_id: string;
+}
 
-export interface LocalAliasesResponse { aliases: string[]; }
+export interface LocalAliasesResponse {
+    aliases: string[];
+}
 
 export interface RoomHierarchyRoom {
-    room_id: string; name?: string; topic?: string; avatar_url?: string;
-    join_rule?: string; room_type?: string; num_joined_members?: number; children_state?: RoomStateEvent[];
+    room_id: string;
+    name?: string;
+    topic?: string;
+    avatar_url?: string;
+    join_rule?: string;
+    room_type?: string;
+    num_joined_members?: number;
+    children_state?: RoomStateEvent[];
 }
 
-export interface RoomHierarchyResponse { rooms: RoomHierarchyRoom[]; next_batch?: string; }
+export interface RoomHierarchyResponse {
+    rooms: RoomHierarchyRoom[];
+    next_batch?: string;
+}
 
-export interface TagMetadata { order?: number; }
+export interface TagMetadata {
+    order?: number;
+}
 
-export interface TagsResponse { tags: Record<string, TagMetadata>; }
+export interface TagsResponse {
+    tags: Record<string, TagMetadata>;
+}
 
-export interface GuestAccessRequest { guest_access: "can_join" | "forbidden"; }
+export interface GuestAccessRequest {
+    guest_access: "can_join" | "forbidden";
+}

@@ -10,58 +10,110 @@
  */
 
 export interface VerificationStartRequest {
-    from_device: string; to_user: string; to_device?: string;
-    transaction_id?: string; method?: string;
+    from_device: string;
+    to_user: string;
+    to_device?: string;
+    transaction_id?: string;
+    method?: string;
 }
 
 export interface VerificationStartResponse {
-    transaction_id: string; method: string;
-    key_agreement_protocol: string[]; hash: string[]; short_authentication_string: string[];
+    transaction_id: string;
+    method: string;
+    key_agreement_protocol: string[];
+    hash: string[];
+    short_authentication_string: string[];
 }
 
 export interface VerificationAcceptRequest {
-    transaction_id: string; key_agreement_protocol: string; hash: string; commitment?: string;
+    transaction_id: string;
+    key_agreement_protocol: string;
+    hash: string;
+    commitment?: string;
 }
 
-export interface VerificationAcceptResponse extends VerificationStartResponse { commitment?: string; }
+export interface VerificationAcceptResponse extends VerificationStartResponse {
+    commitment?: string;
+}
 
-export interface VerificationKeyAgreementRequest { transaction_id: string; pubkey: string; }
+export interface VerificationKeyAgreementRequest {
+    transaction_id: string;
+    pubkey: string;
+}
 
 export interface VerificationKeyAgreementResponse {
-    transaction_id: string; confirmed: boolean;
+    transaction_id: string;
+    confirmed: boolean;
     short_authentication_string: { emoji?: string[]; decimal?: { points: number[] } };
 }
 
-export interface VerificationMacRequest { transaction_id: string; mac: string; }
+export interface VerificationMacRequest {
+    transaction_id: string;
+    mac: string;
+}
 
-export interface VerificationMacResponse { transaction_id: string; verified: boolean; }
+export interface VerificationMacResponse {
+    transaction_id: string;
+    verified: boolean;
+}
 
-export interface VerificationDoneRequest { transaction_id: string; mac: string; }
+export interface VerificationDoneRequest {
+    transaction_id: string;
+    mac: string;
+}
 
-export interface VerificationDoneResponse { transaction_id: string; }
+export interface VerificationDoneResponse {
+    transaction_id: string;
+}
 
-export interface VerificationCancelRequest { transaction_id: string; code: string; reason: string; }
+export interface VerificationCancelRequest {
+    transaction_id: string;
+    code: string;
+    reason: string;
+}
 
 export interface VerificationCancelResponse {
-    transaction_id: string; state: "cancelled"; code: string; reason: string;
+    transaction_id: string;
+    state: "cancelled";
+    code: string;
+    reason: string;
 }
 
 export interface VerificationRequestEntry {
-    transaction_id: string; from_user: string; from_device: string;
-    to_user: string; to_device?: string; method: string; state: string;
-    created_ts: number; updated_ts: number;
+    transaction_id: string;
+    from_user: string;
+    from_device: string;
+    to_user: string;
+    to_device?: string;
+    method: string;
+    state: string;
+    created_ts: number;
+    updated_ts: number;
 }
 
-export interface ListVerificationRequestsResponse { requests: VerificationRequestEntry[]; }
+export interface ListVerificationRequestsResponse {
+    requests: VerificationRequestEntry[];
+}
 
 export interface QrCodeShowResponse {
-    transaction_id: string; server_name: string; user_id: string; device_id: string;
-    device_ed25519_key: string; device_curve25519_key: string;
+    transaction_id: string;
+    server_name: string;
+    user_id: string;
+    device_id: string;
+    device_ed25519_key: string;
+    device_curve25519_key: string;
 }
 
 export interface ScanQrCodeRequest {
-    transaction_id: string; server_name: string; user_id: string; device_id: string;
-    device_ed25519_key: string; device_curve25519_key: string;
+    transaction_id: string;
+    server_name: string;
+    user_id: string;
+    device_id: string;
+    device_ed25519_key: string;
+    device_curve25519_key: string;
 }
 
-export interface ScanQrCodeResponse { transaction_id: string; state: "pending" | "verified" | "cancelled"; }
+export interface ScanQrCodeResponse {
+    transaction_id: string;
+    state: "pending" | "verified" | "cancelled";
+}

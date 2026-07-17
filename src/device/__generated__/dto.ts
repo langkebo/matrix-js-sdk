@@ -10,24 +10,53 @@
  */
 
 export interface DeviceInfo {
-    device_id: string; display_name?: string; last_seen_ip?: string;
-    last_seen_ts?: number; user_id?: string;
+    device_id: string;
+    display_name?: string;
+    last_seen_ip?: string;
+    last_seen_ts?: number;
+    user_id?: string;
 }
 
-export interface DeviceListResponse { devices: DeviceInfo[]; }
+export interface DeviceListResponse {
+    devices: DeviceInfo[];
+}
 
-export interface UpdateDeviceRequest { display_name?: string; }
+export interface UpdateDeviceRequest {
+    display_name?: string;
+}
 
-export interface AuthDict { type: string; session?: string; [key: string]: unknown; }
+export interface AuthDict {
+    type: string;
+    session?: string;
+    [key: string]: unknown;
+}
 
-export interface DeleteDeviceRequest { auth?: AuthDict; }
+export interface DeleteDeviceRequest {
+    auth?: AuthDict;
+}
 
-export interface DeleteDevicesRequest { devices: string[]; auth?: AuthDict; }
+export interface DeleteDevicesRequest {
+    devices: string[];
+    auth?: AuthDict;
+}
 
-export interface DeviceData { display_name?: string; last_seen_ts?: number; last_seen_ip?: string; }
+export interface DeviceData {
+    display_name?: string;
+    last_seen_ts?: number;
+    last_seen_ip?: string;
+}
 
-export interface DeviceChange { user_id: string; device_id: string; device_data: DeviceData; }
+export interface DeviceChange {
+    user_id: string;
+    device_id: string;
+    device_data: DeviceData;
+}
 
-export interface DeviceListUpdatesRequest { users: string[]; }
+export interface DeviceListUpdatesRequest {
+    users: string[];
+}
 
-export interface DeviceListUpdatesResponse { changed: DeviceChange[]; left: string[]; }
+export interface DeviceListUpdatesResponse {
+    changed: DeviceChange[];
+    left: string[];
+}

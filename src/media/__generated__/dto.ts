@@ -9,26 +9,47 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export interface UploadRequest { name?: string; type?: string; }
+export interface UploadRequest {
+    name?: string;
+    type?: string;
+}
 
-export interface UploadResponse { content_uri: string; }
+export interface UploadResponse {
+    content_uri: string;
+}
 
-export interface MediaConfig { "m.upload.size"?: number; }
+export interface MediaConfig {
+    "m.upload.size"?: number;
+}
 
 export interface UrlPreview {
-    url?: string; title?: string; description?: string; image_url?: string;
-    image?: string; og_image?: string; "matrix:image"?: string;
+    url?: string;
+    title?: string;
+    description?: string;
+    image_url?: string;
+    image?: string;
+    og_image?: string;
+    "matrix:image"?: string;
 }
 
 export interface MediaDownloadUrlOptions {
-    filename?: string; allowDirectLinks?: boolean; allowRedirects?: boolean;
-    useAuthentication?: boolean; version?: "v1" | "v3" | "r1";
-    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
+    filename?: string;
+    allowDirectLinks?: boolean;
+    allowRedirects?: boolean;
+    useAuthentication?: boolean;
+    version?: "v1" | "v3" | "r1";
+    signature?: string;
+    timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 
 export interface MediaThumbnailUrlOptions {
-    width?: number; height?: number; method?: "crop" | "scale";
-    allowDirectLinks?: boolean; allowRedirects?: boolean;
-    useAuthentication?: boolean; animated?: boolean;
-    signature?: string; timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
+    width?: number;
+    height?: number;
+    method?: "crop" | "scale";
+    allowDirectLinks?: boolean;
+    allowRedirects?: boolean;
+    useAuthentication?: boolean;
+    animated?: boolean;
+    signature?: string;
+    timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
