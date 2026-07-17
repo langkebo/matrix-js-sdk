@@ -254,5 +254,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "retention", () => new RetentionManager(this));
     };
 }
-
-export default extendMatrixClient;

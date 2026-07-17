@@ -193,5 +193,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "qrLogin", () => new QrLoginManager(this));
     };
 }
-
-export default extendMatrixClient;

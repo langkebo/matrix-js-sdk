@@ -535,5 +535,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "friend", () => new FriendManager(this));
     };
 }
-
-export default extendMatrixClient;

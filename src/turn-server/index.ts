@@ -133,5 +133,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "turnServer", () => new TurnServerManager(this));
     };
 }
-
-export default extendMatrixClient;

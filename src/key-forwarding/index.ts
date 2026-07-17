@@ -80,5 +80,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "keyForwarding", () => new KeyForwardingManager(this));
     };
 }
-
-export default extendMatrixClient;

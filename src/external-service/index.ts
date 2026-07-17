@@ -345,5 +345,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "external-service", () => new ExternalServiceManager(this));
     };
 }
-
-export default extendMatrixClient;

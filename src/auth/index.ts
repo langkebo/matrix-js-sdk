@@ -651,5 +651,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "auth", () => new AuthManager(this));
     };
 }
-
-export default extendMatrixClient;

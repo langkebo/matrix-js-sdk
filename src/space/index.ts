@@ -816,5 +816,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "space", () => new SpaceManager(this));
     };
 }
-
-export default extendMatrixClient;

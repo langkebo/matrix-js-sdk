@@ -444,5 +444,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "timeline", () => new TimelineManager(this));
     };
 }
-
-export default extendMatrixClient;

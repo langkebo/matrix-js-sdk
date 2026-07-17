@@ -682,5 +682,3 @@ export function extendMatrixClient(): void {
         return this.getPresenceManager().setPresence(presenceOrOpts, statusMsgOrOpts);
     };
 }
-
-export default extendMatrixClient;

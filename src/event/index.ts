@@ -35,5 +35,3 @@ export function setEventManagerRetryOptions(client: MatrixClient, options: Retry
     const manager = client.getEventManager();
     manager.setRetryOptions(options);
 }
-
-export default extendMatrixClient;

@@ -417,5 +417,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "telemetry", () => new TelemetryManager(this, config));
     };
 }
-
-export default extendMatrixClient;

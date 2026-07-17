@@ -499,5 +499,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "openclaw", () => new OpenClawManager(this));
     };
 }
-
-export default extendMatrixClient;

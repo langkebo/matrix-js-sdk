@@ -133,5 +133,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "roomSettings", () => new RoomSettingsManager(this));
     };
 }
-
-export default extendMatrixClient;

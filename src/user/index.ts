@@ -111,5 +111,3 @@ export function extendMatrixClient(): void {
         return this.getUserManager().getUsers();
     };
 }
-
-export default extendMatrixClient;

@@ -1065,5 +1065,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "federation", () => new FederationManager(this));
     };
 }
-
-export default extendMatrixClient;

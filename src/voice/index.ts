@@ -364,5 +364,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "voice", () => new VoiceManager(this));
     };
 }
-
-export default VoiceManager;

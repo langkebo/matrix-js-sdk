@@ -260,5 +260,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "saml-auth", () => new SamlAuthManager(this));
     };
 }
-
-export default extendMatrixClient;

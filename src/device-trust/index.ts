@@ -298,5 +298,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "deviceTrust", () => new DeviceTrustManager(this));
     };
 }
-
-export default extendMatrixClient;

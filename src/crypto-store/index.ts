@@ -63,5 +63,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "cryptoStore", () => new CryptoStoreManager(this));
     };
 }
-
-export default extendMatrixClient;

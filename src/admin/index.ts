@@ -1251,5 +1251,3 @@ export function extendMatrixClient(): void {
         return this.getAdminManager().config;
     };
 }
-
-export default extendMatrixClient;

@@ -137,5 +137,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "crossSigning", () => new CrossSigningManager(this));
     };
 }
-
-export default extendMatrixClient;

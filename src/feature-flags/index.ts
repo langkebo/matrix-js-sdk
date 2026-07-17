@@ -137,5 +137,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "featureFlags", () => new FeatureFlagManager(this));
     };
 }
-
-export default extendMatrixClient;

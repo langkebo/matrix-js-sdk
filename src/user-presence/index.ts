@@ -160,5 +160,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "userPresence", () => new UserPresenceManager(this));
     };
 }
-
-export default extendMatrixClient;

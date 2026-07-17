@@ -53,5 +53,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "eventProcessing", () => new EventProcessingManager(this));
     };
 }
-
-export default extendMatrixClient;

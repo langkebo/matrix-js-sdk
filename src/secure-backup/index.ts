@@ -269,5 +269,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "secureBackup", () => new SecureBackupManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -628,5 +628,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "keyBackup", () => new KeyBackupManager(this));
     };
 }
-
-export default extendMatrixClient;

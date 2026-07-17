@@ -65,7 +65,7 @@ export interface IWidget {
     url: string;
     name: string;
     /** Dynamic: widget data varies by widget type */
-    data: Record<string, unknown>;
+    data: Record<string, unknown>; // Dynamic: dynamic Matrix content
     creator: string;
     active: boolean;
 }
@@ -555,5 +555,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "widget", () => new WidgetManager(this));
     };
 }
-
-export default extendMatrixClient;

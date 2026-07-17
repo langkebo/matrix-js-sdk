@@ -354,5 +354,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "mediaQuota", () => new MediaQuotaManager(this));
     };
 }
-
-export default extendMatrixClient;

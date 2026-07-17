@@ -399,5 +399,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "discovery", () => new DiscoveryManager(this));
     };
 }
-
-export default extendMatrixClient;

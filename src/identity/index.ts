@@ -123,5 +123,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "identity", () => new IdentityManager(this));
     };
 }
-
-export default extendMatrixClient;

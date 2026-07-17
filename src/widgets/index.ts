@@ -434,5 +434,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "widgets", () => new WidgetsManager(this));
     };
 }
-
-export default extendMatrixClient;

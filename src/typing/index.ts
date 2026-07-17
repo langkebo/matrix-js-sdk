@@ -383,5 +383,3 @@ export function extendMatrixClient(): void {
         return this.getTypingManager().sendTyping(roomId, isTyping, timeoutMs ?? 30000);
     };
 }
-
-export default extendMatrixClient;

@@ -75,5 +75,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "membership", () => new MembershipManager(this));
     };
 }
-
-export default extendMatrixClient;

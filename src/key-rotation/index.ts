@@ -311,5 +311,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
     };
 }
-
-export default extendMatrixClient;

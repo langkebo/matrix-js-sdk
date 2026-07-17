@@ -294,5 +294,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "account", () => new AccountManager(this));
     };
 }
-
-export default extendMatrixClient;

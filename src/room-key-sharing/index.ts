@@ -113,5 +113,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "roomKeySharing", () => new RoomKeySharingManager(this));
     };
 }
-
-export default extendMatrixClient;

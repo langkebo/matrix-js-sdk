@@ -72,5 +72,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "pushNotifications", () => new PushNotificationsManager(this));
     };
 }
-
-export default extendMatrixClient;

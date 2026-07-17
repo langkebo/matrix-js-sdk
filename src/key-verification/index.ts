@@ -372,5 +372,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "keyVerification", () => new KeyVerificationManager(this));
     };
 }
-
-export default extendMatrixClient;

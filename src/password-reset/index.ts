@@ -105,5 +105,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "passwordReset", () => new PasswordResetManager(this));
     };
 }
-
-export default extendMatrixClient;

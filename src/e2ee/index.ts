@@ -531,5 +531,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "e2ee", () => new E2EEManager(this));
     };
 }
-
-export default extendMatrixClient;

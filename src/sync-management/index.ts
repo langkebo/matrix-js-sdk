@@ -114,5 +114,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "syncManagement", () => new SyncManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -59,7 +59,7 @@ export interface IThreadReply {
     room_id: string;
     thread_id: string;
     sender: string;
-    content: Record<string, unknown>;
+    content: Record<string, unknown>; // Dynamic: dynamic Matrix content
     origin_server_ts: number;
 }
 
@@ -579,5 +579,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "thread", () => new ThreadManager(this));
     };
 }
-
-export default extendMatrixClient;

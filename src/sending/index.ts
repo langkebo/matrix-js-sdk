@@ -305,5 +305,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "sending", () => new SendingManager(this));
     };
 }
-
-export default extendMatrixClient;

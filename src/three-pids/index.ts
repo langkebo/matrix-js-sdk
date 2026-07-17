@@ -141,5 +141,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "threepids", () => new ThreePidsManager(this));
     };
 }
-
-export default extendMatrixClient;

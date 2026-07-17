@@ -118,5 +118,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "userDirectory", () => new UserDirectoryManager(this));
     };
 }
-
-export default extendMatrixClient;

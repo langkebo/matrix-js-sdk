@@ -504,5 +504,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "guest", () => new GuestManager(this, this.getHomeserverUrl()));
     };
 }
-
-export default extendMatrixClient;

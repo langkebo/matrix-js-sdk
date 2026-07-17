@@ -59,5 +59,3 @@ export function isRealBackendReachable(): boolean {
         return false;
     }
 }
-
-export default TestConfig;

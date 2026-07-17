@@ -211,5 +211,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "pinnedMessages", () => new PinnedMessagesManager(this));
     };
 }
-
-export default extendMatrixClient;

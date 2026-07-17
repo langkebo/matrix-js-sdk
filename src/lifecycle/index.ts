@@ -84,5 +84,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "lifecycle", () => new LifecycleManager(this));
     };
 }
-
-export default extendMatrixClient;

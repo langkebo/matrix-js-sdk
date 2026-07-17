@@ -336,5 +336,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "thirdparty", () => new ThirdPartyManager(this));
     };
 }
-
-export default extendMatrixClient;

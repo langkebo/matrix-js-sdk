@@ -324,5 +324,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "verification", () => new VerificationManager(this));
     };
 }
-
-export default extendMatrixClient;

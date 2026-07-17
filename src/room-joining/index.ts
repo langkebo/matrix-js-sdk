@@ -83,5 +83,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "roomJoining", () => new RoomJoiningManager(this));
     };
 }
-
-export default extendMatrixClient;

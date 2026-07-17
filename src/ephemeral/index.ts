@@ -229,5 +229,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "ephemeral", () => new EphemeralManager(this));
     };
 }
-
-export default extendMatrixClient;

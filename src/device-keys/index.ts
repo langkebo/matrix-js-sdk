@@ -563,5 +563,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "deviceKeys", () => new DeviceKeysManager(this));
     };
 }
-
-export default extendMatrixClient;

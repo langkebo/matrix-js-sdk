@@ -282,5 +282,3 @@ export class DatabaseVerifier {
         }
     }
 }
-
-export default DatabaseVerifier;

@@ -65,5 +65,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "serverTime", () => new ServerTimeManager(this));
     };
 }
-
-export default extendMatrixClient;

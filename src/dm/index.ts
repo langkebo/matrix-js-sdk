@@ -1116,5 +1116,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "dm", () => new DirectMessageManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -367,5 +367,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "search", () => new SearchManager(this));
     };
 }
-
-export default extendMatrixClient;

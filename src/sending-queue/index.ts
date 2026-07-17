@@ -77,5 +77,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "sendingQueue", () => new SendingQueueManager(this));
     };
 }
-
-export default extendMatrixClient;

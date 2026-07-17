@@ -145,5 +145,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "notifications", () => new NotificationsManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -223,5 +223,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "voipCalls", () => new VoIPCallsManager(this));
     };
 }
-
-export default extendMatrixClient;

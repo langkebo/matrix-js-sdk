@@ -768,5 +768,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "BurnAfterReadManager", () => new BurnAfterReadManager(this));
     };
 }
-
-export default BurnAfterReadManager;

@@ -445,5 +445,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "serverCapabilities", () => new ServerCapabilitiesManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -69,5 +69,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "aggregations", () => new AggregationsManager(this));
     };
 }
-
-export default extendMatrixClient;

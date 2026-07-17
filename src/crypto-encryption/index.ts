@@ -113,5 +113,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "cryptoEncryption", () => new CryptoEncryptionManager(this));
     };
 }
-
-export default extendMatrixClient;

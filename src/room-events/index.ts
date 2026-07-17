@@ -141,5 +141,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "roomEvents", () => new RoomEventsManager(this));
     };
 }
-
-export default extendMatrixClient;

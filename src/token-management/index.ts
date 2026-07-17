@@ -94,5 +94,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "tokenManagement", () => new TokenManager(this));
     };
 }
-
-export default extendMatrixClient;

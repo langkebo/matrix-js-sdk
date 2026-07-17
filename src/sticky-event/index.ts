@@ -480,5 +480,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "stickyEvent", () => new StickyEventManager(this));
     };
 }
-
-export default extendMatrixClient;

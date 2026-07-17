@@ -207,5 +207,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "aiConnection", () => new AIConnectionManager(this));
     };
 }
-
-export default extendMatrixClient;

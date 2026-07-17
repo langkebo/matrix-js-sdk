@@ -88,5 +88,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "syncAccumulator", () => new SyncAccumulatorManager(this));
     };
 }
-
-export default extendMatrixClient;

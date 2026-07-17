@@ -171,5 +171,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "dehydratedDevice", () => new DehydratedDeviceManager(this));
     };
 }
-
-export default extendMatrixClient;

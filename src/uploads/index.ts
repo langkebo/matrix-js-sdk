@@ -80,5 +80,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "uploads", () => new UploadsManager(this));
     };
 }
-
-export default extendMatrixClient;

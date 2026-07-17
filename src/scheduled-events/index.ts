@@ -156,5 +156,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "scheduledEvents", () => new ScheduledEventsManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -117,5 +117,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "secretStorage", () => new SecretStorageManager(this));
     };
 }
-
-export default extendMatrixClient;

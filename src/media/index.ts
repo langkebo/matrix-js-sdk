@@ -470,5 +470,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "media", () => new MediaManager(this));
     };
 }
-
-export default extendMatrixClient;

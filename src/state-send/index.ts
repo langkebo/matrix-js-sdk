@@ -119,5 +119,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "stateSend", () => new StateSendManager(this));
     };
 }
-
-export default extendMatrixClient;

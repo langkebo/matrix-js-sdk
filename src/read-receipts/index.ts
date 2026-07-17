@@ -273,5 +273,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "readReceipts", () => new ReadReceiptsManager(this));
     };
 }
-
-export default extendMatrixClient;

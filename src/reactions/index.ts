@@ -179,5 +179,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "reactions", () => new ReactionsManager(this));
     };
 }
-
-export default extendMatrixClient;

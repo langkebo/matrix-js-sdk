@@ -305,5 +305,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "inviteBlocklist", () => new InviteBlocklistManager(this));
     };
 }
-
-export default InviteBlocklistManager;

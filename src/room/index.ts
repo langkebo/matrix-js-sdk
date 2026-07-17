@@ -46,5 +46,3 @@ export function extendMatrixClient(): void {
         return this.getRoomManager().getRooms();
     };
 }
-
-export default extendMatrixClient;

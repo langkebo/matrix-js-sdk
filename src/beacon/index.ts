@@ -125,5 +125,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "beacon", () => new BeaconManager(this));
     };
 }
-
-export default extendMatrixClient;

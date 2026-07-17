@@ -83,5 +83,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "sessions", () => new SessionsManager(this));
     };
 }
-
-export default extendMatrixClient;

@@ -237,5 +237,3 @@ export function createAIModule(endpoint?: string): AIModule {
     }
     return module;
 }
-
-export default AIModule;

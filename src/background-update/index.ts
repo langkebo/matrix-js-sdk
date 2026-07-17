@@ -311,5 +311,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "backgroundUpdate", () => new BackgroundUpdateManager(this));
     };
 }
-
-export default extendMatrixClient;

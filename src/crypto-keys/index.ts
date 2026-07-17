@@ -328,5 +328,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "cryptoKeys", () => new CryptoKeysManager(this));
     };
 }
-
-export default extendMatrixClient;

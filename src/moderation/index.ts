@@ -123,5 +123,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "moderation", () => new ModerationManager(this));
     };
 }
-
-export default extendMatrixClient;

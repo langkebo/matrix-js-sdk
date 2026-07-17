@@ -621,5 +621,3 @@ export function extendMatrixClient(): void {
         await this.getProfileManager()!.setAvatarUrl(url);
     };
 }
-
-export default extendMatrixClient;

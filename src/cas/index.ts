@@ -299,5 +299,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "cas", () => new CasManager(this));
     };
 }
-
-export default extendMatrixClient;

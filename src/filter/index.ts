@@ -138,5 +138,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "filter", () => new FilterManager(this));
     };
 }
-
-export default FilterManager;

@@ -102,5 +102,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "tagsManagement", () => new TagsManager(this));
     };
 }
-
-export default extendMatrixClient;

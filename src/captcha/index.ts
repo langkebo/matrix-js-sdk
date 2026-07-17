@@ -190,5 +190,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "captcha", () => new CaptchaManager(this));
     };
 }
-
-export default extendMatrixClient;

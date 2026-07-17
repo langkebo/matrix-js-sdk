@@ -121,5 +121,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "reporting", () => new ReportingManager(this));
     };
 }
-
-export default extendMatrixClient;

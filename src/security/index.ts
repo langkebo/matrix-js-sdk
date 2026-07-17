@@ -161,5 +161,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "security", () => new SecurityManager(this));
     };
 }
-
-export default extendMatrixClient;
