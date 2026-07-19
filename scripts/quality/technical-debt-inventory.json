@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-07-19T14:41:27.069Z",
-  "summary": {
-    "total": 0,
-    "todo": 0,
-    "fixme": 0,
-    "hack": 0,
-    "xxx": 0
-  },
-  "items": []
+    "generatedAt": "2026-07-19T14:41:27.069Z",
+    "summary": {
+        "total": 0,
+        "todo": 0,
+        "fixme": 0,
+        "hack": 0,
+        "xxx": 0
+    },
+    "items": []
 }
