@@ -33,5 +33,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, name, () => new Ctor(this)) as ManagerTypeMap[K];
     };
 }
-
-export default extendMatrixClient;

@@ -416,5 +416,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "oidc", () => new OidcManager(this));
     };
 }
-
-export default extendMatrixClient;

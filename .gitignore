@@ -19,3 +19,4 @@ out
 .vscode
 .vscode/
 .idea/
+.claude/scheduled_tasks.lock

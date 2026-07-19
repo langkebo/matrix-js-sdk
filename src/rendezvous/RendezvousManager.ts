@@ -348,5 +348,3 @@ export function extendMatrixClient(): void {
         return getOrCreateManager(this, "rendezvous", () => new RendezvousManager(this));
     };
 }
-
-export default extendMatrixClient;
