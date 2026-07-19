@@ -156,6 +156,11 @@ export type { IHierarchyRelation as HierarchyRelation, IHierarchyRoom as Hierarc
 export { DebugLogger } from "./logger";
 export { TelemetryManager } from "./telemetry/index";
 
+// Re-export crypto key backup types for frontend usage (list C.2)
+export type { KeyBackupInfo, KeyBackupSession, KeyBackupRoomSessions } from "./crypto-api/keybackup";
+// Re-export MatrixClientExtensionMethods for frontend type augmentation (list C.3)
+export type { MatrixClientExtensionMethods } from "./matrix-client-extensions";
+
 let cryptoStoreFactory = (): CryptoStore => new MemoryCryptoStore();
 
 /**

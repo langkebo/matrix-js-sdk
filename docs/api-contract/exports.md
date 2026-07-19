@@ -18,6 +18,7 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./cache`                  | Cache 白名单：缓存工具入口（当前仅校验子路径存在）              | `-`                                                                                        |
 | `./client`                 | Client 白名单：`MatrixClient` 主类型与客户端事件/选项           | `MatrixClient`, `ClientEvent`, `ICreateClientOpts`                                         |
 | `./crypto`                 | Crypto 白名单：Rust Crypto API 与解密/隔离相关类型              | `CryptoApi`, `DecryptionFailureCode`, `DeviceIsolationModeKind`                            |
+| `./crypto-keys`            | Crypto Keys 白名单：设备密钥 manager 与密钥上传/查询/声明类型   | `CryptoKeysManager`, `IDeviceKeys`, `IKeysUploadRequest`                                   |
 | `./device`                 | Device 白名单：设备管理 manager 与设备类型                      | `DeviceManager`, `DeviceEvent`, `IDevice`                                                  |
 | `./device-keys`            | Device Keys 白名单：设备密钥类型                                | `DeviceKeys`, `OneTimeKeys`                                                                |
 | `./dm`                     | DM 白名单：直聊 manager 与直聊领域类型                          | `DirectMessageManager`, `DMEvent`, `DmRoomInfo`                                            |

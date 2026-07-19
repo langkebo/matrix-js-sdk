@@ -113,6 +113,10 @@
             "import": "./lib/crypto-api/index.js",
             "types": "./lib/crypto-api/index.d.ts"
         },
+        "./crypto-keys": {
+            "import": "./lib/crypto-keys/index.js",
+            "types": "./lib/crypto-keys/index.d.ts"
+        },
         "./webrtc": {
             "import": "./lib/webrtc/index.js",
             "types": "./lib/webrtc/index.d.ts"
