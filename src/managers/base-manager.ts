@@ -79,6 +79,8 @@ export interface RequestSpec {
     localTimeoutMs?: number;
     /** 透传至 IRequestOpts.headers，用于自定义请求头（如媒体上传的 Content-Type） */
     headers?: Record<string, string>;
+    /** 透传至 IRequestOpts.abortSignal，用于取消请求（如 sliding sync 重发） */
+    abortSignal?: AbortSignal;
 }
 
 /**
@@ -179,6 +181,9 @@ export abstract class BaseManager<
         }
         if (spec.headers) {
             opts.headers = spec.headers;
+        }
+        if (spec.abortSignal) {
+            opts.abortSignal = spec.abortSignal;
         }
 
         // 被外层 withRetry 包装时：仅做单次调用，不重试、不写统计

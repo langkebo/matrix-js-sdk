@@ -1231,6 +1231,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             body: body,
             prefix: "/_matrix/client/unstable/org.matrix.simplified_msc3575",
             localTimeoutMs: clientTimeout,
+            abortSignal: _abortSignal,
         });
     }
 }
