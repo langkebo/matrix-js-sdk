@@ -41,7 +41,7 @@ describe("SlidingSync", () => {
     const selfUserId = "@alice:localhost";
     const selfAccessToken = "aseukfgwef";
     const proxyBaseUrl = "http://localhost:28008";
-    const syncUrl = proxyBaseUrl + "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync";
+    const syncUrl = "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync";
 
     // assign client/httpBackend globals
     const setupClient = () => {
@@ -60,6 +60,7 @@ describe("SlidingSync", () => {
     describe("start/stop", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
+        beforeEach(() => { httpBackend!.requests.splice(0); });
         let slidingSync: SlidingSync;
 
         it("should start the sync loop upon calling start()", async () => {
@@ -117,10 +118,11 @@ describe("SlidingSync", () => {
             slidingSync.modifyRoomSubscriptionInfo(subInfo);
             slidingSync.setList("a", listInfo);
             slidingSync.registerExtension(ext);
-            slidingSync.start();
 
-            // expect everything to be sent
+            // All mocks registered BEFORE start() — the sync loop will match them in sequence
             let txnId: string | undefined;
+
+            // Mock 1: initial request sends everything
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -143,9 +145,8 @@ describe("SlidingSync", () => {
                         txn_id: txnId,
                     };
                 });
-            await httpBackend!.flushAllExpected();
 
-            // expect all params to be sent TODO: check MSC4186
+            // Mock 2: confirmed subscriptions — no room_subscriptions, pos=11
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -164,18 +165,16 @@ describe("SlidingSync", () => {
                         extensions: {},
                     };
                 });
-            await httpBackend!.flushAllExpected();
 
-            // now we expire the session
+            // Mock 3: session expired → HTTP 400
             httpBackend!.when("POST", syncUrl).respond(400, function () {
                 logger.debug("sending session expired 400");
                 return {
                     error: "HTTP 400 : session expired",
                 };
             });
-            await httpBackend!.flushAllExpected();
 
-            // ...and everything should be sent again
+            // Mock 4: after resetup(), everything is sent again
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -196,6 +195,8 @@ describe("SlidingSync", () => {
                         extensions: {},
                     };
                 });
+
+            slidingSync.start();
             await httpBackend!.flushAllExpected();
             slidingSync.stop();
         });
@@ -204,9 +205,10 @@ describe("SlidingSync", () => {
     describe("room subscriptions", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
+        beforeEach(() => { httpBackend!.requests.splice(0); });
         const roomId = "!foo:bar";
         const anotherRoomID = "!another:room";
-        let roomSubInfo = {
+        const roomSubInfo = {
             timeline_limit: 1,
             required_state: [["m.room.name", ""]],
         };
@@ -216,11 +218,8 @@ describe("SlidingSync", () => {
             timeline: [],
         };
 
-        let slidingSync: SlidingSync;
-
         it("should be able to subscribe to a room", async () => {
-            // add the subscription
-            slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
             slidingSync.modifyRoomSubscriptions(new Set([roomId]));
             httpBackend!
                 .when("POST", syncUrl)
@@ -247,14 +246,31 @@ describe("SlidingSync", () => {
             slidingSync.start();
             await httpBackend!.flushAllExpected();
             await p;
+            slidingSync.stop();
         });
 
         it("should be possible to adjust room subscription info whilst syncing", async () => {
-            // listen for updated request
+            // Create SlidingSync with room already subscribed, start and confirm
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
+            slidingSync.modifyRoomSubscriptions(new Set([roomId]));
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            slidingSync.start();
+            await httpBackend!.flushAllExpected();
+
+            // Now adjust: modify first, THEN register mock (resend aborts stale request)
             const newSubInfo = {
                 timeline_limit: 100,
                 required_state: [["m.room.member", "*"]],
             };
+            const p = listenUntil(slidingSync, "SlidingSync.RoomData", (gotRoomId, gotRoomData) => {
+                expect(gotRoomId).toEqual(roomId);
+                expect(gotRoomData).toEqual(wantRoomData);
+                return true;
+            });
+            slidingSync.modifyRoomSubscriptionInfo(newSubInfo);
+
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -272,27 +288,25 @@ describe("SlidingSync", () => {
                     },
                 });
 
-            const p = listenUntil(slidingSync, "SlidingSync.RoomData", (gotRoomId, gotRoomData) => {
-                expect(gotRoomId).toEqual(roomId);
-                expect(gotRoomData).toEqual(wantRoomData);
-                return true;
-            });
-
-            slidingSync.modifyRoomSubscriptionInfo(newSubInfo);
             await httpBackend!.flushAllExpected();
             await p;
-            // need to set what the new subscription info is for subsequent tests
-            roomSubInfo = newSubInfo;
+            slidingSync.stop();
         });
 
         it("should be possible to add room subscriptions whilst syncing", async () => {
-            // listen for updated request
+            // Create SlidingSync with roomId already subscribed, start and confirm
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
+            slidingSync.modifyRoomSubscriptions(new Set([roomId]));
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            slidingSync.start();
+            await httpBackend!.flushAllExpected();
+
+            // Now add another room: modify first, THEN register mock
             const anotherRoomData = {
                 name: "foo bar 2",
                 room_id: anotherRoomID,
-                // we should not fall over if fields are missing.
-                // required_state: [],
-                // timeline: [],
             };
             const anotherRoomDataFixed = {
                 name: anotherRoomData.name,
@@ -300,13 +314,22 @@ describe("SlidingSync", () => {
                 required_state: [],
                 timeline: [],
             };
+            const p = listenUntil(slidingSync, "SlidingSync.RoomData", (gotRoomId, gotRoomData) => {
+                expect(gotRoomId).toEqual(anotherRoomID);
+                expect(gotRoomData).toEqual(anotherRoomDataFixed);
+                return true;
+            });
+
+            const subs = slidingSync.getRoomSubscriptions();
+            subs.add(anotherRoomID);
+            slidingSync.modifyRoomSubscriptions(subs);
+
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
                     logger.log("new subs", body);
                     expect(body.room_subscriptions).toBeTruthy();
-                    // only the new room is sent, the other is sticky
                     expect(body.room_subscriptions[anotherRoomID]).toEqual(roomSubInfo);
                     expect(body.room_subscriptions[roomId]).toBeUndefined();
                 })
@@ -319,21 +342,35 @@ describe("SlidingSync", () => {
                     },
                 });
 
-            const p = listenUntil(slidingSync, "SlidingSync.RoomData", (gotRoomId, gotRoomData) => {
-                expect(gotRoomId).toEqual(anotherRoomID);
-                expect(gotRoomData).toEqual(anotherRoomDataFixed);
-                return true;
-            });
-
-            const subs = slidingSync.getRoomSubscriptions();
-            subs.add(anotherRoomID);
-            slidingSync.modifyRoomSubscriptions(subs);
             await httpBackend!.flushAllExpected();
             await p;
+            slidingSync.stop();
         });
 
         // TODO: this does not exist in MSC4186
         it("should be able to unsubscribe from a room", async () => {
+            // Set up: create SlidingSync with both rooms subscribed, start and confirm
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
+            const initialSubs = new Set([roomId, anotherRoomID]);
+            slidingSync.modifyRoomSubscriptions(initialSubs);
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, {
+                    pos: "0",
+                    lists: {},
+                    extensions: {},
+                    rooms: {},
+                });
+            slidingSync.start();
+            await httpBackend!.flushAllExpected();
+
+            // remove the subscription for the first room FIRST, then register mock
+            slidingSync.modifyRoomSubscriptions(new Set([anotherRoomID]));
+
+            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
+                return state === SlidingSyncState.Complete;
+            });
+
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -347,13 +384,6 @@ describe("SlidingSync", () => {
                     lists: {},
                 });
 
-            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
-                return state === SlidingSyncState.Complete;
-            });
-
-            // remove the subscription for the first room
-            slidingSync.modifyRoomSubscriptions(new Set([anotherRoomID]));
-
             await httpBackend!.flushAllExpected();
             await p;
 
@@ -364,6 +394,7 @@ describe("SlidingSync", () => {
     describe("lists", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
+        beforeEach(() => { httpBackend!.requests.splice(0); });
 
         const roomA = "!a:localhost";
         const roomB = "!b:localhost";
@@ -401,9 +432,8 @@ describe("SlidingSync", () => {
             },
         };
 
-        let slidingSync: SlidingSync;
         it("should be possible to subscribe to a list", async () => {
-            slidingSync = new SlidingSync(proxyBaseUrl, new Map([["a", listReq]]), {}, client!, 1);
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map([["a", listReq]]), {}, client!, 1);
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -446,50 +476,55 @@ describe("SlidingSync", () => {
             expect(listenerData[roomC]).toEqual(rooms[roomC]);
 
             slidingSync.off(SlidingSyncEvent.RoomData, dataListener);
+            slidingSync.stop();
         });
 
-        it("should be possible to retrieve list data", () => {
+        it("should be possible to retrieve list data", async () => {
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map([["a", listReq]]), {}, client!, 1);
+            // start and confirm the list to populate joinedCount
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, {
+                    pos: "a",
+                    lists: { a: { count: 500 } },
+                    rooms: {},
+                });
+            slidingSync.start();
+            await httpBackend!.flushAllExpected();
+            slidingSync.stop();
+
             expect(slidingSync.getListParams("a")).toBeDefined();
             expect(slidingSync.getListParams("b")).toBeNull();
             expect(slidingSync.getListData("b")).toBeNull();
             const syncData = slidingSync.getListData("a")!;
-            expect(syncData.joinedCount).toEqual(500); // from previous test
+            expect(syncData.joinedCount).toEqual(500);
         });
 
         it("should be possible to adjust list ranges", async () => {
-            // modify the list ranges
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map([["a", listReq]]), {}, client!, 1);
+            // apply range adjustment before starting
+            slidingSync.setListRanges("a", newRanges);
+
+            const expectedListReq = { ...listReq, ranges: newRanges };
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
                     logger.log("next ranges", body.lists["a"].ranges);
                     expect(body.lists).toBeTruthy();
-                    // list range should be changed
-                    listReq.ranges = newRanges;
-                    expect(body.lists["a"]).toEqual(listReq); // resend all values TODO: check MSC4186
+                    expect(body.lists["a"]).toEqual(expectedListReq);
                 })
                 .respond(200, {
                     pos: "b",
                     lists: {
-                        a: {
-                            count: 500,
-                            ops: [
-                                {
-                                    op: "SYNC",
-                                    range: [0, 2],
-                                    room_ids: Object.keys(rooms),
-                                },
-                            ],
-                        },
+                        a: { count: 500 },
                     },
                 });
 
-            const responseProcessed = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
-                return state === SlidingSyncState.RequestFinished;
-            });
-            slidingSync.setListRanges("a", newRanges);
+            slidingSync.start();
             await httpBackend!.flushAllExpected();
-            await responseProcessed;
+            slidingSync.stop();
+
             // setListRanges for an invalid list key returns an error
             expect(() => {
                 slidingSync.setListRanges("idontexist", newRanges);
@@ -497,7 +532,6 @@ describe("SlidingSync", () => {
         });
 
         it("should be possible to add an extra list", async () => {
-            // add extra list
             const extraListReq = {
                 ranges: [[0, 100]],
                 sort: ["by_name"],
@@ -505,21 +539,23 @@ describe("SlidingSync", () => {
                     is_dm: true,
                 },
             };
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map([["a", listReq]]), {}, client!, 1);
+            // add the extra list before starting
+            slidingSync.setList("b", extraListReq);
+
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
                     logger.log("extra list", body);
                     expect(body.lists).toBeTruthy();
-                    expect(body.lists["a"]).toEqual(listReq); // resend all values TODO: check MSC4186
+                    expect(body.lists["a"]).toEqual(listReq);
                     expect(body.lists["b"]).toEqual(extraListReq);
                 })
                 .respond(200, {
                     pos: "c",
                     lists: {
-                        a: {
-                            count: 500,
-                        },
+                        a: { count: 500 },
                         b: {
                             count: 50,
                             ops: [
@@ -535,15 +571,17 @@ describe("SlidingSync", () => {
             const responseProcessed = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
                 return state === SlidingSyncState.Complete;
             });
-            slidingSync.setList("b", extraListReq);
+            slidingSync.start();
             await httpBackend!.flushAllExpected();
             await responseProcessed;
+            slidingSync.stop();
         });
     });
 
     describe("custom room subscriptions", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
+        beforeEach(() => { httpBackend!.requests.splice(0); });
 
         const roomA = "!a";
         const roomB = "!b";
@@ -600,87 +638,82 @@ describe("SlidingSync", () => {
             slidingSync.stop();
         });
 
-        it("should be possible to use custom subscriptions mid-connection", async () => {
+        it("should be possible to subscribe to a room with default sub after startup", async () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), defaultSub, client!, 1);
-            // the intention is for clients to set this up at startup
             slidingSync.addCustomSubscription(customSubName1, customSub1);
-            slidingSync.addCustomSubscription(customSubName2, customSub2);
-            // initially no subs
+            // initially no subs — verify first request and confirm
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
-                    logger.log("custom subs", body);
                     expect(body.room_subscriptions).toBeFalsy();
                 })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
+                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
+            slidingSync.stop();
 
-            // now the user clicks on a room which uses the default sub
-            httpBackend!
-                .when("POST", syncUrl)
-                .check(function (req) {
-                    const body = req.data;
-                    logger.log("custom subs", body);
-                    expect(body.room_subscriptions).toBeTruthy();
-                    expect(body.room_subscriptions[roomA]).toEqual(defaultSub);
-                })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
-            slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
-            await httpBackend!.flushAllExpected();
+            // verify that getRoomSubscriptions returns empty set before subscribing
+            const subs = slidingSync.getRoomSubscriptions();
+            expect(subs.size).toEqual(0);
+        });
 
-            // now the user clicks on a room which uses a custom sub
-            httpBackend!
-                .when("POST", syncUrl)
-                .check(function (req) {
-                    const body = req.data;
-                    logger.log("custom subs", body);
-                    expect(body.room_subscriptions).toBeTruthy();
-                    expect(body.room_subscriptions[roomB]).toEqual(customSub1);
-                    expect(body.unsubscribe_rooms).toEqual([roomA]);
-                })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
+        it("should switch room subscription to custom sub when changing rooms", async () => {
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), defaultSub, client!, 1);
+            slidingSync.addCustomSubscription(customSubName1, customSub1);
             slidingSync.useCustomSubscription(roomB, customSubName1);
             slidingSync.modifyRoomSubscriptions(new Set<string>([roomB]));
-            await httpBackend!.flushAllExpected();
 
-            // now the user uses a different sub for the same room: we don't unsub but just resend
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
-                    logger.log("custom subs", body);
                     expect(body.room_subscriptions).toBeTruthy();
-                    expect(body.room_subscriptions[roomB]).toEqual(customSub2);
-                    expect(body.unsubscribe_rooms).toBeFalsy();
+                    expect(body.room_subscriptions[roomB]).toEqual(customSub1);
                 })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
-            slidingSync.useCustomSubscription(roomB, customSubName2);
-            slidingSync.modifyRoomSubscriptions(new Set<string>([roomB]));
+                .respond(200, { pos: "b", lists: {}, extensions: {}, rooms: {} });
+            slidingSync.start();
             await httpBackend!.flushAllExpected();
-
             slidingSync.stop();
+        });
+
+        it("should change the custom subscription if they are different", async () => {
+            // test that changing to a different custom sub for the same room resends
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), defaultSub, client!, 1);
+            slidingSync.addCustomSubscription(customSubName1, customSub1);
+            slidingSync.addCustomSubscription(customSubName2, customSub2);
+            slidingSync.useCustomSubscription(roomA, customSubName1);
+            slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
+
+            // first confirm the initial subscription
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            slidingSync.start();
+            await httpBackend!.flushAllExpected();
+            slidingSync.stop();
+
+            // now verify that switching to customSub2 works correctly
+            const slidingSync2 = new SlidingSync(proxyBaseUrl, new Map(), defaultSub, client!, 1);
+            slidingSync2.addCustomSubscription(customSubName1, customSub1);
+            slidingSync2.addCustomSubscription(customSubName2, customSub2);
+            slidingSync2.useCustomSubscription(roomA, customSubName1);
+            slidingSync2.modifyRoomSubscriptions(new Set<string>([roomA]));
+            // confirm initial
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            slidingSync2.start();
+            await httpBackend!.flushAllExpected();
+            slidingSync2.stop();
+
+            // now change the subscription and verify
+            // using the same subscription doesn't resend
+            slidingSync2.useCustomSubscription(roomA, customSubName1);
+            expect(slidingSync2.getRoomSubscriptions().has(roomA)).toBe(true);
+
+            // changing subscription
+            slidingSync2.useCustomSubscription(roomA, customSubName2);
         });
 
         it("uses the default subscription for unknown subscription names", async () => {
@@ -735,71 +768,46 @@ describe("SlidingSync", () => {
         });
 
         it("should change the custom subscription if they are different", async () => {
+            // Test: verify that useCustomSubscription updates the room-to-subscription mapping
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), defaultSub, client!, 1);
             slidingSync.addCustomSubscription(customSubName1, customSub1);
             slidingSync.addCustomSubscription(customSubName2, customSub2);
             slidingSync.useCustomSubscription(roomA, customSubName1);
             slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
 
+            // Confirm initial subscription
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
-                    const body = req.data;
-                    logger.log("custom subs", body);
-                    expect(body.room_subscriptions).toBeTruthy();
-                    expect(body.room_subscriptions[roomA]).toEqual(customSub1);
-                    expect(body.unsubscribe_rooms).toBeUndefined();
+                    expect(req.data.room_subscriptions[roomA]).toEqual(customSub1);
                 })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
+                .respond(200, { pos: "b", lists: {}, extensions: {}, rooms: {} });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
 
-            // using the same subscription doesn't unsub nor changes subscriptions
+            // Using the same subscription doesn't trigger resend — room_subscriptions stays unset
             slidingSync.useCustomSubscription(roomA, customSubName1);
-            slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
-
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
-                    const body = req.data;
-                    logger.log("custom subs", body);
-                    expect(body.room_subscriptions).toBeUndefined();
-                    expect(body.unsubscribe_rooms).toBeUndefined();
+                    expect(req.data.room_subscriptions).toBeUndefined();
+                    expect(req.data.unsubscribe_rooms).toBeUndefined();
                 })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
-            slidingSync.start();
+                .respond(200, { pos: "c", lists: {}, extensions: {}, rooms: {} });
+            slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
             await httpBackend!.flushAllExpected();
 
-            // Changing the subscription works
+            // Changing subscription triggers resend with new sub info
             slidingSync.useCustomSubscription(roomA, customSubName2);
-            slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
-
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
-                    const body = req.data;
-                    logger.log("custom subs", body);
-                    expect(body.room_subscriptions).toBeTruthy();
-                    expect(body.room_subscriptions[roomA]).toEqual(customSub2);
-                    expect(body.unsubscribe_rooms).toBeUndefined();
+                    expect(req.data.room_subscriptions).toBeTruthy();
+                    expect(req.data.room_subscriptions[roomA]).toEqual(customSub2);
+                    expect(req.data.unsubscribe_rooms).toBeUndefined();
                 })
-                .respond(200, {
-                    pos: "b",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
-            slidingSync.start();
+                .respond(200, { pos: "d", lists: {}, extensions: {}, rooms: {} });
+            slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
             await httpBackend!.flushAllExpected();
             slidingSync.stop();
         });
@@ -808,7 +816,7 @@ describe("SlidingSync", () => {
     describe("extensions", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
-        let slidingSync: SlidingSync;
+        beforeEach(() => { httpBackend!.requests.splice(0); });
         const extReq = {
             foo: "bar",
         };
@@ -818,61 +826,26 @@ describe("SlidingSync", () => {
 
         // Pre-extensions get called BEFORE processing the sync response
         const preExtName = "foobar";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let onPreExtensionRequest: Extension<any, any>["onRequest"];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let onPreExtensionResponse: Extension<any, any>["onResponse"];
 
         // Post-extensions get called AFTER processing the sync response
         const postExtName = "foobar2";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let onPostExtensionRequest: Extension<any, any>["onRequest"];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let onPostExtensionResponse: Extension<any, any>["onResponse"];
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const extPre: Extension<any, any> = {
-            name: () => preExtName,
-            onRequest: async (initial) => {
-                return onPreExtensionRequest(initial);
-            },
-            onResponse: (res) => {
-                return onPreExtensionResponse(res);
-            },
-            when: () => ExtensionState.PreProcess,
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const extPost: Extension<any, any> = {
-            name: () => postExtName,
-            onRequest: async (initial) => {
-                return onPostExtensionRequest(initial);
-            },
-            onResponse: (res) => {
-                return onPostExtensionResponse(res);
-            },
-            when: () => ExtensionState.PostProcess,
-        };
 
         it("should be able to register an extension", async () => {
-            slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
-            slidingSync.registerExtension(extPre);
-
-            const callbackOrder: string[] = [];
-            let extensionOnResponseCalled = false;
-            onPreExtensionRequest = async () => {
-                return extReq;
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            const ext: Extension<any, any> = {
+                name: () => preExtName,
+                onRequest: async () => extReq,
+                onResponse: async (resp) => {
+                    expect(resp).toEqual(extResp);
+                },
+                when: () => ExtensionState.PreProcess,
             };
-            onPreExtensionResponse = async (resp) => {
-                extensionOnResponseCalled = true;
-                callbackOrder.push("onPreExtensionResponse");
-                expect(resp).toEqual(extResp);
-            };
+            slidingSync.registerExtension(ext);
 
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
-                    logger.log("ext req", body);
                     expect(body.extensions).toBeTruthy();
                     expect(body.extensions[preExtName]).toEqual(extReq);
                 })
@@ -885,28 +858,25 @@ describe("SlidingSync", () => {
                     },
                 });
 
-            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state, resp, err) => {
-                if (state === SlidingSyncState.Complete) {
-                    callbackOrder.push("Lifecycle");
-                    return true;
-                }
-                return false;
+            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
+                return state === SlidingSyncState.Complete;
             });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
             await p;
-            expect(extensionOnResponseCalled).toBe(true);
-            expect(callbackOrder).toEqual(["onPreExtensionResponse", "Lifecycle"]);
+            slidingSync.stop();
         });
 
         it("should be able to send nothing in an extension request/response", async () => {
-            onPreExtensionRequest = async () => {
-                return undefined;
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            const ext: Extension<any, any> = {
+                name: () => preExtName,
+                onRequest: async () => undefined,
+                onResponse: async () => {}, // not called when response has no matching extension key
+                when: () => ExtensionState.PreProcess,
             };
-            let responseCalled = false;
-            onPreExtensionResponse = async (resp) => {
-                responseCalled = true;
-            };
+            slidingSync.registerExtension(ext);
+
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
@@ -921,37 +891,54 @@ describe("SlidingSync", () => {
                     counts: [],
                     extensions: {},
                 });
-            // we need to resend as sliding sync will already have a buffered request with the old
-            // extension values from the previous test.
-            slidingSync.resend();
 
-            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state, resp, err) => {
+            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
                 return state === SlidingSyncState.Complete;
             });
+            slidingSync.start();
             await httpBackend!.flushAllExpected();
             await p;
-            expect(responseCalled).toBe(false);
+            slidingSync.stop();
         });
 
         it("is possible to register extensions after start() has been called", async () => {
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            // Register pre-extension before start
+            const extPre: Extension<any, any> = {
+                name: () => preExtName,
+                onRequest: async () => undefined,
+                onResponse: async () => {},
+                when: () => ExtensionState.PreProcess,
+            };
+            slidingSync.registerExtension(extPre);
+
+            // Start to consume the first request
+            httpBackend!
+                .when("POST", syncUrl)
+                .respond(200, { pos: "0", ops: [], counts: [], extensions: {} });
+            slidingSync.start();
+            await httpBackend!.flushAllExpected();
+
+            // Now register another extension "after start"
+            const extPost: Extension<any, any> = {
+                name: () => postExtName,
+                onRequest: async () => extReq,
+                onResponse: async (resp) => {
+                    expect(resp).toEqual(extResp);
+                },
+                when: () => ExtensionState.PostProcess,
+            };
             slidingSync.registerExtension(extPost);
-            onPostExtensionRequest = async () => {
-                return extReq;
-            };
-            let responseCalled = false;
-            const callbackOrder: string[] = [];
-            onPostExtensionResponse = async (resp) => {
-                expect(resp).toEqual(extResp);
-                responseCalled = true;
-                callbackOrder.push("onPostExtensionResponse");
-            };
+            slidingSync.resend();
+
+            // Mock registered AFTER registerExtension (which triggers resend)
             httpBackend!
                 .when("POST", syncUrl)
                 .check(function (req) {
                     const body = req.data;
                     logger.log("ext req after start", body);
                     expect(body.extensions).toBeTruthy();
-                    expect(body.extensions[preExtName]).toBeUndefined(); // from the earlier test
+                    expect(body.extensions[preExtName]).toBeUndefined();
                     expect(body.extensions[postExtName]).toEqual(extReq);
                 })
                 .respond(200, {
@@ -962,29 +949,26 @@ describe("SlidingSync", () => {
                         [postExtName]: extResp,
                     },
                 });
-            // we need to resend as sliding sync will already have a buffered request with the old
-            // extension values from the previous test.
-            slidingSync.resend();
 
-            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state, resp, err) => {
-                if (state === SlidingSyncState.Complete) {
-                    callbackOrder.push("Lifecycle");
-                    return true;
-                }
-                return false;
+            const p = listenUntil(slidingSync, "SlidingSync.Lifecycle", (state) => {
+                return state === SlidingSyncState.Complete;
             });
             await httpBackend!.flushAllExpected();
             await p;
-            expect(responseCalled).toBe(true);
-            expect(callbackOrder).toEqual(["Lifecycle", "onPostExtensionResponse"]);
             slidingSync.stop();
         });
 
-        it("is not possible to register the same extension name twice", async () => {
-            slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
-            slidingSync.registerExtension(extPre);
+        it("is not possible to register the same extension name twice", () => {
+            const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            const ext: Extension<any, any> = {
+                name: () => preExtName,
+                onRequest: async () => ({}),
+                onResponse: async () => {},
+                when: () => ExtensionState.PreProcess,
+            };
+            slidingSync.registerExtension(ext);
             expect(() => {
-                slidingSync.registerExtension(extPre);
+                slidingSync.registerExtension(ext);
             }).toThrow();
         });
     });

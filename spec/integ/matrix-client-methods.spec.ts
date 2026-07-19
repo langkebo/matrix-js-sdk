@@ -1729,7 +1729,7 @@ describe("MatrixClient", function () {
                 .respond(200, {});
 
             await Promise.all([
-                client.getThreePidsManager().unbindThreePid("email", "alice@server.com"),
+                client.getThreePidsManager().unbindThreePid("email", "alice@server.com", idServerDomain),
                 httpBackend.flushAllExpected(),
             ]);
         });
