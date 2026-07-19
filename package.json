@@ -117,10 +117,6 @@
             "import": "./lib/crypto-keys/index.js",
             "types": "./lib/crypto-keys/index.d.ts"
         },
-        "./webrtc": {
-            "import": "./lib/webrtc/index.js",
-            "types": "./lib/webrtc/index.d.ts"
-        },
         "./friend": {
             "import": "./lib/friend/index.js",
             "types": "./lib/friend/index.d.ts"
@@ -172,14 +168,6 @@
         "./beacon": {
             "import": "./lib/beacon/index.js",
             "types": "./lib/beacon/index.d.ts"
-        },
-        "./cache": {
-            "import": "./lib/cache/index.js",
-            "types": "./lib/cache/index.d.ts"
-        },
-        "./models": {
-            "import": "./lib/models/index.js",
-            "types": "./lib/models/index.d.ts"
         },
         "./store": {
             "import": "./lib/store/index.js",
