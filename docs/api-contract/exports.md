@@ -15,7 +15,6 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./ai-connection`          | AI Connection 白名单：AI 连接 manager 与连接类型                | `AIConnectionEvent`, `AIConnection`                                                        |
 | `./app-service`            | App Service 白名单：应用服务 manager 与服务类型                 | `AppServiceEvent`, `ApplicationService`                                                    |
 | `./beacon`                 | Beacon 白名单：beacon manager 能力                              | `BeaconManager`, `extendMatrixClient`                                                      |
-| `./cache`                  | Cache 白名单：缓存工具入口（当前仅校验子路径存在）              | `-`                                                                                        |
 | `./client`                 | Client 白名单：`MatrixClient` 主类型与客户端事件/选项           | `MatrixClient`, `ClientEvent`, `ICreateClientOpts`                                         |
 | `./crypto`                 | Crypto 白名单：Rust Crypto API 与解密/隔离相关类型              | `CryptoApi`, `DecryptionFailureCode`, `DeviceIsolationModeKind`                            |
 | `./crypto-keys`            | Crypto Keys 白名单：设备密钥 manager 与密钥上传/查询/声明类型   | `CryptoKeysManager`, `IDeviceKeys`, `IKeysUploadRequest`                                   |
@@ -35,7 +34,6 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./key-backup`             | Key Backup 白名单：密钥备份类型                                 | `EncryptedData`, `BackupVersion`                                                           |
 | `./key-verification`       | Key Verification 白名单：密钥验证 manager 与验证类型            | `KeyVerificationManager`                                                                   |
 | `./media`                  | Media 白名单：媒体 manager 与媒体类型                           | `MediaManager`                                                                             |
-| `./models`                 | Models 白名单：模型聚合入口（当前仅校验子路径存在）             | `-`                                                                                        |
 | `./models/event`           | Event 模型白名单：事件实体与状态相关类型                        | `EventStatus`, `IEvent`, `IContent`                                                        |
 | `./models/room`            | Room 模型白名单：房间实体与状态/计数相关类型                    | `RoomEvent`, `NotificationCountType`, `KNOWN_SAFE_ROOM_VERSION`                            |
 | `./models/room-state`      | Room State 模型白名单：房间状态相关类型                         | `RoomStateEvent`                                                                           |
@@ -55,7 +53,6 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./timeline-window`        | Timeline 白名单：timeline 窗口能力                              | `TimelineWindow`, `TimelineIndex`                                                          |
 | `./verification`           | Verification 白名单：密钥验证 manager 与验证类型                | `VerificationManager`                                                                      |
 | `./voice`                  | Voice 白名单：语音消息 manager 与语音领域类型                   | `VoiceManager`, `VoiceEvent`, `IVoiceMessage`                                              |
-| `./webrtc`                 | WebRTC 白名单：通话入口（当前仅校验子路径存在）                 | `-`                                                                                        |
 | `./@types/partials`        | 类型白名单：协议 partial/type 枚举集合                          | `Visibility`, `Preset`, `JoinRule`                                                         |
 | `./@types/PushRules`       | 类型白名单：push rules 枚举与动作类型                           | `PushRuleActionName`, `TweakName`, `PushRuleAction`                                        |
 | `./src/filter`             | 兼容白名单：filter 权威实现入口                                 | `FilterManager`                                                                            |

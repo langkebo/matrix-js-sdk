@@ -60,7 +60,9 @@ describe("SlidingSync", () => {
     describe("start/stop", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
-        beforeEach(() => { httpBackend!.requests.splice(0); });
+        beforeEach(() => {
+            httpBackend!.requests.splice(0);
+        });
         let slidingSync: SlidingSync;
 
         it("should start the sync loop upon calling start()", async () => {
@@ -205,7 +207,9 @@ describe("SlidingSync", () => {
     describe("room subscriptions", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
-        beforeEach(() => { httpBackend!.requests.splice(0); });
+        beforeEach(() => {
+            httpBackend!.requests.splice(0);
+        });
         const roomId = "!foo:bar";
         const anotherRoomID = "!another:room";
         const roomSubInfo = {
@@ -253,9 +257,7 @@ describe("SlidingSync", () => {
             // Create SlidingSync with room already subscribed, start and confirm
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
             slidingSync.modifyRoomSubscriptions(new Set([roomId]));
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            httpBackend!.when("POST", syncUrl).respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
 
@@ -297,9 +299,7 @@ describe("SlidingSync", () => {
             // Create SlidingSync with roomId already subscribed, start and confirm
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
             slidingSync.modifyRoomSubscriptions(new Set([roomId]));
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            httpBackend!.when("POST", syncUrl).respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
 
@@ -353,14 +353,12 @@ describe("SlidingSync", () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), roomSubInfo, client!, 1);
             const initialSubs = new Set([roomId, anotherRoomID]);
             slidingSync.modifyRoomSubscriptions(initialSubs);
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, {
-                    pos: "0",
-                    lists: {},
-                    extensions: {},
-                    rooms: {},
-                });
+            httpBackend!.when("POST", syncUrl).respond(200, {
+                pos: "0",
+                lists: {},
+                extensions: {},
+                rooms: {},
+            });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
 
@@ -394,7 +392,9 @@ describe("SlidingSync", () => {
     describe("lists", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
-        beforeEach(() => { httpBackend!.requests.splice(0); });
+        beforeEach(() => {
+            httpBackend!.requests.splice(0);
+        });
 
         const roomA = "!a:localhost";
         const roomB = "!b:localhost";
@@ -482,13 +482,11 @@ describe("SlidingSync", () => {
         it("should be possible to retrieve list data", async () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map([["a", listReq]]), {}, client!, 1);
             // start and confirm the list to populate joinedCount
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, {
-                    pos: "a",
-                    lists: { a: { count: 500 } },
-                    rooms: {},
-                });
+            httpBackend!.when("POST", syncUrl).respond(200, {
+                pos: "a",
+                lists: { a: { count: 500 } },
+                rooms: {},
+            });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
             slidingSync.stop();
@@ -581,7 +579,9 @@ describe("SlidingSync", () => {
     describe("custom room subscriptions", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
-        beforeEach(() => { httpBackend!.requests.splice(0); });
+        beforeEach(() => {
+            httpBackend!.requests.splice(0);
+        });
 
         const roomA = "!a";
         const roomB = "!b";
@@ -686,9 +686,7 @@ describe("SlidingSync", () => {
             slidingSync.modifyRoomSubscriptions(new Set<string>([roomA]));
 
             // first confirm the initial subscription
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            httpBackend!.when("POST", syncUrl).respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
             slidingSync.stop();
@@ -700,9 +698,7 @@ describe("SlidingSync", () => {
             slidingSync2.useCustomSubscription(roomA, customSubName1);
             slidingSync2.modifyRoomSubscriptions(new Set<string>([roomA]));
             // confirm initial
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
+            httpBackend!.when("POST", syncUrl).respond(200, { pos: "0", lists: {}, extensions: {}, rooms: {} });
             slidingSync2.start();
             await httpBackend!.flushAllExpected();
             slidingSync2.stop();
@@ -816,7 +812,9 @@ describe("SlidingSync", () => {
     describe("extensions", () => {
         beforeAll(setupClient);
         afterAll(teardownClient);
-        beforeEach(() => { httpBackend!.requests.splice(0); });
+        beforeEach(() => {
+            httpBackend!.requests.splice(0);
+        });
         const extReq = {
             foo: "bar",
         };
@@ -913,9 +911,7 @@ describe("SlidingSync", () => {
             slidingSync.registerExtension(extPre);
 
             // Start to consume the first request
-            httpBackend!
-                .when("POST", syncUrl)
-                .respond(200, { pos: "0", ops: [], counts: [], extensions: {} });
+            httpBackend!.when("POST", syncUrl).respond(200, { pos: "0", ops: [], counts: [], extensions: {} });
             slidingSync.start();
             await httpBackend!.flushAllExpected();
 

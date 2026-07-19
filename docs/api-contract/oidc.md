@@ -1,7 +1,7 @@
 ---
 module: oidc
 generated_from: docs/api-contract/generated/modules/oidc.json
-generated_hash: sha256-8b61b1cd23515185c1a1524383942d98eb152d6c0c3111b7c1884ed87475b174
+generated_hash: sha256-dc834300fe45ee02a86f966a0c817d8b2f627d270370f912ec3773660e6fdf57
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---

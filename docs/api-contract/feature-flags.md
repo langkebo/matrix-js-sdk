@@ -1,7 +1,7 @@
 ---
 module: feature_flags
 generated_from: docs/api-contract/generated/modules/feature_flags.json
-generated_hash: sha256-7faa37e42d766acc780b3133bab268614b834cbfabbf63eaab90b4aa661b941f
+generated_hash: sha256-58e1593f3454060d99dcd0a33bbb8c98e5e297633fe84a395f0d27baa0f5bd68
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---
