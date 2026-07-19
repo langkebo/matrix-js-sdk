@@ -359,13 +359,11 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
                         queryParams: via ? { via } : undefined,
                     });
                 } catch {
-                    const _unstableOpts = {
-                        prefix: "/_matrix/client/unstable/im.nheko.summary",
-                    };
                     return await this.request({
                         method: Method.Get,
                         path: `/summary/${encodeURIComponent(roomIdOrAlias)}`,
                         queryParams: via ? { via } : undefined,
+                        prefix: "/_matrix/client/unstable/im.nheko.summary",
                     });
                 }
             }, "getRoomSummary");
