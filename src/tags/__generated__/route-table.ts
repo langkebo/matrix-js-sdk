@@ -6,6 +6,7 @@
  * Source:        docs/api-contract/generated/modules/tags.json
  * Ledger schema: 1
  * Source profile: all
+ * synapse-rust:  18d2793ec6cb6cd2ded0ee49dbd9ba022a5a6b54
  */
 
 /** Routes served by the synapse-rust `tags` module. */
