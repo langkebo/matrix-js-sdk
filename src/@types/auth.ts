@@ -174,12 +174,6 @@ export interface LoginRequest {
      */
     initial_device_display_name?: string;
     /**
-     * When logging in using a third-party identifier, the medium of the identifier.
-     * Must be `email`.
-     * @deprecated in favour of `identifier`.
-     */
-    medium?: "email";
-    /**
      * Required when type is `m.login.password`. The user’s password.
      */
     password?: string;
@@ -247,11 +241,6 @@ export interface LoginResponse {
      * This object takes the same form as the one returned from .well-known autodiscovery.
      */
     well_known?: IClientWellKnown;
-    /**
-     * The server_name of the homeserver on which the account has been registered.
-     * @deprecated Clients should extract the server_name from user_id (by splitting at the first colon) if they require it.
-     */
-    home_server?: string;
 }
 
 /**
