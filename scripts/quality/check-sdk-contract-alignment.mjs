@@ -1518,41 +1518,48 @@ for (const row of alignedRows) {
     }
 }
 
-const docsWithAlignedRows = [...new Set(alignedRows.map((row) => row.file))];
-for (const relativeDocPath of docsWithAlignedRows) {
-    const absoluteDocPath = path.join(projectRoot, relativeDocPath);
-    const backendFilePath = parseBackendCodePath(absoluteDocPath);
-    if (!backendFilePath || !fs.existsSync(backendFilePath)) {
-        backendParseFailures.push({
-            file: relativeDocPath,
-            reason: "backend code path missing or file not found",
-        });
-        continue;
-    }
-
-    const extracted = extractBackendRoutesFromFile(backendFilePath);
-    if (!extracted.ok) {
-        backendParseFailures.push({
-            file: relativeDocPath,
-            reason: extracted.reason,
-            backendFile: path.relative(projectRoot, backendFilePath),
-        });
-        continue;
-    }
-
-    const documentedEndpoints = documentedEndpointsByFile.get(relativeDocPath) ?? [];
-    for (const endpoint of documentedEndpoints) {
-        const matched = extracted.routes.find(
-            (route) => route.method === endpoint.method && pathsMatchWithWildcards(route.path, endpoint.path),
-        );
-
-        if (!matched) {
-            missingBackendRoutes.push({
+const synapseRootAvailable = fs.existsSync(synapseRoot);
+if (!synapseRootAvailable) {
+    console.warn(
+        `[sdk-contract-alignment] synapse-rust not found at ${synapseRoot}, skipping backend route validation`,
+    );
+} else {
+    const docsWithAlignedRows = [...new Set(alignedRows.map((row) => row.file))];
+    for (const relativeDocPath of docsWithAlignedRows) {
+        const absoluteDocPath = path.join(projectRoot, relativeDocPath);
+        const backendFilePath = parseBackendCodePath(absoluteDocPath);
+        if (!backendFilePath || !fs.existsSync(backendFilePath)) {
+            backendParseFailures.push({
                 file: relativeDocPath,
-                line: endpoint.line,
-                endpoint: `${endpoint.method} ${endpoint.path}`,
+                reason: "backend code path missing or file not found",
+            });
+            continue;
+        }
+
+        const extracted = extractBackendRoutesFromFile(backendFilePath);
+        if (!extracted.ok) {
+            backendParseFailures.push({
+                file: relativeDocPath,
+                reason: extracted.reason,
                 backendFile: path.relative(projectRoot, backendFilePath),
             });
+            continue;
+        }
+
+        const documentedEndpoints = documentedEndpointsByFile.get(relativeDocPath) ?? [];
+        for (const endpoint of documentedEndpoints) {
+            const matched = extracted.routes.find(
+                (route) => route.method === endpoint.method && pathsMatchWithWildcards(route.path, endpoint.path),
+            );
+
+            if (!matched) {
+                missingBackendRoutes.push({
+                    file: relativeDocPath,
+                    line: endpoint.line,
+                    endpoint: `${endpoint.method} ${endpoint.path}`,
+                    backendFile: path.relative(projectRoot, backendFilePath),
+                });
+            }
         }
     }
 }
