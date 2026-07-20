@@ -37,7 +37,8 @@ async function login(): Promise<MatrixClient> {
 
     const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
 
-    const result = await testClient.login("m.login.password", {
+    const result = await testClient.loginRequest({
+        type: "m.login.password",
         user: username,
         password: TestConfig.testUser.password,
     });

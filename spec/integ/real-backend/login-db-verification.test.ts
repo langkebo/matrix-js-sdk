@@ -125,7 +125,8 @@ describe("Login Tests", () => {
             const username = TestConfig.testUser.userId.replace("@", "").split(":")[0];
 
             await expect(
-                client.login("m.login.password", {
+                client.loginRequest({
+                    type: "m.login.password",
                     user: username,
                     password: "WrongPassword123",
                 }),
@@ -139,7 +140,8 @@ describe("Login Tests", () => {
             });
 
             await expect(
-                client.login("m.login.password", {
+                client.loginRequest({
+                    type: "m.login.password",
                     user: "nonexistent_user_xyz",
                     password: "SomePassword123",
                 }),

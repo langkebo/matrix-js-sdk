@@ -36,7 +36,8 @@ export async function loginWithDevice(deviceId: string): Promise<{ client: Matri
 
     const username = localpartFromMxid(TestConfig.testUser.userId);
     const result = await withRateLimitRetry(async () => {
-        return await client.login("m.login.password", {
+        return await client.loginRequest({
+            type: "m.login.password",
             user: username,
             password: TestConfig.testUser.password,
             device_id: deviceId,

@@ -158,7 +158,8 @@ export async function loginAsConfiguredUser(
     const username = localpartFromMxid(user.userId);
 
     const result = await withRateLimitRetry(async () => {
-        return await client.login("m.login.password", {
+        return await client.loginRequest({
+            type: "m.login.password",
             user: username,
             password: user.password,
             device_id: user.deviceId,

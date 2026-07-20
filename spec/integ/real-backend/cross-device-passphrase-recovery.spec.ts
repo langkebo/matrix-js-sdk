@@ -106,7 +106,8 @@ describe("Cross-device passphrase recovery real backend integration", () => {
 
         const username = localpartFromMxid(userId);
         const result = await withRateLimitRetry(async () => {
-            return await client.login("m.login.password", {
+            return await client.loginRequest({
+                type: "m.login.password",
                 user: username,
                 password,
                 device_id: deviceId,

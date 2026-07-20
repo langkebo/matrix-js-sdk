@@ -28,7 +28,8 @@ async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
 async function login(user: { userId: string; password: string }): Promise<MatrixClient> {
     const testClient = createClient({ baseUrl: TestConfig.baseUrl, allowInsecureHttp: true });
     const username = user.userId.replace("@", "").split(":")[0];
-    const result = await testClient.login("m.login.password", {
+    const result = await testClient.loginRequest({
+        type: "m.login.password",
         user: username,
         password: user.password,
     });

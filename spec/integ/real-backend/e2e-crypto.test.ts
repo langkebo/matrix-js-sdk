@@ -48,7 +48,8 @@ async function login(user: { userId: string; password: string; deviceId?: string
         deviceId: user.deviceId,
     });
     const username = user.userId.replace("@", "").split(":")[0];
-    const result = await testClient.login("m.login.password", {
+    const result = await testClient.loginRequest({
+        type: "m.login.password",
         user: username,
         password: user.password,
         device_id: user.deviceId,
