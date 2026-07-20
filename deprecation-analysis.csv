@@ -1,0 +1,30 @@
+file,line,deprecated_item,has_migration_doc,hula_still_uses,removal_candidate,recommendation
+src/embedded.ts,547,_unstable_updateDelayedEvent (method),yes,no,yes,remove_now
+src/logger.ts,27,LoggerWithLogMethod.log (interface method),yes,no,yes,remove_now
+src/logger.ts,163,logger (exported const),yes,no,no,keep_indefinite
+src/client.ts,507,ClientEvent.ToDeviceEvent (enum value),yes,no,yes,remove_now
+src/@types/auth.ts,179,LoginRequest.medium (type field),yes,no,yes,remove_now
+src/@types/auth.ts,196,LoginRequest.user (type field),yes,yes,no,keep_v41
+src/@types/auth.ts,252,LoginResponse.home_server (type field),yes,no,yes,remove_now
+src/common-crypto/CryptoBackend.ts,205,IEncryptedEventInfo.forwardingCurve25519KeyChain (type field),yes,no,yes,remove_now
+src/crypto-api/CryptoEvent.ts,62,CryptoEvent.WillUpdateDevices (enum value),yes,no,yes,remove_now
+src/crypto-api/index.ts,663,CryptoApi.restoreKeyBackupWithPassphrase (method),yes,yes,no,keep_v41
+src/matrix-rtc/MatrixRTCSession.ts,204,EncryptionConfig.updateEncryptionKeyThrottle (type field),no,no,no,keep_v42
+src/matrix-rtc/MatrixRTCSession.ts,222,EncryptionConfig.makeKeyDelay (type field),no,no,no,keep_v42
+src/matrix-rtc/IMembershipManager.ts,59,IMembershipManager.isJoined() (interface method),yes,no,yes,remove_now
+src/matrix-rtc/RoomKeyTransport.ts,28,RoomKeyTransport (class),yes,no,yes,remove_now
+src/matrix-rtc/LivekitTransport.ts,39,LivekitFocusSelection (interface),no,no,no,keep_v42
+src/matrix-rtc/MembershipManager.ts,388,fociPreferred (private field),yes,no,no,remove_now
+src/http-api/interface.ts,80,IRequestOpts.useAuthorizationHeader (type field),yes,yes,no,keep_v41
+src/http-api/interface.ts,123,BaseRequestOpts.json (type field),yes,no,yes,remove_now
+src/managers/base-manager.ts,267,BaseManager.adminRequest (method),yes,no,yes,remove_now
+src/oidc/manager.ts,165,OidcManager.discover() (method),no,no,no,keep_v42
+src/oidc/manager.ts,183,OidcManager.getJwks() (method),no,no,no,keep_v42
+src/models/room.ts,410,Room.oldState (property),yes,no,yes,remove_now
+src/models/room.ts,417,Room.currentState (property),yes,yes,no,keep_v41
+src/models/room.ts,810,Room.timeline (property),yes,yes,no,keep_v41
+src/oidc/discovery.ts,33,discoverAndValidateOIDCIssuerWellKnown (function),yes,no,yes,remove_now
+src/models/event.ts,1681,MatrixEvent.toJSON() (method),yes,no,no,keep_indefinite
+src/models/user.ts,156,User constructor (public constructor),yes,no,yes,remove_now
+src/web-rtc/call.ts,65,CallOptions.forceTURN (type field),yes,no,yes,remove_now
+src/account/index.ts,114,AccountManagement.login() (method),yes,no,yes,remove_now

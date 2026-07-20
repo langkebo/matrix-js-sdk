@@ -4,6 +4,69 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 
 ## [Unreleased]
 
+## [40.2.0] - 2026-04-16
+
+### 🎉 Major Optimization Release
+
+This release includes a comprehensive optimization of the SDK with significant improvements to security, code quality, maintainability, and developer experience.
+
+### Added
+
+#### Security
+
+- Input Validation: Added `ValidationError` class and `AdminValidators` utility for comprehensive input validation
+- Format Validation: User ID and Room ID format validation to prevent injection attacks
+- Boundary Checks: Parameter boundary validation (e.g., limit: 1-10000) to prevent resource exhaustion
+
+#### Documentation
+
+- Usage Examples: Added detailed `@example` documentation for 25+ methods
+- Error Documentation: Added `@throws` documentation for all core methods
+- Admin Guide: Created comprehensive Admin API usage guide (600+ lines)
+- Version Policy: Created version policy and deprecation guidelines (400+ lines)
+
+#### API Improvements
+
+- Unified Pagination: Added `PaginatedResponse<T>` type for consistent pagination format
+- New Methods: `getUsersPaginated()`, `getRoomsPaginated()` — Unified format for user/room list pagination
+- Deprecation Warnings: Added deprecation warning utility for smooth API transitions
+
+#### Code Quality
+
+- Admin Utils: Created utility functions for query parameter building
+- Type Safety: Added `WhoisResponse` type, eliminated `any` type usage
+
+### Changed
+
+#### Security Improvements
+
+- Admin Module: Added input validation to 7 core methods
+- Auth Module: Enhanced validation and added security warnings
+- Friend Module: Replaced basic validation with standard validators
+- DM Module: Added user ID validation for all operations
+- Device Module: Added input validation and improved error messages
+
+#### Error Handling
+
+- Cleaned Empty Catch Blocks: Removed 5 instances of `catch {}` with explicit error handling in `src/models/room.ts`, `src/interactive-auth.ts`, `src/browser-index.ts`, `src/store/memory.ts`
+
+#### Code Quality
+
+- Reduced Code Duplication: Extracted common query building logic (~30 lines)
+- Improved Error Messages: More descriptive validation error messages
+- Consistent API: Unified pagination format across modules
+
+### Deprecated
+
+- `getUsers(from?, limit?)` — Use `getUsersPaginated(options?)` instead (removed in v41.0.0)
+- `getRooms(from?, limit?, searchTerm?)` — Use `getRoomsPaginated(options?)` instead (removed in v41.0.0)
+
+### Fixed
+
+- Error Handling: Fixed silent error swallowing in 5 locations
+- Type Safety: Eliminated `any` type usage in whois() method
+- Validation: Fixed inconsistent validation across modules
+
 ### 2026-04-23 — Backend M_UNRECOGNIZED sweep
 
 Backend audit found 9 endpoints returning `M_UNRECOGNIZED`. Classification and actions:

@@ -68,7 +68,7 @@ export default defineConfig({
         setupFiles: "spec/setupTests.ts",
         globals: true,
         pool: "forks",
-        maxForks: 1,
+        maxForks: 4,
         minForks: 1,
         execArgv: ["--max-old-space-size=8192"],
         exclude: ["**/node_modules/**", "**/dist/**", "**/spec/integ/real-backend/**"],
