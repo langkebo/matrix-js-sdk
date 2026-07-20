@@ -160,7 +160,7 @@ export async function loginAsConfiguredUser(
     const result = await withRateLimitRetry(async () => {
         return await client.loginRequest({
             type: "m.login.password",
-            user: username,
+            identifier: { type: "m.id.user", user: username },
             password: user.password,
             device_id: user.deviceId,
         });
