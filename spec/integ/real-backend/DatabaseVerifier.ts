@@ -38,7 +38,9 @@ export class DatabaseVerifier {
         }
 
         const configured = process.env.MATRIX_REAL_BACKEND_DB_CONTAINER;
+        const explicitOverride = process.env.DATABASE_CONTAINER_NAME;
         const candidates = [
+            explicitOverride,
             configured,
             this.requestedContainerName,
             "synapse-db",
