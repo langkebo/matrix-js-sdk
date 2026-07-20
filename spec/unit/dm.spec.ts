@@ -107,6 +107,13 @@ describe("DirectMessageManager", () => {
             });
 
             expect(roomId).toBe("!room:example.com");
+            expect(mockClient.createRoom).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    is_direct: true,
+                    name: "Test DM",
+                    invite: ["@user1:example.com"],
+                }),
+            );
         });
 
         it("should return existing DM if found", async () => {
