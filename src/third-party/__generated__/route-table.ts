@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/thirdparty.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  18d2793ec6cb6cd2ded0ee49dbd9ba022a5a6b54
+ * synapse-rust:  4ea2cc71c82770204c71aba66cead18f43c74b8e
  */
 
 /** Routes served by the synapse-rust `thirdparty` module. */

@@ -1,7 +1,7 @@
 ---
 module: push_notification
 generated_from: docs/api-contract/generated/modules/push_notification.json
-generated_hash: sha256-f5a5b103dd123354b7e8856864e46b1522921cd499da91ece48d943b4ebaf2a4
+generated_hash: sha256-21822583b6b09f3cca463585ddb42205ff6a0ef63b9b40753e2568d103316a5f
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---
