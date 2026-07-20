@@ -85,9 +85,7 @@ describe("AdminManager — real backend", () => {
 
         it("database has users table matching API response", async () => {
             if (!backendAvailable) return;
-            const dbCount = await dbVerifier.querySingle(
-                "SELECT COUNT(*) FROM users",
-            );
+            const dbCount = await dbVerifier.querySingle("SELECT COUNT(*) FROM users");
             expect(Number(dbCount)).toBeGreaterThan(0);
         });
     });
@@ -126,9 +124,7 @@ describe("AdminManager — real backend", () => {
             if (!backendAvailable) return;
             const admin = client.getAdminManager();
             const apiResult = await admin.users.getUsersPaginated({ limit: 1 });
-            const dbCount = await dbVerifier.querySingle(
-                "SELECT COUNT(*) FROM users",
-            );
+            const dbCount = await dbVerifier.querySingle("SELECT COUNT(*) FROM users");
             expect(apiResult.total).toBeGreaterThanOrEqual(1);
             expect(Number(dbCount)).toBeGreaterThanOrEqual(1);
         });
@@ -148,9 +144,7 @@ describe("AdminManager — real backend", () => {
 
         it("database rooms table exists and is queryable", async () => {
             if (!backendAvailable) return;
-            const dbCount = await dbVerifier.querySingle(
-                "SELECT COUNT(*) FROM rooms",
-            );
+            const dbCount = await dbVerifier.querySingle("SELECT COUNT(*) FROM rooms");
             expect(Number(dbCount)).toBeGreaterThanOrEqual(0);
         });
     });

@@ -53,7 +53,11 @@ describe("SpaceManager — real backend", () => {
         if (client && createdSpaces.length > 0) {
             const space = client.getSpaceManager();
             for (const spaceId of createdSpaces) {
-                try { await space.deleteSpace(spaceId); } catch (e) { /* best effort */ }
+                try {
+                    await space.deleteSpace(spaceId);
+                } catch (e) {
+                    /* best effort */
+                }
             }
         }
         client?.stopClient();
