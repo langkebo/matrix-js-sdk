@@ -44,6 +44,7 @@ export class DatabaseVerifier {
             configured,
             this.requestedContainerName,
             "synapse-db",
+            "synapse-test-postgres",
             "synapse-postgres",
             "docker-postgres",
         ].filter((name): name is string => Boolean(name));
