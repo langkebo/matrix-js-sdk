@@ -1,7 +1,7 @@
 ---
 module: sync
 generated_from: docs/api-contract/generated/modules/sync.json
-generated_hash: sha256-4ea45afc460abd75c7b1be72f602263190ffe2cd500b60ea3c4f25cbc8674e34
+generated_hash: sha256-4400c7f7014149224253f9ea112b496309c0c9e5ef49077f1a95c5e99cb67fd2
 ledger_schema: 1
 last_reviewed: 2026-05-03
 ---

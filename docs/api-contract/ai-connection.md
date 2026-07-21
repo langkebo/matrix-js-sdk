@@ -1,7 +1,7 @@
 ---
 module: ai_connection
 generated_from: docs/api-contract/generated/modules/ai_connection.json
-generated_hash: sha256-65a3296dd69bb8a45617a43448c6e5183eba481f06104ca29713117bf8d7aac5
+generated_hash: sha256-6e53496ece0a516216c4dd07b4303f347edb75d3c2bfaa64709cf17d04183993
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---

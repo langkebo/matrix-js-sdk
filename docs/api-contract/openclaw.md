@@ -1,7 +1,7 @@
 ---
 module: openclaw
 generated_from: docs/api-contract/generated/modules/openclaw.json
-generated_hash: sha256-8abb25a904039a66b2702337ed4d54775db4601e12a806e1d96b357d1ac49ef1
+generated_hash: sha256-5842333e4a7e34a47be312d84d6f22880f0e6085be262029c5470255a5dce88e
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---

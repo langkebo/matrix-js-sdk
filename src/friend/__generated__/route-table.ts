@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/friend_room.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  4ea2cc71c82770204c71aba66cead18f43c74b8e
+ * synapse-rust:  f282009ea36a63cacdd12770d441b2a2a655d082
  */
 
 /** Routes served by the synapse-rust `friend_room` module. */
