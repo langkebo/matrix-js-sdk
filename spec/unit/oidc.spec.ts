@@ -38,41 +38,6 @@ describe("OidcManager", () => {
         oidcManager = new OidcManager(mockClient as any, { transport });
     });
 
-    // ============ Discovery ============
-
-    describe("discover", () => {
-        it("should discover OIDC configuration", async () => {
-            transport.respondWith({
-                issuer: "https://matrix.test",
-                authorization_endpoint: "https://matrix.test/authorize",
-                token_endpoint: "https://matrix.test/token",
-            });
-
-            const result = await oidcManager.discover();
-
-            expect(result.issuer).toBe("https://matrix.test");
-            expect(result.authorization_endpoint).toBe("https://matrix.test/authorize");
-            transport.expectCalledWithArgs("GET", "/.well-known/openid-configuration", undefined, undefined, {
-                prefix: "",
-            });
-        });
-
-        it("should cache discovery and emit event", async () => {
-            transport.respondWith({
-                issuer: "https://matrix.test",
-                authorization_endpoint: "https://matrix.test/authorize",
-                token_endpoint: "https://matrix.test/token",
-            });
-            const emitSpy = vi.spyOn(oidcManager, "emit");
-
-            await oidcManager.discover();
-
-            expect(emitSpy).toHaveBeenCalledWith("oidcDiscovered", { issuer: "https://matrix.test" });
-            expect(oidcManager.getProvider()).toBe("https://matrix.test");
-            expect(oidcManager.getCachedDiscovery()?.issuer).toBe("https://matrix.test");
-        });
-    });
-
     // ============ Authorize ============
 
     describe("authorize", () => {

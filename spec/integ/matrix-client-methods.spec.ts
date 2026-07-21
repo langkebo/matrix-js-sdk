@@ -1430,25 +1430,6 @@ describe("MatrixClient", function () {
         });
     });
 
-    describe("login", () => {
-        it("should persist values to the client opts", async () => {
-            const token = "!token&";
-            const userId = "@m:t";
-
-            httpBackend.when("POST", "/login").respond(200, {
-                access_token: token,
-                user_id: userId,
-            });
-            const prom = client.getAccountManager().login("fake.login", {});
-            await httpBackend.flushAllExpected();
-            const resp = await prom;
-            expect(resp.access_token).toBe(token);
-            expect(resp.user_id).toBe(userId);
-            expect(client.getUserId()).toBe(userId);
-            expect(client.http.opts.accessToken).toBe(token);
-        });
-    });
-
     describe("registerWithIdentityServer", () => {
         it("should pass data to POST request", async () => {
             const token = {

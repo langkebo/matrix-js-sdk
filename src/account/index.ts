@@ -110,25 +110,6 @@ export class AccountManager extends BaseManager {
     }
 
     /**
-     * Login with a specific login type
-     * @deprecated Use loginRequest and create a new MatrixClient
-     */
-    public login(loginType: LoginRequest["type"], data: Omit<LoginRequest, "type">): Promise<LoginResponse> {
-        return this.loginRequest({
-            ...data,
-            type: loginType,
-        }).then((response) => {
-            if (response.access_token && response.user_id) {
-                this.client.http.opts.accessToken = response.access_token;
-                this.client.credentials = {
-                    userId: response.user_id,
-                };
-            }
-            return response;
-        });
-    }
-
-    /**
      * Get CAS login URL
      */
     public getCasLoginUrl(redirectUrl: string): string {

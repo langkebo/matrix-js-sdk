@@ -37,7 +37,6 @@ import {
     type ISendEventResponse,
     type SendDelayedEventRequestOpts,
     type SendDelayedEventResponse,
-    UpdateDelayedEventAction,
     isSendDelayedEventRequestOpts,
 } from "./@types/requests";
 import { EventType, type StateEvents } from "./@types/event";
@@ -540,37 +539,6 @@ export class RoomWidgetClient extends MatrixClient {
             throw new Error("'delay_id' absent from response to a delayed event request");
         }
         return { delay_id: response.delay_id };
-    }
-
-    /**
-     * @experimental This currently relies on an unstable MSC (MSC4140).
-     * @deprecated Instead use one of:
-     * - {@link _unstable_cancelScheduledDelayedEvent}
-     * - {@link _unstable_restartScheduledDelayedEvent}
-     * - {@link _unstable_sendScheduledDelayedEvent}
-     */
-    public async _unstable_updateDelayedEvent(delayId: string, action: UpdateDelayedEventAction): Promise<EmptyObject> {
-        if (!(await this.doesServerSupportUnstableFeature(UNSTABLE_MSC4140_DELAYED_EVENTS))) {
-            throw new UnsupportedDelayedEventsEndpointError(
-                "Server does not support the delayed events API",
-                "updateDelayedEvent",
-            );
-        }
-
-        let updateDelayedEvent: (delayId: string) => Promise<unknown>;
-        switch (action) {
-            case UpdateDelayedEventAction.Cancel:
-                updateDelayedEvent = this.widgetApi.cancelScheduledDelayedEvent;
-                break;
-            case UpdateDelayedEventAction.Restart:
-                updateDelayedEvent = this.widgetApi.cancelScheduledDelayedEvent;
-                break;
-            case UpdateDelayedEventAction.Send:
-                updateDelayedEvent = this.widgetApi.sendScheduledDelayedEvent;
-                break;
-        }
-        await updateDelayedEvent.call(this.widgetApi, delayId).catch(timeoutToConnectionError);
-        return {};
     }
 
     /**

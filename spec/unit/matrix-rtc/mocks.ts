@@ -78,7 +78,6 @@ export function makeMockClient(userId: string, deviceId: string): MockClient {
         sendEvent: vi.fn(),
         sendStateEvent: vi.fn(),
         cancelPendingEvent: vi.fn(),
-        _unstable_updateDelayedEvent: vi.fn(),
         _unstable_cancelScheduledDelayedEvent: vi.fn(),
         _unstable_restartScheduledDelayedEvent: vi.fn(),
         _unstable_sendScheduledDelayedEvent: vi.fn(),

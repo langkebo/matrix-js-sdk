@@ -46,10 +46,6 @@ function op<P extends StripV3<OidcPathPattern>>(path: P): P {
     return path;
 }
 
-function publicPath<P extends OidcPathPattern>(path: P): P {
-    return path;
-}
-
 export interface IOidcDiscovery {
     issuer: string;
     authorization_endpoint: string;
@@ -159,39 +155,6 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
-    }
-
-    /**
-     * @deprecated The .well-known/openid-configuration route is now deprecated in the Ledger.
-     */
-    async discover(): Promise<IOidcDiscovery> {
-        return this.withRetry(async () => {
-            const response = await this.request<IOidcDiscovery>({
-                method: Method.Get,
-                path: publicPath("/.well-known/openid-configuration"),
-                prefix: "",
-                authenticated: false,
-            });
-            this.discoveryCache = response;
-            this.currentProvider = response.issuer;
-            this.emit("oidcDiscovered", { issuer: response.issuer });
-            return response;
-        }, "discover");
-    }
-
-    /**
-     * @deprecated The .well-known/jwks.json route is now deprecated in the Ledger.
-     */
-    async getJwks(): Promise<IOidcJwks> {
-        return this.withRetry(
-            () =>
-                this.request<IOidcJwks>({
-                    method: Method.Get,
-                    path: publicPath("/.well-known/jwks.json"),
-                    prefix: "",
-                }),
-            "getJwks",
-        );
     }
 
     async authorize(params: IOidcAuthorizationParams): Promise<string> {

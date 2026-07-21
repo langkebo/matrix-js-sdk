@@ -22,17 +22,6 @@ describe("OidcManager", () => {
         manager.setRetryOptions({ maxRetries: 0 });
     });
 
-    it("discover uses the public well-known endpoint", async () => {
-        request.mockResolvedValueOnce({ issuer: "https://issuer.example.com" });
-
-        await manager.discover();
-
-        expect(request).toHaveBeenCalledWith(Method.Get, "/.well-known/openid-configuration", undefined, undefined, {
-            prefix: "",
-        });
-        expect(authedRequest).not.toHaveBeenCalled();
-    });
-
     it("authorize uses request() on the public v3 authorize route", async () => {
         request.mockResolvedValueOnce({ url: "https://issuer.example.com/authorize" });
 
