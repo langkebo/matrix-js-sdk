@@ -62,19 +62,15 @@ const MODULE_DEFS = [
     { option: "includeKeyVerification", module: "key-verification" },
     { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
-    { option: "includeGlobalLogout", module: "global-logout", path: "auth/global-logout.js" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
     { option: "includeInviteBlocklist", module: "invite-blocklist" },
     { option: "includeMedia", module: "media" },
     { option: "includePush", module: "push" },
-    { option: "includeQrLogin", module: "qr-login" },
     { option: "includeRoom", module: "room" },
-    { option: "includeRoomKeySharing", module: "room-key-sharing" },
     { option: "includeRoomSummary", module: "room-summary" },
     { option: "includeRoomList", module: "room-list" },
     { option: "includeSecurity", module: "security" },
-    { option: "includeStickyEvent", module: "sticky-event" },
     { option: "includeFriend", module: "friend" },
     { option: "includeSpace", module: "space" },
     { option: "includeSending", module: "sending" },
@@ -89,7 +85,6 @@ const MODULE_DEFS = [
     { option: "includeRendezvous", module: "rendezvous", path: "rendezvous/RendezvousManager.js" },
     { option: "includeTyping", module: "typing" },
     { option: "includeUser", module: "user" },
-    { option: "includeUserReport", module: "user-report" },
     { option: "includeThreePids", module: "threepids", path: "three-pids/index.js" },
     { option: "includeIdentityServer", module: "identity-server" },
     { option: "includePasswordReset", module: "password-reset" },
@@ -110,7 +105,6 @@ const MODULE_DEFS = [
     { option: "includeOpenClaw", module: "openclaw", path: "open-claw/index.js" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml", standalone: false },
-    { option: "includeCredentials", module: "credentials" },
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },
@@ -118,7 +112,7 @@ const MODULE_DEFS = [
     { option: "includeWidget", module: "widget" },
 
     // ── Group 2: additional modules ────────────────────────────────
-    { option: "includeServerCapabilities", module: "server-capabilities" },
+    { option: "includeServerCapabilities", module: "server-capabilities", groupGapBefore: true },
     { option: "includeSyncManagement", module: "sync-management" },
     { option: "includeFilter", module: "filter" },
     { option: "includeToDevice", module: "to-device" },
@@ -127,15 +121,12 @@ const MODULE_DEFS = [
     { option: "includeReporting", module: "reporting" },
     { option: "includeReadReceipts", module: "read-receipts" },
     { option: "includeNotifications", module: "notifications" },
-    { option: "includeCryptoBackup", module: "crypto-backup" },
     { option: "includeTagsManagement", module: "tags-management" },
     { option: "includeSecretStorage", module: "secret-storage" },
     { option: "includeCrossSigning", module: "cross-signing" },
     { option: "includeRoomSettings", module: "room-settings" },
     { option: "includeRoomState", module: "room-state" },
     { option: "includeServerTime", module: "server-time" },
-    { option: "includeVoipCalls", module: "voip-calls" },
-    { option: "includeRoomAccountData", module: "room-account-data" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
 ];
@@ -211,10 +202,9 @@ import type { ManagerExtensionsOptions, ManagerExtensionsLifecycleEvent, Manager
     for (let i = 0; i < MODULE_DEFS.length; i++) {
         const entry = MODULE_DEFS[i];
         const isLast = i === MODULE_DEFS.length - 1;
-        const groupGap = i === 62 || i === 63 ? "" : null; // gap before group 2
 
-        // Insert blank line between group 1 and group 2 (after index 62 = includeWidget)
-        if (i === 63) {
+        // Insert blank line between group 1 and group 2
+        if (entry.groupGapBefore) {
             lines.push("");
         }
 
@@ -229,8 +219,8 @@ import type { ManagerExtensionsOptions, ManagerExtensionsLifecycleEvent, Manager
     for (let i = 0; i < MODULE_DEFS.length; i++) {
         const entry = MODULE_DEFS[i];
 
-        // Insert blank line between group 1 and group 2 (after includeWidget)
-        if (i === 63) {
+        // Insert blank line between group 1 and group 2
+        if (entry.groupGapBefore) {
             lines.push("");
         }
 
