@@ -1207,8 +1207,8 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * Perform a single MSC3575 sliding sync request.
      * @param req - The request to make.
-     * @param proxyBaseUrl - The base URL for the sliding sync proxy.
-     * @param abortSignal - Optional signal to abort request mid-flight.
+     * @param _proxyBaseUrl - The base URL for the sliding sync proxy.
+     * @param _abortSignal - Optional signal to abort request mid-flight.
      * @returns The sliding sync response.
      */
     public async slidingSync(

@@ -158,7 +158,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * 删除房间
      *
      * @param roomId - 房间 ID
-     * @param block - 是否阻止未来的加入
+     * @param blockOrOptions.block - 是否阻止未来的加入
      * @param purge - 是否从数据库中清除房间
      * @param reason - 删除原因
      */
@@ -332,7 +332,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * 获取房间消息
      *
      * @param roomId - 房间 ID
-     * @param from - 分页起点
+     * @param optionsOrFrom.from - 分页起点
      * @param limit - 数量限制
      * @returns 房间消息列表
      */

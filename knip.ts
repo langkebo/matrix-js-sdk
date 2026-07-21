@@ -16,6 +16,46 @@ export default {
         // (via `import("../<module>/index.js").then((m) => m?.extendMatrixClient())`).
         // Without this entry, knip reports every `extendMatrixClient` export as unused.
         "src/manager-extensions/index.ts",
+        // Module index files that export extendMatrixClient but are not yet wired into
+        // manager-extensions/index.ts (older modules pending migration). Treating them
+        // as entry points prevents knip from reporting their extendMatrixClient as unused.
+        "src/aggregations/index.ts",
+        "src/beacon/index.ts",
+        "src/captcha/index.ts",
+        "src/crypto-encryption/index.ts",
+        "src/crypto-store/index.ts",
+        "src/device-keys/index.ts",
+        "src/directory/index.ts",
+        "src/ephemeral/index.ts",
+        "src/event-processing/index.ts",
+        "src/event-status/index.ts",
+        "src/identity/index.ts",
+        "src/invites/index.ts",
+        "src/key-forwarding/index.ts",
+        "src/lifecycle/index.ts",
+        "src/media-quota/index.ts",
+        "src/membership/index.ts",
+        "src/pinned-messages/index.ts",
+        "src/push-notifications/index.ts",
+        "src/push-rules/index.ts",
+        "src/reactions/index.ts",
+        "src/retention/index.ts",
+        "src/room-creation/index.ts",
+        "src/room-events/index.ts",
+        "src/room-joining/index.ts",
+        "src/room-keys/index.ts",
+        "src/room-member/index.ts",
+        "src/room-state-management/index.ts",
+        "src/room-upgrades/index.ts",
+        "src/saml/index.ts",
+        "src/scheduled-events/index.ts",
+        "src/sending-queue/index.ts",
+        "src/session/index.ts",
+        "src/sessions/index.ts",
+        "src/sync-accumulator/index.ts",
+        "src/token-management/index.ts",
+        "src/uploads/index.ts",
+        "src/user-presence/index.ts",
         // Public package entry points (declared in package.json `exports`):
         // knip doesn't parse package.json exports, so list them explicitly.
         "src/core.ts",
@@ -39,7 +79,6 @@ export default {
         // Used in script which only runs in environment with `@octokit/rest` installed
         "@octokit/rest",
         // Used by `vitest`
-        "vitest-sonar-reporter",
         // ESLint plugins referenced in eslint.config.mjs (knip doesn't parse ESLint config):
         "@babel/eslint-parser",
         "@babel/eslint-plugin",
@@ -52,8 +91,6 @@ export default {
         "type-coverage",
         // Used in eslint.config.mjs (ESLint globals preset)
         "globals",
-        // Used in scripts/migrate-utils-imports.mjs
-        "glob",
     ],
     ignoreBinaries: [
         // Used when available by reusable workflow `.github/workflows/release-make.yml`

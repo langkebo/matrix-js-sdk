@@ -69,7 +69,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * 获取别名对应的房间 ID
      *
      * @param alias - 房间别名
-     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
+     * @param options.throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名响应
      */
     async getAliasRoom(
@@ -182,7 +182,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * 获取房间的所有别名
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
+     * @param options.throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 房间别名列表响应
      */
     async getRoomAliases(
@@ -242,7 +242,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * 获取房间的主别名
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
+     * @param options.throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 主别名
      */
     async getCanonicalAlias(roomId: string, options: ErrorHandlingOptions | boolean = {}): Promise<string | null> {
@@ -284,7 +284,7 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
      * 获取房间的备选别名列表
      *
      * @param roomId - 房间 ID
-     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
+     * @param options.throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 备选别名列表
      */
     async getAltAliases(roomId: string, options: ErrorHandlingOptions | boolean = {}): Promise<string[]> {

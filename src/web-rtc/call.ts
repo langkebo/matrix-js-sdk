@@ -1029,7 +1029,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
 
     /**
      * Configure this call from a hangup or reject event. Used by MatrixClient.
-     * @param event - The m.call.hangup event
+     * @param _event - The m.call.hangup event
      */
     public initWithHangup(_event: MatrixEvent): void {
         // perverse as it may seem, sometimes we want to instantiate a call with a

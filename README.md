@@ -52,7 +52,7 @@ We've completed a comprehensive optimization of the SDK with significant improve
 - Comprehensive error handling with typed errors (`ValidationError`, `AuthError`, etc.)
 - Deprecation warnings for smooth API transitions
 
-See [Optimization Report](./docs/SDK_OPTIMIZATION_FINAL_REPORT_2026-04-16.md) for complete details.
+See [Optimization Report](./docs/SDK_OPTIMIZATION_FINAL_COMPLETE_2026-04-16.md) for complete details.
 
 # Quickstart
 

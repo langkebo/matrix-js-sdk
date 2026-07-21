@@ -6,7 +6,6 @@
  * Source:        docs/api-contract/generated/modules/burn_after_read.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  4ea2cc71c82770204c71aba66cead18f43c74b8e
  */
 
 /** Routes served by the synapse-rust `burn_after_read` module. */

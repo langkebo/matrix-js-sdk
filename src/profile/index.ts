@@ -330,8 +330,8 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      *
      * @param userId - 用户 ID（格式：@localpart:homeserver）
      * @param forceRefresh - 是否强制刷新缓存（默认 false）
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 显示名称，如果不存在或出错则返回 null
+     * @param options.throwOnError - 是否抛出错误（默认 true）
+     * @returns 用户显示名称，如果不存在或出错则返回 null
      *
      * @example
      * ```typescript
@@ -381,7 +381,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      *
      * @param userId - 用户 ID（格式：@localpart:homeserver）
      * @param forceRefresh - 是否强制刷新缓存（默认 false）
-     * @param throwOnError - 是否抛出错误（默认 true）
+     * @param options.throwOnError - 是否抛出错误（默认 true）
      * @returns MXC URL，如果不存在或出错则返回 null
      *
      * @example

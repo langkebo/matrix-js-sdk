@@ -203,8 +203,8 @@ export class MemoryStore implements IStore {
 
     /**
      * Retrieve scrollback for this room.
-     * @param room - The matrix room
-     * @param limit - The max number of old events to retrieve.
+     * @param _room - The matrix room
+     * @param _limit - The max number of old events to retrieve.
      * @returns An array of objects which will be at most 'limit'
      * length and at least 0. The objects are the raw event JSON.
      */
@@ -214,10 +214,10 @@ export class MemoryStore implements IStore {
 
     /**
      * Store events for a room. The events have already been added to the timeline
-     * @param room - The room to store events for.
-     * @param events - The events to store.
-     * @param token - The token associated with these events.
-     * @param toStart - True if these are paginated results.
+     * @param _room - The room to store events for.
+     * @param _events - The events to store.
+     * @param _token - The token associated with these events.
+     * @param _toStart - True if these are paginated results.
      */
     public storeEvents(_room: Room, _events: MatrixEvent[], _token: string | null, _toStart: boolean): void {
         // no-op because they've already been added to the room instance.
@@ -312,7 +312,7 @@ export class MemoryStore implements IStore {
     /**
      * setSyncData does nothing as there is no backing data store.
      *
-     * @param syncData - The sync data
+     * @param _syncData - The sync data
      * @returns An immediately resolved promise.
      */
     public setSyncData(_syncData: ISyncResponse): Promise<void> {
@@ -330,7 +330,7 @@ export class MemoryStore implements IStore {
 
     /**
      * Save does nothing as there is no backing data store.
-     * @param force - True to force a save (but the memory
+     * @param _force - True to force a save (but the memory
      *     store still can't save anything)
      */
     public save(_force: boolean): Promise<void> {

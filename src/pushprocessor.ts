@@ -281,7 +281,7 @@ export class PushProcessor {
      *
      * @param logger - A `Logger` to write log messages to.
      * @param incomingRules - The client's existing push rules
-     * @param userId - The Matrix ID of the client.
+     * @param _userId - The Matrix ID of the client.
      * @returns The rewritten rules
      */
     public static rewriteDefaultRules(

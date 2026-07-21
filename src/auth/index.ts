@@ -315,7 +315,7 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * @param password - The desired password (max 128 characters, min 8 characters)
      * @param sessionId - The session ID from a previous registration attempt
      * @param auth - The auth dictionary
-     * @param bindThreepids - Map of third party IDs to bind
+     * @param _bindThreepids - Map of third party IDs to bind
      * @param guestAccessToken - The guest access token to upgrade
      * @param inhibitLogin - Whether to inhibit login
      * @returns Promise which resolves to a RegisterResponse object

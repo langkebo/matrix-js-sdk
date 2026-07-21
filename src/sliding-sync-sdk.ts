@@ -432,7 +432,7 @@ export class SlidingSyncSdk {
     /**
      * Peek into a room. This will result in the room in question being synced so it
      * is accessible via getRooms(). Live updates for the room will be provided.
-     * @param roomId - The room ID to peek into.
+     * @param _roomId - The room ID to peek into.
      * @returns A promise which resolves once the room has been added to the
      * store.
      */
@@ -448,7 +448,7 @@ export class SlidingSyncSdk {
 
     /**
      * Specify the set_presence value to be used for subsequent calls to the Sync API.
-     * @param presence - the presence to specify to set_presence of sync calls
+     * @param _presence - the presence to specify to set_presence of sync calls
      */
     public setPresence(_presence?: SetPresence): void {
         // Not supported in sliding sync yet
