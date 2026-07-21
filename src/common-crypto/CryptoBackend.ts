@@ -201,7 +201,7 @@ export interface EventDecryptionResult {
     clearEvent: IClearEvent;
     /**
      * No longer used.
-     * See {@link MatrixEvent#getForwardingCurve25519KeyChain}.
+     * See `MatrixEvent.getForwardingCurve25519KeyChain`.
      * @deprecated
      */
     forwardingCurve25519KeyChain?: string[];

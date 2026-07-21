@@ -95,7 +95,7 @@ function writeBaseline(items) {
         generatedAt: new Date().toISOString(),
         ids: items.map((item) => item.id),
     };
-    fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
 }
 
 function parseMeta(rawText) {
@@ -188,7 +188,7 @@ function writeInventory(items) {
         },
         items,
     };
-    fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
 
     const headers = [
         "filePath",

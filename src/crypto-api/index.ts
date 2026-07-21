@@ -436,7 +436,7 @@ export interface CryptoApi {
      * @param devices - an array of devices to encrypt the payload for.
      * @param payload - the payload to encrypt.
      *
-     * @returns the batch of encrypted payloads which can then be sent via {@link matrix.MatrixClient#queueToDevice}.
+     * @returns the batch of encrypted payloads which can then be sent via `RoomWidgetClient.queueToDevice`.
      */
     encryptToDeviceMessages(
         eventType: string,

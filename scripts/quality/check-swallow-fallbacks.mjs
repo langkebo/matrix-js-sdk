@@ -114,7 +114,7 @@ function writeBaseline(findings) {
         generatedAt: new Date().toISOString(),
         findings,
     };
-    fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
 }
 
 const findings = collectFindings();

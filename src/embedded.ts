@@ -619,7 +619,7 @@ export class RoomWidgetClient extends MatrixClient {
     }
 
     /**
-     * by {@link MatrixClient.encryptAndSendToDevice}.
+     * by `RoomWidgetClient.encryptAndSendToDevice`.
      */
     public async encryptAndSendToDevice(
         eventType: string,
@@ -689,8 +689,8 @@ export class RoomWidgetClient extends MatrixClient {
     /**
      * Send an event to a specific list of devices via the widget API. Optionally encrypts the event.
      *
-     * If you are using a full MatrixClient you would be calling {@link MatrixClient.getCrypto().encryptToDeviceMessages()} followed
-     * by {@link MatrixClient.queueToDevice}.
+     * If you are using a full MatrixClient you would be calling `MatrixClient.getCrypto().encryptToDeviceMessages()` followed
+     * by `RoomWidgetClient.queueToDevice`.
      *
      * However, this is combined into a single step when running as an embedded widget client. So, we expose this method for those
      * that need it.

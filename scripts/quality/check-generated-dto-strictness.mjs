@@ -96,7 +96,7 @@ function writeBaseline(items, filePath = baselinePath) {
         generatedAt: new Date().toISOString(),
         ids: items.map((item) => item.id),
     };
-    fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
