@@ -142,14 +142,12 @@ export type ManagerName =
     | "secureBackup"
     | "security"
     | "sending"
-    | "sendingQueue"
     | "serverCapabilities"
     | "serverTime"
     | "session"
     | "sessions"
     | "space"
     | "stateSend"
-    | "stickyEvent"
     | "syncAccumulator"
     | "syncManagement"
     | "tagsManagement"
@@ -252,14 +250,12 @@ export interface ManagerTypeMap {
     secureBackup: import("../secure-backup/index").SecureBackupManager;
     security: import("../security/index").SecurityManager;
     sending: import("../sending/index").SendingManager;
-    sendingQueue: import("../sending-queue/index").SendingQueueManager;
     serverCapabilities: import("../server-capabilities/index").ServerCapabilitiesManager;
     serverTime: import("../server-time/index").ServerTimeManager;
     session: import("../session/index").SessionManager;
     sessions: import("../sessions/index").SessionsManager;
     space: import("../space/index").SpaceManager;
     stateSend: import("../state-send/index").StateSendManager;
-    stickyEvent: import("../sticky-event/index").StickyEventManager;
     syncAccumulator: import("../sync-accumulator/index").SyncAccumulatorManager;
     syncManagement: import("../sync-management/index").SyncManager;
     tagsManagement: import("../tags-management/index").TagsManager;

@@ -33,7 +33,6 @@ export interface ManagerExtensionsOptions {
     includeRoomSummary?: boolean;
     includeRoomList?: boolean;
     includeSecurity?: boolean;
-    includeStickyEvent?: boolean;
     includeFriend?: boolean;
     includeSpace?: boolean;
     includeSending?: boolean;

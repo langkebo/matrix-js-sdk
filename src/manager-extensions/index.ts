@@ -61,7 +61,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeRoomSummary", module: "room-summary" },
     { option: "includeRoomList", module: "room-list" },
     { option: "includeSecurity", module: "security" },
-    { option: "includeStickyEvent", module: "sticky-event" },
     { option: "includeFriend", module: "friend" },
     { option: "includeSpace", module: "space" },
     { option: "includeSending", module: "sending" },
@@ -140,7 +139,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeRoomSummary: true,
     includeRoomList: true,
     includeSecurity: true,
-    includeStickyEvent: true,
     includeFriend: true,
     includeSpace: true,
     includeSending: true,
@@ -362,12 +360,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeSecurity || all) {
                 promises.push(safeDynamicImport(import("../security/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeStickyEvent || all) {
-                promises.push(
-                    safeDynamicImport(import("../sticky-event/index.js").then((m) => m?.extendMatrixClient())),
-                );
             }
 
             if (currentOptions.includeFriend || all) {

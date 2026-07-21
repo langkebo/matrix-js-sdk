@@ -187,7 +187,6 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Messaging & Events ============
     getSendingManager(): import("./sending/index").SendingManager;
-    getSendingQueueManager(): import("./sending-queue/index").SendingQueueManager;
     getEventManager(): import("./event/index").EventManager;
     getReactionsManager(): import("./reactions/index").ReactionsManager;
     getRelationsManager(): import("./relations/index").RelationsManager;
@@ -354,7 +353,6 @@ export interface MatrixClientExtensionMethods {
     getKeyBackupManager(): import("./key-backup/index").KeyBackupManager;
     getKeyRotationManager(): import("./key-rotation/index").KeyRotationManager;
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
-    getStickyEventManager(): import("./sticky-event/index").StickyEventManager;
     getOidcManager(): import("./oidc/manager").OidcManager;
     oidcUserInfo(): Promise<OidcUserInfo>;
     getTelemetryManager(
@@ -641,9 +639,6 @@ export interface MatrixClientInternalMethods {
     getStateEvents(eventType: string, stateKey: string): MatrixEvent[];
     getRoomAccountData(roomId: string, eventType: string): IContent | null;
     getRoomAccountDataSync(roomId: string, eventType: string): import("./models/event").IContent | null;
-
-    // ============ Sending Queue (sending-queue/index.ts) ============
-    sendingQueue?: import("./sending-queue/index").IQueuedEvent[];
 
     // ============ Sync Accumulator (sync-accumulator/index.ts) ============
     syncAccumulator?: import("./sync-accumulator").SyncAccumulator;

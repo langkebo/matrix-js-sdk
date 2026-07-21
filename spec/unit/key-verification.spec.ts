@@ -247,7 +247,6 @@ describe("KeyVerificationManager", () => {
             includeRoomSummary: false,
             includeRoomList: false,
             includeSecurity: false,
-            includeStickyEvent: false,
             includeFriend: false,
             includeSpace: false,
             includeSending: false,

@@ -79,7 +79,6 @@ export {
     RoomSummaryInvitePolicyManager,
     RoomSummaryEventOperationManager,
 } from "./room-summary";
-export { StickyEventManager } from "./sticky-event";
 export { ThirdPartyManager } from "./third-party";
 export { UserManager } from "./user";
 export { BeaconManager } from "./beacon";
@@ -184,7 +183,6 @@ export { RoomStateManager } from "./room-state";
 export { SearchManager } from "./search";
 export { SecretStorageManager } from "./secret-storage/index";
 export { SecureBackupManager } from "./secure-backup";
-export { SendingQueueManager } from "./sending-queue";
 export {
     doesClientAdvertiseSynapseRustFeature,
     isCapabilityEnabled,
