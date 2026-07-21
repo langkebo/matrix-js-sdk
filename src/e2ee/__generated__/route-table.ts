@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/e2ee.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  f282009ea36a63cacdd12770d441b2a2a655d082
+ * synapse-rust:  0d3198b10fe246040e2d18ae540d7aea461c8e3f
  */
 
 /** Routes served by the synapse-rust `e2ee` module. */

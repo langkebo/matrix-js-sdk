@@ -1,7 +1,7 @@
 ---
 module: rendezvous
 generated_from: docs/api-contract/generated/modules/rendezvous.json
-generated_hash: sha256-ce3fec01557af5435c6bd27b7d07bafca710ef75be96e65d7f6a9e529ae9b903
+generated_hash: sha256-97db368420eb1594bacee7b92d9bba1fde90f2f5a478c1e6f17bc818a75feb49
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---
