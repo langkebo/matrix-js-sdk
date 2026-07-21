@@ -201,7 +201,6 @@ import type { ManagerExtensionsOptions, ManagerExtensionsLifecycleEvent, Manager
 
     for (let i = 0; i < MODULE_DEFS.length; i++) {
         const entry = MODULE_DEFS[i];
-        const isLast = i === MODULE_DEFS.length - 1;
 
         // Insert blank line between group 1 and group 2
         if (entry.groupGapBefore) {
