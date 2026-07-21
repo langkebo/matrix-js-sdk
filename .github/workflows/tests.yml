@@ -122,7 +122,7 @@ jobs:
     downstream-complement-crypto:
         name: Downstream Complement Crypto tests
         runs-on: ubuntu-24.04
-        if: always()
+        if: always() && github.event_name == 'merge_group'
         needs:
             - complement-crypto
         steps:
@@ -134,7 +134,7 @@ jobs:
     downstream:
         name: Downstream tests
         runs-on: ubuntu-24.04
-        if: always()
+        if: always() && github.event_name == 'merge_group'
         needs:
             - element-web
         permissions:
