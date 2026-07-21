@@ -154,6 +154,8 @@ export interface AddChildOptions {
     room_id: string;
     /** 后端 AddChildBody.via_servers 是必填 Vec<String>；缺省时 SDK 自动填 [] */
     via_servers?: string[];
+    /** 排序键（对应 m.space.child 事件的 order 字段） */
+    order?: string;
     suggested?: boolean;
 }
 
