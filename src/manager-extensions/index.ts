@@ -52,15 +52,12 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeKeyVerification", module: "key-verification" },
     { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
-    { option: "includeGlobalLogout", module: "global-logout" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
     { option: "includeInviteBlocklist", module: "invite-blocklist" },
     { option: "includeMedia", module: "media" },
     { option: "includePush", module: "push" },
-    { option: "includeQrLogin", module: "qr-login" },
     { option: "includeRoom", module: "room" },
-    { option: "includeRoomKeySharing", module: "room-key-sharing" },
     { option: "includeRoomSummary", module: "room-summary" },
     { option: "includeRoomList", module: "room-list" },
     { option: "includeSecurity", module: "security" },
@@ -79,7 +76,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeRendezvous", module: "rendezvous" },
     { option: "includeTyping", module: "typing" },
     { option: "includeUser", module: "user" },
-    { option: "includeUserReport", module: "user-report" },
     { option: "includeThreePids", module: "threepids" },
     { option: "includeIdentityServer", module: "identity-server" },
     { option: "includePasswordReset", module: "password-reset" },
@@ -115,15 +111,12 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeReporting", module: "reporting" },
     { option: "includeReadReceipts", module: "read-receipts" },
     { option: "includeNotifications", module: "notifications" },
-    { option: "includeCryptoBackup", module: "crypto-backup" },
     { option: "includeTagsManagement", module: "tags-management" },
     { option: "includeSecretStorage", module: "secret-storage" },
     { option: "includeCrossSigning", module: "cross-signing" },
     { option: "includeRoomSettings", module: "room-settings" },
     { option: "includeRoomState", module: "room-state" },
     { option: "includeServerTime", module: "server-time" },
-    { option: "includeVoipCalls", module: "voip-calls" },
-    { option: "includeRoomAccountData", module: "room-account-data" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
 ];
@@ -138,15 +131,12 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeKeyVerification: true,
     includeDeviceTrust: true,
     includeDiscovery: true,
-    includeGlobalLogout: true,
     includeDm: true,
     includeGuest: true,
     includeInviteBlocklist: true,
     includeMedia: true,
     includePush: true,
-    includeQrLogin: true,
     includeRoom: true,
-    includeRoomKeySharing: true,
     includeRoomSummary: true,
     includeRoomList: true,
     includeSecurity: true,
@@ -165,7 +155,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeRendezvous: true,
     includeTyping: true,
     includeUser: true,
-    includeUserReport: true,
     includeThreePids: true,
     includeIdentityServer: true,
     includePasswordReset: true,
@@ -201,15 +190,12 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeReporting: true,
     includeReadReceipts: true,
     includeNotifications: true,
-    includeCryptoBackup: true,
     includeTagsManagement: true,
     includeSecretStorage: true,
     includeCrossSigning: true,
     includeRoomSettings: true,
     includeRoomState: true,
     includeServerTime: true,
-    includeVoipCalls: true,
-    includeRoomAccountData: true,
     includeBackgroundUpdate: true,
     includeUserDirectory: true,
 };
@@ -338,12 +324,6 @@ export async function extendMatrixClientWithManagers(
                 promises.push(safeDynamicImport(import("../discovery/index.js").then((m) => m?.extendMatrixClient())));
             }
 
-            if (currentOptions.includeGlobalLogout || all) {
-                promises.push(
-                    safeDynamicImport(import("../auth/global-logout.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
             if (currentOptions.includeDm || all) {
                 promises.push(safeDynamicImport(import("../dm/index.js").then((m) => m?.extendMatrixClient())));
             }
@@ -366,18 +346,8 @@ export async function extendMatrixClientWithManagers(
                 promises.push(safeDynamicImport(import("../push/index.js").then((m) => m?.extendMatrixClient())));
             }
 
-            if (currentOptions.includeQrLogin || all) {
-                promises.push(safeDynamicImport(import("../qr-login/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
             if (currentOptions.includeRoom || all) {
                 promises.push(safeDynamicImport(import("../room/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeRoomKeySharing || all) {
-                promises.push(
-                    safeDynamicImport(import("../room-key-sharing/index.js").then((m) => m?.extendMatrixClient())),
-                );
             }
 
             if (currentOptions.includeRoomSummary || all) {
@@ -462,12 +432,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeUser || all) {
                 promises.push(safeDynamicImport(import("../user/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeUserReport || all) {
-                promises.push(
-                    safeDynamicImport(import("../user-report/index.js").then((m) => m?.extendMatrixClient())),
-                );
             }
 
             if (currentOptions.includeThreePids || all) {
@@ -628,12 +592,6 @@ export async function extendMatrixClientWithManagers(
                 );
             }
 
-            if (currentOptions.includeCryptoBackup || all) {
-                promises.push(
-                    safeDynamicImport(import("../crypto-backup/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
             if (currentOptions.includeTagsManagement || all) {
                 promises.push(
                     safeDynamicImport(import("../tags-management/index.js").then((m) => m?.extendMatrixClient())),
@@ -665,16 +623,6 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeServerTime || all) {
                 promises.push(
                     safeDynamicImport(import("../server-time/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeVoipCalls || all) {
-                promises.push(safeDynamicImport(import("../voip-calls/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeRoomAccountData || all) {
-                promises.push(
-                    safeDynamicImport(import("../room-account-data/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 

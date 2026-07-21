@@ -73,7 +73,6 @@ export type ManagerName =
     | "aggregations"
     | "aiConnection"
     | "auth"
-    | "authGlobalLogout"
     | "backgroundUpdate"
     | "beacon"
     | "BurnAfterReadManager"
@@ -81,8 +80,6 @@ export type ManagerName =
     | "captcha"
     | "cas"
     | "crossSigning"
-    | "cryptoBackup"
-    | "cryptoEncryption"
     | "cryptoKeys"
     | "cryptoStore"
     | "dehydratedDevice"
@@ -95,9 +92,7 @@ export type ManagerName =
     | "e2ee"
     | "ephemeral"
     | "event"
-    | "eventProcessing"
     | "eventReport"
-    | "eventStatus"
     | "external-service"
     | "featureFlags"
     | "federation"
@@ -109,12 +104,10 @@ export type ManagerName =
     | "inviteBlocklist"
     | "invites"
     | "keyBackup"
-    | "keyForwarding"
     | "keyRotation"
     | "keyVerification"
     | "lifecycle"
     | "media"
-    | "mediaQuota"
     | "membership"
     | "moderation"
     | "module"
@@ -128,7 +121,6 @@ export type ManagerName =
     | "push"
     | "pushNotifications"
     | "pushRules"
-    | "qrLogin"
     | "reactions"
     | "readReceipts"
     | "relations"
@@ -136,21 +128,15 @@ export type ManagerName =
     | "reporting"
     | "retention"
     | "room"
-    | "roomAccountData"
     | "roomCreation"
     | "roomEvents"
-    | "roomJoining"
-    | "roomKeySharing"
     | "roomKeys"
     | "roomList"
     | "roomMember"
     | "roomSettings"
     | "roomState"
-    | "roomStateManagement"
     | "roomSummary"
-    | "roomUpgrades"
     | "saml-auth"
-    | "scheduledEvents"
     | "search"
     | "secretStorage"
     | "secureBackup"
@@ -174,17 +160,13 @@ export type ManagerName =
     | "threepids"
     | "timeline"
     | "toDevice"
-    | "tokenManagement"
     | "turnServer"
     | "typing"
     | "uploads"
     | "user"
     | "userDirectory"
-    | "userPresence"
-    | "userReport"
     | "verification"
     | "voice"
-    | "voipCalls"
     | "widget"
     | "widgets"
     | "workerAdmin"
@@ -201,7 +183,6 @@ export interface ManagerTypeMap {
     aggregations: import("../aggregations/index").AggregationsManager;
     aiConnection: import("../ai-connection/index").AIConnectionManager;
     auth: import("../auth/index").AuthManager;
-    authGlobalLogout: import("../auth/global-logout").GlobalLogoutManager;
     backgroundUpdate: import("../background-update/index").BackgroundUpdateManager;
     beacon: import("../beacon/index").BeaconManager;
     BurnAfterReadManager: import("../burn-after-read/index").BurnAfterReadManager;
@@ -209,8 +190,6 @@ export interface ManagerTypeMap {
     captcha: import("../captcha/index").CaptchaManager;
     cas: import("../cas/index").CasManager;
     crossSigning: import("../cross-signing/index").CrossSigningManager;
-    cryptoBackup: import("../crypto-backup/index").CryptoBackupManager;
-    cryptoEncryption: import("../crypto-encryption/index").CryptoEncryptionManager;
     cryptoKeys: import("../crypto-keys/index").CryptoKeysManager;
     cryptoStore: import("../crypto-store/index").CryptoStoreManager;
     dehydratedDevice: import("../dehydrated-device/index").DehydratedDeviceManager;
@@ -223,9 +202,7 @@ export interface ManagerTypeMap {
     e2ee: import("../e2ee/index").E2EEManager;
     ephemeral: import("../ephemeral/index").EphemeralManager;
     event: import("../event/index").EventManager;
-    eventProcessing: import("../event-processing/index").EventProcessingManager;
     eventReport: import("../event-report/index").EventReportManager;
-    eventStatus: import("../event-status/index").EventStatusManager;
     "external-service": import("../external-service/index").ExternalServiceManager;
     featureFlags: import("../feature-flags/index").FeatureFlagManager;
     federation: import("../federation/index").FederationManager;
@@ -237,12 +214,10 @@ export interface ManagerTypeMap {
     inviteBlocklist: import("../invite-blocklist/index").InviteBlocklistManager;
     invites: import("../invites/index").InvitesManager;
     keyBackup: import("../key-backup/index").KeyBackupManager;
-    keyForwarding: import("../key-forwarding/index").KeyForwardingManager;
     keyRotation: import("../key-rotation/index").KeyRotationManager;
     keyVerification: import("../key-verification/index").KeyVerificationManager;
     lifecycle: import("../lifecycle/index").LifecycleManager;
     media: import("../media/index").MediaManager;
-    mediaQuota: import("../media-quota/index").MediaQuotaManager;
     membership: import("../membership/index").MembershipManager;
     moderation: import("../moderation/index").ModerationManager;
     module: import("../module/index").ModuleManager;
@@ -256,7 +231,6 @@ export interface ManagerTypeMap {
     push: import("../push/index").PushManager;
     pushNotifications: import("../push-notifications/index").PushNotificationsManager;
     pushRules: import("../push-rules/index").PushRulesManager;
-    qrLogin: import("../qr-login/index").QrLoginManager;
     reactions: import("../reactions/index").ReactionsManager;
     readReceipts: import("../read-receipts/index").ReadReceiptsManager;
     relations: import("../relations/index").RelationsManager;
@@ -264,21 +238,15 @@ export interface ManagerTypeMap {
     reporting: import("../reporting/index").ReportingManager;
     retention: import("../retention/index").RetentionManager;
     room: import("../room/index").RoomManager;
-    roomAccountData: import("../room-account-data/index").RoomAccountDataManager;
     roomCreation: import("../room-creation/index").RoomCreationManager;
     roomEvents: import("../room-events/index").RoomEventsManager;
-    roomJoining: import("../room-joining/index").RoomJoiningManager;
-    roomKeySharing: import("../room-key-sharing/index").RoomKeySharingManager;
     roomKeys: import("../room-keys/index").RoomKeysManager;
     roomList: import("../room-list/index").RoomListManager;
     roomMember: import("../room-member/index").RoomMemberManager;
     roomSettings: import("../room-settings/index").RoomSettingsManager;
     roomState: import("../room-state/index").RoomStateManager;
-    roomStateManagement: import("../room-state-management/index").RoomStateManagementManager;
     roomSummary: import("../room-summary/index").RoomSummaryManager;
-    roomUpgrades: import("../room-upgrades/index").RoomUpgradesManager;
     "saml-auth": import("../saml/index").SamlAuthManager;
-    scheduledEvents: import("../scheduled-events/index").ScheduledEventsManager;
     search: import("../search/index").SearchManager;
     secretStorage: import("../secret-storage/index").SecretStorageManager;
     secureBackup: import("../secure-backup/index").SecureBackupManager;
@@ -302,17 +270,13 @@ export interface ManagerTypeMap {
     threepids: import("../three-pids/index").ThreePidsManager;
     timeline: import("../timeline/index").TimelineManager;
     toDevice: import("../to-device/index").ToDeviceManager;
-    tokenManagement: import("../token-management/index").TokenManager;
     turnServer: import("../turn-server/index").TurnServerManager;
     typing: import("../typing/index").TypingManager;
     uploads: import("../uploads/index").UploadsManager;
     user: import("../user/index").UserManager;
     userDirectory: import("../user-directory/index").UserDirectoryManager;
-    userPresence: import("../user-presence/index").UserPresenceManager;
-    userReport: import("../user-report/index").UserReportManager;
     verification: import("../verification/index").VerificationManager;
     voice: import("../voice/index").VoiceManager;
-    voipCalls: import("../voip-calls/index").VoIPCallsManager;
     widget: import("../widget/index").WidgetManager;
     widgets: import("../widgets/index").WidgetsManager;
     workerAdmin: import("../worker-admin/index").WorkerAdminManager;

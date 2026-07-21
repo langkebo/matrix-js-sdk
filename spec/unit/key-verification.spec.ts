@@ -238,15 +238,12 @@ describe("KeyVerificationManager", () => {
             includeCryptoKeys: false,
             includeKeyVerification: true,
             includeDiscovery: false,
-            includeGlobalLogout: false,
             includeDm: false,
             includeGuest: false,
             includeInviteBlocklist: false,
             includeMedia: false,
             includePush: false,
-            includeQrLogin: false,
             includeRoom: false,
-            includeRoomKeySharing: true,
             includeRoomSummary: false,
             includeRoomList: false,
             includeSecurity: false,
@@ -262,11 +259,9 @@ describe("KeyVerificationManager", () => {
             includeThirdParty: false,
             includeTyping: false,
             includeUser: false,
-            includeUserReport: false,
             includeVoice: false,
         });
 
         expect(typeof MatrixClient.prototype.getKeyVerificationManager).toBe("function");
-        expect(typeof MatrixClient.prototype.getRoomKeySharingManager).toBe("function");
     });
 });

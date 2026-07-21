@@ -1,454 +1,352 @@
 # SDK-Frontend Export Usage Matrix
 
-> Generated: 2026-07-20
-> Scope: Cross-referencing every `matrix-js-sdk` package.json `exports` entry against hula's actual imports
-> Sources: `matrix-js-sdk/package.json` (52 export entries) vs `hula/src/` (all `.ts`, `.tsx`, `.vue`, `.js` files)
+> Generated: 2026-07-21
+> Audits: D.3 Manager Usage Matrix + F.1 Frontend API Usage Table
+> Sources: `matrix-js-sdk/package.json` (52 export entries, 114 registered managers) vs `hula/src/` (197 SDK import statements)
 
 ---
 
-## Executive Summary
+## Zero-usage Export Entries
 
-| Metric                                    | Value                                             |
-| ----------------------------------------- | ------------------------------------------------- |
-| Total SDK export entries                  | 52 (1 main + 51 sub-paths)                        |
-| Main entry (`matrix-js-sdk`) import count | 156 (145 unique files; 72 production + 73 test)   |
-| Sub-path exports with static imports      | 18 / 51 (35%)                                     |
-| Sub-path exports with ZERO static imports | 33 / 51 (65%)                                     |
-| Deep-path violations (`src/` or `lib/`)   | 0 static imports, 2 type-level (in `.d.ts` files) |
-| `import * as sdk` namespace imports       | 3 files                                           |
-| Dynamic `import()` calls                  | 5 files (1 production, 4 type-definition)         |
-| hula barrel files re-exporting from SDK   | 2 (`sdk.ts`, `sdk-compat.ts`)                     |
+The following 33 export entries in `package.json` have **zero** hula imports (`from 'matrix-js-sdk/<entry>'`):
 
-**Key finding**: hula imports 97% of all SDK symbols through the main `matrix-js-sdk` entry point. Only 18 sub-path entries are used, and of those, 8 are used exclusively within hula's two barrel files (`sdk.ts` and `sdk-compat.ts`). 33 sub-path exports have zero consumers in hula. Two type-level deep-path violations exist in `.d.ts` augmentation files.
+| # | Export Entry | Notes |
+|---|---|---|
+| 1 | `./core` | Core module not used standalone |
+| 2 | `./advanced` | Advanced features |
+| 3 | `./legacy` | Legacy support |
+| 4 | `./crypto-keys` | Used only in `.d.ts` type position: `import('matrix-js-sdk/crypto-keys')` |
+| 5 | `./voice` | Voice module |
+| 6 | `./notification` | Notification module |
+| 7 | `./ai-connection` | AI connection |
+| 8 | `./saml` | SAML auth |
+| 9 | `./app-service` | App service |
+| 10 | `./beacon` | Beacon/location |
+| 11 | `./store` | Storage (uses `./store/worker` only) |
+| 12 | `./http-api` | HTTP API utilities |
+| 13 | `./http-api/errors` | HTTP error types |
+| 14 | `./errors` | Error types |
+| 15 | `./models/event` | Event models |
+| 16 | `./runtime-schemas` | Runtime schemas |
+| 17 | `./manager-extensions` | Manager extensions API |
+| 18 | `./@types/PushRules` | Push rules types |
+| 19 | `./timeline-window` | Timeline window |
+| 20 | `./src/manager-extensions` | Anti-pattern: exposes `src/` path as public API |
+| 21 | `./src/filter` | Anti-pattern: exposes `src/` path as public API |
+| 22 | `./src/telemetry` | Anti-pattern: exposes `src/` path as public API |
+| 23 | `./device` | Device module |
+| 24 | `./e2ee` | E2EE module |
+| 25 | `./external-service` | External service |
+| 26 | `./feature-flags` | Feature flags |
+| 27 | `./federation` | Federation module |
+| 28 | `./media` | Media module |
+| 29 | `./oidc` | OIDC module |
+| 30 | `./presence` | hula imports `PresenceManager` from main entry instead |
+| 31 | `./room` | Room module |
+| 32 | `./room-summary` | Room summary |
+| 33 | `./verification` | hula uses `./key-verification` entry instead |
 
----
-
-## A. Export Usage Matrix
-
-### Main Entry
-
-| Export Path | hula Import Count | Unique Files            | Status     | Notes                                                                                                                   |
-| ----------- | ----------------- | ----------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `.` (main)  | 156               | 145 (72 prod + 73 test) | **ACTIVE** | Heavily used; top symbols: `MatrixClient` (106), `Room` (33), `MatrixEvent` (27), `createClient` (16), `RoomMember` (8) |
-
-### Sub-Path Exports -- ACTIVE (18 entries)
-
-| Export Path           | Import Count | Unique Files | Status     | Symbols Imported                                                                                                                                                                                                                  | Notes                                                                                               |
-| --------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `./admin`             | 11           | 11           | **ACTIVE** | `AdminManager`, `FeatureFlag`                                                                                                                                                                                                     | 8/11 in test files; also via barrel `sdk.ts`                                                        |
-| `./telemetry`         | 4            | 4            | **ACTIVE** | `TelemetryManager`                                                                                                                                                                                                                | 1 test; also via barrel `sdk-compat.ts`                                                             |
-| `./friend`            | 3            | 2            | **ACTIVE** | `Friend`, `FriendEvent`, `FriendManager`, `FriendRequest`                                                                                                                                                                         | Via barrel `sdk.ts` + direct in `MatrixFriendService.ts`                                            |
-| `./dm`                | 3            | 3            | **ACTIVE** | `DirectMessageManager`, `CreateDmOptions`, `DmPartnerResponse`, `DmRoomInfo`, `IDirectRoomsMap`                                                                                                                                   | Via barrel `sdk-compat.ts` + direct usage                                                           |
-| `./crypto`            | 2            | 2            | **ACTIVE** | `CryptoEvent`, `VerificationPhase`, `VerificationRequestEvent`                                                                                                                                                                    | Via barrel `sdk.ts`                                                                                 |
-| `./guest`             | 2            | 2            | **ACTIVE** | `GuestManager`, `IAuthDict`, `IGuestInfo`, `IGuestLoginResponse`, `IGuestRegisterResponse`, `IServerGuestInfo`, `IUpgradeGuestRequest`, `IUpgradeGuestResponse`                                                                   | Via barrel `sdk.ts` + `MatrixGuestService.ts`                                                       |
-| `./event-report`      | 2            | 2            | **ACTIVE** | `CreateReportBody`, `DismissReportBody`, `EscalateReportBody`, `EventReportCountResponse`, `EventReportManager`, `QueryParams`, `ReportResponse`, `ResolveReportBody`, `StatsResponse`, `StatusCountResponse`, `UpdateReportBody` | Via barrel `sdk.ts` + `MatrixEventReportService.ts`                                                 |
-| `./sync`              | 2            | 1            | **ACTIVE** | `ISyncStateData`, `SyncState`                                                                                                                                                                                                     | Via barrel `sdk.ts` only                                                                            |
-| `./key-verification`  | 2            | 2            | **ACTIVE** | `KeyVerificationManager`                                                                                                                                                                                                          | Direct usage in crypto services; also in `.d.ts` type expressions                                   |
-| `./push`              | 1            | 1            | **ACTIVE** | `PushManager`                                                                                                                                                                                                                     | Via barrel `sdk.ts` only                                                                            |
-| `./space`             | 1            | 1            | **ACTIVE** | `Space`, `SpaceChild`, `SpaceManager`, `SpaceMember`, `SpaceQueryOptions`                                                                                                                                                         | Via barrel `sdk-compat.ts` only                                                                     |
-| `./store/worker`      | 1            | 1            | **ACTIVE** | `IndexedDBStoreWorker`                                                                                                                                                                                                            | Via barrel `sdk-compat.ts` only                                                                     |
-| `./client`            | 1            | 1            | **ACTIVE** | `ClientEvent`                                                                                                                                                                                                                     | Via barrel `sdk.ts` only                                                                            |
-| `./models/room`       | 1            | 1            | **ACTIVE** | `RoomEvent`                                                                                                                                                                                                                       | Via barrel `sdk.ts` only                                                                            |
-| `./models/room-state` | 1            | 1            | **ACTIVE** | `RoomStateEvent`                                                                                                                                                                                                                  | Via barrel `sdk.ts` only                                                                            |
-| `./@types/partials`   | 1            | 1            | **ACTIVE** | `JoinRule`                                                                                                                                                                                                                        | Via barrel `sdk-compat.ts` only                                                                     |
-| `./device-keys`       | 1            | 1            | **ACTIVE** | `DeviceKeysManager`                                                                                                                                                                                                               | Direct in `CryptoSDKAdapter.ts`; also in `.d.ts` type expressions                                   |
-| `./key-backup`        | 1            | 1            | **ACTIVE** | `KeyBackupManager`                                                                                                                                                                                                                | Direct in `CryptoSDKAdapter.ts`; aliased as `SDKKeyBackupManager`; also in `.d.ts` type expressions |
-
-### Sub-Path Exports -- ZERO-USE (33 entries)
-
-| Export Path                | Status            | Notes                                                                                                               |
-| -------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `./core`                   | ZERO-USE          |                                                                                                                     |
-| `./advanced`               | ZERO-USE          |                                                                                                                     |
-| `./legacy`                 | ZERO-USE          |                                                                                                                     |
-| `./crypto-keys`            | ZERO-USE (static) | Used in type position only: `import('matrix-js-sdk/crypto-keys').CryptoKeysManager` in `matrix-extensions.d.ts:424` |
-| `./voice`                  | ZERO-USE          |                                                                                                                     |
-| `./notification`           | ZERO-USE          |                                                                                                                     |
-| `./ai-connection`          | ZERO-USE          | hula has its own AI service layer (`src/services/matrix/ai/`)                                                       |
-| `./saml`                   | ZERO-USE          |                                                                                                                     |
-| `./app-service`            | ZERO-USE          |                                                                                                                     |
-| `./beacon`                 | ZERO-USE          |                                                                                                                     |
-| `./store`                  | ZERO-USE          |                                                                                                                     |
-| `./http-api`               | ZERO-USE          |                                                                                                                     |
-| `./http-api/errors`        | ZERO-USE          |                                                                                                                     |
-| `./errors`                 | ZERO-USE          |                                                                                                                     |
-| `./models/event`           | ZERO-USE          |                                                                                                                     |
-| `./runtime-schemas`        | ZERO-USE          |                                                                                                                     |
-| `./manager-extensions`     | ZERO-USE          | hula uses `initializeManagerExtensions` from main entry instead                                                     |
-| `./@types/PushRules`       | ZERO-USE          |                                                                                                                     |
-| `./timeline-window`        | ZERO-USE          |                                                                                                                     |
-| `./src/manager-extensions` | ZERO-USE          | Unusual export (exposes `src/` path as public API)                                                                  |
-| `./src/filter`             | ZERO-USE          | Unusual export (exposes `src/` path as public API)                                                                  |
-| `./src/telemetry`          | ZERO-USE          | Unusual export (exposes `src/` path as public API)                                                                  |
-| `./device`                 | ZERO-USE          |                                                                                                                     |
-| `./e2ee`                   | ZERO-USE          |                                                                                                                     |
-| `./external-service`       | ZERO-USE          |                                                                                                                     |
-| `./feature-flags`          | ZERO-USE          |                                                                                                                     |
-| `./federation`             | ZERO-USE          |                                                                                                                     |
-| `./media`                  | ZERO-USE          |                                                                                                                     |
-| `./oidc`                   | ZERO-USE          |                                                                                                                     |
-| `./presence`               | ZERO-USE          | hula imports `PresenceManager` from main entry instead                                                              |
-| `./room`                   | ZERO-USE          |                                                                                                                     |
-| `./room-summary`           | ZERO-USE          |                                                                                                                     |
-| `./verification`           | ZERO-USE          | hula uses `./key-verification` entry instead                                                                        |
+**Active export entries (19):** `.` (main, 157 imports), `./admin` (11), `./telemetry` (4), `./friend` (3), `./dm` (3), `./crypto` (2), `./guest` (2), `./event-report` (2), `./sync` (2), `./key-verification` (2), `./push` (1), `./space` (1), `./store/worker` (1), `./client` (1), `./models/room` (1), `./models/room-state` (1), `./@types/partials` (1), `./device-keys` (1), `./key-backup` (1)
 
 ---
 
-## B. Zero-Usage Exports (Candidates for Review)
+## Deep-path Violations
 
-33 of 51 sub-path exports (65%) have zero static import usage from hula. These fall into several categories:
+### Static imports from `matrix-js-sdk/src/` or `matrix-js-sdk/lib/` in production code
 
-### B.1 Feature areas not yet adopted by hula (16 entries)
+**Result: NONE FOUND** -- No hula production file uses static `import ... from 'matrix-js-sdk/src/...'`.
 
-`./core`, `./advanced`, `./legacy`, `./voice`, `./notification`, `./ai-connection`, `./saml`, `./app-service`, `./beacon`, `./external-service`, `./feature-flags`, `./federation`, `./media`, `./oidc`, `./room-summary`, `./verification`
+### Type-level violations in `.d.ts` files
 
-These may be needed by other consumers or future hula features. Do not remove without broader impact analysis.
+Two deep-path references exist in hula's type augmentation files. These are `import()` type expressions, not runtime imports:
 
-### B.2 Overlap with main entry (4 entries)
+| File | Line | Internal Path | Symbol |
+|---|---|---|---|
+| `hula/src/types/matrix-js-sdk-augmentations.d.ts` | 368 | `matrix-js-sdk/src/key-rotation/index` | `KeyRotationManager` |
+| `hula/src/types/matrix-js-sdk-augmentations.d.ts` | 369 | `matrix-js-sdk/src/dehydrated-device/index` | `DehydratedDeviceManager` |
 
-`./presence`, `./room`, `./device`, `./errors`
+**Risk**: These paths are NOT listed in the SDK's `package.json` exports. If the SDK renames or moves these directories, hula's type check will break.
 
-hula imports equivalent symbols from the main `matrix-js-sdk` entry instead. Example: `PresenceManager` is imported from main, not from `./presence`.
+**Recommendation**: Add `./key-rotation` and `./dehydrated-device` as official SDK export entries, or refactor hula's `.d.ts` to use locally-defined interfaces.
 
-### B.3 Low-level / infrastructure exports (6 entries)
-
-`./store`, `./http-api`, `./http-api/errors`, `./models/event`, `./runtime-schemas`, `./timeline-window`
-
-These are likely consumed indirectly through the main entry or are internal implementation details.
-
-### B.4 Awkward `src/` exports (3 entries)
-
-`./src/manager-extensions`, `./src/filter`, `./src/telemetry`
-
-These expose internal `src/` paths as public API entry points -- an anti-pattern. They have zero consumers in hula and should be migrated to proper public paths or removed.
-
-### B.5 Type-only usage (1 entry)
-
-`./crypto-keys` -- used only in `.d.ts` type expressions (`import('matrix-js-sdk/crypto-keys').CryptoKeysManager`). No runtime import exists.
-
-### B.6 Other (3 entries)
-
-`./manager-extensions`, `./@types/PushRules`, `./push` (note: `./push` IS active with 1 import, was miscategorized here -- see Section A)
+**Count: 2 violations (type-only, not production code).**
 
 ---
 
-## C. Deep-Path Violations
+## SDK补导出清单 (Augmentations That Could Move to SDK Exports)
 
-### C.1 Static import violations (`matrix-js-sdk/src/` or `matrix-js-sdk/lib/`)
+Analysis of `hula/src/types/matrix-js-sdk-augmentations.d.ts` (1921 lines). See also existing Type Gap Analysis sections below for detailed categorization.
 
-**Result: NONE FOUND**
+### Types that already exist in SDK but not exported from main (6 types)
 
-No hula source file uses static `import ... from 'matrix-js-sdk/src/...'` or `'matrix-js-sdk/lib/...'`. This is passing clean.
+| # | Augmentation Type | SDK Internal Equivalent | SDK Location | Status |
+|---|---|---|---|---|
+| 1 | `IPublicRoomsOpts` | `IRoomDirectoryOptions` | `src/@types/requests.ts` | Identical structure -- already exported |
+| 2 | `ISendEventResponse` | `ISendEventResponse` | `src/@types/requests.ts` | Already defined, not exported from entry |
+| 3 | `ICreateRoomOpts` | `ICreateRoomOpts` | `src/@types/requests.ts` | Already defined, not exported from entry |
+| 4 | `IPushRule` / `IPushRules` | `IPushRule` / `IPushRules` | `src/@types/PushRules.ts` | Already defined, not exported from main |
+| 5 | `SlidingSyncRoomSubscription` | `MSC3575RoomSubscription` | `src/sliding-sync.ts` | Identical -- already exported |
+| 6 | `SlidingSyncList` | `MSC3575List` | `src/sliding-sync.ts` | Superset in SDK |
 
-### C.2 Type-level violations in `.d.ts` files
+### Hula-specific types that could be upstreamed (15 type categories)
 
-Two deep-path references exist in TypeScript type augmentation files. These are `import()` type expressions (not runtime imports) but still couple hula's type definitions to SDK internal module layout:
+| # | Type Category | Suggested SDK Addition |
+|---|---|---|
+| 1 | `ILoginRequest` / `IRegisterRequest` | Add broader auth request shapes to SDK |
+| 2 | `VoIPHandler` | VoIP call handler interface |
+| 3 | `IMemberEvent` | Simplified member event shape |
+| 4 | `SearchParams` / `SearchResponse` | Search parameter and response types |
+| 5 | `SyncParams` / `SyncResponse` + sub-types | Sync protocol types |
+| 6 | `RoomData` / `TimelineData` / `StateData` / `EphemeralData` | Sync response sub-types |
+| 7 | `InvitedRoom` / `LeftRoom` | Sync room state shapes |
+| 8 | `PresenceUpdate` | Presence update shape |
+| 9 | `PaginatedMessages` | Pagination result type |
+| 10 | `EventRelation` | Event relation shape |
+| 11 | `MessageEditContent` | Message edit content |
+| 12 | `ReplyContent` | Reply content shape |
+| 13 | `ThreadBundle` | Thread bundle type |
+| 14 | `DeviceUpdate` / `DeviceDeletion` | Device management shapes |
+| 15 | `UserDirectorySearchParams` / `UserDirectorySearchResponse` | User directory types |
+| 16 | `Group` / `GroupUser` / `GroupProfile` | Community/group types |
+| 17 | `ThirdParty` family types | Third-party network types |
 
-| File                                         | Line | Internal Path                               | Symbol                    |
-| -------------------------------------------- | ---- | ------------------------------------------- | ------------------------- |
-| `src/types/matrix-js-sdk-augmentations.d.ts` | 385  | `matrix-js-sdk/src/key-rotation/index`      | `KeyRotationManager`      |
-| `src/types/matrix-js-sdk-augmentations.d.ts` | 386  | `matrix-js-sdk/src/dehydrated-device/index` | `DehydratedDeviceManager` |
+### Large MatrixClient augmentation (lines 150-480, ~330 lines)
 
-**Risk**: These paths are NOT listed in the SDK's `package.json` exports. If the SDK renames or moves `src/key-rotation/` or `src/dehydrated-device/`, hula's type augmentation file will break at compile time.
+~60 method signatures that largely duplicate SDK's `MatrixClient` class. Root cause: SDK's use of nominal `Method` enum vs hula's preference for string literals. Most of this block could be eliminated if the SDK adds string-literal overloads.
 
-**Recommendation**: Either:
+### RoomMember and User augmentations (lines 487-527)
 
-1. Add `./key-rotation` and `./dehydrated-device` as official SDK export entries, or
-2. Refactor hula's `.d.ts` to reference the types via the main entry or a sub-path that already exports them.
+**Completely duplicates** the SDK's `RoomMember` and `User` classes. All properties/methods already exist in the SDK. Can be removed entirely.
 
-### C.3 Dynamic `import()` runtime calls
+### hula-specific extensions that should NOT move to SDK
 
-| File                                                         | Line | Path                                         | Context                                         |
-| ------------------------------------------------------------ | ---- | -------------------------------------------- | ----------------------------------------------- |
-| `src/workers/matrixSdk.worker.ts`                            | 412  | `sdk = await import('matrix-js-sdk')`        | Runtime dynamic import of main entry (valid)    |
-| `src/services/matrix/admin/AdminFacadeService.ts`            | 195  | `import('matrix-js-sdk/admin').AdminManager` | Type annotation (valid, `./admin` is an export) |
-| `src/services/matrix/admin/RetentionService.ts`              | 7    | `import('matrix-js-sdk/admin').AdminManager` | Type annotation (valid)                         |
-| `src/services/matrix/admin/ServerService.ts`                 | 6    | `import('matrix-js-sdk/admin').AdminManager` | Type annotation (valid)                         |
-| `src/composables/chat/useChatContextMenu.ts`                 | 29   | `import('matrix-js-sdk').ISendEventResponse` | Return type annotation (valid)                  |
-| `src/services/matrix/room/__tests__/CreationService.test.ts` | 34   | `await import('matrix-js-sdk')`              | Test dynamic import (valid)                     |
+1. `MSC3575RoomData.state` / `.summary` -- hula-specific sliding sync field expectations
+2. `SlidingSync.getList()` / `.subscribeToRoom()` / `.unsubscribeFromRoom()` -- hula-custom methods
+3. `Room.topic` -- convenience property (SDK provides via `currentState`)
 
-All runtime dynamic imports reference valid export paths. No violations here.
-
----
-
-## D. Most-Heavily-Used Exports (Top 10)
-
-### D.1 By sub-path import count
-
-| Rank | Export Path          | Import Lines | Unique Files | Primary Consumers                                                     |
-| ---- | -------------------- | ------------ | ------------ | --------------------------------------------------------------------- |
-| 1    | `./admin`            | 11           | 11           | Admin service + 8 test files + barrel `sdk.ts`                        |
-| 2    | `./telemetry`        | 4            | 4            | `MatrixClientService`, `matrixClientAccessor`, barrel `sdk-compat.ts` |
-| 3    | `./friend`           | 3            | 2            | `MatrixFriendService`, barrel `sdk.ts`                                |
-| 4    | `./dm`               | 3            | 3            | `MatrixDirectMessageService`, barrel `sdk-compat.ts`                  |
-| 5    | `./crypto`           | 2            | 2            | `MatrixVerificationService`, barrel `sdk.ts`                          |
-| 6    | `./guest`            | 2            | 2            | `MatrixGuestService`, barrel `sdk.ts`                                 |
-| 7    | `./event-report`     | 2            | 2            | `MatrixEventReportService`, barrel `sdk.ts`                           |
-| 8    | `./sync`             | 2            | 1            | barrel `sdk.ts` only                                                  |
-| 9    | `./key-verification` | 2            | 2            | `CryptoSDKAdapter`, `MatrixVerificationService`                       |
-| 10   | `./push`             | 1            | 1            | barrel `sdk.ts` only                                                  |
-
-### D.2 By main entry symbol usage (collapsed type + value)
-
-| Rank | Symbol                  | Usage Count | Category                                  |
-| ---- | ----------------------- | ----------- | ----------------------------------------- |
-| 1    | `MatrixClient`          | 106         | Core client (85 value + 21 type imports)  |
-| 2    | `Room`                  | 33          | Room model (28 value + 5 type imports)    |
-| 3    | `MatrixEvent`           | 27          | Event model (25 value + 2 type imports)   |
-| 4    | `createClient`          | 16          | Factory function                          |
-| 5    | `RoomMember`            | 8           | Room membership (7 value + 1 type import) |
-| 6    | `NotificationCountType` | 5           | Enum                                      |
-| 7    | `Visibility`            | 4           | Enum                                      |
-| 8    | `PushRuleActionName`    | 3           | Enum                                      |
-| 9    | `IPusherRequest`        | 4           | Interface (3 value + 1 type import)       |
-| 10   | `ICreateRoomOpts`       | 3           | Interface                                 |
+**Total augmentations that could move to SDK: ~30 type categories + ~60 MatrixClient method overloads + 2 duplicate interface blocks.**
 
 ---
 
-## E. Architecture Observations
+## Manager Usage Matrix
 
-### E.1 Barrel file pattern
+Audit of all 114 managers registered in `src/client-infra/manager-registry.ts`.
+Column definitions:
+- **SDK Files**: Number of files in `src/` referencing the manager name
+- **Hula Files**: Number of files in `hula/src/` referencing the manager name
+- **Tests**: Whether test files exist in `spec/`
+- **Contract**: Whether a corresponding contract route exists in `docs/api-contract/generated/modules/`
+- **Status**: Active (has hula or contract), Zombie (0 hula + minimal SDK + no contract), Deprecated (has @deprecated), Dormant (has contract but 0 hula)
 
-hula uses two barrel files to consolidate SDK re-exports:
+| Manager | SDK Files | SDK Lines | Hula Files | Hula Lines | Tests | Depr. | Contract | Status | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| account | 79 | 502 | 158 | 661 | Y | Y | N | **Deprecated** | @deprecated in src/account/index.ts |
+| accountData | 14 | 97 | 9 | 29 | Y | N | Y | Active | Contract: account_data |
+| admin | 53 | 576 | 144 | 2618 | Y | N | Y | Active | Heavy hula usage (admin panel) |
+| aggregations | 7 | 13 | 3 | 5 | Y | N | N | Active | Low but existing usage |
+| aiConnection | 3 | 6 | 3 | 5 | Y | N | Y | Active | Contract: ai_connection |
+| auth | 145 | 911 | 177 | 883 | Y | N | N | Active | Heavy usage |
+| authGlobalLogout | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| backgroundUpdate | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: background_update; no hula use |
+| beacon | 15 | 140 | 17 | 125 | Y | N | N | Active | Has hula usage |
+| BurnAfterReadManager | 4 | 36 | 3 | 3 | Y | N | Y | Active | Contract: burn_after_read |
+| capabilities | 30 | 160 | 27 | 131 | Y | N | N | Active | Has hula usage |
+| captcha | 9 | 56 | 13 | 318 | Y | N | Y | Active | Contract: captcha |
+| cas | 90 | 434 | 111 | 540 | Y | N | Y | Active | Contract: cas |
+| crossSigning | 9 | 51 | 19 | 107 | Y | N | N | Active | Has hula usage |
+| cryptoBackup | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| cryptoEncryption | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| cryptoKeys | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| cryptoStore | 7 | 14 | 0 | 0 | Y | N | N | Dormant | 7 SDK files, no hula/contract |
+| dehydratedDevice | 5 | 25 | 1 | 1 | Y | N | N | Dormant | Minimal hula ref (1 type-only) |
+| device | 136 | 1734 | 149 | 1752 | Y | N | Y | Active | Contract: device; heavy usage |
+| deviceKeys | 6 | 24 | 1 | 5 | Y | N | N | Active | Used via sub-path export |
+| deviceTrust | 2 | 20 | 3 | 4 | Y | N | N | Active | Has hula usage |
+| directory | 18 | 90 | 11 | 56 | Y | N | N | Active | Has hula usage |
+| discovery | 22 | 48 | 17 | 78 | Y | N | N | Active | Has hula usage |
+| dm | 71 | 1401 | 204 | 4114 | Y | N | Y | Active | Contract: dm; heavy usage |
+| e2ee | 18 | 27 | 8 | 42 | Y | N | Y | Active | Contract: e2ee |
+| ephemeral | 22 | 65 | 8 | 15 | Y | N | Y | Active | Contract: ephemeral |
+| event | 265 | 6420 | 436 | 3073 | Y | N | N | Active | Core event manager; heavy usage |
+| eventProcessing | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| eventReport | 2 | 4 | 3 | 15 | N | N | Y | Active | Contract: event_report |
+| eventStatus | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| external-service | 6 | 9 | 1 | 1 | Y | N | Y | Active | Contract: external_service |
+| featureFlags | 2 | 4 | 4 | 12 | Y | N | Y | Active | Contract: feature_flags |
+| federation | 19 | 133 | 19 | 143 | Y | N | Y | Active | Contract: federation |
+| filter | 96 | 560 | 300 | 1046 | Y | N | N | Active | Heavy usage |
+| friend | 59 | 242 | 120 | 1384 | Y | N | Y | Active | Contract: friend_room; heavy usage |
+| guest | 36 | 148 | 21 | 120 | Y | N | Y | Active | Contract: guest |
+| identity | 45 | 244 | 40 | 153 | Y | N | N | Active | Has hula usage |
+| identityServer | 10 | 27 | 30 | 110 | Y | N | N | Active | Has hula usage |
+| inviteBlocklist | 2 | 4 | 2 | 12 | N | N | N | Active | Has 2 hula refs |
+| invites | 18 | 70 | 5 | 12 | Y | N | N | Active | Has hula usage |
+| keyBackup | 7 | 42 | 14 | 109 | Y | N | Y | Active | Contract: key_backup |
+| keyForwarding | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| keyRotation | 4 | 10 | 0 | 0 | Y | N | Y | Dormant | Contract: key_rotation; no hula |
+| keyVerification | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: verification_routes; no hula |
+| lifecycle | 14 | 40 | 10 | 18 | Y | N | N | Active | Has hula usage |
+| media | 84 | 534 | 211 | 711 | Y | N | Y | Active | Contract: media; heavy usage |
+| mediaQuota | 2 | 11 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| membership | 57 | 535 | 49 | 112 | Y | N | N | Active | Has hula usage |
+| moderation | 5 | 11 | 20 | 108 | Y | N | Y | Active | Contract: moderation |
+| module | 158 | 515 | 45 | 64 | Y | N | Y | Active | Contract: module |
+| notifications | 32 | 109 | 66 | 371 | Y | N | N | Active | Has hula usage |
+| oidc | 19 | 88 | 12 | 87 | Y | Y | Y | **Deprecated** | @deprecated in src/oidc/manager.ts |
+| openclaw | 10 | 45 | 10 | 85 | Y | N | Y | Active | Contract: openclaw |
+| passwordReset | 2 | 4 | 0 | 0 | Y | N | N | **Zombie** | Bare definition only |
+| pinnedMessages | 2 | 4 | 1 | 6 | N | N | N | Active | 1 hula ref |
+| presence | 37 | 267 | 41 | 238 | Y | N | Y | Active | Contract: presence |
+| profile | 70 | 211 | 50 | 371 | Y | N | N | Active | Has hula usage |
+| push | 112 | 687 | 274 | 1014 | Y | N | Y | Active | Contract: push; heavy usage |
+| pushNotifications | 2 | 4 | 2 | 3 | N | N | Y | Active | Contract: push_notification |
+| pushRules | 9 | 34 | 3 | 14 | Y | N | N | Active | Has hula usage |
+| qrLogin | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| reactions | 8 | 27 | 12 | 39 | Y | N | Y | Active | Contract: reactions |
+| readReceipts | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| relations | 34 | 155 | 3 | 15 | Y | N | Y | Active | Contract: relations |
+| rendezvous | 14 | 86 | 13 | 103 | Y | N | Y | Active | Contract: rendezvous |
+| reporting | 6 | 9 | 2 | 2 | Y | N | N | Active | Has hula usage |
+| retention | 11 | 44 | 14 | 80 | Y | N | N | Active | Has hula usage |
+| room | 287 | 7086 | 607 | 9685 | Y | N | Y | Active | Contract: room; heaviest usage |
+| roomAccountData | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| roomCreation | 2 | 4 | 1 | 2 | N | N | N | Dormant | 1 hula ref |
+| roomEvents | 5 | 19 | 2 | 5 | Y | N | N | Active | Has hula usage |
+| roomJoining | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| roomKeySharing | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| roomKeys | 3 | 6 | 2 | 5 | Y | N | N | Active | Has hula usage |
+| roomList | 2 | 4 | 20 | 57 | Y | N | N | Dormant | hula refs likely general pattern matches |
+| roomMember | 4 | 9 | 2 | 8 | Y | N | N | Active | Has hula usage |
+| roomSettings | 4 | 16 | 2 | 16 | N | N | N | Active | Has hula usage |
+| roomState | 12 | 63 | 3 | 12 | Y | N | N | Active | Has hula usage |
+| roomStateManagement | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| roomSummary | 8 | 48 | 1 | 1 | Y | N | Y | Active | Contract: room_summary |
+| roomUpgrades | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| saml-auth | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: saml; no hula |
+| scheduledEvents | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| search | 68 | 324 | 196 | 1578 | Y | N | Y | Active | Contract: search; heavy usage |
+| secretStorage | 9 | 82 | 1 | 1 | Y | N | N | Dormant | 1 hula ref |
+| secureBackup | 2 | 4 | 4 | 40 | N | N | N | Active | Has hula usage |
+| security | 14 | 35 | 51 | 475 | Y | N | N | Active | Has hula usage |
+| sending | 41 | 137 | 24 | 67 | Y | N | N | Active | Has hula usage |
+| sendingQueue | 3 | 12 | 0 | 0 | Y | N | N | **Zombie** | 3 SDK files; no hula/contract |
+| serverCapabilities | 9 | 22 | 0 | 0 | Y | N | N | **Zombie** | 9 SDK files; no hula/contract |
+| serverTime | 4 | 15 | 0 | 0 | N | N | N | **Zombie** | Internal only |
+| session | 93 | 991 | 179 | 1925 | Y | N | N | Active | Heavy usage |
+| sessions | 36 | 248 | 51 | 215 | Y | N | N | Active | Has hula usage |
+| space | 50 | 401 | 301 | 2992 | Y | N | Y | Active | Contract: space; heavy usage |
+| stateSend | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| stickyEvent | 7 | 73 | 0 | 0 | Y | N | N | Dormant | 7 SDK files; no hula/contract |
+| syncAccumulator | 4 | 14 | 0 | 0 | N | N | Y | Dormant | Contract: sync; no hula |
+| syncManagement | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: sync; no hula |
+| tagsManagement | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: tags; no hula |
+| telemetry | 12 | 40 | 7 | 11 | Y | N | Y | Active | Contract: telemetry |
+| thirdparty | 10 | 55 | 6 | 27 | Y | N | Y | Active | Contract: thirdparty |
+| thread | 61 | 1120 | 41 | 512 | Y | N | Y | Active | Contract: thread |
+| threading | 6 | 9 | 5 | 19 | Y | N | N | Active | Has hula usage |
+| threepids | 7 | 13 | 3 | 4 | Y | N | N | Active | Has hula usage |
+| timeline | 56 | 1160 | 39 | 149 | Y | N | N | Active | Has hula usage |
+| toDevice | 12 | 42 | 1 | 2 | Y | N | N | Active | Has hula usage |
+| tokenManagement | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| turnServer | 7 | 51 | 3 | 9 | Y | N | N | Active | Has hula usage |
+| typing | 22 | 115 | 29 | 142 | Y | N | Y | Active | Contract: typing |
+| uploads | 11 | 22 | 6 | 11 | Y | N | N | Active | Has hula usage |
+| user | 294 | 3588 | 652 | 5722 | Y | N | N | Active | Heavy usage |
+| userDirectory | 2 | 4 | 4 | 10 | N | N | N | Active | Has hula usage |
+| userPresence | 3 | 6 | 0 | 0 | N | N | N | **Zombie** | Internal only |
+| userReport | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| verification | 42 | 313 | 26 | 157 | Y | N | Y | Active | Contract: verification_routes |
+| voice | 10 | 32 | 81 | 534 | Y | N | Y | Active | Contract: voice |
+| voipCalls | 2 | 4 | 0 | 0 | N | N | N | **Zombie** | Bare definition only |
+| widget | 19 | 334 | 142 | 645 | Y | N | Y | Active | Contract: widget |
+| widgets | 8 | 117 | 7 | 38 | Y | N | N | Active | Has hula usage |
+| workerAdmin | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: worker; no hula |
+| workerBody | 2 | 4 | 0 | 0 | N | N | Y | Dormant | Contract: worker_body; no hula |
 
-- **`src/services/matrix/sdk.ts`**: Re-exports ~42 symbols from main entry + ~18 types/values from 11 sub-paths. This is the primary SDK surface for hula's service layer.
-- **`src/services/matrix/sdk-compat.ts`**: Re-exports 4 sub-path entries (`./dm`, `./space`, `./store/worker`, `./telemetry`) and `./@types/partials`. Labeled as "compatibility shims."
+### Manager Classification Summary
 
-The barrel files are the right pattern. However, 8 sub-paths (`./push`, `./space`, `./store/worker`, `./client`, `./models/room`, `./models/room-state`, `./sync`, `./@types/partials`) are imported ONLY by these barrel files and nowhere else in hula. This means hula's actual service code never touches these sub-paths directly.
+| Category | Count | Description |
+|---|---|---|
+| **Active** | 66 | Has hula references or contract routes |
+| **Zombie** | 25 | 0 hula refs, minimal SDK refs (2-3 files), no contract route |
+| **Deprecated** | 2 | Marked @deprecated in source (account, oidc) |
+| **Dormant** | 12 | Has contract routes but 0 hula usage |
 
-### E.2 Main entry dominance
+### Zombie Manager Candidates for Removal
 
-156 out of 203 total SDK imports (77%) go through the main `matrix-js-sdk` entry. The remaining 47 imports (23%) use sub-path entries, mostly for domain-specific managers (admin, crypto, friends, telemetry).
+These 25 managers have zero hula usage, minimal SDK internal references (mostly just the definition + registration boilerplate), and no contract route. They are candidates for removal:
 
-### E.3 Type augmentation coupling
+1. authGlobalLogout
+1. cryptoBackup
+1. cryptoEncryption
+1. cryptoKeys
+1. eventProcessing
+1. eventStatus
+1. keyForwarding
+1. mediaQuota
+1. passwordReset
+1. qrLogin
+1. readReceipts
+1. roomAccountData
+1. roomJoining
+1. roomKeySharing
+1. roomStateManagement
+1. roomUpgrades
+1. scheduledEvents
+1. sendingQueue (3 SDK files -- verify internal usage)
+1. serverCapabilities (9 SDK files -- verify internal usage)
+1. serverTime
+1. stateSend
+1. stickyEvent (7 SDK files -- verify internal usage)
+1. tokenManagement
+1. userPresence
+1. userReport
+1. voipCalls
 
-`src/types/matrix-js-sdk-augmentations.d.ts` and `src/types/matrix-extensions.d.ts` use `import()` type expressions to reference 6 sub-paths (`space`, `device-keys`, `crypto-keys`, `key-verification`, `key-backup`, plus the two deep-path `src/key-rotation` and `src/dehydrated-device`). These type files are the only places that reference `crypto-keys` at all.
+**Note:** sendingQueue, serverCapabilities, and stickyEvent have internal SDK refs beyond the bare definition. Audit their internal usage before removal.
 
-### E.4 Test vs production split
+### Deprecated Manager Candidates
 
-Of 145 unique files importing from `matrix-js-sdk` main entry:
-
-- 72 production files
-- 73 test files
-
-The test/production ratio is ~1:1, which is healthy and indicates good test coverage of SDK-dependent code.
+| Manager | Deprecated Since | Hula Still Uses? | Recommended Action |
+|---|---|---|---|
+| account | src/account/index.ts | Uses via client methods, not manager directly | Remove after ensuring hula doesn't call `getAccountManager()` |
+| oidc | src/oidc/manager.ts | Yes (12 hula files) | Migrate hula to non-deprecated OIDC API, then remove |
 
 ---
 
-## F. Recommendations
+## Architecture Observations
 
-### F.1 Immediate (no code change required)
+### Main entry dominance
+157 out of 197 total SDK imports (80%) go through the main `matrix-js-sdk` entry. The remaining 40 imports (20%) use 18 sub-path entries, mostly for domain-specific managers (admin, crypto, friends, telemetry).
 
-- No static deep-path violations exist. The codebase is clean in this regard.
+### Barrel file pattern
+hula uses two barrel files:
+- **`src/services/matrix/sdk.ts`**: Re-exports ~42 symbols from main entry + ~18 types/values from 11 sub-paths
+- **`src/services/matrix/sdk-compat.ts`**: Re-exports 4 sub-path entries
 
-### F.2 Short-term (consider for next SDK release)
+8 sub-paths (`./push`, `./space`, `./store/worker`, `./client`, `./models/room`, `./models/room-state`, `./sync`, `./@types/partials`) are imported ONLY by these barrel files.
 
-- **Fix type-level deep paths**: Replace `import('matrix-js-sdk/src/key-rotation/index').KeyRotationManager` and `import('matrix-js-sdk/src/dehydrated-device/index').DehydratedDeviceManager` in `matrix-js-sdk-augmentations.d.ts` with either official export paths or locally-defined interfaces.
-- **Review 3 `./src/*` exports**: `./src/manager-extensions`, `./src/filter`, `./src/telemetry` are zero-use and expose internal layout. Consider removing them or migrating to proper public paths.
+### Anti-pattern: `./src/` public exports
+3 export entries (`./src/manager-extensions`, `./src/filter`, `./src/telemetry`) expose internal `src/` paths as public API. Zero hula consumers. Should be migrated to proper public paths or removed.
 
-### F.3 Medium-term (API surface simplification)
-
-- **33 zero-use exports** represent potential API surface to deprecate or remove, but each needs its own impact analysis (other consumers, future hula features).
-- **8 single-consumer exports** (`./push`, `./space`, `./store/worker`, `./client`, `./models/room`, `./models/room-state`, `./sync`, `./@types/partials`) are only used by hula's barrel files. Consider whether these symbols could flow through the main entry instead.
+### Type augmentation coupling
+`matrix-js-sdk-augmentations.d.ts` (1921 lines) uses `import()` type expressions referencing 6 sub-paths plus 2 deep-path locations. The MatrixClient augmentation (330 lines) is the single largest block and is largely duplicative.
 
 ---
 
-## Type Gap Analysis
+## Summary Statistics
 
-> Source: `/Users/ljf/Desktop/hu_ts/hula/src/types/matrix-js-sdk-augmentations.d.ts` (818 lines)
-> Method: Each type/interface declaration was cross-referenced against SDK source at `/Users/ljf/Desktop/hu_ts/matrix-js-sdk/src/`
-> Purpose: Identify which augmentation types already exist in the SDK, which should be upstreamed, and which are hula-specific
-
-### A. Classification Summary
-
-| Category              | Count  | Description                                                              |
-| --------------------- | ------ | ------------------------------------------------------------------------ |
-| SDK_ALREADY_HAS       | 10     | SDK exports an equivalent type; augmentation is a duplicate — can remove |
-| SDK_SHOULD_SUPPLEMENT | 6      | SDK has internally but not in public API — should add to exports         |
-| HULA_SPECIFIC         | 18     | Genuinely hula/synapse-rust specific — keep in augmentation              |
-| OBSOLETE              | 4      | Zero usage in hula production code — can delete                          |
-| NEEDS_INVESTIGATION   | 2      | Ambiguous or needs deeper analysis                                       |
-| **Total**             | **40** |                                                                          |
-
-### B. SDK Supplement Export List (THE KEY OUTPUT)
-
-Types the SDK should add to its public exports. Each entry already exists in SDK source but either is not re-exported from the package entry point, or uses a different name/structure.
-
-#### B.1 Types that exist but need re-export or name alignment
-
-| #   | Augmentation Type                                          | SDK Internal Type         | SDK Location                       | Status                                                                                                                                                                                                                                                             |
-| --- | ---------------------------------------------------------- | ------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | `IPublicRoomsOpts`                                         | `IRoomDirectoryOptions`   | `src/@types/requests.ts:243-266`   | IDENTICAL structure. Already exported via `export * from "./@types/requests"`. Augmentation is a name-alias duplicate. hula should import `IRoomDirectoryOptions` directly from SDK.                                                                               |
-| 2   | `SlidingSyncRoomSubscription`                              | `MSC3575RoomSubscription` | `src/sliding-sync.ts:37-41`        | IDENTICAL structure. Already exported via `export type { MSC3575RoomSubscription }` in `src/matrix.ts:143`. Augmentation is a duplicate.                                                                                                                           |
-| 3   | `SlidingSyncList`                                          | `MSC3575List`             | `src/sliding-sync.ts:61-66`        | `MSC3575List` has more fields (`filters?`, `slow_get_all_rooms?`, `include_old_rooms?`, optional `sort`) than augmentation's `SlidingSyncList` (all required). Already exported.                                                                                   |
-| 4   | `ILoginRequest`                                            | `LoginRequest`            | `src/@types/auth.ts:155-195`       | SDK's `LoginRequest` is spec-compliant with `identifier` field. Augmentation's `ILoginRequest` is a simpler shape with `user?`/`password?`/`token?`. Already exported.                                                                                             |
-| 5   | `IRegisterRequest`                                         | `RegisterRequest`         | `src/@types/registration.ts:25-63` | SDK's `RegisterRequest` is spec-compliant. Augmentation's `IRegisterRequest` adds `[key: string]: unknown` for extensibility. Already exported.                                                                                                                    |
-| 6   | `IEventRelation` (used as `EventRelation` in augmentation) | `IEventRelation`          | `src/models/event.ts:142-150`      | Already exported in `src/matrix.ts:115`. SDK's has `rel_type`, `event_id`, `is_falling_back`, `m.in_reply_to`, `key`. Augmentation's `EventRelation` adds a `m.relates_to` nested field that is actually the parent content field, not the relation object itself. |
-
-#### B.2 Hula-specific augmentations that could be upstreamed to SDK
-
-| #   | Type                         | Current Augmentation                      | Suggested SDK Addition                                                                                                             | Rationale                                                                                                     |
-| --- | ---------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 1   | `MSC3575RoomData` extensions | Lines 40-43: adds `state?` and `summary?` | Add `state?: Record<string, unknown>` and `summary?: Record<string, unknown>` to `MSC3575RoomData` in `src/sliding-sync.ts:97-113` | Synapse-rust returns extra fields in Sliding Sync responses; this is a reasonable extension point             |
-| 2   | `Room.topic` property        | Line 67: adds `topic?: string`            | Add a `topic` getter to `Room` class in `src/models/room.ts`                                                                       | Convenience accessor for `m.room.topic` state event; common pattern in other Matrix SDKs like matrix-rust-sdk |
-
-### C. Duplicate Types (Augmentation Can Remove)
-
-Types that exist in both SDK exports and augmentation with equivalent or nearly-equivalent shapes. Hula should remove these from the augmentation file and import from the SDK instead.
-
-| #   | Augmentation Type                            | SDK Equivalent                                 | Location                           | Compatibility                                                                                                                       |
-| --- | -------------------------------------------- | ---------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `IPublicRoomsOpts`                           | `IRoomDirectoryOptions`                        | `src/@types/requests.ts:243-266`   | IDENTICAL — drop-in replacement                                                                                                     |
-| 2   | `SlidingSyncRoomSubscription`                | `MSC3575RoomSubscription`                      | `src/sliding-sync.ts:37-41`        | IDENTICAL — drop-in replacement                                                                                                     |
-| 3   | `SlidingSyncList`                            | `MSC3575List`                                  | `src/sliding-sync.ts:61-66`        | `MSC3575List` is superset — hula code may need to adjust optional field access                                                      |
-| 4   | `ILoginRequest`                              | `LoginRequest`                                 | `src/@types/auth.ts:155-195`       | SDK's version is spec-compliant — hula may need to provide `identifier` instead of `user`/`password`                                |
-| 5   | `IRegisterRequest`                           | `RegisterRequest`                              | `src/@types/registration.ts:25-63` | SDK's version is spec-compliant — hula may need to adapt                                                                            |
-| 6   | `RoomMember` interface (lines 505-533)       | `RoomMember` class                             | `src/models/room-member.ts`        | All properties/methods already exist on SDK's class. **The entire RoomMember augmentation is a duplicate.**                         |
-| 7   | `User` interface (lines 536-545)             | `User` class                                   | `src/models/user.ts`               | All properties/methods already exist on SDK's class. **The entire User augmentation is a duplicate.**                               |
-| 8   | MatrixClient methods (most of lines 167-497) | `MatrixClient` class methods                   | `src/client.ts`                    | **~90% of the MatrixClient augmentation is a duplicate** of methods that already exist on SDK's class. See Section F.4 for details. |
-| 9   | `EventRelation`                              | `IEventRelation`                               | `src/models/event.ts:142-150`      | Different shapes — augmentation adds `m.relates_to` field. Recommend aligning on SDK's version or extending it.                     |
-| 10  | `IRequestTokenResponse`                      | `IRegistrationTokenResponse` or similar in SDK | Internal auth types                | Check if SDK exposes an equivalent                                                                                                  |
-
-### D. Hula-Specific Types (Keep in Augmentation)
-
-These types have no equivalent in the SDK and are genuinely needed by hula for synapse-rust integration or custom features.
-
-| #   | Type Name                                                                                                                                                                                  | Lines            | Purpose                                                                                                                                                                        | Hula Usage                                                   |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| 1   | `MatrixHttpApi.authedRequest(request)` with `method: string`                                                                                                                               | 21-35            | Allow string-based method params instead of `Method` enum                                                                                                                      | All services                                                 |
-| 2   | `MSC3575RoomData` extensions (`state`, `summary`)                                                                                                                                          | 40-43            | Synapse-rust Sliding Sync response fields                                                                                                                                      | `MatrixSlidingSyncService`                                   |
-| 3   | `SlidingSync` custom methods (`getList`, `subscribeToRoom`, `unsubscribeFromRoom`, `getSyncToken`)                                                                                         | 48-61            | Hula-customized SlidingSync API                                                                                                                                                | `MatrixSlidingSyncService`                                   |
-| 4   | `Room.topic`                                                                                                                                                                               | 66-68            | Convenience property for `m.room.topic` event content                                                                                                                          | Room display components                                      |
-| 5   | `VoIPHandler`                                                                                                                                                                              | 131-133          | Simple VoIP call handler interface                                                                                                                                             | VoIP service                                                 |
-| 6   | `IMemberEvent`                                                                                                                                                                             | 136-140          | Simplified membership event shape                                                                                                                                              | Membership state views                                       |
-| 7   | `SearchParams` / `SearchResponse`                                                                                                                                                          | 556-568          | Hula-specific search API shapes (simpler than SDK's `ISearchRequestBody`)                                                                                                      | Search service (17 usages)                                   |
-| 8   | `SyncParams`                                                                                                                                                                               | 572-578          | Hula-specific sync parameter type                                                                                                                                              | Sync service                                                 |
-| 9   | `SyncResponse` + sub-types (`RoomData`, `TimelineData`, `StateData`, `EphemeralData`, `InvitedRoom`, `LeftRoom`, `PresenceUpdate`, `DeviceMessages`, `DeviceLists`, `UnreadNotifications`) | 580-652          | Hula-specific sync response shapes                                                                                                                                             | Sync service (7 usages for `SyncResponse`, 9 for `RoomData`) |
-| 10  | `PaginatedMessages`                                                                                                                                                                        | 657-662          | Hula-specific pagination response                                                                                                                                              | Message pagination                                           |
-| 11  | `MessageEditContent`                                                                                                                                                                       | 680-698          | Hula-specific message edit content                                                                                                                                             | Message edit service                                         |
-| 12  | `ReplyContent`                                                                                                                                                                             | 701-716          | Hula-specific reply content type                                                                                                                                               | Reply service (7 usages)                                     |
-| 13  | `ThreadBundle`                                                                                                                                                                             | 719-726          | Hula-specific thread bundle type                                                                                                                                               | Thread service                                               |
-| 14  | `DeviceUpdate`                                                                                                                                                                             | 735-739          | Hula-specific device update type                                                                                                                                               | Device service (9 usages)                                    |
-| 15  | `UserDirectorySearchParams` / `UserDirectorySearchResponse` / `UserDirectoryResult`                                                                                                        | 747-762          | Hula-specific user directory types                                                                                                                                             | User directory service                                       |
-| 16  | `Group` / `GroupUser` / `GroupProfile`                                                                                                                                                     | 765-784          | Hula community/group feature types                                                                                                                                             | Group store                                                  |
-| 17  | `ThirdPartyProtocol` / `ThirdPartyProtocolInstance` / `ThirdPartyUser` / `ThirdPartyLocation`                                                                                              | 787-810          | Hula-specific third-party API types (different shape from SDK's `IThirdParty*` in `client-internal-types.ts`)                                                                  | Third-party service (4 usages)                               |
-| 18  | Manager accessors in MatrixClient augmentation                                                                                                                                             | 467-476, 383-386 | Synapse-rust specific manager extensions (`getBurnAfterReadManager`, `dmManager`, `quotaManager`, `getDeviceKeysManager`, `getCryptoKeysManager`, `getKeyVerificationManager`) | Various services                                             |
-
-### E. Obsolete Types (Can Be Removed Immediately)
-
-Types declared in the augmentation but never used in hula's production code (checked via grep excluding `augmentations.d.ts` and `__tests__`).
-
-| #   | Type Name             | Lines   | Notes                       |
-| --- | --------------------- | ------- | --------------------------- |
-| 1   | `DeviceDeletion`      | 741-744 | Zero production usage found |
-| 2   | `EphemeralData`       | 610-612 | Zero production usage found |
-| 3   | `DeviceMessages`      | 637-641 | Zero production usage found |
-| 4   | `UnreadNotifications` | 648-652 | Zero production usage found |
-
-Note: `DeviceLists` (lines 643-646) may also be unused but was flagged as low-usage (1 hit that might be from type re-export).
-
-### F. Detailed Type-by-Type Table
-
-| #   | Type Name                               | Category            | SDK Location                                                           | Hula Usage | Action                                            |
-| --- | --------------------------------------- | ------------------- | ---------------------------------------------------------------------- | ---------- | ------------------------------------------------- |
-| 1   | `MatrixHttpApi` string-method overloads | HULA_SPECIFIC       | N/A                                                                    | High       | KEEP                                              |
-| 2   | `MSC3575RoomData.state/summary`         | HULA_SPECIFIC       | N/A                                                                    | Medium     | KEEP                                              |
-| 3   | `SlidingSync` extra methods             | HULA_SPECIFIC       | N/A                                                                    | Medium     | KEEP                                              |
-| 4   | `Room.topic`                            | HULA_SPECIFIC       | N/A                                                                    | Medium     | KEEP (or upstream)                                |
-| 5   | `IPublicRoomsOpts`                      | SDK_ALREADY_HAS     | `IRoomDirectoryOptions` in `src/@types/requests.ts:243`                | 0          | REMOVE, use `IRoomDirectoryOptions`               |
-| 6   | `SlidingSyncList`                       | SDK_ALREADY_HAS     | `MSC3575List` in `src/sliding-sync.ts:61`                              | ~3         | MIGRATE to `MSC3575List`                          |
-| 7   | `SlidingSyncRoomSubscription`           | SDK_ALREADY_HAS     | `MSC3575RoomSubscription` in `src/sliding-sync.ts:37`                  | ~3         | REMOVE, use `MSC3575RoomSubscription`             |
-| 8   | `ILoginRequest`                         | SDK_ALREADY_HAS     | `LoginRequest` in `src/@types/auth.ts:155`                             | 1          | MIGRATE to `LoginRequest`                         |
-| 9   | `IRegisterRequest`                      | SDK_ALREADY_HAS     | `RegisterRequest` in `src/@types/registration.ts:25`                   | 1          | MIGRATE to `RegisterRequest`                      |
-| 10  | `VoIPHandler`                           | HULA_SPECIFIC       | N/A                                                                    | ~5         | KEEP                                              |
-| 11  | `IMemberEvent`                          | HULA_SPECIFIC       | N/A                                                                    | ~2         | KEEP                                              |
-| 12  | `MatrixClient` interface (167-497)      | NEEDS_INVESTIGATION | SDK's `MatrixClient` class                                             | High       | ~300 lines largely duplicate SDK; see Section F.4 |
-| 13  | `RoomMember` interface (505-533)        | SDK_ALREADY_HAS     | `src/models/room-member.ts`                                            | High       | REMOVE — SDK defines all these                    |
-| 14  | `User` interface (536-545)              | SDK_ALREADY_HAS     | `src/models/user.ts`                                                   | High       | REMOVE — SDK defines all these                    |
-| 15  | `SearchParams`                          | HULA_SPECIFIC       | N/A                                                                    | 17         | KEEP                                              |
-| 16  | `SearchResponse`                        | HULA_SPECIFIC       | SDK has `ISearchResponse` (different shape)                            | ~5         | KEEP                                              |
-| 17  | `SyncParams`                            | HULA_SPECIFIC       | N/A                                                                    | ~2         | KEEP                                              |
-| 18  | `SyncResponse`                          | HULA_SPECIFIC       | SDK has `ISyncResponse` (different shape)                              | 7          | KEEP                                              |
-| 19  | `RoomData`                              | HULA_SPECIFIC       | N/A                                                                    | 9          | KEEP                                              |
-| 20  | `TimelineData`                          | HULA_SPECIFIC       | Partial `ITimeline` in `sync-accumulator`                              | ~2         | KEEP                                              |
-| 21  | `StateData`                             | HULA_SPECIFIC       | N/A                                                                    | 1          | KEEP                                              |
-| 22  | `EphemeralData`                         | OBSOLETE            | N/A                                                                    | 0          | REMOVE                                            |
-| 23  | `InvitedRoom`                           | HULA_SPECIFIC       | Partial `IInvitedRoom` in `sync-accumulator`                           | 2          | KEEP                                              |
-| 24  | `LeftRoom`                              | HULA_SPECIFIC       | Partial `ILeftRoom` in `sync-accumulator`                              | 2          | KEEP                                              |
-| 25  | `PresenceUpdate`                        | HULA_SPECIFIC       | N/A                                                                    | 4          | KEEP                                              |
-| 26  | `DeviceMessages`                        | OBSOLETE            | N/A                                                                    | 0          | REMOVE                                            |
-| 27  | `DeviceLists`                           | OBSOLETE            | N/A                                                                    | 0          | REMOVE                                            |
-| 28  | `UnreadNotifications`                   | OBSOLETE            | N/A                                                                    | 0          | REMOVE                                            |
-| 29  | `PaginatedMessages`                     | HULA_SPECIFIC       | N/A                                                                    | ~2         | KEEP                                              |
-| 30  | `EventRelation`                         | SDK_ALREADY_HAS     | `IEventRelation` in `src/models/event.ts:142`                          | 1          | ALIGN or keep if `m.relates_to` needed            |
-| 31  | `MessageEditContent`                    | HULA_SPECIFIC       | N/A                                                                    | ~3         | KEEP                                              |
-| 32  | `ReplyContent`                          | HULA_SPECIFIC       | N/A                                                                    | 7          | KEEP                                              |
-| 33  | `ThreadBundle`                          | HULA_SPECIFIC       | N/A                                                                    | ~2         | KEEP                                              |
-| 34  | `DeviceUpdate`                          | HULA_SPECIFIC       | N/A                                                                    | 9          | KEEP                                              |
-| 35  | `DeviceDeletion`                        | OBSOLETE            | N/A                                                                    | 0          | REMOVE                                            |
-| 36  | `UserDirectorySearchParams`             | HULA_SPECIFIC       | N/A                                                                    | ~2         | KEEP                                              |
-| 37  | `UserDirectorySearchResponse`           | HULA_SPECIFIC       | Partial `IUserDirectoryResponse` in `client-internal-types.ts:60`      | ~1         | KEEP                                              |
-| 38  | `UserDirectoryResult`                   | HULA_SPECIFIC       | N/A                                                                    | ~1         | KEEP                                              |
-| 39  | `Group` family                          | HULA_SPECIFIC       | N/A                                                                    | ~3         | KEEP                                              |
-| 40  | `ThirdParty` family                     | HULA_SPECIFIC       | SDK has `IThirdParty*` in `client-internal-types.ts` (different shape) | 4          | KEEP                                              |
-
-### G. Key Findings
-
-#### G.1 The MatrixClient Interface Augmentation Is the Biggest Problem
-
-The `MatrixClient` interface augmentation (lines 167-497, ~330 lines) is almost entirely a duplicate of the SDK's `MatrixClient` class type definitions. Most methods declared here already exist on the SDK's `MatrixClient` class with identical or more complete signatures. This section was likely created when the SDK's type generation was incomplete and has not been updated to reflect SDK improvements.
-
-**Specific issues found:**
-
-- **Outdated method signatures**: Several methods use different parameter names/orders than the SDK (e.g., `getSsoLoginUrl` in augmentation takes `(redirectUrl, deviceName?, identityProviderId?)` while SDK uses `(redirectUrl, loginType?, idpId?, action?)`).
-- **Looser typing**: Many methods use `Record<string, unknown>` instead of the SDK's specific types.
-- **Missing parameters**: Some overloads have fewer parameters than the SDK's actual methods.
-- **Duplicate overloads**: Methods like `createRoom`, `joinRoom`, `publicRooms` define two overloads where one matches the SDK and the other is a simplified variant.
-
-**Recommendation**: Incrementally remove method declarations from the augmentation that match the SDK's current signatures. Only keep synapse-rust-specific methods and manager accessors that the SDK doesn't expose.
-
-#### G.2 RoomMember and User Augmentations Are Fully Duplicate
-
-The `RoomMember` (lines 505-533) and `User` (lines 536-545) interface augmentations declare properties and methods that ALL already exist on the SDK's `RoomMember` and `User` classes. These are complete duplicates and can be removed entirely.
-
-#### G.3 Sync Response Types Are Hula's Simplified Layer
-
-The sync response types (`SyncResponse`, `RoomData`, `TimelineData`, etc., lines 572-652) are hula's simplified interpretation of the Matrix sync protocol. The SDK uses `sync-accumulator.ts` types internally (`ISyncResponse`, `IJoinedRoom`, `ITimeline`, etc.) but these aren't designed as a consumer-facing public API. Keeping hula's simpler shapes is reasonable, though some fields could be aligned with SDK types to reduce duplication.
-
-#### G.4 Manager Accessor Pattern
-
-Manager accessor methods (`getSpaceManager()`, `getKeyRotationManager()`, `getDehydratedDeviceManager()`, etc.) are defined in the SDK's `MatrixClientExtensionMethods` type (exported from `src/matrix.ts:162`). If hula can properly resolve this type from the SDK package, these manager accessor declarations could be removed from the augmentation. Currently, the augmentation uses `import()` type syntax to reference SDK internal paths, which is technically a type-level deep-path import.
-
-#### G.5 4 Types Can Be Removed Immediately
-
-`DeviceDeletion`, `EphemeralData`, `DeviceMessages`, and `UnreadNotifications` have zero production usage in hula. They can be safely deleted from the augmentation file.
-
-#### G.6 6 Types Can Be Replaced with SDK Imports
-
-`IPublicRoomsOpts`, `SlidingSyncRoomSubscription`, `SlidingSyncList`, `ILoginRequest`, `IRegisterRequest`, `RoomMember`, and `User` all have existing SDK equivalents that are already exported from the package. Hula should update its imports and remove these from the augmentation.
-
-### H. Recommended Action Plan
-
-**Phase 1 (Safe Deletions — Zero Risk)**
-
-1. Remove 4 obsolete types: `DeviceDeletion`, `EphemeralData`, `DeviceMessages`, `UnreadNotifications`
-2. Remove `RoomMember` and `User` interface augmentations (SDK defines the same members)
-
-**Phase 2 (Import Migrations — Low Risk)**
-
-3. Replace `IPublicRoomsOpts` with SDK's `IRoomDirectoryOptions`
-4. Replace `SlidingSyncRoomSubscription` with SDK's `MSC3575RoomSubscription`
-5. Replace `ILoginRequest` with SDK's `LoginRequest`
-6. Replace `IRegisterRequest` with SDK's `RegisterRequest`
-7. Evaluate `SlidingSyncList` vs `MSC3575List` — migrate if field differences don't matter
-
-**Phase 3 (MatrixClient Cleanup — Medium Risk)**
-
-8. Audit each method in the MatrixClient augmentation against the SDK's actual signatures
-9. Remove methods whose signatures match the SDK's
-10. Keep only synapse-rust-specific manager accessors and methods with different signatures
-
-**Phase 4 (Upstream Proposals)**
-
-11. Propose adding `MSC3575RoomData.state`/`.summary` fields to the SDK
-12. Propose adding a `Room.topic` getter to the SDK
+| Metric | Count |
+|---|---|
+| Total managers registered | 114 |
+| Active managers | 66 |
+| Zombie managers | 25 |
+| Deprecated managers | 2 |
+| Dormant managers | 12 |
+| Total package.json export entries | 52 |
+| Zero-usage export entries | 33 |
+| Active export entries (has hula imports) | 19 |
+| Deep-path violations | 2 (type-only) |
+| Augmentation type blocks | ~40 |
+| Augmentations that can move to SDK | ~30 type categories |
+| hula import statements (total) | 197 |

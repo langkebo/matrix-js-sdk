@@ -14,11 +14,9 @@ export {
     type PublicRoomsResponse,
 } from "./discovery";
 export { PushManager } from "./push";
-export { QrLoginManager, type QrCodeResponse, type QrLoginStatus } from "./qr-login";
 export { RoomManager } from "./room";
 export { RoomListManager } from "./room-list";
 export { SendingManager } from "./sending";
-export { UserReportManager } from "./user-report";
 export {
     SpaceManager,
     type Space,
@@ -96,7 +94,6 @@ export type {
     RoomSummaryOptions,
     RoomSummaryListResponse,
 } from "./room-summary";
-export { RoomKeySharingManager } from "./room-key-sharing";
 export { PresenceManager } from "./presence";
 export { FederationManager } from "./federation";
 export { DeviceManager } from "./device";
@@ -142,15 +139,11 @@ export {
 } from "./burn-after-read";
 export { CaptchaManager } from "./captcha";
 export { CrossSigningManager } from "./cross-signing";
-export { CryptoBackupManager } from "./crypto-backup";
-export { CryptoEncryptionManager } from "./crypto-encryption";
 export { CryptoStoreManager } from "./crypto-store";
 export { DeviceKeysManager } from "./device-keys";
 export { DirectoryManager } from "./directory";
 export { EphemeralManager } from "./ephemeral";
 export { EventManager } from "./event";
-export { EventProcessingManager } from "./event-processing";
-export { EventStatusManager } from "./event-status";
 export { FilterManager, FilterManager as CanonicalFilterManager } from "./filter/index";
 export { IdentityManager } from "./identity";
 export { InviteListManager } from "./invite-list";
@@ -170,9 +163,7 @@ export {
     type UpdateDehydratedDeviceRequest,
     type UpdateDehydratedDeviceResponse,
 } from "./dehydrated-device";
-export { KeyForwardingManager } from "./key-forwarding";
 export { LifecycleManager } from "./lifecycle";
-export { MediaQuotaManager } from "./media-quota";
 export { MembershipManager } from "./membership";
 export { NotificationsManager } from "./notifications";
 export { PinnedMessagesManager } from "./pinned-messages";
@@ -183,18 +174,13 @@ export { ReadReceiptsManager } from "./read-receipts";
 export { RelationsManager } from "./relations";
 export { ReportingManager } from "./reporting";
 export { RetentionManager } from "./retention";
-export { RoomAccountDataManager } from "./room-account-data";
 export { RoomAliasManager } from "./room-alias";
 export { RoomCreationManager } from "./room-creation";
 export { RoomEventsManager } from "./room-events";
-export { RoomJoiningManager } from "./room-joining";
 export { RoomKeysManager } from "./room-keys";
 export { RoomMemberManager } from "./room-member";
 export { RoomSettingsManager } from "./room-settings";
 export { RoomStateManager } from "./room-state";
-export { RoomStateManagementManager } from "./room-state-management";
-export { RoomUpgradesManager } from "./room-upgrades";
-export { ScheduledEventsManager } from "./scheduled-events";
 export { SearchManager } from "./search";
 export { SecretStorageManager } from "./secret-storage/index";
 export { SecureBackupManager } from "./secure-backup";
@@ -220,12 +206,9 @@ export { TelemetryManager } from "./telemetry";
 export { ThreadingManager } from "./threading";
 export { TimelineManager } from "./timeline";
 export { ToDeviceManager } from "./to-device";
-export { TokenManager } from "./token-management";
 export { TurnServerManager } from "./turn-server";
 export { UploadsManager } from "./uploads";
 export { UserDirectoryManager } from "./user-directory";
-export { UserPresenceManager } from "./user-presence";
-export { VoIPCallsManager } from "./voip-calls";
 export { VoiceManager, VoiceEvent } from "./voice";
 export type {
     IVoiceStats,

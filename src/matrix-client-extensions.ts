@@ -112,22 +112,6 @@ export type UserDeviceMap = Record<string, IContent>;
 /** Ephemeral event data (typing receipts, read receipts, etc.) */
 export type EphemeralEventData = import("./ephemeral/index").IEphemeralEventData;
 
-/** Forwarded room key data */
-export interface ForwardedRoomKey {
-    /** The algorithm used for the key */
-    algorithm?: string;
-    /** The room ID the key is for */
-    room_id?: string;
-    /** The sender's curve25519 key */
-    sender_key?: string;
-    /** The session ID */
-    session_id?: string;
-    /** The session key */
-    session_key?: string;
-    /** Additional key properties */
-    [key: string]: unknown;
-}
-
 export interface MatrixClientExtensionMethods {
     // ============ Account & Profile ============
     getAccountManager(): import("./account/index").AccountManager;
@@ -178,16 +162,13 @@ export interface MatrixClientExtensionMethods {
     getThreePidsManager(): import("./three-pids/index").ThreePidsManager;
     getIdentityServerManager(): import("./identity-server/index").IdentityServerManager;
     getPasswordResetManager(): import("./password-reset/index").PasswordResetManager;
-    getGlobalLogoutManager(): import("./auth/global-logout").GlobalLogoutManager;
     getUserManager(): import("./user/index").UserManager;
 
     // ============ Room Management ============
     getRoomManager(): import("./room/index").RoomManager;
     getRoomCreationManager(): import("./room-creation/index").RoomCreationManager;
-    getRoomJoiningManager(): import("./room-joining/index").RoomJoiningManager;
     getRoomSettingsManager(): import("./room-settings/index").RoomSettingsManager;
     getRoomStateManager(): import("./room-state/index").RoomStateManager;
-    getRoomStateManagementManager(): import("./room-state-management/index").RoomStateManagementManager;
     getRoomListManager(): import("./room-list/index").RoomListManager;
 
     // ============ Room Summary ============
@@ -202,17 +183,12 @@ export interface MatrixClientExtensionMethods {
     getRoomMemberManager(): import("./room-member/index").RoomMemberManager;
     getInvitesManager(): import("./invites/index").InvitesManager;
     getRoomKeysManager(): import("./room-keys/index").RoomKeysManager;
-    getRoomKeySharingManager(): import("./room-key-sharing/index").RoomKeySharingManager;
-    getRoomUpgradesManager(): import("./room-upgrades/index").RoomUpgradesManager;
     getPinnedMessagesManager(): import("./pinned-messages/index").PinnedMessagesManager;
-    getRoomAccountDataManager(): import("./room-account-data/index").RoomAccountDataManager;
 
     // ============ Messaging & Events ============
     getSendingManager(): import("./sending/index").SendingManager;
     getSendingQueueManager(): import("./sending-queue/index").SendingQueueManager;
     getEventManager(): import("./event/index").EventManager;
-    getEventProcessingManager(): import("./event-processing/index").EventProcessingManager;
-    getEventStatusManager(): import("./event-status/index").EventStatusManager;
     getReactionsManager(): import("./reactions/index").ReactionsManager;
     getRelationsManager(): import("./relations/index").RelationsManager;
     getAggregationsManager(): import("./aggregations/index").AggregationsManager;
@@ -226,7 +202,6 @@ export interface MatrixClientExtensionMethods {
     getPresenceManager(): import("./presence/index").PresenceManager;
     setPresence(presence: import("./presence/index").PresenceState, opts?: { status_msg?: string }): Promise<void>;
     setPresence(opts: { presence: import("./presence/index").PresenceState; status_msg?: string }): Promise<void>;
-    getUserPresenceManager(): import("./user-presence/index").UserPresenceManager;
     getTypingManager(): import("./typing/index").TypingManager;
     getEphemeralManager(): import("./ephemeral/index").EphemeralManager;
 
@@ -240,9 +215,6 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Friends ============
     getFriendManager(): import("./friend/index").FriendManager;
-
-    // ============ VoIP & Calls ============
-    getVoIPCallsManager(): import("./voip-calls/index").VoIPCallsManager;
 
     // ============ Push Notifications ============
     // ⚠️ Push Manager - 提供完整的推送规则和 pusher 管理
@@ -276,13 +248,10 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Crypto & Security ============
     getCryptoKeysManager(): import("./crypto-keys/index").CryptoKeysManager;
-    getCryptoEncryptionManager(): import("./crypto-encryption/index").CryptoEncryptionManager;
-    getCryptoBackupManager(): import("./crypto-backup/index").CryptoBackupManager;
     getCryptoStoreManager(): import("./crypto-store/index").CryptoStoreManager;
     getCrossSigningManager(): import("./cross-signing/index").CrossSigningManager;
     getDeviceKeysManager(): import("./device-keys/index").DeviceKeysManager;
     getKeyVerificationManager(): import("./key-verification/index").KeyVerificationManager;
-    getKeyForwardingManager(): import("./key-forwarding/index").KeyForwardingManager;
 
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getSecurityManager(): import("./security/index").SecurityManager;
@@ -319,7 +288,6 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Sessions & Tokens ============
     getSessionsManager(): import("./sessions/index").SessionsManager;
-    getTokenManager(): import("./token-management/index").TokenManager;
 
     // ============ Server & Network ============
     getCapabilitiesManager(): import("./capabilities/index").CapabilitiesManager;
@@ -358,7 +326,6 @@ export interface MatrixClientExtensionMethods {
     // ============ Content & Media ============
     getMediaManager(): import("./media/index").MediaManager;
     getMediaApiUrl(path: string): string;
-    getMediaQuotaManager(): import("./media-quota/index").MediaQuotaManager;
     sendEmote(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
 
     // ============ Tags & Labels ============
@@ -371,9 +338,6 @@ export interface MatrixClientExtensionMethods {
     // ============ Widgets & Integrations ============
     getWidgetsManager(): import("./widgets/index").WidgetsManager;
     getWidgetManager(): import("./widget/index").WidgetManager;
-
-    // ============ Scheduled Events ============
-    getScheduledEventsManager(): import("./scheduled-events/index").ScheduledEventsManager;
 
     // ============ Other Features ============
     getThirdPartyManager(): import("./third-party/index").ThirdPartyManager;
@@ -391,7 +355,6 @@ export interface MatrixClientExtensionMethods {
     getKeyRotationManager(): import("./key-rotation/index").KeyRotationManager;
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
     getStickyEventManager(): import("./sticky-event/index").StickyEventManager;
-    getQrLoginManager(): import("./qr-login/index").QrLoginManager;
     getOidcManager(): import("./oidc/manager").OidcManager;
     oidcUserInfo(): Promise<OidcUserInfo>;
     getTelemetryManager(
@@ -399,7 +362,6 @@ export interface MatrixClientExtensionMethods {
     ): import("./telemetry/index").TelemetryManager;
     getRendezvousManager(): import("./rendezvous/RendezvousManager").RendezvousManager;
     getStateSendManager(): import("./state-send/index").StateSendManager;
-    getUserReportManager(): import("./user-report/index").UserReportManager;
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
     getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
@@ -650,30 +612,13 @@ export interface MatrixClientInternalMethods {
     // Note: logger is private on MatrixClient, access via (client as any).logger
     // logger?: import("./logger/index").ILogger;
 
-    // ============ Crypto Encryption (crypto-encryption/index.ts) ============
+    // ============ Crypto internals (used by device-keys, crypto-api, etc.) ============
     isCryptoReady(): boolean;
     deviceList?: unknown;
-    encryptEvent(event: MatrixEvent, room: Room): Promise<import("./crypto-encryption/index").IEncryptionResult>;
-    decryptEvent(event: MatrixEvent): Promise<import("./crypto-encryption/index").IDecryptionResult>;
     getUserDevices(userId: string): Promise<UserDeviceMap>;
     setDeviceVerified(userId: string, deviceId: string): Promise<void>;
     markDeviceAsVerified(userId: string, deviceId: string): Promise<void>;
     markAllDevicesAsVerified(userId: string): Promise<void>;
-    getEncryptionInfoForRoom(roomId: string): Promise<import("./crypto-encryption/index").IEncryptionInfo>;
-
-    // ============ Scheduled Events (scheduled-events/index.ts) ============
-    // Note: _unstable_* methods have incompatible signatures with MatrixClient's actual methods.
-    // Real MatrixClient signatures use different param types/counts and return types
-    // (SendDelayedEventResponse, EmptyObject, DelayedEventInfo vs IDelayedEventResponse/IDelayedEvent[]).
-    // These cannot be declared here because the real class methods would fail the interface check.
-    // Access via type assertion in ScheduledEventsManager.
-    // _unstable_sendDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
-    // _unstable_sendStickyDelayedEvent(eventType: string, roomId: string, content: IContent, delayMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
-    // _unstable_sendDelayedStateEvent(roomId: string, eventType: string, stateKey: string, content: IContent, delayMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
-    // _unstable_getDelayedEvents(): Promise<import("./scheduled-events/index").IDelayedEvent[]>;
-    // _unstable_updateDelayedEvent(eventId: string, timeoutMs: number): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
-    // _unstable_restartScheduledDelayedEvent(eventId: string): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
-    // _unstable_sendScheduledDelayedEvent(eventId: string): Promise<import("./scheduled-events/index").IDelayedEventResponse>;
 
     // ============ Sessions (sessions/index.ts) ============
     getActiveSessions(): import("./sessions/index").ISessionInfo[];
@@ -691,16 +636,9 @@ export interface MatrixClientInternalMethods {
     hasTimelineEvent(roomId: string, eventId: string): boolean;
     findEventById(roomId: string, eventId: string): MatrixEvent | null;
 
-    // ============ Room State Management (room-state-management/index.ts) ============
-    getRoomState(roomId: string): Promise<import("./room-state-management/index").IRoomStateEvent[]>;
+    // ============ Room State Management internals ============
     getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]>;
     getStateEvents(eventType: string, stateKey: string): MatrixEvent[];
-    // Note: setRoomAccountData has incompatible signature with MatrixClient's actual method.
-    // Real: setRoomAccountData<K extends keyof RoomAccountDataEvents>(roomId, eventType: K, content): Promise<EmptyObject>
-    // Manager expects: setRoomAccountData(roomId, eventType: string, content: IContent): Promise<void>
-    // Cannot be declared because the real class method's generic K is not assignable from string.
-    // Access via type assertion in RoomStateManagementManager.
-    // setRoomAccountData(roomId: string, eventType: string, content: IContent): Promise<void>;
     getRoomAccountData(roomId: string, eventType: string): IContent | null;
     getRoomAccountDataSync(roomId: string, eventType: string): import("./models/event").IContent | null;
 
@@ -736,21 +674,6 @@ export interface MatrixClientInternalMethods {
     reset(): Promise<void>;
     prepare(clientOptions?: import("./lifecycle/index").IClientOptions): Promise<void>;
 
-    // ============ Key Forwarding (key-forwarding/index.ts) ============
-    requestKeyForwarding(
-        roomId: string,
-        eventId: string,
-        userId: string,
-    ): Promise<import("./key-forwarding/index").IKeyForwardingResponse>;
-    forwardKey(
-        roomId: string,
-        eventId: string,
-        userId: string,
-        key: ForwardedRoomKey,
-    ): Promise<import("./key-forwarding/index").IKeyForwardingResponse>;
-    hasForwardedKey(roomId: string, eventId: string): boolean;
-    getForwardedKeys(roomId: string): import("./key-forwarding/index").IForwardedKey[];
-
     // ============ Invites (invites/index.ts) ============
     // Note: inviteByThreePid has incompatible signature with MatrixClient's actual method
     // Real: inviteByThreePid(roomId, medium, address): Promise<EmptyObject>
@@ -762,10 +685,6 @@ export interface MatrixClientInternalMethods {
     hasInvite(roomId: string): boolean;
     acceptInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
     declineInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
-
-    // ============ Event Processing (event-processing/index.ts) ============
-    processEvent(event: MatrixEvent): Promise<void>;
-    handleEvent(event: MatrixEvent): Promise<void>;
 
     // ============ Capabilities (capabilities/index.ts) ============
     // Note: serverCapabilitiesService is private on MatrixClient
@@ -797,12 +716,6 @@ export interface MatrixClientInternalMethods {
     ): Promise<import("./uploads/index").IUploadResponse>;
     getUploadProgress(uploadId: string): import("./uploads/index").IUploadProgress | null;
     abortAllUploads(): void;
-
-    // ============ Room Upgrades (room-upgrades/index.ts) ============
-    getRoomUpgradeHistory(roomId: string): import("./room-upgrades/index").IRoomUpgradeHistory[];
-    upgradeRoom(roomId: string, newVersion: string): Promise<import("./room-upgrades/index").IUpgradeRoomResponse>;
-    canUpgradeRoom(roomId: string): boolean;
-    getRecommendedRoomVersion(): Promise<string>;
 
     // ============ State Send / Sync Management / Timeline / Threading internals ============
     // Note: clientOpts, buildSyncApiOptions, syncApi are protected on MatrixClient
