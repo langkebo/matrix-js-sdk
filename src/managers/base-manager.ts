@@ -241,7 +241,11 @@ export abstract class BaseManager<
                     if (canRetry && isRetryableErr) {
                         this.requestStats.retried++;
                         let delay = currentDelay;
-                        if (error instanceof HTTPError && error.isRateLimitError()) {
+                        // Prefer the normalized SdkError path (post-normalizeError),
+                        // fall back to raw HTTPError for pre-normalize edge cases.
+                        if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
+                            delay = normalized.retryAfter ?? currentDelay;
+                        } else if (error instanceof HTTPError && error.isRateLimitError()) {
                             delay = safeGetRetryAfterMs(error, currentDelay);
                         }
                         logger.warn(
@@ -420,7 +424,11 @@ export abstract class BaseManager<
                         if (idempotent && isRetryableErr) {
                             this.requestStats.retried++;
                             let delay = currentDelay;
-                            if (error instanceof HTTPError && error.isRateLimitError()) {
+                            // Prefer the normalized SdkError path (post-normalizeError),
+                            // fall back to raw HTTPError for pre-normalize edge cases.
+                            if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
+                                delay = normalized.retryAfter ?? currentDelay;
+                            } else if (error instanceof HTTPError && error.isRateLimitError()) {
                                 delay = safeGetRetryAfterMs(error, currentDelay);
                             }
                             if (jitterRatio > 0) {

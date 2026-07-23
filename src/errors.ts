@@ -219,6 +219,18 @@ export class RetryableError extends SdkError {
             cause,
         });
     }
+
+    /**
+     * Check if this error was due to rate-limiting on the server side.
+     *
+     * Mirrors {@link HTTPError.isRateLimitError} for unified error handling
+     * after {@link BaseManager.normalizeError} converts HTTPError to SdkError.
+     *
+     * @returns Whether this error is due to rate-limiting (HTTP 429 or M_LIMIT_EXCEEDED).
+     */
+    public isRateLimitError(): boolean {
+        return this.statusCode === 429 || this.errorCode === "M_LIMIT_EXCEEDED";
+    }
 }
 
 export class ApiError extends SdkError {
