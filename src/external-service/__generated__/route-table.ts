@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/external_service.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  0d3198b10fe246040e2d18ae540d7aea461c8e3f
+ * synapse-rust:  861502da33164d008ef8ebecb8a87245a47ab5e0
  */
 
 /** Routes served by the synapse-rust `external_service` module. */

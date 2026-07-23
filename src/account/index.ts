@@ -149,6 +149,28 @@ export class AccountManager extends BaseManager {
     }
 
     /**
+     * Login with credentials. Sends a login request and updates the client's
+     * access token and user ID.
+     *
+     * @param type - The login type (e.g. "m.login.password")
+     * @param params - Login parameters (user, password, token, etc.)
+     * @returns The login response containing access_token, user_id, device_id
+     * @example
+     * ```typescript
+     * const response = await accountManager.login("m.login.password", {
+     *     user: "@alice:example.com",
+     *     password: "secret",
+     * });
+     * ```
+     */
+    public async login(type: LoginRequest["type"], params: Omit<LoginRequest, "type">): Promise<LoginResponse> {
+        const response = await this.loginRequest({ type, ...params });
+        this.client.http.opts.accessToken = response.access_token;
+        this.client.credentials.userId = response.user_id;
+        return response;
+    }
+
+    /**
      * Logout
      */
     public async logout(stopClient = false): Promise<EmptyObject> {

@@ -23,7 +23,7 @@ export enum EventEmitterEvents {
     Error = "error",
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for EventEmitter base class compatibility; any[] cannot be replaced with unknown[] or never[] due to parameter bivariance with Node.js EventEmitter
 type AnyListener = (...args: any[]) => unknown;
 
 /** Base class for types mapping from event name to the type of listeners to that event */
