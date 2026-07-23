@@ -167,6 +167,9 @@ export async function loginAsConfiguredUser(
     });
 
     client.setAccessToken(result.access_token);
+    // loginRequest is a low-level HTTP wrapper that does not populate credentials.
+    // Set userId explicitly so client.getUserId() works in downstream tests.
+    client.credentials.userId = result.user_id;
     return client;
 }
 

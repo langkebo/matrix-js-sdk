@@ -79,7 +79,21 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
 
         it("getSSOUserInfo returns sub", async () => {
             if (!backendAvailable) return;
-            const info = await client.getSSOUserInfo();
+            // The /login/sso/userinfo route is only registered when OIDC/SAML is enabled
+            // in synapse-rust (see `oidc_enabled` in src/web/routes/oidc/mod.rs).
+            // Skip gracefully when the backend returns 404 M_UNRECOGNIZED for that route.
+            let info;
+            try {
+                info = await client.getSSOUserInfo();
+            } catch (e) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const err = e as any;
+                if (err?.httpStatus === 404 || err?.errcode === "M_UNRECOGNIZED" || err?.errcode === "M_NOT_FOUND") {
+                    console.warn("SSO not configured on backend — skipping getSSOUserInfo test");
+                    return;
+                }
+                throw e;
+            }
             expect(info).toHaveProperty("sub");
             expect(info.sub).toBe(client.getUserId());
         });
@@ -112,10 +126,9 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
             const resp = await friend.sendFriendRequest(target, "integration test");
             expect(resp).toBeTypeOf("object");
             if (resp) {
-                // Backend contract: { request_id: number, status: string }
-
-                expect(typeof resp.request_id === "number" || resp.request_id === undefined).toBe(true);
-
+                // Backend contract (synapse-rust/src/web/routes/friend_room.rs::send_friend_request):
+                // { request_id: <stringified i64>, status: "pending" }
+                expect(typeof resp.request_id === "string" || resp.request_id === undefined).toBe(true);
                 expect(typeof resp.status === "string" || resp.status === undefined).toBe(true);
             }
             // cleanup — cancel so test is idempotent
