@@ -36,8 +36,8 @@ export const isLivekitTransport = (object: unknown): object is LivekitTransport 
     isLivekitTransportConfig(object) && "livekit_alias" in object;
 
 /**
- * @deprecated, this is just needed for the old focus active / focus fields of a call membership.
- * Not needed for new implementations.
+ * @deprecated This is just needed for the old focus active / focus fields of a call membership.
+ *             Not needed for new implementations.
  */
 export interface LivekitFocusSelection extends Transport {
     type: "livekit";

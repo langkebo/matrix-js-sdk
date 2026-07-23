@@ -385,7 +385,7 @@ export class MembershipManager
     protected userId: string;
     protected stateKey: string;
     protected rtcTransport?: Transport;
-    /** @deprecated This will be removed in favor or rtcTransport becoming a list of actively used transports */
+    /** @deprecated This will be removed in favor of rtcTransport becoming a list of actively used transports. */
     private fociPreferred?: Transport[];
 
     // Config:

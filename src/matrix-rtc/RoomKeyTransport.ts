@@ -25,7 +25,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { type Room, RoomEvent } from "../models/room";
 
 /**
- * @deprecated This is depreacted and not used anymore. use the ToDeviceTransport
+ * @deprecated This is deprecated and not used anymore. Use the ToDeviceTransport instead.
  */
 export class RoomKeyTransport
     extends TypedEventEmitter<KeyTransportEvents, KeyTransportEventsHandlerMap>
