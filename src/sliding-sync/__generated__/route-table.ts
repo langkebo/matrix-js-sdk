@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/sliding_sync.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  861502da33164d008ef8ebecb8a87245a47ab5e0
+ * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
  */
 
 /** Routes served by the synapse-rust `sliding_sync` module. */
@@ -14,6 +14,7 @@ export const SLIDING_SYNC_ROUTES = [
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3575/sync" },
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" },
     { method: "POST", path: "/_matrix/client/v1/sync" },
+    { method: "POST", path: "/_matrix/client/v4/sync" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SLIDING_SYNC_ROUTES`. */

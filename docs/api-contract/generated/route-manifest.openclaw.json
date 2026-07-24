@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-22T19:34:22Z",
-  "synapse_rust_commit": "861502da33164d008ef8ebecb8a87245a47ab5e0",
+  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
   "state_profile": "openclaw",
   "profile_flags": {
     "oidc_enabled": false,
@@ -9,7 +9,7 @@
     "saml_enabled": false,
     "openclaw_enabled": true
   },
-  "entry_count": 1332,
+  "entry_count": 1338,
   "entries": [
     {
       "method": "GET",
@@ -2351,6 +2351,15 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "auth": "user"
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc4143/rtc/transports",
       "registered_by": "assembly::create_router",
@@ -2681,6 +2690,12 @@
       "method": "POST",
       "path": "/_matrix/client/v1/ai/mcp/tools/call",
       "registered_by": "ai_connection",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/auth_metadata",
+      "registered_by": "assembly::create_router",
       "path_params": []
     },
     {
@@ -6983,6 +6998,14 @@
       "path_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v3/users/{user_id}/report",
+      "registered_by": "moderation",
+      "path_params": [
+        "user_id"
+      ]
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/v3/versions",
       "registered_by": "assembly::create_router",
@@ -7098,6 +7121,12 @@
       "method": "POST",
       "path": "/_matrix/client/v3/widgets/create",
       "registered_by": "widget",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v4/sync",
+      "registered_by": "sliding_sync",
       "path_params": []
     },
     {
@@ -8638,6 +8667,18 @@
       "method": "POST",
       "path": "/_synapse/admin/v1/password_auth_providers",
       "registered_by": "module",
+      "path_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/policy/check",
+      "registered_by": "admin::policy",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/policy/status",
+      "registered_by": "admin::policy",
       "path_params": []
     },
     {

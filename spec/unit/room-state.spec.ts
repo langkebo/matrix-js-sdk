@@ -50,4 +50,34 @@ describe("RoomStateManager", () => {
             { prefix: ClientPrefix.V3 },
         );
     });
+
+    // MSC4497: optional `type` query parameter filters state events by event
+    // type server-side, avoiding a full state fetch + client-side filter.
+    it("roomState passes type query param when eventType filter is given", async () => {
+        mockClient.http.authedRequest.mockResolvedValueOnce([{ type: "m.room.member" }]);
+
+        await manager.roomState("!r:hs", "m.room.member");
+
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/rooms/!r%3Ahs/state",
+            { type: "m.room.member" },
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
+    });
+
+    it("roomState omits type query param when no eventType filter is given", async () => {
+        mockClient.http.authedRequest.mockResolvedValueOnce([{ type: "m.room.name" }]);
+
+        await manager.roomState("!r:hs");
+
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/rooms/!r%3Ahs/state",
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
+    });
 });

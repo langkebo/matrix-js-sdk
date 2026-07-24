@@ -6,10 +6,10 @@
 
 import { SLIDING_SYNC_ROUTES } from "./route-table";
 
-export const SLIDING_SYNC_ROUTES_ENTRY_COUNT = 3 as const;
+export const SLIDING_SYNC_ROUTES_ENTRY_COUNT = 4 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the generated manifest.
-const _SlidingSyncEntryCountAssertion: 3 = SLIDING_SYNC_ROUTES.length;
+const _SlidingSyncEntryCountAssertion: 4 = SLIDING_SYNC_ROUTES.length;
 void _SlidingSyncEntryCountAssertion;
 
 export const SLIDING_SYNC_ROUTES_STATUS_SCENARIOS = [

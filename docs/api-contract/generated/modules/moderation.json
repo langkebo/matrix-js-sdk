@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "moderation",
-  "synapse_rust_commit": "861502da33164d008ef8ebecb8a87245a47ab5e0",
-  "generated_at": "2026-07-22T19:34:22Z",
+  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
+  "generated_at": "2026-07-24T09:12:01Z",
   "source_profile": "all",
-  "entry_count": 8,
+  "entry_count": 9,
   "entries": [
     {
       "method": "POST",
@@ -76,6 +76,14 @@
       "path_params": [
         "room_id",
         "event_id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/users/{user_id}/report",
+      "registered_by": "moderation",
+      "path_params": [
+        "user_id"
       ]
     }
   ]

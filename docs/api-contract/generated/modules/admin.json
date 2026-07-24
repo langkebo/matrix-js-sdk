@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "admin",
-  "synapse_rust_commit": "861502da33164d008ef8ebecb8a87245a47ab5e0",
-  "generated_at": "2026-07-22T19:34:22Z",
+  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
+  "generated_at": "2026-07-24T09:12:01Z",
   "source_profile": "all",
-  "entry_count": 160,
+  "entry_count": 162,
   "entries": [
     {
       "method": "GET",
@@ -298,6 +298,18 @@
       "path_params": [
         "notification_id"
       ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/policy/check",
+      "registered_by": "admin::policy",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/policy/status",
+      "registered_by": "admin::policy",
+      "path_params": []
     },
     {
       "method": "POST",

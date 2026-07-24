@@ -1,19 +1,20 @@
 {
   "schema_version": "1",
   "ledger_schema": "1",
-  "module": "ephemeral",
+  "module": "delayed_events",
   "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
   "generated_at": "2026-07-24T09:12:01Z",
   "source_profile": "all",
   "entry_count": 1,
   "entries": [
     {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/ephemeral",
-      "registered_by": "ephemeral",
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}",
+      "registered_by": "delayed_events",
       "path_params": [
-        "room_id"
-      ]
+        "delay_id"
+      ],
+      "auth": "user"
     }
   ]
 }

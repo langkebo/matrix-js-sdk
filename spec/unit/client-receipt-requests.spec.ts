@@ -255,6 +255,54 @@ describe("client-receipt-requests", () => {
             );
             expect(result).toEqual({});
         });
+
+        // MSC4446: backward read marker — allow_backward flag lets clients move
+        // the m.fully_read marker backwards to an earlier event.
+        it("should include allow_backward in body when allowBackward option is set", async () => {
+            const mockClient = {
+                http: {
+                    authedRequest: vi.fn().mockResolvedValue({}),
+                },
+            };
+
+            const options: SetRoomReadMarkersOptions = {
+                roomId: "!room:server",
+                rmEventId: "$earlier_event",
+                allowBackward: true,
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await setRoomReadMarkersHttpRequest(mockClient as any, options);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/rooms/!room%3Aserver/read_markers",
+                undefined,
+                {
+                    "m.fully_read": "$earlier_event",
+                    allow_backward: true,
+                },
+            );
+        });
+
+        it("should omit allow_backward from body when allowBackward option is not set", async () => {
+            const mockClient = {
+                http: {
+                    authedRequest: vi.fn().mockResolvedValue({}),
+                },
+            };
+
+            const options: SetRoomReadMarkersOptions = {
+                roomId: "!room:server",
+                rmEventId: "$fully_read",
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await setRoomReadMarkersHttpRequest(mockClient as any, options);
+
+            const body = (mockClient.http.authedRequest as ReturnType<typeof vi.fn>).mock.calls[0][3];
+            expect(body).not.toHaveProperty("allow_backward");
+        });
     });
 
     describe("setRoomReadMarkersWithLocalEcho", () => {

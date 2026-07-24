@@ -57,12 +57,15 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         super(client, opts);
     }
 
-    public async roomState(roomId: string): Promise<IStateEvent[]> {
+    public async roomState(roomId: string, eventType?: string): Promise<IStateEvent[]> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
             return this.request<IStateEvent[]>({
                 method: Method.Get,
                 path: path,
+                // MSC4497: optional `type` query param filters state events by
+                // event type server-side.
+                queryParams: eventType ? { type: eventType } : undefined,
             });
         }, "roomState");
     }

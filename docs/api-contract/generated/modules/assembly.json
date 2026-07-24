@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "assembly",
-  "synapse_rust_commit": "861502da33164d008ef8ebecb8a87245a47ab5e0",
-  "generated_at": "2026-07-22T19:34:22Z",
+  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
+  "generated_at": "2026-07-24T09:12:01Z",
   "source_profile": "all",
-  "entry_count": 154,
+  "entry_count": 155,
   "entries": [
     {
       "method": "GET",
@@ -585,6 +585,12 @@
       "method": "GET",
       "path": "/_matrix/client/v1/account/whoami",
       "registered_by": "assembly::account_compat",
+      "path_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/auth_metadata",
+      "registered_by": "assembly::create_router",
       "path_params": []
     },
     {

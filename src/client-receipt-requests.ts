@@ -63,12 +63,20 @@ export interface SetRoomReadMarkersOptions {
     rmEventId: string;
     rrEventId?: string;
     rpEventId?: string;
+    /**
+     * MSC4446: when true, the server allows the `m.fully_read` marker to move
+     * backwards to an earlier event (instead of enforcing monotonic forward
+     * movement). Defaults to false (monotonic) when omitted.
+     */
+    allowBackward?: boolean;
 }
 
 export interface ReadMarkersBody {
     "m.fully_read": string;
     "m.read"?: string;
     "m.read.private"?: string;
+    /** MSC4446: backward read marker flag. */
+    allow_backward?: boolean;
 }
 
 export async function setRoomReadMarkersHttpRequest(
@@ -89,6 +97,10 @@ export async function setRoomReadMarkersHttpRequest(
 
     if (options.rpEventId) {
         body["m.read.private"] = options.rpEventId;
+    }
+
+    if (options.allowBackward) {
+        body.allow_backward = true;
     }
 
     return client.http.authedRequest<EmptyObject>(Method.Post, path, undefined, body);

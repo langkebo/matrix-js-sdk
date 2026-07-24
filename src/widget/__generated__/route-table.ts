@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/widget.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  861502da33164d008ef8ebecb8a87245a47ab5e0
+ * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
  */
 
 /** Routes served by the synapse-rust `widget` module. */
