@@ -311,6 +311,29 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
 
     private pendingReq?: Promise<MSC3575SlidingSyncResponse>;
     private abortController?: AbortController;
+    // Tracks consecutive generic errors (5xx/network) for exponential backoff.
+    // Reset to 0 on any successful response. 429/400/AbortError have their own handling.
+    private consecutiveErrors = 0;
+    // Counts successful sync requests for periodic summary logging.
+    // Per-request logs are downgraded to debug; a summary is emitted every 10 requests.
+    private requestCount = 0;
+    // Optional initial pos for incremental sync after restart.
+    // Set via setInitialPos() before start(); used to initialize currentPos in start().
+    private initialPos?: string;
+
+    /**
+     * Set the initial pos for incremental sync after restart.
+     *
+     * Must be called before start(). When set, the first sync request will include
+     * `pos: <initialPos>`, enabling the server to return only incremental changes
+     * since the last sync. If the server rejects the pos (400 error), the SDK's
+     * existing resetup logic will clear it and fall back to initial sync.
+     *
+     * @param pos The persisted pos string from a previous sync session.
+     */
+    public setInitialPos(pos: string): void {
+        this.initialPos = pos;
+    }
 
     /**
      * Create a new sliding sync instance
@@ -592,7 +615,9 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
         logger.info("[SlidingSync] start() called, proxyBaseUrl:", this.proxyBaseUrl);
         this.abortController = new AbortController();
 
-        let currentPos: string | undefined;
+        // Initialize from persisted pos (if set via setInitialPos) for incremental sync.
+        // If the server rejects this pos (400), the resetup logic below will clear it.
+        let currentPos: string | undefined = this.initialPos;
         while (!this.terminated) {
             this.needsResend = false;
             let resp: MSC3575SlidingSyncResponse | undefined;
@@ -608,7 +633,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                     clientTimeout: this.timeoutMS + BUFFER_PERIOD_MS,
                     extensions: await this.getExtensionRequest(currentPos === undefined),
                 };
-                logger.info("[SlidingSync] Sending request, lists:", JSON.stringify(reqLists));
+                logger.debug("[SlidingSync] Sending request, lists:", JSON.stringify(reqLists));
                 logger.debug("SlidingSync sending request");
                 // check if we are (un)subscribing to a room and modify request this one time for it
                 const newSubscriptions = difference(this.desiredRoomSubscriptions, this.confirmedRoomSubscriptions);
@@ -630,6 +655,17 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 this.pendingReq = this.client.slidingSync(reqBody, this.proxyBaseUrl, this.abortController.signal);
                 resp = await this.pendingReq;
                 currentPos = resp.pos;
+                // Successful response — reset the consecutive error counter for exponential backoff.
+                this.consecutiveErrors = 0;
+                // Increment request counter and emit a summary every 10 requests.
+                // Per-request details are logged at debug level; this summary provides
+                // periodic monitoring at info level without flooding production logs.
+                this.requestCount++;
+                if (this.requestCount % 10 === 0) {
+                    logger.info(
+                        `[SlidingSync] ${this.requestCount} requests processed, pos=${currentPos?.slice(0, 8) ?? 'none'}...`
+                    );
+                }
                 // update what we think we're subscribed to.
                 for (const roomId of newSubscriptions) {
                     this.confirmedRoomSubscriptions.add(roomId);
@@ -661,6 +697,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                         // so drop state and re-request
                         this.resetup();
                         currentPos = undefined;
+                        this.initialPos = undefined; // Clear persisted pos so stop+start doesn't reuse it
                         await sleep(50); // in case the 400 was for something else; don't tightloop
                         continue;
                     } else if ((<HTTPError>err).httpStatus === 429) {
@@ -674,7 +711,14 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                     continue; // don't sleep as we caused this error by abort()ing the request.
                 }
                 logger.error(err);
-                await sleep(5000);
+                this.consecutiveErrors++;
+                const baseDelay = 1000;
+                const maxDelay = 60000;
+                const delay = Math.min(baseDelay * 2 ** this.consecutiveErrors, maxDelay);
+                logger.warn(
+                    `SlidingSync backing off for ${delay}ms after ${this.consecutiveErrors} consecutive errors`,
+                );
+                await sleep(delay);
             }
             if (!resp) {
                 continue;
