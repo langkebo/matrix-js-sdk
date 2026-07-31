@@ -44,7 +44,9 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         this.spaceCache = new LRUCache<Space>({ maxSize: 100, ttl: 5 * 60 * 1000, name: "index.ts-space" });
     }
 
-    // 由 SpaceManager 在构造后设置回引，便于跨 sub-manager 访问
+    /**
+     * @internal 由 SpaceManager 在构造后设置回引，便于跨 sub-manager 访问
+     */
     _setParent(parent: SpaceManager): void {
         this.parent = parent;
     }
