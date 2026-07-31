@@ -15,9 +15,14 @@ limitations under the License.
 */
 
 /**
- * Federation Manager - 联邦管理
+ * Federation Manager - 联邦管理（门面）
  *
- * 提供联邦服务器管理、黑名单管理功能。
+ * 本文件已拆分为 4 个 sub-manager，FederationManager 作为门面保留全部公开 API
+ * 以保证向后兼容。新代码应直接使用 sub-manager：
+ * - `fed.blacklist.*`：黑名单 CRUD
+ * - `fed.server.*`：服务器状态/连接
+ * - `fed.query.*`：联邦查询
+ * - `fed.room.*`：联邦房间/事件/状态
  *
  * ## 后端对齐说明（synapse-rust v10，2026-06）
  *
@@ -34,13 +39,18 @@ limitations under the License.
 
 import { BaseManager, type ManagerOpts, type RequestSpec } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { AdminPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
 import { IUserProfile } from "../user-directory/index";
 import { ValidationError } from "../errors";
 import { type IEvent } from "../models/event";
+import { FederationBlacklistManager, FederationBlacklistEvent } from "./sub-managers/federation-blacklist-manager";
+import { FederationServerManager, FederationServerEvent } from "./sub-managers/federation-server-manager";
+import { FederationQueryManager, FederationQueryEvent } from "./sub-managers/federation-query-manager";
+import { FederationRoomManager, FederationRoomEvent } from "./sub-managers/federation-room-manager";
+import type { IBlacklistEntry } from "./sub-managers/federation-blacklist-types";
+import type { IFederationServer, IFederationStatus } from "./sub-managers/federation-server-types";
 
 export enum FederationEvent {
     BlacklistUpdated = "BlacklistUpdated",
@@ -49,24 +59,7 @@ export enum FederationEvent {
     FederationError = "FederationError",
 }
 
-export interface IFederationServer {
-    serverName: string;
-    addedAt?: number;
-    reason?: string;
-}
-
-export interface IBlacklistEntry {
-    serverName: string;
-    reason?: string;
-    addedAt: number;
-    addedBy?: string;
-}
-
-export interface IFederationStatus {
-    online: boolean;
-    lastSuccessfulConnect?: number;
-    latency?: number;
-}
+export type { IBlacklistEntry, IFederationServer, IFederationStatus };
 
 interface FederationManagerEventMap {
     [FederationEvent.BlacklistUpdated]: (blacklist: IBlacklistEntry[]) => void;
@@ -76,12 +69,36 @@ interface FederationManagerEventMap {
 }
 
 export class FederationManager extends BaseManager<FederationEvent, FederationManagerEventMap> {
-    private blacklist: Map<string, IBlacklistEntry> = new Map();
-    private serverCache: Map<string, IFederationServer> = new Map();
+    public readonly blacklist: FederationBlacklistManager;
+    public readonly server: FederationServerManager;
+    public readonly query: FederationQueryManager;
+    public readonly room: FederationRoomManager;
     private initialized: boolean = false;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
+        this.blacklist = new FederationBlacklistManager(client, opts);
+        this.server = new FederationServerManager(client, opts);
+        this.query = new FederationQueryManager(client, opts);
+        this.room = new FederationRoomManager(client, opts);
+        this.forwardSubManagerEvents();
+    }
+
+    /**
+     * 将 4 个 sub-manager 的事件转发到顶层 FederationEvent，保证旧监听者继续工作。
+     */
+    private forwardSubManagerEvents(): void {
+        this.blacklist.on(FederationBlacklistEvent.BlacklistUpdated, (list) =>
+            this.emit(FederationEvent.BlacklistUpdated, list),
+        );
+        this.blacklist.on(FederationBlacklistEvent.BlacklistError, (e) =>
+            this.emit(FederationEvent.FederationError, e),
+        );
+        this.server.on(FederationServerEvent.ServerAdded, (s) => this.emit(FederationEvent.ServerAdded, s));
+        this.server.on(FederationServerEvent.ServerRemoved, (s) => this.emit(FederationEvent.ServerRemoved, s));
+        this.server.on(FederationServerEvent.FederationError, (e) => this.emit(FederationEvent.FederationError, e));
+        this.query.on(FederationQueryEvent.FederationError, (e) => this.emit(FederationEvent.FederationError, e));
+        this.room.on(FederationRoomEvent.FederationError, (e) => this.emit(FederationEvent.FederationError, e));
     }
 
     /**
@@ -90,6 +107,9 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      *
      * 当 `prefix === ""` 时自动走 `client.http.request`（不带 token）；
      * admin 端点（`prefix === AdminPrefix.V1`）仍走默认的 `authedRequest`。
+     *
+     * 注意：本类仍保留 claimKeys/queryKeys/uploadKeys/cloneKey/backfillRoom 等
+     * 未迁移方法，因此需要保留此 request 覆盖。
      */
     protected async request<T>(spec: RequestSpec): Promise<T> {
         if (spec.prefix === "") {
@@ -98,467 +118,174 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         return super.request<T>(spec);
     }
 
-    /**
-     * 获取联邦黑名单
-     *
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 黑名单列表
-     */
+    // ─── Blacklist 门面 ─────────────────────────────────────────
+
+    /** @deprecated 请使用 `fed.blacklist.getBlacklist()` */
     async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
-        return this.request<{
-            blacklist?: IBlacklistEntry[];
-        }>({ method: Method.Get, path: "/federation/blacklist", prefix: AdminPrefix.V1 }).then(
-            (response) => {
-                const entries: IBlacklistEntry[] = response.blacklist || [];
-                this.blacklist.clear();
-                entries.forEach((e) => this.blacklist.set(e.serverName, e));
-                this.emit(FederationEvent.BlacklistUpdated, entries);
-                return entries;
-            },
-            (e) => {
-                const error = this.normalizeError(e, "getBlacklist");
-                if (throwOnError) {
-                    throw error;
-                }
-                logger.warn("FederationManager.getBlacklist failed:", error);
-                return Array.from(this.blacklist.values());
-            },
-        );
+        return this.blacklist.getBlacklist(throwOnError);
     }
 
+    /** @deprecated 请使用 `fed.blacklist.addToBlacklist()` */
     async addToBlacklist(serverName: string, reason?: string): Promise<void> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        try {
-            await this.request({
-                method: Method.Post,
-                path: "/federation/blacklist/add",
-                body: { server_name: serverName, reason },
-                prefix: AdminPrefix.V1,
-            });
-
-            const entry: IBlacklistEntry = {
-                serverName,
-                reason,
-                addedAt: Date.now(),
-                addedBy: this.client.getUserId() ?? undefined,
-            };
-
-            this.blacklist.set(serverName, entry);
-            this.emit(FederationEvent.BlacklistUpdated, Array.from(this.blacklist.values()));
-        } catch (e) {
-            const error = this.normalizeError(e, "addToBlacklist");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.blacklist.addToBlacklist(serverName, reason);
     }
 
+    /** @deprecated 请使用 `fed.blacklist.removeFromBlacklist()` */
     async removeFromBlacklist(serverName: string): Promise<void> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        try {
-            await this.request({
-                method: Method.Post,
-                path: "/federation/blacklist/remove",
-                body: { server_name: serverName },
-                prefix: AdminPrefix.V1,
-            });
-
-            this.blacklist.delete(serverName);
-            this.emit(FederationEvent.BlacklistUpdated, Array.from(this.blacklist.values()));
-        } catch (e) {
-            const error = this.normalizeError(e, "removeFromBlacklist");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.blacklist.removeFromBlacklist(serverName);
     }
 
+    /** @deprecated 请使用 `fed.blacklist.isBlacklisted()` */
     async isBlacklisted(serverName: string): Promise<boolean> {
-        if (this.blacklist.has(serverName)) {
-            return true;
-        }
-
-        await this.getBlacklist(false);
-        return this.blacklist.has(serverName);
+        return this.blacklist.isBlacklisted(serverName);
     }
 
-    /**
-     * 获取服务器状态
-     *
-     * @param serverName - 服务器名称
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 服务器状态
-     */
+    /** @deprecated 请使用 `fed.blacklist.getCachedBlacklist()` */
+    getCachedBlacklist(): IBlacklistEntry[] {
+        return this.blacklist.getCachedBlacklist();
+    }
+
+    // ─── Server 门面 ────────────────────────────────────────────
+
+    /** @deprecated 请使用 `fed.server.getServerStatus()` */
     async getServerStatus(serverName: string, throwOnError = true): Promise<IFederationStatus | null> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        return this.request<{
-            online?: boolean;
-            last_successful_connect?: number;
-            latency?: number;
-        }>({
-            method: Method.Get,
-            path: `/federation/status/${encodeURIComponent(serverName)}`,
-            prefix: AdminPrefix.V1,
-        }).then(
-            (response) => {
-                return {
-                    online: response.online || false,
-                    lastSuccessfulConnect: response.last_successful_connect,
-                    latency: response.latency,
-                };
-            },
-            (e) => {
-                const error = this.normalizeError(e, "getServerStatus");
-                if (throwOnError) {
-                    throw error;
-                }
-                logger.warn("FederationManager.getServerStatus failed:", error);
-                return null;
-            },
-        );
+        return this.server.getServerStatus(serverName, throwOnError);
     }
 
-    /**
-     * 获取联邦目的地列表
-     *
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 目的地列表
-     */
+    /** @deprecated 请使用 `fed.server.getFederationDestinations()` */
     async getFederationDestinations(throwOnError = true): Promise<IFederationServer[]> {
-        return this.request<{
-            destinations?: IFederationServer[];
-        }>({ method: Method.Get, path: "/federation/destinations", prefix: AdminPrefix.V1 }).then(
-            (response) => {
-                const servers: IFederationServer[] = response.destinations || [];
-                servers.forEach((s) => this.serverCache.set(s.serverName, s));
-                return servers;
-            },
-            (e) => {
-                const error = this.normalizeError(e, "getFederationDestinations");
-                if (throwOnError) {
-                    throw error;
-                }
-                logger.warn("FederationManager.getFederationDestinations failed:", error);
-                return Array.from(this.serverCache.values());
-            },
-        );
+        return this.server.getFederationDestinations(throwOnError);
     }
 
+    /** @deprecated 请使用 `fed.server.disconnectServer()` */
     async disconnectServer(serverName: string): Promise<void> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        try {
-            await this.request({
-                method: Method.Post,
-                path: `/federation/disconnect/${encodeURIComponent(serverName)}`,
-                prefix: AdminPrefix.V1,
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "disconnectServer");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.server.disconnectServer(serverName);
     }
 
+    /** @deprecated 请使用 `fed.server.reconnectServer()` */
     async reconnectServer(serverName: string): Promise<void> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        try {
-            await this.request({
-                method: Method.Post,
-                path: `/federation/reconnect/${encodeURIComponent(serverName)}`,
-                prefix: AdminPrefix.V1,
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "reconnectServer");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.server.reconnectServer(serverName);
     }
 
-    /**
-     * 获取服务器版本
-     *
-     * @param serverName - 服务器名称
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 服务器版本
-     */
+    /** @deprecated 请使用 `fed.server.getServerVersion()` */
     async getServerVersion(serverName: string, throwOnError = true): Promise<{ version: string } | null> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        return this.request<{
-            server?: { version?: string };
-        }>({ method: Method.Get, path: "/_matrix/federation/v1/version", prefix: "" }).then(
-            (response) => {
-                return {
-                    version: response.server?.version || "unknown",
-                };
-            },
-            (e) => {
-                const error = this.normalizeError(e, "getServerVersion");
-                if (throwOnError) {
-                    throw error;
-                }
-                logger.warn("FederationManager.getServerVersion failed:", error);
-                return null;
-            },
-        );
+        return this.server.getServerVersion(serverName, throwOnError);
     }
 
+    /** @deprecated 请使用 `fed.server.getCachedServer()` */
+    getCachedServer(serverName: string): IFederationServer | null {
+        return this.server.getCachedServer(serverName);
+    }
+
+    /** @deprecated 请使用 `fed.server.getCachedServers()` */
+    getCachedServers(): IFederationServer[] {
+        return this.server.getCachedServers();
+    }
+
+    // ─── Query 门面 ─────────────────────────────────────────────
+
+    /** @deprecated 请使用 `fed.query.queryProfile()` */
+    async queryProfile(userId: string): Promise<IUserProfile> {
+        return this.query.queryProfile(userId);
+    }
+
+    /** @deprecated 请使用 `fed.query.queryDirectory()` */
+    async queryDirectory(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
+        return this.query.queryDirectory(roomAlias);
+    }
+
+    /** @deprecated 请使用 `fed.query.queryDestination()` */
+    async queryDestination(destination: string): Promise<unknown> {
+        return this.query.queryDestination(destination);
+    }
+
+    /** @deprecated 请使用 `fed.query.queryAuth()` */
+    async queryAuth(): Promise<unknown> {
+        return this.query.queryAuth();
+    }
+
+    /** @deprecated 请使用 `fed.query.getFederationInfo()` */
+    async getFederationInfo(): Promise<unknown> {
+        return this.query.getFederationInfo();
+    }
+
+    /** @deprecated 请使用 `fed.query.getPublicRoomsOnServer()` */
     async getPublicRoomsOnServer(
         serverName: string,
         limit?: number,
         since?: string,
     ): Promise<{ chunk: unknown[]; next_batch?: string; prev_batch?: string }> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        try {
-            const params: { limit?: number; since?: string; server_name: string } = {
-                server_name: serverName,
-            };
-            if (limit !== undefined) params.limit = limit;
-            if (since !== undefined) params.since = since;
-
-            const response = await this.request<{
-                chunk?: unknown[];
-                next_batch?: string;
-                prev_batch?: string;
-            }>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/publicRooms`,
-                queryParams: params,
-                prefix: "",
-            });
-
-            const result: { chunk: unknown[]; next_batch?: string; prev_batch?: string } = {
-                chunk: response.chunk || [],
-            };
-            if (response.next_batch) result.next_batch = response.next_batch;
-            if (response.prev_batch) result.prev_batch = response.prev_batch;
-
-            return result;
-        } catch (e) {
-            const error = this.normalizeError(e, "getPublicRoomsOnServer");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.query.getPublicRoomsOnServer(serverName, limit, since);
     }
 
-    /**
-     * 通过联邦查询用户资料
-     * @param userId - 用户 ID
-     */
-    async queryProfile(userId: string): Promise<IUserProfile> {
-        if (!userId) {
-            throw new ValidationError("User ID is required");
-        }
-        return this.request<IUserProfile>({
-            method: Method.Get,
-            path: `/_matrix/federation/v1/query/profile/${encodeURIComponent(userId)}`,
-            prefix: "",
-        });
-    }
+    // ─── Room 门面 ──────────────────────────────────────────────
 
-    /**
-     * 通过联邦查询房间别名
-     * @param roomAlias - 房间别名
-     */
-    async queryDirectory(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
-        if (!roomAlias) {
-            throw new ValidationError("Room alias is required");
-        }
-        return this.request<{ room_id: string; servers: string[] }>({
-            method: Method.Get,
-            path: `/_matrix/federation/v1/query/directory`,
-            queryParams: { room_alias: roomAlias },
-            prefix: "",
-        });
-    }
-
-    /**
-     * 通过联邦获取房间层级
-     * @param roomId - 房间 ID
-     */
+    /** @deprecated 请使用 `fed.room.getHierarchy()` */
     async getHierarchy(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        return this.request<unknown>({
-            method: Method.Get,
-            path: `/_matrix/federation/v1/hierarchy/${encodeURIComponent(roomId)}`,
-            prefix: "",
-        });
+        return this.room.getHierarchy(roomId);
     }
 
-    /**
-     * 获取联邦发现信息
-     */
-    async getFederationInfo(): Promise<unknown> {
-        return this.request<unknown>({
-            method: Method.Get,
-            path: "/_matrix/federation/v1",
-            prefix: "",
-        });
-    }
-
-    /**
-     * 通过联邦查询目的地
-     * @param destination - 目标 server name
-     */
-    async queryDestination(destination: string): Promise<unknown> {
-        if (!destination) {
-            throw new ValidationError("Destination is required");
-        }
-        return this.request<unknown>({
-            method: Method.Get,
-            path: "/_matrix/federation/v1/query/destination",
-            queryParams: { destination },
-            prefix: "",
-        });
-    }
-
-    /**
-     * 通过联邦获取房间事件
-     * @param roomId - 房间 ID
-     * @param eventId - 事件 ID
-     */
+    /** @deprecated 请使用 `fed.room.getRoomEvent()` */
     async getRoomEvent(roomId: string, eventId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        if (!eventId) {
-            throw new ValidationError("Event ID is required");
-        }
-        return this.request<unknown>({
-            method: Method.Get,
-            path: `/_matrix/federation/v1/room/${encodeURIComponent(roomId)}/${encodeURIComponent(eventId)}`,
-            prefix: "",
-        });
+        return this.room.getRoomEvent(roomId, eventId);
     }
 
-    /**
-     * 通过联邦下载远端媒体
-     * @param serverName - 远端 server name
-     * @param mediaId - 媒体 ID
-     */
+    /** @deprecated 请使用 `fed.room.downloadMedia()` */
     async downloadMedia(serverName: string, mediaId: string): Promise<unknown> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-        if (!mediaId) {
-            throw new ValidationError("Media ID is required");
-        }
-        return this.request<unknown>({
-            method: Method.Get,
-            path: `/_matrix/federation/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
-            prefix: "",
-        });
+        return this.room.downloadMedia(serverName, mediaId);
     }
 
-    /**
-     * 通过联邦获取远端媒体缩略图
-     * @param serverName - 远端 server name
-     * @param mediaId - 媒体 ID
-     */
+    /** @deprecated 请使用 `fed.room.getMediaThumbnail()` */
     async getMediaThumbnail(serverName: string, mediaId: string): Promise<unknown> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-        if (!mediaId) {
-            throw new ValidationError("Media ID is required");
-        }
-        return this.request<unknown>({
-            method: Method.Get,
-            path: `/_matrix/federation/v1/media/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
-            prefix: "",
-        });
+        return this.room.getMediaThumbnail(serverName, mediaId);
     }
 
-    /**
-     * 获取事件授权链
-     *
-     * 对应 GET /_synapse/federation/v1/event_auth
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @param eventId - 事件 ID (e.g., "$event:example.com")
-     * @returns 事件授权链
-     *
-     * @example
-     * ```typescript
-     * const authChain = await manager.getEventAuth("!room:example.com", "$event:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID or event ID is empty
-     * @throws {Error} If the request fails
-     */
+    /** @deprecated 请使用 `fed.room.getEventAuth()` */
     async getEventAuth(roomId: string, eventId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        if (!eventId) {
-            throw new ValidationError("Event ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: "/_synapse/federation/v1/event_auth",
-                queryParams: { room_id: roomId, event_id: eventId },
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getEventAuth");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.room.getEventAuth(roomId, eventId);
     }
 
-    /**
-     * 获取房间加入规则
-     *
-     * 对应 GET /_synapse/federation/v1/get_joining_rules/{room_id}
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @returns 房间加入规则
-     *
-     * @example
-     * ```typescript
-     * const rules = await manager.getJoiningRules("!room:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
+    /** @deprecated 请使用 `fed.room.getJoiningRules()` */
     async getJoiningRules(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_synapse/federation/v1/get_joining_rules/${encodeURIComponent(roomId)}`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getJoiningRules");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
+        return this.room.getJoiningRules(roomId);
     }
+
+    /** @deprecated 请使用 `fed.room.getRoomAuth()` */
+    async getRoomAuth(roomId: string): Promise<unknown> {
+        return this.room.getRoomAuth(roomId);
+    }
+
+    /** @deprecated 请使用 `fed.room.getState()` */
+    async getState(roomId: string): Promise<unknown> {
+        return this.room.getState(roomId);
+    }
+
+    /** @deprecated 请使用 `fed.room.getStateIds()` */
+    async getStateIds(roomId: string): Promise<unknown> {
+        return this.room.getStateIds(roomId);
+    }
+
+    /** @deprecated 请使用 `fed.room.getMembers()` */
+    async getMembers(roomId: string): Promise<unknown> {
+        return this.room.getMembers(roomId);
+    }
+
+    /** @deprecated 请使用 `fed.room.getJoinedMembers()` */
+    async getJoinedMembers(roomId: string): Promise<unknown> {
+        return this.room.getJoinedMembers(roomId);
+    }
+
+    /** @deprecated 请使用 `fed.room.getEvent()` */
+    async getEvent(eventId: string): Promise<unknown> {
+        return this.room.getEvent(eventId);
+    }
+
+    /** @deprecated 请使用 `fed.room.backfillRoom()` */
+    async backfillRoom(roomId: string, opts?: { limit?: number; from?: string }): Promise<unknown> {
+        return this.room.backfillRoom(roomId, opts);
+    }
+
+    // ─── 未迁移方法（保留在 FederationManager） ──────────────────
 
     /**
      * 申领联邦密钥
@@ -676,274 +403,6 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     }
 
     /**
-     * 查询联邦授权
-     *
-     * 对应 GET /_synapse/federation/v1/query/auth
-     *
-     * @returns 联邦授权信息
-     *
-     * @example
-     * ```typescript
-     * const auth = await manager.queryAuth();
-     * ```
-     *
-     * @throws {Error} If the request fails
-     */
-    async queryAuth(): Promise<unknown> {
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: "/_synapse/federation/v1/query/auth",
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "queryAuth");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 获取房间联邦授权
-     *
-     * 对应 GET /_synapse/federation/v1/room_auth/{room_id}
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @returns 房间联邦授权信息
-     *
-     * @example
-     * ```typescript
-     * const auth = await manager.getRoomAuth("!room:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
-    async getRoomAuth(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_synapse/federation/v1/room_auth/${encodeURIComponent(roomId)}`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getRoomAuth");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 通过联邦获取房间状态
-     *
-     * 对应 GET /_matrix/federation/v1/state/{room_id}
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @returns 房间状态
-     *
-     * @example
-     * ```typescript
-     * const state = await manager.getState("!room:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
-    async getState(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/state/${encodeURIComponent(roomId)}`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getState");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 通过联邦获取房间状态 ID 列表
-     *
-     * 对应 GET /_matrix/federation/v1/state_ids/{room_id}
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @returns 房间状态 ID 列表
-     *
-     * @example
-     * ```typescript
-     * const stateIds = await manager.getStateIds("!room:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
-    async getStateIds(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/state_ids/${encodeURIComponent(roomId)}`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getStateIds");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 通过联邦获取房间成员列表
-     *
-     * 对应 GET /_matrix/federation/v1/members/{room_id}
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @returns 成员列表
-     *
-     * @example
-     * ```typescript
-     * const members = await manager.getMembers("!room:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
-    async getMembers(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getMembers");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 通过联邦获取房间已加入成员列表
-     *
-     * 对应 GET /_matrix/federation/v1/members/{room_id}/joined
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @returns 已加入成员列表
-     *
-     * @example
-     * ```typescript
-     * const joinedMembers = await manager.getJoinedMembers("!room:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
-    async getJoinedMembers(roomId: string): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}/joined`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getJoinedMembers");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 通过联邦获取事件
-     *
-     * 对应 GET /_matrix/federation/v1/event/{event_id}
-     *
-     * @param eventId - 事件 ID (e.g., "$event:example.com")
-     * @returns 事件数据
-     *
-     * @example
-     * ```typescript
-     * const event = await manager.getEvent("$event:example.com");
-     * ```
-     *
-     * @throws {ValidationError} If event ID is empty
-     * @throws {Error} If the request fails
-     */
-    async getEvent(eventId: string): Promise<unknown> {
-        if (!eventId) {
-            throw new ValidationError("Event ID is required");
-        }
-        try {
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/event/${encodeURIComponent(eventId)}`,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "getEvent");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 通过联邦回填房间历史
-     *
-     * 对应 GET /_matrix/federation/v1/backfill/{room_id}
-     *
-     * @param roomId - 房间 ID (e.g., "!room:example.com")
-     * @param opts - 可选参数
-     * @param opts.limit - 最大事件数量
-     * @param opts.from - 起始事件 ID
-     * @returns 回填结果
-     *
-     * @example
-     * ```typescript
-     * const result = await manager.backfillRoom("!room:example.com", { limit: 10 });
-     * ```
-     *
-     * @throws {ValidationError} If room ID is empty
-     * @throws {Error} If the request fails
-     */
-    async backfillRoom(roomId: string, opts?: { limit?: number; from?: string }): Promise<unknown> {
-        if (!roomId) {
-            throw new ValidationError("Room ID is required");
-        }
-        try {
-            const params: Record<string, string | number> = {};
-            if (opts?.limit !== undefined) params.limit = opts.limit;
-            if (opts?.from !== undefined) params.from = opts.from;
-
-            const queryKeys = Object.keys(params);
-            return await this.request<unknown>({
-                method: Method.Get,
-                path: `/_matrix/federation/v1/backfill/${encodeURIComponent(roomId)}`,
-                queryParams: queryKeys.length > 0 ? params : undefined,
-                prefix: "",
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "backfillRoom");
-            this.emit(FederationEvent.FederationError, error);
-            throw error;
-        }
-    }
-
-    /**
      * 克隆联邦密钥（v2）
      *
      * 对应 POST /_synapse/federation/v2/key/clone
@@ -980,18 +439,6 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             this.emit(FederationEvent.FederationError, error);
             throw error;
         }
-    }
-
-    getCachedBlacklist(): IBlacklistEntry[] {
-        return Array.from(this.blacklist.values());
-    }
-
-    getCachedServer(serverName: string): IFederationServer | null {
-        return this.serverCache.get(serverName) || null;
-    }
-
-    getCachedServers(): IFederationServer[] {
-        return Array.from(this.serverCache.values());
     }
 
     /**
@@ -1035,9 +482,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
     }
 
+    // ─── 生命周期 ───────────────────────────────────────────────
+
     clearCache(): void {
-        this.blacklist.clear();
-        this.serverCache.clear();
+        this.blacklist.clearCache();
+        this.server.clearCache();
     }
 
     async start(): Promise<void> {
@@ -1053,8 +502,8 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     }
 
     stop(): void {
-        this.blacklist.clear();
-        this.serverCache.clear();
+        this.blacklist.clearCache();
+        this.server.clearCache();
         this.initialized = false;
     }
 }
