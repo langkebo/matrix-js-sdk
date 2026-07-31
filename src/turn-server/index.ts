@@ -26,6 +26,8 @@ import { ClientEvent } from "../client";
 import { type HTTPError } from "../http-api/index";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import { Method } from "../http-api/method";
+import { ClientPrefix } from "../http-api/prefix";
 
 const TURN_CHECK_INTERVAL = 30 * 1000;
 
@@ -41,6 +43,16 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
 
     public getTurnServers(): ITurnServer[] {
         return this.internalClient.turnServers || [];
+    }
+
+    public async getTurnServerConfig(): Promise<ITurnServerResponse> {
+        return this.withRetry(async () => {
+            return await this.request<ITurnServerResponse>({
+                method: Method.Get,
+                path: "/voip/turnServer",
+                prefix: ClientPrefix.V3,
+            });
+        }, "getTurnServerConfig");
     }
 
     public async getTurnServerURIs(): Promise<string[]> {

@@ -70,6 +70,27 @@ export interface IAuthParams {
     [key: string]: unknown;
 }
 
+export interface CaptchaResponse {
+    public_key: string;
+    challenge?: string;
+    html?: string;
+}
+
+export interface WhoamiResponse {
+    user_id: string;
+    device_id?: string;
+    is_guest?: boolean;
+}
+
+export interface SamlRedirectResponse {
+    location: string;
+}
+
+export interface VersionsResponse {
+    versions: string[];
+    unstable_features?: Record<string, boolean>;
+}
+
 export interface RegisterFlowsResponse {
     flows: RegisterFlow[];
     params: IAuthParams;
@@ -506,6 +527,79 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
             return { valid: false, error: "Password too short (min 8 characters)" };
         }
         return { valid: true };
+    }
+
+    /**
+     * Get captcha challenge for registration
+     * GET /_matrix/client/v3/register/captcha
+     */
+    public async getCaptcha(): Promise<CaptchaResponse> {
+        return this.withRetry(async () => {
+            return await this.request<CaptchaResponse>({
+                method: Method.Get,
+                path: "/register/captcha",
+                prefix: ClientPrefix.V3,
+                authenticated: false,
+            });
+        }, "getCaptcha");
+    }
+
+    /**
+     * Get current user info
+     * GET /_matrix/client/v3/account/whoami
+     */
+    public async whoami(): Promise<WhoamiResponse> {
+        return this.withRetry(async () => {
+            return await this.request<WhoamiResponse>({
+                method: Method.Get,
+                path: "/account/whoami",
+                prefix: ClientPrefix.V3,
+            });
+        }, "whoami");
+    }
+
+    /**
+     * Logout current session
+     * POST /_matrix/client/v3/logout
+     */
+    public async logout(): Promise<void> {
+        return this.withRetry(async () => {
+            await this.request({
+                method: Method.Post,
+                path: "/logout",
+                prefix: ClientPrefix.V3,
+            });
+        }, "logout");
+    }
+
+    /**
+     * Get SAML redirect URL
+     * GET /_matrix/client/v3/login/sso/redirect/{idp_id}
+     */
+    public async getSamlRedirect(idpId: string): Promise<SamlRedirectResponse> {
+        return this.withRetry(async () => {
+            return await this.request<SamlRedirectResponse>({
+                method: Method.Get,
+                path: "/login/sso/redirect/saml",
+                queryParams: { idp_id: idpId },
+                prefix: ClientPrefix.V3,
+            });
+        }, "getSamlRedirect");
+    }
+
+    /**
+     * Get server versions
+     * GET /_matrix/client/versions
+     */
+    public async getVersions(): Promise<VersionsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<VersionsResponse>({
+                method: Method.Get,
+                path: "/versions",
+                prefix: "",
+                authenticated: false,
+            });
+        }, "getVersions");
     }
 
     /**

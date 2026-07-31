@@ -141,6 +141,10 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     stop(): void {
         this.list.clearCache();
         this.isInitialized = false;
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.list.removeAllListeners();
+        this.creation.removeAllListeners();
+        this.operation.removeAllListeners();
     }
 
     /** 获取缓存统计 */

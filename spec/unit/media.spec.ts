@@ -221,25 +221,86 @@ describe("MediaManager", () => {
         });
     });
 
-    // ============ Content Repository ============
+    // ============ Quota Management ============
 
-    describe("getContentRepositoryUri", () => {
-        it("should return well-known content repo URI", () => {
-            mockClient.getClientWellKnown.mockReturnValue({
-                "m.homeserver": { base_url: "https://matrix.test" },
+    describe("checkMediaQuota", () => {
+        it("should check media quota", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                limit: 1073741824,
+                used: 536870912,
+                remaining: 536870912,
+                rule: "user",
             });
 
-            const uri = mediaManager.getContentRepositoryUri();
+            const result = await mediaManager.checkMediaQuota();
 
-            expect(uri).toBe("https://matrix.test");
+            expect(result.limit).toBe(1073741824);
+            expect(result.used).toBe(536870912);
+            expect(result.remaining).toBe(536870912);
+            expect(result.rule).toBe("user");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/quota/check", undefined, undefined, {
+                prefix: "/_matrix/media/v1",
+            });
+        });
+    });
+
+    describe("getMediaQuotaStats", () => {
+        it("should get media quota statistics", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                user_id: "@user:example.com",
+                storage_bytes: 536870912,
+                media_count: 42,
+                limit_bytes: 1073741824,
+                statistics: {
+                    total_uploads: 150,
+                    average_file_size: 3579139,
+                },
+            });
+
+            const result = await mediaManager.getMediaQuotaStats();
+
+            expect(result.user_id).toBe("@user:example.com");
+            expect(result.storage_bytes).toBe(536870912);
+            expect(result.media_count).toBe(42);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/quota/stats", undefined, undefined, {
+                prefix: "/_matrix/media/v1",
+            });
+        });
+    });
+
+    describe("getMediaQuotaAlerts", () => {
+        it("should get media quota alerts", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                alerts: [
+                    {
+                        alert_id: "alert-1",
+                        alert_type: "quota_warning",
+                        threshold_percent: 80,
+                        current_usage_bytes: 858993459,
+                        quota_limit_bytes: 1073741824,
+                        message: "You have used 80% of your storage quota",
+                        created_ts: 1234567890,
+                        is_read: false,
+                    },
+                ],
+            });
+
+            const result = await mediaManager.getMediaQuotaAlerts();
+
+            expect(result.alerts).toHaveLength(1);
+            expect(result.alerts[0].alert_type).toBe("quota_warning");
+            expect(result.alerts[0].threshold_percent).toBe(80);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/quota/alerts", undefined, undefined, {
+                prefix: "/_matrix/media/v1",
+            });
         });
 
-        it("should return null when no well-known", () => {
-            mockClient.getClientWellKnown.mockReturnValue(null);
+        it("should return empty alerts when none exist", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ alerts: [] });
 
-            const uri = mediaManager.getContentRepositoryUri();
+            const result = await mediaManager.getMediaQuotaAlerts();
 
-            expect(uri).toBeNull();
+            expect(result.alerts).toHaveLength(0);
         });
     });
 });

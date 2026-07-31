@@ -98,6 +98,26 @@ export class ModerationManager extends BaseManager {
     }
 
     /**
+     * 举报用户
+     * 对应 POST /_matrix/client/v3/users/{user_id}/report
+     */
+    async reportUser(userId: string, body: ReportEventBody): Promise<void> {
+        const path = `/users/${encodeURIComponent(userId)}/report`;
+        try {
+            await this.withRetry(async () => {
+                await this.request<void>({
+                    method: Method.Post,
+                    path: path,
+                    body: body,
+                    prefix: ClientPrefix.V3,
+                });
+            }, "reportUser");
+        } catch (error) {
+            throw this.normalizeError(error, "reportUser");
+        }
+    }
+
+    /**
      * 获取扫描器信息
      * 对应 GET /_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info
      */

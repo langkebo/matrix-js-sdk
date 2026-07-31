@@ -622,6 +622,17 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         // 服务器事件
         this.server.on(AdminServerEvent.ServerStatsUpdated, (stats) => this.emit(AdminEvent.ServerStatsUpdated, stats));
     }
+
+    /** 停止 AdminManager，清理所有 sub-manager 的转发监听器 */
+    stop(): void {
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.users.removeAllListeners();
+        this.rooms.removeAllListeners();
+        this.server.removeAllListeners();
+        this.federation.removeAllListeners();
+        this.media.removeAllListeners();
+        this.config.removeAllListeners();
+    }
 }
 
 export function extendMatrixClient(): void {

@@ -338,6 +338,11 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         this.blacklist.clearCache();
         this.server.clearCache();
         this.initialized = false;
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.blacklist.removeAllListeners();
+        this.server.removeAllListeners();
+        this.query.removeAllListeners();
+        this.room.removeAllListeners();
     }
 }
 

@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/telemetry.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
  */
 
 /** Routes served by the synapse-rust `telemetry` module. */

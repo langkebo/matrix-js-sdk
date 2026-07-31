@@ -6,7 +6,7 @@
  * Source:        docs/api-contract/generated/modules/room.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
  */
 
 /** Routes served by the synapse-rust `room` module. */
@@ -42,6 +42,7 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/m.room.power_levels/" },
+    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/m.room.power_levels/" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}" },
     { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}" },
     { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}" },
@@ -55,6 +56,7 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/user/{user_id}/rooms" },
     { method: "POST", path: "/_matrix/client/v1/rooms/create_private" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/" },
+    { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/" },
     { method: "POST", path: "/_matrix/client/v3/createRoom" },
     { method: "POST", path: "/_matrix/client/v3/invite/{room_id}" },
     { method: "POST", path: "/_matrix/client/v3/join/{room_id_or_alias}" },
@@ -120,6 +122,7 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/spaces" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/state" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/" },
+    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/state/{event_type}" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/state/{event_type}" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/state/{event_type}" },
@@ -143,6 +146,8 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/vault_data" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/verify/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/version" },
+    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/visibility" },
+    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/visibility" },
     { method: "POST", path: "/_matrix/client/v3/translate" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];

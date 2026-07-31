@@ -79,6 +79,36 @@ export interface MediaThumbnailUrlOptions {
     timestamp?: number; // m-30: timestamp for signature verification
 }
 
+export interface MediaQuotaCheckResponse {
+    limit: number;
+    used: number;
+    remaining: number;
+    rule: string;
+}
+
+export interface MediaQuotaStatsResponse {
+    user_id: string;
+    storage_bytes: number;
+    media_count: number;
+    limit_bytes: number;
+    statistics: Record<string, unknown>;
+}
+
+export interface MediaQuotaAlert {
+    alert_id: string;
+    alert_type: "quota_warning" | "quota_exceeded";
+    threshold_percent: number;
+    current_usage_bytes: number;
+    quota_limit_bytes: number;
+    message: string;
+    created_ts: number;
+    is_read: boolean;
+}
+
+export interface MediaQuotaAlertsResponse {
+    alerts: MediaQuotaAlert[];
+}
+
 export interface ChunkUploadStartRequest {
     filename: string;
     content_type: string;
@@ -417,6 +447,48 @@ export class MediaManager extends BaseManager {
                 prefix: MediaPrefix.V1,
             });
         }, "getChunkUploadProgress");
+    }
+
+    /**
+     * Check media quota status
+     * GET /_matrix/media/v1/quota/check
+     */
+    public async checkMediaQuota(): Promise<MediaQuotaCheckResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MediaQuotaCheckResponse>({
+                method: Method.Get,
+                path: "/quota/check",
+                prefix: MediaPrefix.V1,
+            });
+        }, "checkMediaQuota");
+    }
+
+    /**
+     * Get media quota statistics
+     * GET /_matrix/media/v1/quota/stats
+     */
+    public async getMediaQuotaStats(): Promise<MediaQuotaStatsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MediaQuotaStatsResponse>({
+                method: Method.Get,
+                path: "/quota/stats",
+                prefix: MediaPrefix.V1,
+            });
+        }, "getMediaQuotaStats");
+    }
+
+    /**
+     * Get media quota alerts
+     * GET /_matrix/media/v1/quota/alerts
+     */
+    public async getMediaQuotaAlerts(): Promise<MediaQuotaAlertsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MediaQuotaAlertsResponse>({
+                method: Method.Get,
+                path: "/quota/alerts",
+                prefix: MediaPrefix.V1,
+            });
+        }, "getMediaQuotaAlerts");
     }
 
     public getThumbnailUrl(mxcUrl: string, options: MediaThumbnailUrlOptions = {}): string {

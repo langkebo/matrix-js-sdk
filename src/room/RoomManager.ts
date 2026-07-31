@@ -748,6 +748,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    public async getRoomUnreadCount(roomId: string): Promise<{ notification_count: number; highlight_count: number }> {
+        validateRoomId(roomId);
+
+        const response = await this.withRetry(async () => {
+            return await this.request<{ notification_count: number; highlight_count: number }>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/unread_count`),
+                prefix: ClientPrefix.V3,
+            });
+        });
+
+        return response;
+    }
+
     // ==================== Tags ====================
 
     public async getRoomTags(roomId: string): Promise<ITagsResponse> {

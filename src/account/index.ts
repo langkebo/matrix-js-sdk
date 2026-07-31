@@ -56,11 +56,26 @@ const SSO_ACTION_PARAM = {
     unstable: "org.matrix.msc3824.action",
 };
 
-export class AccountManager extends BaseManager {
-    constructor(client: MatrixClient, opts?: ManagerOpts) {
-        super(client, opts);
-    }
+export interface MyRoomsResponse {
+    joined_rooms: string[];
+    invited_rooms: string[];
+    left_rooms: string[];
+}
 
+export interface EventsResponse {
+    chunk: IContent[];
+    start?: string;
+    end?: string;
+}
+
+export interface EventsRequestOptions {
+    from?: string;
+    to?: string;
+    dir?: "f" | "b";
+    limit?: number;
+}
+
+export class AccountManager extends BaseManager {
     /**
      * Get the session ID
      */
@@ -270,6 +285,35 @@ export class AccountManager extends BaseManager {
         });
         const params = { session: authSessionId };
         return this.client.http.getUrl(path, params).href;
+    }
+
+    /**
+     * Get my rooms
+     * GET /_matrix/client/v3/my_rooms
+     */
+    public async getMyRooms(): Promise<MyRoomsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MyRoomsResponse>({
+                method: Method.Get,
+                path: "/my_rooms",
+                prefix: ClientPrefix.V3,
+            });
+        }, "getMyRooms");
+    }
+
+    /**
+     * Get global events
+     * GET /_matrix/client/v3/events
+     */
+    public async getEvents(options?: EventsRequestOptions): Promise<EventsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<EventsResponse>({
+                method: Method.Get,
+                path: "/events",
+                queryParams: options as Record<string, string | number | boolean | string[]>,
+                prefix: ClientPrefix.V3,
+            });
+        }, "getEvents");
     }
 
     /**

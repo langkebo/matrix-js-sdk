@@ -160,6 +160,12 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
     stop(): void {
         this.query.clearCache();
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.lifecycle.removeAllListeners();
+        this.query.removeAllListeners();
+        this.child.removeAllListeners();
+        this.member.removeAllListeners();
+        this.hierarchy.removeAllListeners();
     }
 
     // ===== 向后兼容委托方法（@deprecated，推荐直接使用 sub-manager） =====

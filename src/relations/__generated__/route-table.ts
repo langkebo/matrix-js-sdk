@@ -6,22 +6,22 @@
  * Source:        docs/api-contract/generated/modules/relations.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
  */
 
 /** Routes served by the synapse-rust `relations` module. */
 export const RELATIONS_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `RELATIONS_ROUTES`. */

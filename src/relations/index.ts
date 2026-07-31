@@ -345,16 +345,16 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
 
     public async sendRelation(
         roomId: string,
-        eventId: string,
+        parentEventId: string, // renamed from eventId for clarity
         relationType: RelationType,
-        targetEventId: string,
+        childEventId: string, // renamed from targetEventId for clarity
         body: SendRelationRequestBody = {},
     ): Promise<SendRelationResponse> {
         const path = utils.encodeUri(rr("/rooms/$roomId/relations/$eventId/$relationType/$targetEventId"), {
             $roomId: roomId,
-            $eventId: eventId,
+            $eventId: parentEventId,
             $relationType: relationType,
-            $targetEventId: targetEventId,
+            $targetEventId: childEventId,
         });
 
         try {
@@ -364,7 +364,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 body: body,
                 prefix: ClientPrefix.V1,
             });
-            this.emit(RelationsEvent.Updated, roomId, eventId);
+            this.emit(RelationsEvent.Updated, roomId, parentEventId);
             return response;
         } catch (e) {
             const error = this.normalizeError(e, "sendRelation");

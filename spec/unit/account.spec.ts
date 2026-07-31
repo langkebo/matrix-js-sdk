@@ -331,25 +331,54 @@ describe("AccountManager", () => {
         });
     });
 
-    describe("setGuestAccess", () => {
-        it("should set guest access", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({});
-
-            await accountManager.setGuestAccess("!room:example.com", {
-                allowJoin: true,
-                allowRead: false,
+    describe("getMyRooms", () => {
+        it("should get my rooms", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                joined_rooms: ["!room1:example.com"],
+                invited_rooms: ["!room2:example.com"],
+                left_rooms: ["!room3:example.com"],
             });
 
+            const result = await accountManager.getMyRooms();
+
+            expect(result.joined_rooms).toEqual(["!room1:example.com"]);
+            expect(result.invited_rooms).toEqual(["!room2:example.com"]);
+            expect(result.left_rooms).toEqual(["!room3:example.com"]);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/my_rooms", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
+        });
+    });
+
+    describe("getEvents", () => {
+        it("should get global events", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                chunk: [{ type: "m.room.message" }],
+                start: "token1",
+                end: "token2",
+            });
+
+            const result = await accountManager.getEvents({ from: "token1", limit: 10 });
+
+            expect(result.chunk).toHaveLength(1);
+            expect(result.start).toBe("token1");
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "PUT",
-                expect.any(String),
+                Method.Get,
+                "/events",
+                { from: "token1", limit: 10 },
                 undefined,
-                {
-                    allowJoin: true,
-                    allowRead: false,
-                },
                 { prefix: ClientPrefix.V3 },
             );
+        });
+
+        it("should get events without options", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                chunk: [],
+            });
+
+            const result = await accountManager.getEvents();
+
+            expect(result.chunk).toEqual([]);
         });
     });
 });

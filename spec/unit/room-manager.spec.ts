@@ -860,10 +860,28 @@ describe("RoomManager", () => {
         });
     });
 
-    describe("clearAllCaches", () => {
-        it("should clear all caches", () => {
-            roomManager.clearAllCaches();
-            expect(true).toBe(true);
+    describe("getRoomUnreadCount", () => {
+        it("should throw error for invalid roomId", async () => {
+            await expect(roomManager.getRoomUnreadCount("")).rejects.toThrow();
+        });
+
+        it("should fetch unread count from server", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                notification_count: 5,
+                highlight_count: 2,
+            });
+
+            const result = await roomManager.getRoomUnreadCount("!room:example.com");
+
+            expect(result.notification_count).toBe(5);
+            expect(result.highlight_count).toBe(2);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/rooms/${encodeURIComponent("!room:example.com")}/unread_count`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
         });
     });
 });

@@ -1000,6 +1000,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     stop(): void {
         this.clearCache();
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.members.removeAllListeners();
+        this.stats.removeAllListeners();
     }
 
     // ===== 私有辅助方法 =====

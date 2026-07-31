@@ -6,12 +6,14 @@
  * Source:        docs/api-contract/generated/modules/friend_room.json
  * Ledger schema: 1
  * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
  */
 
 /** Routes served by the synapse-rust `friend_room` module. */
 export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/friends/check/{user_id}" },
+    { method: "GET", path: "/_matrix/client/r0/friends/dm/{user_id}" },
+    { method: "POST", path: "/_matrix/client/r0/friends/dm/{user_id}" },
     { method: "GET", path: "/_matrix/client/r0/friends/groups" },
     { method: "POST", path: "/_matrix/client/r0/friends/groups" },
     { method: "DELETE", path: "/_matrix/client/r0/friends/groups/{group_id}" },
@@ -40,6 +42,8 @@ export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/friends" },
     { method: "POST", path: "/_matrix/client/v1/friends" },
     { method: "GET", path: "/_matrix/client/v1/friends/check/{user_id}" },
+    { method: "GET", path: "/_matrix/client/v1/friends/dm/{user_id}" },
+    { method: "POST", path: "/_matrix/client/v1/friends/dm/{user_id}" },
     { method: "GET", path: "/_matrix/client/v1/friends/groups" },
     { method: "POST", path: "/_matrix/client/v1/friends/groups" },
     { method: "DELETE", path: "/_matrix/client/v1/friends/groups/{group_id}" },

@@ -45,7 +45,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
     }
 
     /**
-     * @internal 由 SpaceManager 在构造后设置回引，便于跨 sub-manager 访问
+     * @internal
      */
     _setParent(parent: SpaceManager): void {
         this.parent = parent;

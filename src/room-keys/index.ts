@@ -30,6 +30,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import { ValidationError } from "../errors";
 
 export interface RoomKeyRequest {
     request_id: string;
@@ -111,6 +112,33 @@ export class RoomKeysManager extends BaseManager {
             this.requestsCache.delete("__requests__");
         } catch (error) {
             throw this.normalizeError(error, "createRoomKeyRequest");
+        }
+    }
+
+    /**
+     * 删除房间密钥请求
+     * DELETE /_matrix/client/v3/room_keys/request/{request_id}
+     *
+     * @param requestId - 要删除的请求 ID
+     * @throws {ValidationError} 如果 requestId 为空
+     */
+    async deleteRoomKeyRequest(requestId: string): Promise<void> {
+        if (!requestId || requestId.trim().length === 0) {
+            throw new ValidationError("requestId is required");
+        }
+
+        try {
+            await this.withRetry(async () => {
+                return await this.request({
+                    method: Method.Delete,
+                    path: `/room_keys/request/${encodeURIComponent(requestId)}`,
+                    prefix: ClientPrefix.V3,
+                });
+            }, "deleteRoomKeyRequest");
+
+            this.requestsCache.delete("__requests__");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteRoomKeyRequest");
         }
     }
 
