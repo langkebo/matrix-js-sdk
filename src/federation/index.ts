@@ -17,12 +17,13 @@ limitations under the License.
 /**
  * Federation Manager - 联邦管理（门面）
  *
- * 本文件已拆分为 4 个 sub-manager，FederationManager 作为门面保留全部公开 API
- * 以保证向后兼容。新代码应直接使用 sub-manager：
+ * 本文件已拆分为 4 个 sub-manager，调用方应直接使用 sub-manager：
  * - `fed.blacklist.*`：黑名单 CRUD
  * - `fed.server.*`：服务器状态/连接
  * - `fed.query.*`：联邦查询
  * - `fed.room.*`：联邦房间/事件/状态
+ *
+ * FederationManager 仅保留未迁移方法（claimKeys/queryKeys 等）及生命周期管理。
  *
  * ## 后端对齐说明（synapse-rust v10，2026-06）
  *
@@ -42,7 +43,6 @@ import { Method } from "../http-api/method";
 import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
-import { IUserProfile } from "../user-directory/index";
 import { ValidationError } from "../errors";
 import { type IEvent } from "../models/event";
 import { FederationBlacklistManager, FederationBlacklistEvent } from "./sub-managers/federation-blacklist-manager";
@@ -116,173 +116,6 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
             return super.request<T>({ ...spec, authenticated: false });
         }
         return super.request<T>(spec);
-    }
-
-    // ─── Blacklist 门面 ─────────────────────────────────────────
-
-    /** @deprecated 请使用 `fed.blacklist.getBlacklist()` */
-    async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
-        return this.blacklist.getBlacklist(throwOnError);
-    }
-
-    /** @deprecated 请使用 `fed.blacklist.addToBlacklist()` */
-    async addToBlacklist(serverName: string, reason?: string): Promise<void> {
-        return this.blacklist.addToBlacklist(serverName, reason);
-    }
-
-    /** @deprecated 请使用 `fed.blacklist.removeFromBlacklist()` */
-    async removeFromBlacklist(serverName: string): Promise<void> {
-        return this.blacklist.removeFromBlacklist(serverName);
-    }
-
-    /** @deprecated 请使用 `fed.blacklist.isBlacklisted()` */
-    async isBlacklisted(serverName: string): Promise<boolean> {
-        return this.blacklist.isBlacklisted(serverName);
-    }
-
-    /** @deprecated 请使用 `fed.blacklist.getCachedBlacklist()` */
-    getCachedBlacklist(): IBlacklistEntry[] {
-        return this.blacklist.getCachedBlacklist();
-    }
-
-    // ─── Server 门面 ────────────────────────────────────────────
-
-    /** @deprecated 请使用 `fed.server.getServerStatus()` */
-    async getServerStatus(serverName: string, throwOnError = true): Promise<IFederationStatus | null> {
-        return this.server.getServerStatus(serverName, throwOnError);
-    }
-
-    /** @deprecated 请使用 `fed.server.getFederationDestinations()` */
-    async getFederationDestinations(throwOnError = true): Promise<IFederationServer[]> {
-        return this.server.getFederationDestinations(throwOnError);
-    }
-
-    /** @deprecated 请使用 `fed.server.disconnectServer()` */
-    async disconnectServer(serverName: string): Promise<void> {
-        return this.server.disconnectServer(serverName);
-    }
-
-    /** @deprecated 请使用 `fed.server.reconnectServer()` */
-    async reconnectServer(serverName: string): Promise<void> {
-        return this.server.reconnectServer(serverName);
-    }
-
-    /** @deprecated 请使用 `fed.server.getServerVersion()` */
-    async getServerVersion(serverName: string, throwOnError = true): Promise<{ version: string } | null> {
-        return this.server.getServerVersion(serverName, throwOnError);
-    }
-
-    /** @deprecated 请使用 `fed.server.getCachedServer()` */
-    getCachedServer(serverName: string): IFederationServer | null {
-        return this.server.getCachedServer(serverName);
-    }
-
-    /** @deprecated 请使用 `fed.server.getCachedServers()` */
-    getCachedServers(): IFederationServer[] {
-        return this.server.getCachedServers();
-    }
-
-    // ─── Query 门面 ─────────────────────────────────────────────
-
-    /** @deprecated 请使用 `fed.query.queryProfile()` */
-    async queryProfile(userId: string): Promise<IUserProfile> {
-        return this.query.queryProfile(userId);
-    }
-
-    /** @deprecated 请使用 `fed.query.queryDirectory()` */
-    async queryDirectory(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
-        return this.query.queryDirectory(roomAlias);
-    }
-
-    /** @deprecated 请使用 `fed.query.queryDestination()` */
-    async queryDestination(destination: string): Promise<unknown> {
-        return this.query.queryDestination(destination);
-    }
-
-    /** @deprecated 请使用 `fed.query.queryAuth()` */
-    async queryAuth(): Promise<unknown> {
-        return this.query.queryAuth();
-    }
-
-    /** @deprecated 请使用 `fed.query.getFederationInfo()` */
-    async getFederationInfo(): Promise<unknown> {
-        return this.query.getFederationInfo();
-    }
-
-    /** @deprecated 请使用 `fed.query.getPublicRoomsOnServer()` */
-    async getPublicRoomsOnServer(
-        serverName: string,
-        limit?: number,
-        since?: string,
-    ): Promise<{ chunk: unknown[]; next_batch?: string; prev_batch?: string }> {
-        return this.query.getPublicRoomsOnServer(serverName, limit, since);
-    }
-
-    // ─── Room 门面 ──────────────────────────────────────────────
-
-    /** @deprecated 请使用 `fed.room.getHierarchy()` */
-    async getHierarchy(roomId: string): Promise<unknown> {
-        return this.room.getHierarchy(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getRoomEvent()` */
-    async getRoomEvent(roomId: string, eventId: string): Promise<unknown> {
-        return this.room.getRoomEvent(roomId, eventId);
-    }
-
-    /** @deprecated 请使用 `fed.room.downloadMedia()` */
-    async downloadMedia(serverName: string, mediaId: string): Promise<unknown> {
-        return this.room.downloadMedia(serverName, mediaId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getMediaThumbnail()` */
-    async getMediaThumbnail(serverName: string, mediaId: string): Promise<unknown> {
-        return this.room.getMediaThumbnail(serverName, mediaId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getEventAuth()` */
-    async getEventAuth(roomId: string, eventId: string): Promise<unknown> {
-        return this.room.getEventAuth(roomId, eventId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getJoiningRules()` */
-    async getJoiningRules(roomId: string): Promise<unknown> {
-        return this.room.getJoiningRules(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getRoomAuth()` */
-    async getRoomAuth(roomId: string): Promise<unknown> {
-        return this.room.getRoomAuth(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getState()` */
-    async getState(roomId: string): Promise<unknown> {
-        return this.room.getState(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getStateIds()` */
-    async getStateIds(roomId: string): Promise<unknown> {
-        return this.room.getStateIds(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getMembers()` */
-    async getMembers(roomId: string): Promise<unknown> {
-        return this.room.getMembers(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getJoinedMembers()` */
-    async getJoinedMembers(roomId: string): Promise<unknown> {
-        return this.room.getJoinedMembers(roomId);
-    }
-
-    /** @deprecated 请使用 `fed.room.getEvent()` */
-    async getEvent(eventId: string): Promise<unknown> {
-        return this.room.getEvent(eventId);
-    }
-
-    /** @deprecated 请使用 `fed.room.backfillRoom()` */
-    async backfillRoom(roomId: string, opts?: { limit?: number; from?: string }): Promise<unknown> {
-        return this.room.backfillRoom(roomId, opts);
     }
 
     // ─── 未迁移方法（保留在 FederationManager） ──────────────────
@@ -493,7 +326,7 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         if (this.initialized) return;
 
         try {
-            await this.getBlacklist(false);
+            await this.blacklist.getBlacklist(false);
             this.initialized = true;
         } catch (e) {
             const error = this.normalizeError(e, "start");

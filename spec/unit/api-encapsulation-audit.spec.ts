@@ -192,7 +192,7 @@ describe("API encapsulation audit", () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
-        await manager.getBlacklist();
+        await manager.blacklist.getBlacklist();
 
         expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/federation/blacklist", undefined, undefined, {
             prefix: AdminPrefix.V1,
@@ -207,7 +207,7 @@ describe("API encapsulation audit", () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
-        await manager.getPublicRoomsOnServer("example.com", 20, "s123");
+        await manager.query.getPublicRoomsOnServer("example.com", 20, "s123");
 
         expect(request).toHaveBeenCalledWith(
             Method.Get,

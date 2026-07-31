@@ -29,17 +29,17 @@ describe("FederationManager", () => {
     it("should fetch the blacklist and cache it", async () => {
         mockAuthedRequest.mockResolvedValue({ blacklist: [{ serverName: "server1.com", addedAt: 123 }] });
 
-        const result = await federationManager.getBlacklist();
+        const result = await federationManager.blacklist.getBlacklist();
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/federation/blacklist", undefined, undefined, {
             prefix: AdminPrefix.V1,
         });
         expect(result).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
-        expect(federationManager.getCachedBlacklist()).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
+        expect(federationManager.blacklist.getCachedBlacklist()).toEqual([{ serverName: "server1.com", addedAt: 123 }]);
     });
 
     it("should add a server to the blacklist", async () => {
-        await federationManager.addToBlacklist("server2.com", "test reason");
+        await federationManager.blacklist.addToBlacklist("server2.com", "test reason");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Post,
@@ -48,7 +48,7 @@ describe("FederationManager", () => {
             { server_name: "server2.com", reason: "test reason" },
             { prefix: AdminPrefix.V1 },
         );
-        expect(federationManager.getCachedBlacklist()).toEqual([
+        expect(federationManager.blacklist.getCachedBlacklist()).toEqual([
             {
                 serverName: "server2.com",
                 reason: "test reason",
@@ -59,10 +59,10 @@ describe("FederationManager", () => {
     });
 
     it("should remove a server from the blacklist", async () => {
-        federationManager.addToBlacklist("server3.com"); // Add to cache first
+        federationManager.blacklist.addToBlacklist("server3.com"); // Add to cache first
         mockAuthedRequest.mockClear(); // Clear previous call
 
-        await federationManager.removeFromBlacklist("server3.com");
+        await federationManager.blacklist.removeFromBlacklist("server3.com");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Post,
@@ -71,13 +71,13 @@ describe("FederationManager", () => {
             { server_name: "server3.com" },
             { prefix: AdminPrefix.V1 },
         );
-        expect(federationManager.getCachedBlacklist()).toEqual([]);
+        expect(federationManager.blacklist.getCachedBlacklist()).toEqual([]);
     });
 
     it("should get server status", async () => {
         mockAuthedRequest.mockResolvedValue({ online: true, last_successful_connect: 456, latency: 100 });
 
-        const result = await federationManager.getServerStatus("server4.com");
+        const result = await federationManager.server.getServerStatus("server4.com");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -92,17 +92,17 @@ describe("FederationManager", () => {
     it("should get federation destinations", async () => {
         mockAuthedRequest.mockResolvedValue({ destinations: [{ serverName: "dest1.com" }] });
 
-        const result = await federationManager.getFederationDestinations();
+        const result = await federationManager.server.getFederationDestinations();
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/federation/destinations", undefined, undefined, {
             prefix: AdminPrefix.V1,
         });
         expect(result).toEqual([{ serverName: "dest1.com" }]);
-        expect(federationManager.getCachedServers()).toEqual([{ serverName: "dest1.com" }]);
+        expect(federationManager.server.getCachedServers()).toEqual([{ serverName: "dest1.com" }]);
     });
 
     it("should disconnect a server", async () => {
-        await federationManager.disconnectServer("server5.com");
+        await federationManager.server.disconnectServer("server5.com");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Post,
@@ -114,7 +114,7 @@ describe("FederationManager", () => {
     });
 
     it("should reconnect a server", async () => {
-        await federationManager.reconnectServer("server6.com");
+        await federationManager.server.reconnectServer("server6.com");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Post,
@@ -128,7 +128,7 @@ describe("FederationManager", () => {
     it("should get server version", async () => {
         mockRequest.mockResolvedValue({ server: { version: "1.0.0" } });
 
-        const result = await federationManager.getServerVersion("server7.com");
+        const result = await federationManager.server.getServerVersion("server7.com");
 
         expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/federation/v1/version", undefined, undefined, {
             prefix: "",
@@ -138,12 +138,12 @@ describe("FederationManager", () => {
 
     it("should clear cache", async () => {
         mockAuthedRequest.mockResolvedValueOnce({}); // Mock for addToBlacklist
-        await federationManager.addToBlacklist("server_to_clear.com");
-        expect(federationManager.getCachedBlacklist().length).toBe(1);
+        await federationManager.blacklist.addToBlacklist("server_to_clear.com");
+        expect(federationManager.blacklist.getCachedBlacklist().length).toBe(1);
 
         federationManager.clearCache();
 
-        expect(federationManager.getCachedBlacklist().length).toBe(0);
+        expect(federationManager.blacklist.getCachedBlacklist().length).toBe(0);
     });
 
     it("should initialize blacklist on start", async () => {
@@ -154,26 +154,26 @@ describe("FederationManager", () => {
 
         await federationManager.start();
 
-        expect(federationManager.getCachedBlacklist()).toEqual([
+        expect(federationManager.blacklist.getCachedBlacklist()).toEqual([
             { serverName: "initial.com", addedAt: 123, addedBy: "@user:example.com" },
         ]);
     });
 
     it("should stop and clear cache", async () => {
         mockAuthedRequest.mockResolvedValueOnce({}); // Mock for addToBlacklist
-        await federationManager.addToBlacklist("server_to_stop.com");
-        expect(federationManager.getCachedBlacklist().length).toBe(1);
+        await federationManager.blacklist.addToBlacklist("server_to_stop.com");
+        expect(federationManager.blacklist.getCachedBlacklist().length).toBe(1);
 
         federationManager.stop();
 
-        expect(federationManager.getCachedBlacklist().length).toBe(0);
+        expect(federationManager.blacklist.getCachedBlacklist().length).toBe(0);
     });
 
     it("should query profile over federation", async () => {
         const profile: IUserProfile = { displayname: "Alice", avatar_url: "mxc://example.com/alice" };
         mockRequest.mockResolvedValue(profile);
 
-        const result = await federationManager.queryProfile("@alice:example.com");
+        const result = await federationManager.query.queryProfile("@alice:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -189,7 +189,7 @@ describe("FederationManager", () => {
         const response = { room_id: "!room:example.com", servers: ["example.com"] };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.queryDirectory("#alias:example.com");
+        const result = await federationManager.query.queryDirectory("#alias:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -205,7 +205,7 @@ describe("FederationManager", () => {
         const hierarchy = { rooms: [] };
         mockRequest.mockResolvedValue(hierarchy);
 
-        const result = await federationManager.getHierarchy("!room:example.com");
+        const result = await federationManager.room.getHierarchy("!room:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -221,7 +221,7 @@ describe("FederationManager", () => {
         const info = { server: "example.com" };
         mockRequest.mockResolvedValue(info);
 
-        const result = await federationManager.getFederationInfo();
+        const result = await federationManager.query.getFederationInfo();
 
         expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/_matrix/federation/v1", undefined, undefined, {
             prefix: "",
@@ -233,7 +233,7 @@ describe("FederationManager", () => {
         const response = { destination: "example.org" };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.queryDestination("example.org");
+        const result = await federationManager.query.queryDestination("example.org");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -249,7 +249,7 @@ describe("FederationManager", () => {
         const response = { event_id: "$evt:example.com" };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getRoomEvent("!room:example.com", "$evt:example.com");
+        const result = await federationManager.room.getRoomEvent("!room:example.com", "$evt:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -265,7 +265,7 @@ describe("FederationManager", () => {
         const response = { ok: true };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.downloadMedia("remote.example", "m123");
+        const result = await federationManager.room.downloadMedia("remote.example", "m123");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -281,7 +281,7 @@ describe("FederationManager", () => {
         const response = { ok: true };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getMediaThumbnail("remote.example", "m123");
+        const result = await federationManager.room.getMediaThumbnail("remote.example", "m123");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -297,7 +297,7 @@ describe("FederationManager", () => {
         const response = { pdus: [] };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getState("!room:example.com");
+        const result = await federationManager.room.getState("!room:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -310,14 +310,14 @@ describe("FederationManager", () => {
     });
 
     it("should throw ValidationError if room ID is empty for getState", async () => {
-        await expect(federationManager.getState("")).rejects.toThrow("Room ID is required");
+        await expect(federationManager.room.getState("")).rejects.toThrow("Room ID is required");
     });
 
     it("should get room state IDs over federation", async () => {
         const response = { auth_chain_ids: [], pdu_ids: [] };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getStateIds("!room:example.com");
+        const result = await federationManager.room.getStateIds("!room:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -330,14 +330,14 @@ describe("FederationManager", () => {
     });
 
     it("should throw ValidationError if room ID is empty for getStateIds", async () => {
-        await expect(federationManager.getStateIds("")).rejects.toThrow("Room ID is required");
+        await expect(federationManager.room.getStateIds("")).rejects.toThrow("Room ID is required");
     });
 
     it("should get room members over federation", async () => {
         const response = { chunk: [], total_room_count_estimate: 0 };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getMembers("!room:example.com");
+        const result = await federationManager.room.getMembers("!room:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -350,14 +350,14 @@ describe("FederationManager", () => {
     });
 
     it("should throw ValidationError if room ID is empty for getMembers", async () => {
-        await expect(federationManager.getMembers("")).rejects.toThrow("Room ID is required");
+        await expect(federationManager.room.getMembers("")).rejects.toThrow("Room ID is required");
     });
 
     it("should get joined members over federation", async () => {
         const response = { joined: {} };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getJoinedMembers("!room:example.com");
+        const result = await federationManager.room.getJoinedMembers("!room:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -370,14 +370,14 @@ describe("FederationManager", () => {
     });
 
     it("should throw ValidationError if room ID is empty for getJoinedMembers", async () => {
-        await expect(federationManager.getJoinedMembers("")).rejects.toThrow("Room ID is required");
+        await expect(federationManager.room.getJoinedMembers("")).rejects.toThrow("Room ID is required");
     });
 
     it("should get event over federation by event ID", async () => {
         const response = { origin: "example.com", event: { room_id: "!room:example.com" } };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.getEvent("$event:example.com");
+        const result = await federationManager.room.getEvent("$event:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -390,14 +390,14 @@ describe("FederationManager", () => {
     });
 
     it("should throw ValidationError if event ID is empty for getEvent", async () => {
-        await expect(federationManager.getEvent("")).rejects.toThrow("Event ID is required");
+        await expect(federationManager.room.getEvent("")).rejects.toThrow("Event ID is required");
     });
 
     it("should backfill room history over federation", async () => {
         const response = { origin: "example.com", events: [] };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.backfillRoom("!room:example.com");
+        const result = await federationManager.room.backfillRoom("!room:example.com");
 
         expect(mockRequest).toHaveBeenCalledWith(
             Method.Get,
@@ -413,7 +413,7 @@ describe("FederationManager", () => {
         const response = { origin: "example.com", events: [] };
         mockRequest.mockResolvedValue(response);
 
-        const result = await federationManager.backfillRoom("!room:example.com", {
+        const result = await federationManager.room.backfillRoom("!room:example.com", {
             limit: 10,
             from: "$prev:example.com",
         });
@@ -429,6 +429,6 @@ describe("FederationManager", () => {
     });
 
     it("should throw ValidationError if room ID is empty for backfillRoom", async () => {
-        await expect(federationManager.backfillRoom("")).rejects.toThrow("Room ID is required");
+        await expect(federationManager.room.backfillRoom("")).rejects.toThrow("Room ID is required");
     });
 });
