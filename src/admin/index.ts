@@ -582,9 +582,11 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
                 }
                 if (typeof prop === "string") {
                     const subManager = target.routeToSubManager(prop);
-                    const fn = (subManager as unknown as Record<string, unknown>)[prop];
-                    if (subManager && typeof fn === "function") {
-                        return fn.bind(subManager);
+                    if (subManager) {
+                        const fn = (subManager as unknown as Record<string, unknown>)[prop];
+                        if (typeof fn === "function") {
+                            return fn.bind(subManager);
+                        }
                     }
                 }
                 return undefined;
