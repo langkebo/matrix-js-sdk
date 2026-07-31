@@ -1,73 +1,73 @@
 {
-  "timestamp": "2026-07-23",
-  "baseline": {
-    "bundle": {
-      "entries": {
-        "index.js": {
-          "bytes": 642,
-          "kb": "0.63"
+    "timestamp": "2026-07-23",
+    "baseline": {
+        "bundle": {
+            "entries": {
+                "index.js": {
+                    "bytes": 642,
+                    "kb": "0.63"
+                },
+                "browser-index.js": {
+                    "bytes": 1402,
+                    "kb": "1.37"
+                },
+                "core.js": {
+                    "bytes": 1230,
+                    "kb": "1.20"
+                },
+                "advanced.js": {
+                    "bytes": 465,
+                    "kb": "0.45"
+                },
+                "legacy.js": {
+                    "bytes": 665,
+                    "kb": "0.65"
+                }
+            },
+            "totalKB": "4.30"
         },
-        "browser-index.js": {
-          "bytes": 1402,
-          "kb": "1.37"
+        "criticalModules": {
+            "src/client.ts": {
+                "lines": 3984,
+                "bytes": 152190
+            },
+            "src/push/index.ts": {
+                "lines": 667,
+                "bytes": 24563
+            },
+            "src/room-summary/index.ts": {
+                "lines": 1062,
+                "bytes": 38982
+            },
+            "src/admin/index.ts": {
+                "lines": 1254,
+                "bytes": 45232
+            },
+            "src/dm/index.ts": {
+                "lines": 1119,
+                "bytes": 35904
+            },
+            "src/space/index.ts": {
+                "lines": 821,
+                "bytes": 30851
+            }
         },
-        "core.js": {
-          "bytes": 1230,
-          "kb": "1.20"
+        "managerMigration": {
+            "coverage": 0,
+            "migrated": "unknown",
+            "total": "unknown"
         },
-        "advanced.js": {
-          "bytes": 465,
-          "kb": "0.45"
-        },
-        "legacy.js": {
-          "bytes": 665,
-          "kb": "0.65"
+        "testCoverage": {
+            "lines": "82.88",
+            "linesFound": 27616,
+            "linesHit": 22889
         }
-      },
-      "totalKB": "4.30"
     },
-    "criticalModules": {
-      "src/client.ts": {
-        "lines": 3984,
-        "bytes": 152190
-      },
-      "src/push/index.ts": {
-        "lines": 667,
-        "bytes": 24563
-      },
-      "src/room-summary/index.ts": {
-        "lines": 1062,
-        "bytes": 38982
-      },
-      "src/admin/index.ts": {
-        "lines": 1254,
-        "bytes": 45232
-      },
-      "src/dm/index.ts": {
-        "lines": 1119,
-        "bytes": 35904
-      },
-      "src/space/index.ts": {
-        "lines": 821,
-        "bytes": 30851
-      }
-    },
-    "managerMigration": {
-      "coverage": 0,
-      "migrated": "unknown",
-      "total": "unknown"
-    },
-    "testCoverage": {
-      "lines": "82.88",
-      "linesFound": 27616,
-      "linesHit": 22889
+    "targets": {
+        "bundleSizeReduction": "-20%",
+        "pushRulesP95Ms": "<= 2.0ms (warm cache)",
+        "roomSummaryP95Ms": "<= 5.0ms",
+        "memoryPeakMB": "<= 100MB baseline",
+        "managerCoverage": ">= 95%"
     }
-  },
-  "targets": {
-    "bundleSizeReduction": "-20%",
-    "pushRulesP95Ms": "<= 2.0ms (warm cache)",
-    "roomSummaryP95Ms": "<= 5.0ms",
-    "memoryPeakMB": "<= 100MB baseline",
-    "managerCoverage": ">= 95%"
-  }
 }

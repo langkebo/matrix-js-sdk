@@ -101,13 +101,15 @@ describe("SlidingSync log level optimization", () => {
 
         // The "Sending request" log should be at debug level
         const debugCalls = debugSpy.mock.calls.filter(
-            (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("[SlidingSync] Sending request"),
+            (call: unknown[]) =>
+                typeof call[0] === "string" && (call[0] as string).includes("[SlidingSync] Sending request"),
         );
         expect(debugCalls.length).toBeGreaterThan(0);
 
         // The "Sending request" log should NOT appear at info level
         const infoCallsForRequest = infoSpy.mock.calls.filter(
-            (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("[SlidingSync] Sending request"),
+            (call: unknown[]) =>
+                typeof call[0] === "string" && (call[0] as string).includes("[SlidingSync] Sending request"),
         );
         expect(infoCallsForRequest).toHaveLength(0);
     });

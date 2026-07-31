@@ -117,14 +117,12 @@ describe("SlidingSync exponential backoff", () => {
     it("should use server's retry_after_ms for 429 errors, not exponential backoff", async () => {
         const headers = new Headers({ "Retry-After": "3" }); // 3 seconds
 
-        mockSlidingSync
-            .mockRejectedValueOnce(new HTTPError("rate limited", 429, headers))
-            .mockResolvedValueOnce({
-                pos: "after429",
-                lists: {},
-                rooms: {},
-                extensions: {},
-            } as MSC3575SlidingSyncResponse);
+        mockSlidingSync.mockRejectedValueOnce(new HTTPError("rate limited", 429, headers)).mockResolvedValueOnce({
+            pos: "after429",
+            lists: {},
+            rooms: {},
+            extensions: {},
+        } as MSC3575SlidingSyncResponse);
 
         await runUntilCalls(2);
 
@@ -196,14 +194,12 @@ describe("SlidingSync exponential backoff", () => {
     });
 
     it("should not increment consecutiveErrors for 400 errors", async () => {
-        mockSlidingSync
-            .mockRejectedValueOnce(new HTTPError("session expired", 400))
-            .mockResolvedValueOnce({
-                pos: "after400",
-                lists: {},
-                rooms: {},
-                extensions: {},
-            } as MSC3575SlidingSyncResponse);
+        mockSlidingSync.mockRejectedValueOnce(new HTTPError("session expired", 400)).mockResolvedValueOnce({
+            pos: "after400",
+            lists: {},
+            rooms: {},
+            extensions: {},
+        } as MSC3575SlidingSyncResponse);
 
         await runUntilCalls(2);
 
@@ -215,14 +211,12 @@ describe("SlidingSync exponential backoff", () => {
     it("should not call sleep for AbortError", async () => {
         const abortError = new Error("aborted");
         abortError.name = "AbortError";
-        mockSlidingSync
-            .mockRejectedValueOnce(abortError)
-            .mockResolvedValueOnce({
-                pos: "afterAbort",
-                lists: {},
-                rooms: {},
-                extensions: {},
-            } as MSC3575SlidingSyncResponse);
+        mockSlidingSync.mockRejectedValueOnce(abortError).mockResolvedValueOnce({
+            pos: "afterAbort",
+            lists: {},
+            rooms: {},
+            extensions: {},
+        } as MSC3575SlidingSyncResponse);
 
         await runUntilCalls(2);
 

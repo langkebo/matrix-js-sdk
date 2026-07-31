@@ -695,7 +695,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 this.requestCount++;
                 if (this.requestCount % 10 === 0) {
                     logger.info(
-                        `[SlidingSync] ${this.requestCount} requests processed, pos=${currentPos?.slice(0, 8) ?? 'none'}...`
+                        `[SlidingSync] ${this.requestCount} requests processed, pos=${currentPos?.slice(0, 8) ?? "none"}...`,
                     );
                 }
                 // update what we think we're subscribed to.
