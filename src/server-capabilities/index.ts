@@ -335,7 +335,7 @@ export class ServerCapabilitiesManager extends BaseManager<
      * @returns The server /versions response
      */
     public async getVersions(): Promise<IServerVersions> {
-        const client = this.client as unknown as {
+        const client = this.internalClient as unknown as {
             serverVersionsPromise?: Promise<IServerVersions>;
             canSupport: Map<import("../feature").Feature, import("../feature").ServerSupport>;
         };

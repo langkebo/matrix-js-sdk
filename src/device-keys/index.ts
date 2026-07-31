@@ -177,10 +177,10 @@ export interface SendToDeviceMessage {
 
 export interface DeviceVerificationStatusResponse {
     token: string;
-    status: "pending" | "accepted" | "rejected" | "expired";
-    requesting_device_id?: string;
-    expires_at?: number;
-    methods_available?: string[];
+    state: "pending" | "verified" | "cancelled" | "expired";
+    device_id?: string;
+    requested_ts?: number;
+    completed_ts?: number;
 }
 
 export interface DeviceTrustInfo {

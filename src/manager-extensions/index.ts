@@ -358,6 +358,10 @@ export async function extendMatrixClientWithManagers(
                 promises.push(safeDynamicImport(import("../room-list/index.js").then((m) => m?.extendMatrixClient())));
             }
 
+            if (currentOptions.includeRoom || all) {
+                promises.push(safeDynamicImport(import("../room-alias/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
             if (currentOptions.includeSecurity || all) {
                 promises.push(safeDynamicImport(import("../security/index.js").then((m) => m?.extendMatrixClient())));
             }

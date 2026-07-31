@@ -53,7 +53,7 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
         return this.withRetry(
             () =>
                 (
-                    this.client as unknown as {
+                    this.internalClient as unknown as {
                         inviteByThreePid: (medium: string, address: string, roomId: string) => Promise<IInviteResponse>;
                     }
                 ).inviteByThreePid(medium, address, roomId),

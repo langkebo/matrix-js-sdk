@@ -32,6 +32,38 @@ export const MSC3575_STATE_KEY_ME = "$ME";
 export const MSC3575_STATE_KEY_LAZY = "$LAZY";
 
 /**
+ * 检测是否为 abort 类错误（包括被 BaseManager.normalizeError 包装成 ApiError 的情况）。
+ *
+ * 浏览器中止 fetch 时可能抛出：
+ * - `DOMException` (name="AbortError") — 标准 AbortController.abort()
+ * - `TypeError: fetch failed` / `Failed to fetch` — Tauri nativeFetch 或浏览器网络层
+ * 这些错误经 BaseManager 包装后变成 `ApiError: RoomManager.POST /sync failed: fetch failed: ...`，
+ * 原始 AbortError 被保存在 `error.cause` 中。
+ */
+function isAbortLikeError(err: unknown): boolean {
+    if (!err || typeof err !== "object") return false;
+    const error = err as { name?: string; message?: string; cause?: unknown };
+    // 1. 直接的 AbortError
+    if (error.name === "AbortError") return true;
+    // 2. 错误消息包含 abort/fetch failed/Failed to fetch 等特征
+    const msg = error.message ?? "";
+    if (
+        msg.includes("aborted") ||
+        msg.includes("fetch failed") ||
+        msg.includes("Failed to fetch") ||
+        msg.includes("ERR_ABORTED") ||
+        msg.includes("The user aborted a request")
+    ) {
+        return true;
+    }
+    // 3. 递归检查 cause 链（BaseManager 包装后原始错误在 cause 中）
+    if (error.cause) {
+        return isAbortLikeError(error.cause);
+    }
+    return false;
+}
+
+/**
  * Represents a subscription to a room or set of rooms. Controls which events are returned.
  */
 export interface MSC3575RoomSubscription {
@@ -690,6 +722,17 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 });
                 this.invokeLifecycleListeners(SlidingSyncState.RequestFinished, resp);
             } catch (err) {
+                // 1. 已终止（stop()/destroy() 被调用）：静默退出，不记录错误
+                if (this.terminated) {
+                    continue;
+                }
+                // 2. Abort 类错误（页面切换/登出/resend 主动中止）：
+                //    BaseManager 会把 AbortError 包装成 ApiError，需用 isAbortLikeError 检测
+                if (this.needsResend || isAbortLikeError(err)) {
+                    // 主动中止，不需要退避，直接重试
+                    logger.debug("[SlidingSync] request aborted (expected on page switch/logout/resend)");
+                    continue;
+                }
                 if ((<HTTPError>err).httpStatus) {
                     this.invokeLifecycleListeners(SlidingSyncState.RequestFinished, null, <Error>err);
                     if ((<HTTPError>err).httpStatus === 400) {
@@ -703,19 +746,20 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                     } else if ((<HTTPError>err).httpStatus === 429) {
                         // Rate limited: use server's retry_after_ms if available, with exponential backoff
                         const backoffMs = safeGetRetryAfterMs(err, 5000);
-                        logger.warn(`SlidingSync rate limited (429), backing off for ${backoffMs}ms`);
+                        // 429 有自动重试机制（指数退避），重试后通常成功，降级为 debug 避免控制台噪音
+                        // 与前端 MatrixRateLimitInterceptor 的处理保持一致
+                        logger.debug(`SlidingSync rate limited (429), backing off for ${backoffMs}ms`);
                         await sleep(backoffMs);
                         continue;
                     } // else fallthrough to generic error handling
-                } else if (this.needsResend || (<Error>err).name === "AbortError") {
-                    continue; // don't sleep as we caused this error by abort()ing the request.
                 }
                 logger.error(err);
                 this.consecutiveErrors++;
                 const baseDelay = 1000;
                 const maxDelay = 60000;
                 const delay = Math.min(baseDelay * 2 ** this.consecutiveErrors, maxDelay);
-                logger.warn(
+                // 上方 logger.error 已记录错误详情，这里只是退避提示，降级为 debug 避免重复噪音
+                logger.debug(
                     `SlidingSync backing off for ${delay}ms after ${this.consecutiveErrors} consecutive errors`,
                 );
                 await sleep(delay);

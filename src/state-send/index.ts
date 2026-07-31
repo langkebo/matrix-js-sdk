@@ -61,7 +61,7 @@ export class StateSendManager extends BaseManager<keyof StateSendManagerEvents, 
         userId: string | string[],
         powerLevel: number | undefined,
     ): Promise<ISendEventResponse> {
-        const clientInternals = this.client as unknown as ClientInternals;
+        const clientInternals = this.internalClient as unknown as ClientInternals;
 
         let content: IPowerLevelsContent | undefined;
         if (clientInternals.clientRunning && clientInternals.isInitialSyncComplete()) {

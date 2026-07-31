@@ -206,6 +206,10 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
         private oobMemberFlags = { status: OobStatus.NotStarted },
     ) {
         super();
+        // 房间状态事件较多（events/members/newMember 等），默认 10 监听器上限
+        // 在大型房间或频繁 sync 时会触发 MaxListenersExceededWarning，提升到 50
+        // 与 MatrixEventRouter.setup() 中 client.setMaxListeners(50) 保持一致
+        this.setMaxListeners(50);
         this.updateModifiedTime();
     }
 
@@ -217,7 +221,9 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
         const createEvent = this.getStateEvents(EventType.RoomCreate, "");
         if (!createEvent) {
             if (!this.getVersionWarning) {
-                logger.warn("[getVersion] Room " + this.roomId + " does not have an m.room.create event");
+                // Sliding Sync 增量同步过程中可能短暂缺失 m.room.create 事件，
+                // 这种情况是预期的（后续 sync 会补齐），降级为 debug 避免控制台噪音
+                logger.debug("[getVersion] Room " + this.roomId + " does not have an m.room.create event");
                 this.getVersionWarning = true;
             }
             return "1";

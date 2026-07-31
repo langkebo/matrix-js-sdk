@@ -27,6 +27,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum RoomAliasEvent {
     AliasCreated = "AliasCreated",
@@ -403,4 +404,11 @@ export class RoomAliasManager extends BaseManager<RoomAliasEvent, RoomAliasManag
         this.aliasCache.clear();
         this.roomAliasesCache.clear();
     }
+}
+
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getRoomAliasManager = function (): RoomAliasManager {
+        registerManagerClass("roomAlias", RoomAliasManager);
+        return getOrCreateManager(this, "roomAlias", () => new RoomAliasManager(this));
+    };
 }

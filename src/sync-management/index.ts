@@ -42,14 +42,11 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
     }
 
     public getSyncState(): SyncState | null {
-        return (
-            (this.client as unknown as { syncApi?: { getSyncState(): SyncState | null } }).syncApi?.getSyncState() ??
-            null
-        );
+        return this.internalClient.syncApi?.getSyncState() ?? null;
     }
 
     public getSyncStateData(): ISyncStateData | null {
-        const syncApi = (this.client as unknown as { syncApi?: { getSyncStateData(): ISyncStateData | null } }).syncApi;
+        const syncApi = this.internalClient.syncApi;
         if (!syncApi) {
             return null;
         }
@@ -87,10 +84,7 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
         if (this.syncLeftRoomsPromise) {
             return this.syncLeftRoomsPromise; // return the ongoing request
         }
-        const clientInternals = this.client as unknown as {
-            clientOpts: IStoredClientOpts;
-            buildSyncApiOptions(): SyncApiOptions;
-        };
+        const clientInternals = this.internalClient;
         const syncApi = new SyncApi(this.client, clientInternals.clientOpts, clientInternals.buildSyncApiOptions());
         this.syncLeftRoomsPromise = syncApi.syncLeftRooms();
 

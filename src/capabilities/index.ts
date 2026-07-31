@@ -52,7 +52,7 @@ export class CapabilitiesManager extends BaseManager<keyof CapabilitiesManagerEv
 
     public getCachedCapabilities(): IServerCapabilities | undefined {
         return (
-            this.client as unknown as {
+            this.internalClient as unknown as {
                 serverCapabilitiesService?: {
                     getCachedCapabilities: () => IServerCapabilities | undefined;
                 };
@@ -63,7 +63,7 @@ export class CapabilitiesManager extends BaseManager<keyof CapabilitiesManagerEv
     public async fetchCapabilities(): Promise<IServerCapabilities | undefined> {
         return this.withRetry(async () => {
             const service = (
-                this.client as unknown as {
+                this.internalClient as unknown as {
                     serverCapabilitiesService?: {
                         fetchCapabilities: () => Promise<IServerCapabilities>;
                     };

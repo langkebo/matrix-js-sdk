@@ -184,7 +184,7 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
             this.client.getRoom(roomId),
             { roomId, rmEventId, rrEvent, rpEvent, userId: this.client.credentials.userId! },
             (
-                this.client as unknown as {
+                this.internalClient as unknown as {
                     setRoomReadMarkersHttpRequest?: typeof ReadReceiptsManager.prototype.setRoomReadMarkersHttpRequest;
                 }
             ).setRoomReadMarkersHttpRequest?.bind(this.client) ?? this.setRoomReadMarkersHttpRequest.bind(this),

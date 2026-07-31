@@ -143,9 +143,7 @@ export class ToDeviceManager extends BaseManager {
             return widgetClient.queueToDevice(batch);
         }
 
-        return (
-            this.client as unknown as { toDeviceMessageQueue: { queueBatch(batch: ModelToDeviceBatch): Promise<void> } }
-        ).toDeviceMessageQueue.queueBatch(batch);
+        return this.internalClient.toDeviceMessageQueue.queueBatch(batch);
     }
 
     /**
@@ -194,9 +192,7 @@ export class ToDeviceManager extends BaseManager {
             return widgetClient.encryptAndSendToDevice(eventType, devices, payload);
         }
 
-        const client = this.client as unknown as {
-            cryptoBackend?: import("../common-crypto/CryptoBackend").CryptoBackend;
-        };
+        const client = this.internalClient;
         if (!client.cryptoBackend) {
             throw new Error("Cannot encrypt to device event, your client does not support encryption.");
         }

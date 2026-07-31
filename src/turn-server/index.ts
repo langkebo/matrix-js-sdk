@@ -40,7 +40,7 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 
     public getTurnServers(): ITurnServer[] {
-        return (this.client as unknown as { turnServers?: ITurnServer[] }).turnServers || [];
+        return this.internalClient.turnServers || [];
     }
 
     public async getTurnServerURIs(): Promise<string[]> {
@@ -61,7 +61,7 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
     }
 
     public getTurnServerExpiry(): number {
-        return (this.client as unknown as { turnServersExpiry?: number }).turnServersExpiry ?? 0;
+        return this.internalClient.turnServersExpiry ?? 0;
     }
 
     /**
@@ -70,19 +70,7 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
      * @returns true if credentials are good, undefined if VoIP not supported.
      */
     public async checkTurnServers(): Promise<boolean | undefined> {
-        const client = this.client as unknown as {
-            supportsVoip?(): boolean;
-            turnServersExpiry: number;
-            turnServers: ITurnServer[];
-            turnServer(): Promise<ITurnServerResponse>;
-            emit(event: string, ...args: unknown[]): boolean;
-            logger?: {
-                debug?(...args: unknown[]): void;
-                error?(...args: unknown[]): void;
-                info?(...args: unknown[]): void;
-            };
-            checkTurnServersIntervalID?: ReturnType<typeof setInterval>;
-        };
+        const client = this.internalClient;
         if (!client.supportsVoip || !client.supportsVoip()) {
             return;
         }

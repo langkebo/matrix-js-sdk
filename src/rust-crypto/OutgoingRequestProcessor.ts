@@ -180,7 +180,19 @@ export class OutgoingRequestProcessor {
                 newBody.auth = auth;
             }
             const resp = await this.requestWithRetry(method, path, queryParams, JSON.stringify(newBody));
-            return JSON.parse(resp) as T;
+            // `resp` is a raw JSON string from the homeserver, consumed by the UIA flow.
+            // Parse through an `unknown` intermediate and apply a minimal structural check
+            // before the cast to `T`. A full schema is infeasible because `T` is
+            // caller-determined: the only caller uses `T = void` for the device-signing
+            // upload endpoint, whose response body is an empty object `{}` and is discarded
+            // by the UIA callback, so the cast to `T` is safe in practice. We still guard
+            // against null / non-object payloads so a malformed response fails loudly at the
+            // boundary rather than propagating as an unvalidated `T`.
+            const parsed: unknown = JSON.parse(resp);
+            if (parsed === null || typeof parsed !== "object") {
+                throw new Error("Unexpected non-object response from server");
+            }
+            return parsed as T;
         };
 
         const resp = await uiaCallback(makeRequest);

@@ -126,7 +126,7 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
     }
 
     public async getEventTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | null> {
-        const clientInternals = this.client as unknown as ClientInternals;
+        const clientInternals = this.internalClient as unknown as ClientInternals;
 
         if (!clientInternals.timelineSupport) {
             throw new Error(
@@ -205,7 +205,7 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      *    {@link EventTimeline} timeline with the latest events in the room
      */
     public async getLatestTimeline(timelineSet: EventTimelineSet): Promise<EventTimeline | null> {
-        const clientInternals = this.client as unknown as ClientInternals;
+        const clientInternals = this.internalClient as unknown as ClientInternals;
 
         // don't allow any timeline support unless it's been enabled.
         if (!clientInternals.timelineSupport) {
@@ -270,7 +270,7 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      * `null`.
      */
     public scrollback(room: Room, limit = 30): Promise<Room> {
-        const clientInternals = this.client as unknown as ClientInternals;
+        const clientInternals = this.internalClient as unknown as ClientInternals;
 
         let timeToWaitMs = 0;
 

@@ -34,6 +34,7 @@ import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, ValidationError } from "../errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
+import type { MatrixClientInternalMethods } from "../matrix-client-extensions";
 
 // ─── 公共类型 ────────────────────────────────────────────────
 
@@ -155,6 +156,19 @@ export abstract class BaseManager<
         };
     }
 
+    // ─── 内部客户端访问（单点类型断言） ──────────────────────────
+    /**
+     * 将 `this.client` 类型断言为 `MatrixClient & MatrixClientInternalMethods`，
+     * 使 Manager 可通过 `this.internalClient.xxx` 类型安全地访问 MatrixClient
+     * 内部成员（syncApi、turnServers、serverClockDiff 等）。
+     *
+     * 这是整个 SDK 中唯一的 `as unknown as` 断言点（针对内部成员访问），
+     * 替代了先前散落在各 Manager 中的 45 处类型断言。
+     */
+    protected get internalClient(): MatrixClient & MatrixClientInternalMethods {
+        return this.client as unknown as MatrixClient & MatrixClientInternalMethods;
+    }
+
     // ─── 核心：统一请求方法 ────────────────────────────────────
 
     /**
@@ -204,12 +218,13 @@ export abstract class BaseManager<
         // 独立调用：自行负责重试与统计
         const isIdempotent = spec.method === Method.Get || spec.method === "HEAD";
         const mergedRetry: Required<Pick<RetryOptions, "maxRetries" | "retryDelay" | "backoffMultiplier">> &
-            Pick<RetryOptions, "idempotent" | "retryNonIdempotent"> = {
+            Pick<RetryOptions, "idempotent" | "retryNonIdempotent" | "jitterRatio"> = {
             maxRetries: spec.retry?.maxRetries ?? this.retryOptions.maxRetries ?? 3,
             retryDelay: spec.retry?.retryDelay ?? this.retryOptions.retryDelay ?? 1000,
             backoffMultiplier: spec.retry?.backoffMultiplier ?? this.retryOptions.backoffMultiplier ?? 2,
             idempotent: spec.retry?.idempotent ?? isIdempotent,
             retryNonIdempotent: spec.retry?.retryNonIdempotent ?? this.retryOptions.retryNonIdempotent ?? false,
+            jitterRatio: spec.retry?.jitterRatio ?? this.retryOptions.jitterRatio ?? 0,
         };
 
         let lastError: unknown;
@@ -240,14 +255,12 @@ export abstract class BaseManager<
 
                     if (canRetry && isRetryableErr) {
                         this.requestStats.retried++;
-                        let delay = currentDelay;
-                        // Prefer the normalized SdkError path (post-normalizeError),
-                        // fall back to raw HTTPError for pre-normalize edge cases.
-                        if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
-                            delay = normalized.retryAfter ?? currentDelay;
-                        } else if (error instanceof HTTPError && error.isRateLimitError()) {
-                            delay = safeGetRetryAfterMs(error, currentDelay);
-                        }
+                        const delay = this.computeRetryDelay(
+                            currentDelay,
+                            error,
+                            normalized,
+                            mergedRetry.jitterRatio ?? 0,
+                        );
                         logger.warn(
                             `${this.constructor.name}.${label}: Retry attempt ${attempt + 1}/${mergedRetry.maxRetries} after ${delay}ms`,
                             error,
@@ -395,6 +408,7 @@ export abstract class BaseManager<
         const backoffMultiplier = options.backoffMultiplier ?? this.retryOptions.backoffMultiplier ?? 2;
         const jitterRatio = options.jitterRatio ?? this.retryOptions.jitterRatio ?? 0;
         const idempotent = options.idempotent ?? this.retryOptions.idempotent ?? true;
+        const retryNonIdempotent = options.retryNonIdempotent ?? this.retryOptions.retryNonIdempotent ?? false;
 
         let lastError: unknown;
         let currentDelay = retryDelay;
@@ -421,20 +435,9 @@ export abstract class BaseManager<
                                 typeof error.httpStatus === "number" &&
                                 error.httpStatus >= 500);
 
-                        if (idempotent && isRetryableErr) {
+                        if ((idempotent || retryNonIdempotent) && isRetryableErr) {
                             this.requestStats.retried++;
-                            let delay = currentDelay;
-                            // Prefer the normalized SdkError path (post-normalizeError),
-                            // fall back to raw HTTPError for pre-normalize edge cases.
-                            if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
-                                delay = normalized.retryAfter ?? currentDelay;
-                            } else if (error instanceof HTTPError && error.isRateLimitError()) {
-                                delay = safeGetRetryAfterMs(error, currentDelay);
-                            }
-                            if (jitterRatio > 0) {
-                                const jitter = delay * jitterRatio * (Math.random() * 2 - 1);
-                                delay = Math.max(0, delay + jitter);
-                            }
+                            const delay = this.computeRetryDelay(currentDelay, error, normalized, jitterRatio);
                             logger.warn(
                                 `${this.constructor.name}.${label}: Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
                                 error,
@@ -466,6 +469,30 @@ export abstract class BaseManager<
             failed: 0,
             retried: 0,
         };
+    }
+
+    // ─── 重试延迟计算（request/withRetry 共享） ─────────────────
+
+    /**
+     * 计算单次重试延迟：基础退避 → 限流覆盖 → 抖动。
+     *
+     * 提取自 `request()` 与 `withRetry()` 的公共逻辑，确保两条重试路径在
+     * 限流 `Retry-After` 覆盖与抖动（`jitterRatio`）行为上保持一致。
+     */
+    private computeRetryDelay(baseDelay: number, error: unknown, normalized: SdkError, jitterRatio: number): number {
+        let delay = baseDelay;
+        // Prefer the normalized SdkError path (post-normalizeError),
+        // fall back to raw HTTPError for pre-normalize edge cases.
+        if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
+            delay = normalized.retryAfter ?? baseDelay;
+        } else if (error instanceof HTTPError && error.isRateLimitError()) {
+            delay = safeGetRetryAfterMs(error, baseDelay);
+        }
+        if (jitterRatio > 0) {
+            const jitter = delay * jitterRatio * (Math.random() * 2 - 1);
+            delay = Math.max(0, delay + jitter);
+        }
+        return delay;
     }
 
     // ─── 验证 helper ────────────────────────────────────────────

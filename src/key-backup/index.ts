@@ -26,7 +26,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
-import { ValidationError } from "../errors";
+import { NotFoundError, ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { KeyBackupPathPattern } from "./__generated__/route-table";
@@ -220,6 +220,36 @@ export class KeyBackupManager extends BaseManager {
             return result;
         } catch (error) {
             throw this.normalizeError(error, "getLatestBackupVersion");
+        }
+    }
+
+    /**
+     * 检查是否存在密钥备份（兼容方法）
+     *
+     * 这是 {@link getLatestBackupVersion} 的兼容别名，对齐标准 SDK 的
+     * `CryptoApi.checkKeyBackupAndEnable` 命名风格。当服务器不存在备份版本
+     * （HTTP 404 / M_NOT_FOUND）时返回 `null`，而非抛出错误，便于调用方
+     * 用 `if (info)` 的方式判断是否已启用备份。
+     *
+     * 注意：与 `RustBackupManager.checkKeyBackupAndEnable` 不同，本方法仅做
+     * 只读检查，不会自动启用备份。
+     *
+     * 对应 GET /room_keys/version
+     */
+    async checkKeyBackup(forceRefresh = false): Promise<BackupVersionInfo | null> {
+        try {
+            return await this.getLatestBackupVersion(forceRefresh);
+        } catch (error) {
+            // 404 / M_NOT_FOUND 表示尚无备份版本，是预期情况，返回 null
+            if (error instanceof NotFoundError) {
+                return null;
+            }
+            // 兜底：处理未被 normalizeError 转换的原始 HTTPError
+            const httpStatus = (error as { httpStatus?: number })?.httpStatus;
+            if (httpStatus === 404) {
+                return null;
+            }
+            throw error;
         }
     }
 

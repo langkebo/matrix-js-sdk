@@ -548,7 +548,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 
     public async getThreadTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | undefined> {
-        const clientInternals = this.client as unknown as ClientInternals;
+        const clientInternals = this.internalClient as unknown as ClientInternals;
 
         if (!clientInternals.supportsThreads()) {
             throw new Error("could not get thread timeline: no client support");

@@ -136,7 +136,7 @@ export class DiscoveryManager extends BaseManager {
         if (this.client.getClientWellKnown) {
             return this.client.getClientWellKnown();
         }
-        return (this.client as unknown as { clientWellKnown?: IClientWellKnown }).clientWellKnown;
+        return this.internalClient.clientWellKnown;
     }
 
     public async getServerDiscoveryInfo(): Promise<ClientWellKnownResponse> {

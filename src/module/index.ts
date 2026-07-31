@@ -34,7 +34,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { MatrixError } from "../http-api/errors";
 import { MatrixClient } from "../client";
-import { getOrCreateManager } from "../client-infra/manager-registry";
+import { getOrCreateManager, registerManagerClass } from "../client-infra/manager-registry";
 import { NotFoundError } from "../errors";
 import { buildPaginationParams } from "../common/pagination";
 import type { IContent } from "../models/event";
@@ -407,5 +407,6 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
  * 将 ModuleManager 注册为客户端实例上的惰性单例
  */
 MatrixClient.prototype.getModuleManager = function (): ModuleManager {
+    registerManagerClass("module", ModuleManager);
     return getOrCreateManager(this, "module", () => new ModuleManager(this));
 };

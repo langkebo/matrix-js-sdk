@@ -136,6 +136,7 @@ export type ManagerName =
     | "roomSettings"
     | "roomState"
     | "roomSummary"
+    | "roomAlias"
     | "saml-auth"
     | "search"
     | "secretStorage"
@@ -244,6 +245,7 @@ export interface ManagerTypeMap {
     roomSettings: import("../room-settings/index").RoomSettingsManager;
     roomState: import("../room-state/index").RoomStateManager;
     roomSummary: import("../room-summary/index").RoomSummaryManager;
+    roomAlias: import("../room-alias/index").RoomAliasManager;
     "saml-auth": import("../saml/index").SamlAuthManager;
     search: import("../search/index").SearchManager;
     secretStorage: import("../secret-storage/index").SecretStorageManager;

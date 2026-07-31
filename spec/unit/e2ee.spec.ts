@@ -124,12 +124,12 @@ describe("E2EEManager", () => {
         it("should get verification status", async () => {
             transport.respondWith({
                 token: "verify-token-123",
-                status: "pending",
+                state: "pending",
             });
 
             const result = await e2eeManager.getDeviceVerificationStatus("verify-token-123");
 
-            expect(result.status).toBe("pending");
+            expect(result.state).toBe("pending");
             transport.expectCalledWithArgs(
                 Method.Get,
                 "/device_verification/status/verify-token-123",

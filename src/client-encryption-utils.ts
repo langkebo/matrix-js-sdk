@@ -56,7 +56,7 @@ interface ClientInternals {
 }
 
 export function createEncryptionUtils(client: MatrixClient): EncryptionUtils {
-    const clientInternals = client as unknown as ClientInternals;
+    const clientInternals = client;
 
     return {
         async encryptEventIfNeeded(event: MatrixEvent, room?: Room): Promise<void> {

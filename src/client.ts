@@ -748,7 +748,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public pushRules?: IPushRules;
     protected syncLeftRoomsPromise?: Promise<Room[]>;
     protected syncedLeftRooms = false;
-    protected clientOpts?: IStoredClientOpts;
+    public clientOpts?: IStoredClientOpts; // Intended protected, used in lifecycle helpers.
     public clientWellKnownIntervalID?: ReturnType<typeof setInterval>; // Intended protected, used in lifecycle helpers.
     public canResetTimelineCallback?: ResetTimelineCallback; // Intended protected, used in lifecycle helpers.
 
@@ -761,10 +761,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     // Tracking issue: https://github.com/matrix-org/matrix-js-sdk/issues/1020
     protected serverVersionsPromise?: Promise<IServerVersions>;
 
-    protected clientWellKnown?: IClientWellKnown;
+    public clientWellKnown?: IClientWellKnown; // Intended protected, used in lifecycle helpers.
     protected clientWellKnownPromise?: Promise<IClientWellKnown>;
-    protected turnServers: ITurnServer[] = [];
-    protected turnServersExpiry = 0;
+    public turnServers: ITurnServer[] = []; // Intended protected, used in lifecycle helpers.
+    public turnServersExpiry = 0; // Intended protected, used in lifecycle helpers.
     public checkTurnServersIntervalID?: ReturnType<typeof setInterval>; // Intended protected, used in lifecycle helpers.
     protected txnCtr = 0;
     protected mediaHandler = new MediaHandler(this);
@@ -956,7 +956,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Construct a SyncApiOptions for this client, suitable for passing into the SyncApi constructor
      */
-    protected buildSyncApiOptions(): SyncApiOptions {
+    public buildSyncApiOptions(): SyncApiOptions {
         return buildSyncApiOptionsHelper(this);
     }
 

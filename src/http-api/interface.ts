@@ -19,7 +19,7 @@ import { type Logger } from "../logger";
 import { type QueryDict } from "./utils";
 export type RequestPriority = "high" | "low" | "auto";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TypeScript interfaces lack implicit index signatures, so `any` is required for interface-typed request bodies (IAddThreePidOnlyBody, ReadMarkersBody, etc.)
 export type Body = Record<string, any> | BodyInit;
 
 /**

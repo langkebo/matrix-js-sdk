@@ -268,7 +268,85 @@ As well as the primary entry point (`matrix-js-sdk`), there are several other en
 | `matrix-js-sdk/lib/crypto-api` | Cryptography functionality.                                                                         |
 | `matrix-js-sdk/lib/types`      | Low-level types, reflecting data structures defined in the Matrix spec.                             |
 | `matrix-js-sdk/lib/testing`    | Test utilities, which may be useful in test code but should not be used in production code.         |
-| `matrix-js-sdk/lib/utils/*.js` | A set of modules exporting standalone functions (and their types).                                  |
+| `matrix-js-sdk/lib/utils/*.js` | A set of modules exporting standalone functions (and their types). |
+
+## Architecture
+
+### Manager pattern
+
+The SDK is organized around the **Manager pattern**: each functional domain (push, room, media,
+crypto, etc.) is encapsulated in a dedicated `Manager` class that extends [`BaseManager`](src/managers/base-manager.ts).
+All 51 Managers share a unified foundation:
+
+- **Unified request pipeline**: `BaseManager.request<T>(spec)` handles HTTP transport, automatic retry
+  (for idempotent operations), error normalization, and request statistics — so individual Managers
+  only declare the HTTP method/path/body and parse the response.
+- **Unified error handling**: `normalizeError()` converts `MatrixError`/`HTTPError`/network errors
+  into typed `SdkError` subclasses (`AuthError`, `NotFoundError`, `RetryableError`, `ValidationError`,
+  `ApiError`), giving callers a consistent error model regardless of which Manager produced it.
+- **Unified retry**: `withRetry(fn, label)` wraps non-idempotent operations with configurable retry
+  (max retries, exponential backoff with jitter, 429 `retry_after` parsing).
+- **Request statistics**: Each Manager tracks `requestStats` (total/successful/failed/retried) via
+  `getRequestStats()` / `resetRequestStats()`, enabling observability without external instrumentation.
+
+### Manager registration
+
+Managers are lazily instantiated and cached on the `MatrixClient` instance via `extendMatrixClient()`
+functions. The auto-generated registry at [`src/manager-extensions/index.ts`](src/manager-extensions/index.ts)
+loads all Manager extensions dynamically (with `safeDynamicImport` for graceful teardown handling).
+
+```typescript
+// Access a Manager from a MatrixClient instance
+const pushManager = client.getPushManager();
+const widgetManager = client.getWidgetManager();
+```
+
+### Type-safe internal access
+
+`MatrixClient` exposes a rich public interface, but Managers sometimes need to access internal
+fields (e.g., `syncApi`, `turnServers`, `serverClockDiff`) that are not part of the public API.
+These internal members are declared in the [`MatrixClientInternalMethods`](src/matrix-client-extensions.ts)
+interface. `BaseManager` provides a single type-safe accessor:
+
+```typescript
+// Inside any Manager:
+this.internalClient.serverClockDiff    // typed as number
+this.internalClient.syncApi            // typed as SyncApi | SlidingSyncSdk | undefined
+this.internalClient.toDeviceMessageQueue.queueBatch(batch)  // fully typed
+```
+
+This consolidates what was previously 45 scattered `as unknown as` type assertions into a single
+assertion point in `BaseManager.internalClient`, restoring compile-time type checking at all access sites.
+
+### Module organization
+
+The SDK's 51 Manager modules are organized by domain under `src/`:
+
+| Domain | Modules |
+|--------|---------|
+| Core lifecycle | `client`, `sync`, `sliding-sync`, `sync-management`, `server-capabilities` |
+| Rooms & messaging | `room`, `room-manager`, `room-member`, `room-summary`, `room-state`, `timeline`, `threading`, `state-send`, `sending`, `ephemeral`, `reactions`, `pinned-messages`, `burn-after-read` |
+| Users & identity | `user`, `profile`, `account`, `account-data`, `presence`, `typing`, `threepids`, `user-directory`, `directory` |
+| Push & notifications | `push`, `push-rules`, `push-notifications`, `notifications`, `tags`, `tags-management`, `read-receipts` |
+| Crypto & E2EE | `e2ee`, `crypto-keys`, `key-backup`, `key-rotation`, `key-verification`, `cross-signing`, `device`, `device-keys`, `device-trust`, `verification`, `secret-storage`, `secure-backup`, `dehydrated-device` |
+| Media & uploads | `media`, `uploads` |
+| VOIP | `turn-server`, `voice`, `web-rtc`, `matrix-rtc` |
+| Admin & moderation | `admin`, `moderation`, `event-report`, `reporting` |
+| Federation & directory | `federation`, `third-party`, `identity-server`, `discovery` |
+| Auth & SSO | `auth`, `guest`, `captcha`, `saml`, `cas`, `oidc`, `password-reset`, `interactive-auth`, `rendezvous` |
+| Custom extensions | `friend`, `space`, `ai-connection`, `open-claw`, `external-service`, `feature-flags`, `telemetry`, `module` |
+
+### Frontend integration
+
+The SDK is consumed by the `hula` frontend via a three-layer architecture:
+
+- **L1 (SDK)**: `matrix-js-sdk/src/` — provides `Manager` classes (this package)
+- **L2 (Frontend domain services)**: `hula/src/services/matrix/` — wraps SDK Managers with
+  UI-specific concerns (connection state machine, event routing, crypto lifecycle tracking).
+  `MatrixClientService` acts as a facade delegating to `MatrixConnectionManager`,
+  `MatrixEventRouter`, and `MatrixCryptoStateTracker`.
+- **L3 (Frontend path constants)**: `hula/src/services/matrix/paths/` — URL constants for
+  direct HTTP calls that bypass the SDK (e.g., v3 fallback paths).
 
 ## Examples
 

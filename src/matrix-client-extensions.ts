@@ -345,6 +345,7 @@ export interface MatrixClientExtensionMethods {
     getCaptchaManager(): import("./captcha/index").CaptchaManager;
     getRetentionManager(): import("./retention/index").RetentionManager;
     getBeaconManager(): import("./beacon/index").BeaconManager;
+    getRoomAliasManager(): import("./room-alias/index").RoomAliasManager;
 
     getLifecycleManager(): import("./lifecycle/index").LifecycleManager;
     setUserPowerLevel(roomId: string, userId: string, powerLevel: number): Promise<void>;
@@ -391,7 +392,7 @@ export interface MatrixClientInternalMethods {
     readonly idBaseUrl?: string;
     readonly syncing?: boolean;
     readonly syncToken?: string | null;
-    readonly serverClockDiff?: number;
+    serverClockDiff: number;
     readonly rooms: Room[];
     readonly identityServer?: IIdentityServerProvider;
 
@@ -497,6 +498,22 @@ export interface MatrixClientInternalMethods {
     getServerTimestamp(): number;
     updateServerTimeInfo(serverTime: number, serverDate: string): void;
     getMediaConfig(useAuthenticatedMedia?: boolean): Promise<IMediaConfig>;
+    supportsVoip(): boolean;
+    checkTurnServersIntervalID?: ReturnType<typeof setInterval>;
+
+    // ============ Internal Properties (property-form, accessed by managers) ============
+    // These are public/protected fields on MatrixClient that managers access directly
+    // (rather than via getter methods). Declared here so managers can use typed access
+    // via `this.internalClient.xxx` instead of scattered `as unknown as` casts.
+    turnServers: ITurnServer[];
+    turnServersExpiry: number;
+    cryptoBackend?: import("./common-crypto/CryptoBackend").CryptoBackend;
+    clientOpts?: IStoredClientOpts;
+    syncApi?: import("./sync").SyncApi | import("./sliding-sync-sdk").SlidingSyncSdk;
+    toDeviceMessageQueue: import("./ToDeviceMessageQueue").ToDeviceMessageQueue;
+    clientWellKnown?: import("./client-api-types").IClientWellKnown;
+    buildSyncApiOptions(): import("./sync").SyncApiOptions;
+    logger: import("./logger").Logger;
 
     // ============ Server Capabilities ============
     getServerCapabilities(): Promise<ServerCapabilities>;
