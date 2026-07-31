@@ -21,6 +21,7 @@ import type { QueryDict } from "../../utils";
 import { encodeUri } from "../../http-api/utils";
 import { InvalidParamError } from "../../common/errors";
 import type { IContent } from "../../models/event";
+import { LRUCache } from "../../utils/lru-cache";
 
 /** 翻译事件请求体 */
 export interface TranslateEventBody {
@@ -50,6 +51,7 @@ export interface VerifyEventBody {
 
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type {
+    RoomSummary,
     RoomNotificationsResult,
     RoomCapabilities,
     RoomSyncResult,
@@ -80,11 +82,19 @@ import type {
     TurnServerConfig,
     StickyEvent,
     RoomVaultDataResult,
+    UpdateSummaryBody,
+    SyncSummaryResult,
+    ProcessUpdatesResult,
 } from "../types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+    return path;
+}
+
+type StripInternalSummary<P extends string> = P extends `/_synapse/room_summary/v1${infer Rest}` ? Rest : never;
+function _rsi<P extends StripInternalSummary<RoomSummaryPathPattern> | "/summaries/batch">(path: P): P {
     return path;
 }
 
@@ -100,14 +110,20 @@ function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
  */
 export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     private readonly onCacheInvalidation?: (roomId: string) => void;
+    private readonly summaryCache?: LRUCache<RoomSummary>;
+    private readonly onSummaryUpdated?: (roomId: string, summary: RoomSummary) => void;
 
     constructor(
         client: MatrixClient,
         onCacheInvalidation?: (roomId: string) => void,
         onError?: RoomSummaryErrorCallback,
+        summaryCache?: LRUCache<RoomSummary>,
+        onSummaryUpdated?: (roomId: string, summary: RoomSummary) => void,
     ) {
         super(client, onError);
         this.onCacheInvalidation = onCacheInvalidation;
+        this.summaryCache = summaryCache;
+        this.onSummaryUpdated = onSummaryUpdated;
     }
 
     /**
@@ -762,5 +778,120 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
                 target_lang: targetLang,
             } as Body);
         }, "translate");
+    }
+
+    // ─── Summary CRUD（从 index.ts 迁移） ──────────────────────────────────
+
+    /**
+     * 创建或刷新房间摘要
+     *
+     * @param roomId - 房间 ID
+     * @param body - 请求体
+     * @returns 房间摘要，若失败返回 null
+     */
+    public async createOrRefreshSummary(roomId: string, body: IContent = {}): Promise<RoomSummary | null> {
+        this.validateRoomId(roomId);
+
+        try {
+            const summary = await this.withRetry(async () => {
+                return await this.requestV3<RoomSummary>(Method.Post, this.summaryReadPath(roomId), undefined, body);
+            }, "createOrRefreshSummary");
+
+            if (summary) {
+                this.summaryCache?.set(roomId, summary);
+                this.onSummaryUpdated?.(roomId, summary);
+            }
+            return summary;
+        } catch (e) {
+            throw this.normalizeError(e, "createOrRefreshSummary");
+        }
+    }
+
+    /**
+     * 更新房间摘要
+     *
+     * @param roomId - 房间 ID
+     * @param body - 更新请求体
+     * @returns 更新后的房间摘要
+     */
+    public async updateSummary(roomId: string, body: UpdateSummaryBody): Promise<RoomSummary | null> {
+        this.validateRoomId(roomId);
+
+        try {
+            const summary = await this.withRetry(async () => {
+                return await this.requestV3<RoomSummary>(Method.Put, this.summaryReadPath(roomId), undefined, body);
+            }, "updateSummary");
+
+            if (summary) {
+                this.summaryCache?.set(roomId, summary);
+                this.onSummaryUpdated?.(roomId, summary);
+                return summary;
+            }
+            this.onCacheInvalidation?.(roomId);
+            return this.summaryCache?.get(roomId) ?? null;
+        } catch (e) {
+            throw this.normalizeError(e, "updateSummary");
+        }
+    }
+
+    /**
+     * 删除房间摘要
+     *
+     * @param roomId - 房间 ID
+     */
+    public async deleteSummary(roomId: string): Promise<void> {
+        this.validateRoomId(roomId);
+
+        return this.withRetry(async () => {
+            await this.requestV3(Method.Delete, this.summaryReadPath(roomId));
+            this.onCacheInvalidation?.(roomId);
+        }, "deleteSummary");
+    }
+
+    /**
+     * 同步房间摘要
+     *
+     * @param roomId - 房间 ID
+     * @param body - 请求体
+     * @returns 同步结果
+     */
+    public async syncSummary(roomId: string, body: IContent = {}): Promise<SyncSummaryResult> {
+        this.validateRoomId(roomId);
+
+        return this.withRetry(async () => {
+            return await this.requestV3<SyncSummaryResult>(
+                Method.Post,
+                _rsv(`/rooms/${encodeURIComponent(roomId)}/summary/sync`),
+                undefined,
+                body,
+            );
+        }, "syncSummary");
+    }
+
+    /**
+     * 处理摘要更新
+     *
+     * @param body - 请求体
+     * @returns 处理结果
+     */
+    public async processSummaryUpdates(body: { limit?: number } = {}): Promise<ProcessUpdatesResult> {
+        return this.withRetry(async () => {
+            return await this.requestInternal<ProcessUpdatesResult>(
+                Method.Post,
+                this.internalSummaryPath("/updates/process"),
+                undefined,
+                body,
+            );
+        }, "processSummaryUpdates");
+    }
+
+    // ─── 路径辅助（从 index.ts 迁移） ─────────────────────────────────────
+
+    private summaryReadPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+        return _rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
+    }
+
+    private internalSummaryPath(path: "/summaries" | "/updates/process"): StripInternalSummary<RoomSummaryPathPattern> {
+        return _rsi(path);
     }
 }

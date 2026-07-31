@@ -121,9 +121,8 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { Body } from "../http-api/interface";
 import { InvalidParamError } from "../common/errors";
-import { validateRoomId } from "../common/validators";
 import { type QueryDict } from "../http-api/utils";
-import { BaseManager, type ManagerOpts } from "../managers/base-manager";
+import { BaseManager, type ManagerOpts, type RequestStats } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types";
@@ -302,7 +301,15 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         this.search = new RoomSummarySearchManager(client, onError);
         this.keys = new RoomSummaryKeyManager(client, onError);
         this.invitePolicy = new RoomSummaryInvitePolicyManager(client, onCacheInvalidation, onError);
-        this.eventOps = new RoomSummaryEventOperationManager(client, onCacheInvalidation, onError);
+        this.eventOps = new RoomSummaryEventOperationManager(
+            client,
+            onCacheInvalidation,
+            onError,
+            this.summaryCache,
+            (roomId, summary) => {
+                this.emit(RoomSummaryEvent.Updated, roomId, summary);
+            },
+        );
 
         // 转发子 Manager 事件到 RoomSummaryManager（向后兼容）
         this.forwardSubManagerEvents();
@@ -385,63 +392,19 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     public async createOrRefreshSummary(roomId: string, body: IContent = {}): Promise<RoomSummary | null> {
-        validateRoomId(roomId, { allowAlias: true });
-
-        try {
-            const summary = await this.withRetry(async () => {
-                return await this.requestV3<RoomSummary>(Method.Post, this.summaryReadPath(roomId), undefined, body);
-            }, "createOrRefreshSummary");
-
-            if (summary) {
-                this.summaryCache.set(roomId, summary);
-                this.emit(RoomSummaryEvent.Updated, roomId, summary);
-            }
-            return summary;
-        } catch (e) {
-            throw this.normalizeError(e, "createOrRefreshSummary");
-        }
+        return this.eventOps.createOrRefreshSummary(roomId, body);
     }
 
     public async updateSummary(roomId: string, body: UpdateSummaryBody): Promise<RoomSummary | null> {
-        validateRoomId(roomId, { allowAlias: true });
-
-        try {
-            const summary = await this.withRetry(async () => {
-                return await this.requestV3<RoomSummary>(Method.Put, this.summaryReadPath(roomId), undefined, body);
-            }, "updateSummary");
-
-            if (summary) {
-                this.summaryCache.set(roomId, summary);
-                this.emit(RoomSummaryEvent.Updated, roomId, summary);
-                return summary;
-            }
-            this.clearCache(roomId);
-            return this.getCachedSummary(roomId);
-        } catch (e) {
-            throw this.normalizeError(e, "updateSummary");
-        }
+        return this.eventOps.updateSummary(roomId, body);
     }
 
     public async deleteSummary(roomId: string): Promise<void> {
-        validateRoomId(roomId, { allowAlias: true });
-
-        return this.withRetry(async () => {
-            await this.requestV3(Method.Delete, this.summaryReadPath(roomId));
-            this.clearCache(roomId);
-        }, "deleteSummary");
+        return this.eventOps.deleteSummary(roomId);
     }
 
     public async syncSummary(roomId: string, body: IContent = {}): Promise<SyncSummaryResult> {
-        validateRoomId(roomId, { allowAlias: true });
-
-        return this.withRetry(async () => {
-            return await this.requestV3<SyncSummaryResult>(
-                Method.Post,
-                rsv(`/rooms/${encodeURIComponent(roomId)}/summary/sync`),
-                undefined,
-                body,
-            );
-        }, "syncSummary");
+        return this.eventOps.syncSummary(roomId, body);
     }
 
     public async listUserSummaries(queryParams: QueryDict = {}): Promise<RoomSummaryListResponse> {
@@ -577,14 +540,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     }
 
     public async processSummaryUpdates(body: { limit?: number } = {}): Promise<ProcessUpdatesResult> {
-        return this.withRetry(async () => {
-            return await this.requestInternal<ProcessUpdatesResult>(
-                Method.Post,
-                this.internalSummaryPath("/updates/process"),
-                undefined,
-                body,
-            );
-        }, "processSummaryUpdates");
+        return this.eventOps.processSummaryUpdates(body);
     }
 
     // ===== 缓存管理 =====
@@ -600,6 +556,58 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         this.summaryCache.clear();
         this.memberCache.clear();
         this.statsCache.clear();
+    }
+
+    /**
+     * 获取聚合的请求统计（包含顶层及所有子 Manager 的请求）。
+     *
+     * RoomSummaryManager 是门面：大部分请求由子 Manager 发出，
+     * 此方法聚合所有子 Manager 的统计，提供完整的请求视图。
+     */
+    public getRequestStats(): RequestStats {
+        const aggregated: RequestStats = { total: 0, successful: 0, failed: 0, retried: 0 };
+        const subManagers = [
+            this.members,
+            this.state,
+            this.stats,
+            this.threads,
+            this.search,
+            this.keys,
+            this.invitePolicy,
+            this.eventOps,
+        ];
+        for (const sm of subManagers) {
+            const s = sm.getRequestStats();
+            aggregated.total += s.total;
+            aggregated.successful += s.successful;
+            aggregated.failed += s.failed;
+            aggregated.retried += s.retried;
+        }
+        const own = super.getRequestStats();
+        aggregated.total += own.total;
+        aggregated.successful += own.successful;
+        aggregated.failed += own.failed;
+        aggregated.retried += own.retried;
+        return aggregated;
+    }
+
+    /**
+     * 重置顶层及所有子 Manager 的请求统计。
+     */
+    public resetRequestStats(): void {
+        super.resetRequestStats();
+        for (const sm of [
+            this.members,
+            this.state,
+            this.stats,
+            this.threads,
+            this.search,
+            this.keys,
+            this.invitePolicy,
+            this.eventOps,
+        ]) {
+            sm.resetRequestStats();
+        }
     }
 
     public getCacheStats(): {
