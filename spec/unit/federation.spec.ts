@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { FederationManager } from "../../src/federation";
+import { FederationManager, FederationEvent } from "../../src/federation";
 import { AdminPrefix } from "../../src/http-api/prefix";
 import { Method } from "../../src/http-api/method.ts";
 import { MatrixClient } from "../../src/client";
@@ -430,5 +430,28 @@ describe("FederationManager", () => {
 
     it("should throw ValidationError if room ID is empty for backfillRoom", async () => {
         await expect(federationManager.room.backfillRoom("")).rejects.toThrow("Room ID is required");
+    });
+
+    // ============ 事件转发测试（P-102 I-1） ============
+
+    describe("sub-manager 事件转发到顶层 FederationManager", () => {
+        it("should forward BlacklistUpdated event from blacklist sub-manager", async () => {
+            mockAuthedRequest.mockResolvedValue({ blacklist: [{ serverName: "s1.com", addedAt: 1 }] });
+            const emitSpy = vi.spyOn(federationManager, "emit");
+
+            await federationManager.blacklist.getBlacklist();
+
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.BlacklistUpdated, expect.any(Array));
+        });
+
+        it("should forward FederationError event from blacklist sub-manager", async () => {
+            mockAuthedRequest.mockRejectedValue(new Error("network failure"));
+            const emitSpy = vi.spyOn(federationManager, "emit");
+
+            // addToBlacklist 失败时 emit BlacklistError，转发到顶层 FederationError
+            await expect(federationManager.blacklist.addToBlacklist("s1.com")).rejects.toThrow();
+
+            expect(emitSpy).toHaveBeenCalledWith(FederationEvent.FederationError, expect.any(Error));
+        });
     });
 });

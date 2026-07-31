@@ -1022,4 +1022,30 @@ describe("DirectMessageManager", () => {
             });
         });
     });
+
+    // ============ 事件转发测试（P-102 I-1） ============
+
+    describe("sub-manager 事件转发到顶层 DirectMessageManager", () => {
+        it("should forward DMCreated event from creation sub-manager", async () => {
+            mockClient.http = {
+                authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
+            };
+            const emitSpy = vi.spyOn(dmManager, "emit");
+
+            await dmManager.creation.createDmRoom("@alice:example.com");
+
+            expect(emitSpy).toHaveBeenCalledWith(DMEvent.DMCreated, "!newdm:example.com", ["@alice:example.com"]);
+        });
+
+        it("should forward ListUpdated event from creation sub-manager", async () => {
+            mockClient.http = {
+                authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm2:example.com" }),
+            };
+            const emitSpy = vi.spyOn(dmManager, "emit");
+
+            await dmManager.creation.createDmRoom("@bob:example.com");
+
+            expect(emitSpy).toHaveBeenCalledWith(DMEvent.ListUpdated);
+        });
+    });
 });

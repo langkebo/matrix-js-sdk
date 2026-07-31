@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import {
     RoomSummaryManager,
+    RoomSummaryEvent,
     type RoomSummary,
     type RoomSummaryMember,
     type RoomStats,
@@ -1412,6 +1413,41 @@ describe("RoomSummaryManager", () => {
 
             const stats = summaryManager.getRequestStats();
             expect(stats.failed).toBe(1);
+        });
+    });
+
+    // ============ 事件转发测试（P-102 I-1） ============
+
+    describe("sub-manager 事件转发到顶层 RoomSummaryManager", () => {
+        it("should forward MembersUpdated event from members sub-manager", async () => {
+            const members: RoomSummaryMember[] = [
+                { user_id: "@alice:example.com", membership: "join", is_hero: true },
+                { user_id: "@bob:example.com", membership: "join", is_hero: false },
+            ];
+            authedRequest.mockResolvedValue(members);
+            const emitSpy = vi.spyOn(summaryManager, "emit");
+
+            await summaryManager.members.getRoomSummaryMembers("!room:example.com");
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                RoomSummaryEvent.MembersUpdated,
+                "!room:example.com",
+                expect.arrayContaining([expect.objectContaining({ user_id: "@alice:example.com" })]),
+            );
+        });
+
+        it("should forward StatsUpdated event from stats sub-manager", async () => {
+            const stats = { room_id: "!room:example.com", member_count: 5, joined_member_count: 5 };
+            authedRequest.mockResolvedValue(stats);
+            const emitSpy = vi.spyOn(summaryManager, "emit");
+
+            await summaryManager.stats.getRoomSummaryStats("!room:example.com");
+
+            expect(emitSpy).toHaveBeenCalledWith(
+                RoomSummaryEvent.StatsUpdated,
+                "!room:example.com",
+                expect.objectContaining({ member_count: 5 }),
+            );
         });
     });
 });

@@ -194,4 +194,28 @@ describe("SpaceManager", () => {
         expect(onError).toHaveBeenCalledTimes(1);
         expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
     });
+
+    // ============ 事件转发测试（P-102 I-1） ============
+
+    describe("sub-manager 事件转发到顶层 SpaceManager", () => {
+        it("should forward ChildAdded event from child sub-manager", async () => {
+            const authedRequest = vi.fn().mockResolvedValue({});
+            const manager = makeManager(authedRequest);
+            const emitSpy = vi.spyOn(manager, "emit");
+
+            await manager.child.addChild("!space:test", { room_id: "!child:test" });
+
+            expect(emitSpy).toHaveBeenCalledWith(SpaceEvent.ChildAdded, "!space:test", "!child:test");
+        });
+
+        it("should forward ChildRemoved event from child sub-manager", async () => {
+            const authedRequest = vi.fn().mockResolvedValue({});
+            const manager = makeManager(authedRequest);
+            const emitSpy = vi.spyOn(manager, "emit");
+
+            await manager.child.removeChild("!space:test", "!child:test");
+
+            expect(emitSpy).toHaveBeenCalledWith(SpaceEvent.ChildRemoved, "!space:test", "!child:test");
+        });
+    });
 });

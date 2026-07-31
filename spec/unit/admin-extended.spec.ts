@@ -511,4 +511,45 @@ describe("AdminManager - Extended Tests", () => {
             expect(cached).toBeNull();
         });
     });
+
+    // ============ Proxy 边界行为测试（P-102 I-2） ============
+
+    describe("AdminManager Proxy behavior", () => {
+        it("should pass instanceof check through Proxy", () => {
+            expect(adminManager).toBeInstanceOf(AdminManager);
+        });
+
+        it("should return undefined for non-existent method (not throw)", () => {
+            // Proxy get trap 对未注册的字符串属性返回 undefined
+            expect((adminManager as unknown as Record<string, unknown>).nonExistentMethod).toBeUndefined();
+        });
+
+        it("should handle Symbol property access without crashing", () => {
+            // Symbol 属性走 Reflect.has 分支，不进入 sub-manager 路由
+            const symbol = Symbol("test");
+            expect(() => (adminManager as unknown as Record<symbol, unknown>)[symbol]).not.toThrow();
+        });
+
+        it("should expose sub-manager fields as enumerable own properties", () => {
+            const keys = Object.keys(adminManager);
+            // 6 个 sub-manager 字段（users/rooms/server/federation/media/config）应可枚举
+            expect(keys).toContain("users");
+            expect(keys).toContain("rooms");
+            expect(keys).toContain("server");
+            expect(keys).toContain("federation");
+            expect(keys).toContain("media");
+            expect(keys).toContain("config");
+        });
+
+        it("should route sub-manager method calls through Proxy", async () => {
+            // deactivateUser 是 declaration-merged 接口方法，实际通过 Proxy 路由到 users sub-manager
+            mockClient.http.authedRequest.mockResolvedValue({});
+            const emitSpy = vi.spyOn(adminManager, "emit");
+
+            await adminManager.deactivateUser("@user:example.com");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            expect(emitSpy).toHaveBeenCalledWith(AdminEvent.UserDeactivated, "@user:example.com");
+        });
+    });
 });
