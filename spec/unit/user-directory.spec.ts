@@ -92,4 +92,67 @@ describe("UserDirectoryManager", () => {
         expect(manager.getUserByDisplayName("Alice")).toEqual({ displayName: "Alice" });
         expect(manager.getUserByDisplayName("Charlie")).toBeUndefined();
     });
+
+    it("listUserDirectoryPaginated passes limit and since as request body", async () => {
+        authedRequest.mockResolvedValueOnce({
+            users: [{ user_id: "@alice:server" }],
+            next_batch: "next123",
+        });
+
+        const result = await manager.listUserDirectoryPaginated(50, "cursor123");
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/user_directory/list",
+            undefined,
+            { limit: 50, since: "cursor123" },
+            { prefix: ClientPrefix.V3 },
+        );
+        expect(result.users).toHaveLength(1);
+        expect(result.next_batch).toBe("next123");
+    });
+
+    it("listUserDirectoryPaginated normalizes results array to users", async () => {
+        authedRequest.mockResolvedValueOnce({
+            results: [{ user_id: "@bob:server", display_name: "Bob" }],
+            next_batch: "next456",
+        });
+
+        const result = await manager.listUserDirectoryPaginated(10);
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/user_directory/list",
+            undefined,
+            { limit: 10 },
+            { prefix: ClientPrefix.V3 },
+        );
+        expect(result.users).toEqual([{ user_id: "@bob:server", display_name: "Bob" }]);
+        expect(result.next_batch).toBe("next456");
+    });
+
+    it("listUserDirectoryPaginated sends empty body when no params given", async () => {
+        authedRequest.mockResolvedValueOnce({ users: [] });
+
+        const result = await manager.listUserDirectoryPaginated();
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/user_directory/list",
+            undefined,
+            {},
+            { prefix: ClientPrefix.V3 },
+        );
+        expect(result.users).toEqual([]);
+        expect(result.next_batch).toBeUndefined();
+    });
+
+    it("listUserDirectoryPaginated tolerates missing users and results arrays", async () => {
+        authedRequest.mockResolvedValueOnce({ next_batch: "next789" });
+
+        const result = await manager.listUserDirectoryPaginated(undefined, "cursor");
+
+        expect(result.users).toEqual([]);
+        expect(result.next_batch).toBe("next789");
+    });
 });

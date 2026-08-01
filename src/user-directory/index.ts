@@ -64,6 +64,15 @@ export interface IUserDirectoryListResult {
     }>;
 }
 
+export interface IUserDirectoryListPaginatedResult {
+    users: Array<{
+        user_id: string;
+        display_name?: string;
+        avatar_url?: string;
+    }>;
+    next_batch?: string;
+}
+
 export interface IUserProfile {
     avatar_url?: string;
     displayname?: string;
@@ -86,6 +95,32 @@ export class UserDirectoryManager extends BaseManager {
                 path: path,
             });
         }, "listUserDirectory");
+    }
+
+    public async listUserDirectoryPaginated(
+        limit?: number,
+        since?: string,
+    ): Promise<IUserDirectoryListPaginatedResult> {
+        const path = ap("/user_directory/list");
+        const body: { limit?: number; since?: string } = {};
+        if (limit !== undefined) body.limit = limit;
+        if (since !== undefined) body.since = since;
+        return this.withRetry(async () => {
+            const response = await this.request<{
+                results?: Array<{ user_id: string; display_name?: string; avatar_url?: string }>;
+                users?: Array<{ user_id: string; display_name?: string; avatar_url?: string }>;
+                next_batch?: string;
+            }>({
+                method: Method.Post,
+                path: path,
+                body,
+            });
+            // 后端可能返回 results 或 users，统一为 users
+            return {
+                users: response.users ?? response.results ?? [],
+                next_batch: response.next_batch,
+            };
+        }, "listUserDirectoryPaginated");
     }
 
     public async getProfile(userId: string): Promise<IUserProfile> {
