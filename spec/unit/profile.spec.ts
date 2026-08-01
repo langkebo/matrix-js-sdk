@@ -22,6 +22,8 @@ describe("ProfileManager", () => {
             getUserId: () => "@alice:example.com",
             getUser: () => null,
             getHomeserverUrl: () => "https://example.com",
+            doesServerSupportUnstableFeature: vi.fn().mockResolvedValue(false),
+            isVersionSupported: vi.fn().mockResolvedValue(false),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
     });
@@ -240,5 +242,78 @@ describe("ProfileManager", () => {
             { prefix: ClientPrefix.V3 },
         );
         expect(updatedSpy).toHaveBeenCalledWith("@alice:example.com", { displayname: "Alice Updated" });
+    });
+
+    describe("setExtendedProfilePropertyForUser / deleteExtendedProfilePropertyForUser", () => {
+        const unstableMSC4133Prefix = "/_matrix/client/unstable/uk.tcpip.msc4133";
+
+        beforeEach(() => {
+            // Configure the server to support MSC4133 (unstable) so that
+            // assertExtendedProfileSupport() passes and the unstable prefix is selected.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (profileManager as any).client.doesServerSupportUnstableFeature.mockImplementation((feature: string) =>
+                Promise.resolve(feature === "uk.tcpip.msc4133"),
+            );
+        });
+
+        it("setExtendedProfilePropertyForUser sends the raw value for an arbitrary userId", async () => {
+            mockAuthedRequest.mockResolvedValueOnce({});
+
+            await profileManager.setExtendedProfilePropertyForUser("@bob:server", "custom_field", "my_value");
+
+            // The body must be the raw value, NOT wrapped as { custom_field: "my_value" }.
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/profile/%40bob%3Aserver/custom_field",
+                undefined,
+                "my_value",
+                { prefix: unstableMSC4133Prefix },
+            );
+        });
+
+        it("setExtendedProfilePropertyForUser sends raw object values without wrapping", async () => {
+            mockAuthedRequest.mockResolvedValueOnce({});
+            const rawObject = { nested: { value: 42 }, list: [1, 2, 3] };
+
+            await profileManager.setExtendedProfilePropertyForUser("@bob:server", "custom_field", rawObject);
+
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Put,
+                "/profile/%40bob%3Aserver/custom_field",
+                undefined,
+                rawObject,
+                { prefix: unstableMSC4133Prefix },
+            );
+        });
+
+        it("deleteExtendedProfilePropertyForUser deletes for an arbitrary userId", async () => {
+            mockAuthedRequest.mockResolvedValueOnce({});
+
+            await profileManager.deleteExtendedProfilePropertyForUser("@bob:server", "custom_field");
+
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/profile/%40bob%3Aserver/custom_field",
+                undefined,
+                undefined,
+                { prefix: unstableMSC4133Prefix },
+            );
+        });
+
+        it("throws when the server does not support extended profiles", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (profileManager as any).client.doesServerSupportUnstableFeature.mockResolvedValue(false);
+
+            await expect(
+                profileManager.setExtendedProfilePropertyForUser("@bob:server", "custom_field", "my_value"),
+            ).rejects.toThrow("Server does not support extended profiles");
+            await expect(
+                profileManager.deleteExtendedProfilePropertyForUser("@bob:server", "custom_field"),
+            ).rejects.toThrow("Server does not support extended profiles");
+            expect(mockAuthedRequest).not.toHaveBeenCalled();
+        });
     });
 });
