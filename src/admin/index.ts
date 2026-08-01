@@ -17,13 +17,14 @@ limitations under the License.
 /**
  * Admin Manager - 管理员 API 统一入口
  *
- * 采用组合模式，将 100+ 个方法按领域拆分为 6 个子 Manager：
+ * 采用组合模式，将 100+ 个方法按领域拆分为 7 个子 Manager：
  * - users: 用户管理（CRUD、设备、令牌、会话、速率限制、影子封禁）
  * - rooms: 房间管理（CRUD、成员、消息、状态、Space）
  * - server: 服务器管理（统计、健康、通知、配置、清理、备份）
  * - federation: 联邦管理（黑名单、目的地、缓存、准入）
  * - media: 媒体管理（CRUD、隔离、清理）
  * - config: 配置管理（保留策略、功能标志、模块、报告、审计、令牌）
+ * - externalService: 外部服务管理（CRUD、健康检查，后端字段格式）
  *
  * 通过 ES Proxy 自动将旧方法调用转发到对应子 Manager，保持完全向后兼容。
  * 推荐使用子 Manager 直接访问：`adminManager.users.createUser(...)`
@@ -173,6 +174,7 @@ import { AdminServerManager, AdminServerEvent } from "./sub-managers/admin-serve
 import { AdminFederationManager } from "./sub-managers/admin-federation-manager";
 import { AdminMediaManager } from "./sub-managers/admin-media-manager";
 import { AdminConfigManager } from "./sub-managers/admin-config-manager";
+import { AdminExternalServiceManager } from "./sub-managers/admin-external-service-manager";
 
 export * from "./types";
 export type { AdminAccountDetails as UserInfo } from "./types";
@@ -183,15 +185,24 @@ export { AdminServerManager, AdminServerEvent } from "./sub-managers/admin-serve
 export { AdminFederationManager } from "./sub-managers/admin-federation-manager";
 export { AdminMediaManager } from "./sub-managers/admin-media-manager";
 export { AdminConfigManager } from "./sub-managers/admin-config-manager";
+export {
+    AdminExternalServiceManager,
+    type BackendExternalService,
+    type BackendExternalServiceHealth,
+    type RegisterExternalServicePayload,
+    type UpdateExternalServicePayload,
+    type HealthCheckResult,
+} from "./sub-managers/admin-external-service-manager";
 
-/** 6 个子 Manager 的联合类型（用于 Proxy 路由） */
+/** 7 个子 Manager 的联合类型（用于 Proxy 路由） */
 type AdminSubManager =
     | AdminUserManager
     | AdminRoomManager
     | AdminServerManager
     | AdminFederationManager
     | AdminMediaManager
-    | AdminConfigManager;
+    | AdminConfigManager
+    | AdminExternalServiceManager;
 
 interface AdminManagerEventMap {
     [AdminEvent.UserCreated]: (userId: string, user: AdminAccountDetails) => void;
@@ -536,8 +547,9 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
     public readonly federation: AdminFederationManager;
     public readonly media: AdminMediaManager;
     public readonly config: AdminConfigManager;
+    public readonly externalService: AdminExternalServiceManager;
 
-    /** 方法名 → 子 Manager 路由表（构造时一次性构建，覆盖 6 个子 Manager 的全部自有方法） */
+    /** 方法名 → 子 Manager 路由表（构造时一次性构建，覆盖 7 个子 Manager 的全部自有方法） */
     private readonly subManagerRoutes: ReadonlyMap<string, AdminSubManager>;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
@@ -555,12 +567,21 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         this.federation = new AdminFederationManager(client, onError, opts);
         this.media = new AdminMediaManager(client, onError, opts);
         this.config = new AdminConfigManager(client, onError, opts);
+        this.externalService = new AdminExternalServiceManager(client, onError, opts);
 
         // 构建方法名 → 子 Manager 路由表。
         // 遍历每个子 Manager 的自有原型方法，first-match-wins 决定冲突优先级：
         // rooms 优先于 config（listReports/getReport/deleteReport 同时存在于两者，index.ts 历史委托给 rooms）。
         const routes = new Map<string, AdminSubManager>();
-        for (const subManager of [this.users, this.rooms, this.server, this.federation, this.media, this.config]) {
+        for (const subManager of [
+            this.users,
+            this.rooms,
+            this.server,
+            this.federation,
+            this.media,
+            this.config,
+            this.externalService,
+        ]) {
             const proto = Object.getPrototypeOf(subManager);
             for (const name of Object.getOwnPropertyNames(proto)) {
                 if (name === "constructor") continue;
