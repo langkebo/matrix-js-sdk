@@ -1,6 +1,7 @@
 export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
 export { WorkerAdminManager } from "./worker-admin";
 export { AccountManager } from "./account";
+export type { MyRoomEntry, MyRoomsResponse, EventsResponse, EventsRequestOptions } from "./account";
 export { AccountDataManager } from "./account-data";
 export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
 export { CapabilitiesManager } from "./capabilities";
@@ -32,6 +33,20 @@ export {
     type AddChildOptions,
 } from "./space";
 export { FriendManager } from "./friend";
+export { FriendEvent, FriendRelationshipStatus, FriendRequestStatus } from "./friend";
+export type {
+    Friend,
+    FriendRequest,
+    FriendStatusInfo,
+    FriendshipCheckResponse,
+    FriendSearchResult,
+    FriendSearchQuery,
+    FriendSearchResponse,
+    FriendGroup,
+    FriendGroups,
+    FriendNotificationData,
+    FriendStatus,
+} from "./friend";
 export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
 export { KeyVerificationManager } from "./key-verification";
@@ -102,7 +117,12 @@ export type {
     IDeviceDeleteRequest,
     IAuthDict,
     IDeviceListUpdatesResponse,
+    IDeviceList,
+    IDeviceListUpdatesRequest,
+    IDeviceData,
+    IDeviceChange,
 } from "./device";
+export { DeviceEvent } from "./device";
 export { ProfileManager } from "./profile";
 export { SecurityManager } from "./security";
 export { TypingManager } from "./typing";
@@ -165,6 +185,7 @@ export {
 export { LifecycleManager } from "./lifecycle";
 export { MembershipManager } from "./membership";
 export { NotificationsManager } from "./notifications";
+export type { ILocalNotificationSettings, NotificationsManagerEvents } from "./notifications";
 export { PinnedMessagesManager } from "./pinned-messages";
 export { PushNotificationsManager } from "./push-notifications";
 export { PushRulesManager } from "./push-rules";
