@@ -298,6 +298,173 @@ describe("PresenceManager", () => {
         });
     });
 
+    describe("updatePresenceList", () => {
+        it("should send both subscribe and unsubscribe in a single request", async () => {
+            const mockResponse = {
+                presences: [{ user_id: "@alice:server", presence: "online", last_active_ago: 1000 }],
+            };
+            mockClient.http.authedRequest.mockResolvedValueOnce(mockResponse);
+
+            const result = await presenceManager.updatePresenceList(["@alice:server"], ["@bob:server"]);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/presence/list",
+                {},
+                { subscribe: ["@alice:server"], unsubscribe: ["@bob:server"] },
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
+            expect(result.presences).toHaveLength(1);
+            expect(result.presences[0].user_id).toBe("@alice:server");
+        });
+
+        it("should send only subscribe when unsubscribe is omitted", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ presences: [] });
+
+            await presenceManager.updatePresenceList(["@alice:server"]);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/presence/list",
+                {},
+                { subscribe: ["@alice:server"] },
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
+        });
+
+        it("should send only unsubscribe when subscribe is omitted", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ presences: [] });
+
+            await presenceManager.updatePresenceList(undefined, ["@bob:server"]);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/presence/list",
+                {},
+                { unsubscribe: ["@bob:server"] },
+                { prefix: "/_matrix/client/v3", priority: undefined },
+            );
+        });
+
+        it("should throw InvalidParamError when both subscribe and unsubscribe are empty", async () => {
+            await expect(presenceManager.updatePresenceList([], [])).rejects.toThrow(InvalidParamError);
+            await expect(presenceManager.updatePresenceList()).rejects.toThrow(InvalidParamError);
+            await expect(presenceManager.updatePresenceList([], undefined)).rejects.toThrow(InvalidParamError);
+            expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
+        });
+
+        it("should add subscribed users to subscribedUsers set on subscribe", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ presences: [] });
+
+            await presenceManager.updatePresenceList(["@alice:server", "@bob:server"]);
+
+            expect(presenceManager.isSubscribed("@alice:server")).toBe(true);
+            expect(presenceManager.isSubscribed("@bob:server")).toBe(true);
+        });
+
+        it("should remove unsubscribed users from subscribedUsers set on unsubscribe", async () => {
+            mockClient.http.authedRequest
+                .mockResolvedValueOnce({ presences: [] })
+                .mockResolvedValueOnce({ presences: [] });
+
+            await presenceManager.updatePresenceList(["@alice:server"]);
+            expect(presenceManager.isSubscribed("@alice:server")).toBe(true);
+
+            await presenceManager.updatePresenceList(undefined, ["@alice:server"]);
+            expect(presenceManager.isSubscribed("@alice:server")).toBe(false);
+        });
+
+        it("should update presenceCache with returned presences", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                presences: [
+                    {
+                        user_id: "@alice:server",
+                        presence: "online",
+                        status_msg: "Hi",
+                        last_active_ago: 1000,
+                        currently_active: true,
+                    },
+                ],
+            });
+
+            await presenceManager.updatePresenceList(["@alice:server"]);
+
+            const cached = presenceManager.getCachedPresence("@alice:server");
+            expect(cached).toBeDefined();
+            expect(cached?.presence).toBe("online");
+            expect(cached?.status_msg).toBe("Hi");
+            expect(cached?.last_active_ago).toBe(1000);
+            expect(cached?.currently_active).toBe(true);
+        });
+
+        it("should emit PresenceListUpdated event on success", async () => {
+            const listener = vi.fn();
+            presenceManager.on(PresenceEvent.PresenceListUpdated, listener);
+            const presences = [{ user_id: "@alice:server", presence: "online", last_active_ago: 1000 }];
+            mockClient.http.authedRequest.mockResolvedValueOnce({ presences });
+
+            await presenceManager.updatePresenceList(["@alice:server"]);
+
+            expect(listener).toHaveBeenCalledWith(presences);
+        });
+
+        it("should emit PresenceListUpdated with empty array when response has no presences", async () => {
+            const listener = vi.fn();
+            presenceManager.on(PresenceEvent.PresenceListUpdated, listener);
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            await presenceManager.updatePresenceList(["@alice:server"]);
+
+            expect(listener).toHaveBeenCalledWith([]);
+        });
+
+        it("should emit PresenceError event on failure", async () => {
+            const errorListener = vi.fn();
+            presenceManager.on(PresenceEvent.PresenceError, errorListener);
+            mockClient.http.authedRequest.mockRejectedValue({
+                message: "Server error",
+                httpStatus: 500,
+            });
+            await expect(presenceManager.updatePresenceList(["@alice:server"])).rejects.toThrow();
+            expect(errorListener).toHaveBeenCalled();
+        });
+
+        it("should throw AuthError on 401", async () => {
+            mockClient.http.authedRequest.mockRejectedValueOnce({
+                message: "Unauthorized",
+                httpStatus: 401,
+                errcode: "M_UNKNOWN_TOKEN",
+            });
+            await expect(presenceManager.updatePresenceList(["@alice:server"])).rejects.toThrow(AuthError);
+        });
+
+        it("should return the IPresenceList response unchanged", async () => {
+            const mockResponse = {
+                presences: [
+                    { user_id: "@alice:server", presence: "online", last_active_ago: 1000 },
+                    { user_id: "@bob:server", presence: "offline", last_active_ago: 2000 },
+                ],
+            };
+            mockClient.http.authedRequest.mockResolvedValueOnce(mockResponse);
+
+            const result = await presenceManager.updatePresenceList(["@alice:server", "@bob:server"]);
+
+            expect(result).toEqual(mockResponse);
+            expect(result.presences).toHaveLength(2);
+        });
+
+        it("should not mutate caller-provided subscribe/unsubscribe arrays", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ presences: [] });
+            const subscribe = ["@alice:server"];
+            const unsubscribe = ["@bob:server"];
+
+            await presenceManager.updatePresenceList(subscribe, unsubscribe);
+
+            expect(subscribe).toEqual(["@alice:server"]);
+            expect(unsubscribe).toEqual(["@bob:server"]);
+        });
+    });
+
     describe("getSubscribedPresence", () => {
         it("should get subscribed presence list", async () => {
             const events = await presenceManager.getSubscribedPresence();
