@@ -162,6 +162,7 @@ import {
     type ThirdPartyRuleCheckResult,
     type ThirdPartyRuleResult,
     type MediaQuarantineChangesResponse,
+    type WhoamiResponse,
 } from "./types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";
 
@@ -255,6 +256,7 @@ export interface AdminManager {
     getUserWhois(userId: string): Promise<WhoisResponse>;
     whois(userId: string): Promise<WhoisResponse>;
     whoisByDevice(userId: string, deviceId: string): Promise<WhoisResponse>;
+    getUserById(userId: string, throwOnError?: boolean): Promise<AdminAccountDetails | null>;
     getUserMedia(userId: string, from?: string, limit?: number): Promise<{ media: MediaInfo[]; next_token?: string }>;
     deleteUserMedia(userId: string): Promise<void>;
     getUserNotification(userId: string): Promise<UserNotificationResponse>;
@@ -332,6 +334,7 @@ export interface AdminManager {
     getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }>;
 
     // ----- 服务器管理（→ server） -----
+    whoami(): Promise<WhoamiResponse>;
     getServerStats(): Promise<ServerStats>;
     getServerStatsCached(): ServerStats | null;
     getServerStatus(): Promise<ServerStatus>;

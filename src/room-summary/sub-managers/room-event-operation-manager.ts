@@ -17,6 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
+import { ClientPrefix } from "../../http-api/prefix";
 import type { QueryDict } from "../../utils";
 import { encodeUri } from "../../http-api/utils";
 import { InvalidParamError } from "../../common/errors";
@@ -700,6 +701,46 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3(Method.Get, this.roomSummaryPath("/rooms/$roomId/turn_server", roomId));
         }, "getRoomTurnServer");
+    }
+
+    /**
+     * 获取房间防截屏设置
+     *
+     * GET /_matrix/client/v3/rooms/{roomId}/anti_screenshot
+     *
+     * @param roomId - 房间 ID
+     * @returns 防截屏设置 { enabled: boolean }
+     */
+    public async getAntiScreenshot(roomId: string): Promise<{ enabled: boolean }> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            const result = await this.request<{ enabled?: boolean }>({
+                method: Method.Get,
+                path: `/rooms/${encodeURIComponent(roomId)}/anti_screenshot`,
+                prefix: ClientPrefix.V3,
+            });
+            return { enabled: result.enabled ?? false };
+        }, "getAntiScreenshot");
+    }
+
+    /**
+     * 设置房间防截屏
+     *
+     * PUT /_matrix/client/v3/rooms/{roomId}/anti_screenshot
+     *
+     * @param roomId - 房间 ID
+     * @param enabled - 是否启用防截屏
+     */
+    public async setAntiScreenshot(roomId: string, enabled: boolean): Promise<void> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            await this.request({
+                method: Method.Put,
+                path: `/rooms/${encodeURIComponent(roomId)}/anti_screenshot`,
+                prefix: ClientPrefix.V3,
+                body: { enabled } as Body,
+            });
+        }, "setAntiScreenshot");
     }
 
     /**

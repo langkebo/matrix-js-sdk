@@ -56,10 +56,14 @@ const SSO_ACTION_PARAM = {
     unstable: "org.matrix.msc3824.action",
 };
 
+export interface MyRoomEntry {
+    room_id: string;
+    name?: string;
+}
+
 export interface MyRoomsResponse {
-    joined_rooms: string[];
-    invited_rooms: string[];
-    left_rooms: string[];
+    rooms: MyRoomEntry[];
+    total: number;
 }
 
 export interface EventsResponse {
@@ -73,6 +77,7 @@ export interface EventsRequestOptions {
     to?: string;
     dir?: "f" | "b";
     limit?: number;
+    timeout?: number;
 }
 
 export class AccountManager extends BaseManager {
@@ -314,6 +319,27 @@ export class AccountManager extends BaseManager {
                 prefix: ClientPrefix.V3,
             });
         }, "getEvents");
+    }
+
+    /**
+     * Poll event updates using the legacy events stream with long-poll timeout.
+     * GET /_matrix/client/v3/events?from=...&timeout=...
+     *
+     * @param from - Pagination token from a previous response
+     * @param timeout - Long-poll timeout in milliseconds (default: 30000)
+     * @returns Event stream chunk with start/end tokens
+     */
+    public async getEventStream(from?: string, timeout: number = 30000): Promise<EventsResponse> {
+        return this.withRetry(async () => {
+            const queryParams: Record<string, string | number> = { timeout };
+            if (from) queryParams.from = from;
+            return await this.request<EventsResponse>({
+                method: Method.Get,
+                path: "/events",
+                queryParams,
+                prefix: ClientPrefix.V3,
+            });
+        }, "getEventStream");
     }
 
     /**

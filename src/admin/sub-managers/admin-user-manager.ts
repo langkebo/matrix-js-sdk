@@ -159,6 +159,17 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     }
 
     /**
+     * 通过用户 ID 获取用户详情（getUser 的语义化别名）
+     *
+     * @param userId - 用户 ID
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 用户详情或 null
+     */
+    async getUserById(userId: string, throwOnError = true): Promise<AdminAccountDetails | null> {
+        return this.getUser(userId, throwOnError);
+    }
+
+    /**
      * 创建新用户
      */
     async createUser(

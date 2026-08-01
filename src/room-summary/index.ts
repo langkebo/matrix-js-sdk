@@ -976,6 +976,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.eventOps.getRoomTurnServer(roomId);
     }
 
+    async getAntiScreenshot(roomId: string): Promise<{ enabled: boolean }> {
+        return this.eventOps.getAntiScreenshot(roomId);
+    }
+
+    async setAntiScreenshot(roomId: string, enabled: boolean): Promise<void> {
+        return this.eventOps.setAntiScreenshot(roomId, enabled);
+    }
+
     async getStickyEvents(roomId: string): Promise<StickyEvent[]> {
         return this.eventOps.getStickyEvents(roomId);
     }
