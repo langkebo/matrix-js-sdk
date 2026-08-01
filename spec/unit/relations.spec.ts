@@ -181,6 +181,61 @@ describe("RelationsManager", () => {
         expect(emitSpy).toHaveBeenCalledWith("RelationsError", expect.any(Error));
     });
 
+    // ─── sendRelationViaSendRelation ─────────────────────────────────
+
+    it("sendRelationViaSendRelation uses /send_relation/ endpoint with correct body", async () => {
+        transport.respondWith({ event_id: "$evt123" });
+        const result = await manager.sendRelationViaSendRelation(
+            "!room:server",
+            "$parent:server",
+            "m.annotation",
+            "txn123",
+            "m.reaction",
+            { "m.relates_to": { key: "👍" } },
+            "👍",
+        );
+        expect(result.event_id).toBe("$evt123");
+        transport.expectCalledWith(
+            Method.Put,
+            "/rooms/!room%3Aserver/send_relation/%24parent%3Aserver/m.annotation/txn123",
+            { "m.relates_to": { key: "👍" }, type: "m.reaction", key: "👍" },
+        );
+    });
+
+    it("sendRelationViaSendRelation should omit key when not provided", async () => {
+        transport.respondWith({ event_id: "$evt456" });
+        await manager.sendRelationViaSendRelation(
+            "!room:server",
+            "$parent:server",
+            "m.replace",
+            "txn456",
+            "m.room.message",
+            { "m.new_content": { body: "edited" } },
+        );
+        transport.expectCalledWith(
+            Method.Put,
+            "/rooms/!room%3Aserver/send_relation/%24parent%3Aserver/m.replace/txn456",
+            { "m.new_content": { body: "edited" }, type: "m.room.message" },
+        );
+    });
+
+    it("sendRelationViaSendRelation should emit Error event on failure", async () => {
+        const emitSpy = vi.spyOn(manager, "emit");
+        transport.rejectWith(new Error("Send failed"));
+        await expect(
+            manager.sendRelationViaSendRelation(
+                "!room:server",
+                "$parent:server",
+                "m.annotation",
+                "txn123",
+                "m.reaction",
+                { "m.relates_to": { key: "👍" } },
+                "👍",
+            ),
+        ).rejects.toThrow();
+        expect(emitSpy).toHaveBeenCalledWith("RelationsError", expect.any(Error));
+    });
+
     // ─── relations (fallback, no deps) ──────────────────────────────
 
     it("relations should fallback without deps and return mapped events", async () => {

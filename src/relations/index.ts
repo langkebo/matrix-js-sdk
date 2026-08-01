@@ -372,6 +372,53 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             throw error;
         }
     }
+
+    /**
+     * Send a relation via the /send_relation/ endpoint (alternative to /relations/).
+     * The body spreads content at top level and includes type and optional key.
+     *
+     * @param roomId - The room ID
+     * @param eventId - The parent event ID
+     * @param relType - The relation type (e.g. "m.annotation")
+     * @param txnId - Transaction ID
+     * @param eventType - The event type (e.g. "m.reaction")
+     * @param content - The event content (spread at top level)
+     * @param key - Optional key for annotation relations
+     */
+    public async sendRelationViaSendRelation(
+        roomId: string,
+        eventId: string,
+        relType: string,
+        txnId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+        key?: string,
+    ): Promise<SendRelationResponse> {
+        const path = utils.encodeUri("/rooms/$roomId/send_relation/$eventId/$relType/$txnId", {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relType: relType,
+            $txnId: txnId,
+        });
+
+        const body: Record<string, unknown> = { ...content, type: eventType };
+        if (key !== undefined) {
+            body.key = key;
+        }
+
+        try {
+            const response = await this.request<SendRelationResponse>({
+                method: Method.Put,
+                path: path,
+                body,
+            });
+            return response;
+        } catch (e) {
+            const error = this.normalizeError(e, "sendRelationViaSendRelation");
+            this.emit(RelationsEvent.Error, error);
+            throw error;
+        }
+    }
 }
 
 // Declare prototype extension
