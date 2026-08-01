@@ -108,6 +108,7 @@ export * from "./models/related-relations";
 export * from "./runtime-schemas/index";
 export type { RoomSummary } from "./client";
 export * from "./matrix-managers";
+export { MSC4108SignInWithQR } from "./rendezvous/MSC4108SignInWithQR";
 
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
