@@ -296,6 +296,10 @@
         "./verification": {
             "import": "./lib/verification/index.js",
             "types": "./lib/verification/index.d.ts"
+        },
+        "./rendezvous": {
+            "import": "./lib/rendezvous/index.js",
+            "types": "./lib/rendezvous/index.d.ts"
         }
     },
     "sideEffects": false,
