@@ -183,7 +183,7 @@ describe("RelationsManager", () => {
 
     // ─── sendRelationViaSendRelation ─────────────────────────────────
 
-    it("sendRelationViaSendRelation uses /send_relation/ endpoint with correct body", async () => {
+    it("sendRelationViaSendRelation uses /relations/ endpoint with correct body", async () => {
         transport.respondWith({ event_id: "$evt123" });
         const result = await manager.sendRelationViaSendRelation(
             "!room:server",
@@ -197,7 +197,7 @@ describe("RelationsManager", () => {
         expect(result.event_id).toBe("$evt123");
         transport.expectCalledWith(
             Method.Put,
-            "/rooms/!room%3Aserver/send_relation/%24parent%3Aserver/m.annotation/txn123",
+            "/rooms/!room%3Aserver/relations/%24parent%3Aserver/m.annotation/txn123",
             { "m.relates_to": { key: "👍" }, type: "m.reaction", key: "👍" },
         );
     });
@@ -214,7 +214,7 @@ describe("RelationsManager", () => {
         );
         transport.expectCalledWith(
             Method.Put,
-            "/rooms/!room%3Aserver/send_relation/%24parent%3Aserver/m.replace/txn456",
+            "/rooms/!room%3Aserver/relations/%24parent%3Aserver/m.replace/txn456",
             { "m.new_content": { body: "edited" }, type: "m.room.message" },
         );
     });

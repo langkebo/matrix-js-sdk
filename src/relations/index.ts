@@ -374,7 +374,8 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
     }
 
     /**
-     * Send a relation via the /send_relation/ endpoint (alternative to /relations/).
+     * Send a relation via the /relations/ endpoint using a transaction ID as the
+     * last path segment (alternative to sendRelation which uses a target event ID).
      * The body spreads content at top level and includes type and optional key.
      *
      * @param roomId - The room ID
@@ -394,7 +395,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         content: Record<string, unknown>,
         key?: string,
     ): Promise<SendRelationResponse> {
-        const path = utils.encodeUri("/rooms/$roomId/send_relation/$eventId/$relType/$txnId", {
+        const path = utils.encodeUri("/rooms/$roomId/relations/$eventId/$relType/$txnId", {
             $roomId: roomId,
             $eventId: eventId,
             $relType: relType,
