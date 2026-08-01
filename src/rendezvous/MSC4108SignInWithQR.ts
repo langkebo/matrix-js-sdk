@@ -25,7 +25,7 @@ import {
 import { type MatrixClient } from "../client";
 import { logger } from "../logger";
 import { type MSC4108SecureChannel } from "./channels/MSC4108SecureChannel";
-import { MatrixError } from "../http-api/index";
+import { MatrixError, Method, ClientPrefix } from "../http-api/index";
 import { sleep } from "../common/async";
 import { OAuthGrantType, type OidcClientConfig } from "../oidc/index";
 import { type CryptoApi } from "../crypto-api/index";
@@ -139,6 +139,27 @@ export class MSC4108SignInWithQR {
      */
     public get code(): Uint8Array | undefined {
         return this._code;
+    }
+
+    /**
+     * Generate a short-lived login token via POST /login/qr_token.
+     * This is an authenticated request — the existing device's credentials
+     * authorize issuance of a token bound to its user_id.
+     *
+     * Only valid when this device is the existing device (reciprocate side).
+     * @returns The login token and its expiration time
+     */
+    public async generateQrLoginToken(): Promise<{ login_token: string; expires_in_ms: number }> {
+        if (!this.client) {
+            throw new Error("generateQrLoginToken requires an existing device client");
+        }
+        return await this.client.http.authedRequest(
+            Method.Post,
+            "/login/qr_token",
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V1 },
+        );
     }
 
     /**
