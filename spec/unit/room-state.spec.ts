@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { RoomStateManager } from "../../src/room-state";
 import { Method, ClientPrefix } from "../../src/http-api";
+import { logger } from "../../src/logger";
 
 describe("RoomStateManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,6 +29,20 @@ describe("RoomStateManager", () => {
         await expect(manager.getAllStateEvents("!r:hs")).resolves.toEqual([]);
         mockClient.http.authedRequest.mockRejectedValueOnce(new Error("x"));
         await expect(manager.getStateEventsByType("!r:hs", "m.room.topic")).resolves.toEqual([]);
+    });
+
+    it("logs a warning when getAllStateEvents and getStateEventsByType fail", async () => {
+        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
+        await expect(manager.getAllStateEvents("!r:hs")).resolves.toEqual([]);
+        expect(warnSpy).toHaveBeenCalledWith("RoomStateManager.getAllStateEvents failed:", expect.any(Error));
+
+        mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));
+        await expect(manager.getStateEventsByType("!r:hs", "m.room.topic")).resolves.toEqual([]);
+        expect(warnSpy).toHaveBeenCalledWith("RoomStateManager.getStateEventsByType failed:", expect.any(Error));
+
+        warnSpy.mockRestore();
     });
 
     it("sends state and encryption events", async () => {

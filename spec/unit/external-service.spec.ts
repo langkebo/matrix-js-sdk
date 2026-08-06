@@ -70,23 +70,11 @@ describe("ExternalServiceManager", () => {
 
     // ─── getService ─────────────────────────────────────────────────
 
-    it("getService should GET /external_services/{id}", async () => {
-        const svc = { id: "svc1", type: "webhook", url: "https://example.com/hook", enabled: true };
-        transport.respondWith(svc);
-        const result = await manager.getService("svc1");
-        expect(result).toEqual(svc);
-        transport.expectCalledWithArgs(Method.Get, "/external_services/svc1", undefined, undefined, {
-            prefix: AdminPrefix.V1,
-        });
-    });
-
-    it("getService should throw ValidationError for empty service ID", async () => {
-        await expect(manager.getService("")).rejects.toThrow("serviceId is required");
-    });
-
-    it("getService should reject on API failure", async () => {
-        transport.rejectWith(new Error("Not found"));
-        await expect(manager.getService("svc_missing")).rejects.toThrow();
+    // SDK-BL-007: backend /external_services/{as_id} only registers PUT/DELETE
+    // (no GET handler), so getService() would always 405. The method was removed;
+    // callers should use listServices() and filter locally by id.
+    it("should not expose getService (backend has no GET /external_services/{id})", () => {
+        expect((manager as unknown as Record<string, unknown>).getService).toBeUndefined();
     });
 
     // ─── updateService ─────────────────────────────────────────────
@@ -261,7 +249,6 @@ describe("ExternalServiceManager", () => {
     it("should have expected prototype methods", () => {
         expect(typeof manager.listServices).toBe("function");
         expect(typeof manager.createService).toBe("function");
-        expect(typeof manager.getService).toBe("function");
         expect(typeof manager.updateService).toBe("function");
         expect(typeof manager.deleteService).toBe("function");
         expect(typeof manager.getHealth).toBe("function");

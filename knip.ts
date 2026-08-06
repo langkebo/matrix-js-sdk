@@ -131,7 +131,6 @@ export default {
         // Additional manager modules with extendMatrixClient but not yet wired
         // into manager-extensions/index.ts MANAGER_EXTENSION_MODULES list:
         "src/event/index.ts",
-        "src/invite-list/index.ts",
         "src/widgets/index.ts",
         // Public API modules consumed externally (by hula frontend) but not
         // dynamically imported; knip can't trace external usage:

@@ -558,7 +558,9 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 this.threadsTimelineSets[0] = timelineSets[0];
                 this.threadsTimelineSets[1] = timelineSets[1];
                 return timelineSets;
-            } catch {
+                // @swallow-error { owner: "room", expires: "2026-12-31" }
+            } catch (e) {
+                logger.warn("Room.createThreadsTimelineSets failed:", e);
                 this.threadTimelineSetsPromise = null;
                 return null;
             }

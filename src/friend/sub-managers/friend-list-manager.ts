@@ -65,6 +65,7 @@ interface IFriendsResponse {
     limit?: number;
     offset?: number;
     next_offset?: number;
+    next_batch?: string; // FT-095: 后端分页 token，与响应类型对齐
     version?: number;
     cached?: boolean;
     generated_ts?: number;
@@ -141,7 +142,8 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
                 this.sharedState.friendListRoomId = response.room_id;
             }
 
-            const friends = (response.friends || response.items || []).map(normalizeFriend);
+            // FT-085: 空数组 [] 是 truthy，`friends || items` 会短路；改用 length 检查回退
+            const friends = ((response.friends?.length ? response.friends : response.items) || []).map(normalizeFriend);
             this.sharedState.friends.clear();
             friends.forEach((f) => this.sharedState.friends.set(f.user_id, f));
 
@@ -248,7 +250,8 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
                 });
             }, "getFriendships");
 
-            const friends = (response.friends || response.items || []).map(normalizeFriend);
+            // FT-085: 空数组 [] 是 truthy，`friends || items` 会短路；改用 length 检查回退
+            const friends = ((response.friends?.length ? response.friends : response.items) || []).map(normalizeFriend);
             return friends;
         } catch (e) {
             throw this.normalizeError(e, "getFriendships");

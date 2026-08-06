@@ -74,6 +74,21 @@ export interface Capabilities {
      */
     "m.profile_fields"?: IProfileFieldsCapability;
     "m.sso"?: ISsoCapability;
+    // ---- FT-099: Synapse-Rust 扩展 capability key ----
+    // 以下为 synapse-rust 后端通过 GET /capabilities 返回的扩展能力声明。
+    // 运行时解析逻辑见 server-capabilities/index.ts 的 SYNAPSE_RUST_CAPABILITY_ALIASES。
+    /** 阅后即焚（burn-after-read feature） */
+    "io.hula.burn_after_read"?: ICapability;
+    /** 好友系统（friends feature） */
+    "io.hula.friends"?: ICapability;
+    /** 语音消息扩展（voice-extended feature），与 m.voice 别名等价 */
+    "io.hula.voice_extended"?: ICapability;
+    /** Matrix 标准语音（与 io.hula.voice_extended 别名等价） */
+    "m.voice"?: ICapability;
+    /** OpenClaw 路由（openclaw-routes feature） */
+    openclaw?: ICapability;
+    /** AI 连接（ai-connection feature） */
+    ai_connection?: ICapability;
 }
 
 type CapabilitiesResponse = {

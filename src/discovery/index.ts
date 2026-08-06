@@ -34,6 +34,7 @@ import type { IRoomDirectoryOptions } from "../@types/requests";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import type { IClientWellKnown, IServerVersions } from "../client-api-types";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import { logger } from "../logger";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}`
     ? Rest
@@ -234,7 +235,9 @@ export class DiscoveryManager extends BaseManager {
         try {
             const result = await this.getRoomIdForAlias(alias);
             return result.room_id;
-        } catch {
+            // @swallow-error { owner: "discovery", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("DiscoveryManager.getAliasRoomId failed:", e);
             return null;
         }
     }

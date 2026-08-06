@@ -23,7 +23,7 @@ limitations under the License.
 import { Method } from "../../http-api/method";
 import { ClientPrefix } from "../../http-api/prefix";
 import { InvalidParamError } from "../../common/errors";
-import { NotFoundError } from "../../errors";
+
 import { BaseManager } from "../../managers/base-manager";
 import { validateUserId } from "../../common/validators";
 import type { Friend, FriendRequest } from "../index";
@@ -231,29 +231,19 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 获取收到的好友请求
+     *
+     * FT-094: 此前主路径为 /friends/request/received（单数），fallback 为
+     * /friends/requests/incoming（复数）。但后端两个路径都返回 200，fallback
+     * 永不触发。现统一使用 route_ledger 规范路径 /friends/requests/incoming，
+     * 与 getOutgoingRequests 的 /friends/requests/outgoing 保持一致。
      */
     async getIncomingRequests(): Promise<FriendRequest[]> {
         try {
-            let response: IFriendRequestsResponse;
-            try {
-                response = await this.request<IFriendRequestsResponse>({
-                    method: Method.Get,
-                    path: "/friends/request/received",
-                    prefix: ClientPrefix.V1,
-                });
-            } catch (error) {
-                const normalized = this.normalizeError(error, "getIncomingRequests");
-                if (!(normalized instanceof NotFoundError)) {
-                    throw normalized;
-                }
-
-                // Backward compatibility for deployments that only expose the legacy alias.
-                response = await this.request<IFriendRequestsResponse>({
-                    method: Method.Get,
-                    path: "/friends/requests/incoming",
-                    prefix: ClientPrefix.V1,
-                });
-            }
+            const response = await this.request<IFriendRequestsResponse>({
+                method: Method.Get,
+                path: "/friends/requests/incoming",
+                prefix: ClientPrefix.V1,
+            });
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
 

@@ -36,7 +36,7 @@ export enum MembershipManagerEvent {
 export type MembershipManagerEventHandlerMap = {
     [MembershipManagerEvent.StatusChanged]: (prefStatus: Status, newStatus: Status) => void;
     [MembershipManagerEvent.ProbablyLeft]: (probablyLeft: boolean) => void;
-    [MembershipManagerEvent.DelayIdChanged]: (delayId: string | undefined) => void;
+    [MembershipManagerEvent.DelayIdChanged]: (delayId: string | number | undefined) => void;
 };
 
 /**
@@ -88,7 +88,7 @@ export interface IMembershipManager extends TypedEventEmitter<
      * If the membership manager has reason to believe that the hs sent a leave event
      * and as a consequence the current user is perceived as left for other session participants.
      */
-    get delayId(): string | undefined;
+    get delayId(): string | number | undefined;
 
     /**
      * Start sending all necessary events to make this user participate in the RTC session.

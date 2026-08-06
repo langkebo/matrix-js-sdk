@@ -102,7 +102,9 @@ const isSecureUrl = (value: string, { allowQuery }: { allowQuery?: boolean } = {
             return false;
         }
         return true;
-    } catch {
+        // @swallow-error { owner: "oidc", expires: "2026-12-31" }
+    } catch (e) {
+        logger.warn("isSecureUrl failed:", e);
         return false;
     }
 };

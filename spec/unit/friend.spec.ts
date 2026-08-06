@@ -291,6 +291,45 @@ describe("FriendManager", () => {
             expect(friends).toEqual([]);
         });
 
+        it("should fall back to items when friends is an empty array (FT-085)", async () => {
+            // 后端同时返回 friends: [] 和 items: [data]；空数组是 truthy，
+            // 旧的 `friends || items || []` 短路到空数组，静默丢失 items 数据。
+            const itemsData: Friend[] = [
+                { user_id: "@dave:example.com", status: "normal", since: 123456 },
+            ];
+            mockAuthedRequest.mockResolvedValue({ friends: [], items: itemsData });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends).toEqual(itemsData);
+            expect(friends).toHaveLength(1);
+        });
+
+        it("should prefer friends when both friends and items are non-empty (FT-085)", async () => {
+            const friendsData: Friend[] = [
+                { user_id: "@bob:example.com", status: "normal", since: 1 },
+            ];
+            const itemsData: Friend[] = [
+                { user_id: "@dave:example.com", status: "normal", since: 2 },
+            ];
+            mockAuthedRequest.mockResolvedValue({ friends: friendsData, items: itemsData });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends).toEqual(friendsData);
+        });
+
+        it("should fall back to items when friends is undefined (FT-085)", async () => {
+            const itemsData: Friend[] = [
+                { user_id: "@dave:example.com", status: "normal", since: 123456 },
+            ];
+            mockAuthedRequest.mockResolvedValue({ items: itemsData });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends).toEqual(itemsData);
+        });
+
         it("should reuse the backend-provided friend list room id", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
                 friends: [{ user_id: "@bob:example.com", status: "normal" }],
@@ -319,10 +358,25 @@ describe("FriendManager", () => {
                 prefix: ClientPrefix.V3,
             });
         });
+
+        it("should accept next_batch pagination token in response (FT-095)", async () => {
+            // FT-095: IFriendsResponse 此前缺少 next_batch 字段，与后端分页响应类型漂移
+            const mockFriends: Friend[] = [
+                { user_id: "@bob:example.com", status: "normal", since: 1 },
+            ];
+            mockAuthedRequest.mockResolvedValue({
+                friends: mockFriends,
+                next_batch: "page2_token",
+            });
+
+            const friends = await friendManager.getFriends();
+
+            expect(friends).toEqual(mockFriends);
+        });
     });
 
     describe("getIncomingRequests", () => {
-        it("should fetch incoming friend requests", async () => {
+        it("should fetch incoming friend requests via canonical route_ledger path (FT-094)", async () => {
             const mockRequests: FriendRequest[] = [
                 { user_id: "@bob:example.com", status: "pending", timestamp: 123456 },
             ];
@@ -333,7 +387,7 @@ describe("FriendManager", () => {
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
-                "/friends/request/received",
+                "/friends/requests/incoming",
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V1 },
@@ -367,34 +421,21 @@ describe("FriendManager", () => {
             );
         });
 
-        it("should fall back to the legacy incoming alias when canonical path is unavailable", async () => {
-            const mockRequests: FriendRequest[] = [
-                { user_id: "@bob:example.com", status: "pending", timestamp: 123456 },
-            ];
+        it("should make a single request without redundant fallback (FT-094)", async () => {
+            // FT-094: 旧代码先试 /friends/request/received 再 fallback /friends/requests/incoming，
+            // 但后端两个路径都返回 200，fallback 永不触发。应直接使用规范路径，单次请求。
+            mockAuthedRequest.mockResolvedValue({ requests: [] });
 
-            mockAuthedRequest
-                .mockRejectedValueOnce(new NotFoundError("missing"))
-                .mockResolvedValueOnce({ requests: mockRequests });
+            await friendManager.getIncomingRequests();
 
-            const requests = await friendManager.getIncomingRequests();
-
-            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-                1,
-                Method.Get,
-                "/friends/request/received",
-                undefined,
-                undefined,
-                { prefix: ClientPrefix.V1 },
-            );
-            expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-                2,
+            expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/friends/requests/incoming",
                 undefined,
                 undefined,
                 { prefix: ClientPrefix.V1 },
             );
-            expect(requests).toEqual(mockRequests);
         });
     });
 

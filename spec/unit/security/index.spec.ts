@@ -17,6 +17,7 @@ limitations under the License.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { SecurityManager } from "../../../src/security/index";
+import { logger } from "../../../src/logger";
 
 describe("SecurityManager", () => {
     let manager: SecurityManager;
@@ -68,6 +69,19 @@ describe("SecurityManager", () => {
             const status = await manager.getAccountStatus("@user:example.com");
 
             expect(status).toBeNull();
+        });
+
+        it("should log a warning (not debug) when API fails", async () => {
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+            const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("API Error"));
+
+            await manager.getAccountStatus("@user:example.com");
+
+            expect(warnSpy).toHaveBeenCalledWith("SecurityManager.getAccountStatus failed", expect.any(Error));
+            expect(debugSpy).not.toHaveBeenCalled();
+            warnSpy.mockRestore();
+            debugSpy.mockRestore();
         });
     });
 
@@ -134,6 +148,19 @@ describe("SecurityManager", () => {
             const result = await manager.listLoginFailures();
 
             expect(result).toEqual([]);
+        });
+
+        it("should log a warning (not debug) when API fails", async () => {
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+            const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
+            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("API Error"));
+
+            await manager.listLoginFailures();
+
+            expect(warnSpy).toHaveBeenCalledWith("SecurityManager.listLoginFailures failed", expect.any(Error));
+            expect(debugSpy).not.toHaveBeenCalled();
+            warnSpy.mockRestore();
+            debugSpy.mockRestore();
         });
     });
 

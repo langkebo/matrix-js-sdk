@@ -222,7 +222,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             return result.total || 0;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("RelationsManager.getRelationCount failed", e);
+            logger.warn("RelationsManager.getRelationCount failed", e);
             return 0;
         }
     }
@@ -236,7 +236,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             return null;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("RelationsManager.getLatestRelation failed", e);
+            logger.warn("RelationsManager.getLatestRelation failed", e);
             return null;
         }
     }
@@ -412,6 +412,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 method: Method.Put,
                 path: path,
                 body,
+                prefix: ClientPrefix.V3, // FT-097: 显式声明 V3，不依赖 defaultPrefix
             });
             return response;
         } catch (e) {

@@ -92,8 +92,6 @@ import { RoomMemberEvent, type RoomMemberEventHandlerMap } from "./models/room-m
 import { type RoomStateEvent, type RoomStateEventHandlerMap } from "./models/room-state";
 import {
     isSendDelayedEventRequestOpts,
-    UpdateDelayedEventAction,
-    type DelayedEventInfo,
     type ICreateRoomOpts,
     type IEventSearchOpts,
     type IGuestAccessOpts,
@@ -191,8 +189,6 @@ import { type OidcClientConfig } from "./oidc/index";
 import { type EmptyObject } from "./@types/common";
 import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors";
 import { type Transport } from "./matrix-rtc/index";
-import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events";
-import { updateScheduledDelayedEventWithFallback } from "./client-delayed-events-updater";
 import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";
@@ -2439,37 +2435,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     /**
-     * Get information about delayed events owned by the requesting user.
-     *
-     * Note: This endpoint is unstable, and can throw an `Error`.
-     *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
-     */
-    public async _unstable_getDelayedEvents(
-        status?: "scheduled" | "finalised",
-        delayId?: string | string[],
-        fromToken?: string,
-    ): Promise<DelayedEventInfo> {
-        await this.assertDelayedEventsSupported("getDelayedEvents");
-
-        const queryDict: QueryDict = buildDelayedEventsQuery(status, delayId, fromToken);
-        return await this.http.authedRequest(Method.Get, "/delayed_events", queryDict, undefined, {
-            prefix: buildUnstableFeaturePrefix(UNSTABLE_MSC4140_DELAYED_EVENTS),
-        });
-    }
-
-    /**
      * Cancel the scheduled delivery of the delayed event matching the provided delayId.
      *
      * Note: This endpoint is unstable, and can throw an `Error`.
      *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
      *
+     * SDK-BL-005: Delegates to {@link DelayedEventsManager.cancelScheduledDelayedEvent}.
+     * The manager uses the action-in-BODY single request format
+     * (`POST /delayed_events/{delay_id}` body `{ action }`), removing the previous
+     * action-in-PATH + fallback flow that issued an extra failed request per call.
+     *
      * @throws A M_NOT_FOUND error if no matching delayed event could be found.
      */
     public async _unstable_cancelScheduledDelayedEvent(
-        delayId: string,
+        delayId: string | number,
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
-        return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Cancel, requestOptions);
+        return await this.getDelayedEventsManager().cancelScheduledDelayedEvent(delayId, requestOptions);
     }
 
     /**
@@ -2478,13 +2460,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Note: This endpoint is unstable, and can throw an `Error`.
      *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
      *
+     * SDK-BL-005: Delegates to {@link DelayedEventsManager.restartScheduledDelayedEvent}
+     * (action-in-BODY single request, no fallback).
+     *
      * @throws A M_NOT_FOUND error if no matching delayed event could be found.
      */
     public async _unstable_restartScheduledDelayedEvent(
-        delayId: string,
+        delayId: string | number,
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
-        return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Restart, requestOptions);
+        return await this.getDelayedEventsManager().restartScheduledDelayedEvent(delayId, requestOptions);
     }
 
     /**
@@ -2494,31 +2479,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Note: This endpoint is unstable, and can throw an `Error`.
      *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
      *
+     * SDK-BL-005: Delegates to {@link DelayedEventsManager.sendScheduledDelayedEvent}
+     * (action-in-BODY single request, no fallback).
+     *
      * @throws A M_NOT_FOUND error if no matching delayed event could be found.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
      */
     public async _unstable_sendScheduledDelayedEvent(
-        delayId: string,
+        delayId: string | number,
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
-        return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Send, requestOptions);
-    }
-
-    private async updateScheduledDelayedEvent(
-        delayId: string,
-        action: UpdateDelayedEventAction,
-        requestOptions: IRequestOpts = {},
-    ): Promise<EmptyObject> {
-        await this.assertDelayedEventsSupported(`${action}ScheduledDelayedEvent`);
-
-        return await updateScheduledDelayedEventWithFallback(
-            this.http,
-            delayId,
-            action,
-            UNSTABLE_MSC4140_DELAYED_EVENTS,
-            requestOptions,
-        );
+        return await this.getDelayedEventsManager().sendScheduledDelayedEvent(delayId, requestOptions);
     }
 
     /**

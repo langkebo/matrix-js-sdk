@@ -133,13 +133,19 @@ export abstract class BaseManager<
         retried: 0,
     };
     /**
-     * 标记当前是否处于 `withRetry()` 调用链中。
+     * 当前处于 `withRetry()` 调用链中的深度（并发安全计数器）。
      *
-     * - `true`：`request()` 被外层 `withRetry()` 包装，此时 `request()` 只做单次调用，
-     *   不重试、不写统计（由 `withRetry()` 统一负责），避免双重计数与嵌套重试。
-     * - `false`：`request()` 被直接调用，自行负责重试与统计。
+     * Managers 通常是单例，多个并发 `withRetry()` 调用会共享同一实例。使用布尔标志
+     * 会在某个调用先结束时被重置为 `false`，导致其它在途调用中的 `request()` 误判
+     * 为「未处于 withRetry」从而自行重试并写入统计，造成双重计数与嵌套重试
+     * （见 FT-115）。改为深度计数器后，只要仍有任一 `withRetry()` 在途，
+     * `request()` 就保持单次调用模式，全部退出后才恢复独立重试+统计。
+     *
+     * - `> 0`：`request()` 被外层 `withRetry()` 包装，只做单次调用，不重试、不写统计
+     *   （由 `withRetry()` 统一负责），避免双重计数与嵌套重试。
+     * - `0`：`request()` 被直接调用，自行负责重试与统计。
      */
-    private _inWithRetry = false;
+    private _withRetryDepth = 0;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super();
@@ -174,7 +180,7 @@ export abstract class BaseManager<
     /**
      * 发送 HTTP 请求，自动合并重试配置、错误归一化和请求统计。
      *
-     * 当被 `withRetry()` 包装时（`_inWithRetry === true`），本方法退化为单次调用，
+     * 当被 `withRetry()` 包装时（`_withRetryDepth > 0`），本方法退化为单次调用，
      * 重试与统计交由外层 `withRetry()` 统一负责，避免双重计数与嵌套重试。
      *
      * @example
@@ -201,7 +207,7 @@ export abstract class BaseManager<
         }
 
         // 被外层 withRetry 包装时：仅做单次调用，不重试、不写统计
-        if (this._inWithRetry) {
+        if (this._withRetryDepth > 0) {
             try {
                 return await this.transport.request<T>(
                     spec.method,
@@ -413,9 +419,10 @@ export abstract class BaseManager<
         let lastError: unknown;
         let currentDelay = retryDelay;
 
-        // 标记进入 withRetry：内部 request() 将退化为单次调用，避免双重计数与嵌套重试
-        const prevFlag = this._inWithRetry;
-        this._inWithRetry = true;
+        // 标记进入 withRetry：内部 request() 将退化为单次调用，避免双重计数与嵌套重试。
+        // 使用深度计数器而非布尔标志，确保并发 withRetry() 调用互不干扰（FT-115）：
+        // 任一调用先结束只会把深度减 1，不会让其它在途调用误判为「已离开 withRetry」。
+        this._withRetryDepth++;
         try {
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
                 try {
@@ -454,7 +461,7 @@ export abstract class BaseManager<
 
             throw this.normalizeError(lastError, label);
         } finally {
-            this._inWithRetry = prevFlag;
+            this._withRetryDepth--;
         }
     }
 

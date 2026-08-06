@@ -98,6 +98,7 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },
+    { option: "includeDelayedEvents", module: "delayed-events" },
     { option: "includeThread", module: "thread" },
     { option: "includeWidget", module: "widget" },
 
@@ -176,6 +177,7 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeCas: true,
     includeExternalService: true,
     includeDehydratedDevice: true,
+    includeDelayedEvents: true,
     includeThread: true,
     includeWidget: true,
 
@@ -531,6 +533,12 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeDehydratedDevice || all) {
                 promises.push(
                     safeDynamicImport(import("../dehydrated-device/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeDelayedEvents || all) {
+                promises.push(
+                    safeDynamicImport(import("../delayed-events/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 

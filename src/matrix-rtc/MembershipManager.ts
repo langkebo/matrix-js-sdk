@@ -128,8 +128,9 @@ export enum MembershipActionType {
  */
 export interface MembershipManagerState {
     /** The delayId we got when successfully sending the delayed leave event.
-     * Gets set to undefined if the server claims it cannot find the delayed event anymore. */
-    delayId?: string;
+     * Gets set to undefined if the server claims it cannot find the delayed event anymore.
+     * FT-084/FT-101: 后端 delay_id 为 i64 (JSON number)，类型须接受 number。 */
+    delayId?: string | number;
     /** Stores how often we have update the `expires` field.
      * `expireUpdateIterations` * `membershipEventExpiryTimeout` resolves to the value the expires field should contain next */
     expireUpdateIterations: number;
@@ -541,7 +542,7 @@ export class MembershipManager
             });
     }
 
-    private async cancelKnownDelayIdBeforeSendDelayedEvent(delayId: string): Promise<ActionUpdate> {
+    private async cancelKnownDelayIdBeforeSendDelayedEvent(delayId: string | number): Promise<ActionUpdate> {
         // Remove all running updates and restarts
         return await this.client
             ._unstable_cancelScheduledDelayedEvent(delayId)
@@ -584,14 +585,14 @@ export class MembershipManager
         this.emit(MembershipManagerEvent.ProbablyLeft, this.state.probablyLeft);
     }
 
-    private setAndEmitDelayId(delayId: string | undefined): void {
+    private setAndEmitDelayId(delayId: string | number | undefined): void {
         if (this.state.delayId === delayId) return;
 
         this.state.delayId = delayId;
         this.emit(MembershipManagerEvent.DelayIdChanged, this.state.delayId);
     }
 
-    private async restartDelayedEvent(delayId: string): Promise<ActionUpdate> {
+    private async restartDelayedEvent(delayId: string | number): Promise<ActionUpdate> {
         // Compute the duration until we expect the server to send the delayed leave event.
         const durationUntilServerDelayedLeave = this.state.expectedServerDelayLeaveTs
             ? this.state.expectedServerDelayLeaveTs - Date.now()
@@ -649,7 +650,7 @@ export class MembershipManager
             });
     }
 
-    private async sendScheduledDelayedLeaveEventOrFallbackToSendLeaveEvent(delayId: string): Promise<ActionUpdate> {
+    private async sendScheduledDelayedLeaveEventOrFallbackToSendLeaveEvent(delayId: string | number): Promise<ActionUpdate> {
         return await this.client
             ._unstable_sendScheduledDelayedEvent(delayId)
             .then(() => {
@@ -1053,7 +1054,7 @@ export class MembershipManager
     public get probablyLeft(): boolean {
         return this.state.probablyLeft;
     }
-    public get delayId(): string | undefined {
+    public get delayId(): string | number | undefined {
         return this.state.delayId;
     }
 }

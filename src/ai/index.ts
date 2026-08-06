@@ -21,6 +21,8 @@ limitations under the License.
  * 主要用于 TrendRadar 等 AI 服务集成
  */
 
+import { logger } from "../logger";
+
 export interface AITool {
     name: string;
     description: string;
@@ -214,7 +216,9 @@ export class AIModule {
             await this.listTools();
             this._isConnected = true;
             return true;
-        } catch {
+            // @swallow-error { owner: "ai", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("AIModule.healthCheck failed:", e);
             this._isConnected = false;
             return false;
         }

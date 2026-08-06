@@ -83,6 +83,7 @@ export type ManagerName =
     | "cryptoKeys"
     | "cryptoStore"
     | "dehydratedDevice"
+    | "delayedEvents"
     | "device"
     | "deviceKeys"
     | "deviceTrust"
@@ -192,6 +193,7 @@ export interface ManagerTypeMap {
     cryptoKeys: import("../crypto-keys/index").CryptoKeysManager;
     cryptoStore: import("../crypto-store/index").CryptoStoreManager;
     dehydratedDevice: import("../dehydrated-device/index").DehydratedDeviceManager;
+    delayedEvents: import("../delayed-events/index").DelayedEventsManager;
     device: import("../device/index").DeviceManager;
     deviceKeys: import("../device-keys/index").DeviceKeysManager;
     deviceTrust: import("../device-trust/index").DeviceTrustManager;

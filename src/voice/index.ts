@@ -148,6 +148,7 @@ interface VoiceManagerEventMap {
 
 export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> {
     private cachedConfig: IVoiceConfig | null = null;
+    private configPromise: Promise<IVoiceConfig> | null = null;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
@@ -157,12 +158,13 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Voice, true);
     }
 
-    public async getVoiceStats(_prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceStats> {
+    public async getVoiceStats(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceStats> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceStats>({
                     method: Method.Get,
                     path: "/voice/stats",
+                    prefix,
                 });
             }, "getVoiceStats");
         } catch (e) {
@@ -170,13 +172,14 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getRoomVoiceStats(roomId: string, _prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomStats> {
+    public async getRoomVoiceStats(roomId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomStats> {
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceRoomStats>({
                     method: Method.Get,
                     path: `/voice/room/${encodeURIComponent(roomId)}/stats`,
+                    prefix,
                 });
             }, "getRoomVoiceStats");
         } catch (e) {
@@ -184,13 +187,14 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getUserVoiceStats(userId: string, _prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserStats> {
+    public async getUserVoiceStats(userId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserStats> {
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceUserStats>({
                     method: Method.Get,
                     path: `/voice/user/${encodeURIComponent(userId)}/stats`,
+                    prefix,
                 });
             }, "getUserVoiceStats");
         } catch (e) {
@@ -198,12 +202,24 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getVoiceConfig(_prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceConfig> {
+    public async getVoiceConfig(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceConfig> {
+        if (this.cachedConfig) return this.cachedConfig;
+        if (this.configPromise) return this.configPromise;
+        this.configPromise = this.fetchVoiceConfig(prefix);
+        try {
+            return await this.configPromise;
+        } finally {
+            this.configPromise = null;
+        }
+    }
+
+    private async fetchVoiceConfig(prefix: ClientPrefix): Promise<IVoiceConfig> {
         try {
             const config = await this.withRetry(async () => {
                 return await this.request<IVoiceConfig>({
                     method: Method.Get,
                     path: "/voice/config",
+                    prefix,
                 });
             }, "getVoiceConfig");
             this.cachedConfig = config;
@@ -216,7 +232,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
 
     public async uploadVoiceMessage(
         request: IVoiceUploadRequest,
-        _prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: ClientPrefix = ClientPrefix.V3,
     ): Promise<IVoiceUploadResponse> {
         this.requireNonEmptyString(request.content, "Content");
         this.requireNonEmptyString(request.content_type, "Content type");
@@ -226,8 +242,9 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                     method: Method.Post,
                     path: "/voice/upload",
                     body: request,
+                    prefix,
                 });
-            }, "uploadVoiceMessage");
+            }, { idempotent: false, label: "uploadVoiceMessage" });
             this.emit(VoiceEvent.MessageUploaded, response);
             return response;
         } catch (e) {
@@ -235,13 +252,14 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getVoiceMessage(messageId: string, _prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceMessage> {
+    public async getVoiceMessage(messageId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceMessage> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceMessage>({
                     method: Method.Get,
                     path: `/voice/${encodeURIComponent(messageId)}`,
+                    prefix,
                 });
             }, "getVoiceMessage");
         } catch (e) {
@@ -251,7 +269,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
 
     public async deleteVoiceMessage(
         messageId: string,
-        _prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: ClientPrefix = ClientPrefix.V3,
     ): Promise<IVoiceDeleteResponse> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
@@ -259,6 +277,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                 return await this.request<IVoiceDeleteResponse>({
                     method: Method.Delete,
                     path: `/voice/${encodeURIComponent(messageId)}`,
+                    prefix,
                 });
             }, "deleteVoiceMessage");
             this.emit(VoiceEvent.MessageDeleted, messageId);
@@ -268,13 +287,14 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getRoomVoice(roomId: string, _prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomInfo> {
+    public async getRoomVoice(roomId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomInfo> {
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceRoomInfo>({
                     method: Method.Get,
                     path: `/voice/room/${encodeURIComponent(roomId)}`,
+                    prefix,
                 });
             }, "getRoomVoice");
         } catch (e) {
@@ -282,13 +302,14 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getUserVoice(userId: string, _prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserInfo> {
+    public async getUserVoice(userId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserInfo> {
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceUserInfo>({
                     method: Method.Get,
                     path: `/voice/user/${encodeURIComponent(userId)}`,
+                    prefix,
                 });
             }, "getUserVoice");
         } catch (e) {
@@ -299,7 +320,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async convertVoiceMessage(
         mediaId: string,
         options?: IVoiceConvertOptions,
-        _prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: ClientPrefix = ClientPrefix.V3,
     ): Promise<IVoiceConvertResponse> {
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
@@ -308,6 +329,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                     method: Method.Post,
                     path: `/voice/${encodeURIComponent(mediaId)}/convert`,
                     body: options ?? {},
+                    prefix,
                 });
             }, "convertVoiceMessage");
         } catch (e) {
@@ -318,7 +340,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async optimizeVoiceMessage(
         mediaId: string,
         options?: IVoiceOptimizeOptions,
-        _prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: ClientPrefix = ClientPrefix.V3,
     ): Promise<IVoiceOptimizeResponse> {
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
@@ -327,6 +349,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                     method: Method.Post,
                     path: `/voice/${encodeURIComponent(mediaId)}/optimize`,
                     body: options ?? {},
+                    prefix,
                 });
             }, "optimizeVoiceMessage");
         } catch (e) {
@@ -337,7 +360,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async transcribeVoiceMessage(
         mediaId: string,
         options?: IVoiceTranscribeOptions,
-        _prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: ClientPrefix = ClientPrefix.V3,
     ): Promise<IVoiceTranscribeResponse> {
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
@@ -346,6 +369,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                     method: Method.Post,
                     path: `/voice/${encodeURIComponent(mediaId)}/transcription`,
                     body: options ?? {},
+                    prefix,
                 });
             }, "transcribeVoiceMessage");
         } catch (e) {

@@ -251,9 +251,10 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     async getModuleLogs(moduleName: string, options?: { limit?: number; from?: string }): Promise<ModuleLogResponse> {
         const query = buildPaginationParams(options?.limit, options?.from);
+        // SDK-BL-001: backend route is /modules/logs/{module_name} (logs segment comes first)
         const result = await this.adminRequest<ModuleLogResponse>(
             Method.Get,
-            mp(`/modules/${encodeURIComponent(moduleName)}/logs`),
+            mp(`/modules/logs/${encodeURIComponent(moduleName)}`),
             query,
         );
         this.emit(ModuleEvent.ModuleLogsReceived, result);
@@ -380,8 +381,22 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== 账户有效性 ====================
 
-    async checkAccountValidity(): Promise<void> {
-        await this.adminRequest<void>(Method.Post, mp("/account_validity"));
+    /**
+     * 创建/检查账户有效性记录。
+     *
+     * SDK-BL-002: 后端 `create_account_validity` 处理器要求 body 含必填字段
+     * `user_id` 与 `expiration_ts`，此前 SDK 未传 body 导致 400 Bad Request。
+     *
+     * @param userId       目标用户 ID
+     * @param expirationTs 过期时间戳（毫秒）
+     */
+    async checkAccountValidity(userId: string, expirationTs: number): Promise<void> {
+        this.requireNonEmptyString(userId, "userId");
+        this.requirePositiveInteger(expirationTs, "expirationTs");
+        await this.adminRequest<void>(Method.Post, mp("/account_validity"), undefined, {
+            user_id: userId,
+            expiration_ts: expirationTs,
+        });
     }
 
     async getAccountValidity(userId: string): Promise<AccountValidityInfo> {
@@ -393,8 +408,29 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result;
     }
 
-    async renewAccountValidity(userId: string): Promise<void> {
-        await this.adminRequest<void>(Method.Post, mp(`/account_validity/${encodeURIComponent(userId)}/renew`));
+    /**
+     * 续期账户有效性。
+     *
+     * SDK-BL-003: 后端 `renew_account` 处理器要求 body 含必填字段
+     * `renewal_token` 与 `new_expiration_ts`，此前 SDK 仅传路径参数导致 400 Bad Request。
+     *
+     * @param userId           目标用户 ID
+     * @param renewalToken     续期令牌
+     * @param newExpirationTs 新过期时间戳（毫秒）
+     */
+    async renewAccountValidity(userId: string, renewalToken: string, newExpirationTs: number): Promise<void> {
+        this.requireNonEmptyString(userId, "userId");
+        this.requireNonEmptyString(renewalToken, "renewalToken");
+        this.requirePositiveInteger(newExpirationTs, "newExpirationTs");
+        await this.adminRequest<void>(
+            Method.Post,
+            mp(`/account_validity/${encodeURIComponent(userId)}/renew`),
+            undefined,
+            {
+                renewal_token: renewalToken,
+                new_expiration_ts: newExpirationTs,
+            },
+        );
         this.emit(ModuleEvent.AccountValidityRenewed, userId);
     }
 }

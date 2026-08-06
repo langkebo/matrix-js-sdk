@@ -135,7 +135,9 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
         if (this.stopped) return null;
         try {
             if (!(await this.olmMachine.isBackupEnabled())) return null;
-        } catch {
+            // @swallow-error { owner: "rust-crypto-backup", expires: "2026-12-31" }
+        } catch (e) {
+            this.logger.warn("RustBackupManager.getActiveBackupVersion failed:", e);
             return null;
         }
         return this.activeBackupVersion;

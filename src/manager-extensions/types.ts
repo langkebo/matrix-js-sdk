@@ -70,6 +70,7 @@ export interface ManagerExtensionsOptions {
     includeCas?: boolean;
     includeExternalService?: boolean;
     includeDehydratedDevice?: boolean;
+    includeDelayedEvents?: boolean;
     includeThread?: boolean;
     includeWidget?: boolean;
 

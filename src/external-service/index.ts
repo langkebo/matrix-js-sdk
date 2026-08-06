@@ -209,18 +209,6 @@ export class ExternalServiceManager extends BaseManager {
         }, "createService");
     }
 
-    public async getService(
-        serviceId: string,
-        prefix: ExternalServiceApiPrefix = "synapse_admin",
-    ): Promise<ExternalServiceItem> {
-        this.requireNonEmptyString(serviceId, "serviceId");
-        const prefixValue = this.resolvePrefix(prefix);
-        const path = this.resolveServiceIdPath(prefix, serviceId);
-        return await this.withRetry(async () => {
-            return await this.request<ExternalServiceItem>({ method: Method.Get, path: path, prefix: prefixValue });
-        }, "getService");
-    }
-
     public async updateService(
         serviceId: string,
         data: ExternalServiceUpdateRequest,

@@ -165,12 +165,11 @@ export { EphemeralManager } from "./ephemeral";
 export { EventManager } from "./event";
 export { FilterManager, FilterManager as CanonicalFilterManager } from "./filter/index";
 export { IdentityManager } from "./identity";
-export { InviteListManager } from "./invite-list";
 export { InvitesManager } from "./invites";
 export { KeyBackupManager } from "./key-backup";
 export { KeyRotationManager } from "./key-rotation";
-export {
-    DehydratedDeviceManager,
+export { DelayedEventsManager } from "./delayed-events";
+export { DehydratedDeviceManager,
     type DehydratedDeviceData,
     type CreateDehydratedDeviceRequest,
     type CreateDehydratedDeviceResponse,

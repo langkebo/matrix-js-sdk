@@ -37,7 +37,7 @@ describe("ServerCapabilitiesManager", () => {
         const capabilities: Capabilities = {
             "io.hula.sliding_sync": { enabled: true },
             "io.hula.widget": { enabled: true },
-            "io.hula.burn_after_read": true,
+            "io.hula.burn_after_read": { enabled: true },
             "io.hula.friends": { enabled: false },
             "m.voice": { enabled: true },
             openclaw: { enabled: true },

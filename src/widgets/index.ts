@@ -15,9 +15,18 @@ limitations under the License.
 */
 
 /**
- * Widgets Manager - 小组件管理
+ * Widgets Manager - 小组件管理（历史兼容层）
  *
  * 提供 Matrix widgets 管理功能
+ *
+ * @remarks
+ * 此模块为历史兼容层（legacy compatibility shim）。
+ * 推荐使用新版 `WidgetManager`（位于 `src/widget/index.ts`）：
+ * - 新版使用 `__generated__/route-table` 路径常量，提供与后端 route_ledger 类型安全对齐的 widget API
+ * - 新版方法命名一致（如 `getRoomWidgets` / `createWidget`），无方法名漂移
+ * - 此旧版保留用于兼容既有调用方，后续将逐步移除
+ *
+ * @see {@link ../widget/index.ts} 新版 WidgetManager
  */
 
 import { ClientPrefix } from "../http-api/prefix";
@@ -173,6 +182,15 @@ export interface WidgetsManagerEvents {
     widget_updated: { widgetId: string; roomId?: string };
 }
 
+/**
+ * 旧版 WidgetsManager（历史兼容层）。
+ *
+ * @deprecated 改用新版 `WidgetManager`（`src/widget/index.ts`）。
+ * 新版基于 `__generated__/route-table` 提供类型安全的 widget API，方法命名与后端 route_ledger 一致。
+ * 此类仅用于向后兼容既有调用方，后续版本将移除。
+ *
+ * @see {@link ../widget/index.ts#WidgetManager} 新版 WidgetManager
+ */
 export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, WidgetsManagerEvents> {
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);

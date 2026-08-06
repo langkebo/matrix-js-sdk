@@ -17,6 +17,7 @@ limitations under the License.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { AIModule, getAIModule, createAIModule, type AITool } from "../../../src/ai/index";
+import { logger } from "../../../src/logger";
 
 describe("AIModule", () => {
     let module: AIModule;
@@ -280,6 +281,16 @@ describe("AIModule", () => {
 
             expect(result).toBe(false);
             expect(module.isConnected).toBe(false);
+        });
+
+        it("should log a warning when health check fails", async () => {
+            vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+            fetchMock.mockRejectedValueOnce(new Error("Connection failed"));
+
+            const result = await module.healthCheck();
+
+            expect(result).toBe(false);
+            expect(logger.warn).toHaveBeenCalledWith("AIModule.healthCheck failed:", expect.any(Error));
         });
     });
 

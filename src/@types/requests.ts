@@ -96,10 +96,10 @@ export interface ISendEventResponse {
     event_id: string;
 }
 
-export type SendDelayedEventRequestOpts = { parent_delay_id: string } | { delay: number; parent_delay_id?: string };
+export type SendDelayedEventRequestOpts = { parent_delay_id: string | number } | { delay: number; parent_delay_id?: string | number };
 
 export function isSendDelayedEventRequestOpts(opts: object): opts is SendDelayedEventRequestOpts {
-    if ("parent_delay_id" in opts && typeof opts.parent_delay_id !== "string") {
+    if ("parent_delay_id" in opts && typeof opts.parent_delay_id !== "string" && typeof opts.parent_delay_id !== "number") {
         // Invalid type, reject
         return false;
     }
@@ -111,7 +111,17 @@ export function isSendDelayedEventRequestOpts(opts: object): opts is SendDelayed
     return "delay" in opts || "parent_delay_id" in opts;
 }
 export type SendDelayedEventResponse = {
-    delay_id: string;
+    /**
+     * 后端 `DelayedEvent.id` 为 `i64`，JSON 响应返回 JSON number。
+     * FT-084/FT-101: 类型必须接受 number，否则 `delayId.trim is not a function`。
+     * 同时保留 string 以兼容旧版客户端生成的 string delay_id。
+     */
+    delay_id: string | number;
+    /**
+     * FT-101: 后端延迟事件创建响应同时返回 event_id（与 ISendEventResponse 对齐）。
+     * 管理端点（cancel/restart/send）响应不含此字段。
+     */
+    event_id?: string;
 };
 
 export enum UpdateDelayedEventAction {
