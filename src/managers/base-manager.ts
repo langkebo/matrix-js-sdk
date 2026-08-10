@@ -26,7 +26,7 @@ limitations under the License.
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
-import { HTTPError, MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
+import { ConnectionError, HTTPError, MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
 import type { QueryDict } from "../http-api/utils";
 import type { Body, IRequestOpts } from "../http-api/interface";
 import { Method } from "../http-api/method";
@@ -358,6 +358,17 @@ export abstract class BaseManager<
                 `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
                 "UNKNOWN",
                 error.httpStatus,
+                error,
+            );
+        }
+
+        // ISSUE-10b: ConnectionError (CORS / timeout / network down) is transient —
+        // convert to RetryableError so withRetry's isRetryableErr check picks it
+        // up automatically. Combined with ISSUE-03 txnId reuse, retries on flaky
+        // networks no longer produce duplicate messages.
+        if (error instanceof ConnectionError) {
+            return new RetryableError(
+                `${managerName}.${method} failed: ${err?.message ?? "Connection error"}`,
                 error,
             );
         }
