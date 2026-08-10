@@ -22,6 +22,7 @@ limitations under the License.
  */
 
 import { logger } from "../logger";
+import { assertSecureBaseUrl } from "../http-api/base-url-guard";
 
 export interface AITool {
     name: string;
@@ -77,6 +78,16 @@ export class AIModule {
     }
 
     public setEndpoint(endpoint: string): void {
+        try {
+            assertSecureBaseUrl(endpoint, { allowInsecureDev: true });
+        } catch (e) {
+            // ISSUE-09b: 非 https 且非 localhost 的端点有数据泄露风险，告警但不阻断（符合审计"告警"语义）
+            logger.warn(
+                `AI MCP endpoint is insecure (non-https, non-localhost): ${endpoint}. ` +
+                    "This may leak data to an external HTTP endpoint.",
+                e,
+            );
+        }
         this.mcpEndpoint = endpoint;
     }
 
