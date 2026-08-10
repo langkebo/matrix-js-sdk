@@ -1297,6 +1297,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             cryptoDatabasePrefix?: string;
             storageKey?: Uint8Array;
             storagePassword?: string;
+            /**
+             * Explicit opt-out from the ISSUE-08b default-deny guard on unencrypted in-memory
+             * crypto stores. For tests / temporary sessions only.
+             *
+             * Production callers must instead provide `storageKey`/`storagePassword` derived
+             * from a system keychain. Not auto-implied by `useIndexedDB: false`.
+             */
+            allowInMemoryStore?: boolean;
         } = {},
     ): Promise<void> {
         if (this.cryptoBackend) {
@@ -1344,6 +1352,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             storePrefix: args.useIndexedDB === false ? null : (args.cryptoDatabasePrefix ?? RUST_SDK_STORE_PREFIX),
             storeKey: args.storageKey,
             storePassphrase: args.storagePassword,
+            // ISSUE-08b: 显式转发 opt-out，不自动隐含（保生产安全）
+            allowInMemoryStore: args.allowInMemoryStore,
 
             legacyCryptoStore: this.legacyCryptoStore,
             // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"，缺失时上方已显式报错

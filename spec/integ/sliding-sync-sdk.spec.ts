@@ -132,7 +132,7 @@ describe("SlidingSyncSdk", () => {
         mockSlidingSync = mockifySlidingSync(new SlidingSync("", new Map(), {}, client, 0));
         if (testOpts.withCrypto) {
             httpBackend!.when("GET", "/room_keys/version").respond(404, {});
-            await client!.initRustCrypto({ useIndexedDB: false });
+            await client!.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             syncCryptoCallback = client!.getCrypto() as unknown as SyncCryptoCallbacks;
             syncOpts.cryptoCallbacks = syncCryptoCallback;
         }
