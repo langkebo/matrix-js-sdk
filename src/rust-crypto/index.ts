@@ -79,6 +79,15 @@ export async function initRustCrypto(args: {
      */
     storeKey?: Uint8Array;
 
+    /**
+     * Explicit opt-out from the ISSUE-08b default-deny guard. For tests / temporary sessions only.
+     *
+     * When `storePrefix` is null (in-memory store), `initRustCrypto` refuses to open an unencrypted
+     * store by default. Set this to `true` to allow the unencrypted in-memory store. Production
+     * callers must instead provide `storeKey`/`storePassphrase` derived from a system keychain.
+     */
+    allowInMemoryStore?: boolean;
+
     /** If defined, we will check if any data needs migrating from this store to the rust store. */
     legacyCryptoStore?: CryptoStore;
 
@@ -111,8 +120,16 @@ export async function initRustCrypto(args: {
         } else {
             storeHandle = await StoreHandle.open(args.storePrefix, args.storePassphrase, logger);
         }
-    } else {
+    } else if (args.allowInMemoryStore) {
+        // 显式 opt-out：仅用于测试/临时会话，生产路径不应走到这里
+        logger.warn("Opening unencrypted in-memory crypto store (allowInMemoryStore=true). Not for production use.");
         storeHandle = await StoreHandle.open(null, null, logger);
+    } else {
+        // ISSUE-08b：默认拒绝不加密，防止桌面端进程读取明文密钥库
+        throw new Error(
+            "Refusing to open unencrypted in-memory crypto store; provide storeKey/storePassphrase " +
+                "(derived from system keychain) or explicitly set allowInMemoryStore for tests.",
+        );
     }
 
     if (args.legacyCryptoStore) {
