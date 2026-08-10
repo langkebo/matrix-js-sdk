@@ -1324,6 +1324,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.logger.debug("Downloading Rust crypto library");
         const RustCrypto = await import("./rust-crypto/index");
 
+        // ISSUE-08: 删除 "DEFAULT_KEY" 公开兜底——那等于用公开密钥解密本地
+        // 密钥库。存在 legacy store 却未提供 pickleKey 时显式失败（breaking，
+        // 但必须的取舍），而非静默使用弱密钥。
+        if (this.legacyCryptoStore && !this.legacyPickleKey) {
+            throw new Error(
+                "Cannot initialise crypto with a legacy crypto store but no pickle key: " +
+                    'pass `pickleKey` in createClient(). The insecure "DEFAULT_KEY" fallback was removed (ISSUE-08).',
+            );
+        }
+
         const rustCrypto = await RustCrypto.initRustCrypto({
             logger: this.logger,
             http: this.http,
@@ -1336,7 +1346,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             storePassphrase: args.storagePassword,
 
             legacyCryptoStore: this.legacyCryptoStore,
-            legacyPickleKey: this.legacyPickleKey ?? "DEFAULT_KEY",
+            // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"，缺失时上方已显式报错
+            legacyPickleKey: this.legacyPickleKey,
             legacyMigrationProgressListener: (progress: number, total: number): void => {
                 this.emit(CryptoEvent.LegacyCryptoStoreMigrationProgress, progress, total);
             },

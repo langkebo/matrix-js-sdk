@@ -47,6 +47,7 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 import { buildEmailTokenRequestParams, buildMsisdnTokenRequestParams, requestTokenFromEndpoint } from "../client-auth";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { IRefreshTokenResponse } from "../@types/auth";
+import { normalizeExpiresInMs } from "./normalize-expires";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -704,13 +705,14 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
         if (kind) {
             params.kind = kind;
         }
+        // ISSUE-05: 后端返回 expires_in（秒），在响应边界归一化为 expires_in_ms（毫秒）
         return this.request({
             method: Method.Post,
             path: "/register",
             queryParams: params,
             body: data,
             authenticated: false,
-        });
+        }).then((res) => normalizeExpiresInMs(res as RegisterResponse & { expires_in?: number }));
     }
 
     /**
@@ -725,7 +727,8 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                 path: "/refresh",
                 body: { refresh_token: refreshToken },
                 prefix,
-            });
+                // ISSUE-05: 后端返回 expires_in（秒），在响应边界归一化为 expires_in_ms（毫秒）
+            }).then((res) => normalizeExpiresInMs(res as IRefreshTokenResponse & { expires_in?: number }));
 
         try {
             return await performRefreshRequestWithPrefix(ClientPrefix.V3);

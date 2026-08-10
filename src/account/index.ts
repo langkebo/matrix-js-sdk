@@ -38,6 +38,7 @@ import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
 import type { IContent } from "../models/event";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import { normalizeExpiresInMs } from "../auth/normalize-expires";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -159,12 +160,14 @@ export class AccountManager extends BaseManager {
      */
     public async loginRequest(data: LoginRequest): Promise<LoginResponse> {
         return await this.withRetry(async () => {
-            return await this.request<LoginResponse>({
+            const response = await this.request<LoginResponse & { expires_in?: number }>({
                 method: Method.Post,
                 path: ap("/login"),
                 body: data,
                 authenticated: false,
             });
+            // ISSUE-05: 后端返回 expires_in（秒），在响应边界归一化为 expires_in_ms（毫秒）
+            return normalizeExpiresInMs(response);
         }, "loginRequest");
     }
 

@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixError } from "../http-api";
 import { Method } from "../http-api/method";
 import { MediaPrefix, ClientPrefix } from "../http-api/prefix";
 import type { UploadResponse } from "../http-api/interface";
@@ -237,7 +238,51 @@ export class MediaManager extends BaseManager {
         if (!file) {
             throw new ValidationError("File content is required");
         }
+        return this.uploadContentWithPrecheck(file, opts);
+    }
+
+    /**
+     * ISSUE-07: 上传前消费 `m.upload.size` 做客户端预检——超限直接抛
+     * M_TOO_LARGE，而不是等服务器拒绝后得到难以识别的错误。
+     * 预检失败（配置拉取异常）不阻断上传，由服务端兜底。
+     */
+    private async uploadContentWithPrecheck(
+        file: File | Blob | ArrayBuffer,
+        opts?: { name?: string; type?: string; progress?: (progress: { loaded: number; total: number }) => void },
+    ): Promise<{ content_uri: string }> {
+        const size = file instanceof ArrayBuffer ? file.byteLength : file.size;
+        if (typeof size === "number" && size > 0) {
+            const limit = await this.getCachedUploadSizeLimit();
+            if (limit !== undefined && size > limit) {
+                throw new MatrixError(
+                    {
+                        errcode: "M_TOO_LARGE",
+                        error: `File size ${size} bytes exceeds the server limit of ${limit} bytes`,
+                    },
+                    413,
+                );
+            }
+        }
         return this.client.http.uploadContent(file as Blob, opts as UploadOpts);
+    }
+
+    private uploadSizeLimitCache?: { value?: number; fetchedAt: number };
+
+    private async getCachedUploadSizeLimit(): Promise<number | undefined> {
+        const now = Date.now();
+        if (this.uploadSizeLimitCache && now - this.uploadSizeLimitCache.fetchedAt < 5 * 60 * 1000) {
+            return this.uploadSizeLimitCache.value;
+        }
+        let limit: number | undefined;
+        try {
+            const config = await this.getMediaConfig();
+            limit = config["m.upload.size"];
+        } catch {
+            // 预检配置拉取失败不阻断上传
+            limit = undefined;
+        }
+        this.uploadSizeLimitCache = { value: limit, fetchedAt: now };
+        return limit;
     }
 
     /**
@@ -407,6 +452,10 @@ export class MediaManager extends BaseManager {
             return await this.request<ChunkUploadResponse>({
                 method: Method.Post,
                 path: `/upload/chunk`,
+                // ISSUE-04: 后端从 query 读取 upload_id/chunk_index
+                // （synapse-rust src/web/routes/media/upload.rs:185-186），
+                // 此前只发 body 导致 upload_id=None、分块上传整体失效。
+                queryParams: { upload_id: uploadId, chunk_index: chunkIndex },
                 body: data,
                 prefix: MediaPrefix.V1,
             });

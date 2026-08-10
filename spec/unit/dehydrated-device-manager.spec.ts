@@ -2,19 +2,15 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { DehydratedDeviceManager } from "../../src/dehydrated-device";
 import { Method } from "../../src/http-api/method";
+import { type MatrixClient } from "../../src/client";
 
-type MockClient = {
-    doesServerAdvertiseSynapseRustFeature: ReturnType<typeof vi.fn>;
-    http: { authedRequest: ReturnType<typeof vi.fn> };
-};
-
-function createMockClient(authedRequest?: ReturnType<typeof vi.fn>): MockClient {
+function createMockClient(authedRequest?: ReturnType<typeof vi.fn>): MatrixClient {
     return {
         doesServerAdvertiseSynapseRustFeature: vi.fn().mockResolvedValue(true),
         http: {
             authedRequest: authedRequest ?? vi.fn().mockResolvedValue({}),
         },
-    } as unknown as MockClient;
+    } as unknown as MatrixClient;
 }
 
 describe("DehydratedDeviceManager", () => {
