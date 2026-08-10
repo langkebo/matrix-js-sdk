@@ -79,12 +79,14 @@ export class AIModule {
 
     public setEndpoint(endpoint: string): void {
         try {
+            // allowInsecureDev: true — local MCP servers (127.0.0.1/localhost) are legitimate in
+            // production, not just dev; non-localhost http still throws → warns
             assertSecureBaseUrl(endpoint, { allowInsecureDev: true });
         } catch (e) {
             // ISSUE-09b: 非 https 且非 localhost 的端点有数据泄露风险，告警但不阻断（符合审计"告警"语义）
             logger.warn(
-                `AI MCP endpoint is insecure (non-https, non-localhost): ${endpoint}. ` +
-                    "This may leak data to an external HTTP endpoint.",
+                `AI MCP endpoint failed security check: ${endpoint}. ` +
+                    "Non-https or non-localhost endpoints may leak data.",
                 e,
             );
         }

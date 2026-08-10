@@ -32,6 +32,7 @@ describe("ISSUE-09a base url guard", () => {
         expect(() => assertSecureBaseUrl("http://localhost:8008", { allowInsecureDev: true })).not.toThrow();
         expect(() => assertSecureBaseUrl("http://127.0.0.1:8008", { allowInsecureDev: true })).not.toThrow();
         expect(() => assertSecureBaseUrl("http://10.0.2.2:8008", { allowInsecureDev: true })).not.toThrow();
+        expect(() => assertSecureBaseUrl("http://[::1]:8008", { allowInsecureDev: true })).not.toThrow();
     });
 
     it("rejects non-localhost http even in dev", () => {

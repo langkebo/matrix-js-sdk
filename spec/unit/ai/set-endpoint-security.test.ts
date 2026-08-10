@@ -26,7 +26,7 @@ describe("ISSUE-09b AI setEndpoint security warning", () => {
         ai.setEndpoint("http://external.evil.com/mcp");
         expect(ai.getEndpoint()).toBe("http://external.evil.com/mcp");
         expect(logger.warn).toHaveBeenCalledWith(
-            expect.stringMatching(/insecure/i),
+            expect.stringMatching(/security check/i),
             expect.anything(),
         );
     });
@@ -35,6 +35,13 @@ describe("ISSUE-09b AI setEndpoint security warning", () => {
         const ai = new AIModule();
         ai.setEndpoint("ftp://example.org/mcp");
         expect(ai.getEndpoint()).toBe("ftp://example.org/mcp");
+        expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it("warns on invalid URL but still sets endpoint", () => {
+        const ai = new AIModule();
+        ai.setEndpoint("not-a-url");
+        expect(ai.getEndpoint()).toBe("not-a-url");
         expect(logger.warn).toHaveBeenCalled();
     });
 });
