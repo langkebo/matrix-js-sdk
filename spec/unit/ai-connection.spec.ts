@@ -31,8 +31,8 @@ describe("AIConnectionManager", () => {
     });
 
     describe("route table alignment", () => {
-        it("should have 12 routes in the generated route table", () => {
-            expect(AI_CONNECTION_ROUTES).toHaveLength(12);
+        it("should have 16 routes in the generated route table", () => {
+            expect(AI_CONNECTION_ROUTES).toHaveLength(16);
         });
 
         it("should cover v1 and v3 paths", () => {

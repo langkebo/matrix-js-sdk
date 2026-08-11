@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { AccountManager } from "../../src/account/index";
 import { SSOAction } from "../../src/@types/auth";
-import { Method, ClientPrefix } from "../../src/http-api";
+import { Method, ClientPrefix, VendorPrefix } from "../../src/http-api";
 
 describe("AccountManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -345,7 +345,7 @@ describe("AccountManager", () => {
             expect(result.invited_rooms).toEqual(["!room2:example.com"]);
             expect(result.left_rooms).toEqual(["!room3:example.com"]);
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/my_rooms", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
     });
