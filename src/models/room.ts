@@ -105,6 +105,13 @@ interface IOpts {
      * Default: 1000 events
      */
     maxTimelineEvents?: number;
+    /**
+     * NOT_SENT pending events older than this threshold (in milliseconds) are
+     * automatically transitioned to CANCELLED via the existing cleanup path.
+     * Default: 86_400_000 (24h). Set to 0 to disable.
+     * ISSUE-11b.
+     */
+    pendingEventNotSentTimeoutMs?: number;
 }
 
 export interface IRecommendedVersion {
@@ -464,6 +471,18 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     private readonly maxTimelineEvents: number;
 
     /**
+     * NOT_SENT pending events older than this threshold (ms) are auto-cancelled.
+     * 0 disables the sweep. Default 24h. ISSUE-11b.
+     */
+    private readonly notSentTimeoutMs: number;
+
+    /**
+     * Periodic timer that sweeps the pending event list for stale NOT_SENT events.
+     * Undefined when the sweep is disabled (timeout = 0) or after disposeNotSentSweepTimer().
+     */
+    private notSentSweepTimer?: ReturnType<typeof setInterval>;
+
+    /**
      * Construct a new Room.
      *
      * <p>For a room, we store an ordered sequence of timelines, which may or may not
@@ -501,6 +520,18 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
         opts.pendingEventOrdering = opts.pendingEventOrdering || PendingEventOrdering.Chronological;
         this.maxTimelineEvents = opts.maxTimelineEvents ?? 1000;
+
+        // ISSUE-11b: NOT_SENT timeout eviction. Default 24h; 0 disables the sweep.
+        this.notSentTimeoutMs = opts.pendingEventNotSentTimeoutMs ?? 86_400_000;
+        if (this.notSentTimeoutMs > 0) {
+            // Sweep every 60s; cheap scan of pendingEventList (only populated in Detached mode,
+            // but in Chronological mode pendingEventList is undefined and the sweep is a no-op).
+            this.notSentSweepTimer = setInterval(() => this.sweepNotSentEvents(), 60_000);
+            // Allow the process to exit even if the timer is still running.
+            if (typeof this.notSentSweepTimer.unref === "function") {
+                this.notSentSweepTimer.unref();
+            }
+        }
 
         this.name = roomId;
         this.normalizedName = roomId;
@@ -3170,10 +3201,14 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     }
 
     /**
-     * Cleanup old events from timeline if cache exceeds maxTimelineEvents
-     * This prevents memory leaks in long-running sessions with active rooms
+     * Cleanup old events from timeline if cache exceeds maxTimelineEvents.
+     * This prevents memory leaks in long-running sessions with active rooms.
+     *
+     * ISSUE-11b: now also trims filtered timeline sets (index 1+) and thread
+     * timeline sets, which previously grew unbounded.
      */
     private cleanupOldEvents(): void {
+        // Clean the live (unfiltered) timeline.
         const liveTimeline = this.getLiveTimeline();
         const events = liveTimeline.getEvents();
 
@@ -3187,6 +3222,85 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 `[Room ${this.roomId}] Cleaned up ${eventsToRemove} old events, ` +
                     `timeline now has ${events.length} events`,
             );
+        }
+
+        // Clean filtered timeline sets (index 1+ in this.timelineSets).
+        for (let i = 1; i < this.timelineSets.length; i++) {
+            const ts = this.timelineSets[i];
+            const tl = ts.getLiveTimeline();
+            const tlEvents = tl.getEvents();
+            if (tlEvents.length > this.maxTimelineEvents) {
+                const remove = tlEvents.length - this.maxTimelineEvents;
+                tlEvents.splice(0, remove);
+                logger.debug(
+                    `[Room ${this.roomId}] Cleaned up ${remove} old events from filtered timeline ${i}, ` +
+                        `now has ${tlEvents.length} events`,
+                );
+            }
+        }
+
+        // Clean thread timeline sets (may be uninitialised — empty array).
+        if (this.threadsTimelineSets.length > 0) {
+            for (const ts of this.threadsTimelineSets) {
+                const tl = ts.getLiveTimeline();
+                const tlEvents = tl.getEvents();
+                if (tlEvents.length > this.maxTimelineEvents) {
+                    const remove = tlEvents.length - this.maxTimelineEvents;
+                    tlEvents.splice(0, remove);
+                    logger.debug(
+                        `[Room ${this.roomId}] Cleaned up ${remove} old events from thread timeline, ` +
+                            `now has ${tlEvents.length} events`,
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Sweep the pending event list for NOT_SENT events older than {@link notSentTimeoutMs}
+     * and transition them to CANCELLED via the existing cleanup path
+     * (see {@link updatePendingEvent}). No-op when the pending list is empty or
+     * when the sweep is disabled (timeout = 0). ISSUE-11b.
+     */
+    private sweepNotSentEvents(): void {
+        if (!this.pendingEventList || this.pendingEventList.length === 0) return;
+        const now = Date.now();
+        const expired: MatrixEvent[] = [];
+        for (const event of this.pendingEventList) {
+            if (event.status === EventStatus.NOT_SENT) {
+                const age = now - event.localTimestamp;
+                if (age > this.notSentTimeoutMs) {
+                    expired.push(event);
+                }
+            }
+        }
+        for (const event of expired) {
+            const eventId = event.getId();
+            if (eventId) {
+                // Reuse the existing CANCELLED cleanup path (updatePendingEvent →
+                // removePendingEvent + removeEvent + savePendingEvents).
+                this.updatePendingEvent(event, EventStatus.CANCELLED);
+            }
+        }
+        if (expired.length > 0) {
+            logger.info(
+                `[Room ${this.roomId}] Auto-cancelled ${expired.length} stale NOT_SENT events ` +
+                    `(timeout=${this.notSentTimeoutMs}ms)`,
+            );
+        }
+    }
+
+    /**
+     * Stop the NOT_SENT sweep timer. Safe to call multiple times.
+     *
+     * Intended to be invoked by the client when the room is no longer needed
+     * (see ISSUE-11a / task B3); exposed here so lifecycle management stays
+     * with the client. ISSUE-11b.
+     */
+    public disposeNotSentSweepTimer(): void {
+        if (this.notSentSweepTimer) {
+            clearInterval(this.notSentSweepTimer);
+            this.notSentSweepTimer = undefined;
         }
     }
 

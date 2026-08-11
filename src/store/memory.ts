@@ -45,6 +45,20 @@ function isValidFilterId(filterId?: string | number | null): boolean {
     return isValidStr || typeof filterId === "number";
 }
 
+/**
+ * Maximum number of pending events kept per room in MemoryStore.
+ * Events beyond this count are trimmed (oldest first) to bound memory.
+ * ISSUE-11b.
+ */
+const MAX_PENDING_EVENTS_PER_ROOM = 100;
+
+/**
+ * Maximum number of rooms for which out-of-band members are cached in MemoryStore.
+ * When the cap is exceeded, the oldest entries are evicted (LRU).
+ * ISSUE-11b.
+ */
+const MAX_OOB_MEMBERS_ROOMS = 50;
+
 export interface IOpts {
     /** The local storage instance to persist some forms of data such as tokens. Rooms will NOT be stored. */
     localStorage?: Storage;
@@ -398,6 +412,13 @@ export class MemoryStore implements IStore {
      */
     public setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
         this.oobMembers.set(roomId, membershipEvents);
+        // LRU eviction: if exceeding max rooms, delete oldest entries first.
+        // Map preserves insertion order, so the first key is the oldest.
+        while (this.oobMembers.size > MAX_OOB_MEMBERS_ROOMS) {
+            const firstKey = this.oobMembers.keys().next().value;
+            if (firstKey === undefined) break;
+            this.oobMembers.delete(firstKey);
+        }
         return Promise.resolve();
     }
 
@@ -420,7 +441,10 @@ export class MemoryStore implements IStore {
     }
 
     public async setPendingEvents(roomId: string, events: Partial<IEvent>[]): Promise<void> {
-        this.pendingEvents[roomId] = events;
+        // Trim to the most recent MAX_PENDING_EVENTS_PER_ROOM entries (drop oldest).
+        // ISSUE-11b: bound memory usage for rooms with very long pending backlogs.
+        this.pendingEvents[roomId] =
+            events.length > MAX_PENDING_EVENTS_PER_ROOM ? events.slice(-MAX_PENDING_EVENTS_PER_ROOM) : events;
     }
 
     public saveToDeviceBatches(batches: ToDeviceBatchWithTxnId[]): Promise<void> {
