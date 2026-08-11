@@ -457,6 +457,11 @@ function extractContractIndexDocLinks(text) {
 }
 
 export function discoverSupportedModules(contractMdText) {
+    if (contractMdText === undefined) {
+        contractMdText = fs.existsSync(BACKEND_CONTRACT_MD)
+            ? fs.readFileSync(BACKEND_CONTRACT_MD, "utf8")
+            : "";
+    }
     const byLabel = parseBackendContractMd(contractMdText);
     // Reverse map: sdkDir -> [backend contract labels]
     const sdkToLabels = new Map();

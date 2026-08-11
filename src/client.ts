@@ -1331,16 +1331,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.logger.debug("Downloading Rust crypto library");
         const RustCrypto = await import("./rust-crypto/index");
 
-        // ISSUE-08: 删除 "DEFAULT_KEY" 公开兜底——那等于用公开密钥解密本地
-        // 密钥库。存在 legacy store 却未提供 pickleKey 时显式失败（breaking，
-        // 但必须的取舍），而非静默使用弱密钥。
-        if (this.legacyCryptoStore && !this.legacyPickleKey) {
-            throw new Error(
-                "Cannot initialise crypto with a legacy crypto store but no pickle key: " +
-                    'pass `pickleKey` in createClient(). The insecure "DEFAULT_KEY" fallback was removed (ISSUE-08).',
-            );
-        }
-
+        // ISSUE-08: "DEFAULT_KEY" 公开兜底已删除。不在 client 层早期失败——
+        // createClient() 总会创建空 MemoryCryptoStore，故 legacyCryptoStore 恒被设置。
+        // pickleKey 仅在 store 实际持有待迁移加密数据时才需要；空 store 直接跳过迁移。
+        // 真正需要 pickleKey 的检查下沉到 migrateFromLegacyCrypto() 内（libolm_migration.ts）。
         const rustCrypto = await RustCrypto.initRustCrypto({
             logger: this.logger,
             http: this.http,
@@ -1355,7 +1349,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             allowInMemoryStore: args.allowInMemoryStore,
 
             legacyCryptoStore: this.legacyCryptoStore,
-            // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"，缺失时上方已显式报错
+            // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"；空 store 无需 pickleKey，有数据时迁移层校验
             legacyPickleKey: this.legacyPickleKey,
             legacyMigrationProgressListener: (progress: number, total: number): void => {
                 this.emit(CryptoEvent.LegacyCryptoStoreMigrationProgress, progress, total);

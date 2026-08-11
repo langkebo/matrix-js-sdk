@@ -79,9 +79,9 @@ export class AIModule {
 
     public setEndpoint(endpoint: string): void {
         try {
-            // allowInsecureDev: true — local MCP servers (127.0.0.1/localhost) are legitimate in
-            // production, not just dev; non-localhost http still throws → warns
-            assertSecureBaseUrl(endpoint, { allowInsecureDev: true });
+            // 不传 allowInsecureDev：localhost / 127.0.0.1 等 INSECURE_DEV_HOSTS 仍放行
+            // （本地 MCP 服务器合法），非 localhost http 抛错 → 下方 catch 告警
+            assertSecureBaseUrl(endpoint);
         } catch (e) {
             // ISSUE-09b: 非 https 且非 localhost 的端点有数据泄露风险，告警但不阻断（符合审计"告警"语义）
             logger.warn(

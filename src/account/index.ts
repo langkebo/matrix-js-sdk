@@ -20,7 +20,7 @@ limitations under the License.
  * 提供登录、登出、Token 管理等功能
  */
 
-import { BaseManager, type ManagerOpts } from "../managers/base-manager";
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";

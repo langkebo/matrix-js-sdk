@@ -41,9 +41,9 @@ describe("SyncApi transport interface (ISSUE-12)", () => {
         return { logger };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function getSyncTransport(syncApi: SyncApi): ISyncTransport {
         // The getter is private; read it via the instance for the test.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (syncApi as any).syncTransport;
     }
 

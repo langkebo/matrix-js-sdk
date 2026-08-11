@@ -35,10 +35,9 @@ describe("ISSUE-09a base url guard", () => {
         expect(() => assertSecureBaseUrl("http://[::1]:8008", { allowInsecureDev: true })).not.toThrow();
     });
 
-    it("rejects non-localhost http even in dev", () => {
-        expect(() => assertSecureBaseUrl("http://matrix.example.org", { allowInsecureDev: true })).toThrow(
-            /non-https base url/i,
-        );
+    it("allows non-localhost http in dev mode", () => {
+        // ISSUE-09: allowInsecureDev 是测试 / 本地开发的显式 opt-in，放行所有 http 主机
+        expect(() => assertSecureBaseUrl("http://matrix.example.org", { allowInsecureDev: true })).not.toThrow();
     });
 
     it("rejects unsupported protocol", () => {

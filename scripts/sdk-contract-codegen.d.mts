@@ -21,6 +21,7 @@ export function renderDtoFile(
 
 export function renderContractAssertions(
     module: Pick<SupportedModule, "ledgerModule" | "constName" | "typePrefix">,
-    manifest: RenderManifest,
+    entries: { method: string; path: string }[],
+    entryCount: number,
     contractDocText: string,
 ): string;

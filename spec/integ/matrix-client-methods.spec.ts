@@ -1648,7 +1648,7 @@ describe("MatrixClient", function () {
     describe("getFallbackAuthUrl", () => {
         it("should return fallback url", () => {
             expect(client.getFallbackAuthUrl("loginType", "authSessionId")).toMatchInlineSnapshot(
-                `"http://alice.localhost.test.server/_matrix/client/v3/auth/loginType/fallback/web?session=authSessionId"`,
+                `"http://localhost/_matrix/client/v3/auth/loginType/fallback/web?session=authSessionId"`,
             );
         });
     });

@@ -18,6 +18,7 @@ describe("SDK alignment managers", () => {
                 sendEmoteMessage: vi.fn().mockResolvedValue({ event_id: "$event" }),
                 sendImageMessage: vi.fn().mockResolvedValue({ event_id: "$event" }),
                 sendMessage: vi.fn().mockResolvedValue({ event_id: "$event" }),
+                makeTxnId: vi.fn().mockReturnValue("mock-txn-id"),
             };
             manager = new SendingManager(client);
         });
@@ -38,8 +39,21 @@ describe("SDK alignment managers", () => {
             await manager.sendEmote("!room:test", "wave", "txn-2");
             await manager.sendImage("!room:test", "mxc://img", { w: 10 }, "Image");
 
-            expect(client.sendEmoteMessage).toHaveBeenCalledWith("!room:test", "wave", "txn-2", undefined);
-            expect(client.sendImageMessage).toHaveBeenCalledWith("!room:test", "mxc://img", { w: 10 }, "Image");
+            // sendEmote 直接委托 client.sendEmoteMessage（3 参：roomId, text, txnId）
+            expect(client.sendEmoteMessage).toHaveBeenCalledWith("!room:test", "wave", "txn-2");
+            // ISSUE-03: sendImage 改走 sendMessage（内部复用 txnId），content 构造与
+            // client.sendImageMessage 一致
+            expect(client.sendMessage).toHaveBeenCalledWith(
+                "!room:test",
+                null,
+                {
+                    msgtype: "m.image",
+                    url: "mxc://img",
+                    info: { w: 10 },
+                    body: "Image",
+                },
+                "mock-txn-id",
+            );
         });
     });
 

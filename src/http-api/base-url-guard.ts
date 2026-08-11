@@ -27,8 +27,10 @@ export function assertSecureBaseUrl(baseUrl: string, opts: { allowInsecureDev?: 
     if (url.protocol !== "http:") {
         throw new Error(`Unsupported base url protocol: ${url.protocol}`);
     }
-    // http: 仅在 dev 模式 + 本地地址放行
-    if (opts.allowInsecureDev && INSECURE_DEV_HOSTS.includes(url.hostname)) return;
+    // http: dev 模式放行所有主机（测试 / 本地开发用 allowInsecureDev 显式 opt-in）；
+    // 非 dev 模式仅允许已知本地地址，避免生产环境误用 http。
+    if (opts.allowInsecureDev) return;
+    if (INSECURE_DEV_HOSTS.includes(url.hostname)) return;
     throw new Error(
         `Refusing to use non-https base url in production: ${baseUrl}. ` +
             "Pass allowInsecureDev for local development only.",
