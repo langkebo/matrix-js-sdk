@@ -343,11 +343,22 @@ function buildSdkTableLookup() {
     return map;
 }
 
+// ISSUE-13: Private endpoints migrated to vendor prefix (/_matrix/vendor/v1)
+const VENDOR_ENDPOINTS = new Set(["/my_rooms", "/search_rooms", "/search_recipients"]);
+
 function resolveFullPath(method, resourcePath, sdkDir, lookups) {
     const key = `${method} ${resourcePath}`;
     if (lookups.backend.has(key)) return lookups.backend.get(key);
     if (lookups.sdk.has(key)) return lookups.sdk.get(key);
-    const prefix = sdkDir === "media" ? "/_matrix/media/v3" : "/_matrix/client/v3";
+    // Private endpoints use vendor prefix; media uses /_matrix/media/v3; else v3
+    let prefix;
+    if (VENDOR_ENDPOINTS.has(resourcePath)) {
+        prefix = "/_matrix/vendor/v1";
+    } else if (sdkDir === "media") {
+        prefix = "/_matrix/media/v3";
+    } else {
+        prefix = "/_matrix/client/v3";
+    }
     return prefix + (resourcePath.startsWith("/") ? resourcePath : `/${resourcePath}`);
 }
 

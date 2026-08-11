@@ -4,7 +4,7 @@
  *
  * Module:        Sync 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       10 (authoritative set mirrored from the backend contract)
+ * Entries:       11 (authoritative set mirrored from the backend contract)
  */
 
 /** Routes served by the synapse-rust `sync` module (mirrored from the backend contract). */
@@ -19,6 +19,8 @@ export const SYNC_ROUTES = [
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3575/sync" },
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" },
     { method: "POST", path: "/_matrix/client/v1/sync" },
+    // ISSUE-13: vendor-prefixed route for private endpoint (replaces v3 for SDK calls)
+    { method: "GET", path: "/_matrix/vendor/v1/my_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SYNC_ROUTES`. */

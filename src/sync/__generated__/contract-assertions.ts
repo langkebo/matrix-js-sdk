@@ -6,10 +6,10 @@
 
 import { SYNC_ROUTES } from "./route-table";
 
-export const SYNC_ROUTES_ENTRY_COUNT = 10 as const;
+export const SYNC_ROUTES_ENTRY_COUNT = 11 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _SyncEntryCountAssertion: 10 = SYNC_ROUTES.length;
+const _SyncEntryCountAssertion: 11 = SYNC_ROUTES.length;
 void _SyncEntryCountAssertion;
 
 export const SYNC_ROUTES_STATUS_SCENARIOS = [

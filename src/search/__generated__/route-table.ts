@@ -4,7 +4,7 @@
  *
  * Module:        搜索契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       11 (authoritative set mirrored from the backend contract)
+ * Entries:       13 (authoritative set mirrored from the backend contract)
  */
 
 /** Routes served by the synapse-rust `search` module (mirrored from the backend contract). */
@@ -20,6 +20,9 @@ export const SEARCH_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/search" },
     { method: "POST", path: "/_matrix/client/v3/search_recipients" },
     { method: "POST", path: "/_matrix/client/v3/search_rooms" },
+    // ISSUE-13: vendor-prefixed routes for private endpoints (replaces v3 for SDK calls)
+    { method: "POST", path: "/_matrix/vendor/v1/search_recipients" },
+    { method: "POST", path: "/_matrix/vendor/v1/search_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SEARCH_ROUTES`. */
