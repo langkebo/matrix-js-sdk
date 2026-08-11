@@ -830,7 +830,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             onlyData: true,
             extraParams: opts.queryParams,
             localTimeoutMs: opts.localTimeoutMs,
-            useAuthorizationHeader: opts.useAuthorizationHeader,
             logger: this.logger,
         });
 

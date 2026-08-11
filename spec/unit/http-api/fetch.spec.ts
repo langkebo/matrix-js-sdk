@@ -298,7 +298,7 @@ describe("FetchHttpApi", () => {
         ).rejects.toThrow("Invalid call to `FetchHttpApi`");
     });
 
-    it("should send token via query params if useAuthorizationHeader=false", async () => {
+    it("should always send token via Authorization header even if useAuthorizationHeader=false (ISSUE-09)", async () => {
         const fetchFn = makeMockFetchFn();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
@@ -311,7 +311,10 @@ describe("FetchHttpApi", () => {
             allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path");
-        expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBe("token");
+        // Token is always sent via Authorization header; query param fallback removed (ISSUE-09)
+        expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBeNull();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer token");
     });
 
     it("should send token via headers by default", async () => {
@@ -365,7 +368,7 @@ describe("FetchHttpApi", () => {
         expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer token");
     });
 
-    it("should not override manually specified access token via query params", async () => {
+    it("should strip access_token from query params and use Authorization header (ISSUE-09)", async () => {
         const fetchFn = makeMockFetchFn();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
@@ -373,12 +376,14 @@ describe("FetchHttpApi", () => {
             prefix,
             fetchFn,
             accessToken: "token",
-            useAuthorizationHeader: false,
             onlyData: true,
             allowInsecureHttp: true,
         });
         await api.authedRequest(Method.Get, "/path", { access_token: "RealToken" });
-        expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBe("RealToken");
+        // access_token is always stripped from query params to prevent token leakage (ISSUE-09)
+        expect((fetchFn.mock.calls[0][0] as URL).searchParams.get("access_token")).toBeNull();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((fetchFn.mock.calls[0][1]!.headers as Record<string, any>)["Authorization"]).toBe("Bearer token");
     });
 
     it("should not override manually specified access token via header", async () => {

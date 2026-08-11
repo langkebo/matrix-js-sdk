@@ -33,6 +33,7 @@ import { type CryptoStore } from "./crypto/store/base";
 import { extendMatrixClientWithManagers, isManagerExtensionsInitialized } from "./manager-extensions";
 import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
+import { assertSecureBaseUrl } from "./http-api/base-url-guard";
 
 export {
     extendMatrixClientWithManagers,
@@ -258,6 +259,11 @@ export async function initializeManagerExtensions(): Promise<void> {
  * `opts`.
  */
 export function createClient(opts: ICreateClientOpts): MatrixClient {
+    // Security: enforce HTTPS base URLs, allowing http only for dev hosts (ISSUE-09).
+    assertSecureBaseUrl(opts.baseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
+    if (opts.idBaseUrl) {
+        assertSecureBaseUrl(opts.idBaseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
+    }
     installSynchronousCoreManagerExtensions();
     void autoInitManagerExtensions(opts);
     return new MatrixClient(amendClientOpts(opts));

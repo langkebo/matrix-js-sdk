@@ -76,10 +76,10 @@ export interface IHttpOpts {
     tokenRefreshFunction?: TokenRefreshFunction;
 
     /**
-     * Whether to use the HTTP Authorization header over the `access_token` query parameter
-     * @deprecated as of v1.11 in https://spec.matrix.org/v1.17/client-server-api/#using-access-tokens
+     * Whether to use the HTTP Authorization header over the `access_token` query parameter.
+     * @deprecated Token is always sent via Authorization header (ISSUE-09). This option is ignored.
      */
-    useAuthorizationHeader?: boolean; // defaults to true
+    useAuthorizationHeader?: boolean;
 
     /** For historical reasons, must be set to `true`. Will eventually be removed. */
     onlyData?: boolean;
