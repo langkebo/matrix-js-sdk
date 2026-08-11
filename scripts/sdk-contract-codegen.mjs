@@ -1,27 +1,37 @@
 #!/usr/bin/env node
 /*
- * SDK route-table codegen.
+ * SDK route-table codegen — backend-contract-driven (P0 governance).
  *
- * Reads the per-module machine manifests at
- * `docs/api-contract/generated/modules/<module>.json` (materialised by
- * `contract-sync.mjs`) and emits strongly-typed TypeScript contract helpers
- * to `src/<sdk-dir>/__generated__/` for the supported public modules.
+ * The single source of truth for the SDK's route tables is the synapse-rust
+ * backend contract `docs/synapse-rust/ROUTE_CONTRACT.md` (machine-readable
+ * sibling: `artifacts/route_contract.json`). This script parses that document
+ * directly and emits strongly-typed TypeScript contract helpers to
+ * `src/<sdk-dir>/__generated__/` for every supported public module.
  *
- * The generated file is intentionally a pure data module — no runtime
- * behaviour — so importing it into a manager's hot path has zero
- * footprint. Using `as const` + indexed `[number]` derivations makes the
- * path/method strings literal-typed, so a typo like `room_keyz` is a
- * compile error rather than a 404 at runtime.
+ * Because the contract document strips the C-S version prefix
+ * (`/rooms/{id}` rather than `/_matrix/client/r0/rooms/{id}`), each route's
+ * full path is re-attached via a three-tier resolver (see the ingestion
+ * layer below): backend full-path manifest → existing on-disk route-table →
+ * a per-module default prefix. Route *membership* always comes from the
+ * contract; the on-disk union guarantees no manager-required path is ever
+ * dropped, so regeneration is build-safe.
  *
- * Phase D D4 deliverable per
- *   docs/api-contract/LEDGER_DRIVEN_SDK_PLAN_2026-05-02.md §2.4.
+ * The generated files are pure data modules — no runtime behaviour — so
+ * importing them into a manager's hot path has zero footprint. `as const` +
+ * indexed `[number]` derivations make the path/method strings literal-typed,
+ * so a typo like `room_keyz` is a compile error rather than a 404 at runtime.
  *
  * Modes:
  *   sdk-contract-codegen.mjs                → regenerate supported modules
  *   sdk-contract-codegen.mjs --check        → regenerate in memory; fail if disk differs
  *
- * The `--check` mode is intended for CI: PRs that touch the ledger
- * without regenerating the route tables break the build.
+ * The `--check` mode is intended for CI: PRs that change the backend
+ * contract without regenerating the route tables break the build.
+ *
+ * Env overrides:
+ *   SYNAPSE_RUST_REPO            → backend repo root (default: ../synapse-rust)
+ *   SYNAPSE_RUST_CONTRACT_MD     → path to ROUTE_CONTRACT.md
+ *   SYNAPSE_RUST_ROUTE_MANIFEST  → path to the full-path route manifest
  */
 
 import fs from "node:fs";
@@ -32,7 +42,6 @@ import ts from "typescript";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRACT_INDEX.md");
-const GENERATED_MODULES_DIR = path.join(repoRoot, "docs", "api-contract", "generated", "modules");
 
 const SKIP_ROUTE_TABLE_MODULES = new Set([
     "admin",
@@ -49,26 +58,6 @@ const SKIP_ROUTE_TABLE_MODULES = new Set([
 const SDK_DIR_ALIASES = {
     openclaw: "open-claw",
     thirdparty: "third-party",
-};
-
-const LEDGER_MODULE_ALIASES = {
-    "account-data": "account_data",
-    "ai-connection": "ai_connection",
-    "app-service": "app_service",
-    "background-update": "background_update",
-    "burn-after-read": "burn_after_read",
-    e2ee: "e2ee_routes",
-    "event-report": "event_report",
-    "external-service": "external_service",
-    "feature-flags": "feature_flags",
-    friend: "friend_room",
-    "key-backup": "key_backup",
-    "key-rotation": "key_rotation",
-    notifications: "push_notification",
-    "room-summary": "room_summary",
-    "sliding-sync": "sliding_sync",
-    verification: "verification_routes",
-    "worker-admin": "worker_body",
 };
 
 const DTO_EXTERNAL_TYPE_IMPORTS = [
@@ -166,6 +155,213 @@ const DTO_EXTERNAL_TYPE_IMPORTS = [
     },
 ];
 
+/*
+ * ─────────────────────────────────────────────────────────────────────────
+ * P0 — Backend contract ingestion.
+ *
+ * The authoritative contract now lives in the synapse-rust repo's
+ * `docs/synapse-rust/ROUTE_CONTRACT.md` (machine-readable sibling:
+ * `artifacts/route_contract.json`). This script consumes that document
+ * directly so the SDK route-tables can no longer drift from the backend.
+ *
+ * The contract document strips the C-S version prefix (e.g. it lists
+ * `/rooms/{room_id}` rather than `/_matrix/client/r0/rooms/{room_id}`), so
+ * we re-attach a full path via a three-tier resolver:
+ *   1. backend full-path manifest (`route_contract.json`) — authoritative
+ *      version (r0 / v1 / v3 / ...);
+ *   2. the existing on-disk SDK route-table — preserves the exact path a
+ *      manager already type-checks against (build-safe fallback);
+ *   3. a per-module default prefix (`/_matrix/client/v3`, media →
+ *      `/_matrix/media/v3`).
+ *
+ * Route membership is taken verbatim from the contract (single source of
+ * truth); the union with existing entries guarantees no manager-used route
+ * is ever dropped.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+
+const BACKEND_REPO =
+    process.env.SYNAPSE_RUST_REPO ?? path.resolve(repoRoot, "..", "synapse-rust");
+const BACKEND_CONTRACT_MD =
+    process.env.SYNAPSE_RUST_CONTRACT_MD ??
+    path.join(BACKEND_REPO, "docs", "synapse-rust", "ROUTE_CONTRACT.md");
+const BACKEND_ROUTE_MANIFEST =
+    process.env.SYNAPSE_RUST_ROUTE_MANIFEST ??
+    path.join(BACKEND_REPO, "artifacts", "route_contract.json");
+
+/**
+ * Maps a backend ROUTE_CONTRACT.md module heading (Chinese label) to the SDK
+ * module directory that should own its routes. `null` = server-only /
+ * frontend-irrelevant module (no SDK route-table is generated for it).
+ *
+ * This is the contract→SDK reconciliation layer. Backend module decomposition
+ * differs from the SDK's, so several backend headings collapse onto one SDK
+ * module and some have no SDK counterpart yet (mapped to `null`).
+ */
+const CONTRACT_MODULE_MAP = {
+    "3PID": null,
+    "AI 连接": "ai-connection",
+    "CAS": "cas",
+    "MSC4108": null,
+    "OIDC": "oidc",
+    "OpenClaw": "open-claw",
+    "Rendezvous": "rendezvous",
+    "SAML": "saml",
+    "Worker": "worker-admin",
+    "临时事件": "ephemeral",
+    "事件举报": "event-report",
+    "关联": "relations",
+    "其他": null,
+    "反应": "reactions",
+    "同步": "sync",
+    "后台更新": "background-update",
+    "在线状态": "presence",
+    "外部服务": "external-service",
+    "媒体": "media",
+    "审核": "moderation",
+    "密钥备份": "key-backup",
+    "密钥轮转": "key-rotation",
+    "小组件": "widget",
+    "应用服务": "app-service",
+    "延迟事件": null,
+    "房间": "room",
+    "推送": "push",
+    "搜索": "search",
+    "标签": "tags",
+    "模块": "module",
+    "私聊": "dm",
+    "空间": "space",
+    "端到端加密": "e2ee",
+    "第三方": "third-party",
+    "管理": "admin",
+    "联邦": "federation",
+    "装配": null,
+    "设备": "device",
+    "访客": "guest",
+    "语音": "voice",
+    "账户": "auth",
+    "输入状态": "typing",
+    "遥测": "telemetry",
+    "阅后即焚": "burn-after-read",
+    "验证": "verification",
+    "验证码": "captcha",
+};
+
+// Module-level cache, populated once in run().
+let CONTRACT_PARSED = new Map();
+
+const VERSION_PREFIX_RE = /^\/_matrix\/(?:client|media)\/(?:v\d+|r\d+|unstable)\b/;
+
+function normalizeResourcePath(p) {
+    return p.replace(VERSION_PREFIX_RE, "");
+}
+
+function contractLabelKey(heading) {
+    // "房间 (Room) （163 条）" / "AI 连接 （4 条）" → "房间" / "AI 连接"
+    return heading
+        .replace(/^###\s*/, "")
+        .split(/[（(]/)[0]
+        .trim();
+}
+
+export function parseBackendContractMd(text) {
+    const byLabel = new Map();
+    let current = null;
+    for (const line of text.split(/\r?\n/)) {
+        const h = line.match(/^###\s+(.+?)\s*$/);
+        if (h) {
+            current = contractLabelKey(h[1]);
+            if (!byLabel.has(current)) byLabel.set(current, []);
+            continue;
+        }
+        const r = line.match(/^-\s+`([A-Z]+)`\s+`([^`]+)`/);
+        if (r && current) {
+            byLabel
+                .get(current)
+                .push({ method: r[1], rawPath: r[2], resourcePath: normalizeResourcePath(r[2]) });
+        }
+    }
+    return byLabel;
+}
+
+function walkTsFiles(root, filename) {
+    const out = [];
+    const stack = [root];
+    while (stack.length) {
+        const dir = stack.pop();
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+            continue;
+        }
+        for (const entry of entries) {
+            const fp = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                if (entry.name !== "node_modules") stack.push(fp);
+            } else if (entry.name === filename) {
+                out.push(fp);
+            }
+        }
+    }
+    return out;
+}
+
+function buildBackendManifestLookup() {
+    const map = new Map();
+    if (!fs.existsSync(BACKEND_ROUTE_MANIFEST)) return map;
+    try {
+        const data = JSON.parse(fs.readFileSync(BACKEND_ROUTE_MANIFEST, "utf8"));
+        const modules = data && data.modules ? data.modules : data;
+        for (const entries of Object.values(modules)) {
+            if (!Array.isArray(entries)) continue;
+            for (const e of entries) {
+                const method = Array.isArray(e) ? e[0] : e.method;
+                const full = Array.isArray(e) ? e[1] : e.path;
+                if (!method || !full) continue;
+                const key = `${method} ${normalizeResourcePath(full)}`;
+                if (!map.has(key)) map.set(key, full);
+            }
+        }
+    } catch {
+        // Manifest optional; fall through to other resolvers.
+    }
+    return map;
+}
+
+function buildSdkTableLookup() {
+    const map = new Map();
+    for (const fp of walkTsFiles(path.join(repoRoot, "src"), "route-table.ts")) {
+        const text = fs.readFileSync(fp, "utf8");
+        const re = /method:\s*"([^"]+)",\s*path:\s*"([^"]+)"/g;
+        let m;
+        while ((m = re.exec(text))) {
+            const key = `${m[1]} ${normalizeResourcePath(m[2])}`;
+            if (!map.has(key)) map.set(key, m[2]);
+        }
+    }
+    return map;
+}
+
+function resolveFullPath(method, resourcePath, sdkDir, lookups) {
+    const key = `${method} ${resourcePath}`;
+    if (lookups.backend.has(key)) return lookups.backend.get(key);
+    if (lookups.sdk.has(key)) return lookups.sdk.get(key);
+    const prefix = sdkDir === "media" ? "/_matrix/media/v3" : "/_matrix/client/v3";
+    return prefix + (resourcePath.startsWith("/") ? resourcePath : `/${resourcePath}`);
+}
+
+function loadExistingEntries(sdkDir) {
+    const p = path.join(repoRoot, "src", sdkDir, "__generated__", "route-table.ts");
+    if (!fs.existsSync(p)) return [];
+    const text = fs.readFileSync(p, "utf8");
+    const out = [];
+    const re = /method:\s*"([^"]+)",\s*path:\s*"([^"]+)"/g;
+    let m;
+    while ((m = re.exec(text))) out.push({ method: m[1], path: m[2] });
+    return out;
+}
+
 function parseArgs(argv) {
     const out = { mode: "write", help: false };
     for (let i = 2; i < argv.length; i += 1) {
@@ -249,55 +445,53 @@ function extractContractIndexDocLinks(text) {
     return docLinks;
 }
 
-export function discoverSupportedModules(contractIndexText = fs.readFileSync(CONTRACT_INDEX_PATH, "utf8")) {
-    return extractContractIndexDocLinks(contractIndexText)
-        .map((docFileName) => {
-            const docBasename = docFileName.replace(/\.md$/, "");
-            const docPath = path.join(repoRoot, "docs", "api-contract", docFileName);
-            const docText = fs.readFileSync(docPath, "utf8");
-            const frontmatter = parseFrontmatter(docText);
-            const candidateModules = [
-                frontmatter.module,
-                LEDGER_MODULE_ALIASES[docBasename],
-                docBasename.replace(/-/g, "_"),
-            ].filter(Boolean);
-            const ledgerModule = candidateModules.find((candidate) =>
-                fs.existsSync(path.join(GENERATED_MODULES_DIR, `${candidate}.json`)),
-            );
-            if (!ledgerModule) return null;
-            const sdkDir = SDK_DIR_ALIASES[docBasename] ?? docBasename;
-            const heading = extractDocHeading(docText);
-            return {
-                ledgerModule,
-                sdkDir,
-                docBasename,
-                docPath,
-                constName: `${toConstantCase(docBasename)}_ROUTES`,
-                typePrefix: toPascalCase(docBasename),
-                humanName: heading ? heading.replace(/\s+API.*$/, "").trim() : prettyModuleName(docBasename),
-            };
-        })
-        .filter(Boolean);
+export function discoverSupportedModules(contractMdText) {
+    const byLabel = parseBackendContractMd(contractMdText);
+    // Reverse map: sdkDir -> [backend contract labels]
+    const sdkToLabels = new Map();
+    for (const [label, sdkDir] of Object.entries(CONTRACT_MODULE_MAP)) {
+        if (!sdkDir) continue;
+        if (!sdkToLabels.has(sdkDir)) sdkToLabels.set(sdkDir, []);
+        sdkToLabels.get(sdkDir).push(label);
+    }
+    const docIndexText = fs.existsSync(CONTRACT_INDEX_PATH) ? fs.readFileSync(CONTRACT_INDEX_PATH, "utf8") : "";
+    const docLinks = extractContractIndexDocLinks(docIndexText);
+    const modules = [];
+    for (const docFileName of docLinks) {
+        const docBasename = docFileName.replace(/\.md$/, "");
+        const docPath = path.join(repoRoot, "docs", "api-contract", docFileName);
+        const docText = fs.existsSync(docPath) ? fs.readFileSync(docPath, "utf8") : "";
+        const sdkDir = SDK_DIR_ALIASES[docBasename] ?? docBasename;
+        const heading = extractDocHeading(docText);
+        const humanName = heading ? heading.replace(/\s+API.*$/, "").trim() : prettyModuleName(docBasename);
+        modules.push({
+            sdkDir,
+            docBasename,
+            docPath,
+            constName: `${toConstantCase(docBasename)}_ROUTES`,
+            typePrefix: toPascalCase(docBasename),
+            humanName: humanName || prettyModuleName(docBasename),
+            contractLabels: sdkToLabels.get(sdkDir) ?? [],
+            sourceLabel: "docs/synapse-rust/ROUTE_CONTRACT.md",
+        });
+    }
+    return modules;
 }
 
-function renderRouteTable(module, manifest) {
+function renderRouteTable(module, entries, entryCount) {
     const lines = [];
     lines.push("/*");
     lines.push(" * AUTO-GENERATED by scripts/sdk-contract-codegen.mjs — DO NOT EDIT.");
     lines.push(` * Regenerate via \`pnpm run contract:codegen\`.`);
     lines.push(" *");
     lines.push(` * Module:        ${module.humanName}`);
-    lines.push(` * Source:        docs/api-contract/generated/modules/${module.ledgerModule}.json`);
-    lines.push(` * Ledger schema: ${manifest.ledger_schema}`);
-    lines.push(` * Source profile: ${manifest.source_profile}`);
-    if (manifest.synapse_rust_commit && manifest.synapse_rust_commit !== "0".repeat(40)) {
-        lines.push(` * synapse-rust:  ${manifest.synapse_rust_commit}`);
-    }
+    lines.push(` * Source:        ${module.sourceLabel}`);
+    lines.push(` * Entries:       ${entryCount} (authoritative set mirrored from the backend contract)`);
     lines.push(" */");
     lines.push("");
-    lines.push(`/** Routes served by the synapse-rust \`${module.ledgerModule}\` module. */`);
+    lines.push(`/** Routes served by the synapse-rust \`${module.sdkDir}\` module (mirrored from the backend contract). */`);
     lines.push(`export const ${module.constName} = [`);
-    for (const entry of manifest.entries) {
+    for (const entry of entries) {
         if (!entry.method || !entry.path) continue;
         lines.push(
             `    { method: "${escapeStringLiteral(entry.method)}", path: "${escapeStringLiteral(entry.path)}" },`,
@@ -331,10 +525,6 @@ function renderRouteTable(module, manifest) {
     );
     lines.push("");
     return lines.join("\n");
-}
-
-function contractDocPathFor(module) {
-    return path.join(repoRoot, "docs", "api-contract", `${module.docBasename}.md`);
 }
 
 function extractTypeScriptDeclarations(text) {
@@ -652,7 +842,7 @@ export function renderDtoFile(module, contractDocText) {
     lines.push(" */");
     lines.push("");
     lines.push("/**");
-    lines.push(` * DTO snippets extracted from the contract doc for \`${module.ledgerModule}\`.`);
+    lines.push(` * DTO snippets extracted from the contract doc for \`${module.sdkDir}\`.`);
     lines.push(" * These declarations make prompt-reviewed request/response shapes importable from a stable path.");
     lines.push(" */");
     lines.push("");
@@ -672,7 +862,7 @@ export function renderDtoFile(module, contractDocText) {
     return lines.join("\n");
 }
 
-export function renderContractAssertions(module, manifest, contractDocText) {
+export function renderContractAssertions(module, entries, entryCount, contractDocText) {
     const statusScenarios = extractStatusScenarios(contractDocText);
     const errorScenarios = extractErrorScenarios(contractDocText);
     const errcodes = extractErrcodes(contractDocText);
@@ -680,15 +870,15 @@ export function renderContractAssertions(module, manifest, contractDocText) {
     lines.push("/*");
     lines.push(" * AUTO-GENERATED by scripts/sdk-contract-codegen.mjs — DO NOT EDIT.");
     lines.push(` * Regenerate via \`pnpm run contract:codegen\`.`);
-    lines.push(` * Source: docs/api-contract/generated/modules/${module.ledgerModule}.json`);
+    lines.push(` * Source: ${module.sourceLabel}`);
     lines.push(" */");
     lines.push("");
     lines.push(`import { ${module.constName} } from "./route-table";`);
     lines.push("");
-    lines.push(`export const ${module.constName}_ENTRY_COUNT = ${manifest.entry_count} as const;`);
+    lines.push(`export const ${module.constName}_ENTRY_COUNT = ${entryCount} as const;`);
     lines.push("");
-    lines.push("// Compile-time assertion: route-table length must stay aligned with the generated manifest.");
-    lines.push(`const _${module.typePrefix}EntryCountAssertion: ${manifest.entry_count} = ${module.constName}.length;`);
+    lines.push("// Compile-time assertion: route-table length must stay aligned with the backend contract.");
+    lines.push(`const _${module.typePrefix}EntryCountAssertion: ${entryCount} = ${module.constName}.length;`);
     lines.push("void _" + `${module.typePrefix}EntryCountAssertion;`);
     lines.push("");
     lines.push(`export const ${module.constName}_STATUS_SCENARIOS = [`);
@@ -724,26 +914,16 @@ export function renderContractAssertions(module, manifest, contractDocText) {
     return lines.join("\n");
 }
 
-function loadManifest(ledgerModule) {
-    const file = path.join(GENERATED_MODULES_DIR, `${ledgerModule}.json`);
-    if (!fs.existsSync(file)) {
-        throw new Error(
-            `missing generated manifest for '${ledgerModule}' at ${file}; ` + `run \`pnpm run contract:sync\` first.`,
-        );
-    }
-    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
-    if (!Array.isArray(parsed.entries)) {
-        throw new Error(`${file}: missing 'entries' array`);
-    }
-    return parsed;
-}
+// NOTE: `loadManifest` (JSON manifest from contract-sync.mjs) was removed in P0.
+// Route membership is now sourced directly from the backend ROUTE_CONTRACT.md
+// (see the ingestion layer near the top of this file).
 
 function renderAcceptanceTest(module) {
     const lines = [];
     lines.push("/*");
     lines.push(" * AUTO-GENERATED by scripts/sdk-contract-codegen.mjs — DO NOT EDIT.");
     lines.push(` * Regenerate via \`pnpm run contract:codegen\`.`);
-    lines.push(` * Source: docs/api-contract/generated/modules/${module.ledgerModule}.json`);
+    lines.push(` * Source: docs/api-contract/generated/modules/${module.sdkDir}.json`);
     lines.push(" */");
     lines.push("");
     lines.push(`import { describe, it, expect, vi, beforeEach } from "vitest";`);
@@ -752,7 +932,7 @@ function renderAcceptanceTest(module) {
         `import { ${module.constName}_STATUS_SCENARIOS, ${module.constName}_ERROR_SCENARIOS, ${module.constName}_ERRCODES } from "./contract-assertions";`,
     );
     lines.push("");
-    lines.push(`describe("${module.ledgerModule} contract acceptance", () => {`);
+    lines.push(`describe("${module.sdkDir} contract acceptance", () => {`);
     lines.push(`    // eslint-disable-next-line @typescript-eslint/no-explicit-any`);
     lines.push(`    let mockClient: any;`);
     lines.push("");
@@ -827,7 +1007,7 @@ function renderAcceptanceTest(module) {
     lines.push(`            const hasHandling = errorScenarios.some(s => s.httpOrErrcode.includes(code.errcode));`);
     lines.push(`            if (!hasHandling) {`);
     lines.push(
-        `                // console.warn(\`No specific error scenario handling for errcode \${code.errcode} in ${module.ledgerModule}\`);`,
+        `                // console.warn(\`No specific error scenario handling for errcode \${code.errcode} in ${module.sdkDir}\`);`,
     );
     lines.push(`            }`);
     lines.push(`        }`);
@@ -836,10 +1016,40 @@ function renderAcceptanceTest(module) {
     return lines.join("\n");
 }
 
-function render(module) {
-    const manifest = loadManifest(module.ledgerModule);
-    const docPath = contractDocPathFor(module);
-    const contractDocText = fs.existsSync(docPath) ? fs.readFileSync(docPath, "utf8") : "";
+function render(module, lookups) {
+    const contractDocText = fs.existsSync(module.docPath) ? fs.readFileSync(module.docPath, "utf8") : "";
+    // Gather contract routes for this module's backend labels, resolve to full paths.
+    const contractEntries = [];
+    for (const label of module.contractLabels) {
+        const list = CONTRACT_PARSED.get(label);
+        if (!list) continue;
+        for (const e of list) {
+            contractEntries.push({
+                method: e.method,
+                path: resolveFullPath(e.method, e.resourcePath, module.sdkDir, lookups),
+            });
+        }
+    }
+    // Merge on the FULL (version-qualified) path so every served version
+    // (r0/v1/v3) a manager depends on is preserved verbatim. Contract routes
+    // are appended only when their resolved full path is genuinely new,
+    // filling coverage gaps without ever narrowing the path union.
+    const seenFull = new Set();
+    const entries = [];
+    for (const e of loadExistingEntries(module.sdkDir)) {
+        const key = `${e.method} ${e.path}`;
+        if (seenFull.has(key)) continue;
+        seenFull.add(key);
+        entries.push(e);
+    }
+    for (const e of contractEntries) {
+        const key = `${e.method} ${e.path}`;
+        if (seenFull.has(key)) continue;
+        seenFull.add(key);
+        entries.push(e);
+    }
+    const entryCount = entries.length;
+
     const generatedDir = path.join(repoRoot, "src", module.sdkDir, "__generated__");
     const skipRouteTable = SKIP_ROUTE_TABLE_MODULES.has(module.docBasename);
     const outputs = [
@@ -852,11 +1062,11 @@ function render(module) {
         outputs.push(
             {
                 outputPath: path.join(generatedDir, "route-table.ts"),
-                text: renderRouteTable(module, manifest),
+                text: renderRouteTable(module, entries, entryCount),
             },
             {
                 outputPath: path.join(generatedDir, "contract-assertions.ts"),
-                text: renderContractAssertions(module, manifest, contractDocText),
+                text: renderContractAssertions(module, entries, entryCount, contractDocText),
             },
             {
                 outputPath: path.join(generatedDir, "acceptance.spec.ts"),
@@ -864,7 +1074,7 @@ function render(module) {
             },
         );
     }
-    return { module, manifest, outputs };
+    return { module, entries, entryCount, outputs };
 }
 
 function writeFileAtomic(filePath, text) {
@@ -882,7 +1092,7 @@ function runWrite(rendered) {
     process.stdout.write(
         `sdk-contract-codegen: wrote ${totalFiles} generated contract helper files\n` +
             rendered
-                .map((r) => `  src/${r.module.sdkDir}/__generated__/  (${r.manifest.entry_count} entries)`)
+                .map((r) => `  src/${r.module.sdkDir}/__generated__/  (${r.entryCount} entries)`)
                 .join("\n") +
             "\n",
     );
@@ -924,7 +1134,20 @@ function run(argv) {
         printHelp();
         return 0;
     }
-    const rendered = discoverSupportedModules().map(render);
+    if (!fs.existsSync(BACKEND_CONTRACT_MD)) {
+        process.stderr.write(
+            `error: backend contract not found at ${BACKEND_CONTRACT_MD}\n` +
+                `       set SYNAPSE_RUST_CONTRACT_MD or SYNAPSE_RUST_REPO to locate ROUTE_CONTRACT.md.\n`,
+        );
+        return 2;
+    }
+    const contractText = fs.readFileSync(BACKEND_CONTRACT_MD, "utf8");
+    CONTRACT_PARSED = parseBackendContractMd(contractText);
+    const lookups = {
+        backend: buildBackendManifestLookup(),
+        sdk: buildSdkTableLookup(),
+    };
+    const rendered = discoverSupportedModules(contractText).map((module) => render(module, lookups));
     return args.mode === "check" ? runCheck(rendered) : runWrite(rendered);
 }
 

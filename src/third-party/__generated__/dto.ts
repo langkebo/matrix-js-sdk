@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `thirdparty`.
+ * DTO snippets extracted from the contract doc for `third-party`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

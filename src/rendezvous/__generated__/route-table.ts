@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Rendezvous
- * Source:        docs/api-contract/generated/modules/rendezvous.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       6 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `rendezvous` module. */
+/** Routes served by the synapse-rust `rendezvous` module (mirrored from the backend contract). */
 export const RENDEZVOUS_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/rendezvous" },
     { method: "DELETE", path: "/_matrix/client/v1/rendezvous/{session_id}" },

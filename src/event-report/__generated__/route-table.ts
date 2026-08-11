@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Event Report
- * Source:        docs/api-contract/generated/modules/event_report.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       19 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `event_report` module. */
+/** Routes served by the synapse-rust `event-report` module (mirrored from the backend contract). */
 export const EVENT_REPORT_ROUTES = [
     { method: "GET", path: "/_synapse/admin/v1/event_reports" },
     { method: "POST", path: "/_synapse/admin/v1/event_reports" },

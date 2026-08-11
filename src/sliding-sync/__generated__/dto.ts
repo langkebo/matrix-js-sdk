@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `sliding_sync`.
+ * DTO snippets extracted from the contract doc for `sliding-sync`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

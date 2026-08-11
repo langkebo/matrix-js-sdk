@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `friend_room`.
+ * DTO snippets extracted from the contract doc for `friend`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

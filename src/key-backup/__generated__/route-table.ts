@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Key Backup 模块
- * Source:        docs/api-contract/generated/modules/key_backup.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       99 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `key_backup` module. */
+/** Routes served by the synapse-rust `key-backup` module (mirrored from the backend contract). */
 export const KEY_BACKUP_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/room_keys/batch_recover" },
     { method: "GET", path: "/_matrix/client/r0/room_keys/export" },

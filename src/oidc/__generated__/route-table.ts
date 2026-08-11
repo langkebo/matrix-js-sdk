@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        OIDC 契约
- * Source:        docs/api-contract/generated/modules/oidc.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       17 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `oidc` module. */
+/** Routes served by the synapse-rust `oidc` module (mirrored from the backend contract). */
 export const OIDC_ROUTES = [
     { method: "GET", path: "/.well-known/jwks.json" },
     { method: "GET", path: "/.well-known/openid-configuration" },

@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Burn After Read
- * Source:        docs/api-contract/generated/modules/burn_after_read.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       14 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `burn_after_read` module. */
+/** Routes served by the synapse-rust `burn-after-read` module (mirrored from the backend contract). */
 export const BURN_AFTER_READ_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/burn" },
     { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/burn" },

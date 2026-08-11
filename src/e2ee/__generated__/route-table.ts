@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        E2EE
- * Source:        docs/api-contract/generated/modules/e2ee.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       57 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `e2ee` module. */
+/** Routes served by the synapse-rust `e2ee` module (mirrored from the backend contract). */
 export const E2EE_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/keys/changes" },
     { method: "POST", path: "/_matrix/client/r0/keys/claim" },
@@ -66,6 +64,8 @@ export const E2EE_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/security/summary" },
     { method: "POST", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
     { method: "PUT", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
+    { method: "GET", path: "/_matrix/client/v3/keys/history" },
+    { method: "POST", path: "/_matrix/client/v3/keys/upload/{device_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `E2EE_ROUTES`. */

@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `feature_flags`.
+ * DTO snippets extracted from the contract doc for `feature-flags`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

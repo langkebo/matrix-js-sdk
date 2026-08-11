@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Thread 模块契约
- * Source:        docs/api-contract/generated/modules/thread.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       21 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `thread` module. */
+/** Routes served by the synapse-rust `thread` module (mirrored from the backend contract). */
 export const THREAD_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/threads" },

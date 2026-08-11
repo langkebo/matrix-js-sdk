@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        CAPTCHA
- * Source:        docs/api-contract/generated/modules/captcha.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       8 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `captcha` module. */
+/** Routes served by the synapse-rust `captcha` module (mirrored from the backend contract). */
 export const CAPTCHA_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/register/captcha/send" },
     { method: "GET", path: "/_matrix/client/r0/register/captcha/status" },
@@ -18,6 +16,7 @@ export const CAPTCHA_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/register/captcha/status" },
     { method: "POST", path: "/_matrix/client/v3/register/captcha/verify" },
     { method: "POST", path: "/_synapse/admin/v1/captcha/cleanup" },
+    { method: "DELETE", path: "/_matrix/client/v3/register/captcha/clean" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `CAPTCHA_ROUTES`. */

@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        External Service
- * Source:        docs/api-contract/generated/modules/external_service.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       18 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `external_service` module. */
+/** Routes served by the synapse-rust `external-service` module (mirrored from the backend contract). */
 export const EXTERNAL_SERVICE_ROUTES = [
     { method: "GET", path: "/_matrix/admin/v1/external_services" },
     { method: "POST", path: "/_matrix/admin/v1/external_services" },

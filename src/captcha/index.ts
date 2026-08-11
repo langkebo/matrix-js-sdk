@@ -182,6 +182,27 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
             throw this.normalizeError(error, "cleanupExpiredCaptchas");
         }
     }
+
+    /**
+     * Delete expired captchas via the client-side DELETE route.
+     * DELETE /_matrix/client/v3/register/captcha/clean
+     *
+     * Unlike `cleanupExpiredCaptchas()` which uses the admin POST route,
+     * this method uses the client-facing DELETE endpoint.
+     */
+    public async deleteExpiredCaptchas(): Promise<CaptchaCleanupResponse> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<CaptchaCleanupResponse>({
+                    method: Method.Delete,
+                    path: "/register/captcha/clean",
+                    prefix: ClientPrefix.V3,
+                });
+            }, "deleteExpiredCaptchas");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteExpiredCaptchas");
+        }
+    }
 }
 
 export function extendMatrixClient(): void {

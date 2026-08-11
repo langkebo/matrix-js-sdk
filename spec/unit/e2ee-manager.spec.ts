@@ -115,6 +115,64 @@ describe("E2EEManager", () => {
         );
     });
 
+    describe("getKeyHistory", () => {
+        it("GETs /keys/history with optional pagination params", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                history: [{ id: "k1", created_ts: 1700000000 }],
+                next_batch: "cursor-1",
+            });
+
+            const res = await manager.getKeyHistory({ limit: 50, from: "cursor-0" });
+
+            expect(res).toEqual({
+                history: [{ id: "k1", created_ts: 1700000000 }],
+                next_batch: "cursor-1",
+            });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/keys/history",
+                { limit: 50, from: "cursor-0" },
+                undefined,
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+            );
+        });
+
+        it("works without pagination params", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({ history: [], next_batch: null });
+
+            const res = await manager.getKeyHistory();
+
+            expect(res.history).toEqual([]);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/keys/history",
+                undefined,
+                undefined,
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+            );
+        });
+    });
+
+    describe("uploadKeysToDevice", () => {
+        it("POSTs to /keys/upload/{deviceId} with the body", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                one_time_key_counts: { signed_curve25519: 5 },
+            });
+
+            const body = { oneTimeKeys: { "signed_curve25519:k1": { key: "abc" } } };
+            const res = await manager.uploadKeysToDevice("DEVICE1", body);
+
+            expect(res).toEqual({ one_time_key_counts: { signed_curve25519: 5 } });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/keys/upload/DEVICE1",
+                undefined,
+                body,
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+            );
+        });
+    });
+
     it("returns an empty object when security summary fetch fails", async () => {
         const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
         mockClient.http.authedRequest.mockRejectedValueOnce(new Error("boom"));

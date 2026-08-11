@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Room Summary 模块契约
- * Source:        docs/api-contract/generated/modules/room_summary.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       24 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `room_summary` module. */
+/** Routes served by the synapse-rust `room-summary` module (mirrored from the backend contract). */
 export const ROOM_SUMMARY_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/members" },

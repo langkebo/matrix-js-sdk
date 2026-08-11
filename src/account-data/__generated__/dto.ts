@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `account_data`.
+ * DTO snippets extracted from the contract doc for `account-data`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

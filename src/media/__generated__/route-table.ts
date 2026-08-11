@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Media 模块契约
- * Source:        docs/api-contract/generated/modules/media.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       34 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `media` module. */
+/** Routes served by the synapse-rust `media` module (mirrored from the backend contract). */
 export const MEDIA_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/media/download/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/client/v1/media/download/{server_name}/{media_id}/{filename}" },
@@ -43,6 +41,8 @@ export const MEDIA_ROUTES = [
     { method: "GET", path: "/_matrix/media/v3/thumbnail/{server_name}/{media_id}" },
     { method: "POST", path: "/_matrix/media/v3/upload" },
     { method: "PUT", path: "/_matrix/media/v3/upload/{server_name}/{media_id}" },
+    { method: "GET", path: "/_matrix/media/v3/upload/provider" },
+    { method: "POST", path: "/_matrix/media/v3/upload/token" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `MEDIA_ROUTES`. */

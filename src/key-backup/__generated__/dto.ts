@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `key_backup`.
+ * DTO snippets extracted from the contract doc for `key-backup`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

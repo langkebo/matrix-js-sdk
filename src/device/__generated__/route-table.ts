@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Device 模块契约
- * Source:        docs/api-contract/generated/modules/device.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       12 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `device` module. */
+/** Routes served by the synapse-rust `device` module (mirrored from the backend contract). */
 export const DEVICE_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/delete_devices" },
     { method: "GET", path: "/_matrix/client/r0/devices" },

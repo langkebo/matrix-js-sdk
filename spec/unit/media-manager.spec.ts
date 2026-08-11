@@ -224,6 +224,66 @@ describe("MediaManager", () => {
         });
     });
 
+    describe("getUploadProvider", () => {
+        it("GETs /upload/provider on ClientPrefix.V3 and returns provider info", async () => {
+            authedRequest.mockResolvedValueOnce({
+                provider: "matrix",
+                supports_chunked_upload: true,
+                supports_resume: true,
+                max_file_size: 52428800,
+                chunk_size: 1048576,
+            });
+
+            const res = await manager.getUploadProvider();
+
+            expect(res).toEqual({
+                provider: "matrix",
+                supports_chunked_upload: true,
+                supports_resume: true,
+                max_file_size: 52428800,
+                chunk_size: 1048576,
+            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/upload/provider",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("getUploadToken", () => {
+        it("POSTs to /upload/token with filename and content_type, returns token info", async () => {
+            authedRequest.mockResolvedValueOnce({
+                upload_token: "upload_@user:hs_1700000000000",
+                storage_type: "matrix",
+                upload_url: "/_matrix/media/v3/upload",
+                filename: "photo.jpg",
+                content_type: "image/jpeg",
+                max_file_size: 52428800,
+            });
+
+            const res = await manager.getUploadToken("photo.jpg", "image/jpeg");
+
+            expect(res).toEqual({
+                upload_token: "upload_@user:hs_1700000000000",
+                storage_type: "matrix",
+                upload_url: "/_matrix/media/v3/upload",
+                filename: "photo.jpg",
+                content_type: "image/jpeg",
+                max_file_size: 52428800,
+            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/upload/token",
+                undefined,
+                { filename: "photo.jpg", content_type: "image/jpeg" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
     // ISSUE-04: 后端从 query 读 upload_id/chunk_index，SDK 必须带 queryParams
     describe("uploadChunk (ISSUE-04)", () => {
         it("sends upload_id and chunk_index as query params", async () => {

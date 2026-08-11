@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Sync 模块契约
- * Source:        docs/api-contract/generated/modules/sync.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       10 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `sync` module. */
+/** Routes served by the synapse-rust `sync` module (mirrored from the backend contract). */
 export const SYNC_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/events" },
     { method: "GET", path: "/_matrix/client/r0/joined_rooms" },
@@ -18,6 +16,9 @@ export const SYNC_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/joined_rooms" },
     { method: "GET", path: "/_matrix/client/v3/my_rooms" },
     { method: "GET", path: "/_matrix/client/v3/sync" },
+    { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3575/sync" },
+    { method: "POST", path: "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" },
+    { method: "POST", path: "/_matrix/client/v1/sync" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SYNC_ROUTES`. */

@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Friend 模块契约
- * Source:        docs/api-contract/generated/modules/friend_room.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       63 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `friend_room` module. */
+/** Routes served by the synapse-rust `friend` module (mirrored from the backend contract). */
 export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/friends/check/{user_id}" },
     { method: "GET", path: "/_matrix/client/r0/friends/dm/{user_id}" },

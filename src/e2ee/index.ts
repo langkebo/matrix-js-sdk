@@ -92,6 +92,17 @@ function ep<P extends StripV3<E2eePathPattern>>(path: P): P {
  * 后端 E2EE 端点的高级集成（管理工具、迁移脚本、契约测试）准备。
  */
 
+export interface KeyAuditEntry {
+    id: string;
+    created_ts: number;
+    [key: string]: unknown;
+}
+
+export interface KeyHistoryResponse {
+    history: KeyAuditEntry[];
+    next_batch: string | null;
+}
+
 export interface DeviceVerificationRequestBody {
     user_id?: string;
     new_device_id?: string;
@@ -238,6 +249,22 @@ export class E2EEManager extends BaseManager {
 
     public async uploadKeys(body: UploadKeysOptions): Promise<UploadKeysResponse> {
         return this.post(ep("/keys/upload"), body, "uploadKeys");
+    }
+
+    /**
+     * Upload keys for a specific device via path parameter.
+     * POST /_matrix/client/v3/keys/upload/{device_id}
+     *
+     * Same handler as `uploadKeys` but the device_id is taken from the URL
+     * instead of the authenticated session.
+     */
+    public async uploadKeysToDevice(deviceId: string, body: UploadKeysOptions): Promise<UploadKeysResponse> {
+        this.requireNonEmptyString(deviceId, "deviceId");
+        return this.post(
+            ep(`/keys/upload/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),
+            body,
+            "uploadKeysToDevice",
+        );
     }
 
     public async queryKeys(body: QueryKeysRequest): Promise<QueryKeysResponse> {
@@ -501,6 +528,25 @@ export class E2EEManager extends BaseManager {
     }
 
     // -------- helpers ----------
+
+    /**
+     * Get key history (audit log) for the current user.
+     * GET /_matrix/client/v3/keys/history
+     *
+     * @param params - Optional pagination parameters.
+     * @param params.limit - Maximum number of entries to return (default 100, max 1000).
+     * @param params.from - Pagination cursor from a previous response's `next_batch`.
+     */
+    public async getKeyHistory(params?: { limit?: number; from?: string }): Promise<KeyHistoryResponse> {
+        return await this.withRetry(async () => {
+            return await this.request<KeyHistoryResponse>({
+                method: Method.Get,
+                path: ep("/keys/history"),
+                queryParams: params,
+                prefix: ClientPrefix.V3,
+            });
+        }, "getKeyHistory");
+    }
 
     private async post<T = IContent>(path: string, body: object, label: string): Promise<T> {
         return await this.withRetry(async () => {

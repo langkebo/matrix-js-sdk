@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Presence 模块契约
- * Source:        docs/api-contract/generated/modules/presence.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       11 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `presence` module. */
+/** Routes served by the synapse-rust `presence` module (mirrored from the backend contract). */
 export const PRESENCE_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/presence/{user_id}/status" },
     { method: "POST", path: "/_matrix/client/r0/presence/{user_id}/status" },

@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `app_service`.
+ * DTO snippets extracted from the contract doc for `app-service`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

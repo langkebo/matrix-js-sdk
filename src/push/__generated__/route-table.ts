@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Push 模块契约
- * Source:        docs/api-contract/generated/modules/push.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       37 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `push` module. */
+/** Routes served by the synapse-rust `push` module (mirrored from the backend contract). */
 export const PUSH_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/notifications" },
     { method: "POST", path: "/_matrix/client/r0/notifications/{notification_id}/ack" },
@@ -38,6 +36,16 @@ export const PUSH_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions" },
     { method: "GET", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled" },
     { method: "PUT", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled" },
+    { method: "GET", path: "/_matrix/client/v3/pushers/" },
+    { method: "DELETE", path: "/_matrix/client/r0/push/devices/{device_id}" },
+    { method: "DELETE", path: "/_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}" },
+    { method: "GET", path: "/_matrix/client/r0/push/devices" },
+    { method: "GET", path: "/_matrix/client/r0/push/rules" },
+    { method: "POST", path: "/_matrix/client/r0/push/devices" },
+    { method: "POST", path: "/_matrix/client/r0/push/rules" },
+    { method: "POST", path: "/_matrix/client/r0/push/send" },
+    { method: "POST", path: "/_synapse/admin/v1/push/cleanup" },
+    { method: "POST", path: "/_synapse/admin/v1/push/process" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `PUSH_ROUTES`. */

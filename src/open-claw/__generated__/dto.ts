@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `openclaw`.
+ * DTO snippets extracted from the contract doc for `open-claw`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
