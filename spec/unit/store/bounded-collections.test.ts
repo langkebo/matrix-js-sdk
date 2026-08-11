@@ -30,7 +30,7 @@ function createMockClient(): MatrixClient {
         supportsThreads: vi.fn().mockReturnValue(false),
         decryptEventIfNeeded: vi.fn().mockResolvedValue(undefined),
         getUserId: vi.fn().mockReturnValue(USER_ID),
-        getEventMapper: vi.fn().mockReturnValue((event: Partial<MatrixEvent>) => new MatrixEvent(event)),
+        getEventMapper: vi.fn().mockReturnValue((event: Partial<{ event_id: string; type: string; content: Record<string, unknown>; sender: string }>) => new MatrixEvent(event)),
         store: {
             getPendingEvents: vi.fn().mockResolvedValue([]),
             setPendingEvents: vi.fn().mockResolvedValue(undefined),
