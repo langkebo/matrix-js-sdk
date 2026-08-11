@@ -1947,6 +1947,7 @@ export function _createAndReEmitRoom(client: MatrixClient, roomId: string, opts:
     const room = new Room(roomId, client, client.getUserId()!, {
         lazyLoadMembers: opts.lazyLoadMembers,
         pendingEventOrdering: opts.pendingEventOrdering,
+        pendingEventNotSentTimeoutMs: opts.pendingEventNotSentTimeoutMs,
         timelineSupport,
     });
 
