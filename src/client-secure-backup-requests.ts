@@ -1,5 +1,5 @@
 import * as utils from "./utils";
-import { ClientPrefix, Method } from "./http-api/index";
+import { ClientPrefix, Method, VendorPrefix } from "./http-api/index";
 import type { Body, IRequestOpts } from "./http-api/index";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
@@ -40,24 +40,25 @@ export function buildSecureBackupRestorePath(backupId: string): string {
     return utils.encodeUri("/keys/backup/secure/$backupId/restore", { $backupId: backupId });
 }
 
+/** GET /_matrix/vendor/v1/my_rooms */
 export function getMyRoomsRequest<T>(authedRequest: AuthedRequestFn): Promise<T> {
     return authedRequest<T>(Method.Get, sp("/my_rooms"), undefined, undefined, {
-        prefix: ClientPrefix.V3,
+        prefix: VendorPrefix,
     });
 }
 
-/** POST /_matrix/client/v3/search_rooms */
+/** POST /_matrix/vendor/v1/search_rooms */
 export function searchRoomsRequest<T>(authedRequest: AuthedRequestFn, searchTerm: string, limit?: number): Promise<T> {
     return authedRequest<T>(
         Method.Post,
         srp("/search_rooms"),
         undefined,
         { search_term: searchTerm, limit },
-        { prefix: ClientPrefix.V3 },
+        { prefix: VendorPrefix },
     );
 }
 
-/** POST /_matrix/client/v3/search_recipients */
+/** POST /_matrix/vendor/v1/search_recipients */
 export function searchRecipientsRequest<T>(
     authedRequest: AuthedRequestFn,
     searchTerm: string,
@@ -68,7 +69,7 @@ export function searchRecipientsRequest<T>(
         srp("/search_recipients"),
         undefined,
         { search_term: searchTerm, limit },
-        { prefix: ClientPrefix.V3 },
+        { prefix: VendorPrefix },
     );
 }
 

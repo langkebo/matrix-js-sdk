@@ -36,6 +36,7 @@ export * from "./prefix";
 export * from "./errors";
 export * from "./method";
 export * from "./utils";
+export * from "./sync-transport";
 
 export class MatrixHttpApi<O extends IHttpOpts> extends FetchHttpApi<O> {
     private uploads: Upload[] = [];

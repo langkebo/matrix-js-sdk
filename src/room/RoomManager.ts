@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient, ClientEvent } from "../client";
 import { Room } from "../models/room";
 import { Method } from "../http-api/method";
-import { ClientPrefix, MediaPrefix } from "../http-api/prefix";
+import { ClientPrefix, MediaPrefix, VendorPrefix } from "../http-api/prefix";
 import { MatrixError } from "../http-api/errors";
 import { type EmptyObject } from "../@types/common";
 import {
@@ -1128,12 +1128,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * Get all rooms for the current user, including join, invite, and leave status.
      * Custom endpoint for synapse-rust.
+     * GET /_matrix/vendor/v1/my_rooms
      */
     public async getMyRooms(): Promise<IMyRoomsResponse> {
         const response = await this.request<IMyRoomsResponse>({
             method: Method.Get,
-            path: "/_matrix/client/v3/my_rooms",
-            prefix: ClientPrefix.V3,
+            path: "/my_rooms",
+            prefix: VendorPrefix,
         });
         return {
             ...response,
@@ -1150,7 +1151,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     /**
      * Search rooms by term (synapse-rust specific).
-     * POST /_matrix/client/v3/search_rooms
+     * POST /_matrix/vendor/v1/search_rooms
      */
     public async searchRooms(
         searchTerm: string,
@@ -1169,7 +1170,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                     path,
                     queryParams: queryParams as Record<string, string | string[]>,
                     body,
-                    prefix: requestOpts?.prefix ?? ClientPrefix.V3,
+                    prefix: requestOpts?.prefix ?? VendorPrefix,
                 }),
             searchTerm,
             limit,

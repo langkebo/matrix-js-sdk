@@ -33,7 +33,7 @@ import {
 } from "../@types/auth";
 import { type AuthDict } from "../interactive-auth";
 import { type IdServerUnbindResult } from "../@types/partials";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
 import type { IContent } from "../models/event";
@@ -297,14 +297,14 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get my rooms
-     * GET /_matrix/client/v3/my_rooms
+     * GET /_matrix/vendor/v1/my_rooms
      */
     public async getMyRooms(): Promise<MyRoomsResponse> {
         return this.withRetry(async () => {
             return await this.request<MyRoomsResponse>({
                 method: Method.Get,
                 path: "/my_rooms",
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "getMyRooms");
     }

@@ -54,7 +54,7 @@ import {
     type ReceivedToDeviceMessage,
 } from "./sync-accumulator";
 import { MatrixEvent } from "./models/event";
-import { type MatrixError, Method } from "./http-api/index";
+import { type MatrixError, type ISyncTransport, Method } from "./http-api/index";
 import { type ISavedSync } from "./store/index";
 import { EventType } from "./@types/event";
 import { type IPushRules } from "./@types/PushRules";
@@ -241,6 +241,16 @@ export class SyncApi {
         }
     }
 
+    /**
+     * Narrow transport interface for SyncApi HTTP access.
+     * ISSUE-12: SyncApi depends on this ISyncTransport interface rather than
+     * reaching into client.http directly, making the network layer replaceable
+     * for testing and future transport implementations.
+     */
+    private get syncTransport(): ISyncTransport {
+        return this.client.http;
+    }
+
     public createRoom(roomId: string): Room {
         const room = _createAndReEmitRoom(this.client, roomId, this.opts);
 
@@ -343,7 +353,7 @@ export class SyncApi {
             "org.matrix.msc4222.use_state_after": true,
         };
 
-        const data = await client.http.authedRequest<ISyncResponse>(Method.Get, "/sync", qps, undefined, {
+        const data = await this.syncTransport.authedRequest<ISyncResponse>(Method.Get, "/sync", qps, undefined, {
             localTimeoutMs,
         });
 
@@ -494,7 +504,7 @@ export class SyncApi {
             return;
         }
 
-        this.client.http
+        this.syncTransport
             .authedRequest<IEventsResponse>(
                 Method.Get,
                 "/events",
@@ -615,7 +625,7 @@ export class SyncApi {
             this.syncOpts.logger.debug("Getting push rules...");
             const result = this.client.getPushManager
                 ? await this.client.getPushManager().getPushRules()
-                : await this.client.http.authedRequest<IPushRules>(Method.Get, "/pushrules/");
+                : await this.syncTransport.authedRequest<IPushRules>(Method.Get, "/pushrules/");
             this.syncOpts.logger.debug("Got push rules");
 
             this.client.pushRules = result;
@@ -934,7 +944,7 @@ export class SyncApi {
 
     private doSyncRequest(syncOptions: ISyncOptions, syncToken: string | null): Promise<ISyncResponse> {
         const qps = this.getSyncParams(syncOptions, syncToken);
-        return this.client.http.authedRequest<ISyncResponse>(Method.Get, "/sync", qps, undefined, {
+        return this.syncTransport.authedRequest<ISyncResponse>(Method.Get, "/sync", qps, undefined, {
             localTimeoutMs: qps.timeout + BUFFER_PERIOD_MS,
             abortSignal: this.abortController?.signal,
         });
@@ -1607,7 +1617,7 @@ export class SyncApi {
             }
         };
 
-        this.client.http
+        this.syncTransport
             .request(
                 Method.Get,
                 "/_matrix/client/versions",
@@ -1713,6 +1723,9 @@ export class SyncApi {
             return;
         }
         const client = this.client;
+        // ISSUE-12: capture the transport on the instance so the function callback
+        // below can reach it without depending on `this` binding.
+        const syncTransport = this.syncTransport;
         // For each invited room member we want to give them a displayname/avatar url
         // if they have one (the m.room.member invites don't contain this).
         room.getMembersWithMembership(KnownMembership.Invite).forEach(function (member) {
@@ -1729,7 +1742,7 @@ export class SyncApi {
             } else {
                 promise = client.getProfileManager
                     ? client.getProfileManager()!.getProfileInfo(member.userId)
-                    : client.http.authedRequest<{ avatar_url?: string; displayname?: string }>(
+                    : syncTransport.authedRequest<{ avatar_url?: string; displayname?: string }>(
                           Method.Get,
                           `/profile/${encodeURIComponent(member.userId)}`,
                       );
