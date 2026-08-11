@@ -91,6 +91,8 @@ export interface ManagerExtensionsOptions {
     includeServerTime?: boolean;
     includeBackgroundUpdate?: boolean;
     includeUserDirectory?: boolean;
+    includeReactions?: boolean;
+    includeBeacon?: boolean;
     includeManagerAccessor?: boolean;
     includeAll?: boolean;
 }

@@ -49,23 +49,48 @@ export class ReactionsManager extends BaseManager<keyof ReactionsManagerEvents, 
         super(client, opts);
     }
 
-    public async reactToMessage(roomId: string, eventId: string, key: string): Promise<void> {
+    public async reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined> {
         return this.withRetry(() => this.client.reactToMessage(roomId, eventId, key), "reactToMessage");
     }
 
-    public async redactReaction(roomId: string, eventId: string): Promise<void> {
+    public async redactReaction(roomId: string, eventId: string): Promise<{ event_id: string }> {
         return this.withRetry(() => this.client.redactReaction(roomId, eventId), "redactReaction");
     }
 
+    /**
+     * Returns the list of users who reacted to the given event.
+     *
+     * Reads directly from the room's relations cache to avoid delegating back
+     * to `client.getReactionUsers`, which would create an infinite recursion
+     * (client.getReactionUsers -> manager.getReactionUsers -> client...).
+     */
     public async getReactionUsers(roomId: string, eventId: string): Promise<string[]> {
         return this.withRetry(async () => {
-            const members = await this.client.getReactionUsers(roomId, eventId);
-            return members.map((member) => member.userId);
+            const reactions = this.getReactionsForEvent(roomId, eventId);
+            const users: string[] = [];
+            for (const reaction of reactions) {
+                const sender = reaction.getSender();
+                if (sender && !users.includes(sender)) {
+                    users.push(sender);
+                }
+            }
+            return users;
         }, "getReactionUsers");
     }
 
+    /**
+     * Checks whether a user has reacted to an event with the given key.
+     *
+     * Reads directly from the room's relations cache to avoid delegating back
+     * to `client.hasReaction`, which would create an infinite recursion.
+     */
     public async hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean> {
-        return this.withRetry(() => this.client.hasReaction(roomId, eventId, userId, key), "hasReaction");
+        return this.withRetry(async () => {
+            const reactions = this.getReactionsForEvent(roomId, eventId);
+            return reactions.some(
+                (reaction) => reaction.getSender() === userId && reaction.getRelation()?.key === key,
+            );
+        }, "hasReaction");
     }
 
     public getReactionsForEvent(roomId: string, eventId: string): MatrixEvent[] {
@@ -110,9 +135,9 @@ export class ReactionsManager extends BaseManager<keyof ReactionsManagerEvents, 
         return reaction?.count ?? 0;
     }
 
-    public async toggleReaction(roomId: string, eventId: string, key: string): Promise<void> {
+    public async toggleReaction(roomId: string, eventId: string, key: string): Promise<string | { event_id: string } | undefined> {
         const currentUserId = this.client.getUserId();
-        if (!currentUserId) return;
+        if (!currentUserId) return undefined;
 
         const hasReacted = await this.hasReaction(roomId, eventId, currentUserId, key);
 
@@ -158,9 +183,9 @@ export class ReactionsManager extends BaseManager<keyof ReactionsManagerEvents, 
         return summaries.sort((a, b) => b.totalReactions - a.totalReactions).slice(0, limit);
     }
 
-    public async removeAllReactions(roomId: string, eventId: string): Promise<void[]> {
+    public async removeAllReactions(roomId: string, eventId: string): Promise<Array<{ event_id: string }>> {
         const reactions = this.getReactionsForEvent(roomId, eventId);
-        const promises: Promise<void>[] = [];
+        const promises: Promise<{ event_id: string }>[] = [];
 
         for (const r of reactions) {
             const reactionId = r.getId();

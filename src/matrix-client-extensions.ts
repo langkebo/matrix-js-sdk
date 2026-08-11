@@ -551,8 +551,8 @@ export interface MatrixClientInternalMethods {
     getServerRetention(): Promise<unknown>;
 
     // ============ Reactions ============
-    reactToMessage(roomId: string, eventId: string, key: string): Promise<void>;
-    redactReaction(roomId: string, eventId: string): Promise<void>;
+    reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined>;
+    redactReaction(roomId: string, eventId: string, reason?: string): Promise<{ event_id: string }>;
     getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>>;
     hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean>;
 

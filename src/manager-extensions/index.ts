@@ -33,11 +33,7 @@ limitations under the License.
  * DO NOT EDIT MANUALLY. To add a new manager extension, edit the script instead.
  */
 
-import type {
-    ManagerExtensionsOptions,
-    ManagerExtensionsLifecycleEvent,
-    ManagerExtensionsLifecycleListener,
-} from "./types.js";
+import type { ManagerExtensionsOptions, ManagerExtensionsLifecycleEvent, ManagerExtensionsLifecycleListener } from "./types.js";
 
 const MANAGER_EXTENSION_MODULES: Array<{
     option: Exclude<keyof ManagerExtensionsOptions, "includeAll">;
@@ -98,7 +94,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },
-    { option: "includeDelayedEvents", module: "delayed-events" },
     { option: "includeThread", module: "thread" },
     { option: "includeWidget", module: "widget" },
 
@@ -119,6 +114,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeServerTime", module: "server-time" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
+    { option: "includeReactions", module: "reactions" },
+    { option: "includeBeacon", module: "beacon" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -177,7 +174,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeCas: true,
     includeExternalService: true,
     includeDehydratedDevice: true,
-    includeDelayedEvents: true,
     includeThread: true,
     includeWidget: true,
 
@@ -198,6 +194,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeServerTime: true,
     includeBackgroundUpdate: true,
     includeUserDirectory: true,
+    includeReactions: true,
+    includeBeacon: true,
 };
 
 let isInitialized = false;
@@ -265,21 +263,13 @@ export async function extendMatrixClientWithManagers(
         try {
             // manager() accessor — must load first so the prototype method exists
             // before any registerManagerClass calls from other extendMatrixClient functions
-            promises.push(
-                safeDynamicImport(import("../client-infra/manager-accessor.js").then((m) => m?.extendMatrixClient())),
-            );
+            promises.push(safeDynamicImport(import("../client-infra/manager-accessor.js").then((m) => m?.extendMatrixClient())));
 
             if (currentOptions.includeAdmin || all) {
                 promises.push(safeDynamicImport(import("../admin/index.js").then((m) => m?.extendMatrixClient())));
-                promises.push(
-                    safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())),
-                );
-                promises.push(
-                    safeDynamicImport(import("../worker-admin/index.js").then((m) => m?.extendMatrixClient())),
-                );
-                promises.push(
-                    safeDynamicImport(import("../worker-body/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())));
+                promises.push(safeDynamicImport(import("../worker-admin/index.js").then((m) => m?.extendMatrixClient())));
+                promises.push(safeDynamicImport(import("../worker-body/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeAccount || all) {
@@ -287,9 +277,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeAccountData || all) {
-                promises.push(
-                    safeDynamicImport(import("../account-data/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../account-data/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeAuth || all) {
@@ -297,27 +285,19 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeCapabilities || all) {
-                promises.push(
-                    safeDynamicImport(import("../capabilities/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../capabilities/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeCryptoKeys || all) {
-                promises.push(
-                    safeDynamicImport(import("../crypto-keys/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../crypto-keys/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeKeyVerification || all) {
-                promises.push(
-                    safeDynamicImport(import("../key-verification/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../key-verification/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDeviceTrust || all) {
-                promises.push(
-                    safeDynamicImport(import("../device-trust/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../device-trust/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDiscovery || all) {
@@ -333,9 +313,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeInviteBlocklist || all) {
-                promises.push(
-                    safeDynamicImport(import("../invite-blocklist/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../invite-blocklist/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeMedia || all) {
@@ -351,17 +329,11 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeRoomSummary || all) {
-                promises.push(
-                    safeDynamicImport(import("../room-summary/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../room-summary/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoomList || all) {
                 promises.push(safeDynamicImport(import("../room-list/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeRoom || all) {
-                promises.push(safeDynamicImport(import("../room-alias/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSecurity || all) {
@@ -397,15 +369,11 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeSecureBackup || all) {
-                promises.push(
-                    safeDynamicImport(import("../secure-backup/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../secure-backup/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeThirdParty || all) {
-                promises.push(
-                    safeDynamicImport(import("../third-party/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../third-party/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeOidc || all) {
@@ -417,11 +385,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeRendezvous || all) {
-                promises.push(
-                    safeDynamicImport(
-                        import("../rendezvous/RendezvousManager.js").then((m) => m?.extendMatrixClient()),
-                    ),
-                );
+                promises.push(safeDynamicImport(import("../rendezvous/RendezvousManager.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeTyping || all) {
@@ -437,15 +401,11 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeIdentityServer || all) {
-                promises.push(
-                    safeDynamicImport(import("../identity-server/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../identity-server/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includePasswordReset || all) {
-                promises.push(
-                    safeDynamicImport(import("../password-reset/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../password-reset/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeThreading || all) {
@@ -469,9 +429,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeKeyRotation || all) {
-                promises.push(
-                    safeDynamicImport(import("../key-rotation/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../key-rotation/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeKeyBackup || all) {
@@ -479,27 +437,19 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeFeatureFlag || all) {
-                promises.push(
-                    safeDynamicImport(import("../feature-flags/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../feature-flags/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeEventReport || all) {
-                promises.push(
-                    safeDynamicImport(import("../event-report/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../event-report/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeBurnAfterRead || all) {
-                promises.push(
-                    safeDynamicImport(import("../burn-after-read/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../burn-after-read/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeVerification || all) {
-                promises.push(
-                    safeDynamicImport(import("../verification/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../verification/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeE2EE || all) {
@@ -507,9 +457,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeAiConnection || all) {
-                promises.push(
-                    safeDynamicImport(import("../ai-connection/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../ai-connection/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeOpenClaw || all) {
@@ -525,21 +473,11 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeExternalService || all) {
-                promises.push(
-                    safeDynamicImport(import("../external-service/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../external-service/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDehydratedDevice || all) {
-                promises.push(
-                    safeDynamicImport(import("../dehydrated-device/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeDelayedEvents || all) {
-                promises.push(
-                    safeDynamicImport(import("../delayed-events/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../dehydrated-device/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeThread || all) {
@@ -551,15 +489,11 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeServerCapabilities || all) {
-                promises.push(
-                    safeDynamicImport(import("../server-capabilities/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../server-capabilities/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSyncManagement || all) {
-                promises.push(
-                    safeDynamicImport(import("../sync-management/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../sync-management/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeFilter || all) {
@@ -571,9 +505,7 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeTurnServer || all) {
-                promises.push(
-                    safeDynamicImport(import("../turn-server/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../turn-server/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSearch || all) {
@@ -585,39 +517,27 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeReadReceipts || all) {
-                promises.push(
-                    safeDynamicImport(import("../read-receipts/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../read-receipts/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeNotifications || all) {
-                promises.push(
-                    safeDynamicImport(import("../notifications/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../notifications/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeTagsManagement || all) {
-                promises.push(
-                    safeDynamicImport(import("../tags-management/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../tags-management/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSecretStorage || all) {
-                promises.push(
-                    safeDynamicImport(import("../secret-storage/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../secret-storage/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeCrossSigning || all) {
-                promises.push(
-                    safeDynamicImport(import("../cross-signing/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../cross-signing/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoomSettings || all) {
-                promises.push(
-                    safeDynamicImport(import("../room-settings/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../room-settings/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeRoomState || all) {
@@ -625,21 +545,23 @@ export async function extendMatrixClientWithManagers(
             }
 
             if (currentOptions.includeServerTime || all) {
-                promises.push(
-                    safeDynamicImport(import("../server-time/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../server-time/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeBackgroundUpdate || all) {
-                promises.push(
-                    safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../background-update/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeUserDirectory || all) {
-                promises.push(
-                    safeDynamicImport(import("../user-directory/index.js").then((m) => m?.extendMatrixClient())),
-                );
+                promises.push(safeDynamicImport(import("../user-directory/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeReactions || all) {
+                promises.push(safeDynamicImport(import("../reactions/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeBeacon || all) {
+                promises.push(safeDynamicImport(import("../beacon/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             await Promise.all(promises);

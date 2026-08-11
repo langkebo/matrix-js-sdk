@@ -3853,12 +3853,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getUnsentEvents(_roomId: string): MatrixEvent[] {
         return [];
     }
-    public reactToMessage(roomId: string, eventId: string, key: string): Promise<void> {
+    public reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined> {
         return this.getRoomEventsManager()
             .sendReaction(roomId, eventId, key)
-            .then(() => undefined);
+            .then((response: { event_id?: string }) => response?.event_id);
     }
-    public async redactReaction(_roomId: string, _eventId: string): Promise<void> {}
+    public redactReaction(roomId: string, eventId: string, reason?: string): Promise<{ event_id: string }> {
+        return this.redactEvent(roomId, eventId, reason);
+    }
     public getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>> {
         return this.getReactionsManager()
             .getReactionUsers(roomId, eventId)
